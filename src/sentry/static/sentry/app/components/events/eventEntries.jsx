@@ -249,7 +249,7 @@ class EventEntries extends React.Component {
           <EventGroupingInfo
             projectId={project.slug}
             event={event}
-            showSelector={features.has('set-grouping-config')}
+            showGroupingConfig={features.has('set-grouping-config')}
           />
         )}
         {!isShare && features.has('event-attachments') && (
