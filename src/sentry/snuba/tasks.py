@@ -57,7 +57,7 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     default_retry_delay=5,
     max_retries=5,
 )
-def update_subscription_in_snuba(query_subscription_id, **kwargs):
+def update_subscription_in_snuba(query_subscription_id, old_dataset=None, **kwargs):
     """
     Task to update a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. Updating in Snuba means deleting the existing subscription, then creating a
@@ -74,9 +74,8 @@ def update_subscription_in_snuba(query_subscription_id, **kwargs):
         return
 
     if subscription.subscription_id is not None:
-        _delete_from_snuba(
-            QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
-        )
+        dataset = old_dataset if old_dataset is not None else subscription.snuba_query.dataset
+        _delete_from_snuba(QueryDatasets(dataset), subscription.subscription_id)
 
     subscription_id = _create_in_snuba(subscription)
     subscription.update(
