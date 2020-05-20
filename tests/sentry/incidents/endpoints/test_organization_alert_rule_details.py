@@ -74,7 +74,7 @@ class AlertRuleDetailsBase(object):
             data=data,
         )
 
-        assert serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
         return alert_rule
 
