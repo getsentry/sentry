@@ -24,6 +24,11 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
     return [['data', `/projects/${organization.slug}/${project.slug}/`]];
   }
 
+  handleUpdateProject = (data: Project) => {
+    // This will update our project global state
+    ProjectActions.updateSuccess(data);
+  };
+
   renderBody() {
     const {organization, project} = this.props;
     const initialData = this.state.data;
@@ -42,10 +47,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
           initialData={initialData}
           apiMethod={apiMethod}
           apiEndpoint={endpoint}
-          onSubmitSuccess={resp => {
-            // This will update our project context
-            ProjectActions.updateSuccess(resp);
-          }}
+          onSubmitSuccess={this.handleUpdateProject}
         >
           <JsonForm
             title={t('Data Privacy')}
@@ -82,6 +84,11 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
           disabled={!access.has('project:write')}
+          organization={organization}
+          projectId={project.id}
+          onSubmitSuccess={resp => {
+            this.handleUpdateProject(resp as Project);
+          }}
         />
       </React.Fragment>
     );

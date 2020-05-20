@@ -6,20 +6,12 @@ import space from 'app/styles/space';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 
-import {RuleType, MethodType} from './types';
+import {Rule, RuleType, MethodType} from '../types';
+import {getMethodTypeLabel, getRuleTypeLabel} from './utils';
 import Source from './source';
 import DataPrivacyRulesFormField from './dataPrivacyRulesFormField';
 import DataPrivacyRulesFormSelectControl from './dataPrivacyRulesFormSelectControl';
 import DataPrivacyRulesFormEventId from './dataPrivacyRulesFormEventId';
-import {getMethodTypeLabel, getRuleTypeLabel} from './utils';
-
-type Rule = {
-  id: number;
-  type: RuleType;
-  method: MethodType;
-  source: string;
-  customRegularExpression?: string;
-};
 
 type EventIdProps = React.ComponentProps<typeof DataPrivacyRulesFormEventId>;
 type SourceProps = React.ComponentProps<typeof Source>;
