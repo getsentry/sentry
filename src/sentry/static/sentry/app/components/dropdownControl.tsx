@@ -57,7 +57,7 @@ class DropdownControl extends React.Component<Props> {
     menuWidth: '100%',
   };
 
-  renderButton(isOpen: boolean, getActorProps) {
+  renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
     const {label, button, buttonProps} = this.props;
     if (button) {
       return button({isOpen, getActorProps});
