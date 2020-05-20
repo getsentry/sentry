@@ -15,6 +15,7 @@ function renderComponent({
 }: Partial<Source['props']>) {
   return mountWithTheme(
     <Source
+      isRegExMatchesSelected={false}
       suggestions={defaultSuggestions}
       onChange={onChange}
       value={value}
