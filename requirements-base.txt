@@ -7,7 +7,7 @@ confluent-kafka==0.11.5
 croniter>=0.3.26,<0.4.0
 datadog>=0.15.0,<0.31.0
 django-crispy-forms==1.7.2
-django-picklefield>=0.3.0,<1.1.0
+django-picklefield>=1.1.0,<1.2.0
 django-sudo>=3.0.0,<4.0.0
 Django>=1.11,<1.12
 djangorestframework==3.6.4
