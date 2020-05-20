@@ -246,8 +246,7 @@ class Source extends React.Component<Props, State> {
       return;
     }
 
-    const isPossiblyARegularExpression =
-      RegExp('^/.*/g?$').test(value);
+    const isPossiblyARegularExpression = RegExp('^/.*/g?$').test(value);
 
     if (help) {
       if (!isPossiblyARegularExpression) {
