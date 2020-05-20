@@ -25,12 +25,12 @@ type Props = DefaultProps & {
   /**
    * String or element for the button contents.
    */
-  label?: string | JSX.Element | null;
+  label?: string | React.ReactNode | null;
   /**
    * A closure that returns a styled button. Function will get {isOpen, getActorProps}
    * as arguments. Use this if you need to style/replace the dropdown button.
    */
-  button?: (props: {isOpen: boolean; getActorProps: GetActorPropsFn}) => JSX.Element;
+  button?: (props: {isOpen: boolean; getActorProps: GetActorPropsFn}) => React.ReactNode;
   /**
    * Align the dropdown menu to the right. (Default aligns to left)
    */
