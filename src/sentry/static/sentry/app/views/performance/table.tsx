@@ -1,6 +1,5 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
-import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
@@ -115,11 +114,10 @@ class Table extends React.Component<Props, State> {
 
               const nextEventView = eventView.sortOnField(field, tableMeta);
               const queryStringObject = nextEventView.generateQueryStringObject();
-              const omitKeys = ['widths', 'query', 'name', 'field'];
 
               return {
                 ...location,
-                query: omit(queryStringObject, omitKeys),
+                query: {...location.query, sort: queryStringObject.sort},
               };
             }
             const currentSort = eventView.sortForField(field, tableMeta);
