@@ -18,16 +18,17 @@ from sentry.testutils import TestCase, APITestCase
 
 class BaseAlertRuleSerializerTest(object):
     def assert_alert_rule_serialized(self, alert_rule, result, skip_dates=False):
+        aggregation = aggregate_to_query_aggregation.get(alert_rule.snuba_query.aggregate, None)
+        if aggregation:
+            aggregation = aggregation.value
+
         assert result["id"] == six.text_type(alert_rule.id)
         assert result["organizationId"] == six.text_type(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
         assert result["dataset"] == alert_rule.snuba_query.dataset
         assert result["query"] == alert_rule.snuba_query.query
         assert result["aggregate"] == alert_rule.snuba_query.aggregate
-        assert (
-            result["aggregation"]
-            == aggregate_to_query_aggregation[alert_rule.snuba_query.aggregate].value
-        )
+        assert result["aggregation"] == aggregation
         assert result["timeWindow"] == alert_rule.snuba_query.time_window / 60
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period

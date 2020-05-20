@@ -22,7 +22,6 @@ from sentry.incidents.models import (
 )
 from sentry.integrations.slack.utils import build_incident_attachment
 from sentry.models import Integration, UserOption
-from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 
@@ -87,6 +86,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         action = self.create_alert_rule_trigger_action()
         incident = self.create_incident()
         handler = EmailActionHandler(action, incident, self.project)
+        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
         expected = {
             "link": absolute_uri(
                 reverse(
@@ -108,11 +108,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                 )
             ),
             "incident_name": incident.title,
-            "aggregate": handler.query_aggregations_display[
-                aggregate_to_query_aggregation[
-                    action.alert_rule_trigger.alert_rule.snuba_query.aggregate
-                ]
-            ],
+            "aggregate": handler.query_aggregates_display.get(aggregate, aggregate),
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
             "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
