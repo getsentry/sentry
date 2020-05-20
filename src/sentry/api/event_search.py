@@ -1493,7 +1493,8 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
 
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
-    if aggregations:
+    # But ignore the project transform aggregation
+    if aggregations and not (len(aggregations) == 1 and project_key):
         for column in columns:
             if isinstance(column, (list, tuple)):
                 groupby.append(column[2])
