@@ -247,7 +247,7 @@ class Source extends React.Component<Props, State> {
     }
 
     const isPossiblyARegularExpression =
-      RegExp('^/').test(value) || RegExp('/g$').test(value);
+      RegExp('^/').test(value) || RegExp('/g$').test(value) || RegExp('/$').test(value);
 
     if (help) {
       if (!isPossiblyARegularExpression) {
