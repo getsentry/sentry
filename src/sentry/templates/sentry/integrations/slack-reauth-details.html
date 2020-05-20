@@ -41,10 +41,10 @@
 
 
 {% block main %}
-    <h3>Time For An Upgrade</h3>
+    <h3>{% trans "Time For An Upgrade" %}</h3>
     {% if private %}
         <div class="private">
-            <strong>Well, look who has private channels with alert rules.</strong>
+            <strong>{% trans "Well, look who has private channels with alert rules." %}</strong>
             <p class="section-info">
                 {% blocktrans %}
                 So what does this mean for you and the future of your channels? Not much.
@@ -63,7 +63,7 @@
             </p>
         </div>
 
-        <strong>Next Steps</strong>
+        <strong>{% trans "Next Steps" %}</strong>
         <p class="section-info">
             {% blocktrans %}
             Click <strong>Upgrade</strong> to start the authentication flow for the new Slack app.
@@ -74,7 +74,7 @@
 
     <div>
         {% if not private %}
-            <h5>Next Steps</h5>
+            <h5>{% trans "Next Steps" %}</h5>
             <p>
                 {% blocktrans %}
                 See, that wasn't so bad. Just click <strong>Upgrade</strong> to start the authentication flow for the new Slack app.
@@ -85,8 +85,10 @@
 
     <div class="form-actions clearfix">
         <div>
-            <div class="footer-text">Have questions? Emails us at
-                <a href="mailto:partners@sentry.io?subject=Slack Upgrade"><strong>partners@sentry.io</strong></a>
+            <div class="footer-text">
+                {% blocktrans %}
+                Have questions? Emails us at <a href="mailto:partners@sentry.io?subject=Slack Upgrade"><strong>partners@sentry.io</strong></a>
+                {% endblocktrans %}
             </div>
             <div class="pull-right">
                 <a class="btn btn-primary" onclick="loading()" href="{{ next_url }}">{% trans "Upgrade" %}</a>

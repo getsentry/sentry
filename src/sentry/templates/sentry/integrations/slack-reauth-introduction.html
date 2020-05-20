@@ -143,8 +143,10 @@
     <div id="loader"></div>
     <div class="form-actions clearfix">
         <div>
-            <div class="footer-text">Have questions? Emails us at
-                <a href="mailto:partners@sentry.io?subject=Slack Upgrade"><strong>partners@sentry.io</strong></a>
+            <div class="footer-text">
+                {% blocktrans %}
+                Have questions? Emails us at <a href="mailto:partners@sentry.io?subject=Slack Upgrade"><strong>partners@sentry.io</strong></a>
+                {% endblocktrans %}
             </div>
             <div class="pull-right">
                 <a class="btn btn-primary" onclick="loading()" href="{{ next_url }}">{% trans "Continue" %}</a>
