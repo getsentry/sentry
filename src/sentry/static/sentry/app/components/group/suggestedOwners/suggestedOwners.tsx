@@ -184,5 +184,4 @@ class SuggestedOwners extends React.Component<Props, State> {
     );
   }
 }
-export {SuggestedOwners};
 export default withApi(withOrganization(SuggestedOwners));
