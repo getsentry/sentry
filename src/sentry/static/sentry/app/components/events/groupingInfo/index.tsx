@@ -67,9 +67,9 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     }
 
     const groupedBy = Object.values(groupInfo)
-      .filter(variant => variant.hash !== null)
+      .filter(variant => variant.hash !== null && variant.description !== null)
       .map(variant => variant.description)
-      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      .sort((a, b) => a!.toLowerCase().localeCompare(b!.toLowerCase()))
       .join(', ');
 
     return <small>{`(${t('grouped by')} ${groupedBy || t('nothing')})`}</small>;
@@ -99,7 +99,9 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     const variants = Object.values(groupInfo).sort((a, b) =>
       a.hash && !b.hash
         ? -1
-        : a.description.toLowerCase().localeCompare(b.description.toLowerCase())
+        : a.description
+            ?.toLowerCase()
+            .localeCompare(b.description?.toLowerCase() ?? '') ?? 1
     );
 
     return (

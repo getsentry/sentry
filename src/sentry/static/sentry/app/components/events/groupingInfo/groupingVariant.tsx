@@ -53,7 +53,7 @@ class GroupVariant extends React.Component<Props, State> {
           <QuestionTooltip
             size="xs"
             position="top"
-            title="Events with the same hash are grouped together"
+            title={t('Events with the same hash are grouped together')}
           />
         </TextWithQuestionTooltip>,
       ]);
