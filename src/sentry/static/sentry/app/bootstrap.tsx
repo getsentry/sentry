@@ -29,6 +29,10 @@ import plugins from 'app/plugins';
 import routes from 'app/routes';
 import {normalizeTransactionName} from 'app/utils/apm';
 
+if (process.env.NODE_ENV === 'development') {
+  import(/* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings');
+}
+
 function getSentryIntegrations(hasReplays: boolean = false) {
   const integrations = [
     new ExtraErrorData({
