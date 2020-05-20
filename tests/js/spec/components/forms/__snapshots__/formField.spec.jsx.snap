@@ -171,6 +171,47 @@ exports[`FormField + model renders with Form 1`] = `
                                     field={[Function]}
                                     id="fieldName"
                                     initialData={Object {}}
+                                    model={
+                                      FormModel {
+                                        "api": Client {
+                                          "_chain": [Function],
+                                          "_wrapRequest": [Function],
+                                          "bulkUpdate": [Function],
+                                          "handleRequestError": [Function],
+                                          "hasProjectBeenRenamed": [Function],
+                                        },
+                                        "errors": Object {},
+                                        "fieldDescriptor": Map {
+                                          "fieldName" => Object {
+                                            "children": [Function],
+                                            "className": undefined,
+                                            "field": [Function],
+                                            "flexibleControlStateSize": false,
+                                            "hideErrorMessage": false,
+                                            "name": "fieldName",
+                                            "type": "text",
+                                          },
+                                        },
+                                        "fieldState": Object {},
+                                        "fields": Object {},
+                                        "formErrors": undefined,
+                                        "formState": undefined,
+                                        "initialData": Object {},
+                                        "options": Object {
+                                          "allowUndo": false,
+                                          "apiEndpoint": undefined,
+                                          "apiMethod": undefined,
+                                          "onFieldChange": undefined,
+                                          "onSubmitError": undefined,
+                                          "onSubmitSuccess": undefined,
+                                          "resetOnError": undefined,
+                                          "saveOnBlur": false,
+                                        },
+                                        "snapshots": Array [
+                                          Map {},
+                                        ],
+                                      }
+                                    }
                                     name="fieldName"
                                     onBlur={[Function]}
                                     onChange={[Function]}
