@@ -1,6 +1,7 @@
-// TODO(matej): I would like to refactor this to reusable component
 import React from 'react';
+import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
 import {tct} from 'app/locale';
 import Button from 'app/components/button';
 import {IconAdd, IconSubtract} from 'app/icons';
@@ -31,18 +32,23 @@ class GroupingComponentFrames extends React.Component<Props, State> {
   render() {
     const {items, maxVisibleItems} = this.props;
     const {collapsed} = this.state;
+    const isCollapsable = items.length > maxVisibleItems;
 
     return (
       <React.Fragment>
         {items.map((item, index) => {
           if (!collapsed || index < maxVisibleItems) {
-            return item;
+            return (
+              <GroupingComponentListItem isCollapsable={isCollapsable} key={index}>
+                {item}
+              </GroupingComponentListItem>
+            );
           }
 
           if (index === maxVisibleItems) {
             return (
-              <GroupingComponentListItem>
-                <Button
+              <GroupingComponentListItem key={index}>
+                <ToggleCollapse
                   size="small"
                   priority="link"
                   icon={<IconAdd size="8px" />}
@@ -51,7 +57,7 @@ class GroupingComponentFrames extends React.Component<Props, State> {
                   {tct('show [numberOfFrames] similiar', {
                     numberOfFrames: items.length - maxVisibleItems,
                   })}
-                </Button>
+                </ToggleCollapse>
               </GroupingComponentListItem>
             );
           }
@@ -61,7 +67,7 @@ class GroupingComponentFrames extends React.Component<Props, State> {
 
         {!collapsed && items.length > maxVisibleItems && (
           <GroupingComponentListItem>
-            <Button
+            <ToggleCollapse
               size="small"
               priority="link"
               icon={<IconSubtract size="8px" />}
@@ -70,12 +76,16 @@ class GroupingComponentFrames extends React.Component<Props, State> {
               {tct('collapse [numberOfFrames] similiar', {
                 numberOfFrames: items.length - maxVisibleItems,
               })}
-            </Button>
+            </ToggleCollapse>
           </GroupingComponentListItem>
         )}
       </React.Fragment>
     );
   }
 }
+
+const ToggleCollapse = styled(Button)`
+  margin: ${space(0.5)} 0;
+`;
 
 export default GroupingComponentFrames;

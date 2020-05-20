@@ -19,7 +19,7 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   projectId: string;
   event: Event;
-  showSelector: boolean;
+  showGroupingConfig: boolean;
 };
 
 type State = AsyncComponent['state'] & {
@@ -94,7 +94,7 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 
   renderGroupInfo() {
     const {groupInfo, loading} = this.state;
-    const {showSelector} = this.props;
+    const {showGroupingConfig} = this.props;
 
     const variants = Object.values(groupInfo).sort((a, b) =>
       a.hash && !b.hash
@@ -104,14 +104,14 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        {showSelector && this.renderGroupConfigSelect()}
+        {showGroupingConfig && this.renderGroupConfigSelect()}
 
         {loading ? (
           <LoadingIndicator />
         ) : (
           variants.map((variant, index) => (
             <React.Fragment key={variant.key}>
-              <GroupVariant variant={variant} />
+              <GroupVariant variant={variant} showGroupingConfig={showGroupingConfig} />
               {index < variants.length - 1 && <VariantDivider />}
             </React.Fragment>
           ))
