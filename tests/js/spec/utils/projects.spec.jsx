@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import Projects from 'app/utils/projects';
 import ProjectsStore from 'app/stores/projectsStore';
 import ProjectActions from 'app/actions/projectActions';

@@ -3,6 +3,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import Onboarding, {stepPropTypes} from 'app/views/onboarding/onboarding';
 import ProjectsStore from 'app/stores/projectsStore';
 

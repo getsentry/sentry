@@ -2,10 +2,11 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select';
+
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 import ProjectsStore from 'app/stores/projectsStore';
-import {selectByValue} from 'sentry-test/select';
 
 jest.mock('jquery');
 

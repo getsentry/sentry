@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import {TeamCreate} from 'app/views/teamCreate';
 
 describe('TeamCreate', function() {

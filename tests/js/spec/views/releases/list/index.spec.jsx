@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectsStore from 'app/stores/projectsStore';
 import ReleaseList from 'app/views/releases/list/';
 
