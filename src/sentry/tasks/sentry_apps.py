@@ -311,7 +311,7 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
-    finally:
+    else:
         track_response_code(resp.status_code, slug, event)
         buffer.add_request(
             response_code=resp.status_code,
