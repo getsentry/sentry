@@ -103,6 +103,7 @@ const DataPrivacyRulesForm = ({
         onChange={(value: string) => {
           onChange('source', value);
         }}
+        isRegExMatchesSelected={type === RuleType.PATTERN}
         value={source}
         onBlur={onValidate('source')}
         suggestions={sourceSuggestions}
