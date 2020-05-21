@@ -609,7 +609,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           ? `"${value.replace('"', '\\"')}"`
           : value;
 
-        return {value: escapedValue, desc: escapedValue};
+        return {value: escapedValue, desc: escapedValue, type: 'tag-value' as ItemType};
       });
     },
     DEFAULT_DEBOUNCE_DURATION,
@@ -967,10 +967,9 @@ class SmartSearchBar extends React.Component<Props, State> {
     let newQuery: string;
 
     // If not postfixed with : (tag value), add trailing space
-    const lastChar = replaceText.charAt(replaceText.length - 1);
-    replaceText += lastChar === ':' || lastChar === '.' ? '' : ' ';
+    replaceText += item.type !== 'tag-value' || cursor < query.length ? '' : ' ';
 
-    const isNewTerm = query.charAt(query.length - 1) === ' ';
+    const isNewTerm = query.charAt(query.length - 1) === ' ' && item.type !== 'tag-value';
 
     if (!terms) {
       newQuery = replaceText;
