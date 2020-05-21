@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 
-export type Props = React.ComponentProps<typeof Button> & {
+type Props = React.ComponentProps<typeof Button> & {
   isOpen?: boolean;
   showChevron?: boolean;
   forwardedRef?: React.Ref<typeof Button>;

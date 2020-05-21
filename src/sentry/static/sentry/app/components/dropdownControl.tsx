@@ -2,9 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import DropdownBubble from 'app/components/dropdownBubble';
-import DropdownButton, {
-  Props as DropdownButtonProps,
-} from 'app/components/dropdownButton';
+import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu, {GetActorPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
 import theme from 'app/utils/theme';
@@ -38,7 +36,7 @@ type Props = DefaultProps & {
   /**
    * Props to pass to DropdownButton
    */
-  buttonProps?: DropdownButtonProps;
+  buttonProps?: React.ComponentProps<typeof DropdownButton>;
   /**
    * This makes the dropdown menu blend (e.g. corners are not rounded) with its
    * actor (opener) component
