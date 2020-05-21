@@ -59,7 +59,7 @@ type State = {
   query: string;
   aggregation: AlertRuleAggregations;
   timeWindow: number;
-  environment: string | string[] | null;
+  environment: string | null;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
