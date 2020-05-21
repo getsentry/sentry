@@ -16,7 +16,7 @@ from sentry.incidents.endpoints.serializers import (
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models import Integration, Environment
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.testutils import TestCase
 
 
@@ -26,6 +26,7 @@ class TestAlertRuleSerializer(TestCase):
         return {
             "name": "hello",
             "time_window": 10,
+            "dataset": QueryDatasets.EVENTS.value,
             "query": "level:error",
             "threshold_type": 0,
             "resolve_threshold": 1,
@@ -110,6 +111,12 @@ class TestAlertRuleSerializer(TestCase):
         self.run_fail_validation_test(
             {"timeWindow": 0}, {"timeWindow": ["Ensure this value is greater than or equal to 1."]}
         )
+
+    def test_dataset(self):
+        invalid_values = [
+            "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+        ]
+        self.run_fail_validation_test({"dataset": "events_wrong"}, {"dataset": invalid_values})
 
     def test_aggregation(self):
         invalid_values = [

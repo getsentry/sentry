@@ -479,6 +479,7 @@ def create_alert_rule(
     environment=None,
     include_all_projects=False,
     excluded_projects=None,
+    dataset=QueryDatasets.EVENTS,
 ):
     """
     Creates an alert rule for an organization.
@@ -498,10 +499,10 @@ def create_alert_rule(
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
+    :param dataset: The dataset that this query will be executed on
 
     :return: The created `AlertRule`
     """
-    dataset = QueryDatasets.EVENTS
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
     validate_alert_rule_query(query)
     if AlertRule.objects.filter(organization=organization, name=name).exists():
@@ -574,6 +575,7 @@ def snapshot_alert_rule(alert_rule):
 
 def update_alert_rule(
     alert_rule,
+    dataset=None,
     projects=None,
     name=None,
     query=None,
@@ -626,6 +628,8 @@ def update_alert_rule(
         updated_fields["threshold_period"] = threshold_period
     if include_all_projects is not None:
         updated_fields["include_all_projects"] = include_all_projects
+    if dataset is not None and dataset.value != alert_rule.snuba_query.dataset:
+        updated_query_fields["dataset"] = dataset
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -635,6 +639,7 @@ def update_alert_rule(
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
             snuba_query = alert_rule.snuba_query
+            updated_query_fields.setdefault("dataset", QueryDatasets(snuba_query.dataset))
             updated_query_fields.setdefault("query", snuba_query.query)
             # XXX: We use the alert rule aggregation here since currently we're
             # expecting the enum value to be passed.

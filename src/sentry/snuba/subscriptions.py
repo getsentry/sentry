@@ -4,7 +4,7 @@ import logging
 
 from django.db import transaction
 
-from sentry.snuba.models import QueryAggregations, QuerySubscription, SnubaQuery
+from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription, SnubaQuery
 from sentry.snuba.tasks import (
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
@@ -45,7 +45,9 @@ def create_snuba_query(dataset, query, aggregate, time_window, resolution, envir
     )
 
 
-def update_snuba_query(snuba_query, query, aggregate, time_window, resolution, environment):
+def update_snuba_query(
+    snuba_query, dataset, query, aggregate, time_window, resolution, environment
+):
     """
     Updates a SnubaQuery. Triggers updates to any related QuerySubscriptions.
 
@@ -59,16 +61,18 @@ def update_snuba_query(snuba_query, query, aggregate, time_window, resolution, e
     :param environment: An optional environment to filter by
     :return: A list of QuerySubscriptions
     """
+    old_dataset = QueryDatasets(snuba_query.dataset)
     with transaction.atomic():
         query_subscriptions = list(snuba_query.subscriptions.all())
         snuba_query.update(
+            dataset=dataset.value,
             query=query,
             aggregate=aggregate,
             time_window=int(time_window.total_seconds()),
             resolution=int(resolution.total_seconds()),
             environment=environment,
         )
-        bulk_update_snuba_subscriptions(query_subscriptions, snuba_query)
+        bulk_update_snuba_subscriptions(query_subscriptions, old_dataset)
 
 
 def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
@@ -111,7 +115,7 @@ def create_snuba_subscription(project, subscription_type, snuba_query):
     return subscription
 
 
-def bulk_update_snuba_subscriptions(subscriptions, snuba_query):
+def bulk_update_snuba_subscriptions(subscriptions, old_dataset):
     """
     Updates a list of query subscriptions.
 
@@ -122,26 +126,26 @@ def bulk_update_snuba_subscriptions(subscriptions, snuba_query):
     updated_subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for subscription in subscriptions:
-        updated_subscriptions.append(update_snuba_subscription(subscription, snuba_query))
+        updated_subscriptions.append(update_snuba_subscription(subscription, old_dataset))
     return subscriptions
 
 
-def update_snuba_subscription(subscription, snuba_query):
+def update_snuba_subscription(subscription, old_dataset):
     """
     Updates a subscription to a snuba query.
 
     :param query: An event search query that we can parse and convert into a
     set of Snuba conditions
-    :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
-    :param aggregation: An aggregation to calculate over the time window. This will be
-    removed soon, once we're relying entirely on `snuba_query`.
+    :param old_dataset: The `QueryDataset` that this subscription was associated with
+    before the update.
     :return: The QuerySubscription representing the subscription
     """
     with transaction.atomic():
         subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
         update_subscription_in_snuba.apply_async(
-            kwargs={"query_subscription_id": subscription.id}, countdown=5
+            kwargs={"query_subscription_id": subscription.id, "old_dataset": old_dataset.value},
+            countdown=5,
         )
 
     return subscription
