@@ -2,6 +2,7 @@ import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import SettingsHeader from 'app/views/settings/components/settingsHeader';
+import {Theme} from 'app/utils/theme';
 
 type Params = {
   /**
@@ -24,6 +25,8 @@ type Params = {
    * enable the arrow on the menu
    */
   menuWithArrow?: boolean;
+
+  theme: Theme;
 };
 
 /**
@@ -37,8 +40,7 @@ const getMenuBorderRadius = ({
   alignMenu,
   width,
   theme,
-}: // eslint-disable-next-line no-use-before-define
-React.ComponentProps<typeof DropdownBubble>) => {
+}: Params) => {
   const radius = theme.borderRadius;
   if (!blendCorner) {
     return css`
