@@ -35,8 +35,8 @@ type MenuProps = {
   onMouseLeave: (e: React.MouseEvent<Element>) => void;
 };
 
-type GetActorPropsFn = (opts: GetActorArgs) => ActorProps;
-type GetMenuPropsFn = (opts: GetMenuArgs) => MenuProps;
+export type GetActorPropsFn = (opts?: GetActorArgs) => ActorProps;
+type GetMenuPropsFn = (opts?: GetMenuArgs) => MenuProps;
 
 type RenderProps = {
   isOpen: boolean;
@@ -320,7 +320,7 @@ class DropdownMenu extends React.Component<Props, State> {
     onKeyDown,
     style = {},
     ...props
-  } = {}) => {
+  }: GetActorArgs = {}) => {
     const {isNestedDropdown, closeOnEscape} = this.props;
 
     const refProps = {ref: this.handleActorMount};
