@@ -115,7 +115,7 @@ const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
 `;
 
-const Content = styled(DropdownBubble.withComponent('div'))<{isOpen: boolean}>`
+const Content = styled(DropdownBubble)<{isOpen: boolean}>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
   border-top: 0;
   top: 100%;
