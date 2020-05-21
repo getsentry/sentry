@@ -58,6 +58,11 @@ export async function normalizeTransactionName(
         set(event, ['tags', 'transaction.rename.router-match'], 'success');
 
         const routePath = getRouteStringFromRoutes(renderProps.routes ?? []);
+
+        if (routePath.length === 0 || routePath === '/*') {
+          return resolve(window.location.pathname);
+        }
+
         return resolve(routePath);
       }
     );
