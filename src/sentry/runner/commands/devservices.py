@@ -186,6 +186,8 @@ def _prepare_containers(project, silent=False):
         options["ports"] = ensure_interface(options["ports"])
         containers[name] = options
 
+    # keys are service names
+    # a service has 1 container exactly, the container name being value["name"]
     return containers
 
 
@@ -335,9 +337,7 @@ def rm(project, services):
     if services:
         selected_containers = {}
         for service in services:
-            # XXX: This isn't great, we assume a service has 1 container following naming schema
-            # PROJECT_SERVICE. Like sentry_redis.
-            # This code is also fairly duplicated in here at this point, so dedupe in the future.
+            # XXX: This code is also fairly duplicated in here at this point, so dedupe in the future.
             if service not in containers:
                 click.secho(
                     "Service `{}` is not known or not enabled.\n".format(service),
