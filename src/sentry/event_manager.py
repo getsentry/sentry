@@ -1074,8 +1074,9 @@ def _save_aggregate(event, hashes, release, **kwargs):
         # make sure it still exists
         first_release = kwargs.pop("first_release", None)
 
+        short_id = project.next_short_id()
+
         with transaction.atomic():
-            short_id = project.next_short_id()
             group, group_is_new = (
                 Group.objects.create(
                     project=project,
