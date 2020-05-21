@@ -51,7 +51,7 @@ def merge_groups(
 
     if not (from_object_ids and to_object_id):
         logger.error("group.malformed.missing_params", extra={"transaction_id": transaction_id})
-        return
+        return False
 
     # Operate on one "from" group per task iteration. The task is recursed
     # until each group has been merged.
@@ -64,7 +64,7 @@ def merge_groups(
             "group.malformed.invalid_id",
             extra={"transaction_id": transaction_id, "old_object_ids": from_object_ids},
         )
-        return
+        return False
 
     if not recursed:
         logger.info(
@@ -194,7 +194,6 @@ def merge_groups(
     elif eventstream_state:
         # All `from_object_ids` have been merged!
         eventstream.end_merge(eventstream_state)
-    return True
 
 
 def _get_event_environment(event, project, cache):

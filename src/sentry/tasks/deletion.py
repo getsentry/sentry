@@ -237,8 +237,6 @@ def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwa
         if eventstream_state:
             eventstream.end_delete_groups(eventstream_state)
 
-    return True
-
 
 @instrumented_task(
     name="sentry.tasks.deletion.delete_api_application",

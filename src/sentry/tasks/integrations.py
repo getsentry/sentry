@@ -199,11 +199,11 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
             id=group_id, status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED]
         )[0]
     except IndexError:
-        return
+        return False
 
     has_issue_sync = features.has("organizations:integrations-issue-sync", group.organization)
     if not has_issue_sync:
-        return
+        return False
 
     try:
         external_issue = ExternalIssue.objects.get(id=external_issue_id)
@@ -222,7 +222,6 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
             id=integration.id,
             organization_id=external_issue.organization_id,
         )
-    return True
 
 
 @instrumented_task(
@@ -245,7 +244,6 @@ def kick_off_status_syncs(project_id, group_id, **kwargs):
         sync_status_outbound.apply_async(
             kwargs={"group_id": group_id, "external_issue_id": external_issue_id}
         )
-    return True
 
 
 @instrumented_task(

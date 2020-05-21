@@ -84,15 +84,15 @@ def track_group_async_operation(function):
     def wrapper(*args, **kwargs):
         try:
             response = function(*args, **kwargs)
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500 if response is False else 200},
+            )
+            return response
         except Exception:
-            metrics.incr("group.update.async_task", sample_rate=1.0, tags={"status": 500})
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
             # Continue raising the error now that we've incr the metric
             raise
-        metrics.incr(
-            "group.update.async_task",
-            sample_rate=1.0,
-            tags={"status": 200 if response is True else 500},
-        )
-        return response
 
     return wrapper
