@@ -5,6 +5,7 @@ import moment from 'moment';
 import {defined} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 const getBreadcrumbTimeTooltipTitle = (timestamp: string) => {
   const parsedTimestamp = moment(timestamp);
@@ -33,4 +34,5 @@ export default BreadcrumbTime;
 const Time = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray4};
+  ${overflowEllipsis};
 `;
