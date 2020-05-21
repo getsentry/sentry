@@ -98,19 +98,6 @@ from .endpoints.organization_events_meta import (
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
-from .endpoints.organization_incident_activity_index import (
-    OrganizationIncidentActivityIndexEndpoint,
-)
-from .endpoints.organization_incident_comment_details import (
-    OrganizationIncidentCommentDetailsEndpoint,
-)
-from .endpoints.organization_incident_comment_index import OrganizationIncidentCommentIndexEndpoint
-from .endpoints.organization_incident_details import OrganizationIncidentDetailsEndpoint
-from .endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
-from .endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
-from .endpoints.organization_incident_subscription_index import (
-    OrganizationIncidentSubscriptionIndexEndpoint,
-)
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
@@ -311,7 +298,24 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
     ProjectAlertRuleIndexEndpoint,
     ProjectCombinedRuleIndexEndpoint,
 )
+from sentry.incidents.endpoints.organization_incident_activity_index import (
+    OrganizationIncidentActivityIndexEndpoint,
+)
+from sentry.incidents.endpoints.organization_incident_comment_details import (
+    OrganizationIncidentCommentDetailsEndpoint,
+)
+from sentry.incidents.endpoints.organization_incident_comment_index import (
+    OrganizationIncidentCommentIndexEndpoint,
+)
+from sentry.incidents.endpoints.organization_incident_details import (
+    OrganizationIncidentDetailsEndpoint,
+)
+from sentry.incidents.endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
+from sentry.incidents.endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
 from sentry.incidents.endpoints.organization_incident_stats import OrganizationIncidentStatsEndpoint
+from sentry.incidents.endpoints.organization_incident_subscription_index import (
+    OrganizationIncidentSubscriptionIndexEndpoint,
+)
 
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
