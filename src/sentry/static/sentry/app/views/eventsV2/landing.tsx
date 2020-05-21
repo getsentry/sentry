@@ -216,11 +216,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   renderActions() {
-    const {location, organization} = this.props;
-
-    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = eventView.getResultsViewUrlTarget(organization.slug);
-
     return (
       <StyledActions>
         <StyledSearchBar
@@ -229,21 +224,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           placeholder={t('Search for saved queries')}
           onSearch={this.handleSearchQuery}
         />
-        <StyledOr>or</StyledOr>
-        <StyledButton
-          data-test-id="build-new-query"
-          to={to}
-          priority="primary"
-          onClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.build_new_query',
-              eventName: 'Discoverv2: Build a new Discover Query',
-              organization_id: parseInt(this.props.organization.id, 10),
-            });
-          }}
-        >
-          {t('Build a new query')}
-        </StyledButton>
       </StyledActions>
     );
   }
@@ -271,6 +251,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     let body: React.ReactNode;
     const {location, organization} = this.props;
     const {loading, savedQueries, savedQueriesPageLinks, error} = this.state;
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
     if (loading) {
       body = this.renderLoading();
     } else if (error) {
@@ -278,7 +260,23 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     } else {
       body = (
         <PageContent>
-          <StyledPageHeader>{t('Discover')}</StyledPageHeader>
+          <StyledPageHeader>
+            {t('Discover')}
+            <StyledButton
+              data-test-id="build-new-query"
+              to={to}
+              priority="primary"
+              onClick={() => {
+                trackAnalyticsEvent({
+                  eventKey: 'discover_v2.build_new_query',
+                  eventName: 'Discoverv2: Build a new Discover Query',
+                  organization_id: parseInt(this.props.organization.id, 10),
+                });
+              }}
+            >
+              {t('Build a new query')}
+            </StyledButton>
+          </StyledPageHeader>
           {this.renderBanner()}
           {this.renderActions()}
           <QueryList
@@ -327,21 +325,15 @@ const StyledPageContent = styled(PageContent)`
 
 export const StyledPageHeader = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
-  height: 40px;
-  margin-bottom: ${space(1)};
+  color: ${p => p.theme.gray5};
+  justify-content: space-between;
+  margin-bottom: ${space(2)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-`;
-
-const StyledOr = styled('span')`
-  color: ${p => p.theme.gray2};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0 ${space(1.5)};
 `;
 
 const StyledActions = styled('div')`
