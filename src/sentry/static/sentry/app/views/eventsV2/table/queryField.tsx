@@ -40,9 +40,17 @@ type Props = {
   fieldOptions: FieldOptions;
   /**
    * The number of columns to render. Columns that do not have a parameter will
-   * render an empty parameter placeholder.
+   * render an empty parameter placeholder. Leave blank to avoid adding spacers.
    */
-  gridColumns: number;
+  gridColumns?: number;
+  /**
+   * Filter the options in the primary selector. Useful if you only want to
+   * show a subset of selectable items.
+   *
+   * NOTE: This is different from passing an already filtered fieldOptions
+   * list, as tag items in the list may be used as parameters to functions.
+   */
+  filterPrimaryOptions?: (option: SelectValue<FieldValue>) => boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
 };
 
@@ -200,7 +208,7 @@ class QueryField extends React.Component<Props> {
       field &&
       field.kind === FieldValueKind.FUNCTION &&
       field.meta.parameters.length > 0 &&
-      fieldValue.kind === 'function'
+      fieldValue.kind === FieldValueKind.FUNCTION
     ) {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
@@ -253,7 +261,6 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
-    const {gridColumns} = this.props;
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         return (
@@ -316,8 +323,9 @@ class QueryField extends React.Component<Props> {
 
     // Add enough disabled inputs to fill the grid up.
     // We always have 1 input.
-    const requiredInputs = gridColumns - inputs.length - 1;
-    if (requiredInputs > 0) {
+    const {gridColumns} = this.props;
+    const requiredInputs = (gridColumns ?? inputs.length + 1) - inputs.length - 1;
+    if (gridColumns !== undefined && requiredInputs > 0) {
       for (let i = 0; i < requiredInputs; i++) {
         inputs.push(<BlankSpace key={i} />);
       }
@@ -327,12 +335,16 @@ class QueryField extends React.Component<Props> {
   }
 
   render() {
-    const {className, takeFocus, gridColumns} = this.props;
+    const {className, takeFocus, filterPrimaryOptions} = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
+
+    const allFieldOptions = filterPrimaryOptions
+      ? Object.values(fieldOptions).filter(filterPrimaryOptions)
+      : Object.values(fieldOptions);
 
     const selectProps: React.ComponentProps<SelectControl> = {
       name: 'field',
-      options: Object.values(fieldOptions),
+      options: Object.values(allFieldOptions),
       placeholder: t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
@@ -362,8 +374,10 @@ class QueryField extends React.Component<Props> {
       },
     };
 
+    const parameters = this.renderParameterInputs(parameterDescriptions);
+
     return (
-      <Container className={className} gridColumns={gridColumns}>
+      <Container className={className} gridColumns={parameters.length + 1}>
         <SelectControl
           {...selectProps}
           styles={styles}
@@ -382,7 +396,7 @@ class QueryField extends React.Component<Props> {
             ),
           }}
         />
-        {this.renderParameterInputs(parameterDescriptions)}
+        {parameters}
       </Container>
     );
   }
