@@ -564,6 +564,30 @@ describe('SmartSearchBar', function() {
       searchBar.onAutoComplete('myTag:', {type: 'tag'});
       expect(searchBar.state.query).toEqual('event.type:error myTag:');
     });
+
+    it('completes values if cursor is not at the end', function() {
+      const props = {
+        query: 'id: event.type:error ',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(3);
+      searchBar.onAutoComplete('12345', {type: 'tag-value'});
+      expect(searchBar.state.query).toEqual('id:12345 event.type:error ');
+    });
+
+    it('completes values if cursor is at the end', function() {
+      const props = {
+        query: 'event.type:error id:',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      searchBar.onAutoComplete('12345', {type: 'tag-value'});
+      expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
+    });
   });
 
   describe('onTogglePinnedSearch()', function() {
