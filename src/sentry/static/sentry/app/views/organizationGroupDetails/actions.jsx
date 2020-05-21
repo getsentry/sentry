@@ -26,7 +26,6 @@ import MenuItem from 'app/components/menuItem';
 import ResolveActions from 'app/components/actions/resolve';
 import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
-import SubscribeButton from 'app/components/subscribeButton';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -229,6 +228,10 @@ const GroupDetailsActions = createReactClass({
     this.onUpdate({isBookmarked: !this.props.group.isBookmarked});
   },
 
+  onToggleSubscribe() {
+    this.onUpdate({isSubscribed: !this.props.group.isSubscribed});
+  },
+
   onDiscard() {
     const {group, project, organization} = this.props;
     const id = uniqueId();
@@ -255,11 +258,17 @@ const GroupDetailsActions = createReactClass({
   render() {
     const {group, project, organization} = this.props;
     const orgFeatures = new Set(organization.features);
+    const {isBookmarked, isSubscribed} = group;
 
     const buttonClassName = 'btn btn-default btn-sm';
     let bookmarkClassName = `group-bookmark ${buttonClassName}`;
-    if (group.isBookmarked) {
+    if (isBookmarked) {
       bookmarkClassName += ' active';
+    }
+
+    let subscribedClassName = `group-subscribe ${buttonClassName}`;
+    if (isSubscribed) {
+      subscribedClassName += ' active';
     }
 
     const hasRelease = new Set(project.features).has('releases');
@@ -292,6 +301,16 @@ const GroupDetailsActions = createReactClass({
             <span className="icon-star-solid" />
           </div>
         </div>
+        <div className="btn-group">
+          <div
+            className={subscribedClassName}
+            title={t('Subscribe')}
+            onClick={this.onToggleSubscribe}
+          >
+            <span className="icon-signal" />{' '}
+            {isSubscribed ? t('Unsubscribe') : t('Subscribe')}
+          </div>
+        </div>
         <DeleteActions
           organization={organization}
           project={project}
@@ -321,9 +340,6 @@ const GroupDetailsActions = createReactClass({
             </Link>
           </div>
         )}
-        <div className="btn-group">
-          <SubscribeButton size="xsmall" onClick={this.onToggleBookmark} />
-        </div>
       </div>
     );
   },
