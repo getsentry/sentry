@@ -21,7 +21,7 @@ type Props = {
 
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
-  environment: string | string[] | null;
+  environment: string | null;
   aggregation: IncidentRule['aggregation'];
   triggers: Trigger[];
 };
@@ -50,13 +50,7 @@ class TriggersChart extends React.PureComponent<Props> {
         api={api}
         organization={organization}
         query={query}
-        environment={
-          environment
-            ? Array.isArray(environment)
-              ? environment
-              : [environment]
-            : undefined
-        }
+        environment={environment ? [environment] : undefined}
         project={projects.map(({id}) => Number(id))}
         interval={`${timeWindow}m`}
         period={period}
