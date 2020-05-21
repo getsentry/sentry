@@ -197,7 +197,6 @@ class Issues extends React.Component<Props, State> {
               </DropdownItem>
             ))}
           </DropdownControl>
-
           <ButtonBar gap={1}>
             <Feature features={['discover-basic']}>
               <OpenInButton to={this.getDiscoverUrl()}>
@@ -208,7 +207,6 @@ class Issues extends React.Component<Props, State> {
             <OpenInButton to={this.getIssuesUrl()}>{t('Open in Issues')}</OpenInButton>
           </ButtonBar>
         </ControlsWrapper>
-
         <TableWrapper>
           <GroupList
             orgId={orgId}

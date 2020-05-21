@@ -26,6 +26,7 @@ import MenuItem from 'app/components/menuItem';
 import ResolveActions from 'app/components/actions/resolve';
 import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
+import SubscribeButton from 'app/components/subscribeButton';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -279,11 +280,9 @@ const GroupDetailsActions = createReactClass({
             isAutoResolved={isResolved && group.statusDetails.autoResolved}
           />
         </GuideAnchor>
-
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
           <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
         </GuideAnchor>
-
         <div className="btn-group">
           <div
             className={bookmarkClassName}
@@ -293,14 +292,12 @@ const GroupDetailsActions = createReactClass({
             <span className="icon-star-solid" />
           </div>
         </div>
-
         <DeleteActions
           organization={organization}
           project={project}
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
-
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
             <ShareIssue
@@ -313,7 +310,6 @@ const GroupDetailsActions = createReactClass({
             />
           </div>
         )}
-
         {orgFeatures.has('discover-basic') && (
           <div className="btn-group">
             <Link
@@ -325,6 +321,9 @@ const GroupDetailsActions = createReactClass({
             </Link>
           </div>
         )}
+        <div className="btn-group">
+          <SubscribeButton size="xsmall" onClick={this.onToggleBookmark} />
+        </div>
       </div>
     );
   },
