@@ -2,12 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import DropdownBubble from 'app/components/dropdownBubble';
-import DropdownButton, {
-  Props as DropdownButtonProps,
-} from 'app/components/dropdownButton';
+import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu, {GetActorPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
-import theme from 'app/utils/theme';
 
 type DefaultProps = {
   /**
@@ -38,7 +35,7 @@ type Props = DefaultProps & {
   /**
    * Props to pass to DropdownButton
    */
-  buttonProps?: DropdownButtonProps;
+  buttonProps?: React.ComponentProps<typeof DropdownButton>;
   /**
    * This makes the dropdown menu blend (e.g. corners are not rounded) with its
    * actor (opener) component
@@ -93,7 +90,6 @@ class DropdownControl extends React.Component<Props> {
                 isOpen={isOpen}
                 blendCorner
                 blendWithActor={blendWithActor}
-                theme={theme}
               >
                 {children}
               </Content>
@@ -115,7 +111,7 @@ const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
 `;
 
-const Content = styled(DropdownBubble.withComponent('div'))<{isOpen: boolean}>`
+const Content = styled(DropdownBubble)<{isOpen: boolean}>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
   border-top: 0;
   top: 100%;
