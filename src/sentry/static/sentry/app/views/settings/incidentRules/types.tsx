@@ -13,6 +13,11 @@ export enum AlertRuleAggregations {
   UNIQUE_USERS,
 }
 
+export enum Dataset {
+  ERRORS,
+  TRANSACTIONS,
+}
+
 export type UnsavedTrigger = {
   // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
   // id yet

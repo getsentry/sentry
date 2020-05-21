@@ -50,7 +50,7 @@ export type QueryFieldValue =
     }
   | {
       kind: 'function';
-      function: [Aggregation, string, AggregationRefinement];
+      function: [AggregationKey, string, AggregationRefinement];
     };
 
 // Column is just an alias of a Query value
@@ -222,20 +222,16 @@ export const AGGREGATIONS = {
   },
 } as const;
 
-assert(
-  AGGREGATIONS as Readonly<
-    {
-      [key in keyof typeof AGGREGATIONS]: {
-        parameters: Readonly<AggregateParameter[]>;
-        // null means to inherit from the column.
-        outputType: null | ColumnType;
-        isSortable: boolean;
-      };
-    }
-  >
-);
+assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation}>);
 
-export type Aggregation = keyof typeof AGGREGATIONS | '';
+export type AggregationKey = keyof typeof AGGREGATIONS | '';
+
+export type Aggregation = {
+  parameters: Readonly<AggregateParameter[]>;
+  // null means to inherit from the column.
+  outputType: null | ColumnType;
+  isSortable: boolean;
+};
 
 /**
  * Refer to src/sentry/snuba/events.py, search for Columns
@@ -313,7 +309,7 @@ export const FIELDS = {
 } as const;
 assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnType}>);
 
-export type Fields = keyof typeof FIELDS | string | '';
+export type FieldKey = keyof typeof FIELDS | string | '';
 
 // This list should be removed with the tranaction-events feature flag.
 export const TRACING_FIELDS = [
@@ -345,7 +341,7 @@ export function explodeFieldString(field: string): Column {
     return {
       kind: 'function',
       function: [
-        results[1] as Aggregation,
+        results[1] as AggregationKey,
         results[2],
         results[3] as AggregationRefinement,
       ],
@@ -353,6 +349,16 @@ export function explodeFieldString(field: string): Column {
   }
 
   return {kind: 'field', field};
+}
+
+export function generateFieldAsString(value: QueryFieldValue): string {
+  if (value.kind === 'field') {
+    return value.field;
+  }
+
+  const aggregation = value.function[0];
+  const parameters = value.function.slice(1).filter(i => i);
+  return `${aggregation}(${parameters.join(',')})`;
 }
 
 export function explodeField(field: Field): Column {
