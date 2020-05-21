@@ -268,15 +268,15 @@ class ProjectSummarySerializerTest(TestCase):
 
     def test_first_event_properties(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
-        assert result["firstEvent"] is False
+        assert result["firstEvent"] is None
         assert result["firstTransactionEvent"] is False
 
         self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
-        assert result["firstEvent"] is False
-        assert result["firstTransactionEvent"] is False
+        assert result["firstEvent"]
+        assert result["firstTransactionEvent"] is True
 
     def test_user_reports(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
