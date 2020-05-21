@@ -194,6 +194,12 @@ type Props = {
    * Called when the search is blurred
    */
   onBlur?: (value: string) => void;
+
+  /**
+   * Called on key down
+   */
+  onKeyDown?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
+
   /**
    * Called when a recent search is saved
    */
@@ -399,13 +405,10 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Handle keyboard navigation
    */
   onKeyDown = (evt: React.KeyboardEvent<HTMLInputElement>) => {
+    const {onKeyDown} = this.props;
     const {key} = evt;
 
-    // If tab or enter is pressed while the search bar is in a loading state then
-    // we should prevent any the form from submitting from this component
-    if ((key === 'Tab' || key === 'Enter') && this.state.loading) {
-      evt.preventDefault();
-    }
+    callIfFunction(onKeyDown, evt);
 
     if (!this.state.searchGroups.length) {
       return;
@@ -469,10 +472,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
       evt.preventDefault();
 
-      if (this.state.loading) {
-        return;
-      }
-
       const {activeSearchItem, searchGroups} = this.state;
       const [groupIndex, childrenIndex] = filterSearchGroupsByIndex(
         searchGroups,
@@ -490,11 +489,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     if (key === 'Enter') {
-      // If we are still loading dropdown, do nothing
-      if (this.state.loading) {
-        return;
-      }
-
       if (!useFormWrapper && !isSelectingDropdownItems) {
         // If enter is pressed, and we are not wrapping input in a `<form>`,
         // and we are not selecting an item from the dropdown, then we should

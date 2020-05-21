@@ -5,6 +5,7 @@ import {Client} from 'app/api';
 import {Environment, Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
@@ -118,7 +119,18 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 useFormWrapper={false}
                 organization={organization}
                 onChange={onChange}
-                onKeyDown={onKeyDown}
+                onKeyDown={e => {
+                  /**
+                   * Do not allow enter key to submit the alerts form since it is unlikely
+                   * users will be ready to create the rule as this sits above required fields.
+                   */
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+
+                  callIfFunction(onKeyDown, e);
+                }}
                 onBlur={query => {
                   onFilterUpdate(query);
                   onBlur(query);
