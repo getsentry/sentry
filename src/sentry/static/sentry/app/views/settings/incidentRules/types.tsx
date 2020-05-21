@@ -14,8 +14,8 @@ export enum AlertRuleAggregations {
 }
 
 export enum Dataset {
-  ERRORS,
-  TRANSACTIONS,
+  ERRORS = 'events',
+  TRANSACTIONS = 'transactions',
 }
 
 export type UnsavedTrigger = {
