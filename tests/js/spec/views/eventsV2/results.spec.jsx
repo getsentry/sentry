@@ -3,7 +3,6 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
-
 import ProjectsStore from 'app/stores/projectsStore';
 import Results from 'app/views/eventsV2/results';
 
