@@ -758,7 +758,7 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(
-        self, project_id, group_id, environment_ids, key, callbacks=(), offset=0
+        self, project_id, group_id, environment_ids, key, callbacks=(), limit=1000, offset=0
     ):
         filters = {
             "project_id": get_project_list(project_id),
@@ -776,7 +776,7 @@ class SnubaTagStorage(TagStorage):
                 ["max", "timestamp", "last_seen"],
             ],
             orderby="-first_seen",  # Closest thing to pre-existing `-id` order
-            limit=1000,
+            limit=limit,
             referrer="tagstore.get_group_tag_value_iter",
             offset=offset,
         )
