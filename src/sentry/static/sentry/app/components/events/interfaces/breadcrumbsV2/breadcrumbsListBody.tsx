@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Event} from 'app/types';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
@@ -19,6 +20,8 @@ type Props = {
   breadcrumbs: Breadcrumbs;
   collapsedQuantity: number;
   onToggleCollapse: () => void;
+  event: Event;
+  orgId: string | null;
 };
 
 type State = {
@@ -42,7 +45,7 @@ class BreadcrumbsListBody extends React.Component<Props, State> {
   };
 
   render() {
-    const {collapsedQuantity, onToggleCollapse, breadcrumbs} = this.props;
+    const {collapsedQuantity, onToggleCollapse, breadcrumbs, event, orgId} = this.props;
     const {breadCrumbListHeight} = this.state;
 
     return (
@@ -64,7 +67,11 @@ class BreadcrumbsListBody extends React.Component<Props, State> {
                 <BreadcrumbCategory category={crumb?.category} />
               </GridCellCategory>
               <GridCell hasError={hasError} isLastItem={isLastItem}>
-                <BreadcrumbData breadcrumb={crumb as Breadcrumb} />
+                <BreadcrumbData
+                  event={event}
+                  orgId={orgId}
+                  breadcrumb={crumb as Breadcrumb}
+                />
               </GridCell>
               <GridCell hasError={hasError} isLastItem={isLastItem}>
                 <BreadcrumbLevel level={crumb.level} />

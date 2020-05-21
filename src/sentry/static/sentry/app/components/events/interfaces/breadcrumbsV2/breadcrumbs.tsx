@@ -48,6 +48,7 @@ type State = {
 
 type Props = {
   event: Event;
+  orgId: string | null;
   type: string;
   data: {
     values: Array<Breadcrumb>;
@@ -297,7 +298,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
   };
 
   render() {
-    const {type} = this.props;
+    const {type, event, orgId} = this.props;
     const {filterGroups, searchTerm} = this.state;
 
     const {
@@ -333,6 +334,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
             <React.Fragment>
               <BreadcrumbsListHeader />
               <BreadcrumbsListBody
+                event={event}
+                orgId={orgId}
                 onToggleCollapse={this.handleToggleCollapse}
                 collapsedQuantity={collapsedQuantity}
                 breadcrumbs={filteredCollapsedBreadcrumbs}
