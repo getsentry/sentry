@@ -331,6 +331,7 @@ class FormField extends React.Component<Props> {
                       {this.props.children({
                         ref: this.handleInputMount,
                         ...props,
+                        model,
                         name,
                         id,
                         onKeyDown: this.handleKeyDown,

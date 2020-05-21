@@ -99,6 +99,23 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                                   "fieldName": undefined,
                                 }
                               }
+                              model={
+                                MockModel {
+                                  "initialData": Object {
+                                    "fieldName": undefined,
+                                  },
+                                  "props": Object {
+                                    "children": [Function],
+                                    "className": undefined,
+                                    "field": [Function],
+                                    "flexibleControlStateSize": false,
+                                    "hideErrorMessage": false,
+                                    "name": "fieldName",
+                                    "noLabel": "No",
+                                    "yesLabel": "Yes",
+                                  },
+                                }
+                              }
                               name="fieldName"
                               noLabel="No"
                               onBlur={[Function]}
