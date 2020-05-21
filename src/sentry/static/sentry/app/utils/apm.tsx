@@ -51,11 +51,11 @@ export async function normalizeTransactionName(
       },
       (error, _redirectLocation, renderProps) => {
         if (error) {
-          set(event, ['tags', 'transaction.rename.react-router-match'], 'error');
+          set(event, ['tags', 'transaction.rename.router-match'], 'error');
           return resolve(undefined);
         }
 
-        set(event, ['tags', 'transaction.rename.react-router-match'], 'success');
+        set(event, ['tags', 'transaction.rename.router-match'], 'success');
 
         const routePath = getRouteStringFromRoutes(renderProps.routes ?? []);
         return resolve(routePath);
