@@ -291,7 +291,13 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
 @click.option("--project", default="sentry")
 @click.argument("service", nargs=-1)
 def down(project, service):
-    "Shut down all services."
+    """
+    Shut down services without deleting their underlying containers and data.
+    Useful if you want to temporarily relieve resources on your computer.
+
+    The default is everything, however you may pass positional arguments to specify
+    an explicit list of services to bring down.
+    """
     client = get_docker_client()
 
     prefix = project + "_"
@@ -307,8 +313,13 @@ def down(project, service):
 @click.option("--project", default="sentry")
 @click.argument("service", nargs=-1)
 def rm(project, service):
-    "Delete all services and associated data."
+    """
+    Shut down and delete all services and associated data.
+    Useful if you'd like to start with a fresh slate.
 
+    The default is everything, however you may pass positional arguments to specify
+    an explicit list of services to remove.
+    """
     import docker
 
     click.confirm(
