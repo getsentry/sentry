@@ -12,12 +12,13 @@ import {
   binaryOperatorSuggestions,
 } from './dataPrivacyRulesFormSourceSuggestions';
 import SourceSuggestionExamples from './sourceSuggestionExamples';
-import {SourceSuggestion, SourceSuggestionType} from './types';
+import {SourceSuggestion, SourceSuggestionType} from '../types';
 
 type Props = {
   value: string;
   onChange: (value: string) => void;
   suggestions: Array<SourceSuggestion>;
+  isRegExMatchesSelected: boolean;
   error?: string;
   onBlur?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   disabled?: boolean;
@@ -29,6 +30,7 @@ type State = {
   activeSuggestion: number;
   showSuggestions: boolean;
   hideCaret: boolean;
+  help?: string;
 };
 
 class Source extends React.Component<Props, State> {
@@ -49,6 +51,13 @@ class Source extends React.Component<Props, State> {
     if (prevProps.suggestions !== this.props.suggestions) {
       this.loadFieldValues(this.props.value);
       this.hideSuggestions();
+    }
+
+    if (
+      prevProps.isRegExMatchesSelected !== this.props.isRegExMatchesSelected ||
+      prevProps.value !== this.props.value
+    ) {
+      this.checkPossiblyRegExMatchExpression(this.props.value);
     }
   }
 
@@ -226,6 +235,35 @@ class Source extends React.Component<Props, State> {
     });
   };
 
+  checkPossiblyRegExMatchExpression = (value: string) => {
+    const {isRegExMatchesSelected} = this.props;
+    const {help} = this.state;
+
+    if (isRegExMatchesSelected) {
+      if (help) {
+        this.setState({help: ''});
+      }
+      return;
+    }
+
+    const isPossiblyARegularExpression = RegExp('^/.*/g?$').test(value);
+
+    if (help) {
+      if (!isPossiblyARegularExpression) {
+        this.setState({
+          help: '',
+        });
+      }
+      return;
+    }
+
+    if (isPossiblyARegularExpression) {
+      this.setState({
+        help: t("You might want to change Data Type's value to 'Regex matches'"),
+      });
+    }
+  };
+
   handleChange = (newValue: string) => {
     this.loadFieldValues(newValue);
     this.props.onChange(newValue);
@@ -352,7 +390,7 @@ class Source extends React.Component<Props, State> {
 
   render() {
     const {error, disabled, value, onBlur} = this.props;
-    const {showSuggestions, suggestions, activeSuggestion, hideCaret} = this.state;
+    const {showSuggestions, suggestions, activeSuggestion, hideCaret, help} = this.state;
 
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
@@ -364,6 +402,7 @@ class Source extends React.Component<Props, State> {
           value={value}
           onKeyDown={this.handleKeyDown}
           error={error}
+          help={help}
           onBlur={onBlur}
           onFocus={this.handleFocus}
           disabled={disabled}

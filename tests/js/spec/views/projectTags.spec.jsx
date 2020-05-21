@@ -2,6 +2,7 @@ import React from 'react';
 import $ from 'jquery';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectTags from 'app/views/settings/projectTags';
 
 describe('ProjectTags', function() {

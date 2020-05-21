@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import TeamBadge from 'app/components/idBadge/teamBadge';
 
 describe('TeamBadge', function() {

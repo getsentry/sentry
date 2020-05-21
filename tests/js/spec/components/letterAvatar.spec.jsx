@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import LetterAvatar from 'app/components/letterAvatar';
 
 describe('LetterAvatar', function() {

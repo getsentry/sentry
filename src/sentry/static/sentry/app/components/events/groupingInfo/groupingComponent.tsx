@@ -1,11 +1,12 @@
 import React from 'react';
-import isObject from 'lodash/isObject';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {EventGroupComponent} from 'app/types';
 
 import {shouldInlineComponentValue} from './utils';
+import GroupingComponentStacktrace from './groupingComponentStacktrace';
+import GroupingComponentChildren from './groupingComponentChildren';
 
 type Props = {
   component: EventGroupComponent;
@@ -15,42 +16,23 @@ type Props = {
 const GroupingComponent = ({component, showNonContributing}: Props) => {
   const shouldInlineValue = shouldInlineComponentValue(component);
 
-  const children = (component.values as EventGroupComponent[]).map((value, idx) => {
-    let rv;
-    if (isObject(value)) {
-      // no point rendering such nodes at all, we never show them
-      if (!value.contributes && !value.hint && value.values.length === 0) {
-        return null;
-      }
-      // non contributing values are otherwise optional
-      if (!showNonContributing && !value.contributes) {
-        return null;
-      }
-      rv = (
-        <GroupingComponent component={value} showNonContributing={showNonContributing} />
-      );
-    } else {
-      rv = (
-        <GroupingValue valueType={component.name || component.id}>
-          {typeof value === 'string' || typeof value === 'number'
-            ? value
-            : JSON.stringify(value, null, 2)}
-        </GroupingValue>
-      );
-    }
-
-    return <GroupingComponentListItem key={idx}>{rv}</GroupingComponentListItem>;
-  });
+  const GroupingComponentListItems =
+    component.id === 'stacktrace'
+      ? GroupingComponentStacktrace
+      : GroupingComponentChildren;
 
   return (
     <GroupingComponentWrapper isContributing={component.contributes}>
       <span>
         {component.name || component.id}
-        {component.hint && <small>{` (${component.hint})`}</small>}
+        {component.hint && <GroupingHint>{` (${component.hint})`}</GroupingHint>}
       </span>
 
       <GroupingComponentList isInline={shouldInlineValue}>
-        {children}
+        <GroupingComponentListItems
+          component={component}
+          showNonContributing={showNonContributing}
+        />
       </GroupingComponentList>
     </GroupingComponentWrapper>
   );
@@ -66,12 +48,20 @@ const GroupingComponentList = styled('ul')<{isInline: boolean}>`
   }
 `;
 
-const GroupingComponentListItem = styled('li')`
+export const GroupingComponentListItem = styled('li')<{isCollapsable?: boolean}>`
   padding: 0;
   margin: ${space(0.25)} 0 ${space(0.25)} ${space(1.5)};
+
+  ${p =>
+    p.isCollapsable &&
+    `
+    border-left: 1px solid ${p.theme.borderLight};
+    margin: 0 0 -${space(0.25)} ${space(1)};
+    padding-left: ${space(0.5)};
+  `}
 `;
 
-const GroupingValue = styled('code')<{valueType: string}>`
+export const GroupingValue = styled('code')<{valueType: string}>`
   display: inline-block;
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -90,9 +80,13 @@ const GroupingValue = styled('code')<{valueType: string}>`
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
   color: ${p => (p.isContributing ? null : p.theme.gray6)};
 
-  ${GroupingValue} {
+  ${GroupingValue}, button {
     opacity: ${p => (p.isContributing ? 1 : 0.6)};
   }
+`;
+
+const GroupingHint = styled('small')`
+  font-size: 0.8em;
 `;
 
 export default GroupingComponent;

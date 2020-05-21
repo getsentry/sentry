@@ -34,7 +34,7 @@ class IncidentGroup(Model):
     __core__ = False
 
     group = FlexibleForeignKey("sentry.Group", db_index=False, db_constraint=False)
-    incident = FlexibleForeignKey("sentry.Incident")
+    incident = FlexibleForeignKey("sentry.Incident", db_constraint=False)
 
     class Meta:
         app_label = "sentry"
@@ -163,8 +163,7 @@ class Incident(Model):
     projects = models.ManyToManyField(
         "sentry.Project", related_name="incidents", through=IncidentProject
     )
-    groups = models.ManyToManyField("sentry.Group", related_name="incidents", through=IncidentGroup)
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True, on_delete=models.SET_NULL)
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", on_delete=models.PROTECT)
     # Incrementing id that is specific to the org.
     identifier = models.IntegerField()
     # Identifier used to match incoming events from the detection algorithm
@@ -174,10 +173,10 @@ class Incident(Model):
         default=IncidentStatusMethod.RULE_TRIGGERED.value
     )
     type = models.PositiveSmallIntegerField()
-    aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value)
+    aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value, null=True)
     title = models.TextField()
     # Query used to fetch events related to an incident
-    query = models.TextField()
+    query = models.TextField(null=True)
     # When we suspect the incident actually started
     date_started = models.DateTimeField(default=timezone.now)
     # When we actually detected the incident

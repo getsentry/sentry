@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import withExperiment from 'app/utils/withExperiment';
 import ConfigStore from 'app/stores/configStore';
 import {logExperiment} from 'app/utils/analytics';

@@ -16,7 +16,7 @@ from sentry.incidents.endpoints.serializers import (
 from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models import Integration, Environment
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.testutils import TestCase
 
 
@@ -26,6 +26,7 @@ class TestAlertRuleSerializer(TestCase):
         return {
             "name": "hello",
             "time_window": 10,
+            "dataset": QueryDatasets.EVENTS.value,
             "query": "level:error",
             "threshold_type": 0,
             "resolve_threshold": 1,
@@ -87,7 +88,6 @@ class TestAlertRuleSerializer(TestCase):
             "timeWindow": field_is_required,
             "query": field_is_required,
             "triggers": field_is_required,
-            "aggregation": field_is_required,
         }
 
     def test_environment_non_list(self):
@@ -112,6 +112,12 @@ class TestAlertRuleSerializer(TestCase):
             {"timeWindow": 0}, {"timeWindow": ["Ensure this value is greater than or equal to 1."]}
         )
 
+    def test_dataset(self):
+        invalid_values = [
+            "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+        ]
+        self.run_fail_validation_test({"dataset": "events_wrong"}, {"dataset": invalid_values})
+
     def test_aggregation(self):
         invalid_values = [
             "Invalid aggregation, valid values are %s" % [item.value for item in QueryAggregations]
@@ -120,6 +126,49 @@ class TestAlertRuleSerializer(TestCase):
             {"aggregation": "a"}, {"aggregation": ["A valid integer is required."]}
         )
         self.run_fail_validation_test({"aggregation": 50}, {"aggregation": invalid_values})
+
+    def test_aggregate(self):
+        self.run_fail_validation_test(
+            {"aggregate": "what()", "aggregation": 0},
+            {"nonFieldErrors": ["Invalid Query or Aggregate: what() is not a valid function"]},
+        )
+        self.run_fail_validation_test(
+            {"aggregate": "what", "aggregation": 0},
+            {"nonFieldErrors": ["Invalid Aggregate: Please pass a valid function for aggregation"]},
+        )
+        self.run_fail_validation_test(
+            {"aggregate": "123", "aggregation": 0},
+            {"nonFieldErrors": ["Invalid Aggregate: Please pass a valid function for aggregation"]},
+        )
+        self.run_fail_validation_test(
+            {"aggregate": "count_unique(123, hello)", "aggregation": 0},
+            {
+                "nonFieldErrors": [
+                    "Invalid Query or Aggregate: count_unique(123, hello): expected 1 arguments"
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {"aggregate": "max()", "aggregation": 0},
+            {"nonFieldErrors": ["Invalid Query or Aggregate: max(): expected 1 arguments"]},
+        )
+        aggregate = "count_unique(tags[sentry:user])"
+        base_params = self.valid_params.copy()
+        base_params["aggregate"] = aggregate
+        del base_params["aggregation"]
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.snuba_query.aggregate == aggregate
+
+    def test_aggregate_and_aggregation(self):
+        aggregate = "count_unique(tags[sentry:user])"
+        base_params = self.valid_params.copy()
+        base_params["aggregate"] = aggregate
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.snuba_query.aggregate == aggregate
 
     def test_simple_below_threshold(self):
         payload = {

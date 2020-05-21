@@ -96,6 +96,7 @@ export type OrganizationSummary = {
  * Lightweight in this case means it does not contain `projects` or `teams`
  */
 export type LightWeightOrganization = OrganizationSummary & {
+  relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
   eventsMemberAdmin: boolean;
@@ -1250,7 +1251,7 @@ export enum EventGroupVariantType {
 }
 
 export type EventGroupVariant = {
-  description: string;
+  description: string | null;
   hash: string | null;
   hashMismatch: boolean;
   key: EventGroupVariantKey;

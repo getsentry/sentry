@@ -5,9 +5,7 @@ import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.incidents.logic import create_alert_rule, create_incident
-from sentry.incidents.models import IncidentType
-from sentry.snuba.models import QueryAggregations
+from sentry.incidents.logic import create_alert_rule
 
 FEATURE_NAME = "organizations:incidents"
 
@@ -31,16 +29,12 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
 
-        incident = create_incident(
+        incident = self.create_incident(
             self.organization,
-            type_=IncidentType.DETECTED,
             title="Incident #1",
-            query="hello",
-            aggregation=QueryAggregations.TOTAL,
             date_started=timezone.now(),
             date_detected=timezone.now(),
             projects=[self.project],
-            groups=[self.group],
             alert_rule=alert_rule,
         )
 

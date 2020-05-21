@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 
 describe('ExternalIssueActions', function() {

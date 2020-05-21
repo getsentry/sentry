@@ -31,7 +31,6 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
     IncidentActivity,
-    IncidentGroup,
     IncidentProject,
     IncidentSeen,
     IncidentType,
@@ -812,7 +811,6 @@ class Factories(object):
         date_started=None,
         date_detected=None,
         date_closed=None,
-        groups=None,
         seen_by=None,
         alert_rule=None,
     ):
@@ -828,7 +826,6 @@ class Factories(object):
             detection_uuid=detection_uuid,
             status=status,
             title=title,
-            query=query,
             alert_rule=alert_rule,
             date_started=date_started or timezone.now(),
             date_detected=date_detected or timezone.now(),
@@ -837,9 +834,6 @@ class Factories(object):
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
-        if groups:
-            for group in groups:
-                IncidentGroup.objects.create(incident=incident, group=group)
         if seen_by:
             for user in seen_by:
                 IncidentSeen.objects.create(incident=incident, user=user, last_seen=timezone.now())

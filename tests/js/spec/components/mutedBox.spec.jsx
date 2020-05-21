@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import MutedBox from 'app/components/mutedBox';
 
 describe('MutedBox', function() {

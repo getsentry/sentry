@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {createProject} from 'app/actionCreators/projects';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {createProject} from 'app/actionCreators/projects';
 import OnboardingPlatform from 'app/views/onboarding/platform';
 import TeamStore from 'app/stores/teamStore';
 

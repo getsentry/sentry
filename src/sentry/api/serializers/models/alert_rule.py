@@ -31,7 +31,9 @@ class AlertRuleSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         env = obj.snuba_query.environment
-        aggregation = aggregate_to_query_aggregation.get(obj.snuba_query.aggregate).value
+        aggregation = aggregate_to_query_aggregation.get(obj.snuba_query.aggregate, None)
+        if aggregation:
+            aggregation = aggregation.value
         return {
             "id": six.text_type(obj.id),
             "name": obj.name,
