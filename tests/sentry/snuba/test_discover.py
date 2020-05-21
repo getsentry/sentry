@@ -212,11 +212,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["release"] == "first-release"
 
         assert len(result["meta"]) == 5
-        assert result["meta"][0] == {"name": "user.email", "type": "Nullable(String)"}
-        assert result["meta"][1] == {"name": "release", "type": "Nullable(String)"}
-        assert result["meta"][2] == {"name": "id", "type": "FixedString(32)"}
-        assert result["meta"][3] == {"name": "project.id", "type": "UInt64"}
-        assert result["meta"][4] == {"name": "project.name", "type": "String"}
+        assert result["meta"][0] == {"name": "project.name", "type": "String"}
+        assert result["meta"][1] == {"name": "user.email", "type": "Nullable(String)"}
+        assert result["meta"][2] == {"name": "release", "type": "Nullable(String)"}
+        assert result["meta"][3] == {"name": "id", "type": "FixedString(32)"}
+        assert result["meta"][4] == {"name": "project.id", "type": "UInt64"}
 
     def test_auto_fields_aggregates(self):
         result = discover.query(
@@ -402,7 +402,7 @@ class QueryTransformTest(TestCase):
             end=None,
             start=None,
             conditions=[],
-            groupby=["email", "username", "ip_address", "user_id", "project_id"],
+            groupby=[],
             having=[],
             orderby=None,
             limit=50,
@@ -438,7 +438,7 @@ class QueryTransformTest(TestCase):
             end=None,
             start=None,
             conditions=[["project_id", "=", project2.id]],
-            groupby=["title", "project_id"],
+            groupby=[],
             having=[],
             orderby=None,
             limit=50,
