@@ -5,7 +5,6 @@ import {Client} from 'app/api';
 import {Environment, Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
@@ -129,7 +128,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     e.stopPropagation();
                   }
 
-                  callIfFunction(onKeyDown, e);
+                  onKeyDown?.(e);
                 }}
                 onBlur={query => {
                   onFilterUpdate(query);
