@@ -2,6 +2,7 @@ import React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+
 import {InviteMember} from 'app/views/settings/organizationMembers/inviteMember';
 import ConfigStore from 'app/stores/configStore';
 

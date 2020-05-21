@@ -10,8 +10,15 @@ from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
-MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
-MockResponseInstance = MockResponse({}, {}, True, 200)
+
+def raiseStatusFalse():
+    return False
+
+
+MockResponse = namedtuple(
+    "MockResponse", ["headers", "content", "ok", "status_code", "raise_for_status"]
+)
+MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 
 class DictContaining(object):

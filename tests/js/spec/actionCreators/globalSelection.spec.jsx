@@ -64,6 +64,105 @@ describe('GlobalSelection ActionCreators', function() {
       expect(localStorage.getItem).not.toHaveBeenCalled();
     });
 
+    it('does not change dates with no query params or defaultSelection', function() {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '1',
+        },
+        router,
+      });
+      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+        })
+      );
+    });
+
+    it('does changes to default dates with defaultSelection and no query params', function() {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '1',
+        },
+        defaultSelection: {
+          datetime: {
+            period: '3h',
+          },
+        },
+        router,
+      });
+      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datetime: {
+            start: null,
+            end: null,
+            period: '3h',
+            utc: null,
+          },
+        })
+      );
+    });
+
+    it('uses query params statsPeriod over defaults', function() {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          statsPeriod: '1h',
+          project: '1',
+        },
+        defaultSelection: {
+          datetime: {
+            period: '24h',
+          },
+        },
+        router,
+      });
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            cursor: undefined,
+            project: [1],
+            environment: [],
+            statsPeriod: '1h',
+          },
+        })
+      );
+    });
+
+    it('uses absolute dates over defaults', function() {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          start: '2020-03-22T00:53:38',
+          end: '2020-04-21T00:53:38',
+          project: '1',
+        },
+        defaultSelection: {
+          datetime: {
+            period: '24h',
+          },
+        },
+        router,
+      });
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            cursor: undefined,
+            project: [1],
+            environment: [],
+            start: '2020-03-22T00:53:38',
+            end: '2020-04-21T00:53:38',
+          },
+        })
+      );
+    });
+
     it('does not load from local storage when there are query params', function() {
       initializeUrlState({
         organization,

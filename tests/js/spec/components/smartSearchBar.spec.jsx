@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
 import {SmartSearchBar} from 'app/components/smartSearchBar';
 import {addSpace, removeSpace} from 'app/components/smartSearchBar/utils';

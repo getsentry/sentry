@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import GroupEventDetails from 'app/views/organizationGroupDetails/groupEventDetails/groupEventDetails';
 
 describe('groupEventDetails', () => {

@@ -3,7 +3,7 @@ import {Location} from 'history';
 import partial from 'lodash/partial';
 
 import {Organization} from 'app/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -274,7 +274,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     sortField: null,
     renderFunc: data => {
       const uniqueUsers = data.count_unique_user;
-      let userMiseryField;
+      let userMiseryField: string = '';
       for (const field in data) {
         if (field.startsWith('user_misery')) {
           userMiseryField = field;
@@ -285,7 +285,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       }
 
       const userMisery = data[userMiseryField];
-
       if (!uniqueUsers && uniqueUsers !== 0) {
         return (
           <NumberContainer>
@@ -296,13 +295,21 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
 
       const palette = new Array(10).fill(theme.purpleDarkest);
       const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
-      const miseryLimit = parseInt(userMiseryField.split('_').pop(), 10);
-      const title = `${userMisery} out of ${uniqueUsers} unique users waited more than ${4 *
-        miseryLimit}ms`;
+      const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+      const title = tct(
+        '[affectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
+        {
+          affectedUsers: userMisery,
+          totalUsers: uniqueUsers,
+          duration: 4 * miseryLimit,
+        }
+      );
       return (
-        <Tooltip title={title} disabled={false}>
-          <ScoreBar size={20} score={score} palette={palette} />
-        </Tooltip>
+        <NumberContainer>
+          <Tooltip title={title} disabled={false}>
+            <ScoreBar size={20} score={score} palette={palette} />
+          </Tooltip>
+        </NumberContainer>
       );
     },
   },

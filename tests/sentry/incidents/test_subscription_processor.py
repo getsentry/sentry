@@ -38,7 +38,7 @@ from sentry.incidents.subscription_processor import (
     SubscriptionProcessor,
     update_alert_rule_stats,
 )
-from sentry.snuba.models import QueryAggregations, QuerySubscription
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.compat import map
@@ -83,7 +83,7 @@ class ProcessUpdateTest(TestCase):
             [self.project, self.other_project],
             "some rule",
             query="",
-            aggregation=QueryAggregations.TOTAL,
+            aggregate="count()",
             time_window=1,
             threshold_period=1,
         )

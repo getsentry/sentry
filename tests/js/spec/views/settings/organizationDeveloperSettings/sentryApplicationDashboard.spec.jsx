@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {Client} from 'app/api';
 import SentryApplicationDashboard from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDashboard';
 
 describe('Sentry Application Dashboard', function() {

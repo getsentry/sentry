@@ -9,12 +9,10 @@ from django.template.defaultfilters import pluralize
 from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
-    QueryAggregations,
     TriggerStatus,
     IncidentStatus,
     INCIDENT_STATUS,
 )
-from sentry.snuba.subscriptions import aggregate_to_query_aggregation
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -43,9 +41,9 @@ class ActionHandler(object):
     [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
 )
 class EmailActionHandler(ActionHandler):
-    query_aggregations_display = {
-        QueryAggregations.TOTAL: "Total Events",
-        QueryAggregations.UNIQUE_USERS: "Total Unique Users",
+    query_aggregates_display = {
+        "count()": "Total Events",
+        "count_unique(tags[sentry:user])": "Total Unique Users",
     }
 
     def get_targets(self):
@@ -105,7 +103,7 @@ class EmailActionHandler(ActionHandler):
         # we can simplify this to be the below statement
         show_greater_than_string = is_active == is_threshold_type_above
         environment_string = snuba_query.environment.name if snuba_query.environment else "All"
-
+        aggregate = alert_rule.snuba_query.aggregate
         return {
             "link": absolute_uri(
                 reverse(
@@ -130,9 +128,7 @@ class EmailActionHandler(ActionHandler):
             "environment": environment_string,
             "time_window": format_duration(snuba_query.time_window / 60),
             "triggered_at": trigger.date_added,
-            "aggregate": self.query_aggregations_display[
-                aggregate_to_query_aggregation[alert_rule.snuba_query.aggregate]
-            ],
+            "aggregate": self.query_aggregates_display.get(aggregate, aggregate),
             "query": snuba_query.query,
             "threshold": trigger.alert_threshold if is_active else trigger.resolve_threshold,
             # if alert threshold and threshold type is above then show '>'

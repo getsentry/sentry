@@ -2,6 +2,7 @@ import {Modal} from 'react-bootstrap';
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import RecoveryOptionsModal from 'app/components/modals/recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', function() {

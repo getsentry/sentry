@@ -17,3 +17,21 @@ export function hasNonContributingComponent(component: EventGroupComponent | und
 export function shouldInlineComponentValue(component: EventGroupComponent) {
   return component.values.every(value => !isObject(value));
 }
+
+export function groupingComponentFilter(
+  value: EventGroupComponent | string,
+  showNonContributing: boolean
+) {
+  if (isObject(value)) {
+    // no point rendering such nodes at all, we never show them
+    if (!value.contributes && !value.hint && value.values.length === 0) {
+      return false;
+    }
+    // non contributing values are otherwise optional
+    if (!showNonContributing && !value.contributes) {
+      return false;
+    }
+  }
+
+  return true;
+}

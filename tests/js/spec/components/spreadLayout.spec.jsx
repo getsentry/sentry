@@ -2,6 +2,7 @@ import React from 'react';
 import toJson from 'enzyme-to-json';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import SpreadLayout from 'app/components/spreadLayout';
 
 describe('SpreadLayout', function() {

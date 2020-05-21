@@ -113,22 +113,33 @@ export function initializeUrlState({
   const orgSlug = organization.slug;
   const query = pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT]);
   const hasProjectOrEnvironmentInUrl = Object.keys(query).length > 0;
-  const parsed = getStateFromQuery(queryParams, {allowAbsoluteDatetime: showAbsolute});
+  const parsed = getStateFromQuery(queryParams, {
+    allowAbsoluteDatetime: showAbsolute,
+    allowEmptyPeriod: true,
+  });
+  const {datetime: defaultDateTime, ...retrievedDefaultSelection} = getDefaultSelection();
+  const {datetime: customizedDefaultDateTime, ...customizedDefaultSelection} =
+    defaultSelection || {};
 
   let globalSelection: Omit<GlobalSelection, 'datetime'> & {
     datetime: {
       [K in keyof GlobalSelection['datetime']]: GlobalSelection['datetime'][K] | null;
     };
   } = {
-    ...getDefaultSelection(),
+    ...retrievedDefaultSelection,
+    ...customizedDefaultSelection,
     datetime: {
-      [DATE_TIME.START as 'start']: parsed.start || null,
-      [DATE_TIME.END as 'end']: parsed.end || null,
-      [DATE_TIME.PERIOD as 'period']: parsed.period || null,
-      [DATE_TIME.UTC as 'utc']: parsed.utc || null,
+      [DATE_TIME.START as 'start']:
+        parsed.start || customizedDefaultDateTime?.start || null,
+      [DATE_TIME.END as 'end']: parsed.end || customizedDefaultDateTime?.end || null,
+      [DATE_TIME.PERIOD as 'period']:
+        parsed.period || customizedDefaultDateTime?.period || defaultDateTime.period,
+      [DATE_TIME.UTC as 'utc']: parsed.utc || customizedDefaultDateTime?.utc || null,
     },
-    ...defaultSelection,
   };
+  if (globalSelection.datetime.start && globalSelection.datetime.end) {
+    globalSelection.datetime.period = null;
+  }
 
   // We only save environment and project, so if those exist in
   // URL, do not touch local storage
