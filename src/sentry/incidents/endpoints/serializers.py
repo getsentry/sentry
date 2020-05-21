@@ -280,6 +280,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     projects = serializers.ListField(child=ProjectField(), required=False)
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
     triggers = serializers.ListField(required=True)
+    dataset = serializers.CharField(required=False)
     query = serializers.CharField(required=True, allow_blank=True)
     time_window = serializers.IntegerField(
         required=True, min_value=1, max_value=int(timedelta(days=1).total_seconds() / 60)
@@ -292,6 +293,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         model = AlertRule
         fields = [
             "name",
+            "dataset",
             "query",
             "time_window",
             "environment",
@@ -317,11 +319,20 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 % [item.value for item in QueryAggregations]
             )
 
+    def validate_dataset(self, dataset):
+        try:
+            return QueryDatasets(dataset)
+        except ValueError:
+            raise serializers.ValidationError(
+                "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+            )
+
     def validate(self, data):
         """Performs validation on an alert rule's data
         This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
         The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
+        data.setdefault("dataset", QueryDatasets.EVENTS)
         if "aggregate" in data and "aggregation" in data:
             # `aggregate` takes precedence over `aggregation`, so just drop `aggregation`
             # if both are present.
@@ -337,8 +348,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 project_id = list(self.context["organization"].project_set.all()[:1])
             try:
                 snuba_filter = build_snuba_filter(
-                    # TODO: Stop hardcoding this once we support multiple datasets
-                    QueryDatasets.EVENTS,
+                    data["dataset"],
                     data["query"],
                     data["aggregate"],
                     data.get("environment"),
@@ -366,7 +376,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         conditions=snuba_filter.conditions,
                         filter_keys=snuba_filter.filter_keys,
                         having=snuba_filter.having,
-                        dataset=Dataset.Events,
+                        dataset=Dataset(data["dataset"].value),
                         limit=1,
                         referrer="alertruleserializer.test_query",
                     )
