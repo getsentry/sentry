@@ -280,24 +280,20 @@ class IncidentTriggerClearCacheTest(TestCase):
 class IncidentCreationTest(TestCase):
     def test_simple(self):
         title = "hello"
-        query = "goodbye"
         alert_rule = self.create_alert_rule()
         incident = Incident.objects.create(
             self.organization,
             title=title,
-            query=query,
             type=IncidentType.ALERT_TRIGGERED.value,
             alert_rule=alert_rule,
         )
         assert incident.identifier == 1
         assert incident.title == title
-        assert incident.query == query
 
         # Check identifier correctly increments
         incident = Incident.objects.create(
             self.organization,
             title=title,
-            query=query,
             type=IncidentType.ALERT_TRIGGERED.value,
             alert_rule=alert_rule,
         )
@@ -319,7 +315,6 @@ class IncidentCreationTest(TestCase):
                         self.organization,
                         status=IncidentStatus.OPEN.value,
                         title="Conflicting Incident",
-                        query="Uh oh",
                         type=IncidentType.ALERT_TRIGGERED.value,
                         alert_rule=alert_rule,
                     )
@@ -342,7 +337,6 @@ class IncidentCreationTest(TestCase):
                 alert_rule=alert_rule,
                 status=IncidentStatus.OPEN.value,
                 title="hi",
-                query="bye",
                 type=IncidentType.ALERT_TRIGGERED.value,
             )
             # We should have 3 calls - one for initial create, one for conflict,

@@ -50,8 +50,6 @@ class PreSaveIncidentTriggerTest(TestCase):
             status=IncidentStatus.WARNING.value,
             type=2,
             title="a custom incident title",
-            query="event.type:error",
-            aggregation=0,
             date_started=datetime.utcnow().replace(tzinfo=pytz.utc),
             date_detected=datetime.utcnow().replace(tzinfo=pytz.utc),
             alert_rule=alert_rule,

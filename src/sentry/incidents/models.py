@@ -13,7 +13,7 @@ from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCasca
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team, User
-from sentry.snuba.models import QueryAggregations, QuerySubscription
+from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -28,18 +28,6 @@ class IncidentProject(Model):
         app_label = "sentry"
         db_table = "sentry_incidentproject"
         unique_together = (("project", "incident"),)
-
-
-class IncidentGroup(Model):
-    __core__ = False
-
-    group = FlexibleForeignKey("sentry.Group", db_index=False, db_constraint=False)
-    incident = FlexibleForeignKey("sentry.Incident", db_constraint=False)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentgroup"
-        unique_together = (("group", "incident"),)
 
 
 class IncidentSeen(Model):
@@ -173,10 +161,7 @@ class Incident(Model):
         default=IncidentStatusMethod.RULE_TRIGGERED.value
     )
     type = models.PositiveSmallIntegerField()
-    aggregation = models.PositiveSmallIntegerField(default=QueryAggregations.TOTAL.value, null=True)
     title = models.TextField()
-    # Query used to fetch events related to an incident
-    query = models.TextField(null=True)
     # When we suspect the incident actually started
     date_started = models.DateTimeField(default=timezone.now)
     # When we actually detected the incident
