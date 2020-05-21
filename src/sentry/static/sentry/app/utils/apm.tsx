@@ -43,7 +43,7 @@ export async function normalizeTransactionName(
     prevTransactionName = window.location.pathname;
   }
 
-  const transactionName: string | undefined = await new Promise(function(resolve) {
+  const transactionName: string = await new Promise(function(resolve) {
     Router.match(
       {
         routes: appRoutes,
@@ -52,7 +52,7 @@ export async function normalizeTransactionName(
       (error, _redirectLocation, renderProps) => {
         if (error) {
           set(event, ['tags', 'transaction.rename.router-match'], 'error');
-          return resolve(undefined);
+          return resolve(window.location.pathname);
         }
 
         set(event, ['tags', 'transaction.rename.router-match'], 'success');
@@ -68,14 +68,12 @@ export async function normalizeTransactionName(
     );
   });
 
-  if (typeof transactionName === 'string' && transactionName.length) {
-    event.transaction = transactionName;
+  event.transaction = transactionName;
 
-    set(event, ['tags', 'transaction.rename.before'], prevTransactionName);
-    set(event, ['tags', 'transaction.rename.after'], transactionName);
+  set(event, ['tags', 'transaction.rename.before'], prevTransactionName);
+  set(event, ['tags', 'transaction.rename.after'], transactionName);
 
-    set(event, ['tags', 'ui.route'], transactionName);
-  }
+  set(event, ['tags', 'ui.route'], transactionName);
 
   return event;
 }
