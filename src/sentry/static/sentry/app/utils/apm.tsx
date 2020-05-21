@@ -31,7 +31,7 @@ export async function normalizeTransactionName(
 
   let prevTransactionName = event.transaction;
 
-  if (typeof prevTransactionName === 'string') {
+  if (typeof prevTransactionName === 'string' && prevTransactionName.length > 0) {
     if (prevTransactionName.startsWith('/')) {
       return event;
     }
