@@ -8,10 +8,10 @@ import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
-import {fetchReleases} from 'app/actionCreators/releases';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -705,21 +705,29 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Fetches latest releases from a organization/project. Returns an empty array
    * if an error is encountered.
    */
-  fetchReleases = async (query: string): Promise<any[]> => {
+  fetchReleases = async (releaseHash: string): Promise<any[]> => {
     const {api, organization} = this.props;
     const {location} = this.context.router;
 
     const project = location && location.query ? location.query.projectId : undefined;
 
+    const url = `/organizations/${organization.slug}/releases/`;
+    const fetchQuery: {[key: string]: string | number} = {
+      query: releaseHash,
+      per_page: MAX_AUTOCOMPLETE_RELEASES,
+    };
+
+    if (project) {
+      fetchQuery.project = project;
+    }
+
     try {
-      return await fetchReleases(
-        api,
-        organization.slug,
-        project,
-        query,
-        MAX_AUTOCOMPLETE_RELEASES
-      );
+      return await api.requestPromise(url, {
+        method: 'GET',
+        query: fetchQuery,
+      });
     } catch (e) {
+      addErrorMessage(t('Unable to fetch releases'));
       Sentry.captureException(e);
     }
 
