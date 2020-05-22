@@ -363,13 +363,23 @@ Are you sure you want to continue?"""
         abort=True,
     )
 
-    prefix = project + "_"
+    for service_name, container_options in containers.items():
+        try:
+            container = client.containers.get(container_options["name"])
+        except docker.errors.NotFound:
+            click.secho(
+                "> WARNING: non-existent container '%s'" % container_options["name"],
+                err=True,
+                fg="yellow",
+            )
+            continue
 
-    for container_name in containers:
-        click.secho("> Removing '%s' container" % (prefix + container_name), err=True, fg="red")
-        container = client.containers.get(prefix + container_name)
+        click.secho("> Stopping '%s' container" % container_options["name"], err=True, fg="red")
         container.stop()
+        click.secho("> Removing '%s' container" % container_options["name"], err=True, fg="red")
         container.remove()
+
+    prefix = project + "_"
 
     for volume in client.volumes.list():
         if volume.name.startswith(prefix):
