@@ -118,7 +118,18 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                 useFormWrapper={false}
                 organization={organization}
                 onChange={onChange}
-                onKeyDown={onKeyDown}
+                onKeyDown={e => {
+                  /**
+                   * Do not allow enter key to submit the alerts form since it is unlikely
+                   * users will be ready to create the rule as this sits above required fields.
+                   */
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+
+                  onKeyDown?.(e);
+                }}
                 onBlur={query => {
                   onFilterUpdate(query);
                   onBlur(query);
