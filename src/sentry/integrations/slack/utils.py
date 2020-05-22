@@ -418,22 +418,15 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
             item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
             if item_id:
-                logger.info("rule.slack.%s_list_success" % list_type)
                 return (prefix, item_id, False)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
             if time.time() > time_to_quit:
-                logger.info(
-                    "rule.slack.%s_list_timeout" % list_type,
-                    extra={"diff": time.time() - time_to_quit},
-                )
                 return (prefix, None, True)
 
             if not cursor:
-                logger.info("rule.slack.%s_list_cursor" % list_type, extra={"name": name})
                 break
 
-    logger.info("rule.slack.name_not_found" % list_type)
     return (prefix, None, False)
 
 
