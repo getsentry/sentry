@@ -301,16 +301,6 @@ const GroupDetailsActions = createReactClass({
             <span className="icon-star-solid" />
           </div>
         </div>
-        <div className="btn-group">
-          <div
-            className={subscribedClassName}
-            title={t('Subscribe')}
-            onClick={this.onToggleSubscribe}
-          >
-            <span className="icon-signal" />{' '}
-            {isSubscribed ? t('Unsubscribe') : t('Subscribe')}
-          </div>
-        </div>
         <DeleteActions
           organization={organization}
           project={project}
@@ -329,6 +319,15 @@ const GroupDetailsActions = createReactClass({
             />
           </div>
         )}
+        <div className="btn-group">
+          <div
+            className={subscribedClassName}
+            title={t('Subscribe')}
+            onClick={this.onToggleSubscribe}
+          >
+            <span className="icon-signal" />
+          </div>
+        </div>
         {orgFeatures.has('discover-basic') && (
           <div className="btn-group">
             <Link
