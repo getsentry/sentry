@@ -181,7 +181,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={['apdex(300)', 'rpm()', 'error_rate()']}
+            yAxis={['apdex(300)', 'epm()', 'error_rate()']}
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {

@@ -30,8 +30,8 @@ const YAXIS_OPTIONS = [
   },
   {
     label: 'Throughput',
-    value: 'rpm()',
-    tooltip: PERFORMANCE_TERMS.rpm,
+    value: 'epm()',
+    tooltip: PERFORMANCE_TERMS.epm,
   },
 ];
 

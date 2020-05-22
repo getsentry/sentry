@@ -192,7 +192,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                         "transaction",
                         "transaction_status",
                         "project",
-                        "rpm()",
+                        "epm()",
                         "error_rate()",
                         "percentile(transaction.duration, 0.95)",
                     ],
@@ -275,7 +275,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                         "transaction",
                         "transaction_status",
                         "project",
-                        "rpm()",
+                        "epm()",
                         "error_rate()",
                         "percentile(transaction.duration, 0.95)",
                     ],
@@ -325,7 +325,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                         "transaction",
                         "transaction_status",
                         "project",
-                        "rpm()",
+                        "epm()",
                         "error_rate()",
                         "percentile(transaction.duration, 0.95)",
                     ],
@@ -370,7 +370,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                         "transaction",
                         "transaction_status",
                         "project",
-                        "rpm()",
+                        "epm()",
                         "error_rate()",
                         "percentile(transaction.duration, 0.95)",
                     ],
@@ -415,7 +415,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                         "transaction",
                         "transaction_status",
                         "project",
-                        "rpm()",
+                        "epm()",
                         "error_rate()",
                         "percentile(transaction.duration, 0.95)",
                     ],
@@ -749,20 +749,20 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                     "start": iso_format(before_now(hours=2)),
                     "end": iso_format(before_now()),
                     "interval": "1h",
-                    "yAxis": ["rps()", "rpm()"],
+                    "yAxis": ["eps()", "epm()"],
                     "project": [self.project.id],
                 },
             )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert len(response.data["rpm()"]["data"]) == 3
-        assert len(response.data["rps()"]["data"]) == 3
+        assert len(response.data["epm()"]["data"]) == 3
+        assert len(response.data["eps()"]["data"]) == 3
         assert [{"count": 3.0 / (3600.0 / 60.0)}] in [
-            attrs for time, attrs in response.data["rpm()"]["data"]
+            attrs for time, attrs in response.data["epm()"]["data"]
         ]
         assert [{"count": 3.0 / 3600.0}] in [
-            attrs for time, attrs in response.data["rps()"]["data"]
+            attrs for time, attrs in response.data["eps()"]["data"]
         ]
 
     @patch("django.utils.timezone.now")
@@ -790,21 +790,21 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
                     "start": iso_format(before_now(hours=2)),
                     "end": iso_format(before_now()),
                     "interval": "1h",
-                    "yAxis": ["rps()", "rpm()"],
+                    "yAxis": ["eps()", "epm()"],
                     "project": [self.project.id],
                 },
             )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert len(response.data["rpm()"]["data"]) == 3
-        assert len(response.data["rps()"]["data"]) == 3
-        assert [attrs for time, attrs in response.data["rpm()"]["data"]] == [
+        assert len(response.data["epm()"]["data"]) == 3
+        assert len(response.data["eps()"]["data"]) == 3
+        assert [attrs for time, attrs in response.data["epm()"]["data"]] == [
             [{"count": 0}],
             [{"count": 0}],
             [{"count": 0}],
         ]
-        assert [attrs for time, attrs in response.data["rps()"]["data"]] == [
+        assert [attrs for time, attrs in response.data["eps()"]["data"]] == [
             [{"count": 0}],
             [{"count": 0}],
             [{"count": 0}],

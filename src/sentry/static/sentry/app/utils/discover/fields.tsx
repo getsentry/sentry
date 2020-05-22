@@ -210,12 +210,12 @@ export const AGGREGATIONS = {
     outputType: 'number',
     isSortable: false,
   },
-  rps: {
+  eps: {
     parameters: [],
     outputType: 'number',
     isSortable: true,
   },
-  rpm: {
+  epm: {
     parameters: [],
     outputType: 'number',
     isSortable: true,
@@ -328,8 +328,8 @@ export const TRACING_FIELDS = [
   'apdex',
   'impact',
   'user_misery',
-  'rps',
-  'rpm',
+  'eps',
+  'epm',
 ];
 
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;

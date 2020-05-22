@@ -1294,8 +1294,8 @@ class GetSnubaQueryArgsTest(TestCase):
         assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[3]
 
     def test_function_with_default_arguments(self):
-        result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
-        assert result.having == [["rpm", ">", 100]]
+        result = get_filter("epm():>100", {"start": before_now(minutes=5), "end": before_now()})
+        assert result.having == [["epm", ">", 100]]
 
     def test_function_with_alias(self):
         result = get_filter("percentile(transaction.duration, 0.95):>100")
@@ -1515,12 +1515,12 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
-    def test_rpm_function(self):
-        fields = ["rpm(3600)"]
+    def test_epm_function(self):
+        fields = ["epm(3600)"]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
+            ["divide(count(), divide(3600, 60))", None, "epm_3600"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
@@ -1528,45 +1528,45 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["rpm(30)"]
+            fields = ["epm(30)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "rpm(30): interval argument invalid: 30 must be greater than or equal to 60"
+            "epm(30): interval argument invalid: 30 must be greater than or equal to 60"
             in six.text_type(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["rpm()"]
+            fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "rpm(): invalid arguments: function called without default" in six.text_type(err)
+        assert "epm(): invalid arguments: function called without default" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["rpm()"]
+            fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter(start="abc", end="def"))
-        assert "rpm(): invalid arguments: function called with invalid default" in six.text_type(
+        assert "epm(): invalid arguments: function called with invalid default" in six.text_type(
             err
         )
 
-        fields = ["rpm()"]
+        fields = ["epm()"]
         result = resolve_field_list(
             fields, eventstore.Filter(start=before_now(hours=2), end=before_now(hours=1))
         )
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["divide(count(), divide(3600, 60))", None, "rpm"],
+            ["divide(count(), divide(3600, 60))", None, "epm"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
-    def test_rps_function(self):
-        fields = ["rps(3600)"]
+    def test_eps_function(self):
+        fields = ["eps(3600)"]
         result = resolve_field_list(fields, eventstore.Filter())
 
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["divide(count(), 3600)", None, "rps_3600"],
+            ["divide(count(), 3600)", None, "eps_3600"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
@@ -1574,10 +1574,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["rps(0)"]
+            fields = ["eps(0)"]
             result = resolve_field_list(fields, eventstore.Filter())
         assert (
-            "rps(0): interval argument invalid: 0 must be greater than or equal to 1"
+            "eps(0): interval argument invalid: 0 must be greater than or equal to 1"
             in six.text_type(err)
         )
 
