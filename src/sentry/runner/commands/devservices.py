@@ -186,6 +186,8 @@ def _prepare_containers(project, silent=False):
         options["ports"] = ensure_interface(options["ports"])
         containers[name] = options
 
+    # keys are service names
+    # a service has 1 container exactly, the container name being value["name"]
     return containers
 
 
@@ -335,9 +337,7 @@ def rm(project, services):
     if services:
         selected_containers = {}
         for service in services:
-            # XXX: This isn't great, we assume a service has 1 container following naming schema
-            # PROJECT_SERVICE. Like sentry_redis.
-            # This code is also fairly duplicated in here at this point, so dedupe in the future.
+            # XXX: This code is also fairly duplicated in here at this point, so dedupe in the future.
             if service not in containers:
                 click.secho(
                     "Service `{}` is not known or not enabled.\n".format(service),
@@ -363,21 +363,31 @@ Are you sure you want to continue?"""
         abort=True,
     )
 
-    prefix = project + "_"
+    for service_name, container_options in containers.items():
+        try:
+            container = client.containers.get(container_options["name"])
+        except docker.errors.NotFound:
+            click.secho(
+                "> WARNING: non-existent container '%s'" % container_options["name"],
+                err=True,
+                fg="yellow",
+            )
+            continue
 
-    for container_name in containers:
-        click.secho("> Removing '%s' container" % (prefix + container_name), err=True, fg="red")
-        container = client.containers.get(prefix + container_name)
+        click.secho("> Stopping '%s' container" % container_options["name"], err=True, fg="red")
         container.stop()
+        click.secho("> Removing '%s' container" % container_options["name"], err=True, fg="red")
         container.remove()
+
+    prefix = project + "_"
 
     for volume in client.volumes.list():
         if volume.name.startswith(prefix):
-            if not service or volume.name[len(prefix) :] in service:
+            if not services or volume.name[len(prefix) :] in services:
                 click.secho("> Removing '%s' volume" % volume.name, err=True, fg="red")
                 volume.remove()
 
-    if not service:
+    if not services:
         try:
             network = client.networks.get(project)
         except docker.errors.NotFound:
