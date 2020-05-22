@@ -208,7 +208,7 @@ export const AGGREGATIONS = {
       },
     ],
     outputType: 'number',
-    isSortable: true,
+    isSortable: false,
   },
   rps: {
     parameters: [],
