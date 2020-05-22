@@ -10,7 +10,7 @@ describe('generatePerformanceQuery()', function() {
     expect(result).toEqual({
       ...PERFORMANCE_EVENT_VIEW,
 
-      orderby: '-rpm',
+      orderby: '-epm',
       range: '24h',
     });
   });
@@ -40,7 +40,7 @@ describe('generatePerformanceQuery()', function() {
     expect(result).toEqual({
       ...PERFORMANCE_EVENT_VIEW,
 
-      orderby: '-rpm',
+      orderby: '-epm',
     });
   });
 
@@ -55,7 +55,7 @@ describe('generatePerformanceQuery()', function() {
     expect(result).toEqual({
       ...PERFORMANCE_EVENT_VIEW,
 
-      orderby: '-rpm',
+      orderby: '-epm',
     });
   });
 });
