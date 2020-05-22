@@ -320,10 +320,6 @@ class DebugMetaInterface extends React.PureComponent {
   filterImage(image) {
     const {showUnused, filter} = this.state;
 
-    if (typeof filter !== 'string') {
-      return true;
-    }
-
     if (!filter || filter.length < MIN_FILTER_LEN) {
       if (showUnused) {
         return true;
