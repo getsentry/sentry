@@ -383,11 +383,11 @@ Are you sure you want to continue?"""
 
     for volume in client.volumes.list():
         if volume.name.startswith(prefix):
-            if not service or volume.name[len(prefix) :] in service:
+            if not services or volume.name[len(prefix) :] in services:
                 click.secho("> Removing '%s' volume" % volume.name, err=True, fg="red")
                 volume.remove()
 
-    if not service:
+    if not services:
         try:
             network = client.networks.get(project)
         except docker.errors.NotFound:
