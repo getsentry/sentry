@@ -21,6 +21,7 @@ import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
+import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 import SplitInstallationIdModal from './SplitInstallationIdModal';
 
 type State = {
@@ -238,32 +239,47 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     const install = this.install;
-    return !install ? (
-      <InstallButton
-        size="small"
-        priority="primary"
-        disabled={disabledFromFeatures || !userHasAccess}
-        onClick={() => this.handleInstall()}
-        style={{marginLeft: space(1)}}
-        data-test-id="install-button"
-      >
-        {t('Accept & Install')}
-      </InstallButton>
-    ) : (
-      <Confirm
-        message={tct('Are you sure you want to remove the [slug] installation?', {
-          slug: this.integrationSlug,
-        })}
-        priority="danger"
-        onConfirm={() => this.handleUninstall(install)} //called when the user confirms the action
-        onConfirming={this.recordUninstallClicked} //called when the confirm modal opens
-        disabled={!userHasAccess}
-      >
-        <StyledUninstallButton size="small" data-test-id="sentry-app-uninstall">
-          <IconSubtract isCircled style={{marginRight: space(0.75)}} />
-          {t('Uninstall')}
-        </StyledUninstallButton>
-      </Confirm>
+    if (install) {
+      return (
+        <Confirm
+          disabled={!userHasAccess}
+          message={tct('Are you sure you want to remove the [slug] installation?', {
+            slug: this.integrationSlug,
+          })}
+          onConfirm={() => this.handleUninstall(install)} //called when the user confirms the action
+          onConfirming={this.recordUninstallClicked} //called when the confirm modal opens
+          priority="danger"
+        >
+          <StyledUninstallButton size="small" data-test-id="sentry-app-uninstall">
+            <IconSubtract isCircled style={{marginRight: space(0.75)}} />
+            {t('Uninstall')}
+          </StyledUninstallButton>
+        </Confirm>
+      );
+    }
+
+    if (userHasAccess) {
+      return (
+        <InstallButton
+          data-test-id="install-button"
+          disabled={disabledFromFeatures}
+          onClick={() => this.handleInstall()}
+          priority="primary"
+          size="small"
+          style={{marginLeft: space(1)}}
+        >
+          {t('Accept & Install')}
+        </InstallButton>
+      );
+    }
+
+    return (
+      <RequestIntegrationButton
+        organization={this.props.organization}
+        name={this.sentryApp.name}
+        slug={this.sentryApp.slug}
+        type="sentryapp"
+      />
     );
   }
 

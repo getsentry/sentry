@@ -18,6 +18,7 @@ import withOrganization from 'app/utils/withOrganization';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import AddIntegrationButton from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
+import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 
 type State = {
   configurations: Integration[];
@@ -197,8 +198,15 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         </Button>
       );
     }
-    // should never happen but we can't return undefined without some refactoring
-    return <span />;
+
+    return (
+      <RequestIntegrationButton
+        organization={organization}
+        name={provider.name}
+        slug={provider.slug}
+        type="integration"
+      />
+    );
   }
 
   renderConfigurations() {
