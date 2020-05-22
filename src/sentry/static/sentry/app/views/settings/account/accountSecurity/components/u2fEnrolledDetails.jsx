@@ -53,7 +53,7 @@ class U2fEnrolledDetails extends React.Component {
             devices.map(device => (
               <DevicePanelItem key={device.name}>
                 <DeviceInformation>
-                  <DeviceName value={device.name} />
+                  <DeviceName>{device.name}</DeviceName>
                   <FadedDateTime date={device.timestamp} />
                 </DeviceInformation>
 
