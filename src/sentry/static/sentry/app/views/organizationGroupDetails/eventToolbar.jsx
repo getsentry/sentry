@@ -1,7 +1,6 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
@@ -39,20 +38,18 @@ const formatDateDelta = (reference, observed) => {
   return results.join(', ');
 };
 
-const GroupEventToolbar = createReactClass({
-  displayName: 'GroupEventToolbar',
-
-  propTypes: {
+class GroupEventToolbar extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     location: PropTypes.object.isRequired,
     organization: SentryTypes.Organization.isRequired,
-  },
+  };
 
   shouldComponentUpdate(nextProps) {
     return this.props.event.id !== nextProps.event.id;
-  },
+  }
 
   getDateTooltip() {
     const evt = this.props.event;
@@ -84,7 +81,7 @@ const GroupEventToolbar = createReactClass({
         )}
       </dl>
     );
-  },
+  }
 
   renderRelatedTransactionButton() {
     const {organization, event, orgId, location} = this.props;
@@ -123,7 +120,7 @@ const GroupEventToolbar = createReactClass({
         </RelatedTransactionButton>
       </div>
     );
-  },
+  }
 
   render() {
     const evt = this.props.event;
@@ -211,8 +208,8 @@ const GroupEventToolbar = createReactClass({
         </span>
       </div>
     );
-  },
-});
+  }
+}
 
 const RelatedTransactionButton = styled(Button)`
   margin-right: ${space(2)};
