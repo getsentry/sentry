@@ -96,15 +96,6 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
     }
 
 
-class OrganizationRepositoryPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin", "org:integrations"],
-        "POST": ["org:write", "org:admin", "org:integrations"],
-        "PUT": ["org:write", "org:admin"],
-        "DELETE": ["org:admin"],
-    }
-
-
 class OrganizationAdminPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:admin"],
