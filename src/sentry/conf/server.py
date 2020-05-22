@@ -1792,6 +1792,7 @@ KAFKA_CLUSTERS = {
 KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
+KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
@@ -1802,6 +1803,10 @@ KAFKA_TOPICS = {
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {
         "cluster": "default",
         "topic": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+    },
+    KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {
+        "cluster": "default",
+        "topic": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
     },
     # Topic for receiving simple events (error events without attachments) from Relay
     KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
