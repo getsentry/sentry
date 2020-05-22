@@ -14,7 +14,6 @@ import FileSize from 'app/components/fileSize';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
-import space from 'app/styles/space';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 const formatDateDelta = (reference, observed) => {
@@ -114,11 +113,9 @@ class GroupEventToolbar extends React.Component {
     });
 
     return (
-      <div key="related-transaction">
-        <RelatedTransactionButton title={t('Related Transaction')} to={to} size="small">
-          {t('Related Transaction')}
-        </RelatedTransactionButton>
-      </div>
+      <Button key="related-transaction" to={to} size="small">
+        {t('Related Transaction')}
+      </Button>
     );
   }
 
@@ -131,7 +128,6 @@ class GroupEventToolbar extends React.Component {
     const baseEventsPath = `/organizations/${orgId}/issues/${groupId}/events/`;
 
     const eventNavNodes = [
-      this.renderRelatedTransactionButton(),
       <Button
         size="small"
         key="oldest"
@@ -185,9 +181,10 @@ class GroupEventToolbar extends React.Component {
 
     return (
       <div className="event-toolbar">
-        <div className="pull-right">
+        <NavigationButtons gap={1}>
+          {this.renderRelatedTransactionButton()}
           <ButtonBar merged>{eventNavNodes}</ButtonBar>
-        </div>
+        </NavigationButtons>
         <h4>
           {t('Event')}{' '}
           <Link to={`${baseEventsPath}${evt.id}/`} className="event-id">
@@ -211,8 +208,8 @@ class GroupEventToolbar extends React.Component {
   }
 }
 
-const RelatedTransactionButton = styled(Button)`
-  margin-right: ${space(2)};
+const NavigationButtons = styled(ButtonBar)`
+  float: right;
 `;
 
 export default GroupEventToolbar;
