@@ -952,7 +952,7 @@ function routes() {
         path="/extensions/external-install/:providerId/:installationId"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/integrationInstallation'
+            /* webpackChunkName: "ExtensionsIntegrationInstallation" */ 'app/views/integrationInstallation'
           )
         }
         component={errorHandler(LazyLoad)}
@@ -971,7 +971,7 @@ function routes() {
         path="/sentry-apps/:sentryAppSlug/external-install/"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppExternalInstallation'
+            /* webpackChunkName: "SentryAppExternalInstallation" */ 'app/views/sentryAppExternalInstallation'
           )
         }
         component={errorHandler(LazyLoad)}
