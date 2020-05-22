@@ -1457,7 +1457,7 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "clickhouse": {
-        "image": "yandex/clickhouse-server:19.11",
+        "image": "yandex/clickhouse-server:19.17.4.11",
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
         "volumes": {"clickhouse": {"bind": "/var/lib/clickhouse"}},
