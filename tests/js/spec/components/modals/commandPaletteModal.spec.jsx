@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {openCommandPalette} from 'app/actionCreators/modal';
 import App from 'app/views/app';
 import FormSearchStore from 'app/stores/formSearchStore';

@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import CellAction from 'app/views/eventsV2/table/cellAction';
 import EventView from 'app/utils/discover/eventView';
 

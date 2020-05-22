@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import {doEventsRequest} from 'app/actionCreators/events';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 

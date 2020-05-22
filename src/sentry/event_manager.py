@@ -102,7 +102,8 @@ def pop_tag(data, key):
 
 def set_tag(data, key, value):
     pop_tag(data, key)
-    data["tags"].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
+    if value is not None:
+        data["tags"].append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
 def get_tag(data, key):
@@ -1073,8 +1074,9 @@ def _save_aggregate(event, hashes, release, **kwargs):
         # make sure it still exists
         first_release = kwargs.pop("first_release", None)
 
+        short_id = project.next_short_id()
+
         with transaction.atomic():
-            short_id = project.next_short_id()
             group, group_is_new = (
                 Group.objects.create(
                     project=project,

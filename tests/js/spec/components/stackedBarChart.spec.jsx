@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import StackedBarChart from 'app/components/stackedBarChart';
 import ConfigStore from 'app/stores/configStore';
 

@@ -19,7 +19,7 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   projectId: string;
   event: Event;
-  showSelector: boolean;
+  showGroupingConfig: boolean;
 };
 
 type State = AsyncComponent['state'] & {
@@ -67,12 +67,15 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     }
 
     const groupedBy = Object.values(groupInfo)
-      .filter(variant => variant.hash !== null)
+      .filter(variant => variant.hash !== null && variant.description !== null)
       .map(variant => variant.description)
-      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      .sort((a, b) => a!.toLowerCase().localeCompare(b!.toLowerCase()))
       .join(', ');
 
-    return <small>{`(${t('grouped by')} ${groupedBy || t('nothing')})`}</small>;
+    return (
+      <SummaryGroupedBy>{`(${t('grouped by')} ${groupedBy ||
+        t('nothing')})`}</SummaryGroupedBy>
+    );
   }
 
   renderGroupConfigSelect() {
@@ -94,24 +97,26 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 
   renderGroupInfo() {
     const {groupInfo, loading} = this.state;
-    const {showSelector} = this.props;
+    const {showGroupingConfig} = this.props;
 
     const variants = Object.values(groupInfo).sort((a, b) =>
       a.hash && !b.hash
         ? -1
-        : a.description.toLowerCase().localeCompare(b.description.toLowerCase())
+        : a.description
+            ?.toLowerCase()
+            .localeCompare(b.description?.toLowerCase() ?? '') ?? 1
     );
 
     return (
       <React.Fragment>
-        {showSelector && this.renderGroupConfigSelect()}
+        {showGroupingConfig && this.renderGroupConfigSelect()}
 
         {loading ? (
           <LoadingIndicator />
         ) : (
           variants.map((variant, index) => (
             <React.Fragment key={variant.key}>
-              <GroupVariant variant={variant} />
+              <GroupVariant variant={variant} showGroupingConfig={showGroupingConfig} />
               {index < variants.length - 1 && <VariantDivider />}
             </React.Fragment>
           ))
@@ -147,6 +152,13 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const SummaryGroupedBy = styled('small')`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+    margin: 0 !important;
+  }
+`;
 
 const ToggleButton = styled(Button)`
   font-weight: 700;

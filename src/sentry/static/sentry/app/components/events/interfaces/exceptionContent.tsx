@@ -70,13 +70,7 @@ const ExceptionContent = ({
   values,
   type,
 }: Props) => {
-  const exceptionValues = values;
-
-  if (newestFirst) {
-    exceptionValues.reverse();
-  }
-
-  return exceptionValues.map((exc, excIdx) => (
+  const children = values.map((exc, excIdx) => (
     <div key={excIdx} className="exception">
       <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
       <Annotated object={exc} objectKey="value" required>
@@ -87,13 +81,19 @@ const ExceptionContent = ({
         data={type === 'original' ? exc.stacktrace : exc.rawStacktrace || exc.stacktrace}
         stackView={stackView}
         stacktrace={exc.stacktrace}
-        expandFirstFrame={excIdx === 0}
+        expandFirstFrame={excIdx === values.length - 1}
         platform={platform}
         newestFirst={newestFirst}
         event={event}
       />
     </div>
   ));
+
+  if (newestFirst) {
+    children.reverse();
+  }
+
+  return <div>{children}</div>;
 };
 
 export default ExceptionContent;

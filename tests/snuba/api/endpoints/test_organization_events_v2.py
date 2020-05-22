@@ -42,6 +42,19 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_or_errors(self):
+        self.login_as(user=self.user)
+        self.create_project()
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                {"field": ["id"], "query": "user.email:test OR user.email:foo"},
+                format="json",
+            )
+
+        assert response.status_code == 400
+
     def test_multi_project_feature_gate_rejection(self):
         self.login_as(user=self.user)
         team = self.create_team(organization=self.organization, members=[self.user])

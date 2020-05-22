@@ -279,6 +279,10 @@ class SearchVisitor(NodeVisitor):
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
+    def __init__(self, allow_boolean=True):
+        self.allow_boolean = allow_boolean
+        super(SearchVisitor, self).__init__()
+
     @cached_property
     def key_mappings_lookup(self):
         lookup = {}
@@ -619,6 +623,10 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_boolean_operator(self, node, children):
+        if not self.allow_boolean:
+            raise InvalidSearchQuery(
+                'Boolean statements containing "OR" or "AND" are not supported in this search'
+            )
         return node.text
 
     def visit_value(self, node, children):
@@ -657,7 +665,7 @@ class SearchVisitor(NodeVisitor):
         return children or node
 
 
-def parse_search_query(query):
+def parse_search_query(query, allow_boolean=True):
     try:
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
@@ -670,7 +678,7 @@ def parse_search_query(query):
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-    return SearchVisitor().visit(tree)
+    return SearchVisitor(allow_boolean).visit(tree)
 
 
 def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
@@ -806,7 +814,7 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query)
+            parsed_terms = parse_search_query(query, allow_boolean=False)
         except ParseError as e:
             raise InvalidSearchQuery(
                 u"Parse error: {} (column {:d})".format(e.expr.name, e.column())
@@ -1493,7 +1501,8 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
 
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
-    if aggregations:
+    # But ignore the project transform aggregation
+    if aggregations and not (len(aggregations) == 1 and project_key):
         for column in columns:
             if isinstance(column, (list, tuple)):
                 groupby.append(column[2])

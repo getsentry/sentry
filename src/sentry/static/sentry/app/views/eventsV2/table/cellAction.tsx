@@ -120,6 +120,7 @@ export default class CellAction extends React.Component<Props, State> {
     trackAnalyticsEvent({
       eventKey: 'discover_v2.results.cellaction',
       eventName: 'Discoverv2: Cell Action Clicked',
+      organization_id: parseInt(organization.id, 10),
       action,
     });
     const nextView = eventView.clone();

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectFilters from 'app/views/settings/project/projectFilters';
 
 describe('ProjectFilters', function() {
