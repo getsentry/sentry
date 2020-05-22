@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import pytest
 from sentry.utils.compat import mock
 
+from django.test import override_settings
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.http import urlquote
@@ -98,6 +99,27 @@ class AuthLoginTest(TestCase):
                 referrer="in-app",
             )
         ]
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    def test_registration_single_org(self):
+        options.set("auth.allow-registration", True)
+        with self.feature("auth:register"):
+            resp = self.client.post(
+                self.path,
+                {
+                    "username": "test-a-really-long-email-address@example.com",
+                    "password": "foobar",
+                    "name": "Foo Bar",
+                    "op": "register",
+                },
+            )
+        assert resp.status_code == 302, (
+            resp.context["register_form"].errors if resp.status_code == 200 else None
+        )
+        user = User.objects.get(username="test-a-really-long-email-address@example.com")
+
+        # User is part of the default org
+        assert OrganizationMember.objects.filter(user=user).exists()
 
     def test_register_renders_correct_template(self):
         options.set("auth.allow-registration", True)
