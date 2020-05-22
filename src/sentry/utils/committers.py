@@ -259,11 +259,9 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
 
 
 def dedupeCommits(commits):
-    seen = set()
-    result = []
+    result = {}
     for obj in commits:
-        if obj["id"] not in seen:
-            result.append(obj)
-            seen.add(obj["id"])
+        if obj["id"] not in result:
+            result[obj["id"]] = obj
 
-    return result
+    return result.values()
