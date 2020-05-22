@@ -23,6 +23,7 @@ import {
   ColumnType,
   isAggregateField,
   getAggregateAlias,
+  generateFieldAsString,
 } from './fields';
 import {getSortField} from './fieldRenderers';
 import {CHART_AXIS_OPTIONS, DisplayModes, DISPLAY_MODE_OPTIONS} from './types';
@@ -83,16 +84,6 @@ function getSortKeyFromField(field: Field, tableMeta?: MetaType): string | null 
 export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
   return !!getSortKeyFromField(field, tableMeta);
 }
-
-const generateFieldAsString = (col: Column): string => {
-  if (col.kind === 'field') {
-    return col.field;
-  }
-
-  const aggregation = col.function[0];
-  const parameters = col.function.slice(1).filter(i => i);
-  return `${aggregation}(${parameters.join(',')})`;
-};
 
 const decodeFields = (location: Location): Array<Field> => {
   const {query} = location;

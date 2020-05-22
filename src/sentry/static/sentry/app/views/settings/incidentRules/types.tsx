@@ -13,6 +13,11 @@ export enum AlertRuleAggregations {
   UNIQUE_USERS,
 }
 
+export enum Dataset {
+  ERRORS = 'events',
+  TRANSACTIONS = 'transactions',
+}
+
 export type UnsavedTrigger = {
   // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
   // id yet
@@ -45,7 +50,7 @@ export type UnsavedIncidentRule = {
   aggregation: AlertRuleAggregations;
   aggregations: AlertRuleAggregations[];
   projects: string[];
-  environment: string | string[] | null; // Temporarily can be either a string or string list
+  environment: string | null;
   query: string;
   timeWindow: number;
   triggers: Trigger[];

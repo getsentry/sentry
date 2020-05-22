@@ -89,12 +89,8 @@ class DetailedIncidentSerializer(IncidentSerializer):
         return context
 
     def _build_discover_query(self, incident):
-        query = incident.query
-        if (
-            incident.alert_rule
-            and QueryDatasets(incident.alert_rule.snuba_query.dataset) == QueryDatasets.EVENTS
-        ):
-            query = incident.alert_rule.snuba_query.query
+        query = incident.alert_rule.snuba_query.query
+        if QueryDatasets(incident.alert_rule.snuba_query.dataset) == QueryDatasets.EVENTS:
             condition = "event.type:error"
             query = "{} {}".format(condition, query) if query else condition
 

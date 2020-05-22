@@ -8,7 +8,7 @@ type Params = {
   /**
    * If this is true, will make corners blend with its opener (so no border radius)
    */
-  blendWithActor: boolean;
+  blendWithActor?: boolean;
   /**
    * If this is true, will make a single corner blended with actor (depends on anchor orientation)
    */
@@ -24,7 +24,7 @@ type Params = {
   /**
    * enable the arrow on the menu
    */
-  menuWithArrow: boolean;
+  menuWithArrow?: boolean;
 
   theme: Theme;
 };

@@ -31,7 +31,7 @@ export async function normalizeTransactionName(
 
   let prevTransactionName = event.transaction;
 
-  if (typeof prevTransactionName === 'string') {
+  if (typeof prevTransactionName === 'string' && prevTransactionName.length > 0) {
     if (prevTransactionName.startsWith('/')) {
       return event;
     }
@@ -43,7 +43,7 @@ export async function normalizeTransactionName(
     prevTransactionName = window.location.pathname;
   }
 
-  const transactionName: string | undefined = await new Promise(function(resolve) {
+  const transactionName: string = await new Promise(function(resolve) {
     Router.match(
       {
         routes: appRoutes,
@@ -51,26 +51,29 @@ export async function normalizeTransactionName(
       },
       (error, _redirectLocation, renderProps) => {
         if (error) {
-          set(event, ['tags', 'transaction.rename.react-router-match'], 'error');
-          return resolve(undefined);
+          set(event, ['tags', 'transaction.rename.router-match'], 'error');
+          return resolve(window.location.pathname);
         }
 
-        set(event, ['tags', 'transaction.rename.react-router-match'], 'success');
+        set(event, ['tags', 'transaction.rename.router-match'], 'success');
 
         const routePath = getRouteStringFromRoutes(renderProps.routes ?? []);
+
+        if (routePath.length === 0 || routePath === '/*') {
+          return resolve(window.location.pathname);
+        }
+
         return resolve(routePath);
       }
     );
   });
 
-  if (typeof transactionName === 'string' && transactionName.length) {
-    event.transaction = transactionName;
+  event.transaction = transactionName;
 
-    set(event, ['tags', 'transaction.rename.before'], prevTransactionName);
-    set(event, ['tags', 'transaction.rename.after'], transactionName);
+  set(event, ['tags', 'transaction.rename.before'], prevTransactionName);
+  set(event, ['tags', 'transaction.rename.after'], transactionName);
 
-    set(event, ['tags', 'ui.route'], transactionName);
-  }
+  set(event, ['tags', 'ui.route'], transactionName);
 
   return event;
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import Access from 'app/components/acl/access';
 import ConfigStore from 'app/stores/configStore';
 

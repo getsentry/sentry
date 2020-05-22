@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import FormSource from 'app/components/search/sources/formSource';
 import FormSearchActions from 'app/actions/formSearchActions';
 import * as ActionCreators from 'app/actionCreators/formSearch';

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectPlugins from 'app/views/settings/projectPlugins/projectPlugins';
 
 describe('ProjectPlugins', function() {

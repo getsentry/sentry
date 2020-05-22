@@ -61,17 +61,17 @@ class IssueLinkRequester(Mediator):
 
     def _make_request(self):
         action_to_past_tense = {"create": "created", "link": "linked"}
-        req = send_and_save_sentry_app_request(
-            self._build_url(),
-            self.sentry_app,
-            self.install.organization_id,
-            "external_issue.{}".format(action_to_past_tense[self.action]),
-            headers=self._build_headers(),
-            method="POST",
-            data=self.body,
-        )
 
         try:
+            req = send_and_save_sentry_app_request(
+                self._build_url(),
+                self.sentry_app,
+                self.install.organization_id,
+                "external_issue.{}".format(action_to_past_tense[self.action]),
+                headers=self._build_headers(),
+                method="POST",
+                data=self.body,
+            )
             body = safe_urlread(req)
             response = json.loads(body)
         except Exception as e:

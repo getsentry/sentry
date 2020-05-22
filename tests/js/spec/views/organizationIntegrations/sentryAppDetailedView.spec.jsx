@@ -1,9 +1,10 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
+import {Client} from 'app/api';
 import SentryAppDetailedView from 'app/views/organizationIntegrations/sentryAppDetailedView';
 
 const mockResponse = mocks => {

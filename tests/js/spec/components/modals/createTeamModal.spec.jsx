@@ -1,8 +1,9 @@
 import {Modal} from 'react-bootstrap';
 import React from 'react';
 
-import {createTeam} from 'app/actionCreators/teams';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {createTeam} from 'app/actionCreators/teams';
 import CreateTeamModal from 'app/components/modals/createTeamModal';
 
 jest.mock('app/actionCreators/teams', () => ({

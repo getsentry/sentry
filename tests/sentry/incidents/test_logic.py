@@ -715,7 +715,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             10,
             1,
         )
-        update_alert_rule(alert_rule, [self.project])
+        update_alert_rule(alert_rule, projects=[self.project])
         assert self.alert_rule.snuba_query.subscriptions.get().project == self.project
 
     def test_new_updated_deleted_projects(self):
@@ -732,7 +732,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         new_project = self.create_project(fire_project_created=True)
         updated_projects = [self.project, new_project]
         with self.tasks():
-            update_alert_rule(alert_rule, updated_projects, query=query_update)
+            update_alert_rule(alert_rule, projects=updated_projects, query=query_update)
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
         for sub in updated_subscriptions:
