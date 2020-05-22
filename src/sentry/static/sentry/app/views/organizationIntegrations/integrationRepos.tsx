@@ -139,7 +139,9 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
       return (
         <DropdownButton
           disabled
-          title={t('You do not have permission to add repositories')}
+          title={t(
+            'You must be an organization owner, manager or admin to add repositories'
+          )}
           isOpen={false}
           size="xsmall"
         >
