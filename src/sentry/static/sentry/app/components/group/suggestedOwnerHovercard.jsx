@@ -225,7 +225,7 @@ const ViewMoreButton = styled(({onClick, ...props}) => (
   width: 100%;
   text-align: right;
 `;
-const ViewMoreLink = styled(({...props}) => <a {...props}>View more</a>)`
+const ViewMoreLink = styled(p => <a {...p}>View more</a>)`
   color: #9586a5;
   font-size: 11px;
   min-width: 34px;
