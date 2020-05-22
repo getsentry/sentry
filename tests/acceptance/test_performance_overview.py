@@ -6,6 +6,8 @@ import time
 
 from mock import patch
 
+from django.db.models import F
+from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -62,6 +64,7 @@ class PerformanceOverviewTest(AcceptanceTestCase):
 
         event = make_event(load_data("transaction"))
         self.store_event(data=event, project_id=self.project.id)
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
