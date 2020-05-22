@@ -14,7 +14,6 @@ import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/grid
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {decodeScalar} from 'app/utils/queryString';
-import withProjects from 'app/utils/withProjects';
 import SearchBar from 'app/components/searchBar';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -22,7 +21,6 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
-import Onboarding from './onboarding';
 
 export function getProjectID(
   eventData: EventData,
@@ -51,7 +49,6 @@ type Props = {
   keyTransactions: boolean;
 
   projects: Project[];
-  loadingProjects: boolean;
 };
 
 type State = {
@@ -182,7 +179,7 @@ class Table extends React.Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, keyTransactions, projects} = this.props;
+    const {eventView, organization, location, keyTransactions} = this.props;
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
@@ -195,13 +192,6 @@ class Table extends React.Component<Props, State> {
 
     const columnSortBy = eventView.getSorts();
     const filterString = this.getTransactionSearchQuery();
-    const noFirstEvent =
-      projects.filter(
-        p =>
-          eventView.project.includes(parseInt(p.id, 10)) &&
-          p.firstTransactionEvent === false
-      ).length === eventView.project.length;
-
     return (
       <div>
         <StyledSearchBar
@@ -209,34 +199,30 @@ class Table extends React.Component<Props, State> {
           placeholder={t('Filter Transactions')}
           onSearch={this.handleTransactionSearchQuery}
         />
-        {noFirstEvent ? (
-          <Onboarding />
-        ) : (
-          <DiscoverQuery
-            eventView={eventView}
-            orgSlug={organization.slug}
-            location={location}
-            keyTransactions={keyTransactions}
-          >
-            {({pageLinks, isLoading, tableData}) => (
-              <React.Fragment>
-                <GridEditable
-                  isLoading={isLoading}
-                  data={tableData ? tableData.data : []}
-                  columnOrder={columnOrder}
-                  columnSortBy={columnSortBy}
-                  grid={{
-                    onResizeColumn: this.handleResizeColumn,
-                    renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
-                    renderBodyCell: this.renderBodyCell(tableData?.meta) as any,
-                  }}
-                  location={location}
-                />
-                <Pagination pageLinks={pageLinks} />
-              </React.Fragment>
-            )}
-          </DiscoverQuery>
-        )}
+        <DiscoverQuery
+          eventView={eventView}
+          orgSlug={organization.slug}
+          location={location}
+          keyTransactions={keyTransactions}
+        >
+          {({pageLinks, isLoading, tableData}) => (
+            <React.Fragment>
+              <GridEditable
+                isLoading={isLoading}
+                data={tableData ? tableData.data : []}
+                columnOrder={columnOrder}
+                columnSortBy={columnSortBy}
+                grid={{
+                  onResizeColumn: this.handleResizeColumn,
+                  renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
+                  renderBodyCell: this.renderBodyCell(tableData?.meta) as any,
+                }}
+                location={location}
+              />
+              <Pagination pageLinks={pageLinks} />
+            </React.Fragment>
+          )}
+        </DiscoverQuery>
       </div>
     );
   }
@@ -248,4 +234,4 @@ const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};
 `;
 
-export default withProjects(Table);
+export default Table;
