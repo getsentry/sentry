@@ -248,12 +248,7 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
         commit_ids = [commit.id for (commit, _) in committer["commits"]]
         commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
         # Deduplicate commits
-        seen = set()
-        committer["commits"] = []
-        for obj in commits_result:
-            if obj["id"] not in seen:
-                committer["commits"].append(obj)
-                seen.add(obj["id"])
+        committer["commits"] = dedupeCommits(commits_result)
 
     metrics.incr(
         "feature.owners.has-committers",
@@ -261,3 +256,14 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
         skip_internal=False,
     )
     return committers
+
+
+def dedupeCommits(commits):
+    seen = set()
+    result = []
+    for obj in commits:
+        if obj["id"] not in seen:
+            result.append(obj)
+            seen.add(obj["id"])
+
+    return result
