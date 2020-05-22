@@ -476,7 +476,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 self._handle_triggers(alert_rule, triggers)
                 return alert_rule
         except AlertRuleNameAlreadyUsedError:
-            raise serializers.ValidationError("This name is already in use for this project")
+            raise serializers.ValidationError("This name is already in use for this organization")
 
     def update(self, instance, validated_data):
         triggers = validated_data.pop("triggers")
@@ -488,7 +488,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 self._handle_triggers(alert_rule, triggers)
                 return alert_rule
         except AlertRuleNameAlreadyUsedError:
-            raise serializers.ValidationError("This name is already in use for this project")
+            raise serializers.ValidationError("This name is already in use for this organization")
 
     def _handle_triggers(self, alert_rule, triggers):
         if triggers is not None:
