@@ -37,6 +37,7 @@ const EventTags = ({event: {tags}, orgId, projectId, location}: Props) => {
             tag={tag}
             projectId={projectId}
             orgId={orgId}
+            location={location}
             query={generateQueryWithTag(location.query, tag)}
             streamPath={streamPath}
             releasesPath={releasesPath}
