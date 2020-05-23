@@ -131,7 +131,7 @@ class SuggestedOwnerHovercard extends React.Component {
             {rules !== undefined && (
               <React.Fragment>
                 <div className="divider">
-                  <h6>{t('Ownership Rules')}</h6>
+                  <h6>{t('Related Ownership Rules')}</h6>
                 </div>
                 <div>
                   {rules
@@ -215,20 +215,19 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   text-align: center;
 `;
 
-const ViewMoreButton = styled(({onClick, ...props}) => (
-  <div {...props}>
-    <ViewMoreLink onClick={onClick} />
-  </div>
+const ViewMoreButton = styled(p => (
+  <button className="btn btn-link" {...p}>
+    View more
+  </button>
 ))`
+  border: none;
+  color: ${p => p.theme.gray2} !important;
+  font-size: ${p => p.theme.fontSizeSmall};
   padding: ${space(0.25)} ${space(0.5)};
-  margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
+  margin: ${space(1)} ${space(0.25)} ${space(0.25)} 0;
   width: 100%;
-  text-align: right;
-`;
-const ViewMoreLink = styled(p => <a {...p}>View more</a>)`
-  color: #9586a5;
-  font-size: 11px;
   min-width: 34px;
+  text-align: right;
 `;
 
 const OwnershipValue = styled('code')`
