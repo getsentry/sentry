@@ -226,6 +226,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       <ClassNames>
         {({css}) => (
           <StyledDropdownAutoComplete
+            isOpen
             alignMenu="left"
             allowActorToggle
             closeOnSelect

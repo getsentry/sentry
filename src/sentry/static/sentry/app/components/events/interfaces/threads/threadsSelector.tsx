@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {ClassNames} from '@emotion/core';
+import {css} from '@emotion/core';
 
 import {Thread} from 'app/types/events';
 import {Event, EntryTypeData} from 'app/types';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import {t} from 'app/locale';
 
 import filterThreadInfo from './filterThreadInfo';
 import getThreadException from './getThreadException';
@@ -57,64 +57,62 @@ const ThreadsSelector = ({threads, event, activeThread, onChange}: Props) => {
   };
 
   return (
-    <ClassNames>
-      {({css}) => (
-        <DropdownAutoComplete
-          items={threads.map(getDropDownItem)}
-          onSelect={handleOnChange}
-          align="left"
-          alignMenu="left"
-          maxHeight={DROPDOWN_MAX_HEIGHT}
-          className={css`
-            width: 100%;
-            @media (min-width: ${theme.breakpoints[2]}) {
-              width: 700px;
-            }
-          `}
-          rootClassName={css`
-            width: 100%;
-            flex: 1;
-            margin-bottom: ${space(1)};
-            @media (min-width: ${theme.breakpoints[2]}) {
-              width: auto;
-              flex: initial;
-              margin-bottom: ${space(0)};
-            }
-          `}
-        >
-          {({isOpen, selectedItem}) => (
-            <StyledDropdownButton size="small" isOpen={isOpen} align="left">
-              {selectedItem ? (
-                <ThreadsSelectorSelectedOption
-                  id={selectedItem.thread.id}
-                  details={selectedItem.threadInfo}
-                />
-              ) : (
-                <ThreadsSelectorSelectedOption
-                  id={activeThread.id}
-                  details={filterThreadInfo(activeThread, event)}
-                />
-              )}
-            </StyledDropdownButton>
+    <StyledDropdownAutoComplete
+      closeOnSelect
+      emptyHidesInput
+      items={threads.map(getDropDownItem)}
+      onSelect={handleOnChange}
+      align="left"
+      alignMenu="left"
+      maxHeight={DROPDOWN_MAX_HEIGHT}
+      placeholder={t('Filter Threads')}
+      emptyMessage={t('You have no threads')}
+      noResultsMessage={t('No threads found')}
+      zIndex={theme.zIndex.dropdown}
+      className={css`
+        width: 100%;
+        @media (min-width: ${theme.breakpoints[2]}) {
+          width: 400px;
+        }
+      `}
+      isOpen
+    >
+      {({isOpen, selectedItem}) => (
+        <StyledDropdownButton size="small" isOpen={isOpen} align="left">
+          {selectedItem ? (
+            <ThreadsSelectorSelectedOption
+              id={selectedItem.thread.id}
+              details={selectedItem.threadInfo}
+            />
+          ) : (
+            <ThreadsSelectorSelectedOption
+              id={activeThread.id}
+              details={filterThreadInfo(activeThread, event)}
+            />
           )}
-        </DropdownAutoComplete>
+        </StyledDropdownButton>
       )}
-    </ClassNames>
+    </StyledDropdownAutoComplete>
   );
 };
 
 export default ThreadsSelector;
 
+const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
+  background: ${p => p.theme.white};
+  border: 1px solid ${p => p.theme.borderDark};
+  position: absolute;
+  top: 100%;
+  box-shadow: ${p => p.theme.dropShadowLight};
+  border-radius: ${p => p.theme.borderRadiusBottom};
+  margin-top: 0;
+  min-width: 100%;
+`;
+
 const StyledDropdownButton = styled(DropdownButton)`
-  > *:first-child {
-    grid-template-columns: 1fr 15px;
-  }
   width: 100%;
-
-  min-width: 150px;
-
   @media (min-width: ${props => props.theme.breakpoints[3]}) {
-    max-width: 420px;
+    width: 210px;
   }
   ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
 `;
