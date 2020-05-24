@@ -1,12 +1,25 @@
 steps:
-- name: 'gcr.io/kaniko-project/executor:v0.17.1'
+- name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args: [
+    '--cache=true',
+    '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
+    '--destination=us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA',
+    '-f', './docker/builder.Dockerfile'
+  ]
+  timeout: 180s
+- name: 'us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA'
+  env: [
+    'SOURCE_COMMIT=$COMMIT_SHA'
+  ]
+  timeout: 360s
+- name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args: [
     '--cache=true',
     '--build-arg', 'SOURCE_COMMIT=$COMMIT_SHA',
     '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
     '-f', './docker/Dockerfile'
   ]
-  timeout: 900s
+  timeout: 300s
 # Smoke tests
 - name: 'gcr.io/$PROJECT_ID/docker-compose'
   entrypoint: 'bash'
@@ -29,7 +42,7 @@ steps:
     docker-compose up -d
     timeout 20 bash -c 'until $(curl -Isf -o /dev/null http://web:9000); do printf "."; sleep 0.5; done' || docker-compose logs web
     ./test.sh
-  timeout: 1200s
+  timeout: 300s
 - name: 'gcr.io/cloud-builders/docker'
   secretEnv: ['DOCKER_PASSWORD']
   entrypoint: 'bash'
