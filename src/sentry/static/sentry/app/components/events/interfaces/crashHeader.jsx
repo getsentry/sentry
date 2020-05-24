@@ -117,10 +117,10 @@ class CrashHeader extends React.Component {
 
     return (
       <Wrapper className="crash-title">
-        <TitleInfo>
+        <TitleWrapper>
           {beforeTitle}
           {titleNode}
-        </TitleInfo>
+        </TitleWrapper>
         <ButtonGroupWrapper>
           <ButtonGroup merged>
             {this.hasSystemFrames() && (
@@ -188,28 +188,38 @@ const Wrapper = styled('div')`
   flex-direction: column;
   flex-wrap: wrap;
   width: 100%;
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
-    align-items: center;
+  align-items: flex-start;
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
     flex-direction: row;
+    align-items: center;
   }
 `;
 
-const TitleInfo = styled('div')`
+const TitleWrapper = styled('div')`
   display: flex;
-  flex: 1;
-  max-width: 100%;
   flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  > * {
+    margin-bottom: ${space(0.5)};
+    :last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
     flex-direction: row;
-    flex-shrink: 2;
     align-items: center;
+    > * {
+      margin-right: ${space(0.5)};
+      margin-bottom: 0;
+      :last-child {
+        margin-right: 0;
+      }
+    }
   }
 `;
 
 const ButtonGroup = styled(ButtonBar)`
-  padding-top: ${space(1.5)};
-  padding-bottom: ${space(1.5)};
-  padding-right: ${space(1)};
+  padding: ${space(1.5)} ${space(1)} ${space(1.5)} 0;
 `;
 
 const ButtonGroupWrapper = styled('div')`

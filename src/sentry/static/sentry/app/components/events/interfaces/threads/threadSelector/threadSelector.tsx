@@ -71,7 +71,8 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
       zIndex={theme.zIndex.dropdown}
       css={css`
         width: 100%;
-        @media (min-width: ${theme.breakpoints[2]}) {
+        min-width: 300px;
+        @media (min-width: ${theme.breakpoints[0]}) {
           width: 550px;
         }
       `}
@@ -112,8 +113,5 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
-  width: 100%;
-  @media (min-width: ${props => props.theme.breakpoints[3]}) {
-    width: 210px;
-  }
+  width: 210px;
 `;
