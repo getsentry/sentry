@@ -15,4 +15,4 @@ function getRelevantFrame(stacktrace: any): Frame {
   return stacktrace.frames[stacktrace.frames.length - 1];
 }
 
-export default getRelevantFrame;
+export {getRelevantFrame};

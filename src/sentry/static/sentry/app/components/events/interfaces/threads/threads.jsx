@@ -12,9 +12,9 @@ import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import {defined} from 'app/utils';
 
-import ThreadsSelector from './threadsSelector';
-import getThreadStacktrace from './getThreadStacktrace';
-import getThreadException from './getThreadException';
+import ThreadSelector from './threadSelector/threadSelector';
+import {getThreadStacktrace} from './threadSelector/getThreadStacktrace';
+import {getThreadException} from './threadSelector/getThreadException';
 
 function getIntendedStackView(thread, event) {
   const stacktrace = getThreadStacktrace(thread, event, false);
@@ -191,7 +191,7 @@ class ThreadsInterface extends React.Component {
         <CrashHeader
           title={null}
           beforeTitle={
-            <ThreadsSelector
+            <ThreadSelector
               threads={threads}
               activeThread={activeThread}
               event={this.props.event}

@@ -3,4 +3,4 @@ function trimFilename(filename: string) {
   return pieces[pieces.length - 1];
 }
 
-export default trimFilename;
+export {trimFilename};

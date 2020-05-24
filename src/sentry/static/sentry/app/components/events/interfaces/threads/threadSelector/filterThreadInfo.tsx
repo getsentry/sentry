@@ -2,23 +2,18 @@ import {Thread, Frame} from 'app/types/events';
 import {Event} from 'app/types';
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
 
-import getThreadStacktrace from './getThreadStacktrace';
-import getRelevantFrame from './getRelevantFrame';
-import trimFilename from './trimFilename';
-
-// TODO(i18n): add traslations here
-const NOT_FOUND_FRAME = '<unknown>';
+import {getThreadStacktrace} from './getThreadStacktrace';
+import {getRelevantFrame} from './getRelevantFrame';
+import {trimFilename} from './trimFilename';
 
 type ThreadInfo = {
-  label: string;
+  label?: string;
   filename?: string;
 };
 
 function filterThreadInfo(thread: Thread, event: Event): ThreadInfo {
   const stacktrace = getThreadStacktrace(thread, event, false);
-  const threadInfo: ThreadInfo = {
-    label: NOT_FOUND_FRAME,
-  };
+  const threadInfo: ThreadInfo = {};
 
   if (!stacktrace) {
     return threadInfo;
@@ -48,4 +43,4 @@ function filterThreadInfo(thread: Thread, event: Event): ThreadInfo {
   return threadInfo;
 }
 
-export default filterThreadInfo;
+export {filterThreadInfo};

@@ -20,4 +20,4 @@ function getThreadException(thread: Thread, event: Event): EntryTypeData | undef
   return undefined;
 }
 
-export default getThreadException;
+export {getThreadException};
