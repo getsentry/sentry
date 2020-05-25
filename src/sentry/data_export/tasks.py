@@ -23,7 +23,11 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(name="sentry.data_export.tasks.assemble_download", queue="data_export")
 def assemble_download(
-    data_export_id, export_limit=1000000, batch_size=SNUBA_MAX_RESULTS, environment_id=None
+    data_export_id,
+    export_limit=1000000,
+    batch_size=SNUBA_MAX_RESULTS,
+    environment_id=None,
+    **kwargs
 ):
     # Get the ExportedData object
     try:
