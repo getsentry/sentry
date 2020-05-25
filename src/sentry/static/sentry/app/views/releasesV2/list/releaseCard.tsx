@@ -28,7 +28,7 @@ type Props = {
   location: Location;
   selection: GlobalSelection;
   reloading: boolean;
-  showPlaceholders: boolean;
+  showHealthPlaceholders: boolean;
 };
 
 const ReleaseCard = ({
@@ -37,7 +37,7 @@ const ReleaseCard = ({
   location,
   reloading,
   selection,
-  showPlaceholders,
+  showHealthPlaceholders,
 }: Props) => {
   const {version, commitCount, lastDeploy, authors, dateCreated} = release;
 
@@ -120,7 +120,7 @@ const ReleaseCard = ({
         release={release}
         orgSlug={orgSlug}
         location={location}
-        showPlaceholders={showPlaceholders}
+        showPlaceholders={showHealthPlaceholders}
         selection={selection}
       />
     </StyledPanel>

@@ -25,9 +25,9 @@ import {defined} from 'app/utils';
 
 import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleasePromo from './releasePromo';
-import ReleaseCards from './releaseCards';
 import IntroBanner from './introBanner';
 import SwitchReleasesButton from '../utils/switchReleasesButton';
+import ReleaseCard from './releaseCard';
 
 type RouteParams = {
   orgId: string;
@@ -38,19 +38,19 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: GlobalSelection;
 };
 
-type State = {releases: Release[]} & AsyncView['state'];
+type State = {
+  // TODO(releasesV2): types
+  releases: Release[];
+  releasesWithHealth: Release[];
+  releasesWithoutHealth: Release[];
+  loadingHealth: boolean;
+} & AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
   shouldReload = true;
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
-  }
-
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-    };
   }
 
   getEndpoints(): [string, string, {}][] {
@@ -73,7 +73,40 @@ class ReleasesList extends AsyncView<Props, State> {
       flatten: !sort || sort === 'date' ? 0 : 1,
     };
 
-    return [['releases', `/organizations/${organization.slug}/releases/`, {query}]];
+    return [
+      ['releasesWithoutHealth', `/organizations/${organization.slug}/releases/`, {query}],
+      [
+        'releasesWithHealth',
+        `/organizations/${organization.slug}/releases/`,
+        {query: {...query, health: 1}},
+      ],
+    ];
+  }
+
+  onRequestSuccess({stateKey, data, jqXHR}) {
+    const {remainingRequests} = this.state;
+
+    if (stateKey === 'releasesWithoutHealth') {
+      if (remainingRequests === 1) {
+        this.setState({
+          reloading: false,
+          loading: false,
+          loadingHealth: true,
+          releases: data,
+          releasesPageLinks: jqXHR?.getResponseHeader('Link'),
+        });
+      }
+    }
+
+    if (stateKey === 'releasesWithHealth') {
+      this.setState({
+        reloading: false,
+        loading: false,
+        loadingHealth: false,
+        releases: data,
+        releasesPageLinks: jqXHR?.getResponseHeader('Link'),
+      });
+    }
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -176,7 +209,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderInnerBody() {
     const {location, selection, organization} = this.props;
-    const {releases, reloading} = this.state;
+    const {releases, reloading, loadingHealth} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
@@ -186,19 +219,22 @@ class ReleasesList extends AsyncView<Props, State> {
       return this.renderEmptyMessage();
     }
 
-    return (
-      <ReleaseCards
-        releases={releases}
+    return releases.map(release => (
+      <ReleaseCard
+        release={release}
         orgSlug={organization.slug}
         location={location}
         selection={selection}
         reloading={reloading}
+        key={`${release.version}-${release.projects[0].slug}`}
+        showHealthPlaceholders={loadingHealth}
       />
-    );
+    ));
   }
 
   renderBody() {
     const {organization} = this.props;
+    const {releasesPageLinks} = this.state;
 
     return (
       <GlobalSelectionHeader
@@ -228,7 +264,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
             {this.renderInnerBody()}
 
-            <Pagination pageLinks={this.state.releasesPageLinks} />
+            <Pagination pageLinks={releasesPageLinks} />
 
             {!this.shouldShowLoadingIndicator() && (
               <SwitchReleasesButton version="1" orgId={organization.id} />

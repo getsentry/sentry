@@ -69,18 +69,8 @@ const ReleaseHealth = ({
           <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
           <CrashFreeSessionsColumn>{t('Crash free sessions')}</CrashFreeSessionsColumn>
           <DailyUsersColumn>
-            {/* TODO: health types */}
-            {release.projects.some(p => p.healthData?.hasHealthData) ? (
-              <React.Fragment>
-                <HealthStatsSubject
-                  location={location}
-                  activeSubject={activeStatsSubject}
-                />
-                <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
-              </React.Fragment>
-            ) : (
-              t('Daily active users')
-            )}
+            <HealthStatsSubject location={location} activeSubject={activeStatsSubject} />
+            <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
           </DailyUsersColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
@@ -102,7 +92,7 @@ const ReleaseHealth = ({
               totalUsers24h,
               totalSessions,
               totalSessions24h,
-            } = healthData || {}; // TODO: type?
+            } = healthData || {};
 
             return (
               <StyledPanelItem key={`${release.version}-${slug}-health`}>
