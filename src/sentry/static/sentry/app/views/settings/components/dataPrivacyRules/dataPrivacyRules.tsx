@@ -430,6 +430,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
               onUpdateEventId={this.handleUpdateEventId}
               eventId={eventId}
               sourceSuggestions={sourceSuggestions}
+              disabled={disabled}
             />
             <PanelAction>
               <Button
