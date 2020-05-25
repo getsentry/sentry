@@ -86,30 +86,19 @@ class ReleasesList extends AsyncView<Props, State> {
   onRequestSuccess({stateKey, data, jqXHR}) {
     const {remainingRequests} = this.state;
 
-    if (stateKey === 'releasesWithoutHealth') {
-      if (remainingRequests === 1) {
-        this.setState({
-          reloading: false,
-          loading: false,
-          loadingHealth: true,
-          releases: data,
-          releasesPageLinks: jqXHR?.getResponseHeader('Link'),
-        });
-      }
-    }
-
-    if (stateKey === 'releasesWithHealth') {
+    // make sure there's no withHealth/withoutHealth race condition and set proper loading state
+    if (stateKey === 'releasesWithHealth' || remainingRequests === 1) {
       this.setState({
         reloading: false,
         loading: false,
-        loadingHealth: false,
+        loadingHealth: stateKey === 'releasesWithoutHealth',
         releases: data,
         releasesPageLinks: jqXHR?.getResponseHeader('Link'),
       });
     }
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     super.componentDidUpdate(prevProps, prevState);
 
     if (prevState.releases !== this.state.releases) {
