@@ -29,7 +29,7 @@ export const PERFORMANCE_EVENT_VIEW: Readonly<NewQuery> = {
 export const COLUMN_TITLES = [
   'transaction',
   'project',
-  'throughput',
+  'tpm',
   'p50',
   'p95',
   'error rate',

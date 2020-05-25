@@ -29,9 +29,9 @@ const YAXIS_OPTIONS = [
     tooltip: PERFORMANCE_TERMS.apdex,
   },
   {
-    label: 'Throughput',
+    label: 'Transactions per Minute',
     value: 'epm()',
-    tooltip: PERFORMANCE_TERMS.epm,
+    tooltip: PERFORMANCE_TERMS.tpm,
   },
 ];
 
