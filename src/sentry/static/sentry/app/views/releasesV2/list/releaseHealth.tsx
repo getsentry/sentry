@@ -17,7 +17,6 @@ import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import TextOverflow from 'app/components/textOverflow';
-import ClippedBox from 'app/components/clippedBox';
 import Placeholder from 'app/components/placeholder';
 import Link from 'app/components/links/link';
 
@@ -32,6 +31,7 @@ import HealthStatsSubject, {StatsSubject} from './healthStatsSubject';
 import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
 import AdoptionTooltip from './adoptionTooltip';
 import NotAvailable from './notAvailable';
+import ClippedHealthRows from './clippedHealthRows';
 
 type Props = {
   release: Release;
@@ -78,8 +78,8 @@ const ReleaseHealth = ({
       </StyledPanelHeader>
 
       <PanelBody>
-        <ClippedBox clipHeight={200}>
-          {sortedProjects.map(project => {
+        <ClippedHealthRows fadeHeight="46px" maxVisibleItems={4}>
+          {sortedProjects.map((project, index) => {
             const {id, slug, healthData, newGroups} = project;
             const {
               hasHealthData,
@@ -95,7 +95,10 @@ const ReleaseHealth = ({
             } = healthData || {};
 
             return (
-              <StyledPanelItem key={`${release.version}-${slug}-health`}>
+              <StyledPanelItem
+                key={`${release.version}-${slug}-health`}
+                isLast={index === sortedProjects.length - 1}
+              >
                 <Layout>
                   <ProjectColumn>
                     <GlobalSelectionLink
@@ -112,7 +115,7 @@ const ReleaseHealth = ({
 
                   <AdoptionColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder height="25px" width="150px" />
+                      <StyledPlaceholder width="150px" />
                     ) : defined(adoption) ? (
                       <AdoptionWrapper>
                         <Tooltip
@@ -145,7 +148,7 @@ const ReleaseHealth = ({
 
                   <CrashFreeUsersColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder height="25px" width="60px" />
+                      <StyledPlaceholder width="60px" />
                     ) : defined(crashFreeUsers) ? (
                       <React.Fragment>
                         <StyledProgressRing
@@ -163,7 +166,7 @@ const ReleaseHealth = ({
 
                   <CrashFreeSessionsColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder height="25px" width="60px" />
+                      <StyledPlaceholder width="60px" />
                     ) : defined(crashFreeSessions) ? (
                       <React.Fragment>
                         <StyledProgressRing
@@ -181,7 +184,7 @@ const ReleaseHealth = ({
 
                   <DailyUsersColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder height="25px" />
+                      <StyledPlaceholder />
                     ) : hasHealthData && defined(stats) ? (
                       <ChartWrapper>
                         <HealthStatsChart
@@ -198,7 +201,7 @@ const ReleaseHealth = ({
 
                   <CrashesColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder height="25px" width="30px" />
+                      <StyledPlaceholder width="30px" />
                     ) : hasHealthData && defined(sessionsCrashed) ? (
                       <Count value={sessionsCrashed} />
                     ) : (
@@ -219,7 +222,7 @@ const ReleaseHealth = ({
               </StyledPanelItem>
             );
           })}
-        </ClippedBox>
+        </ClippedHealthRows>
       </PanelBody>
     </React.Fragment>
   );
@@ -233,9 +236,10 @@ const StyledPanelHeader = styled(PanelHeader)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const StyledPanelItem = styled(PanelItem)`
+const StyledPanelItem = styled(PanelItem)<{isLast: boolean}>`
   padding: ${space(1)} ${space(2)};
   min-height: 46px;
+  border: ${p => (p.isLast ? 'none' : null)};
 `;
 
 const Layout = styled('div')`
