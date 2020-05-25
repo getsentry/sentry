@@ -12,6 +12,7 @@ import {Client} from 'app/api';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
+import Alert from 'app/components/alert';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -23,7 +24,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {ContentBox, Main, Side} from 'app/utils/discover/styles';
-import Alert from 'app/components/alert';
+import {generateQueryWithTag} from 'app/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
@@ -182,23 +183,34 @@ class Results extends React.Component<Props, State> {
     return generateTitle({eventView});
   }
 
-  renderTagsTable = () => {
+  renderTagsTable() {
     const {organization, location} = this.props;
     const {eventView, totalValues} = this.state;
 
-    // Move events-meta call out of Tags into this component
-    // so that we can push it into the chart footer.
     return (
       <Tags
+        generateUrl={this.generateTagUrl}
         totalValues={totalValues}
         eventView={eventView}
         organization={organization}
         location={location}
       />
     );
+  }
+
+  generateTagUrl = (key: string, value: string) => {
+    const {organization} = this.props;
+    const {eventView} = this.state;
+
+    const url = eventView.getResultsViewUrlTarget(organization.slug);
+    url.query = generateQueryWithTag(url.query, {
+      key,
+      value,
+    });
+    return url;
   };
 
-  renderError = error => {
+  renderError(error: string) {
     if (!error) {
       return null;
     }
@@ -207,9 +219,9 @@ class Results extends React.Component<Props, State> {
         {error}
       </Alert>
     );
-  };
+  }
 
-  setError = error => {
+  setError = (error: string) => {
     this.setState({error});
   };
 

@@ -449,6 +449,9 @@ class EventView {
     return newQuery;
   }
 
+  // TODO(mark) Refactor this to return the GlobalSelection type instead.
+  // We'll likely also need a function somewhere to convert GlobalSelection
+  // into query parameters, as that is how this method is currently used.
   getGlobalSelection(): {
     start: string | undefined;
     end: string | undefined;

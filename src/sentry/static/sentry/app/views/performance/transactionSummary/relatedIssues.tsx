@@ -81,7 +81,7 @@ class RelatedIssues extends React.Component<Props> {
       <React.Fragment>
         <ControlsWrapper>
           <SectionHeading>{t('Related Issues')}</SectionHeading>
-          <Button size="small" to={issueSearch}>
+          <Button data-test-id="issues-open" size="small" to={issueSearch}>
             {t('Open in Issues')}
           </Button>
         </ControlsWrapper>
