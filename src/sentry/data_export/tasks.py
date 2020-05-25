@@ -49,7 +49,11 @@ def assemble_download(
                 )
             elif data_export.query_type == ExportQueryType.DISCOVER:
                 process_discover(
-                    data_export=data_export, file=tf, limit=limit, environment_id=environment_id
+                    data_export=data_export,
+                    file=tf,
+                    limit=limit,
+                    batch_size=batch_size,
+                    environment_id=environment_id,
                 )
             # Create a new File object and attach it to the ExportedData
             tf.seek(0)
