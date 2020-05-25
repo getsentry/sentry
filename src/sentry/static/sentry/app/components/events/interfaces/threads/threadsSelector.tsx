@@ -75,7 +75,6 @@ const ThreadsSelector = ({threads, event, activeThread, onChange}: Props) => {
           width: 400px;
         }
       `}
-      isOpen
     >
       {({isOpen, selectedItem}) => (
         <StyledDropdownButton size="small" isOpen={isOpen} align="left">
