@@ -15,6 +15,7 @@ type Props = {
   rules: Array<Rule>;
   onUpdateRule: ModalProps['onSaveRule'];
   onDeleteRule: (rulesToBeDeleted: Array<Rule['id']>) => void;
+  disabled?: boolean;
 } & Pick<ModalProps, 'eventId' | 'onUpdateEventId' | 'sourceSuggestions'>;
 
 type State = {
@@ -59,7 +60,7 @@ class DataPrivacyRulesContent extends React.Component<Props, State> {
 
   render() {
     const {editRule} = this.state;
-    const {rules, sourceSuggestions, onUpdateEventId, eventId} = this.props;
+    const {rules, sourceSuggestions, onUpdateEventId, eventId, disabled} = this.props;
 
     if (rules.length === 0) {
       return (
@@ -76,6 +77,7 @@ class DataPrivacyRulesContent extends React.Component<Props, State> {
           rules={rules}
           onDeleteRule={this.handleDeleteRule}
           onShowEditRuleModal={this.handleShowEditRuleModal}
+          disabled={disabled}
         />
         {defined(editRule) && (
           <DataPrivacyRulesModal
