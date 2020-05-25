@@ -8,6 +8,10 @@ import {Tags} from 'app/views/eventsV2/tags';
 import EventView from 'app/utils/discover/eventView';
 
 describe('Tags', function() {
+  function generateUrl(key, value) {
+    return `/endpoint/${key}/${value}`;
+  }
+
   const org = TestStubs.Organization();
   beforeEach(function() {
     Client.addMockResponse({
@@ -20,6 +24,10 @@ describe('Tags', function() {
         {
           key: 'environment',
           topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
+        },
+        {
+          key: 'color',
+          topValues: [{count: 2, value: 'red', name: 'red'}],
         },
       ],
     });
@@ -46,6 +54,7 @@ describe('Tags', function() {
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
+        generateUrl={generateUrl}
       />
     );
 
@@ -59,7 +68,7 @@ describe('Tags', function() {
     expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
   });
 
-  it('environment tag is a dedicated query string', async function() {
+  it('creates URLs with generateUrl', async function() {
     const api = new Client();
 
     const view = new EventView({
@@ -83,6 +92,7 @@ describe('Tags', function() {
         totalValues={2}
         selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
+        generateUrl={generateUrl}
       />,
       initialData.routerContext
     );
@@ -108,9 +118,6 @@ describe('Tags', function() {
     await tick();
     wrapper.update();
 
-    expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/discover/results/',
-      query: expect.objectContaining({environment: 'abcd123'}),
-    });
+    expect(initialData.router.push).toHaveBeenCalledWith('/endpoint/environment/abcd123');
   });
 });

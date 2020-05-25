@@ -169,6 +169,7 @@ class SummaryContentTable extends React.Component<Props> {
               onClick={this.handleDiscoverViewClick}
               to={eventView.getResultsViewUrlTarget(organization.slug)}
               size="small"
+              data-test-id="discover-open"
             >
               {t('Open in Discover')}
             </Button>
