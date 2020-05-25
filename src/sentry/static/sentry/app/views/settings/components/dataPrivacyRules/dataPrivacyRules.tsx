@@ -289,7 +289,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
         return undefined;
       })
       .catch(error => {
-        const errorMessage = error.responseJSON?.relayPiiConfig[0];
+        const errorMessage = error.responseJSON?.relayPiiConfig?.[0];
 
         if (!errorMessage) {
           addErrorMessage(t('Unknown error occurred while saving data privacy rules'));
