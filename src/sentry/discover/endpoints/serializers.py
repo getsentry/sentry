@@ -218,8 +218,8 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         if "query" in query:
             try:
                 get_filter(query["query"])
-            except InvalidSearchQuery:
-                raise serializers.ValidationError("Cannot save invalid queries")
+            except InvalidSearchQuery as err:
+                raise serializers.ValidationError("Cannot save invalid query: {}".format(err))
 
         if data["projects"] == ALL_ACCESS_PROJECTS:
             data["projects"] = []
