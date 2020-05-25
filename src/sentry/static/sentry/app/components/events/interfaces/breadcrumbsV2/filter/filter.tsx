@@ -1,155 +1,195 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import {css} from '@emotion/core';
 
-import {t, tn} from 'app/locale';
 import DropdownControl from 'app/components/dropdownControl';
-import DropdownButton from 'app/components/dropdownButton';
 
-import {Group} from './group';
+import {DropDownButton} from './dropdownButton';
+import {OptionsGroup} from './optionsGroup';
 import {Header} from './header';
-import {Footer} from './footer';
-import {FilterGroup, FilterGroupType, FilterType} from './types';
+import {OptionType, OptionLevel, Option} from './types';
+
+type OnClick = React.ComponentProps<typeof OptionsGroup>['onClick'];
+type Options = [Array<OptionType>, Array<OptionLevel>];
 
 type Props = {
-  onFilter: (filterGroups: Array<FilterGroup>) => () => void;
-  filterGroups: Array<FilterGroup>;
+  options: Options;
+  onFilter: (options: Options) => void;
+  onCheckAll: (checkAll: boolean) => void;
 };
 
 type State = {
-  filterGroups: Array<FilterGroup>;
-  checkedOptionsQuantity: number;
+  checkAll: boolean;
+  hasTypeOption: boolean;
+  hasLevelOption: boolean;
+  checkedQuantity: number;
 };
 
 class Filter extends React.Component<Props, State> {
   state: State = {
-    filterGroups: [],
-    checkedOptionsQuantity: 0,
+    checkAll: true,
+    hasTypeOption: false,
+    hasLevelOption: false,
+    checkedQuantity: this.props.options.length,
   };
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(this.props.filterGroups, prevProps.filterGroups)) {
-      this.loadState();
+    if (!isEqual(prevProps.options, this.props.options)) {
+      this.updateState();
     }
   }
 
-  setCheckedOptionsQuantity = () => {
-    this.setState(prevState => ({
-      checkedOptionsQuantity: prevState.filterGroups.filter(
-        filterGroup => filterGroup.isChecked
-      ).length,
-    }));
+  updateState = () => {
+    const {options} = this.props;
+    this.setState({
+      hasTypeOption: options[0].length > 0,
+      hasLevelOption: options[1].length > 0,
+      checkedQuantity: this.getCheckedQuantity(),
+    });
   };
 
-  loadState() {
-    const {filterGroups} = this.props;
-    this.setState(
-      {
-        filterGroups,
-      },
-      this.setCheckedOptionsQuantity
-    );
-  }
+  handleToggleCheckAll = () => {
+    const {onCheckAll} = this.props;
 
-  handleClickItem = (type: FilterType, groupType: FilterGroupType) => {
     this.setState(
       prevState => ({
-        filterGroups: prevState.filterGroups.map(filterGroup => {
-          if (filterGroup.groupType === groupType && filterGroup.type === type) {
-            return {
-              ...filterGroup,
-              isChecked: !filterGroup.isChecked,
-            };
-          }
-          return filterGroup;
-        }),
+        checkAll: !prevState.checkAll,
       }),
-      this.setCheckedOptionsQuantity
+      () => {
+        onCheckAll(this.state.checkAll);
+      }
     );
   };
 
-  handleSelectAll = (selectAll: boolean) => {
-    this.setState(
-      prevState => ({
-        filterGroups: prevState.filterGroups.map(data => ({
-          ...data,
-          isChecked: selectAll,
-        })),
-      }),
-      this.setCheckedOptionsQuantity
-    );
-  };
+  getCheckedQuantity = () => {
+    const {options} = this.props;
 
-  getDropDownButton = ({isOpen, getActorProps}) => {
-    const {checkedOptionsQuantity} = this.state;
+    let checkedQuantity = 0;
 
-    const dropDownButtonProps = {
-      buttonLabel: t('Filter By'),
-      buttonPriority: 'default',
-      hasDarkBorderBottomColor: false,
-    };
-
-    if (checkedOptionsQuantity > 0) {
-      dropDownButtonProps.buttonLabel = tn(
-        '%s Active Filter',
-        '%s Active Filters',
-        checkedOptionsQuantity
-      );
-      dropDownButtonProps.buttonPriority = 'primary';
-      dropDownButtonProps.hasDarkBorderBottomColor = true;
+    for (const index in options) {
+      for (const option in options[index]) {
+        if (options[index][option].isChecked) {
+          checkedQuantity += 1;
+        }
+      }
     }
 
-    return (
-      <StyledDropdownButton
-        {...getActorProps()}
-        isOpen={isOpen}
-        hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
-        size="small"
-        priority={dropDownButtonProps.buttonPriority}
-      >
-        {dropDownButtonProps.buttonLabel}
-      </StyledDropdownButton>
-    );
+    return checkedQuantity;
+  };
+
+  filterOptionsFirstStep = (options: Array<Option>, option: Option) => {
+    const filteredOptions = options.map(type => {
+      if (isEqual(type, option)) {
+        return {
+          ...type,
+          isChecked: !type.isChecked,
+        };
+      }
+      return type;
+    });
+
+    const checkedOptions = filteredOptions.filter(t => t.isChecked);
+
+    return [filteredOptions, checkedOptions];
+  };
+
+  filterOptionsByLevel = (options: Options, option: Option): Options => {
+    // Filter levels
+    const [levels, checkedLevels] = this.filterOptionsFirstStep(options[1], option) as [
+      Options[1],
+      Options[1]
+    ];
+
+    // Filter types
+    const types = options[0].map(type => {
+      if (
+        !type.levels.some(level =>
+          checkedLevels.some(checkedLevel => checkedLevel.type === level)
+        )
+      ) {
+        return {
+          ...type,
+          isDisabled: true,
+        };
+      }
+      return {
+        ...type,
+        isDisabled: false,
+      };
+    });
+
+    return [types, levels];
+  };
+
+  filterOptionsByType = (options: Options, option: Option): Options => {
+    // Filter types
+    const [types, checkedTypes] = this.filterOptionsFirstStep(options[0], option) as [
+      Options[0],
+      Options[0]
+    ];
+
+    // Filter levels
+    const levels = options[1].map(level => {
+      if (!checkedTypes.some(type => type.levels.includes(level.type))) {
+        return {
+          ...level,
+          isDisabled: true,
+        };
+      }
+      return {
+        ...level,
+        isDisabled: false,
+      };
+    });
+
+    return [types, levels];
+  };
+
+  handleClick = (...args: Parameters<OnClick>) => {
+    const [type, option] = args;
+    const {onFilter, options} = this.props;
+
+    const updatedOptions =
+      type === 'type'
+        ? this.filterOptionsByType(options, option)
+        : this.filterOptionsByLevel(options, option);
+
+    onFilter(updatedOptions);
   };
 
   render() {
-    const {onFilter} = this.props;
-    const {filterGroups, checkedOptionsQuantity} = this.state;
+    const {options} = this.props;
+    const {hasTypeOption, hasLevelOption, checkedQuantity} = this.state;
 
-    const hasFilterGroupsGroupTypeLevel = filterGroups.find(
-      filterGroup => filterGroup.groupType === FilterGroupType.LEVEL
-    );
+    if (!hasTypeOption && !hasLevelOption) {
+      return null;
+    }
 
     return (
       <Wrapper>
-        <DropdownControl menuWidth="240px" blendWithActor button={this.getDropDownButton}>
-          <React.Fragment>
-            <Header
-              onSelectAll={this.handleSelectAll}
-              selectedQuantity={checkedOptionsQuantity}
-              isAllSelected={filterGroups.length === checkedOptionsQuantity}
+        <DropdownControl
+          menuWidth="240px"
+          blendWithActor
+          button={({isOpen, getActorProps}) => (
+            <DropDownButton
+              isOpen={isOpen}
+              getActorProps={getActorProps}
+              checkedQuantity={checkedQuantity}
             />
-            <Group
-              groupHeaderTitle={t('Type')}
-              onClick={this.handleClickItem}
-              data={filterGroups.filter(
-                filterGroup => filterGroup.groupType === FilterGroupType.TYPE
-              )}
-            />
-            {hasFilterGroupsGroupTypeLevel && (
-              <Group
-                groupHeaderTitle={t('Level')}
-                onClick={this.handleClickItem}
-                data={filterGroups.filter(
-                  filterGroup => filterGroup.groupType === FilterGroupType.LEVEL
-                )}
-              />
-            )}
-            {!isEqual(this.props.filterGroups, filterGroups) && (
-              <Footer onSubmit={onFilter(filterGroups)} />
-            )}
-          </React.Fragment>
+          )}
+        >
+          <Header
+            onCheckAll={this.handleToggleCheckAll}
+            checkedQuantity={checkedQuantity}
+            isAllChecked={false}
+          />
+          {hasTypeOption && (
+            <OptionsGroup type="type" onClick={this.handleClick} options={options[0]} />
+          )}
+
+          {hasLevelOption && (
+            <OptionsGroup type="level" onClick={this.handleClick} options={options[1]} />
+          )}
         </DropdownControl>
       </Wrapper>
     );
@@ -157,27 +197,6 @@ class Filter extends React.Component<Props, State> {
 }
 
 export {Filter};
-
-const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
-  border-right: 0;
-  z-index: ${p => p.theme.zIndex.dropdown};
-  border-radius: ${p =>
-    p.isOpen
-      ? `${p.theme.borderRadius} 0 0 0`
-      : `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
-  white-space: nowrap;
-  max-width: 200px;
-  &:hover,
-  &:active {
-    border-right: 0;
-  }
-  ${p =>
-    !p.isOpen &&
-    p.hasDarkBorderBottomColor &&
-    css`
-      border-bottom-color: ${p.theme.button.primary.border};
-    `}
-`;
 
 const Wrapper = styled('div')`
   position: relative;

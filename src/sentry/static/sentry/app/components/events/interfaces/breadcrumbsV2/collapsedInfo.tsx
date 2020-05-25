@@ -12,7 +12,7 @@ type Props = {
   quantity: number;
 };
 
-const Collapsed = ({quantity, onClick}: Props) => (
+const CollapsedInfo = ({quantity, onClick}: Props) => (
   <Wrapper data-test-id="breadcrumb-collapsed" onClick={onClick}>
     <IconWrapper>
       <IconEllipsis />
@@ -21,7 +21,7 @@ const Collapsed = ({quantity, onClick}: Props) => (
   </Wrapper>
 );
 
-export {Collapsed};
+export {CollapsedInfo};
 
 const Wrapper = styled(GridCellLeft)`
   cursor: pointer;

@@ -1,14 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {Event} from 'app/types';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import SentryTypes from 'app/sentryTypes';
 
-import {Collapsed} from './collapsed';
+import {Time} from './time';
+import {CollapsedInfo} from './collapsedInfo';
 import {Data} from './data/data';
 import {Category} from './category';
-import {Time} from './time';
 import {Icon} from './icon';
 import {Level} from './level';
 import {Grid, GridCell, GridCellLeft} from './styles';
@@ -22,68 +24,57 @@ type Props = {
   onToggleCollapse: () => void;
   event: Event;
   orgId: string | null;
+  maxHeight?: React.CSSProperties['maxHeight'];
 };
 
-type State = {
-  breadCrumbListHeight?: React.CSSProperties['maxHeight'];
-};
-
-class ListBody extends React.Component<Props, State> {
-  state: State = {};
-
-  componentDidMount() {
-    this.loadBreadCrumbListHeight();
-  }
-
-  listRef = React.createRef<HTMLDivElement>();
-
-  loadBreadCrumbListHeight = () => {
-    const offsetHeight = this.listRef?.current?.offsetHeight;
-    this.setState({
-      breadCrumbListHeight: offsetHeight ? `${offsetHeight}px` : 'none',
-    });
-  };
-
-  render() {
-    const {collapsedQuantity, onToggleCollapse, breadcrumbs, event, orgId} = this.props;
-    const {breadCrumbListHeight} = this.state;
-
-    return (
-      <StyledGrid maxHeight={breadCrumbListHeight} ref={this.listRef}>
-        {collapsedQuantity > 0 && (
-          <Collapsed onClick={onToggleCollapse} quantity={collapsedQuantity} />
-        )}
-        {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
-          const hasError = crumb.type === BreadcrumbType.ERROR;
-          const isLastItem = breadcrumbs.length - 1 === idx;
-          return (
-            <React.Fragment key={idx}>
-              <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
-                <Tooltip title={crumb.description}>
-                  <Icon icon={icon} color={color} />
-                </Tooltip>
-              </GridCellLeft>
-              <GridCellCategory hasError={hasError} isLastItem={isLastItem}>
-                <Category category={crumb?.category} />
-              </GridCellCategory>
-              <GridCell hasError={hasError} isLastItem={isLastItem}>
-                <Data event={event} orgId={orgId} breadcrumb={crumb as Breadcrumb} />
-              </GridCell>
-              <GridCell hasError={hasError} isLastItem={isLastItem}>
-                <Level level={crumb.level} />
-              </GridCell>
-              <GridCell hasError={hasError} isLastItem={isLastItem}>
-                <Time timestamp={crumb.timestamp} />
-              </GridCell>
-            </React.Fragment>
-          );
-        })}
-      </StyledGrid>
-    );
-  }
-}
+const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
+  {collapsedQuantity, onToggleCollapse, orgId, event, maxHeight, breadcrumbs},
+  ref
+) {
+  return (
+    <StyledGrid maxHeight={maxHeight} ref={ref}>
+      {collapsedQuantity > 0 && (
+        <CollapsedInfo onClick={onToggleCollapse} quantity={collapsedQuantity} />
+      )}
+      {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
+        const hasError = crumb.type === BreadcrumbType.ERROR;
+        const isLastItem = breadcrumbs.length - 1 === idx;
+        return (
+          <React.Fragment key={idx}>
+            <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
+              <Tooltip title={crumb.description}>
+                <Icon icon={icon} color={color} />
+              </Tooltip>
+            </GridCellLeft>
+            <GridCellCategory hasError={hasError} isLastItem={isLastItem}>
+              <Category category={crumb?.category} />
+            </GridCellCategory>
+            <GridCell hasError={hasError} isLastItem={isLastItem}>
+              <Data event={event} orgId={orgId} breadcrumb={crumb as Breadcrumb} />
+            </GridCell>
+            <GridCell hasError={hasError} isLastItem={isLastItem}>
+              <Level level={crumb.level} />
+            </GridCell>
+            <GridCell hasError={hasError} isLastItem={isLastItem}>
+              <Time timestamp={crumb.timestamp} />
+            </GridCell>
+          </React.Fragment>
+        );
+      })}
+    </StyledGrid>
+  );
+});
 
 export {ListBody};
+
+ListBody.propTypes = {
+  breadcrumbs: PropTypes.array.isRequired,
+  collapsedQuantity: PropTypes.number.isRequired,
+  onToggleCollapse: PropTypes.func.isRequired,
+  event: SentryTypes.Event.isRequired,
+  orgId: PropTypes.string.isRequired,
+  maxHeight: PropTypes.string,
+};
 
 const GridCellCategory = styled(GridCell)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
