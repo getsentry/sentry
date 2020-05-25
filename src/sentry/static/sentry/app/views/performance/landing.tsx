@@ -8,6 +8,7 @@ import {Organization, Project} from 'app/types';
 import FeatureBadge from 'app/components/featureBadge';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
@@ -111,16 +112,35 @@ class PerformanceLanding extends React.Component<Props, State> {
     );
   }
 
-  render() {
-    const {organization, location, router, projects} = this.props;
+  shouldShowOnboarding() {
+    const {projects} = this.props;
     const {eventView} = this.state;
 
-    const noFirstEvent =
+    if (projects.length === 0) {
+      return false;
+    }
+
+    // Current selection is 'my projects' or 'all projects'
+    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
+      return (
+        projects.filter(p => p.firstTransactionEvent === false).length === projects.length
+      );
+    }
+
+    // Any other subset of projects.
+    return (
       projects.filter(
         p =>
           eventView.project.includes(parseInt(p.id, 10)) &&
           p.firstTransactionEvent === false
-      ).length === eventView.project.length;
+      ).length === eventView.project.length
+    );
+  }
+
+  render() {
+    const {organization, location, router, projects} = this.props;
+    const {eventView} = this.state;
+    const showOnboarding = this.shouldShowOnboarding();
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
@@ -140,10 +160,10 @@ class PerformanceLanding extends React.Component<Props, State> {
                 <div>
                   {t('Performance')} <FeatureBadge type="beta" />
                 </div>
-                {!noFirstEvent && <div>{this.renderHeaderButtons()}</div>}
+                {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
               </StyledPageHeader>
               {this.renderError()}
-              {noFirstEvent ? (
+              {showOnboarding ? (
                 <Onboarding />
               ) : (
                 <React.Fragment>
