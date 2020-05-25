@@ -1,10 +1,12 @@
 import React from 'react';
 import {css} from '@emotion/core';
 
+import {t} from 'app/locale';
 import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
 import {Dialog} from 'app/components/dataPrivacyRules/dialog';
 import theme from 'app/utils/theme';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 
 type SourceSuggestions = React.ComponentProps<typeof Dialog>['sourceSuggestions'];
 
@@ -36,17 +38,21 @@ class CreateDataPrivacyRule extends React.Component<Props, State> {
   loadSourceSuggestionsEventBased = async () => {
     const {organization, project, eventId} = this.props;
 
-    const rawSuggestions = await this.api.requestPromise(
-      `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
-      {method: 'GET', query: {eventId, projectId: project.id}}
-    );
+    try {
+      const rawSuggestions = await this.api.requestPromise(
+        `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
+        {method: 'GET', query: {eventId, projectId: project.id}}
+      );
 
-    const sourceSuggestions: SourceSuggestions = rawSuggestions.suggestions;
+      const sourceSuggestions: SourceSuggestions = rawSuggestions.suggestions;
 
-    if (sourceSuggestions && sourceSuggestions.length > 0) {
-      this.setState({
-        sourceSuggestions,
-      });
+      if (sourceSuggestions && sourceSuggestions.length > 0) {
+        this.setState({
+          sourceSuggestions,
+        });
+      }
+    } catch {
+      addErrorMessage(t('Error fetching source suggestions'));
     }
   };
 
