@@ -9,21 +9,18 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox, Main, Side} from 'app/utils/discover/styles';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
 
-import SummaryContentTable from './table';
+import TransactionList from './transactionList';
 import Breadcrumb from './breadcrumb';
 import UserStats from './userStats';
 import KeyTransactionButton from './keyTransactionButton';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
-
-const TOP_SLOWEST_TRANSACTIONS = 5;
 
 type Props = {
   location: Location;
@@ -107,24 +104,11 @@ class SummaryContent extends React.Component<Props> {
               eventView={eventView}
               totalValues={totalValues}
             />
-            <DiscoverQuery
+            <TransactionList
+              organization={organization}
               location={location}
               eventView={eventView}
-              orgSlug={organization.slug}
-              extraQuery={{
-                per_page: TOP_SLOWEST_TRANSACTIONS,
-              }}
-            >
-              {({isLoading, tableData}) => (
-                <SummaryContentTable
-                  organization={organization}
-                  location={location}
-                  eventView={eventView}
-                  tableData={tableData}
-                  isLoading={isLoading}
-                />
-              )}
-            </DiscoverQuery>
+            />
             <RelatedIssues
               organization={organization}
               location={location}
