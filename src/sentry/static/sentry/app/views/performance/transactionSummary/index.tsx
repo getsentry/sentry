@@ -4,6 +4,7 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/browser';
+import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -65,7 +66,7 @@ class TransactionSummary extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {location} = this.props;
+    const {api, organization, location, selection} = this.props;
     const {eventView} = this.state;
 
     if (eventView && prevState.eventView) {
@@ -74,6 +75,13 @@ class TransactionSummary extends React.Component<Props, State> {
       if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
         this.fetchTotalCount();
       }
+    }
+
+    if (
+      !isEqual(prevProps.selection.projects, selection.projects) ||
+      !isEqual(prevProps.selection.datetime, selection.datetime)
+    ) {
+      loadOrganizationTags(api, organization.slug, selection);
     }
   }
 
