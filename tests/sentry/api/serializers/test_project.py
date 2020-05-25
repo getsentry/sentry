@@ -6,6 +6,7 @@ from datetime import timedelta
 
 import six
 import datetime
+from django.db.models import F
 from django.utils import timezone
 from exam import fixture
 
@@ -21,6 +22,7 @@ from sentry.models import (
     Deploy,
     Environment,
     EnvironmentProject,
+    Project,
     Release,
     ReleaseProjectEnvironment,
     UserReport,
@@ -263,6 +265,18 @@ class ProjectSummarySerializerTest(TestCase):
         }
         assert result["latestRelease"] == {"version": self.release.version}
         assert result["environments"] == ["production", "staging"]
+
+    def test_first_event_properties(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["firstEvent"] is None
+        assert result["firstTransactionEvent"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["firstEvent"]
+        assert result["firstTransactionEvent"] is True
 
     def test_user_reports(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
