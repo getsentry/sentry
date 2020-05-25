@@ -8,7 +8,6 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import theme from 'app/utils/theme';
 import {t} from 'app/locale';
-import {IconChevron} from 'app/icons';
 
 import {filterThreadInfo} from './filterThreadInfo';
 import {getThreadException} from './getThreadException';
@@ -79,6 +78,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
       menuHeader={<Header />}
       closeOnSelect
       emptyHidesInput
+      isOpen
     >
       {({isOpen, selectedItem}) => (
         <StyledDropdownButton size="small" isOpen={isOpen} align="left">
@@ -102,7 +102,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
 export default ThreadSelector;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
-  background: #fff;
+  background: ${p => p.theme.white};
   border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: 100%;

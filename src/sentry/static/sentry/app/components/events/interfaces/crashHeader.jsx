@@ -185,19 +185,14 @@ export default CrashHeader;
 const Wrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  flex-direction: column;
   flex-wrap: wrap;
   width: 100%;
-  align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    flex-direction: row;
-    align-items: center;
-  }
 `;
 
 const TitleWrapper = styled('div')`
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   > * {
     margin-bottom: ${space(0.5)};
     :last-child {
@@ -206,13 +201,11 @@ const TitleWrapper = styled('div')`
   }
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    flex-direction: row;
-    align-items: center;
     > * {
       margin-right: ${space(0.5)};
       margin-bottom: 0;
       :last-child {
-        margin-right: 0;
+        margin-right: ${space(1)};
       }
     }
   }
