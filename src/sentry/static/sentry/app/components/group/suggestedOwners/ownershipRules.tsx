@@ -63,14 +63,12 @@ const OwnershipRules = ({project, organization, issueId, eventId}: Props) => {
           )}
         </ClassNames>
       </Header>
-      <Content>
-        <Button onClick={handleOpenCreateOwnershipRule} priority="link" align="left">
-          {t('Create Ownership Rule')}
-        </Button>
-        <Button onClick={handleOpenCreateDataPrivacyRule} priority="link" align="left">
-          {t('Create Data Privacy Rule')}
-        </Button>
-      </Content>
+      <Button onClick={handleOpenCreateOwnershipRule} priority="link" align="left">
+        {t('Create Ownership Rule')}
+      </Button>
+      <Button onClick={handleOpenCreateDataPrivacyRule} priority="link" align="left">
+        {t('Create Data Privacy Rule')}
+      </Button>
     </Wrapper>
   );
 };
@@ -80,10 +78,4 @@ export {OwnershipRules};
 const HelpfulBody = styled('div')`
   padding: ${space(1)};
   text-align: center;
-`;
-
-const Content = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  justify-content: flex-start;
 `;

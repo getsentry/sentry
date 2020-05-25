@@ -16,6 +16,9 @@ const Header = styled('div')`
 
 const Wrapper = styled('div')`
   margin-bottom: ${space(3)};
+  display: grid;
+  grid-gap: ${space(1)};
+  justify-content: flex-start;
 `;
 
 export {Heading, Header, Wrapper};
