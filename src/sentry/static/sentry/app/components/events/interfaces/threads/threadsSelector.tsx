@@ -65,7 +65,6 @@ const ThreadsSelector = ({threads, event, activeThread, onChange}: Props) => {
           align="left"
           alignMenu="left"
           maxHeight={DROPDOWN_MAX_HEIGHT}
-          // TODO(fix): unfortunately the dropDown is not playing well with emotion js
           className={css`
             width: 100%;
             @media (min-width: ${theme.breakpoints[2]}) {
@@ -117,4 +116,5 @@ const StyledDropdownButton = styled(DropdownButton)`
   @media (min-width: ${props => props.theme.breakpoints[3]}) {
     max-width: 420px;
   }
+  ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
 `;

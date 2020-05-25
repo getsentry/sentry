@@ -160,7 +160,7 @@ export default BreadcrumbFilter;
 
 const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
   border-right: 0;
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
+  z-index: ${p => p.theme.zIndex.dropdown};
   border-radius: ${p =>
     p.isOpen
       ? `${p.theme.borderRadius} 0 0 0`
