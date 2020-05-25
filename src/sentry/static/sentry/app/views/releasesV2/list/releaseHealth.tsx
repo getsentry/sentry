@@ -118,10 +118,10 @@ const ReleaseHealth = ({
                         <Tooltip
                           title={
                             <AdoptionTooltip
-                              totalUsers={totalUsers}
-                              totalSessions={totalSessions}
-                              totalUsers24h={totalUsers24h}
-                              totalSessions24h={totalSessions24h}
+                              totalUsers={totalUsers!}
+                              totalSessions={totalSessions!}
+                              totalUsers24h={totalUsers24h!}
+                              totalSessions24h={totalSessions24h!}
                             />
                           }
                         >
@@ -182,7 +182,7 @@ const ReleaseHealth = ({
                   <DailyUsersColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder height="25px" />
-                    ) : hasHealthData ? (
+                    ) : hasHealthData && defined(stats) ? (
                       <ChartWrapper>
                         <HealthStatsChart
                           data={stats}
@@ -199,7 +199,7 @@ const ReleaseHealth = ({
                   <CrashesColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder height="25px" width="30px" />
-                    ) : hasHealthData ? (
+                    ) : hasHealthData && defined(sessionsCrashed) ? (
                       <Count value={sessionsCrashed} />
                     ) : (
                       <NotAvailable />

@@ -2,7 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
-// import {forceCheck} from 'react-lazyload';
+import {forceCheck} from 'react-lazyload';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -39,10 +39,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
-  // TODO(releasesV2): types
   releases: Release[];
-  releasesWithHealth: Release[];
-  releasesWithoutHealth: Release[];
   loadingHealth: boolean;
 } & AsyncView['state'];
 
@@ -86,9 +83,6 @@ class ReleasesList extends AsyncView<Props, State> {
   onRequestSuccess({stateKey, data, jqXHR}) {
     const {remainingRequests} = this.state;
 
-    // eslint-disable-next-line no-console
-    console.log({stateKey, remainingRequests});
-
     // make sure there's no withHealth/withoutHealth race condition and set proper loading state
     if (stateKey === 'releasesWithHealth' || remainingRequests === 1) {
       this.setState({
@@ -114,7 +108,7 @@ class ReleasesList extends AsyncView<Props, State> {
        * This is how we re-check them without scrolling once releases change as this view
        * uses shouldReload=true and there is no reloading happening.
        */
-      // forceCheck();
+      forceCheck();
     }
   }
 
