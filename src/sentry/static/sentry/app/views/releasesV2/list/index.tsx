@@ -65,7 +65,7 @@ class ReleasesList extends AsyncView<Props, State> {
         'healthStat',
       ]),
       summaryStatsPeriod: statsPeriod,
-      per_page: 50,
+      per_page: 25,
       health: 0,
       flatten: !sort || sort === 'date' ? 0 : 1,
     };
