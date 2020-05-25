@@ -78,7 +78,6 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
       menuHeader={<Header />}
       closeOnSelect
       emptyHidesInput
-      isOpen
     >
       {({isOpen, selectedItem}) => (
         <StyledDropdownButton size="small" isOpen={isOpen} align="left">
