@@ -4,7 +4,7 @@ import space from 'app/styles/space';
 
 const Heading = styled('h6')`
   margin: 0 !important;
-  font-weight: 400;
+  font-weight: 600;
 `;
 
 const Header = styled('div')`
