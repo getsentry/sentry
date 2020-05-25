@@ -70,7 +70,7 @@ exports[`SharedGroupDetails renders 1`] = `
                       "annotations": Array [],
                       "assignedTo": null,
                       "count": "327482",
-                      "culprit": "fetchData(app/components/group/suggestedOwners)",
+                      "culprit": "fetchData(app/components/group/suggestedOwners/suggestedOwners)",
                       "firstRelease": null,
                       "firstSeen": "2019-04-05T19:44:05.963Z",
                       "hasSeen": false,
@@ -176,11 +176,11 @@ exports[`SharedGroupDetails renders 1`] = `
                             </h3>
                           </Title>
                           <StyledEventMessage
-                            message="fetchData(app/components/group/suggestedOwners)"
+                            message="fetchData(app/components/group/suggestedOwners/suggestedOwners)"
                           >
                             <EventMessage
                               className="css-j0hue0-StyledEventMessage e1vuddz00"
-                              message="fetchData(app/components/group/suggestedOwners)"
+                              message="fetchData(app/components/group/suggestedOwners/suggestedOwners)"
                             >
                               <div
                                 className="css-j0hue0-StyledEventMessage e1vuddz00"
@@ -189,7 +189,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                   <span
                                     className="css-136mfoi-Message e1vuddz02"
                                   >
-                                    fetchData(app/components/group/suggestedOwners)
+                                    fetchData(app/components/group/suggestedOwners/suggestedOwners)
                                   </span>
                                 </Message>
                               </div>
@@ -233,7 +233,7 @@ exports[`SharedGroupDetails renders 1`] = `
                           "annotations": Array [],
                           "assignedTo": null,
                           "count": "327482",
-                          "culprit": "fetchData(app/components/group/suggestedOwners)",
+                          "culprit": "fetchData(app/components/group/suggestedOwners/suggestedOwners)",
                           "firstRelease": null,
                           "firstSeen": "2019-04-05T19:44:05.963Z",
                           "hasSeen": false,
@@ -374,7 +374,7 @@ exports[`SharedGroupDetails renders 1`] = `
                             "annotations": Array [],
                             "assignedTo": null,
                             "count": "327482",
-                            "culprit": "fetchData(app/components/group/suggestedOwners)",
+                            "culprit": "fetchData(app/components/group/suggestedOwners/suggestedOwners)",
                             "firstRelease": null,
                             "firstSeen": "2019-04-05T19:44:05.963Z",
                             "hasSeen": false,

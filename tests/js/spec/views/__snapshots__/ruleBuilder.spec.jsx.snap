@@ -2861,6 +2861,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                               "type": "user",
                                             }
                                           }
+                                          hasTooltip={true}
                                           size={28}
                                         >
                                           <UserAvatar
