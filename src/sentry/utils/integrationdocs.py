@@ -127,7 +127,7 @@ def sync_docs(quiet=False):
     MAX_THREADS = 32
     # TODO(python3): Migrate this to concurrent.futures.ThreadPoolExecutor context manager
     executor = multiprocessing.dummy.Pool(
-        min(len(data["platforms"]), multiprocessing.cpu_count() * 5)
+        min(len(data["platforms"]), multiprocessing.cpu_count() * 5, MAX_THREADS)
     )
     for platform_id, platform_data in iteritems(data["platforms"]):
         for integration_id, integration in iteritems(platform_data):
