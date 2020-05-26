@@ -41,7 +41,9 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response({"detail": "Event not found"}, status=404)
 
         reference = None
-        fields = request.query_params.getlist("field")
+        fields = [
+            field for field in request.query_params.getlist("field") if not field.strip() == ""
+        ]
         if fields:
             event_slug = u"{}:{}".format(project.slug, event_id)
             reference = discover.ReferenceEvent(
