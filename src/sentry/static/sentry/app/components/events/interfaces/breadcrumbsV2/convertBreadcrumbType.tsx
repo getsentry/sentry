@@ -48,4 +48,4 @@ function convertBreadcrumbType(breadcrumb: Breadcrumb): Breadcrumb {
   return breadcrumb;
 }
 
-export default convertBreadcrumbType;
+export {convertBreadcrumbType};

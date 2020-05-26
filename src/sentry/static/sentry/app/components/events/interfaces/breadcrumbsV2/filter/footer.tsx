@@ -10,7 +10,7 @@ type Props = {
   onSubmit: () => void;
 };
 
-const BreadcrumbFilterFooter = ({onSubmit}: Props) => (
+const Footer = ({onSubmit}: Props) => (
   <Wrapper>
     <ApplyFilterButton onClick={onSubmit} size="xsmall" priority="primary">
       {t('Apply Filter')}
@@ -30,4 +30,4 @@ const ApplyFilterButton = styled(Button)`
   margin: ${space(0.5)} 0;
 `;
 
-export default BreadcrumbFilterFooter;
+export {Footer};
