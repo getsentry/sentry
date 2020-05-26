@@ -20,6 +20,7 @@ type Props = {
   api: Client;
   organization: Organization;
   location: Location;
+  errorCode: number;
   eventView: EventView;
 };
 
@@ -61,7 +62,7 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location, eventView} = this.props;
+    const {organization, location, errorCode, eventView} = this.props;
     const {savedQuery, loading} = this.state;
 
     const renderDisabled = p => (
@@ -105,7 +106,7 @@ class ResultsHeader extends React.Component<Props, State> {
                 eventView={eventView}
                 savedQuery={savedQuery}
                 savedQueryLoading={loading}
-                disabled={!hasFeature}
+                disabled={!hasFeature || (errorCode >= 400 && errorCode < 500)}
               />
             )}
           </Feature>
