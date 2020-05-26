@@ -313,7 +313,11 @@ notifications:
   webhooks:
     urls:
       - https://zeus.ci/hooks/fa079cf6-8e6b-11e7-9155-0a580a28081c/public/provider/travis/webhook
-      - https://webhooks-dwunkkvj6a-uw.a.run.app/metrics/travis/webhook
+
+      # This is to capture travis metrics
+      # Repo for this webhook is https://github.com/getsentry/sentry-development-metrics
+      # Hosted on GCP
+      - https://product-eng-webhooks-vmrqv3f7nq-uw.a.run.app/metrics/travis/webhook
     on_success: always
     on_failure: always
     on_start: always
