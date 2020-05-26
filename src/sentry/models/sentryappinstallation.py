@@ -58,12 +58,12 @@ class SentryAppInstallation(ParanoidModel):
         related_name="sentry_app_installation",
     )
 
-    # Two scenarios for tokens:
-    # 1) An installation gets an access token once the Grant has been exchanged,
+    # Only use this token for public integrtions since each install has only token at a time
+    # An installation gets an access token once the Grant has been exchanged,
     # and is updated when the token gets refreshed.
     #
-    # 2) An installation is created for an internal SentryApp. This token will
-    # not need to be refreshed as it will live forever
+    # Do NOT Use this token for internal integrations since there could be multiple
+    # need to look at SentryAppInstallationToken which connects api_tokens to installations
     api_token = models.OneToOneField(
         "sentry.ApiToken",
         null=True,
