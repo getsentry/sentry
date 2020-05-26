@@ -390,7 +390,12 @@ def _prepare_query_params(query_params):
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
 
-    if query_params.dataset in [Dataset.Events, Dataset.Discover, Dataset.Sessions]:
+    if query_params.dataset in [
+        Dataset.Events,
+        Dataset.Discover,
+        Dataset.Sessions,
+        Dataset.Transactions,
+    ]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(
             query_params, with_org=query_params.dataset == Dataset.Sessions
         )
