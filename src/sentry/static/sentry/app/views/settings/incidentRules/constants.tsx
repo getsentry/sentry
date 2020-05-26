@@ -1,16 +1,9 @@
 import {
+  AlertRuleAggregations,
   AlertRuleThresholdType,
   UnsavedIncidentRule,
   Trigger,
-  Dataset,
 } from 'app/views/settings/incidentRules/types';
-
-export const DEFAULT_AGGREGATE = 'count()';
-
-export const DATASET_EVENT_TYPE_FILTERS = {
-  [Dataset.ERRORS]: 'event.type:error',
-  [Dataset.TRANSACTIONS]: 'event.type:transaction',
-} as const;
 
 export function createDefaultTrigger(): Trigger {
   return {
@@ -22,10 +15,12 @@ export function createDefaultTrigger(): Trigger {
   };
 }
 
+export const DEFAULT_METRIC = AlertRuleAggregations.TOTAL;
+
 export function createDefaultRule(): UnsavedIncidentRule {
   return {
-    dataset: Dataset.ERRORS,
-    aggregate: DEFAULT_AGGREGATE,
+    aggregation: DEFAULT_METRIC,
+    aggregations: [DEFAULT_METRIC],
     query: '',
     timeWindow: 1,
     triggers: [createDefaultTrigger()],

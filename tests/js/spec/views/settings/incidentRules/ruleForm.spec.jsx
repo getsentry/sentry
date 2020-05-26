@@ -64,8 +64,7 @@ describe('Incident Rules Form', function() {
     it('creates a rule', async function() {
       const wrapper = createWrapper({
         rule: {
-          dataset: 'events',
-          aggregate: 'count()',
+          aggregation: 0,
           query: '',
           projects: [project.slug],
           timeWindow: 60,

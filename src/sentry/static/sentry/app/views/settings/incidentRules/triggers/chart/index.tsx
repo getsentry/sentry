@@ -6,11 +6,12 @@ import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
+import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import space from 'app/styles/space';
 
-import {IncidentRule, TimeWindow, Trigger} from '../../types';
+import {AlertRuleAggregations, IncidentRule, TimeWindow, Trigger} from '../../types';
 import ThresholdsChart from './thresholdsChart';
 
 type Props = {
@@ -21,7 +22,7 @@ type Props = {
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
   environment: string | null;
-  aggregate: IncidentRule['aggregate'];
+  aggregation: IncidentRule['aggregation'];
   triggers: Trigger[];
 };
 
@@ -37,7 +38,7 @@ class TriggersChart extends React.PureComponent<Props> {
       projects,
       timeWindow,
       query,
-      aggregate,
+      aggregation,
       triggers,
       environment,
     } = this.props;
@@ -53,9 +54,9 @@ class TriggersChart extends React.PureComponent<Props> {
         project={projects.map(({id}) => Number(id))}
         interval={`${timeWindow}m`}
         period={period}
-        yAxis={aggregate}
+        yAxis={aggregation === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'}
         includePrevious={false}
-        currentSeriesName={aggregate}
+        currentSeriesName={getDisplayForAlertRuleAggregation(aggregation)}
       >
         {({loading, reloading, timeseriesData}) => {
           let maxValue: SeriesDataUnit | undefined;

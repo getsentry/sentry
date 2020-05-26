@@ -12,6 +12,7 @@ export type Incident = {
   identifier: string;
   isSubscribed: boolean;
   groups: string[]; // Array of group ids
+  query: string;
   discoverQuery: string;
   organizationId: string;
   projects: string[]; // Array of slugs

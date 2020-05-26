@@ -2,16 +2,20 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
+import {
+  AlertRuleAggregations,
+  AlertRuleThresholdType,
+  Trigger,
+} from 'app/views/settings/incidentRules/types';
 import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
+import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
 import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
 import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
@@ -57,7 +61,10 @@ export default class DetailsBody extends React.Component<Props> {
       id: undefined,
       name: (incident && incident.title) || '',
       fields: ['issue', 'count(id)', 'count_unique(user.id)'],
-      orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
+      orderby:
+        incident.alertRule.aggregation === AlertRuleAggregations.UNIQUE_USERS
+          ? '-count_unique_user_id'
+          : '-count_id',
       query: incident?.discoverQuery ?? '',
       projects: projects
         .filter(({slug}) => incident.projects.includes(slug))
@@ -111,7 +118,9 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <RuleDetails>
         <span>{t('Metric')}</span>
-        <span>{incident.alertRule?.aggregate}</span>
+        <span>
+          {incident && getDisplayForAlertRuleAggregation(incident.alertRule?.aggregation)}
+        </span>
 
         <span>{t('Critical Trigger')}</span>
         <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
@@ -164,7 +173,7 @@ export default class DetailsBody extends React.Component<Props> {
         <ChartWrapper>
           {incident && stats ? (
             <Chart
-              aggregate={incident.alertRule.aggregate}
+              aggregation={incident.alertRule.aggregation}
               data={stats.eventStats.data}
               detected={incident.dateDetected}
               closed={incident.dateClosed}

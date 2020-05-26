@@ -17,6 +17,7 @@ import space from 'app/styles/space';
 
 import {SavedIncidentRule} from './types';
 import {deleteRule} from './actions';
+import getMetricDisplayName from './utils/getMetricDisplayName';
 
 type State = {
   rules: SavedIncidentRule[];
@@ -86,7 +87,7 @@ class IncidentRulesList extends AsyncView<Props, State> {
                 <RuleRow key={rule.id}>
                   <RuleLink to={ruleLink}>{rule.name}</RuleLink>
 
-                  <MetricName>{rule.aggregate}</MetricName>
+                  <MetricName>{getMetricDisplayName(rule.aggregation)}</MetricName>
 
                   <ThresholdColumn>
                     <Thresholds>

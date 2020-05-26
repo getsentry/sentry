@@ -1,6 +1,8 @@
 import React from 'react';
 import moment from 'moment';
 
+import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
+import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import {t} from 'app/locale';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
@@ -64,14 +66,14 @@ function getDataValue(data: Data) {
 
 type Props = {
   data: Data[];
-  aggregate: string;
+  aggregation: AlertRuleAggregations;
   detected: string;
   closed?: string;
 };
 
 export default class Chart extends React.PureComponent<Props> {
   render() {
-    const {aggregate, data, detected, closed} = this.props;
+    const {aggregation, data, detected, closed} = this.props;
     const detectedTs = detected && moment.utc(detected).unix();
     const closedTs = closed && moment.utc(closed).unix();
     const chartData = data.map(([ts, val]) => [
@@ -103,7 +105,7 @@ export default class Chart extends React.PureComponent<Props> {
       chartData.splice(nearbyClosedTimestampIndex + 1, 0, closedCoordinate);
     }
 
-    const seriesName = aggregate;
+    const seriesName = getDisplayForAlertRuleAggregation(aggregation);
 
     return (
       <LineChart

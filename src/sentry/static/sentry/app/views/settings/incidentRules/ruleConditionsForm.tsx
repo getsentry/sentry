@@ -10,16 +10,13 @@ import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
-import RadioField from 'app/views/settings/components/forms/radioField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import Tooltip from 'app/components/tooltip';
-import Feature from 'app/components/acl/feature';
 
-import {TimeWindow, IncidentRule, Dataset} from './types';
-import MetricField from './metricField';
-import {DATASET_EVENT_TYPE_FILTERS} from './constants';
+import {AlertRuleAggregations, TimeWindow, IncidentRule} from './types';
+import getMetricDisplayName from './utils/getMetricDisplayName';
 
 type TimeWindowMapType = {[key in TimeWindow]: string};
 
@@ -41,7 +38,7 @@ type Props = {
   projectSlug: string;
   disabled: boolean;
   thresholdChart: React.ReactNode;
-  onFilterSearch: (query: string) => void;
+  onFilterUpdate: (query: string) => void;
 };
 
 type State = {
@@ -76,7 +73,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, disabled, onFilterSearch} = this.props;
+    const {organization, disabled, onFilterUpdate} = this.props;
     const {environments} = this.state;
 
     const environmentList: [IncidentRule['environment'], React.ReactNode][] = defined(
@@ -104,42 +101,19 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       <Panel>
         <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
         <PanelBody>
-          <Feature
-            requireAll
-            features={[
-              'organizations:transaction-events',
-              'organizations:internal-catchall',
-            ]}
-          >
-            <RadioField
-              name="dataset"
-              label="Data source"
-              orientInline
-              required
-              choices={[
-                [Dataset.ERRORS, t('Errors')],
-                [Dataset.TRANSACTIONS, t('Transactions')],
-              ]}
-            />
-          </Feature>
           {this.props.thresholdChart}
           <FormField name="query" inline={false}>
-            {({onChange, onBlur, onKeyDown, initialData, model}) => (
+            {({onChange, onBlur, onKeyDown, initialData}) => (
               <SearchBar
                 defaultQuery={initialData?.query ?? ''}
                 inlineLabel={
                   <Tooltip
-                    title={t(
-                      'Metric alerts are automatically filtered to your data source'
-                    )}
+                    title={t('Metric alerts are filtered to error events automatically')}
                   >
-                    <SearchEventTypeNote>
-                      {DATASET_EVENT_TYPE_FILTERS[model.getValue('dataset')]}
-                    </SearchEventTypeNote>
+                    <SearchEventTypeNote>event.type:error</SearchEventTypeNote>
                   </Tooltip>
                 }
                 help={t('Choose which metric to trigger on')}
-                omitTags={['event.type']}
                 disabled={disabled}
                 useFormWrapper={false}
                 organization={organization}
@@ -157,22 +131,32 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                   onKeyDown?.(e);
                 }}
                 onBlur={query => {
-                  onFilterSearch(query);
+                  onFilterUpdate(query);
                   onBlur(query);
                 }}
                 onSearch={query => {
-                  onFilterSearch(query);
+                  onFilterUpdate(query);
                   onChange(query, {});
                 }}
               />
             )}
           </FormField>
-          <MetricField
-            name="aggregate"
-            label="Metric"
-            organization={organization}
-            disabled={disabled}
+          <SelectField
+            name="aggregation"
+            label={t('Metric')}
+            help={t('Choose which metric to trigger on')}
+            choices={[
+              [
+                AlertRuleAggregations.UNIQUE_USERS,
+                getMetricDisplayName(AlertRuleAggregations.UNIQUE_USERS),
+              ],
+              [
+                AlertRuleAggregations.TOTAL,
+                getMetricDisplayName(AlertRuleAggregations.TOTAL),
+              ],
+            ]}
             required
+            isDisabled={disabled}
           />
           <SelectField
             name="timeWindow"
