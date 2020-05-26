@@ -12,7 +12,7 @@ type Props = {
   onClick: (type: FilterType, groupType: FilterGroupType) => void;
 };
 
-const BreadcrumbFilterGroup = ({groupHeaderTitle, data, onClick}: Props) => {
+const Group = ({groupHeaderTitle, data, onClick}: Props) => {
   const handleClick = (type: FilterType, groupType: FilterGroupType) => (
     event: React.MouseEvent<HTMLLIElement>
   ) => {
@@ -22,10 +22,10 @@ const BreadcrumbFilterGroup = ({groupHeaderTitle, data, onClick}: Props) => {
 
   return (
     <div>
-      <FilterGroupHeader>{groupHeaderTitle}</FilterGroupHeader>
-      <FilterGroupList>
+      <Header>{groupHeaderTitle}</Header>
+      <List>
         {data.map(({type, groupType, description, isChecked, symbol}) => (
-          <FilterGroupListItem
+          <ListItem
             key={type}
             isChecked={isChecked}
             onClick={handleClick(type, groupType)}
@@ -33,16 +33,16 @@ const BreadcrumbFilterGroup = ({groupHeaderTitle, data, onClick}: Props) => {
             {symbol}
             <ListItemDescription>{description}</ListItemDescription>
             <CheckboxFancy isChecked={isChecked} />
-          </FilterGroupListItem>
+          </ListItem>
         ))}
-      </FilterGroupList>
+      </List>
     </div>
   );
 };
 
-export default BreadcrumbFilterGroup;
+export {Group};
 
-const FilterGroupHeader = styled('div')`
+const Header = styled('div')`
   display: flex;
   align-items: center;
   margin: 0;
@@ -54,13 +54,13 @@ const FilterGroupHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.borderDark};
 `;
 
-const FilterGroupList = styled('ul')`
+const List = styled('ul')`
   list-style: none;
   margin: 0;
   padding: 0;
 `;
 
-const FilterGroupListItem = styled('li')<{isChecked?: boolean}>`
+const ListItem = styled('li')<{isChecked?: boolean}>`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
   grid-column-gap: ${space(1)};

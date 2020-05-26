@@ -17,21 +17,21 @@ type Props = {
   timestamp?: string;
 };
 
-const BreadcrumbTime = ({timestamp}: Props) =>
+const Time = ({timestamp}: Props) =>
   defined(timestamp) ? (
     <Tooltip title={getBreadcrumbTimeTooltipTitle(timestamp)}>
-      <Time>
+      <Wrapper>
         {getDynamicText({
           value: moment(timestamp).format('HH:mm:ss'),
           fixed: '00:00:00',
         })}
-      </Time>
+      </Wrapper>
     </Tooltip>
   ) : null;
 
-export default BreadcrumbTime;
+export {Time};
 
-const Time = styled('div')`
+const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray4};
   ${overflowEllipsis};

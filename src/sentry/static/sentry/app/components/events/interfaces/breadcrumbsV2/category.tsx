@@ -10,18 +10,18 @@ type Props = {
   category?: string | null;
 };
 
-const BreadcrumbCategory = ({category}: Props) => {
+const Category = ({category}: Props) => {
   const title = !defined(category) ? t('generic') : category;
   return (
     <Tooltip title={title}>
-      <Category title={title}>{title}</Category>
+      <Wrapper title={title}>{title}</Wrapper>
     </Tooltip>
   );
 };
 
-export default BreadcrumbCategory;
+export {Category};
 
-const Category = styled('div')`
+const Wrapper = styled('div')`
   color: ${p => p.theme.gray5};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 700;

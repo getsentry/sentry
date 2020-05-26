@@ -2,7 +2,7 @@ import {defined} from 'app/utils';
 
 import {Breadcrumb, BreadcrumbType} from './types';
 
-function convertBreadcrumbType(breadcrumb: Breadcrumb): Breadcrumb {
+function converType(breadcrumb: Breadcrumb): Breadcrumb {
   if (breadcrumb.type === BreadcrumbType.EXCEPTION) {
     return {
       ...breadcrumb,
@@ -48,4 +48,4 @@ function convertBreadcrumbType(breadcrumb: Breadcrumb): Breadcrumb {
   return breadcrumb;
 }
 
-export default convertBreadcrumbType;
+export {converType};

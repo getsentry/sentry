@@ -9,13 +9,13 @@ import {BreadcrumbDetails} from './types';
 
 type Props = Omit<BreadcrumbDetails, 'description'> & Pick<SvgIconProps, 'size'>;
 
-const BreadcrumbIcon = ({icon, color, size}: Props) => {
-  const Icon = icon as React.ComponentType<SvgIconProps>;
+const Icon = ({icon, color, size}: Props) => {
+  const Svg = icon as React.ComponentType<SvgIconProps>;
   return (
     <IconWrapper color={color}>
-      <Icon size={size} />
+      <Svg size={size} />
     </IconWrapper>
   );
 };
 
-export default BreadcrumbIcon;
+export {Icon};

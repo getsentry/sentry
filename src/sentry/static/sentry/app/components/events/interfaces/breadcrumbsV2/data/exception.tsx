@@ -10,7 +10,7 @@ import Link from 'app/components/links/link';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeDefault} from '../types';
-import BreadcrumbDataSummary from './breadcrumbDataSummary';
+import {Summary} from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeDefault;
@@ -18,12 +18,12 @@ type Props = {
   orgId: string | null;
 };
 
-const BreadcrumbDataException = ({breadcrumb, event, orgId}: Props) => {
+const Exception = ({breadcrumb, event, orgId}: Props) => {
   const {data} = breadcrumb;
   const dataValue = data?.value;
 
   return (
-    <BreadcrumbDataSummary kvData={omit(data, ['type', 'value'])}>
+    <Summary kvData={omit(data, ['type', 'value'])}>
       {data?.type &&
         getBreadcrumbCustomRendererValue({
           value: <strong>{`${data.type}: `}</strong>,
@@ -46,7 +46,7 @@ const BreadcrumbDataException = ({breadcrumb, event, orgId}: Props) => {
           ),
           meta: getMeta(breadcrumb, 'message'),
         })}
-    </BreadcrumbDataSummary>
+    </Summary>
   );
 };
 
@@ -93,4 +93,4 @@ const FormatMessage = withProjects(function FormatMessageInner({
   return <React.Fragment>{message}</React.Fragment>;
 });
 
-export default BreadcrumbDataException;
+export {Exception};

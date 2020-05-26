@@ -6,19 +6,17 @@ import space from 'app/styles/space';
 
 import {Grid, GridCell} from './styles';
 
-const BreadcrumbsListHeader = () => {
-  return (
-    <Grid>
-      <StyledGridCell>{t('Type')}</StyledGridCell>
-      <StyledGridCellCategory>{t('Category')}</StyledGridCellCategory>
-      <StyledGridCell>{t('Description')}</StyledGridCell>
-      <StyledGridCell>{t('Level')}</StyledGridCell>
-      <StyledGridCell>{t('Time')}</StyledGridCell>
-    </Grid>
-  );
-};
+const ListHeader = () => (
+  <Grid>
+    <StyledGridCell>{t('Type')}</StyledGridCell>
+    <StyledGridCellCategory>{t('Category')}</StyledGridCellCategory>
+    <StyledGridCell>{t('Description')}</StyledGridCell>
+    <StyledGridCell>{t('Level')}</StyledGridCell>
+    <StyledGridCell>{t('Time')}</StyledGridCell>
+  </Grid>
+);
 
-export default BreadcrumbsListHeader;
+export {ListHeader};
 
 const StyledGridCell = styled(GridCell)`
   border-bottom: 1px solid ${p => p.theme.borderDark};

@@ -5,12 +5,12 @@ import {Event} from 'app/types';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
-import BreadcrumbTime from './breadcrumbTime';
-import BreadcrumbCollapsed from './breadcrumbCollapsed';
-import BreadcrumbData from './breadcrumbData/breadcrumbData';
-import BreadcrumbCategory from './breadcrumbCategory';
-import BreadcrumbIcon from './breadcrumbIcon';
-import BreadcrumbLevel from './breadcrumbLevel';
+import {Collapsed} from './collapsed';
+import {Data} from './data/data';
+import {Category} from './category';
+import {Time} from './time';
+import {Icon} from './icon';
+import {Level} from './level';
 import {Grid, GridCell, GridCellLeft} from './styles';
 import {Breadcrumb, BreadcrumbDetails, BreadcrumbType} from './types';
 
@@ -28,7 +28,7 @@ type State = {
   breadCrumbListHeight?: React.CSSProperties['maxHeight'];
 };
 
-class BreadcrumbsListBody extends React.Component<Props, State> {
+class ListBody extends React.Component<Props, State> {
   state: State = {};
 
   componentDidMount() {
@@ -51,7 +51,7 @@ class BreadcrumbsListBody extends React.Component<Props, State> {
     return (
       <Grid maxHeight={breadCrumbListHeight} ref={this.listRef}>
         {collapsedQuantity > 0 && (
-          <BreadcrumbCollapsed onClick={onToggleCollapse} quantity={collapsedQuantity} />
+          <Collapsed onClick={onToggleCollapse} quantity={collapsedQuantity} />
         )}
         {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
           const hasError = crumb.type === BreadcrumbType.ERROR;
@@ -60,24 +60,20 @@ class BreadcrumbsListBody extends React.Component<Props, State> {
             <React.Fragment key={idx}>
               <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
                 <Tooltip title={crumb.description}>
-                  <BreadcrumbIcon icon={icon} color={color} />
+                  <Icon icon={icon} color={color} />
                 </Tooltip>
               </GridCellLeft>
               <GridCellCategory hasError={hasError} isLastItem={isLastItem}>
-                <BreadcrumbCategory category={crumb?.category} />
+                <Category category={crumb?.category} />
               </GridCellCategory>
               <GridCell hasError={hasError} isLastItem={isLastItem}>
-                <BreadcrumbData
-                  event={event}
-                  orgId={orgId}
-                  breadcrumb={crumb as Breadcrumb}
-                />
+                <Data event={event} orgId={orgId} breadcrumb={crumb as Breadcrumb} />
               </GridCell>
               <GridCell hasError={hasError} isLastItem={isLastItem}>
-                <BreadcrumbLevel level={crumb.level} />
+                <Level level={crumb.level} />
               </GridCell>
               <GridCell hasError={hasError} isLastItem={isLastItem}>
-                <BreadcrumbTime timestamp={crumb.timestamp} />
+                <Time timestamp={crumb.timestamp} />
               </GridCell>
             </React.Fragment>
           );
@@ -87,7 +83,7 @@ class BreadcrumbsListBody extends React.Component<Props, State> {
   }
 }
 
-export default BreadcrumbsListBody;
+export {ListBody};
 
 const GridCellCategory = styled(GridCell)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

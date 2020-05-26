@@ -9,7 +9,7 @@ type Props = {
   level?: BreadcrumbLevelType;
 };
 
-const BreadcrumbLevel = ({level}: Props) => {
+const Level = ({level}: Props) => {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
     case BreadcrumbLevelType.ERROR:
@@ -23,4 +23,4 @@ const BreadcrumbLevel = ({level}: Props) => {
   }
 };
 
-export default BreadcrumbLevel;
+export {Level};
