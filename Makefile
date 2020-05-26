@@ -7,7 +7,7 @@ REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
-develop: ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
+develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -82,7 +82,7 @@ setup-git: ensure-venv setup-git-config
 node-version-check:
 	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/volta-cli/volta'; exit 1)
 
-install-yarn-pkgs: node-version-check
+install-js-dev: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development $(YARN) install --frozen-lockfile
@@ -92,7 +92,7 @@ install-yarn-pkgs: node-version-check
 	# Add an additional check against `node_modules`
 	$(YARN) check --verify-tree || $(YARN) install --check-files
 
-install-sentry-dev: ensure-pinned-pip
+install-py-dev: ensure-pinned-pip
 	@echo "--> Installing Sentry (for development)"
 	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
 	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
@@ -235,7 +235,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: develop build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
 
 
 ############################
