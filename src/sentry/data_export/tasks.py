@@ -22,7 +22,13 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(name="sentry.data_export.tasks.assemble_download", queue="data_export")
-def assemble_download(data_export_id, limit=1000000, environment_id=None):
+def assemble_download(
+    data_export_id,
+    export_limit=1000000,
+    batch_size=SNUBA_MAX_RESULTS,
+    environment_id=None,
+    **kwargs
+):
     # Get the ExportedData object
     try:
         logger.info("dataexport.start", extra={"data_export_id": data_export_id})
@@ -39,11 +45,19 @@ def assemble_download(data_export_id, limit=1000000, environment_id=None):
             # Process the query based on its type
             if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
                 process_issues_by_tag(
-                    data_export=data_export, file=tf, limit=limit, environment_id=environment_id
+                    data_export=data_export,
+                    file=tf,
+                    export_limit=export_limit,
+                    batch_size=batch_size,
+                    environment_id=environment_id,
                 )
             elif data_export.query_type == ExportQueryType.DISCOVER:
                 process_discover(
-                    data_export=data_export, file=tf, limit=limit, environment_id=environment_id
+                    data_export=data_export,
+                    file=tf,
+                    export_limit=export_limit,
+                    batch_size=batch_size,
+                    environment_id=environment_id,
                 )
             # Create a new File object and attach it to the ExportedData
             tf.seek(0)
@@ -80,7 +94,7 @@ def assemble_download(data_export_id, limit=1000000, environment_id=None):
         return data_export.email_failure(message="Internal processing failure")
 
 
-def process_issues_by_tag(data_export, file, limit, environment_id):
+def process_issues_by_tag(data_export, file, export_limit, batch_size, environment_id):
     """
     Convert the tag query to a CSV, writing it to the provided file.
     """
@@ -103,24 +117,24 @@ def process_issues_by_tag(data_export, file, limit, environment_id):
     with snuba_error_handler(logger=logger):
         is_completed = False
         while not is_completed:
-            offset = SNUBA_MAX_RESULTS * iteration
-            next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
-            is_exceeding_limit = limit and limit < next_offset
-            gtv_list_unicode = processor.get_serialized_data(offset=offset)
+            offset = batch_size * iteration
+            next_offset = batch_size * (iteration + 1)
+            is_exceeding_limit = export_limit and export_limit < next_offset
+            gtv_list_unicode = processor.get_serialized_data(limit=batch_size, offset=offset)
             # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
             # See associated comment in './utils.py'
             gtv_list = convert_to_utf8(gtv_list_unicode)
             if is_exceeding_limit:
-                # Since the next offset will pass the limit, just write the remainder
-                writer.writerows(gtv_list[: limit % SNUBA_MAX_RESULTS])
+                # Since the next offset will pass the export_limit, just write the remainder
+                writer.writerows(gtv_list[: export_limit % batch_size])
             else:
                 writer.writerows(gtv_list)
                 iteration += 1
-            # If there are no returned results, or we've passed the limit, stop iterating
+            # If there are no returned results, or we've passed the export_limit, stop iterating
             is_completed = len(gtv_list) == 0 or is_exceeding_limit
 
 
-def process_discover(data_export, file, limit, environment_id):
+def process_discover(data_export, file, export_limit, batch_size, environment_id):
     """
     Convert the discovery query to a CSV, writing it to the provided file.
     """
@@ -139,21 +153,21 @@ def process_discover(data_export, file, limit, environment_id):
     with snuba_error_handler(logger=logger):
         is_completed = False
         while not is_completed:
-            offset = SNUBA_MAX_RESULTS * iteration
-            next_offset = SNUBA_MAX_RESULTS * (iteration + 1)
-            is_exceeding_limit = limit and limit < next_offset
-            raw_data_unicode = processor.data_fn(offset=offset, limit=SNUBA_MAX_RESULTS)["data"]
+            offset = batch_size * iteration
+            next_offset = batch_size * (iteration + 1)
+            is_exceeding_limit = export_limit and export_limit < next_offset
+            raw_data_unicode = processor.data_fn(offset=offset, limit=batch_size)["data"]
             # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
             # See associated comment in './utils.py'
             raw_data = convert_to_utf8(raw_data_unicode)
             raw_data = processor.handle_fields(raw_data)
             if is_exceeding_limit:
-                # Since the next offset will pass the limit, just write the remainder
-                writer.writerows(raw_data[: limit % SNUBA_MAX_RESULTS])
+                # Since the next offset will pass the export_limit, just write the remainder
+                writer.writerows(raw_data[: export_limit % batch_size])
             else:
                 writer.writerows(raw_data)
                 iteration += 1
-            # If there are no returned results, or we've passed the limit, stop iterating
+            # If there are no returned results, or we've passed the export_limit, stop iterating
             is_completed = len(raw_data) == 0 or is_exceeding_limit
 
 

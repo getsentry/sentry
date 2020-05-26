@@ -94,7 +94,7 @@ class IssuesByTagProcessor(object):
             result["ip_address"] = euser.ip_address if euser else ""
         return result
 
-    def get_raw_data(self, offset=0):
+    def get_raw_data(self, limit=1000, offset=0):
         """
         Returns list of GroupTagValues
         """
@@ -104,12 +104,13 @@ class IssuesByTagProcessor(object):
             environment_ids=[self.environment_id],
             key=self.lookup_key,
             callbacks=self.callbacks,
+            limit=limit,
             offset=offset,
         )
 
-    def get_serialized_data(self, offset=0):
+    def get_serialized_data(self, limit=1000, offset=0):
         """
         Returns list of serialized GroupTagValue dictionaries
         """
-        raw_data = self.get_raw_data(offset)
+        raw_data = self.get_raw_data(limit=limit, offset=offset)
         return [self.serialize_row(item, self.key) for item in raw_data]
