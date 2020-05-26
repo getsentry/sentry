@@ -8,10 +8,10 @@ import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
-import {fetchReleases} from 'app/actionCreators/releases';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -609,7 +609,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           ? `"${value.replace('"', '\\"')}"`
           : value;
 
-        return {value: escapedValue, desc: escapedValue};
+        return {value: escapedValue, desc: escapedValue, type: 'tag-value' as ItemType};
       });
     },
     DEFAULT_DEBOUNCE_DURATION,
@@ -699,21 +699,32 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Fetches latest releases from a organization/project. Returns an empty array
    * if an error is encountered.
    */
-  fetchReleases = async (query: string): Promise<any[]> => {
+  fetchReleases = async (releaseVersion: string): Promise<any[]> => {
     const {api, organization} = this.props;
     const {location} = this.context.router;
 
     const project = location && location.query ? location.query.projectId : undefined;
 
+    const url = `/organizations/${organization.slug}/releases/`;
+    const fetchQuery: {[key: string]: string | number} = {
+      per_page: MAX_AUTOCOMPLETE_RELEASES,
+    };
+
+    if (releaseVersion) {
+      fetchQuery.query = releaseVersion;
+    }
+
+    if (project) {
+      fetchQuery.project = project;
+    }
+
     try {
-      return await fetchReleases(
-        api,
-        organization.slug,
-        project,
-        query,
-        MAX_AUTOCOMPLETE_RELEASES
-      );
+      return await api.requestPromise(url, {
+        method: 'GET',
+        query: fetchQuery,
+      });
     } catch (e) {
+      addErrorMessage(t('Unable to fetch releases'));
       Sentry.captureException(e);
     }
 
@@ -967,10 +978,9 @@ class SmartSearchBar extends React.Component<Props, State> {
     let newQuery: string;
 
     // If not postfixed with : (tag value), add trailing space
-    const lastChar = replaceText.charAt(replaceText.length - 1);
-    replaceText += lastChar === ':' || lastChar === '.' ? '' : ' ';
+    replaceText += item.type !== 'tag-value' || cursor < query.length ? '' : ' ';
 
-    const isNewTerm = query.charAt(query.length - 1) === ' ';
+    const isNewTerm = query.charAt(query.length - 1) === ' ' && item.type !== 'tag-value';
 
     if (!terms) {
       newQuery = replaceText;

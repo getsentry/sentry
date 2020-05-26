@@ -16,7 +16,7 @@ type State = {
   hasOverflow: boolean;
 };
 
-class BreadcrumbDataSummary extends React.Component<Props, State> {
+class Summary extends React.Component<Props, State> {
   state = {
     isExpanded: false,
     hasOverflow: false,
@@ -43,15 +43,15 @@ class BreadcrumbDataSummary extends React.Component<Props, State> {
         const value =
           typeof kvData[key] === 'object' ? JSON.stringify(kvData[key]) : kvData[key];
         return (
-          <BreadcrumbDataSummaryData key={key}>
+          <Data key={key}>
             <StyledPre>
-              <BreadcrumbDataSummaryDataLabel>{`${key}: `}</BreadcrumbDataSummaryDataLabel>
+              <DataLabel>{`${key}: `}</DataLabel>
               {getBreadcrumbCustomRendererValue({
                 value,
                 meta: getMeta(kvData, key),
               })}
             </StyledPre>
-          </BreadcrumbDataSummaryData>
+          </Data>
         );
       });
   };
@@ -72,7 +72,7 @@ class BreadcrumbDataSummary extends React.Component<Props, State> {
   }
 }
 
-export default BreadcrumbDataSummary;
+export {Summary};
 
 const StyledPre = styled('pre')`
   padding: 0;
@@ -95,10 +95,10 @@ const StyledCode = styled('code')`
   line-height: 26px;
 `;
 
-const BreadcrumbDataSummaryData = styled('div')`
+const Data = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const BreadcrumbDataSummaryDataLabel = styled('strong')`
+const DataLabel = styled('strong')`
   line-height: 17px;
 `;
