@@ -174,9 +174,7 @@ class IntegrationProvider(PipelineProvider):
     def post_install(self, integration, organization, extra=None):
         pass
 
-    def create_install_audit_log_entry(
-        self, integration, organization, request, action, extra=None
-    ):
+    def create_audit_log_entry(self, integration, organization, request, action, extra=None):
         """
         Creates an audit log entry for the newly installed integration.
         """

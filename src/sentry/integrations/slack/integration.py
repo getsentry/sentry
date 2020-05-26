@@ -190,9 +190,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def create_install_audit_log_entry(
-        self, integration, organization, request, action, extra=None
-    ):
+    def create_audit_log_entry(self, integration, organization, request, action, extra=None):
         if action == "upgrade":
             create_audit_entry(
                 request=request,
@@ -206,7 +204,7 @@ class SlackIntegrationProvider(IntegrationProvider):
                 for org in Organization.objects.filter(slug__in=extra["extra_orgs"]):
                     create_audit_entry(
                         request=request,
-                        organization=organization,
+                        organization=org,
                         target_object=integration.id,
                         event=AuditLogEntryEvent.INTEGRATION_UPGRADE,
                         data={"provider": integration.provider, "name": integration.name},
@@ -214,7 +212,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
             return
 
-        super(IntegrationProvider, self).create_install_audit_log_entry(
+        super(SlackIntegrationProvider, self).create_audit_log_entry(
             integration, organization, request, action
         )
 
