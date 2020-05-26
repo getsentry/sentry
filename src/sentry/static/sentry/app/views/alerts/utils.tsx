@@ -1,6 +1,4 @@
-import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
 import {Client} from 'app/api';
-import {t} from 'app/locale';
 
 import {Incident, IncidentStats, IncidentStatus} from './types';
 
@@ -63,11 +61,4 @@ export function isOpen(incident: Incident): boolean {
     default:
       return true;
   }
-}
-
-/**
- * Get display string based on alert rule aggregation type
- */
-export function getDisplayForAlertRuleAggregation(aggregation: AlertRuleAggregations) {
-  return aggregation === AlertRuleAggregations.TOTAL ? t('Events') : t('Users Affected');
 }
