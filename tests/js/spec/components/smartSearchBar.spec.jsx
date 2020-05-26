@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
 import {SmartSearchBar} from 'app/components/smartSearchBar';
 import {addSpace, removeSpace} from 'app/components/smartSearchBar/utils';
@@ -80,7 +81,7 @@ describe('SmartSearchBar', function() {
     MockApiClient.clearMockResponses();
   });
 
-  it('calls preventDefault when there are no search items and is loading and enter is pressed', async function() {
+  it('does not preventDefault when there are no search items and is loading and enter is pressed', async function() {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
       return new Promise(() => {});
@@ -109,7 +110,7 @@ describe('SmartSearchBar', function() {
     const preventDefault = jest.fn();
     searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
     expect(onSearch).not.toHaveBeenCalled();
-    expect(preventDefault).toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 
   it('calls preventDefault when there are existing search items and is loading and enter is pressed', async function() {
@@ -149,6 +150,7 @@ describe('SmartSearchBar', function() {
     const preventDefault = jest.fn();
     searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
     expect(onSearch).not.toHaveBeenCalled();
+    // Prevent default since we need to select an item
     expect(preventDefault).toHaveBeenCalled();
   });
 
