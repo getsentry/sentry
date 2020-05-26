@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 
 import {Thread} from 'app/types/events';
 import {Event, EntryTypeData} from 'app/types';
@@ -68,13 +67,6 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
       emptyMessage={t('You have no threads')}
       noResultsMessage={t('No threads found')}
       zIndex={theme.zIndex.dropdown}
-      css={css`
-        width: 100%;
-        min-width: 300px;
-        @media (min-width: ${theme.breakpoints[0]}) {
-          width: 550px;
-        }
-      `}
       menuHeader={<Header />}
       closeOnSelect
       emptyHidesInput
@@ -108,9 +100,20 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   box-shadow: ${p => p.theme.dropShadowLight};
   border-radius: ${p => p.theme.borderRadiusBottom};
   margin-top: 0;
-  min-width: 100%;
+  width: 100%;
+  min-width: 300px;
+  @media (min-width: ${theme.breakpoints[0]}) {
+    width: 500px;
+  }
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`
-  width: 210px;
+  > *:first-child {
+    grid-template-columns: 1fr 15px;
+  }
+  width: 100%;
+  min-width: 150px;
+  @media (min-width: ${props => props.theme.breakpoints[3]}) {
+    max-width: 420px;
+  }
 `;

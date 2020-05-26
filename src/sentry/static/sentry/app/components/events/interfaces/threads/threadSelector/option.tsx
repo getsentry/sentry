@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
 import TextOverflow from 'app/components/textOverflow';
 import {EntryTypeData} from 'app/types';
@@ -14,7 +14,7 @@ type Props = {
   id: string;
   details: ThreadInfo;
   crashedInfo?: EntryTypeData;
-  name?: string;
+  name?: string | null;
   crashed?: boolean;
 };
 
@@ -23,8 +23,9 @@ type ThreadInfo = {
   filename?: string;
 };
 
-const Option = ({id, name = t('<unknown>'), details, crashed, crashedInfo}: Props) => {
+const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
   const {label = t('<unknown>'), filename = t('<unknown>')} = details;
+  const optionName = name || t('<unknown>');
   return (
     <Grid>
       <GridCell>
@@ -36,8 +37,8 @@ const Option = ({id, name = t('<unknown>'), details, crashed, crashedInfo}: Prop
       </GridCell>
       <GridCell>
         <Name>
-          <Tooltip title={name} position="top">
-            <TextOverflow>{name}</TextOverflow>
+          <Tooltip title={optionName} position="top">
+            <TextOverflow>{optionName}</TextOverflow>
           </Tooltip>
         </Name>
       </GridCell>
@@ -60,7 +61,9 @@ const Option = ({id, name = t('<unknown>'), details, crashed, crashedInfo}: Prop
           {crashed ? (
             crashedInfo ? (
               <Tooltip
-                title={`${t('errored with')} ${crashedInfo.values[0].type}`}
+                title={`${tct('errored with [crashedInfo]', {
+                  crashedInfo: crashedInfo.values[0].type,
+                })}`}
                 position="top"
               >
                 <IconFire color="red" />

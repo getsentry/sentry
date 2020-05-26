@@ -8,9 +8,9 @@ const Grid = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 40px 2fr 1.5fr 0fr 40px;
+  grid-template-columns: 30px 2.5fr 4fr 0fr 40px;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 50px 3.5fr 1.5fr 2.5fr 40px;
+    grid-template-columns: 40px 2.5fr 3.5fr 2.5fr 40px;
   }
 `;
 
