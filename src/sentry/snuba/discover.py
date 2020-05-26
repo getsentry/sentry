@@ -525,7 +525,7 @@ def transform_deprecated_functions_in_query(query):
         if old_function + "()" in query:
             replacement = OLD_FUNCTIONS_TO_NEW[old_function]
             query = query.replace(old_function + "()", replacement)
-        elif old_function in query:
+        elif old_function + ":" in query:
             replacement = OLD_FUNCTIONS_TO_NEW[old_function]
             query = query.replace(old_function, replacement)
 

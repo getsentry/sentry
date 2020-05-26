@@ -2055,6 +2055,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["avg_transaction_duration"] == 5000
             assert data[0]["sum_transaction_duration"] == 10000
 
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "apdex(400)"],
+                    "query": "event.type:transaction apdex(400):0",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["apdex_400"] == 0
+
     def test_functions_in_orderby(self):
         self.login_as(user=self.user)
 
