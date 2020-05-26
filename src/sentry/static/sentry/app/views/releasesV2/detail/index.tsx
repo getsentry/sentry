@@ -6,11 +6,11 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import {
   Organization,
-  Release,
   ReleaseProject,
   ReleaseMeta,
   Deploy,
   GlobalSelection,
+  ReleaseWithHealth,
 } from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -31,8 +31,8 @@ import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
 
 type ReleaseContext = {
-  release: Release;
-  project: ReleaseProject;
+  release: ReleaseWithHealth;
+  project: Required<ReleaseProject>;
   deploys: Deploy[];
   releaseMeta: ReleaseMeta;
 };
@@ -50,7 +50,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
-  release: Release;
+  release: ReleaseWithHealth;
   deploys: Deploy[];
 } & AsyncView['state'];
 

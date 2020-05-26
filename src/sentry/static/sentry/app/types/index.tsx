@@ -880,7 +880,17 @@ export type UserReport = {
   email: string;
 };
 
-export type Release = {
+export type Release = BaseRelease &
+  ReleaseData & {
+    projects: ReleaseProject[];
+  };
+
+export type ReleaseWithHealth = BaseRelease &
+  ReleaseData & {
+    projects: Required<ReleaseProject>[];
+  };
+
+type ReleaseData = {
   commitCount: number;
   data: {};
   lastDeploy?: Deploy;
@@ -891,11 +901,10 @@ export type Release = {
   authors: User[];
   owner?: any; // TODO(ts)
   newGroups: number;
-  projects: ReleaseProject[];
   versionInfo: VersionInfo;
-} & BaseRelease;
+};
 
-export type BaseRelease = {
+type BaseRelease = {
   dateReleased: string;
   url: string;
   dateCreated: string;
@@ -911,7 +920,7 @@ export type ReleaseProject = {
   platform: string;
   platforms: string[];
   newGroups: number;
-  healthData: Health;
+  healthData?: Health;
 };
 
 export type ReleaseMeta = {
