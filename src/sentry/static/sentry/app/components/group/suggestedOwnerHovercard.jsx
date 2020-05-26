@@ -107,7 +107,7 @@ class SuggestedOwnerHovercard extends React.Component {
             {commits !== undefined && (
               <React.Fragment>
                 <div className="divider">
-                  <h6>{t('Suspect Commits')}</h6>
+                  <h6>{t('Commits')}</h6>
                 </div>
                 <div>
                   {commits
@@ -219,7 +219,7 @@ const ViewMoreButton = styled(p => (
   </Button>
 ))`
   border: none;
-  color: ${p => p.theme.gray2} !important;
+  color: ${p => p.theme.gray2};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(1)} ${space(0.25)} ${space(0.25)} 0;
