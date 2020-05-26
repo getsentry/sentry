@@ -7,6 +7,7 @@ import {t, tct} from 'app/locale';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
 import {IconCommit} from 'app/icons';
 import Link from 'app/components/links/link';
@@ -58,13 +59,10 @@ class SuggestedOwnerHovercard extends React.Component {
     rules: PropTypes.arrayOf(PropTypes.array),
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      commitsExpanded: false,
-      rulesExpanded: false,
-    };
-  }
+  state = {
+    commitsExpanded: false,
+    rulesExpanded: false,
+  };
 
   render() {
     const {actor, commits, rules, ...props} = this.props;
@@ -216,18 +214,17 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
 `;
 
 const ViewMoreButton = styled(p => (
-  <button className="btn btn-link" {...p}>
-    View more
-  </button>
+  <Button {...p} priority="link" size="zero">
+    {t('View more')}
+  </Button>
 ))`
   border: none;
   color: ${p => p.theme.gray2} !important;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(1)} ${space(0.25)} ${space(0.25)} 0;
   width: 100%;
   min-width: 34px;
-  text-align: right;
 `;
 
 const OwnershipValue = styled('code')`
