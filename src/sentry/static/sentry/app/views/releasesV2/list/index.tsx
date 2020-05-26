@@ -50,9 +50,10 @@ class ReleasesList extends AsyncView<Props, State> {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
 
-  getEndpoints(): [string, string, {}][] {
+  getEndpoints() {
     const {organization, location} = this.props;
-    const {statsPeriod, sort} = location.query;
+    const {statsPeriod} = location.query;
+    const sort = this.getSort();
 
     const query = {
       ...pick(location.query, [
@@ -66,18 +67,24 @@ class ReleasesList extends AsyncView<Props, State> {
       ]),
       summaryStatsPeriod: statsPeriod,
       per_page: 25,
-      health: 0,
-      flatten: !sort || sort === 'date' ? 0 : 1,
+      health: 1,
+      flatten: sort === 'date' ? 0 : 1,
     };
 
-    return [
-      ['releasesWithoutHealth', `/organizations/${organization.slug}/releases/`, {query}],
-      [
-        'releasesWithHealth',
-        `/organizations/${organization.slug}/releases/`,
-        {query: {...query, health: 1}},
-      ],
+    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+      ['releasesWithHealth', `/organizations/${organization.slug}/releases/`, {query}],
     ];
+
+    // when sorting by date we fetch releases without health and then fetch health lazily
+    if (sort === 'date') {
+      endpoints.push([
+        'releasesWithoutHealth',
+        `/organizations/${organization.slug}/releases/`,
+        {query: {...query, health: 0}},
+      ]);
+    }
+
+    return endpoints;
   }
 
   onRequestSuccess({stateKey, data, jqXHR}) {
