@@ -52,8 +52,7 @@ logger = logging.getLogger("sentry")
 
 
 def echo(what):
-    sys.stdout.write(what)
-    sys.stdout.write("\n")
+    sys.stdout.write(what + "\n")
     sys.stdout.flush()
 
 
