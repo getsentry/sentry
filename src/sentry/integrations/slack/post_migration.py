@@ -19,7 +19,7 @@ doc_link = "https://docs.sentry.io/workflow/integrations/global-integrations/#sl
 def build_migration_attachment():
     return {
         "title": "Action required",
-        "text": "Your Sentry Slack Integration has been upgraded. Mention `@sentry` to receive Sentry notifications in this channel. For more information, <%s|check out the documentation>."
+        "text": "Your Sentry Slack Integration is upgraded and nearly ready to report errors. Mention `@sentry` to get notifications in this channel. To learn more, <%s|see our documentation>."
         % (doc_link),
         "footer": "Sentry API",
         "footer_icon": "https://sentryio-assets.storage.googleapis.com/img/slack/integration-avatar.png",

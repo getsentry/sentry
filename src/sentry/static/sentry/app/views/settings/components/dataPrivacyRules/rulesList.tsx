@@ -16,14 +16,15 @@ type Props = {
   rules: Array<Rule>;
   onShowEditRuleModal?: (id: Rule['id']) => () => void;
   onDeleteRule?: (id: Rule['id']) => () => void;
+  disabled?: boolean;
 };
 
 const RulesList = React.forwardRef<HTMLUListElement, Props>(function RulesList(
-  {rules, onShowEditRuleModal, onDeleteRule},
+  {rules, onShowEditRuleModal, onDeleteRule, disabled},
   ref
 ) {
   return (
-    <List ref={ref}>
+    <List ref={ref} isDisabled={disabled}>
       {rules.map(({id, method, type, source}) => {
         const methodLabel = getMethodTypeLabel(method);
         const typelabel = getRuleTypeLabel(type);
@@ -38,6 +39,7 @@ const RulesList = React.forwardRef<HTMLUListElement, Props>(function RulesList(
                 size="small"
                 onClick={onShowEditRuleModal(id)}
                 icon={<IconEdit />}
+                disabled={disabled}
               />
             )}
             {onDeleteRule && (
@@ -46,6 +48,7 @@ const RulesList = React.forwardRef<HTMLUListElement, Props>(function RulesList(
                 size="small"
                 onClick={onDeleteRule(id)}
                 icon={<IconDelete />}
+                disabled={disabled}
               />
             )}
           </ListItem>
@@ -59,15 +62,22 @@ RulesList.propTypes = {
   rules: PropTypes.array.isRequired,
   onShowEditRuleModal: PropTypes.func,
   onDeleteRule: PropTypes.func,
+  disabled: PropTypes.bool,
 };
 
 export default RulesList;
 
-const List = styled('ul')`
+const List = styled('ul')<{isDisabled?: boolean}>`
   list-style: none;
   margin: 0;
   padding: 0;
   margin-bottom: 0 !important;
+  ${p =>
+    p.isDisabled &&
+    `
+      color: ${p.theme.gray1};
+      background: ${p.theme.offWhite};
+  `}
 `;
 
 const ListItem = styled('li')`

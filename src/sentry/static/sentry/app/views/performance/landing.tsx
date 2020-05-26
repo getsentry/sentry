@@ -4,11 +4,11 @@ import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import {Organization, Project} from 'app/types';
 import FeatureBadge from 'app/components/featureBadge';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
@@ -16,10 +16,13 @@ import EventView from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
 import Charts from './charts/index';
+import Onboarding from './onboarding';
 
 enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -32,6 +35,8 @@ type Props = {
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
+  projects: Project[];
+  loadingProjects: boolean;
 };
 
 type State = {
@@ -107,9 +112,35 @@ class PerformanceLanding extends React.Component<Props, State> {
     );
   }
 
-  render() {
-    const {organization, location, router} = this.props;
+  shouldShowOnboarding() {
+    const {projects} = this.props;
     const {eventView} = this.state;
+
+    if (projects.length === 0) {
+      return false;
+    }
+
+    // Current selection is 'my projects' or 'all projects'
+    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
+      return (
+        projects.filter(p => p.firstTransactionEvent === false).length === projects.length
+      );
+    }
+
+    // Any other subset of projects.
+    return (
+      projects.filter(
+        p =>
+          eventView.project.includes(parseInt(p.id, 10)) &&
+          p.firstTransactionEvent === false
+      ).length === eventView.project.length
+    );
+  }
+
+  render() {
+    const {organization, location, router, projects} = this.props;
+    const {eventView} = this.state;
+    const showOnboarding = this.shouldShowOnboarding();
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
@@ -129,23 +160,30 @@ class PerformanceLanding extends React.Component<Props, State> {
                 <div>
                   {t('Performance')} <FeatureBadge type="beta" />
                 </div>
-                <div>{this.renderHeaderButtons()}</div>
+                {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
               </StyledPageHeader>
               {this.renderError()}
-              <Charts
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                router={router}
-                keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
-              />
-              <Table
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                setError={this.setError}
-                keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
-              />
+              {showOnboarding ? (
+                <Onboarding />
+              ) : (
+                <React.Fragment>
+                  <Charts
+                    eventView={eventView}
+                    organization={organization}
+                    location={location}
+                    router={router}
+                    keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
+                  />
+                  <Table
+                    eventView={eventView}
+                    projects={projects}
+                    organization={organization}
+                    location={location}
+                    setError={this.setError}
+                    keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
+                  />
+                </React.Fragment>
+              )}
             </LightWeightNoProjectMessage>
           </PageContent>
         </GlobalSelectionHeader>
@@ -164,4 +202,4 @@ export const StyledPageHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export default withOrganization(PerformanceLanding);
+export default withOrganization(withProjects(PerformanceLanding));

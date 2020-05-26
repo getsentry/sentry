@@ -59,7 +59,7 @@ type State = {
   query: string;
   aggregation: AlertRuleAggregations;
   timeWindow: number;
-  environment: string | string[] | null;
+  environment: string | null;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -325,14 +325,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         onSubmitSuccess(resp, model);
       }
     } catch (err) {
-      addErrorMessage(
-        t(
-          'Unable to save alert%s',
-          err?.responseJSON?.nonFieldErrors
-            ? `: ${err.responseJSON.nonFieldErrors.join(', ')}`
-            : ''
-        )
-      );
+      const apiErrors = Array.isArray(err?.responseJSON)
+        ? `: ${err.responseJSON.join(', ')}`
+        : err?.responseJSON?.nonFieldErrors
+        ? `: ${err.responseJSON.nonFieldErrors.join(', ')}`
+        : '';
+      addErrorMessage(t('Unable to save alert%s', apiErrors));
     }
   };
 

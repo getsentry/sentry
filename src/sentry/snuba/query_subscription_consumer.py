@@ -46,7 +46,10 @@ class QuerySubscriptionConsumer(object):
     These values are passed along to a callback associated with the subscription.
     """
 
-    topic_to_dataset = {settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS}
+    topic_to_dataset = {
+        settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS,
+        settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.TRANSACTIONS,
+    }
 
     def __init__(
         self, group_id, topic=None, commit_batch_size=100, initial_offset_reset="earliest"

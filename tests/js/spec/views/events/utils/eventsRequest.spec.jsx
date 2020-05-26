@@ -363,7 +363,7 @@ describe('EventsRequest', function() {
     it('supports multiple yAxis', async function() {
       doEventsRequest.mockImplementation(() =>
         Promise.resolve({
-          'rpm()': {
+          'epm()': {
             data: [
               [
                 new Date(),
@@ -391,7 +391,7 @@ describe('EventsRequest', function() {
       );
 
       wrapper = mount(
-        <EventsRequest {...DEFAULTS} includePrevious yAxis={['apdex()', 'rpm()']}>
+        <EventsRequest {...DEFAULTS} includePrevious yAxis={['apdex()', 'epm()']}>
           {mock}
         </EventsRequest>
       );
@@ -413,7 +413,7 @@ describe('EventsRequest', function() {
         expect.objectContaining({
           loading: false,
 
-          results: [generateExpected('rpm()'), generateExpected('apdex()')],
+          results: [generateExpected('epm()'), generateExpected('apdex()')],
         })
       );
     });
