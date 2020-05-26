@@ -586,7 +586,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     isCentered={false}
                                   >
                                     <div
-                                      className="css-zang02-SectionHeader e1fbjd861"
+                                      className="css-1ccwfms-SectionHeader e1fbjd861"
                                       id="message"
                                     >
                                       <Permalink
