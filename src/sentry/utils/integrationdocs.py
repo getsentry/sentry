@@ -123,7 +123,7 @@ def sync_docs(quiet=False):
 
     dump_doc("_platforms", {"platforms": platform_list})
 
-    # This value is drived from https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor
+    # This value is derived from https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor
     MAX_THREADS = 32
     # TODO(python3): Migrate this to concurrent.futures.ThreadPoolExecutor context manager
     executor = multiprocessing.dummy.Pool(
