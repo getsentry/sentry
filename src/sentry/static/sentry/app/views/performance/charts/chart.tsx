@@ -71,6 +71,11 @@ class Chart extends React.Component<Props> {
       isGroupedByDate: true,
       showTimeInTooltip: true,
       colors: [colors[0], colors[0]],
+      tooltip: {
+        nameFormatter(value) {
+          return value === 'epm()' ? 'tpm()' : value;
+        },
+      },
     };
 
     if (loading) {
