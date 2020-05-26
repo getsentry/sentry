@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-
+import logging
 import operator
+from datetime import timedelta
 
 from rest_framework import serializers
 
@@ -41,6 +41,8 @@ from sentry.snuba.subscriptions import aggregation_function_translations
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.snuba import raw_query
 from sentry.utils.compat import zip
+
+logger = logging.getLogger(__name__)
 
 
 string_to_action_type = {
@@ -380,9 +382,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                         limit=1,
                         referrer="alertruleserializer.test_query",
                     )
-                except Exception as e:
+                except Exception:
+                    logger.exception("Error while validating snuba alert rule query")
                     raise serializers.ValidationError(
-                        "Invalid Query or Aggregate: {}".format(e.message)
+                        "Invalid Query or Aggregate: An error occurred while attempting "
+                        "to run the query"
                     )
 
         else:
