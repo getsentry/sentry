@@ -705,7 +705,7 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Fetches latest releases from a organization/project. Returns an empty array
    * if an error is encountered.
    */
-  fetchReleases = async (releaseHash: string): Promise<any[]> => {
+  fetchReleases = async (releaseVersion: string): Promise<any[]> => {
     const {api, organization} = this.props;
     const {location} = this.context.router;
 
@@ -713,9 +713,12 @@ class SmartSearchBar extends React.Component<Props, State> {
 
     const url = `/organizations/${organization.slug}/releases/`;
     const fetchQuery: {[key: string]: string | number} = {
-      query: releaseHash,
       per_page: MAX_AUTOCOMPLETE_RELEASES,
     };
+
+    if (releaseVersion) {
+      fetchQuery.query = releaseVersion;
+    }
 
     if (project) {
       fetchQuery.project = project;
