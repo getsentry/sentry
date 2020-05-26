@@ -32,6 +32,7 @@ class SearchBar extends React.PureComponent {
     tags: PropTypes.objectOf(SentryTypes.Tag),
     omitTags: PropTypes.arrayOf(PropTypes.string),
     projectIds: PropTypes.arrayOf(PropTypes.number),
+    fields: PropTypes.arrayOf(PropTypes.object),
   };
 
   componentDidMount() {
@@ -78,12 +79,20 @@ class SearchBar extends React.PureComponent {
   prepareQuery = query => query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
 
   getTagList() {
-    const {organization, tags, omitTags} = this.props;
-    const fields = organization.features.includes('transaction-events')
-      ? FIELD_TAGS
+    const {fields, organization, tags, omitTags} = this.props;
+    const functionTags = fields
+      ? Object.fromEntries(
+          fields
+            .filter(item => !Object.keys(FIELD_TAGS).includes(item.field))
+            .map(item => [item.field, {key: item.field, name: item.field}])
+        )
+      : {};
+
+    const fieldTags = organization.features.includes('transaction-events')
+      ? assign(FIELD_TAGS, functionTags)
       : omit(FIELD_TAGS, TRACING_FIELDS);
 
-    const combined = assign({}, tags, fields);
+    const combined = assign({}, tags, fieldTags);
     combined.has = {
       key: 'has',
       name: 'Has property',
