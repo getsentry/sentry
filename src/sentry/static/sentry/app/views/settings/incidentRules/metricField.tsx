@@ -35,10 +35,10 @@ const cannedAggregates = [
     default: 'count()',
   },
   {
-    match: /^count_unique\(user(\.id)?\)/,
+    match: /^count_unique\(tags\[sentry:user\]\)/,
     name: 'Users affected',
     validDataset: [Dataset.ERRORS],
-    default: 'count_unique(user)',
+    default: 'count_unique(tags[sentry:user])',
   },
   {
     match: /^(p[0-9]{2,3}|percentile\(transaction\.duration,[^)]+\))/,
@@ -98,7 +98,17 @@ const getFieldOptionConfig = (dataset: Dataset) => {
   const aggregations = Object.fromEntries(
     config.aggregations.map(key => [key, AGGREGATIONS[key]])
   );
-  const fields = Object.fromEntries(config.fields.map(key => [key, FIELDS[key]]));
+  const fields = Object.fromEntries(
+    config.fields.map(key => {
+      // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
+      // tags[sentry:user].
+      if (key === 'user') {
+        return ['tags[sentry:user]', 'string'];
+      }
+
+      return [key, FIELDS[key]];
+    })
+  );
 
   return {aggregations, fields};
 };
