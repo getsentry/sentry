@@ -226,7 +226,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
                     integration={integration}
                     onRemove={this.onRemove}
                     onDisable={this.onDisable}
-                    onReinstallIntegration={this.onInstall}
+                    onReAuthIntegration={this.onInstall}
                     data-test-id={integration.id}
                     trackIntegrationEvent={this.trackIntegrationEvent}
                     showReauthMessage={hasFeature && isSlackWorkspaceApp(integration)}
