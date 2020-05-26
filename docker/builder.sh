@@ -7,9 +7,7 @@ if [ ! -f setup.py ]; then
     exit 1
 fi
 
-if [ ! -d "node_modules" ]; then
-  mkdir node_modules
-fi
+mkdir -p ./node_modules
 echo "Populating node_modules cache..."
 cp -ur /js/node_modules/* ./node_modules/
 
