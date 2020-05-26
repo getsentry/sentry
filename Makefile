@@ -2,6 +2,9 @@ PIP := python -m pip --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
 
+# Currently, this is only required to install black via pre-commit.
+REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
+
 bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
 develop: ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
@@ -63,8 +66,7 @@ setup-git-config:
 setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
-	@# This 3.x.x version needs to be synced with the version in .python-version.
-	@PYENV_VERSION=3.6.7 python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
+	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
 
 	@# XXX(joshuarli): virtualenv >= 20 doesn't work with the version of six we have pinned for sentry.
 	@# Since pre-commit is installed in the venv, it will install virtualenv in the venv as well.
@@ -74,7 +76,7 @@ setup-git: ensure-venv setup-git-config
 	@# So, this six pin here needs to be synced with requirements-base.txt.
 	$(PIP) install "pre-commit==1.18.2" "virtualenv>=16.7,<20" "six>=1.10.0,<1.11.0"
 
-	PYENV_VERSION=3.6.7 pre-commit install --install-hooks
+	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) pre-commit install --install-hooks
 	@echo ""
 
 node-version-check:
