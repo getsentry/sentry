@@ -123,7 +123,12 @@ def sync_docs(quiet=False):
 
     dump_doc("_platforms", {"platforms": platform_list})
 
-    executor = multiprocessing.dummy.Pool(min(32, multiprocessing.cpu_count() * 5))
+    # This value is drived from https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor
+    MAX_THREADS = 32
+    # TODO(python3): Migrate this to concurrent.futures.ThreadPoolExecutor context manager
+    executor = multiprocessing.dummy.Pool(
+        min(len(data["platforms"]), multiprocessing.cpu_count() * 5)
+    )
     for platform_id, platform_data in iteritems(data["platforms"]):
         for integration_id, integration in iteritems(platform_data):
             executor.apply_async(
