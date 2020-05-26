@@ -20,9 +20,9 @@ import {
   BreadcrumbType,
   BreadcrumbLevelType,
 } from './types';
-import {getBreadcrumbTypeDetails} from './getBreadcrumbTypeDetails';
+import {getTypeDetails} from './getTypeDetails';
 import {Filter} from './filter/filter';
-import {convertBreadcrumbType} from './convertBreadcrumbType';
+import {converType} from './convertType';
 import {FilterGroupType} from './filter/types';
 import {ListHeader} from './listHeader';
 import {ListBody} from './listBody';
@@ -82,8 +82,8 @@ class Breadcrumbs extends React.Component<Props, State> {
     const breadcrumbLevels: FilterGroups = [];
 
     const convertedBreadcrumbs = breadcrumbs.map((breadcrumb, index) => {
-      const convertedBreadcrumb = convertBreadcrumbType(breadcrumb);
-      const breadcrumbTypeDetails = getBreadcrumbTypeDetails(convertedBreadcrumb.type);
+      const convertedBreadcrumb = converType(breadcrumb);
+      const breadcrumbTypeDetails = getTypeDetails(convertedBreadcrumb.type);
 
       if (!breadcrumbTypes.find(b => b.type === convertedBreadcrumb.type)) {
         breadcrumbTypes.push({
