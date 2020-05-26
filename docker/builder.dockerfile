@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && pip install pkginfo==1.5.0.1
 
 # Get and set up Node for front-end asset building
-ENV VOLTA_VERSION=0.8.0 \
+ENV VOLTA_VERSION=0.8.1 \
   VOLTA_HOME=/.volta \
   PATH=/.volta/bin:$PATH
 
