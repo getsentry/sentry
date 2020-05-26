@@ -53,8 +53,11 @@ class IntegrationPipeline(Pipeline):
         response = self._finish_pipeline(data)
 
         extra = data.get("post_install_data")
-
+        action = "upgrade" if extra else "install"
         # to Slack
+        self.provider.create_install_audit_log_entry(
+            self.integration, self.organization, self.request, action, extra=extra
+        )
         self.provider.post_install(self.integration, self.organization, extra=extra)
         self.clear_session()
         return response
