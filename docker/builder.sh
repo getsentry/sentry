@@ -2,7 +2,7 @@
 
 set -e
 
-if [ ! -f setup.py ]; then
+if [[ ! -f setup.py ]]; then
     >&2 echo "Cannot find setup.py, make sure you have mounted your source dir to /workspace"
     exit 1
 fi
