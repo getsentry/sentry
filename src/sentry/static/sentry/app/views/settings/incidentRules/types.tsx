@@ -13,12 +13,18 @@ export enum AlertRuleAggregations {
   UNIQUE_USERS,
 }
 
+export enum Dataset {
+  ERRORS = 'events',
+  TRANSACTIONS = 'transactions',
+}
+
 export type UnsavedTrigger = {
-  // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an id yet
+  // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
+  // id yet
   alertRuleId?: string;
   label: string;
   thresholdType: AlertRuleThresholdType;
-  alertThreshold: number;
+  alertThreshold: number | '' | null;
   resolveThreshold: number | '' | null;
   actions: Action[];
 };
@@ -44,7 +50,7 @@ export type UnsavedIncidentRule = {
   aggregation: AlertRuleAggregations;
   aggregations: AlertRuleAggregations[];
   projects: string[];
-  environment: string[];
+  environment: string | null;
   query: string;
   timeWindow: number;
   triggers: Trigger[];

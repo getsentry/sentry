@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+
 import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
 
 describe('HttpRenderer', function() {
@@ -21,7 +22,7 @@ describe('HttpRenderer', function() {
 
       const summaryLine = httpRendererWrapper.prop('summary');
 
-      const summaryLineWrapper = shallow(summaryLine);
+      const summaryLineWrapper = shallow(summaryLine).render();
       expect(summaryLineWrapper.find('strong').text()).toEqual('POST ');
       expect(
         summaryLineWrapper

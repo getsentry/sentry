@@ -16,7 +16,7 @@ const recordAnalyticsFirstEvent = ({organization, project}) =>
 
 /**
  * Should no issue object be available (the first issue has expired) then it
- * will simply be boolean true. When no event has been recieved this will be
+ * will simply be boolean true. When no event has been received this will be
  * null. Otherwise it will be the group
  */
 type FirstIssue = null | true | Group;
@@ -27,7 +27,7 @@ type Props = {
   project: Project;
   disabled?: boolean;
   pollInterval?: number;
-  onIssueRecieved?: (props: {firstIssue: FirstIssue}) => void;
+  onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
 };
 
@@ -61,7 +61,7 @@ class EventWaiter extends React.Component<Props, State> {
   intervalId: number | null = null;
 
   pollHandler = async () => {
-    const {api, organization, project, onIssueRecieved} = this.props;
+    const {api, organization, project, onIssueReceived} = this.props;
     let firstEvent = null;
 
     try {
@@ -76,7 +76,7 @@ class EventWaiter extends React.Component<Props, State> {
 
       // This means org or project does not exist, we need to stop polling
       // Also stop polling on auth-related errors (403/401)
-      if ([404, 403, 401].includes(resp.status)) {
+      if ([404, 403, 401, 0].includes(resp.status)) {
         // TODO: Add some UX around this... redirect? error message?
         this.stopPolling();
         return;
@@ -107,8 +107,8 @@ class EventWaiter extends React.Component<Props, State> {
 
     recordAnalyticsFirstEvent({organization, project});
 
-    if (onIssueRecieved) {
-      onIssueRecieved({firstIssue});
+    if (onIssueReceived) {
+      onIssueReceived({firstIssue});
     }
 
     this.stopPolling();

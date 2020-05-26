@@ -2,6 +2,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectAlerts from 'app/views/settings/projectAlerts';
 import ProjectAlertsList from 'app/views/settings/projectAlerts/list';
 
@@ -59,7 +60,7 @@ describe('ProjectAlertsList', function() {
         .find('RuleDescription')
         .at(0)
         .text()
-    ).toBe('Environment: Staging');
+    ).toBe('Environment: staging');
 
     expect(
       wrapper
@@ -94,7 +95,7 @@ describe('ProjectAlertsList', function() {
         .find('RuleDescription')
         .at(0)
         .text()
-    ).toBe('Environment: Staging');
+    ).toBe('Environment: staging');
     expect(wrapper.find('RuleName')).toHaveLength(0);
   });
 });

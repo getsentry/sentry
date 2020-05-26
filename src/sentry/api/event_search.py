@@ -21,6 +21,7 @@ from sentry.search.utils import (
     parse_datetime_range,
     parse_datetime_string,
     parse_datetime_value,
+    parse_release,
     InvalidQuery,
 )
 from sentry.snuba.dataset import Dataset
@@ -96,12 +97,12 @@ event_search_grammar = Grammar(
     r"""
 search               = (boolean_term / paren_term / search_term)*
 boolean_term         = (paren_term / search_term) space? (boolean_operator space? (paren_term / search_term) space?)+
-paren_term           = space? open_paren space? (paren_term / boolean_term)+ space? closed_paren space?
+paren_term           = spaces open_paren space? (paren_term / boolean_term)+ space? closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = space? (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
-                       / numeric_filter / aggregate_filter / aggregate_date_filter / has_filter
+key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
+                       / numeric_filter / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter / has_filter
                        / is_filter / quoted_basic_filter / basic_filter)
-                       space?
+                       spaces
 raw_search           = (!key_val_term ~r"\ *([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
@@ -119,8 +120,9 @@ specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
 # Aggregate numeric filter
-aggregate_filter        = aggregate_key sep operator? (numeric_value / duration_format)
-aggregate_date_filter   = aggregate_key sep operator? (date_format / alt_date_format / rel_date_format)
+aggregate_filter          = aggregate_key sep operator? (numeric_value / duration_format)
+aggregate_date_filter     = aggregate_key sep operator? (date_format / alt_date_format)
+aggregate_rel_date_filter = aggregate_key sep operator? rel_date_format
 
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
@@ -180,6 +182,7 @@ PROJECT_ALIAS = "project"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 USER_ALIAS = "user"
+RELEASE_ALIAS = "release"
 
 
 class InvalidSearchQuery(Exception):
@@ -258,6 +261,7 @@ class SearchVisitor(NodeVisitor):
             "p95",
             "p99",
             "error_rate",
+            "user_misery",
         ]
     )
     date_keys = set(
@@ -274,6 +278,10 @@ class SearchVisitor(NodeVisitor):
     )
 
     unwrapped_exceptions = (InvalidSearchQuery,)
+
+    def __init__(self, allow_boolean=True):
+        self.allow_boolean = allow_boolean
+        super(SearchVisitor, self).__init__()
 
     @cached_property
     def key_mappings_lookup(self):
@@ -310,7 +318,7 @@ class SearchVisitor(NodeVisitor):
 
     def remove_space(self, children):
         def is_not_space(child):
-            return not (isinstance(child, Node) and child.text == " ")
+            return not (isinstance(child, Node) and child.text == " " * len(child.text))
 
         return filter(is_not_space, children)
 
@@ -370,7 +378,6 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
-
         return self.flatten(children[1])
 
     def visit_numeric_filter(self, node, children):
@@ -417,7 +424,6 @@ class SearchVisitor(NodeVisitor):
         search_value = search_value[0]
         operator = operator[0] if not isinstance(operator, Node) else "="
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
-
         if is_date_aggregate:
             try:
                 search_value = parse_datetime_string(search_value)
@@ -426,6 +432,28 @@ class SearchVisitor(NodeVisitor):
             return AggregateFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value if operator != "=" else search_value
+            return AggregateFilter(search_key, "=", SearchValue(search_value))
+
+    def visit_aggregate_rel_date_filter(self, node, children):
+        (search_key, _, operator, search_value) = children
+        operator = operator[0] if not isinstance(operator, Node) else "="
+        is_date_aggregate = any(key in search_key.name for key in self.date_keys)
+        if is_date_aggregate:
+            try:
+                from_val, to_val = parse_datetime_range(search_value.text)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(six.text_type(exc))
+
+            if from_val is not None:
+                operator = ">="
+                search_value = from_val[0]
+            else:
+                operator = "<="
+                search_value = to_val[0]
+
+            return AggregateFilter(search_key, operator, SearchValue(search_value))
+        else:
+            search_value = operator + search_value.text if operator != "=" else search_value
             return AggregateFilter(search_key, "=", SearchValue(search_value))
 
     def visit_time_filter(self, node, children):
@@ -568,7 +596,12 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
-        (function_name, open_paren, args, close_paren) = children
+        if len(children) == 3:
+            (function_name, open_paren, close_paren) = children
+            args = ""
+        else:
+            (function_name, open_paren, args, close_paren) = children
+
         if isinstance(args, Node):
             args = ""
         elif isinstance(args, list):
@@ -590,6 +623,10 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_boolean_operator(self, node, children):
+        if not self.allow_boolean:
+            raise InvalidSearchQuery(
+                'Boolean statements containing "OR" or "AND" are not supported in this search'
+            )
         return node.text
 
     def visit_value(self, node, children):
@@ -628,7 +665,7 @@ class SearchVisitor(NodeVisitor):
         return children or node
 
 
-def parse_search_query(query):
+def parse_search_query(query, allow_boolean=True):
     try:
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
@@ -641,7 +678,7 @@ def parse_search_query(query):
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-    return SearchVisitor().visit(tree)
+    return SearchVisitor(allow_boolean).visit(tree)
 
 
 def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
@@ -649,9 +686,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     value = aggregate_filter.value.value
 
     value = (
-        int(to_timestamp(value)) * 1000
-        if isinstance(value, datetime) and name != "timestamp"
-        else value
+        int(to_timestamp(value)) if isinstance(value, datetime) and name != "timestamp" else value
     )
 
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
@@ -779,7 +814,7 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query)
+            parsed_terms = parse_search_query(query, allow_boolean=False)
         except ParseError as e:
             raise InvalidSearchQuery(
                 u"Parse error: {} (column {:d})".format(e.expr.name, e.column())
@@ -804,16 +839,15 @@ def get_filter(query=None, params=None):
     for term in parsed_terms:
         if isinstance(term, SearchFilter):
             name = term.key.name
+            value = term.value.value
             if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
                 project = None
                 try:
-                    project = Project.objects.get(
-                        id__in=params.get("project_id", []), slug=term.value.value
-                    )
+                    project = Project.objects.get(id__in=params.get("project_id", []), slug=value)
                 except Exception:
                     raise InvalidSearchQuery(
                         u"Invalid query. Project {} does not exist or is not an actively selected project.".format(
-                            term.value.value
+                            value
                         )
                     )
 
@@ -825,19 +859,19 @@ def get_filter(query=None, params=None):
                         project_to_filter = project.id
 
                     kwargs["conditions"].append(converted_filter)
-            elif name == ISSUE_ID_ALIAS and term.value.value != "":
+            elif name == ISSUE_ID_ALIAS and value != "":
                 # A blank term value means that this is a has filter
-                kwargs["group_ids"].extend(to_list(term.value.value))
-            elif name == ISSUE_ALIAS and term.value.value != "":
+                kwargs["group_ids"].extend(to_list(value))
+            elif name == ISSUE_ALIAS and value != "":
                 if params and "organization_id" in params:
                     try:
                         group = Group.objects.by_qualified_short_id(
-                            params["organization_id"], term.value.value
+                            params["organization_id"], value
                         )
                         kwargs["group_ids"].extend(to_list(group.id))
                     except Exception:
                         raise InvalidSearchQuery(
-                            u"Invalid value '{}' for 'issue:' filter".format(term.value.value)
+                            u"Invalid value '{}' for 'issue:' filter".format(value)
                         )
             elif name == USER_ALIAS:
                 # If the key is user, do an OR across all the different possible user fields
@@ -845,10 +879,27 @@ def get_filter(query=None, params=None):
                     convert_search_filter_to_snuba_query(term, key=field)
                     for field in FIELD_ALIASES[USER_ALIAS]["fields"]
                 ]
-                if term.operator == "!=" and term.value.value != "":
+                if term.operator == "!=" and value != "":
                     kwargs["conditions"].extend(user_conditions)
                 else:
                     kwargs["conditions"].append(user_conditions)
+            elif name == RELEASE_ALIAS and params and value == "latest":
+                converted_filter = convert_search_filter_to_snuba_query(
+                    SearchFilter(
+                        term.key,
+                        term.operator,
+                        SearchValue(
+                            parse_release(
+                                value,
+                                params["project_id"],
+                                params.get("environment_objects"),
+                                params["organization_id"],
+                            )
+                        ),
+                    )
+                )
+                if converted_filter:
+                    kwargs["conditions"].append(converted_filter)
             elif name in FIELD_ALIASES and name != PROJECT_ALIAS:
                 if "column_alias" in FIELD_ALIASES[name]:
                     term = SearchFilter(
@@ -1022,7 +1073,7 @@ class IntervalDefault(NumberRange):
 
 
 # When adding functions to this list please also update
-# static/app/views/eventsV2/eventQueryParams.tsx so that
+# static/sentry/app/utils/discover/fields.tsx so that
 # the UI builder stays in sync.
 FUNCTIONS = {
     "percentile": {
@@ -1061,14 +1112,14 @@ FUNCTIONS = {
         "aggregate": [u"max", "transaction.duration", None],
         "result_type": "duration",
     },
-    "rps": {
-        "name": "rps",
+    "eps": {
+        "name": "eps",
         "args": [IntervalDefault("interval", 1, None)],
         "transform": u"divide(count(), {interval:g})",
         "result_type": "number",
     },
-    "rpm": {
-        "name": "rpm",
+    "epm": {
+        "name": "epm",
         "args": [IntervalDefault("interval", 60, None)],
         "transform": u"divide(count(), divide({interval:g}, 60))",
         "result_type": "number",
@@ -1100,6 +1151,13 @@ FUNCTIONS = {
         # It has a minimal prefix parser though to bridge the gap between the current state
         # and when we will have an easier syntax.
         "transform": u"plus(minus(1, divide(plus(countIf(less(duration, {satisfaction:g})),divide(countIf(and(greater(duration, {satisfaction:g}),less(duration, {tolerated:g}))),2)),count())),multiply(minus(1,divide(1,sqrt(uniq(user)))),3))",
+        "result_type": "number",
+    },
+    "user_misery": {
+        "name": "user_misery",
+        "args": [NumberRange("satisfaction", 0, None)],
+        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+        "transform": u"uniqIf(user, duration > {tolerated:g})",
         "result_type": "number",
     },
     "error_rate": {
@@ -1214,7 +1272,7 @@ def resolve_function(field, match=None, params=None):
     function = FUNCTIONS[match.group("function")]
     columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
 
-    # Some functions can optionally take no parameters (rpm(), rps()). In that case use the
+    # Some functions can optionally take no parameters (epm(), eps()). In that case use the
     # passed in params to create a default argument if necessary.
     used_default = False
     if len(columns) == 0 and len(function["args"]) == 1:

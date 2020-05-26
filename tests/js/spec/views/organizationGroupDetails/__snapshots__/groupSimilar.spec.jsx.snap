@@ -337,10 +337,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             </h2>
             <StyledSimilarSpectrum>
               <SimilarSpectrum
-                className="css-4unnmj-StyledSimilarSpectrum e1hn3xkk0"
+                className="css-4unnmj-StyledSimilarSpectrum enx6bph0"
               >
                 <div
-                  className="css-4unnmj-StyledSimilarSpectrum e1hn3xkk0"
+                  className="css-4unnmj-StyledSimilarSpectrum enx6bph0"
                 >
                   <span>
                     Similar
@@ -349,35 +349,35 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     colorIndex={4}
                   >
                     <span
-                      className="css-h1r3gt-SpectrumItem e1hn3xkk1"
+                      className="css-h1r3gt-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={3}
                   >
                     <span
-                      className="css-1j6o86h-SpectrumItem e1hn3xkk1"
+                      className="css-1j6o86h-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={2}
                   >
                     <span
-                      className="css-1pl5ll-SpectrumItem e1hn3xkk1"
+                      className="css-1pl5ll-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={1}
                   >
                     <span
-                      className="css-w9x78l-SpectrumItem e1hn3xkk1"
+                      className="css-w9x78l-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={0}
                   >
                     <span
-                      className="css-arcd4a-SpectrumItem e1hn3xkk1"
+                      className="css-arcd4a-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <span>
@@ -1272,7 +1272,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             >
                               <GroupExtra>
                                 <div
-                                  className="css-1s7tq6o-GroupExtra eec9orn0"
+                                  className="css-29ed03-GroupExtra eec9orn0"
                                 >
                                   <GroupShortId
                                     avatar={
@@ -1565,27 +1565,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         <div
                                           className="css-1lz86t0-Container e1fmxtba0"
                                         >
-                                          <EmotionCssPropInternal
-                                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="Times"
-                                            __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
-                                            css={
-                                              Object {
-                                                "map": undefined,
-                                                "name": "1ggv3lw-Times",
-                                                "next": undefined,
-                                                "styles": "
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
-;label:Times;",
-                                                "toString": [Function],
-                                              }
-                                            }
-                                          >
+                                          <FlexWrapper>
                                             <div
-                                              className="css-1ggv3lw-Times"
+                                              className="css-13zgepw-FlexWrapper e1fmxtba1"
                                             >
                                               <TimeSince
                                                 className="hidden-xs hidden-sm"
@@ -1601,7 +1583,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 </time>
                                               </TimeSince>
                                             </div>
-                                          </EmotionCssPropInternal>
+                                          </FlexWrapper>
                                         </div>
                                       </Container>
                                     </Times>
@@ -1704,13 +1686,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     "#57be8c",
                                   ]
                                 }
+                                radius={3}
                                 score={4}
                                 size={40}
                                 thickness={4}
                                 vertical={true}
                               >
                                 <ScoreBar
-                                  className="css-19m1jt3-StyledScoreBar eecxaw40"
+                                  className="css-tics7q-StyledScoreBar eecxaw40"
                                   palette={
                                     Array [
                                       "#ec5e44",
@@ -1720,17 +1703,19 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       "#57be8c",
                                     ]
                                   }
+                                  radius={3}
                                   score={4}
                                   size={40}
                                   thickness={4}
                                   vertical={true}
                                 >
                                   <div
-                                    className="css-19m1jt3-StyledScoreBar eecxaw40"
+                                    className="css-tics7q-StyledScoreBar eecxaw40"
                                   >
                                     <Bar
                                       color="#98b480"
                                       key="0"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
@@ -1738,12 +1723,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       <div
                                         className="css-1gui0xz-Bar eecxaw41"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       color="#98b480"
                                       key="1"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
@@ -1751,12 +1738,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       <div
                                         className="css-1gui0xz-Bar eecxaw41"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       color="#98b480"
                                       key="2"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
@@ -1764,12 +1753,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       <div
                                         className="css-1gui0xz-Bar eecxaw41"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       color="#98b480"
                                       key="3"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
@@ -1777,18 +1768,21 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       <div
                                         className="css-1gui0xz-Bar eecxaw41"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-0"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
@@ -1830,13 +1824,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     "#57be8c",
                                   ]
                                 }
+                                radius={3}
                                 score={0}
                                 size={40}
                                 thickness={4}
                                 vertical={true}
                               >
                                 <ScoreBar
-                                  className="css-19m1jt3-StyledScoreBar eecxaw40"
+                                  className="css-tics7q-StyledScoreBar eecxaw40"
                                   palette={
                                     Array [
                                       "#ec5e44",
@@ -1846,71 +1841,82 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       "#57be8c",
                                     ]
                                   }
+                                  radius={3}
                                   score={0}
                                   size={40}
                                   thickness={4}
                                   vertical={true}
                                 >
                                   <div
-                                    className="css-19m1jt3-StyledScoreBar eecxaw40"
+                                    className="css-tics7q-StyledScoreBar eecxaw40"
                                   >
                                     <Bar
                                       empty={true}
                                       key="empty-0"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-1"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-2"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-3"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-4"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
                                         className="css-3fvo9r-Bar eecxaw41"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>

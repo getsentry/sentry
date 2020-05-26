@@ -1,11 +1,12 @@
 import React from 'react';
 
-import {EventsChart} from 'app/views/events/eventsChart';
 import {mockZoomRange} from 'sentry-test/charts';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-describe('EventsChart > EventsAreaChart', function() {
+import {EventsChart} from 'app/views/events/eventsChart';
+
+describe('EventsChart', function() {
   const {router, routerContext, org} = initializeOrg();
   let wrapper;
 

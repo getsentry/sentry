@@ -10,7 +10,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import DebugFileFeature from 'app/components/debugFileFeature';
-import EventDataSection, {SectionHeader} from 'app/components/events/eventDataSection';
+import EventDataSection from 'app/components/events/eventDataSection';
 import InlineSvg from 'app/components/inlineSvg';
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
@@ -319,6 +319,7 @@ class DebugMetaInterface extends React.PureComponent {
 
   filterImage(image) {
     const {showUnused, filter} = this.state;
+
     if (!filter || filter.length < MIN_FILTER_LEN) {
       if (showUnused) {
         return true;
@@ -479,9 +480,10 @@ class DebugMetaInterface extends React.PureComponent {
         title={titleElement}
         actions={this.renderToolbar()}
         wrapTitle={false}
+        isCentered
       >
-        <ClippedBox clipHeight={350}>
-          <DebugImagesPanel>
+        <DebugImagesPanel>
+          <ClippedBox clipHeight={560}>
             <PanelBody>
               {foundFrame && (
                 <ImageForBar
@@ -506,8 +508,8 @@ class DebugMetaInterface extends React.PureComponent {
                 </EmptyItem>
               )}
             </PanelBody>
-          </DebugImagesPanel>
-        </ClippedBox>
+          </ClippedBox>
+        </DebugImagesPanel>
       </StyledEventDataSection>
     );
   }
@@ -524,13 +526,6 @@ const Label = styled('label')`
 `;
 
 const StyledEventDataSection = styled(EventDataSection)`
-  ${SectionHeader} {
-    align-items: center;
-    @media (max-width: ${p => p.theme.breakpoints[0]}) {
-      display: block;
-    }
-  }
-
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(4)};
   }
@@ -542,10 +537,9 @@ const StyledEventDataSection = styled(EventDataSection)`
 
 const DebugImagesPanel = styled(Panel)`
   margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    max-height: 600px;
-    overflow-y: auto;
-  }
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
 `;
 
 const DebugImageItem = styled(PanelItem)`

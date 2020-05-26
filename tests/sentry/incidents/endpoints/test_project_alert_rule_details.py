@@ -5,7 +5,6 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
-from sentry.snuba.models import QueryAggregations
 from sentry.testutils import APITestCase
 
 
@@ -76,13 +75,7 @@ class AlertRuleDetailsBase(object):
     @fixture
     def alert_rule(self):
         return create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
 
     def test_invalid_rule_id(self):
@@ -147,7 +140,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
     def test_not_updated_fields(self):
         test_params = self.valid_params.copy()
-        test_params.update({"aggregation": self.alert_rule.aggregation})
+        test_params["aggregate"] = self.alert_rule.snuba_query.aggregate
 
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -159,13 +152,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
-        existing_sub = self.alert_rule.query_subscriptions.first()
+        existing_sub = self.alert_rule.snuba_query.subscriptions.first()
 
         # Alert rule should be exactly the same
         assert resp.data == serialize(self.alert_rule)
         # If the aggregation changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
-        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).query_subscriptions.first()
+        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).snuba_query.subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
     def test_update_snapshot(self):

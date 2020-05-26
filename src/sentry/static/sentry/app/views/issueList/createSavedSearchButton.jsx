@@ -11,7 +11,7 @@ import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {TextField} from 'app/components/forms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
-import {IconAdd} from 'app/icons/iconAdd';
+import {IconAdd} from 'app/icons';
 
 class CreateSavedSearchButton extends React.Component {
   static propTypes = {

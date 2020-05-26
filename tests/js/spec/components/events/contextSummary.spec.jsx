@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow, mount} from 'sentry-test/enzyme';
+
 import ContextSummary from 'app/components/events/contextSummary/contextSummary';
 import {FILTER_MASK} from 'app/constants';
 import ContextSummaryUser from 'app/components/events/contextSummary/contextSummaryUser';
@@ -254,7 +255,12 @@ describe('UserSummary', function() {
       };
 
       const wrapper1 = shallow(<ContextSummaryUser data={user1} />);
-      expect(wrapper1.find('[data-test-id="user-title"]').text()).toEqual(user1.email);
+      expect(
+        wrapper1
+          .find('[data-test-id="user-title"]')
+          .render()
+          .text()
+      ).toEqual(user1.email);
 
       const user2 = {
         ip_address: '12.31.20.12',
@@ -265,9 +271,12 @@ describe('UserSummary', function() {
       };
 
       const wrapper2 = shallow(<ContextSummaryUser data={user2} />);
-      expect(wrapper2.find('[data-test-id="user-title"]').text()).toEqual(
-        user2.ip_address
-      );
+      expect(
+        wrapper2
+          .find('[data-test-id="user-title"]')
+          .render()
+          .text()
+      ).toEqual(user2.ip_address);
 
       const user3 = {
         id: '26',
@@ -277,7 +286,12 @@ describe('UserSummary', function() {
       };
 
       const wrapper3 = shallow(<ContextSummaryUser data={user3} />);
-      expect(wrapper3.find('[data-test-id="user-title"]').text()).toEqual(user3.id);
+      expect(
+        wrapper3
+          .find('[data-test-id="user-title"]')
+          .render()
+          .text()
+      ).toEqual(user3.id);
 
       const user4 = {
         username: 'maiseythedog',
@@ -286,7 +300,12 @@ describe('UserSummary', function() {
       };
 
       const wrapper4 = shallow(<ContextSummaryUser data={user4} />);
-      expect(wrapper4.find('[data-test-id="user-title"]').text()).toEqual(user4.username);
+      expect(
+        wrapper4
+          .find('[data-test-id="user-title"]')
+          .render()
+          .text()
+      ).toEqual(user4.username);
     });
 
     it('renders NoSummary if no email, IP, id, or username', function() {

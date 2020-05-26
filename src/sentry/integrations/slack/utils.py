@@ -8,11 +8,10 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
-from sentry.snuba.models import QueryAggregations
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -48,7 +47,10 @@ MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 SLACK_DEFAULT_TIMEOUT = 10
-QUERY_AGGREGATION_DISPLAY = ["events", "users affected"]
+QUERY_AGGREGATION_DISPLAY = {
+    "count()": "events",
+    "count_unique(tags[sentry:user])": "users affected",
+}
 
 
 def format_actor_option(actor):
@@ -297,12 +299,11 @@ def build_incident_attachment(incident):
         # TODO: If we're relying on this and expecting possible delays between a trigger fired and this function running,
         # then this could actually be incorrect if they changed the trigger's time window in this time period. Should we store it?
         start = incident_trigger.date_modified - timedelta(
-            minutes=alert_rule_trigger.alert_rule.time_window
+            seconds=alert_rule_trigger.alert_rule.snuba_query.time_window
         )
         end = incident_trigger.date_modified
     else:
         start, end = None, None
-    aggregates = get_incident_aggregates(incident, start, end)
 
     if incident.status == IncidentStatus.CLOSED.value:
         status = "Resolved"
@@ -314,19 +315,16 @@ def build_incident_attachment(incident):
         status = "Critical"
         color = LEVEL_TO_COLOR["fatal"]
 
-    agg_text = QUERY_AGGREGATION_DISPLAY[alert_rule.aggregation]
-
-    agg_value = (
-        aggregates["count"]
-        if alert_rule.aggregation == QueryAggregations.TOTAL.value
-        else aggregates["unique_users"]
+    agg_text = QUERY_AGGREGATION_DISPLAY.get(
+        alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
     )
-    time_window = alert_rule.time_window
+    agg_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)["count"]
+    time_window = alert_rule.snuba_query.time_window / 60
 
     text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
 
-    if alert_rule.query != "":
-        text = text + "\nFilter: {}".format(alert_rule.query)
+    if alert_rule.snuba_query.query != "":
+        text = text + "\nFilter: {}".format(alert_rule.snuba_query.query)
 
     ts = incident.date_started
 
@@ -446,12 +444,4 @@ def send_incident_alert_notification(action, incident):
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
-        logger.info(
-            "rule.fail.slack_post", extra={"error": six.text_type(e)},
-        )
-
-
-def use_slack_v2(pipeline):
-    return features.has(
-        "organizations:slack-v2", pipeline.organization, actor=pipeline.request.user
-    )
+        logger.info("rule.fail.slack_post", extra={"error": six.text_type(e)})

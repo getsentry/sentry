@@ -1,4 +1,5 @@
 import {
+  initializeUrlState,
   updateProjects,
   updateEnvironments,
   updateDateTime,
@@ -6,22 +7,205 @@ import {
   updateParamsWithoutHistory,
 } from 'app/actionCreators/globalSelection';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
+import localStorage from 'app/utils/localStorage';
+
+jest.mock('app/utils/localStorage');
 
 describe('GlobalSelection ActionCreators', function() {
-  let updateProjectsMock;
+  const organization = TestStubs.Organization();
   beforeEach(function() {
-    updateProjectsMock = GlobalSelectionActions.updateProjects = jest.fn();
+    localStorage.getItem.mockClear();
+    jest.spyOn(GlobalSelectionActions, 'updateProjects');
+    jest.spyOn(GlobalSelectionActions, 'initializeUrlState').mockImplementation();
+    GlobalSelectionActions.updateProjects.mockClear();
+  });
+
+  describe('initializeUrlState', function() {
+    let router;
+    beforeEach(() => {
+      router = TestStubs.router();
+    });
+    it('loads from local storage when no query params', function() {
+      const key = `global-selection:${organization.slug}`;
+      localStorage.setItem(key, JSON.stringify({environments: [], projects: [1]}));
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+      });
+
+      expect(localStorage.getItem).toHaveBeenCalledWith(
+        `global-selection:${organization.slug}`
+      );
+      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environments: [],
+          projects: [1],
+        })
+      );
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            environment: [],
+            project: [1],
+          },
+        })
+      );
+    });
+    it('does not load from local storage when no query params and `skipLoadLastUsed` is true', function() {
+      jest.spyOn(localStorage, 'getItem');
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        skipLoadLastUsed: true,
+        router,
+      });
+
+      expect(localStorage.getItem).not.toHaveBeenCalled();
+    });
+
+    it('does not change dates with no query params or defaultSelection', function() {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '1',
+        },
+        router,
+      });
+      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datetime: {
+            start: null,
+            end: null,
+            period: '14d',
+            utc: null,
+          },
+        })
+      );
+    });
+
+    it('does changes to default dates with defaultSelection and no query params', function() {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '1',
+        },
+        defaultSelection: {
+          datetime: {
+            period: '3h',
+          },
+        },
+        router,
+      });
+      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datetime: {
+            start: null,
+            end: null,
+            period: '3h',
+            utc: null,
+          },
+        })
+      );
+    });
+
+    it('uses query params statsPeriod over defaults', function() {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          statsPeriod: '1h',
+          project: '1',
+        },
+        defaultSelection: {
+          datetime: {
+            period: '24h',
+          },
+        },
+        router,
+      });
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            cursor: undefined,
+            project: [1],
+            environment: [],
+            statsPeriod: '1h',
+          },
+        })
+      );
+    });
+
+    it('uses absolute dates over defaults', function() {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          start: '2020-03-22T00:53:38',
+          end: '2020-04-21T00:53:38',
+          project: '1',
+        },
+        defaultSelection: {
+          datetime: {
+            period: '24h',
+          },
+        },
+        router,
+      });
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            cursor: undefined,
+            project: [1],
+            environment: [],
+            start: '2020-03-22T00:53:38',
+            end: '2020-04-21T00:53:38',
+          },
+        })
+      );
+    });
+
+    it('does not load from local storage when there are query params', function() {
+      initializeUrlState({
+        organization,
+        queryParams: {
+          project: '1',
+        },
+        router,
+      });
+
+      expect(localStorage.getItem).not.toHaveBeenCalled();
+      expect(GlobalSelectionActions.initializeUrlState).toHaveBeenCalledWith({
+        datetime: {
+          start: null,
+          end: null,
+          period: '14d',
+          utc: null,
+        },
+        projects: [1],
+        environments: [],
+      });
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            environment: [],
+            project: [1],
+          },
+        })
+      );
+    });
   });
 
   describe('updateProjects()', function() {
     it('updates', function() {
       updateProjects([1, 2]);
-      expect(updateProjectsMock).toHaveBeenCalledWith([1, 2]);
+      expect(GlobalSelectionActions.updateProjects).toHaveBeenCalledWith(
+        [1, 2],
+        undefined
+      );
     });
 
     it('does not update invalid projects', function() {
       updateProjects(['1']);
-      expect(updateProjectsMock).not.toHaveBeenCalled();
+      expect(GlobalSelectionActions.updateProjects).not.toHaveBeenCalled();
     });
   });
 

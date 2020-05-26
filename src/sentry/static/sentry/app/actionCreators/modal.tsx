@@ -91,6 +91,7 @@ type CreateOwnershipRuleModalOptions = {
    * The project to create a rules for
    */
   project: Project;
+  issueId: string;
 };
 
 export async function openCreateOwnershipRule(options: CreateOwnershipRuleModalOptions) {

@@ -35,7 +35,7 @@ function appendTrailingSlash(nextState, replace) {
  *
  * The method for lazy loading a route leaf node is using the <LazyLoad> component + `componentPromise`.
  * The reason for this is because react-router handles the route tree better and if we use <LazyLoad> it will end
- * up having to re-render more components than necesssary.
+ * up having to re-render more components than necessary.
  */
 const lazyLoad = cb => m => cb(null, m.default);
 
@@ -960,7 +960,7 @@ function routes() {
         path="/extensions/external-install/:providerId/:installationId"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/integrationInstallation'
+            /* webpackChunkName: "ExtensionsIntegrationInstallation" */ 'app/views/integrationInstallation'
           )
         }
         component={errorHandler(LazyLoad)}
@@ -979,7 +979,7 @@ function routes() {
         path="/sentry-apps/:sentryAppSlug/external-install/"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "AcceptProjectTransfer" */ 'app/views/sentryAppExternalInstallation'
+            /* webpackChunkName: "SentryAppExternalInstallation" */ 'app/views/sentryAppExternalInstallation'
           )
         }
         component={errorHandler(LazyLoad)}
@@ -1173,8 +1173,6 @@ function routes() {
           }
           component={errorHandler(LazyLoad)}
         >
-          {/* XXX: if we change the path for group details, we *must* update `OrganizationContext`.
-            There is behavior that depends on this path and unfortunately no great way to test for this contract */}
           <IndexRoute
             componentPromise={() =>
               import(

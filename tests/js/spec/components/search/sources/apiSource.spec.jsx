@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import {ApiSource} from 'app/components/search/sources/apiSource';
 
 describe('ApiSource', function() {
@@ -63,6 +64,10 @@ describe('ApiSource', function() {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/sentry-apps/?status=published',
       body: [],
     });
     MockApiClient.addMockResponse({

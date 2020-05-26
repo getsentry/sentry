@@ -1,4 +1,4 @@
-import {ComponentClass, StatelessComponent} from 'react';
+import {ComponentClass, ComponentType, StatelessComponent} from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {InjectedRouter, Params} from 'react-router/lib/Router';
 import {Location} from 'history';
@@ -18,7 +18,10 @@ declare module 'react-router' {
     routes: PlainRoute[];
   }
 
-  type ComponentConstructor<P> = ComponentClass<P> | StatelessComponent<P>;
+  type ComponentConstructor<P> =
+    | ComponentClass<P>
+    | StatelessComponent<P>
+    | ComponentType<P>;
 
   declare function withRouter<P extends WithRouterProps>(
     component: ComponentConstructor<P>,

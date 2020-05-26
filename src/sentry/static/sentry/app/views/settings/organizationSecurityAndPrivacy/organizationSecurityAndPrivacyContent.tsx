@@ -1,6 +1,5 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -11,25 +10,14 @@ import {Organization} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
 import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
-import SentryTypes from 'app/sentryTypes';
 
-import DataPrivacyRulesPanel from '../components/dataPrivacyRulesPanel/dataPrivacyRulesPanel';
+import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
 
-type Props = {
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
-  params: {
-    orgId: string;
-    projectId: string;
-  };
-} & RouteComponentProps<{}, {}>;
+};
 
 class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    // left router contextType to satisfy the compiler
-    router: PropTypes.object,
-  };
-
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
     return [
@@ -38,14 +26,14 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
     ];
   }
 
-  handleSave = (data: Organization) => {
+  handleUpdateOrganization = (data: Organization) => {
     // This will update OrganizationStore (as well as OrganizationsStore
     // which is slightly incorrect because it has summaries vs a detailed org)
     updateOrganization(data);
   };
 
   renderBody() {
-    const {organization} = this.context;
+    const {organization} = this.props;
     const {orgId} = this.props.params;
     const {authProvider} = this.state;
     const initialData = this.props.organization;
@@ -64,7 +52,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
           initialData={initialData}
           additionalFieldProps={{hasSsoEnabled: !!authProvider}}
           onSubmitSuccess={(_resp, model) => {
-            this.handleSave(model.initialData as Organization);
+            this.handleUpdateOrganization(model.initialData as Organization);
           }}
           onSubmitError={() => addErrorMessage('Unable to save change')}
           saveOnBlur
@@ -76,11 +64,15 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
             disabled={!access.has('org:write')}
           />
         </Form>
-        <DataPrivacyRulesPanel
+        <DataPrivacyRules
           additionalContext={t('These rules can be configured for each project.')}
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
           disabled={!access.has('org:write')}
+          organization={organization}
+          onSubmitSuccess={resp => {
+            this.handleUpdateOrganization(resp as Organization);
+          }}
         />
       </React.Fragment>
     );

@@ -254,8 +254,8 @@ def record_inbound_filter_toggled(project, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, **kwargs):
-    if rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
+def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
+    if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
         return
 
     FeatureAdoption.objects.record(
@@ -274,7 +274,7 @@ def record_alert_rule_created(user, project, rule, **kwargs):
         default_user_id=default_user_id,
         organization_id=project.organization_id,
         rule_id=rule.id,
-        actions=[a["id"] for a in rule.data.get("actions", [])],
+        rule_type=rule_type,
     )
 
 

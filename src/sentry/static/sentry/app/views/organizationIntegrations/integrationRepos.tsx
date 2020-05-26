@@ -9,7 +9,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import {IconCommit} from 'app/icons/iconCommit';
+import {IconCommit} from 'app/icons';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Pagination from 'app/components/pagination';
@@ -139,7 +139,9 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
       return (
         <DropdownButton
           disabled
-          title={t('You do not have permission to add repositories')}
+          title={t(
+            'You must be an organization owner, manager or admin to add repositories'
+          )}
           isOpen={false}
           size="xsmall"
         >

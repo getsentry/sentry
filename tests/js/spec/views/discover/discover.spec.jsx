@@ -3,6 +3,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ConfigStore from 'app/stores/configStore';
 import Discover from 'app/views/discover/discover';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
@@ -133,7 +134,7 @@ describe('Discover', function() {
     });
   });
 
-  describe('componentWillRecieveProps()', function() {
+  describe('componentWillReceiveProps()', function() {
     it('handles navigating to saved query', function() {
       const wrapper = mountWithTheme(
         <Discover

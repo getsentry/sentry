@@ -4,6 +4,7 @@ import React from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
+
 import ProjectAlerts from 'app/views/settings/projectAlerts';
 import ProjectAlertsCreate from 'app/views/settings/projectAlerts/create';
 
@@ -136,11 +137,11 @@ describe('ProjectAlertsCreate', function() {
         expect(wrapper.find('IssueEditor')).toHaveLength(0);
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
 
-        wrapper.find('button[aria-label="metric"]').simulate('click');
+        wrapper.find('Radio[aria-label="metric"]').simulate('change');
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(1);
         await tick();
 
-        wrapper.find('button[aria-label="issue"]').simulate('click');
+        wrapper.find('Radio[aria-label="issue"]').simulate('change');
         await tick();
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
         expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(

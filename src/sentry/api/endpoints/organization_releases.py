@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+import re
 import six
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry.api.bases import NoProjects, OrganizationEventsError
+from sentry.api.bases import NoProjects
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository
@@ -35,6 +37,9 @@ ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
 def get_stats_period_detail(key, choices):
     return ERR_INVALID_STATS_PERIOD % (key, ", ".join("'%s'" % x for x in choices))
+
+
+_release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 
 @scenario("CreateNewOrganizationReleaseWithRef")
@@ -185,8 +190,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
             return Response([])
-        except OrganizationEventsError as e:
-            return Response({"detail": six.text_type(e)}, status=400)
 
         # This should get us all the projects into postgres that have received
         # health data in the last 24 hours.  If health data is not requested
@@ -203,7 +206,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             )
 
         if query:
-            queryset = queryset.filter(version__istartswith=query)
+            query_q = Q(version__icontains=query)
+
+            suffix_match = _release_suffix.match(query)
+            if suffix_match is not None:
+                query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
+
+            queryset = queryset.filter(query_q)
 
         select_extra = {}
         sort_query = None
@@ -214,7 +223,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
         if sort == "date":
             sort_query = "COALESCE(sentry_release.date_released, sentry_release.date_added)"
-        elif sort in ("crash_free_sessions", "crash_free_users", "sessions", "users"):
+        elif sort in (
+            "crash_free_sessions",
+            "crash_free_users",
+            "sessions",
+            "users",
+            "sessions_24h",
+            "users_24h",
+        ):
             if not flatten:
                 return Response(
                     {"detail": "sorting by crash statistics requires flattening (flatten=1)"},

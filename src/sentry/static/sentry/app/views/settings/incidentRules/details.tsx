@@ -30,15 +30,10 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     const {orgId, projectId, ruleId} = this.props.params;
 
-    return [
-      ['rule', `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`] as [
-        string,
-        string
-      ],
-    ];
+    return [['rule', `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`]];
   }
 
   handleSubmitSuccess = () => {

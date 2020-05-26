@@ -11,7 +11,7 @@ import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import InlineSvg from 'app/components/inlineSvg';
 import Version from 'app/components/version';
-import {IconOpen} from 'app/icons/iconOpen';
+import {IconOpen} from 'app/icons';
 
 type Props = {
   tag: EventTag;
@@ -46,18 +46,7 @@ const EventTagsPill = ({
           <Version version={tag.value} anchor={false} tooltipRawVersion truncate />
         ) : (
           <DeviceName value={tag.value}>
-            {deviceName =>
-              meta ? (
-                <AnnotatedText
-                  value={deviceName}
-                  chunks={meta.chunks}
-                  remarks={meta.rem}
-                  errors={meta.err}
-                />
-              ) : (
-                deviceName
-              )
-            }
+            {deviceName => <AnnotatedText value={deviceName} meta={meta} />}
           </DeviceName>
         )}
       </Link>

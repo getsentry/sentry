@@ -61,9 +61,8 @@ export default class DetailsBody extends React.Component<Props> {
       id: undefined,
       name: (incident && incident.title) || '',
       fields: ['issue', 'count(id)', 'count_unique(user.id)'],
-      widths: ['400', '200', '-1'],
       orderby:
-        incident.aggregation === AlertRuleAggregations.UNIQUE_USERS
+        incident.alertRule.aggregation === AlertRuleAggregations.UNIQUE_USERS
           ? '-count_unique_user_id'
           : '-count_id',
       query: incident?.discoverQuery ?? '',
@@ -174,7 +173,7 @@ export default class DetailsBody extends React.Component<Props> {
         <ChartWrapper>
           {incident && stats ? (
             <Chart
-              aggregation={incident.aggregation}
+              aggregation={incident.alertRule.aggregation}
               data={stats.eventStats.data}
               detected={incident.dateDetected}
               closed={incident.dateClosed}

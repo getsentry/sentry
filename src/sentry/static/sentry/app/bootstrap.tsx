@@ -1,3 +1,4 @@
+/* global process */
 import 'bootstrap/js/alert';
 import 'bootstrap/js/tab';
 import 'bootstrap/js/dropdown';
@@ -25,8 +26,14 @@ import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
+import routes from 'app/routes';
+import {normalizeTransactionName} from 'app/utils/apm';
 
-function getSentryIntegrations() {
+if (process.env.NODE_ENV === 'development') {
+  import(/* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings');
+}
+
+function getSentryIntegrations(hasReplays: boolean = false) {
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
@@ -34,16 +41,24 @@ function getSentryIntegrations() {
     }),
     new Integrations.Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
+      debug: {
+        spanDebugTimingInfo: true,
+        writeAsBreadcrumbs: true,
+      },
     }),
   ];
-  if (window.__SENTRY__USER && window.__SENTRY__USER.isStaff) {
+  if (hasReplays) {
     // eslint-disable-next-line no-console
     console.log('[sentry] Instrumenting session with rrweb');
 
     // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
     // incompatible. It's a newer plugin, so this can be expected, but we
     // should fix.
-    integrations.push(new SentryRRWeb() as any);
+    integrations.push(
+      new SentryRRWeb({
+        checkoutEveryNms: 60 * 1000, // 60 seconds
+      }) as any
+    );
   }
   return integrations;
 }
@@ -62,10 +77,19 @@ const config = ConfigStore.getConfig();
 
 const tracesSampleRate = config ? config.apmSampling : 0;
 
+const hasReplays =
+  window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!process.env.DISABLE_RR_WEB;
+
+const appRoutes = Router.createRoutes(routes());
+
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
-  integrations: getSentryIntegrations(),
+  integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
+  _experiments: {useEnvelope: true},
+  async beforeSend(event) {
+    return normalizeTransactionName(appRoutes, event);
+  },
 });
 
 if (window.__SENTRY__USER) {
@@ -74,10 +98,13 @@ if (window.__SENTRY__USER) {
 if (window.__SENTRY__VERSION) {
   Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
 }
+if (hasReplays) {
+  Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
+}
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
-metric.mark('sentry-app-init');
+metric.mark({name: 'sentry-app-init'});
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
@@ -162,7 +189,7 @@ globals.SentryApp = {
   passwordStrength: {load: loadPasswordStrength},
   U2fSign: require('app/components/u2f/u2fsign').default,
   ConfigStore: require('app/stores/configStore').default,
-  Alerts: require('app/components/alerts').default,
+  SystemAlerts: require('app/views/app/systemAlerts').default,
   Indicators: require('app/components/indicators').default,
   SetupWizard: require('app/components/setupWizard').default,
 };

@@ -59,6 +59,7 @@ type State = {
   query: string;
   aggregation: AlertRuleAggregations;
   timeWindow: number;
+  environment: string | null;
 } & AsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -79,6 +80,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       aggregation: rule.aggregation,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
+      environment: rule.environment || null,
       triggerErrors: new Map(),
       availableActions: null,
       triggers: this.props.rule.triggers,
@@ -137,10 +139,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // If this is alert threshold and inverted, it can't be above resolve
     // If this is resolve threshold and not inverted, it can't be above resolve
     // If this is resolve threshold and inverted, it can't be below resolve
+    // Since we're comparing non-inclusive thresholds here (>, <), we need
+    // to modify the values when we compare. An example of why:
+    // Alert > 0, resolve < 1. This means that we want to alert on values
+    // of 1 or more, and resolve on values of 0 or less. This is valid, but
+    // without modifying the values, this boundary case will fail.
     const isValid =
       trigger.thresholdType === AlertRuleThresholdType.BELOW
-        ? alertThreshold <= resolveThreshold
-        : alertThreshold >= resolveThreshold;
+        ? alertThreshold - 1 <= resolveThreshold + 1
+        : alertThreshold + 1 >= resolveThreshold - 1;
 
     const otherErrors = errors.get(triggerIndex) || {};
     const isResolveChanged = changeObj?.hasOwnProperty('resolveThreshold');
@@ -241,10 +248,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       const criticalTrigger = triggers[criticalTriggerIndex];
       const warningTrigger = triggers[warningTriggerIndex];
 
+      const warningThreshold = warningTrigger.alertThreshold ?? 0;
+      const criticalThreshold = criticalTrigger.alertThreshold ?? 0;
+
       const hasError =
         criticalTrigger.thresholdType === AlertRuleThresholdType.ABOVE
-          ? warningTrigger.alertThreshold > criticalTrigger.alertThreshold
-          : warningTrigger.alertThreshold < criticalTrigger.alertThreshold;
+          ? warningThreshold > criticalThreshold
+          : warningThreshold < criticalThreshold;
 
       if (hasError) {
         [criticalTriggerIndex, warningTriggerIndex].forEach(index => {
@@ -264,7 +274,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   handleFieldChange = (name: string, value: unknown) => {
-    if (['timeWindow', 'aggregation'].includes(name)) {
+    if (['timeWindow', 'environment', 'aggregation'].includes(name)) {
       this.setState({[name]: value});
     }
   };
@@ -315,14 +325,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         onSubmitSuccess(resp, model);
       }
     } catch (err) {
-      addErrorMessage(
-        t(
-          'Unable to save alert%s',
-          err?.responseJSON?.nonFieldErrors
-            ? `: ${err.responseJSON.nonFieldErrors.join(', ')}`
-            : ''
-        )
-      );
+      const apiErrors = Array.isArray(err?.responseJSON)
+        ? `: ${err.responseJSON.join(', ')}`
+        : err?.responseJSON?.nonFieldErrors
+        ? `: ${err.responseJSON.nonFieldErrors.join(', ')}`
+        : '';
+      addErrorMessage(t('Unable to save alert%s', apiErrors));
     }
   };
 
@@ -386,11 +394,24 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
-    const {query, aggregation, timeWindow, triggers} = this.state;
+    const {query, aggregation, timeWindow, triggers, environment} = this.state;
 
     const queryAndAlwaysErrorEvents = !query.includes('event.type')
       ? `${query} ${this.getEventType()}`.trim()
       : query;
+
+    const chart = (
+      <TriggersChart
+        api={this.api}
+        organization={organization}
+        projects={this.state.projects}
+        triggers={triggers}
+        query={queryAndAlwaysErrorEvents}
+        aggregation={aggregation}
+        timeWindow={timeWindow}
+        environment={environment}
+      />
+    );
 
     return (
       <Access access={['project:write']}>
@@ -406,7 +427,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               aggregation: rule.aggregation,
               query: rule.query || '',
               timeWindow: rule.timeWindow,
-              environment: rule.environment || [],
+              environment: rule.environment || null,
             }}
             saveOnBlur={false}
             onSubmit={this.handleSubmit}
@@ -431,22 +452,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             }
             submitLabel={t('Save Rule')}
           >
-            <TriggersChart
-              api={this.api}
-              organization={organization}
-              projects={this.state.projects}
-              triggers={triggers}
-              query={queryAndAlwaysErrorEvents}
-              aggregation={aggregation}
-              timeWindow={timeWindow}
-            />
-
             <RuleConditionsForm
               api={this.api}
               projectSlug={params.projectId}
               organization={organization}
               disabled={!hasAccess}
               onFilterUpdate={this.handleFilterUpdate}
+              thresholdChart={chart}
             />
 
             <Triggers

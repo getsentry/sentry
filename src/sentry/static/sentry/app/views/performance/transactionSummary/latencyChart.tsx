@@ -7,17 +7,17 @@ import pick from 'lodash/pick';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import BarChart from 'app/components/charts/barChart';
-import ErrorPanel from 'app/components/charts/components/errorPanel';
+import ErrorPanel from 'app/components/charts/errorPanel';
+import LoadingPanel from 'app/components/charts/loadingPanel';
+import QuestionTooltip from 'app/components/questionTooltip';
 import AsyncComponent from 'app/components/asyncComponent';
-import Tooltip from 'app/components/tooltip';
 import {OrganizationSummary} from 'app/types';
-import LoadingPanel from 'app/views/events/loadingPanel';
 import EventView from 'app/utils/discover/eventView';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
-import {HeaderTitle, StyledIconQuestion} from '../styles';
+import {HeaderTitleLegend} from '../styles';
 
 const NUM_BUCKETS = 15;
 const QUERY_KEYS = [
@@ -187,6 +187,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         alignWithLabel: true,
       },
     };
+    const colors = theme.charts.getColorPalette(1);
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.
@@ -221,12 +222,12 @@ class LatencyChart extends AsyncComponent<Props, State> {
 
     return (
       <BarChart
-        grid={{left: '10px', right: '10px', top: '16px', bottom: '0px'}}
+        grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
         xAxis={xAxis}
         yAxis={{type: 'value'}}
         series={transformData(chartData.data, this.bucketWidth)}
         tooltip={tooltip}
-        colors={['rgba(140, 79, 189, 0.3)']}
+        colors={colors}
         onClick={this.handleClick}
         onMouseOver={this.handleMouseOver}
       />
@@ -236,17 +237,16 @@ class LatencyChart extends AsyncComponent<Props, State> {
   render() {
     return (
       <React.Fragment>
-        <HeaderTitle>
+        <HeaderTitleLegend>
           {t('Latency Distribution')}
-          <Tooltip
+          <QuestionTooltip
             position="top"
+            size="sm"
             title={t(
               `Latency Distribution reflects the volume of transactions per median duration.`
             )}
-          >
-            <StyledIconQuestion />
-          </Tooltip>
-        </HeaderTitle>
+          />
+        </HeaderTitleLegend>
         {this.renderComponent()}
       </React.Fragment>
     );

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import SearchBar from 'app/views/events/searchBar';
 import TagStore from 'app/stores/tagStore';
 
@@ -8,7 +9,7 @@ const focusInput = el => el.find('input[name="query"]').simulate('focus');
 const selectFirstAutocompleteItem = async el => {
   focusInput(el);
 
-  el.find('SearchItem[data-test-id="search-autocomplete-item"]')
+  el.find('SearchListItem[data-test-id="search-autocomplete-item"]')
     .first()
     .simulate('click');
   const input = el.find('input');
@@ -175,10 +176,10 @@ describe('SearchBar', function() {
     await wrapper.update();
 
     expect(
-      wrapper.find('SearchItem[data-test-id="search-autocomplete-item"]')
+      wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
     ).toHaveLength(1);
     expect(
-      wrapper.find('SearchItem[data-test-id="search-autocomplete-item"]').text()
+      wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]').text()
     ).toBe('gpu:');
   });
 

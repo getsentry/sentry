@@ -3,6 +3,7 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import {Organization, Tag} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
@@ -19,7 +20,7 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   tags: {[key: string]: Tag};
-  setError: (msg: string | undefined) => void;
+  setError: (msg: string) => void;
   title: string;
 };
 
@@ -80,10 +81,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
-    setError(undefined);
+    setError('');
 
     this.setState({isLoading: true, tableFetchID});
-    metric.mark(`discover-events-start-${apiPayload.query}`);
+    metric.mark({name: `discover-events-start-${apiPayload.query}`});
 
     this.props.api
       .requestPromise(url, {
@@ -121,14 +122,15 @@ class Table extends React.PureComponent<TableProps, TableState> {
             status: err.status,
           },
         });
+        const message = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({
           isLoading: false,
           tableFetchID: undefined,
-          error: err.responseJSON.detail,
+          error: message,
           pageLinks: null,
           tableData: null,
         });
-        setError(err.responseJSON.detail);
+        setError(message);
       });
   };
 

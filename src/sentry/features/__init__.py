@@ -75,7 +75,6 @@ default_manager.add("organizations:integrations-issue-basic", OrganizationFeatur
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
-default_manager.add("organizations:slack-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:slack-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
@@ -94,6 +93,7 @@ default_manager.add("organizations:grouping-info", OrganizationFeature)  # NOQA
 default_manager.add("organizations:tweak-grouping-config", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
 default_manager.add("organizations:org-subdomains", OrganizationFeature)  # NOQA
+default_manager.add("organizations:breadcrumbs-v2", OrganizationFeature)  # NOQA
 
 # Project scoped features
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)  # NOQA
@@ -131,3 +131,5 @@ add = default_manager.add
 get = default_manager.get
 has = default_manager.has
 all = default_manager.all
+add_handler = default_manager.add_handler
+has_for_batch = default_manager.has_for_batch

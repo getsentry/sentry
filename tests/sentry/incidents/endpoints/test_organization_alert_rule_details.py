@@ -74,7 +74,7 @@ class AlertRuleDetailsBase(object):
             data=data,
         )
 
-        assert serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
         return alert_rule
 
@@ -88,6 +88,10 @@ class AlertRuleDetailsBase(object):
             resp = self.get_valid_response(self.organization.slug)
             assert len(resp.data) >= 1
             serialized_alert_rule = resp.data[0]
+            if serialized_alert_rule["environment"]:
+                serialized_alert_rule["environment"] = serialized_alert_rule["environment"][0]
+            else:
+                serialized_alert_rule.pop("environment", None)
         self.endpoint = original_endpoint
         self.method = original_method
         return serialized_alert_rule
@@ -171,13 +175,13 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
 
-        existing_sub = self.alert_rule.query_subscriptions.first()
+        existing_sub = self.alert_rule.snuba_query.subscriptions.first()
 
         # Alert rule should be exactly the same
         assert resp.data == serialize(self.alert_rule)
         # If the aggregation changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
-        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).query_subscriptions.first()
+        updated_sub = AlertRule.objects.get(id=self.alert_rule.id).snuba_query.subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id
 
     def test_update_trigger_label_to_unallowed_value(self):

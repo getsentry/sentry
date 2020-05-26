@@ -121,7 +121,7 @@ def parse_datetime_string(value):
     except ValueError:
         pass
 
-    raise InvalidQuery(u"{} is not a valid datetime query".format(value))
+    raise InvalidQuery(u"{} is not a valid ISO8601 date query".format(value))
 
 
 def parse_datetime_comparison(value):
@@ -224,10 +224,15 @@ def parse_user_value(value, user):
         return User(id=0)
 
 
-def get_latest_release(projects, environments):
-    release_qs = Release.objects.filter(
-        organization_id=projects[0].organization_id, projects__in=projects
-    )
+def get_latest_release(projects, environments, organization_id=None):
+    if organization_id is None:
+        project = projects[0]
+        if hasattr(project, "organization_id"):
+            organization_id = project.organization_id
+        else:
+            return ""
+
+    release_qs = Release.objects.filter(organization_id=organization_id, projects__in=projects)
 
     if environments is not None:
         release_qs = release_qs.filter(
@@ -244,10 +249,10 @@ def get_latest_release(projects, environments):
     )
 
 
-def parse_release(value, projects, environments):
+def parse_release(value, projects, environments, organization_id=None):
     if value == "latest":
         try:
-            return get_latest_release(projects, environments)
+            return get_latest_release(projects, environments, organization_id)
         except Release.DoesNotExist:
             # Should just get no results here, so return an empty release name.
             return ""

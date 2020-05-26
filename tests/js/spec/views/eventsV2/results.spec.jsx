@@ -1,8 +1,10 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
+import React from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import ProjectsStore from 'app/stores/projectsStore';
 import Results from 'app/views/eventsV2/results';
 
 const FIELDS = [
@@ -119,9 +121,10 @@ describe('EventsV2 > Results', function() {
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
   });
 
-  it('loads data when moving from an invalid to valid EventView', function() {
+  it('loads data when moving from an invalid to valid EventView', async function() {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -143,6 +146,10 @@ describe('EventsV2 > Results', function() {
       />,
       initialData.routerContext
     );
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+    await tick();
+    wrapper.update();
     // No request as eventview was invalid.
     expect(eventResultsMock).not.toHaveBeenCalled();
 
@@ -157,7 +164,7 @@ describe('EventsV2 > Results', function() {
     expect(eventResultsMock).toHaveBeenCalled();
   });
 
-  it('pagination cursor should be cleared when making a search', function() {
+  it('pagination cursor should be cleared when making a search', async function() {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -170,6 +177,8 @@ describe('EventsV2 > Results', function() {
       },
     });
 
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+
     const wrapper = mountWithTheme(
       <Results
         organization={organization}
@@ -178,6 +187,9 @@ describe('EventsV2 > Results', function() {
       />,
       initialData.routerContext
     );
+
+    await tick();
+    wrapper.update();
 
     // ensure cursor query string is initially present in the location
     expect(initialData.router.location).toEqual({

@@ -4,23 +4,25 @@ import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import {Organization, Project} from 'app/types';
+import FeatureBadge from 'app/components/featureBadge';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
 import EventView from 'app/utils/discover/eventView';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
 import Charts from './charts/index';
+import Onboarding from './onboarding';
 
 enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -33,6 +35,8 @@ type Props = {
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
+  projects: Project[];
+  loadingProjects: boolean;
 };
 
 type State = {
@@ -70,46 +74,6 @@ class PerformanceLanding extends React.Component<Props, State> {
     this.setState({error});
   };
 
-  generateGlobalSelection = () => {
-    const {location} = this.props;
-    const {eventView} = this.state;
-
-    const globalSelection = eventView.getGlobalSelection();
-    const start = globalSelection.start
-      ? getUtcToLocalDateObject(globalSelection.start)
-      : null;
-
-    const end = globalSelection.end ? getUtcToLocalDateObject(globalSelection.end) : null;
-
-    const {utc} = getParams(location.query);
-
-    return {
-      projects: globalSelection.project,
-      environments: globalSelection.environment,
-      datetime: {
-        start,
-        end,
-        period: globalSelection.statsPeriod || DEFAULT_STATS_PERIOD,
-        utc: utc === 'true',
-      },
-    };
-  };
-
-  allowClearTimeRange = (): boolean => {
-    const {datetime} = this.generateGlobalSelection();
-    const {start, end, period} = datetime;
-
-    if (period === DEFAULT_STATS_PERIOD) {
-      return false;
-    }
-
-    if ((start && end) || typeof period === 'string') {
-      return true;
-    }
-
-    return false;
-  };
-
   getViewLabel(currentView: FilterViews): string {
     switch (currentView) {
       case FilterViews.ALL_TRANSACTIONS:
@@ -121,7 +85,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     }
   }
 
-  renderDropdown() {
+  renderHeaderButtons() {
     const selectView = (viewKey: FilterViews) => {
       return () => {
         this.setState({
@@ -148,42 +112,81 @@ class PerformanceLanding extends React.Component<Props, State> {
     );
   }
 
-  render() {
-    const {organization, location, router} = this.props;
+  shouldShowOnboarding() {
+    const {projects} = this.props;
     const {eventView} = this.state;
+
+    if (projects.length === 0) {
+      return false;
+    }
+
+    // Current selection is 'my projects' or 'all projects'
+    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
+      return (
+        projects.filter(p => p.firstTransactionEvent === false).length === projects.length
+      );
+    }
+
+    // Any other subset of projects.
+    return (
+      projects.filter(
+        p =>
+          eventView.project.includes(parseInt(p.id, 10)) &&
+          p.firstTransactionEvent === false
+      ).length === eventView.project.length
+    );
+  }
+
+  render() {
+    const {organization, location, router, projects} = this.props;
+    const {eventView} = this.state;
+    const showOnboarding = this.shouldShowOnboarding();
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
-        <React.Fragment>
-          <GlobalSelectionHeader
-            organization={organization}
-            selection={this.generateGlobalSelection()}
-            allowClearTimeRange={this.allowClearTimeRange()}
-          />
+        <GlobalSelectionHeader
+          defaultSelection={{
+            datetime: {
+              start: null,
+              end: null,
+              utc: false,
+              period: DEFAULT_STATS_PERIOD,
+            },
+          }}
+        >
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
-                <div>{t('Performance')}</div>
-                <div>{this.renderDropdown()}</div>
+                <div>
+                  {t('Performance')} <FeatureBadge type="beta" />
+                </div>
+                {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
               </StyledPageHeader>
               {this.renderError()}
-              <Charts
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                router={router}
-                keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
-              />
-              <Table
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                setError={this.setError}
-                keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
-              />
+              {showOnboarding ? (
+                <Onboarding />
+              ) : (
+                <React.Fragment>
+                  <Charts
+                    eventView={eventView}
+                    organization={organization}
+                    location={location}
+                    router={router}
+                    keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
+                  />
+                  <Table
+                    eventView={eventView}
+                    projects={projects}
+                    organization={organization}
+                    location={location}
+                    setError={this.setError}
+                    keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
+                  />
+                </React.Fragment>
+              )}
             </LightWeightNoProjectMessage>
           </PageContent>
-        </React.Fragment>
+        </GlobalSelectionHeader>
       </SentryDocumentTitle>
     );
   }
@@ -199,4 +202,4 @@ export const StyledPageHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export default withOrganization(PerformanceLanding);
+export default withOrganization(withProjects(PerformanceLanding));

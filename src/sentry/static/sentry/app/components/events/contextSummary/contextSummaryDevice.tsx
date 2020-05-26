@@ -44,17 +44,7 @@ const ContextSummaryDevice = ({data}: Props) => {
     return (
       <DeviceName value={data.model}>
         {deviceName => {
-          if (!meta) {
-            return deviceName;
-          }
-          return (
-            <AnnotatedText
-              value={deviceName}
-              chunks={meta.chunks}
-              remarks={meta.rem}
-              errors={meta.err}
-            />
-          );
+          return <AnnotatedText value={deviceName} meta={meta} />;
         }}
       </DeviceName>
     );
@@ -91,16 +81,7 @@ const ContextSummaryDevice = ({data}: Props) => {
       {subTitle && (
         <ParagraphOverflow>
           <Subject>{subTitle.subject}</Subject>
-          {subTitle.meta ? (
-            <AnnotatedText
-              value={subTitle.value}
-              chunks={subTitle.meta.chunks}
-              remarks={subTitle.meta.rem}
-              errors={subTitle.meta.err}
-            />
-          ) : (
-            subTitle.value
-          )}
+          <AnnotatedText value={subTitle.value} meta={subTitle.meta} />
         </ParagraphOverflow>
       )}
     </div>

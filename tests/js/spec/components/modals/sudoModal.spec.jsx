@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
 import App from 'app/views/app';
 import ConfigStore from 'app/stores/configStore';

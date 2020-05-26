@@ -1,27 +1,28 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import map from 'lodash/map';
+import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
+import {Client} from 'app/api';
+import {IconWarning} from 'app/icons';
+import {TableDataRow} from 'app/views/eventsV2/table/types';
+import {assert} from 'app/types/utils';
+import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
+import EventView from 'app/utils/discover/eventView';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
+import Pills from 'app/components/pills';
+import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
-import Button from 'app/components/button';
-import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
-import EventView from 'app/utils/discover/eventView';
-import getDynamicText from 'app/utils/getDynamicText';
-import {assert} from 'app/types/utils';
-import AlertMessage from 'app/components/alertMessage';
-import {TableDataRow} from 'app/views/eventsV2/table/types';
-import Link from 'app/components/links/link';
 
 import {ProcessedSpanType, RawSpanType, ParsedTraceType} from './types';
-import {isGapSpan, getTraceDateTimeRange} from './utils';
+import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
 
 type TransactionResult = {
   'project.name': string;
@@ -209,6 +210,22 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
+  renderOrphanSpanMessage() {
+    const {span} = this.props;
+
+    if (!isOrphanSpan(span)) {
+      return null;
+    }
+
+    return (
+      <Alert system type="info" icon={<IconWarning size="md" />}>
+        {t(
+          'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
+        )}
+      </Alert>
+    );
+  }
+
   renderSpanErrorMessage() {
     const {orgId, spanErrors, totalNumberOfErrors, span, trace, eventView} = this.props;
 
@@ -277,15 +294,9 @@ class SpanDetail extends React.Component<Props, State> {
       );
 
     return (
-      <AlertMessage
-        alert={{
-          id: `span-error-${span.span_id}`,
-          message,
-          type: 'error',
-        }}
-        system
-        hideCloseButton
-      />
+      <Alert system type="error" icon={<IconWarning size="md" />}>
+        {message}
+      </Alert>
     );
   }
 
@@ -310,6 +321,7 @@ class SpanDetail extends React.Component<Props, State> {
           event.stopPropagation();
         }}
       >
+        {this.renderOrphanSpanMessage()}
         {this.renderSpanErrorMessage()}
         <SpanDetails>
           <table className="table key-value">

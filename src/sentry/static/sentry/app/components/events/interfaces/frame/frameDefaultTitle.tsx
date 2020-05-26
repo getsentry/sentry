@@ -4,7 +4,7 @@ import {Meta} from 'app/types';
 import {defined, isUrl} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
-import {IconQuestion} from 'app/icons/iconQuestion';
+import {IconQuestion} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {t} from 'app/locale';
@@ -74,16 +74,10 @@ const FrameDefaultTitle = ({frame, platform}: Props) => {
     title.push(
       <Tooltip key={pathName.key} title={frame.absPath} disabled={!enablePathTooltip}>
         <code key="filename" className="filename">
-          {pathName.meta ? (
-            <AnnotatedText
-              value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
-              chunks={pathName.meta.chunks}
-              remarks={pathName.meta.rem}
-              errors={pathName.meta.err}
-            />
-          ) : (
-            <Truncate value={pathName.value} maxLength={100} leftTrim />
-          )}
+          <AnnotatedText
+            value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
+            meta={pathName.meta}
+          />
         </code>
       </Tooltip>
     );

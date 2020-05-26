@@ -11,7 +11,6 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule
-from sentry.snuba.models import QueryAggregations
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils import TestCase, APITestCase
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
@@ -38,13 +37,7 @@ class AlertRuleListEndpointTest(APITestCase):
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
+            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
 
         self.login_as(self.user)
@@ -169,7 +162,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
     def test_invalid_limit(self):
         self.setup_project_and_rules()
         with self.feature("organizations:incidents"):
-            request_data = {"limit": "notaninteger"}
+            request_data = {"per_page": "notaninteger"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -179,7 +172,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         self.setup_project_and_rules()
         # Test limit above result count (which is 4), no cursor.
         with self.feature("organizations:incidents"):
-            request_data = {"limit": "5"}
+            request_data = {"per_page": "5"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -197,7 +190,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
 
         # Test Limit as 1, no cursor:
         with self.feature("organizations:incidents"):
-            request_data = {"limit": "1"}
+            request_data = {"per_page": "1"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -214,7 +207,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
 
         # Test Limit as 1, next page of previous request:
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": next_cursor, "limit": "1"}
+            request_data = {"cursor": next_cursor, "per_page": "1"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -229,7 +222,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
 
         # Test Limit as 2, no cursor:
         with self.feature("organizations:incidents"):
-            request_data = {"limit": "2"}
+            request_data = {"per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -247,7 +240,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         next_cursor = links[1]["cursor"]
         # Test Limit 2, next page of previous request:
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": next_cursor, "limit": "2"}
+            request_data = {"cursor": next_cursor, "per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -265,7 +258,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
 
         # Test Limit 2, next page of previous request - should get no results since there are only 4 total:
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": next_cursor, "limit": "2"}
+            request_data = {"cursor": next_cursor, "per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -287,7 +280,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         self.three_alert_rule = self.create_alert_rule(projects=self.projects)
 
         with self.feature("organizations:incidents"):
-            request_data = {"limit": "2"}
+            request_data = {"per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -305,7 +298,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase
         assert next_cursor.split(":")[1] == "1"  # Assert offset is properly calculated.
 
         with self.feature("organizations:incidents"):
-            request_data = {"cursor": next_cursor, "limit": "2"}
+            request_data = {"cursor": next_cursor, "per_page": "2"}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import {doEventsRequest} from 'app/actionCreators/events';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 
@@ -362,7 +363,7 @@ describe('EventsRequest', function() {
     it('supports multiple yAxis', async function() {
       doEventsRequest.mockImplementation(() =>
         Promise.resolve({
-          'rpm()': {
+          'epm()': {
             data: [
               [
                 new Date(),
@@ -390,7 +391,7 @@ describe('EventsRequest', function() {
       );
 
       wrapper = mount(
-        <EventsRequest {...DEFAULTS} includePrevious yAxis={['apdex()', 'rpm()']}>
+        <EventsRequest {...DEFAULTS} includePrevious yAxis={['apdex()', 'epm()']}>
           {mock}
         </EventsRequest>
       );
@@ -412,7 +413,7 @@ describe('EventsRequest', function() {
         expect.objectContaining({
           loading: false,
 
-          results: [generateExpected('rpm()'), generateExpected('apdex()')],
+          results: [generateExpected('epm()'), generateExpected('apdex()')],
         })
       );
     });

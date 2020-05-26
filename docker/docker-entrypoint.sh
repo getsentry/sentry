@@ -8,7 +8,7 @@ if [ "${1:0:1}" = '-' ]; then
 	set -- sentry "$@"
 fi
 
-if [[ $1 =~ ^[[:alnum:]]+$ ]] && [ -f "/usr/local/lib/python2.7/site-packages/sentry/runner/commands/$1.py" ]; then
+if [[ $1 =~ ^[[:alnum:]]+$ ]] && grep -Fxq "$1" /sentry-commands.txt; then
 	set -- sentry "$@";
 fi
 

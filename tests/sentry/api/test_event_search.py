@@ -51,6 +51,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
     assert get_json_meta_type("error_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
+    assert get_json_meta_type("user_misery_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
 
 
@@ -166,6 +167,22 @@ class ParseSearchQueryTest(unittest.TestCase):
             SearchFilter(
                 key=SearchKey(name="message"), operator="=", value=SearchValue(raw_value=' he"llo ')
             )
+        ]
+
+    def test_empty_spaces_stripped_correctly(self):
+        assert parse_search_query(
+            "event.type:transaction   transaction:/organizations/:orgId/discover/results/"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="event.type"),
+                operator="=",
+                value=SearchValue(raw_value="transaction"),
+            ),
+            SearchFilter(
+                key=SearchKey(name="transaction"),
+                operator="=",
+                value=SearchValue(raw_value="/organizations/:orgId/discover/results/"),
+            ),
         ]
 
     def test_timestamp(self):
@@ -631,6 +648,27 @@ class ParseSearchQueryTest(unittest.TestCase):
         with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):
             parse_search_query("avg(stack.colno):>500s")
 
+    def test_aggregate_rel_time_filter(self):
+        now = timezone.now()
+        with freeze_time(now):
+            assert parse_search_query("last_seen():+7d") == [
+                SearchFilter(
+                    key=SearchKey(name="last_seen()"),
+                    operator="<=",
+                    value=SearchValue(raw_value=now - timedelta(days=7)),
+                )
+            ]
+            assert parse_search_query("last_seen():-2w") == [
+                SearchFilter(
+                    key=SearchKey(name="last_seen()"),
+                    operator=">=",
+                    value=SearchValue(raw_value=now - timedelta(days=14)),
+                )
+            ]
+            assert parse_search_query("random:-2w") == [
+                SearchFilter(key=SearchKey(name="random"), operator="=", value=SearchValue("-2w"))
+            ]
+
     def test_quotes_filtered_on_raw(self):
         # Enclose the full raw query? Strip it.
         assert parse_search_query('thinger:unknown "what is this?"') == [
@@ -999,6 +1037,7 @@ class GetSnubaQueryArgsTest(TestCase):
             "user.email:foo@example.com release:1.2.1 fruit:apple hello",
             {
                 "project_id": [1, 2, 3],
+                "organization_id": 1,
                 "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
                 "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
             },
@@ -1255,8 +1294,8 @@ class GetSnubaQueryArgsTest(TestCase):
         assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[3]
 
     def test_function_with_default_arguments(self):
-        result = get_filter("rpm():>100", {"start": before_now(minutes=5), "end": before_now()})
-        assert result.having == [["rpm", ">", 100]]
+        result = get_filter("epm():>100", {"start": before_now(minutes=5), "end": before_now()})
+        assert result.having == [["epm", ">", 100]]
 
     def test_function_with_alias(self):
         result = get_filter("percentile(transaction.duration, 0.95):>100")
@@ -1276,7 +1315,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_function_with_date_arguments(self):
         result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
-        assert result.having == [["last_seen", "=", 1585769692000]]
+        assert result.having == [["last_seen", "=", 1585769692]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
@@ -1312,6 +1351,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "last_seen()",
             "apdex(300)",
             "impact(300)",
+            "user_misery(300)",
             "percentile(transaction.duration, 0.75)",
             "percentile(transaction.duration, 0.95)",
             "percentile(transaction.duration, 0.99)",
@@ -1329,6 +1369,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 None,
                 "impact_300",
             ],
+            ["uniqIf(user, duration > 1200)", None, "user_misery_300"],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
             ["quantile(0.99)", "transaction.duration", "percentile_transaction_duration_0_99"],
@@ -1474,12 +1515,12 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
-    def test_rpm_function(self):
-        fields = ["rpm(3600)"]
+    def test_epm_function(self):
+        fields = ["epm(3600)"]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["divide(count(), divide(3600, 60))", None, "rpm_3600"],
+            ["divide(count(), divide(3600, 60))", None, "epm_3600"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
@@ -1487,45 +1528,45 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["rpm(30)"]
+            fields = ["epm(30)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "rpm(30): interval argument invalid: 30 must be greater than or equal to 60"
+            "epm(30): interval argument invalid: 30 must be greater than or equal to 60"
             in six.text_type(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["rpm()"]
+            fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "rpm(): invalid arguments: function called without default" in six.text_type(err)
+        assert "epm(): invalid arguments: function called without default" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["rpm()"]
+            fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter(start="abc", end="def"))
-        assert "rpm(): invalid arguments: function called with invalid default" in six.text_type(
+        assert "epm(): invalid arguments: function called with invalid default" in six.text_type(
             err
         )
 
-        fields = ["rpm()"]
+        fields = ["epm()"]
         result = resolve_field_list(
             fields, eventstore.Filter(start=before_now(hours=2), end=before_now(hours=1))
         )
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["divide(count(), divide(3600, 60))", None, "rpm"],
+            ["divide(count(), divide(3600, 60))", None, "epm"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
         ]
         assert result["groupby"] == []
 
-    def test_rps_function(self):
-        fields = ["rps(3600)"]
+    def test_eps_function(self):
+        fields = ["eps(3600)"]
         result = resolve_field_list(fields, eventstore.Filter())
 
         assert result["selected_columns"] == []
         assert result["aggregations"] == [
-            ["divide(count(), 3600)", None, "rps_3600"],
+            ["divide(count(), 3600)", None, "eps_3600"],
             ["argMax", ["id", "timestamp"], "latest_event"],
             ["argMax", ["project.id", "timestamp"], "projectid"],
             ["transform(projectid, array(), array(), '')", None, "project.name"],
@@ -1533,10 +1574,10 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["rps(0)"]
+            fields = ["eps(0)"]
             result = resolve_field_list(fields, eventstore.Filter())
         assert (
-            "rps(0): interval argument invalid: 0 must be greater than or equal to 1"
+            "eps(0): interval argument invalid: 0 must be greater than or equal to 1"
             in six.text_type(err)
         )
 

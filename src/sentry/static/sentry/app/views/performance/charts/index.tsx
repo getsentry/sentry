@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as ReactRouter from 'react-router';
 
@@ -7,8 +6,8 @@ import {Organization} from 'app/types';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getInterval} from 'app/components/charts/utils';
-import LoadingPanel from 'app/views/events/loadingPanel';
-import Tooltip from 'app/components/tooltip';
+import LoadingPanel from 'app/components/charts/loadingPanel';
+import QuestionTooltip from 'app/components/questionTooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
@@ -17,9 +16,9 @@ import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
-import space from 'app/styles/space';
 
-import {HeaderTitle, StyledIconQuestion} from '../styles';
+import {PERFORMANCE_TERMS} from '../constants';
+import {HeaderContainer, HeaderTitle, ErrorPanel} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
 
@@ -27,13 +26,12 @@ const YAXIS_OPTIONS = [
   {
     label: 'Apdex',
     value: 'apdex(300)',
-    tooltip:
-      'Apdex is a ratio of satisfactory response times to unsatisfactory response times.',
+    tooltip: PERFORMANCE_TERMS.apdex,
   },
   {
     label: 'Throughput',
-    value: 'rpm()',
-    tooltip: 'Throughput is the number of recorded transactions per minute (tpm).',
+    value: 'epm()',
+    tooltip: PERFORMANCE_TERMS.epm,
   },
 ];
 
@@ -96,36 +94,40 @@ class Container extends React.Component<Props> {
               );
             }
 
-            if (!results) {
-              return <LoadingPanel data-test-id="events-request-loading" />;
-            }
-
             return (
               <React.Fragment>
                 <HeaderContainer>
                   {YAXIS_OPTIONS.map(option => (
-                    <HeaderTitle key={option.label}>
-                      {option.label}
-                      <Tooltip position="top" title={option.tooltip}>
-                        <StyledIconQuestion size="sm" />
-                      </Tooltip>
-                    </HeaderTitle>
+                    <div key={option.label}>
+                      <HeaderTitle>
+                        {option.label}
+                        <QuestionTooltip
+                          position="top"
+                          size="sm"
+                          title={option.tooltip}
+                        />
+                      </HeaderTitle>
+                    </div>
                   ))}
                 </HeaderContainer>
-                {getDynamicText({
-                  value: (
-                    <Chart
-                      data={results}
-                      loading={loading || reloading}
-                      router={router}
-                      statsPeriod={globalSelection.statsPeriod}
-                      utc={utc === 'true'}
-                      projects={globalSelection.project}
-                      environments={globalSelection.environment}
-                    />
-                  ),
-                  fixed: 'performance charts',
-                })}
+                {results ? (
+                  getDynamicText({
+                    value: (
+                      <Chart
+                        data={results}
+                        loading={loading || reloading}
+                        router={router}
+                        statsPeriod={globalSelection.statsPeriod}
+                        utc={utc === 'true'}
+                        projects={globalSelection.project}
+                        environments={globalSelection.environment}
+                      />
+                    ),
+                    fixed: 'apdex and throughput charts',
+                  })
+                ) : (
+                  <LoadingPanel data-test-id="events-request-loading" />
+                )}
               </React.Fragment>
             );
           }}
@@ -140,26 +142,5 @@ class Container extends React.Component<Props> {
     );
   }
 }
-
-const ErrorPanel = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  flex: 1;
-  flex-shrink: 0;
-  overflow: hidden;
-  height: 200px;
-  position: relative;
-  border-color: transparent;
-  margin-bottom: 0;
-`;
-
-const HeaderContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: ${space(2)};
-  padding: ${space(2)} ${space(1.5)} ${space(1)} ${space(1.5)};
-`;
 
 export default withApi(Container);

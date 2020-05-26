@@ -19,6 +19,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import Feature from 'app/components/acl/feature';
 import SwitchReleasesButton from 'app/views/releasesV2/utils/switchReleasesButton';
+import {defined} from 'app/utils';
 
 import {getQuery} from './utils';
 import ReleaseLanding from './releaseLanding';
@@ -27,11 +28,11 @@ import ReleaseListHeader from './releaseListHeader';
 import ReleaseProgress from './releaseProgress';
 
 const ReleasesContainer = props => {
-  const {organization} = props;
   return (
     <React.Fragment>
-      <GlobalSelectionHeader organization={organization} />
-      <OrganizationReleases {...props} />
+      <GlobalSelectionHeader>
+        <OrganizationReleases {...props} />
+      </GlobalSelectionHeader>
     </React.Fragment>
   );
 };
@@ -51,11 +52,19 @@ class OrganizationReleases extends AsyncView {
 
   getEndpoints() {
     const {organization, location} = this.props;
+    const {query} = location;
+
+    const allowedQuery = getQuery(query);
+    if (!defined(query.start) && !defined(query.end)) {
+      // send 14d as default to api
+      allowedQuery.statsPeriod = query.statsPeriod || '14d';
+    }
+
     return [
       [
         'releaseList',
         `/organizations/${organization.slug}/releases/`,
-        {query: getQuery(location.query)},
+        {query: allowedQuery},
       ],
     ];
   }

@@ -172,7 +172,7 @@ class BaseAccess(object):
 
 class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
-    # would be based on the same scopes as API access so theres clarity in
+    # would be based on the same scopes as API access so there's clarity in
     # what things mean
     def __init__(
         self,
@@ -189,7 +189,7 @@ class Access(BaseAccess):
     ):
         self.organization_id = organization_id
         self.teams = teams
-        self.projects = projects
+        self.projects = frozenset(projects)
         self.has_global_access = has_global_access
         self.scopes = scopes
         if permissions is not None:

@@ -140,7 +140,7 @@ class AbstractIntegrationDetailedView<
   };
 
   //Returns the string that is shown as the title of a tab
-  getTabDiplay(tab: Tab): string {
+  getTabDisplay(tab: Tab): string {
     //default is return the tab
     return tab;
   }
@@ -207,6 +207,7 @@ class AbstractIntegrationDetailedView<
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', //pending counts as installed here
+      referrer: this.props.location.query.referrer,
       ...options,
     };
     //type cast here so TS won't complain
@@ -305,7 +306,7 @@ class AbstractIntegrationDetailedView<
             className={this.state.tab === tabName ? 'active' : ''}
             onClick={() => this.onTabChange(tabName)}
           >
-            <CapitalizedLink>{t(this.getTabDiplay(tabName))}</CapitalizedLink>
+            <CapitalizedLink>{t(this.getTabDisplay(tabName))}</CapitalizedLink>
           </li>
         ))}
       </ul>
@@ -412,7 +413,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
     }}
     {...p}
   >
-    <IconCloseCircle circle />
+    <IconCloseCircle isCircled />
     <span>{reason}</span>
   </div>
 ))`

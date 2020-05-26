@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
 
@@ -127,6 +128,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
             message = API_ERRORS.get(exc.code)
+            if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
+                message += (
+                    " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
+                    % exc.url
+                )
+
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
             return "Error Communicating with GitHub (HTTP %s): %s" % (exc.code, message)
@@ -157,7 +164,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["github", "integrations:github"],

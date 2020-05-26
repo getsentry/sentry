@@ -1,6 +1,6 @@
 import 'echarts/lib/component/tooltip';
 
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 
 import {truncationFormatter} from '../utils';
 
@@ -8,7 +8,7 @@ function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
   if (!isTimestamp) {
     return value;
   }
-  const format = `MMM D, YYYY${showTimeInTooltip ? ' LT' : ''}`;
+  const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
 
   return getFormattedDate(value, format, {local: !utc});
 }
@@ -76,7 +76,10 @@ function getFormatter({
         seriesParamsOrParam.data.labelForValue,
         truncate
       );
-      const formattedValue = valueFormatter(seriesParamsOrParam.data.coord[1]);
+      const formattedValue = valueFormatter(
+        seriesParamsOrParam.data.coord[1],
+        seriesParamsOrParam.name
+      );
       return [
         '<div class="tooltip-series">',
         `<div>
@@ -108,7 +111,7 @@ function getFormatter({
         .filter(getFilter)
         .map(s => {
           const formattedLabel = truncationFormatter(s.seriesName, truncate);
-          const value = valueFormatter(getSeriesValue(s, 1));
+          const value = valueFormatter(getSeriesValue(s, 1), s.seriesName);
           return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
         .join(''),

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from datetime import datetime
 import pytz
-from sentry.snuba.models import QuerySubscription
 from sentry.testutils import TestCase
 from sentry.models import Organization
 from sentry.incidents.models import (
@@ -17,16 +16,12 @@ class AddProjectToIncludeAllRulesTest(TestCase):
     def test_include_all_projects_enabled(self):
         alert_rule = self.create_alert_rule(include_all_projects=True)
         new_project = self.create_project()
-        assert QuerySubscription.objects.filter(
-            project=new_project, alert_rules=alert_rule
-        ).exists()
+        assert alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
 
     def test_include_all_projects_disabled(self):
         alert_rule = self.create_alert_rule(include_all_projects=False)
         new_project = self.create_project()
-        assert not QuerySubscription.objects.filter(
-            project=new_project, alert_rules=alert_rule
-        ).exists()
+        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
 
     def test_update_noop(self):
         new_project = self.create_project()
@@ -34,9 +29,7 @@ class AddProjectToIncludeAllRulesTest(TestCase):
             include_all_projects=True, excluded_projects=[new_project]
         )
         new_project.update(name="hi")
-        assert not QuerySubscription.objects.filter(
-            project=new_project, alert_rules=alert_rule
-        ).exists()
+        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
 
 
 class PreSaveIncidentTriggerTest(TestCase):
@@ -57,8 +50,6 @@ class PreSaveIncidentTriggerTest(TestCase):
             status=IncidentStatus.WARNING.value,
             type=2,
             title="a custom incident title",
-            query="event.type:error",
-            aggregation=0,
             date_started=datetime.utcnow().replace(tzinfo=pytz.utc),
             date_detected=datetime.utcnow().replace(tzinfo=pytz.utc),
             alert_rule=alert_rule,

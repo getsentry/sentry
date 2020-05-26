@@ -12,6 +12,8 @@ import {
   SpanChildrenLookupType,
   ParsedTraceType,
   GapSpanType,
+  TreeDepthType,
+  OrphanTreeDepth,
 } from './types';
 import {
   boundsGenerator,
@@ -23,6 +25,7 @@ import {
   getSpanOperation,
   getSpanTraceID,
   isGapSpan,
+  isOrphanSpan,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
@@ -128,7 +131,7 @@ class SpanTree extends React.Component<PropType> {
   }: {
     spanNumber: number;
     treeDepth: number;
-    continuingTreeDepths: Array<number>;
+    continuingTreeDepths: Array<TreeDepthType>;
     isLast: boolean;
     isRoot?: boolean;
     numOfSpansOutOfViewAbove: number;
@@ -176,7 +179,13 @@ class SpanTree extends React.Component<PropType> {
       previousSiblingEndTimestamp: undefined | number;
     };
 
-    const treeArr = isLast ? continuingTreeDepths : [...continuingTreeDepths, treeDepth];
+    const treeDepthEntry = isOrphanSpan(span)
+      ? ({type: 'orphan', depth: treeDepth} as OrphanTreeDepth)
+      : treeDepth;
+
+    const treeArr = isLast
+      ? continuingTreeDepths
+      : [...continuingTreeDepths, treeDepthEntry];
 
     const reduced: AccType = spanChildren.reduce(
       (acc: AccType, spanChild, index) => {
@@ -233,6 +242,7 @@ class SpanTree extends React.Component<PropType> {
       start_timestamp: previousSiblingEndTimestamp || span.start_timestamp,
       timestamp: span.start_timestamp, // this is essentially end_timestamp
       description: t('Missing instrumentation'),
+      isOrphan: isOrphanSpan(span),
     };
 
     const spanGapComponent =

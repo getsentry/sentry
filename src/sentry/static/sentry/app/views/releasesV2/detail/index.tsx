@@ -4,7 +4,14 @@ import pick from 'lodash/pick';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {Organization, Release, ReleaseProject, Deploy, GlobalSelection} from 'app/types';
+import {
+  Organization,
+  Release,
+  ReleaseProject,
+  ReleaseMeta,
+  Deploy,
+  GlobalSelection,
+} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -23,7 +30,12 @@ import Alert from 'app/components/alert';
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
 
-type ReleaseContext = {release: Release; project: ReleaseProject};
+type ReleaseContext = {
+  release: Release;
+  project: ReleaseProject;
+  deploys: Deploy[];
+  releaseMeta: ReleaseMeta;
+};
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
 
 type RouteParams = {
@@ -34,6 +46,7 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   selection: GlobalSelection;
+  releaseMeta: ReleaseMeta;
 };
 
 type State = {
@@ -56,15 +69,15 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
+      deploys: [],
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization, location, params} = this.props;
+  getEndpoints() {
+    const {organization, location, params, releaseMeta} = this.props;
 
     const query = {
       ...pick(location.query, [...Object.values(URL_PARAM)]),
-      // TODO(releasesV2): summaryStatsPeriod + healthStatsPeriod?
       health: 1,
     };
 
@@ -72,29 +85,45 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
       params.release
     )}/`;
 
-    return [
+    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       ['release', basePath, {query}],
-      ['deploys', `${basePath}deploys/`],
     ];
+
+    if (releaseMeta.deployCount > 0) {
+      endpoints.push(['deploys', `${basePath}deploys/`]);
+    }
+
+    return endpoints;
   }
 
-  handleError(e, args) {
-    const {router, location} = this.props;
-    const possiblyWrongProject = e.status === 403;
+  renderError(...args) {
+    const possiblyWrongProject = Object.values(this.state.errors).find(
+      e => e?.status === 404 || e?.status === 403
+    );
 
     if (possiblyWrongProject) {
-      // refreshing this page without project ID will bring up a project selector
-      router.replace({
-        ...location,
-        query: {...location.query, project: undefined},
-      });
-      return;
+      return (
+        <PageContent>
+          <Alert type="error" icon={<IconWarning />}>
+            {t('This release may not be in your selected project.')}
+          </Alert>
+        </PageContent>
+      );
     }
-    super.handleError(e, args);
+
+    return super.renderError(...args);
+  }
+
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
   }
 
   renderBody() {
-    const {organization, location, selection} = this.props;
+    const {organization, location, selection, releaseMeta} = this.props;
     const {release, deploys, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
 
@@ -113,12 +142,12 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             location={location}
             orgId={organization.slug}
             release={release}
-            deploys={deploys || []}
             project={project}
+            releaseMeta={releaseMeta}
           />
 
           <ContentBox>
-            <ReleaseContext.Provider value={{release, project}}>
+            <ReleaseContext.Provider value={{release, project, deploys, releaseMeta}}>
               {this.props.children}
             </ReleaseContext.Provider>
           </ContentBox>
@@ -128,7 +157,7 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
   }
 }
 
-class ReleasesV2DetailContainer extends AsyncComponent<Props> {
+class ReleasesV2DetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>> {
   shouldReload = true;
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -136,10 +165,10 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
     // fetch projects this release belongs to
     return [
       [
-        'release',
+        'releaseMeta',
         `/organizations/${organization.slug}/releases/${encodeURIComponent(
           params.release
-        )}/`,
+        )}/meta/`,
       ],
     ];
   }
@@ -167,6 +196,14 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
     return !projectId || typeof projectId !== 'string';
   }
 
+  renderLoading() {
+    return (
+      <PageContent>
+        <LoadingIndicator />
+      </PageContent>
+    );
+  }
+
   renderProjectsFooterMessage() {
     return (
       <ProjectsFooterMessage>
@@ -177,7 +214,8 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
 
   renderBody() {
     const {organization, params, router} = this.props;
-    const {projects} = this.state.release;
+    const {releaseMeta} = this.state;
+    const {projects} = releaseMeta;
 
     if (this.isProjectMissingInUrl()) {
       return (
@@ -191,19 +229,17 @@ class ReleasesV2DetailContainer extends AsyncComponent<Props> {
     }
 
     return (
-      <React.Fragment>
-        <GlobalSelectionHeader
-          organization={organization}
-          lockedMessageSubject={t('release')}
-          shouldForceProject={projects.length === 1}
-          forceProject={projects.length === 1 ? projects[0] : undefined}
-          specificProjectSlugs={projects.map(p => p.slug)}
-          disableMultipleProjectSelection
-          showProjectSettingsLink
-          projectsFooterMessage={this.renderProjectsFooterMessage()}
-        />
-        <ReleasesV2Detail {...this.props} />
-      </React.Fragment>
+      <GlobalSelectionHeader
+        lockedMessageSubject={t('release')}
+        shouldForceProject={projects.length === 1}
+        forceProject={projects.length === 1 ? projects[0] : undefined}
+        specificProjectSlugs={projects.map(p => p.slug)}
+        disableMultipleProjectSelection
+        showProjectSettingsLink
+        projectsFooterMessage={this.renderProjectsFooterMessage()}
+      >
+        <ReleasesV2Detail {...this.props} releaseMeta={releaseMeta} />
+      </GlobalSelectionHeader>
     );
   }
 }

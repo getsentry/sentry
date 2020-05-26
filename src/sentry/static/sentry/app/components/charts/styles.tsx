@@ -20,6 +20,11 @@ export const SubHeading = styled('h3')`
 `;
 
 export const SectionHeading = styled('h4')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1.5)};
+  align-items: center;
+
   color: ${p => p.theme.gray3};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
@@ -37,9 +42,9 @@ export const InlineContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-left: ${space(2)};
+  margin-right: ${space(2)};
 
-  &:first-child {
-    margin-left: 0;
+  &:last-child {
+    margin-right: 0;
   }
 `;

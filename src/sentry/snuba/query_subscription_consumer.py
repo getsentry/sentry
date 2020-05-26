@@ -46,7 +46,10 @@ class QuerySubscriptionConsumer(object):
     These values are passed along to a callback associated with the subscription.
     """
 
-    topic_to_dataset = {settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS}
+    topic_to_dataset = {
+        settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS,
+        settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.TRANSACTIONS,
+    }
 
     def __init__(
         self, group_id, topic=None, commit_batch_size=100, initial_offset_reset="earliest"
@@ -200,12 +203,11 @@ class QuerySubscriptionConsumer(object):
                     "timestamp": contents["timestamp"],
                     "query_subscription_id": contents["subscription_id"],
                     "project_id": subscription.project_id,
-                    "subscription_dataset": subscription.dataset,
-                    "subscription_query": subscription.query,
-                    "subscription_aggregation": subscription.aggregation,
-                    "subscription_time_window": subscription.time_window,
-                    "subscription_resolution": subscription.resolution,
-                    "contents": contents,
+                    "subscription_dataset": subscription.snuba_query.dataset,
+                    "subscription_query": subscription.snuba_query.query,
+                    "subscription_aggregation": subscription.snuba_query.aggregate,
+                    "subscription_time_window": subscription.snuba_query.time_window,
+                    "subscription_resolution": subscription.snuba_query.resolution,
                     "offset": message.offset(),
                     "partition": message.partition(),
                     "value": message.value(),
@@ -248,6 +250,11 @@ class QuerySubscriptionConsumer(object):
             except jsonschema.ValidationError:
                 metrics.incr("snuba_query_subscriber.message_payload_invalid")
                 raise InvalidSchemaError("Message payload does not match schema")
+        # XXX: Since we just return the raw dict here, when the payload changes it'll
+        # break things. This should convert the payload into a class rather than passing
+        # the dict around, but until we get time to refactor we can keep things working
+        # here.
+        payload.setdefault("values", payload.get("result"))
 
         payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
         return payload

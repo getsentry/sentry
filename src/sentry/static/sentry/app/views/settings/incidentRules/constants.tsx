@@ -8,7 +8,7 @@ import {
 export function createDefaultTrigger(): Trigger {
   return {
     label: 'critical',
-    alertThreshold: 0,
+    alertThreshold: '',
     resolveThreshold: '',
     thresholdType: AlertRuleThresholdType.ABOVE,
     actions: [],
@@ -25,6 +25,6 @@ export function createDefaultRule(): UnsavedIncidentRule {
     timeWindow: 1,
     triggers: [createDefaultTrigger()],
     projects: [],
-    environment: [],
+    environment: null,
   };
 }

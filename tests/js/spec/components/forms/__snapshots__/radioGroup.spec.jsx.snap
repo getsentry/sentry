@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`RadioGroup can select a different item 1`] = `
-<div
+<Container
   aria-labelledby="test"
   name="radio"
   role="radiogroup"
@@ -10,12 +10,13 @@ exports[`RadioGroup can select a different item 1`] = `
     aria-checked={false}
     index={0}
     key="0"
-    onClick={[Function]}
     role="radio"
   >
-    <RadioLineButton
+    <Radio
       aria-label="choice_one"
-      type="button"
+      checked={false}
+      onChange={[Function]}
+      type="radio"
     />
     <RadioLineText>
       Choice One
@@ -25,12 +26,13 @@ exports[`RadioGroup can select a different item 1`] = `
     aria-checked={false}
     index={1}
     key="1"
-    onClick={[Function]}
     role="radio"
   >
-    <RadioLineButton
+    <Radio
       aria-label="choice_two"
-      type="button"
+      checked={false}
+      onChange={[Function]}
+      type="radio"
     />
     <RadioLineText>
       Choice Two
@@ -40,26 +42,23 @@ exports[`RadioGroup can select a different item 1`] = `
     aria-checked={true}
     index={2}
     key="2"
-    onClick={[Function]}
     role="radio"
   >
-    <RadioLineButton
+    <Radio
       aria-label="choice_three"
-      type="button"
-    >
-      <RadioLineButtonFill
-        animate={true}
-      />
-    </RadioLineButton>
+      checked={true}
+      onChange={[Function]}
+      type="radio"
+    />
     <RadioLineText>
       Choice Three
     </RadioLineText>
   </RadioLineItem>
-</div>
+</Container>
 `;
 
 exports[`RadioGroup renders 1`] = `
-<div
+<Container
   aria-labelledby="test"
   name="radio"
   role="radiogroup"
@@ -68,17 +67,14 @@ exports[`RadioGroup renders 1`] = `
     aria-checked={true}
     index={0}
     key="0"
-    onClick={[Function]}
     role="radio"
   >
-    <RadioLineButton
+    <Radio
       aria-label="choice_one"
-      type="button"
-    >
-      <RadioLineButtonFill
-        animate={true}
-      />
-    </RadioLineButton>
+      checked={true}
+      onChange={[Function]}
+      type="radio"
+    />
     <RadioLineText>
       Choice One
     </RadioLineText>
@@ -87,12 +83,13 @@ exports[`RadioGroup renders 1`] = `
     aria-checked={false}
     index={1}
     key="1"
-    onClick={[Function]}
     role="radio"
   >
-    <RadioLineButton
+    <Radio
       aria-label="choice_two"
-      type="button"
+      checked={false}
+      onChange={[Function]}
+      type="radio"
     />
     <RadioLineText>
       Choice Two
@@ -102,18 +99,19 @@ exports[`RadioGroup renders 1`] = `
     aria-checked={false}
     index={2}
     key="2"
-    onClick={[Function]}
     role="radio"
   >
-    <RadioLineButton
+    <Radio
       aria-label="choice_three"
-      type="button"
+      checked={false}
+      onChange={[Function]}
+      type="radio"
     />
     <RadioLineText>
       Choice Three
     </RadioLineText>
   </RadioLineItem>
-</div>
+</Container>
 `;
 
 exports[`RadioGroup renders disabled 1`] = `
@@ -132,57 +130,57 @@ exports[`RadioGroup renders disabled 1`] = `
   onChange={[MockFunction]}
   value="choice_one"
 >
-  <div
+  <Container
     aria-labelledby="test"
     name="radio"
     role="radiogroup"
   >
-    <RadioLineItem
-      aria-checked={true}
-      disabled={true}
-      index={0}
-      key="0"
-      onClick={[Function]}
-      role="radio"
+    <div
+      aria-labelledby="test"
+      className="css-9cc0pc-Container e1r42lk41"
+      name="radio"
+      role="radiogroup"
     >
-      <div
+      <RadioLineItem
         aria-checked={true}
-        className="css-152tjw9-RadioLineItem e1r42lk41"
-        onClick={[Function]}
+        disabled={true}
+        index={0}
+        key="0"
         role="radio"
       >
-        <RadioLineButton
-          aria-label="choice_one"
-          disabled={true}
-          type="button"
+        <label
+          aria-checked={true}
+          className="css-1o4rg7a-RadioLineItem e1r42lk40"
+          role="radio"
         >
-          <button
+          <Radio
             aria-label="choice_one"
-            className="css-2gvt33-RadioLineButton e1r42lk40"
+            checked={true}
             disabled={true}
-            type="button"
+            onChange={[Function]}
+            type="radio"
           >
-            <RadioLineButtonFill
-              animate={true}
+            <input
+              aria-label="choice_one"
+              checked={true}
+              className="css-3pmlh6-Radio e1d7o7s40"
               disabled={true}
-            >
-              <div
-                className="css-1f51shg-RadioLineButtonFill-RadioLineButtonFill e1r42lk42"
-              />
-            </RadioLineButtonFill>
-          </button>
-        </RadioLineButton>
-        <RadioLineText
-          disabled={true}
-        >
-          <div
-            className="css-m8i2g4-RadioLineText e1r42lk43"
+              onChange={[Function]}
+              type="radio"
+            />
+          </Radio>
+          <RadioLineText
+            disabled={true}
           >
-            Choice One
-          </div>
-        </RadioLineText>
-      </div>
-    </RadioLineItem>
-  </div>
+            <div
+              className="css-m8i2g4-RadioLineText e1r42lk42"
+            >
+              Choice One
+            </div>
+          </RadioLineText>
+        </label>
+      </RadioLineItem>
+    </div>
+  </Container>
 </RadioGroup>
 `;

@@ -15,6 +15,7 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
         self.page = IssueDetailsPage(self.browser, self.client)
+        self.dismiss_assistant()
 
     def create_issue(self):
         event_data = load_data("javascript")

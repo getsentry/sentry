@@ -43,15 +43,18 @@ export type AggregationRefinement = string | undefined;
 // Functions and Fields are handled as subtypes to enable other
 // code to work more simply.
 // This type can be converted into a Field.field using generateFieldAsString()
-export type Column =
+export type QueryFieldValue =
   | {
       kind: 'field';
       field: string;
     }
   | {
       kind: 'function';
-      function: [Aggregation, string, AggregationRefinement];
+      function: [AggregationKey, string, AggregationRefinement];
     };
+
+// Column is just an alias of a Query value
+export type Column = QueryFieldValue;
 
 // Refer to src/sentry/api/event_search.py
 export const AGGREGATIONS = {
@@ -195,32 +198,40 @@ export const AGGREGATIONS = {
     outputType: 'number',
     isSortable: true,
   },
-  rps: {
+  user_misery: {
+    parameters: [
+      {
+        kind: 'value',
+        dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: false,
+  },
+  eps: {
     parameters: [],
     outputType: 'number',
     isSortable: true,
   },
-  rpm: {
+  epm: {
     parameters: [],
     outputType: 'number',
     isSortable: true,
   },
 } as const;
 
-assert(
-  AGGREGATIONS as Readonly<
-    {
-      [key in keyof typeof AGGREGATIONS]: {
-        parameters: Readonly<AggregateParameter[]>;
-        // null means to inherit from the column.
-        outputType: null | ColumnType;
-        isSortable: boolean;
-      };
-    }
-  >
-);
+assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation}>);
 
-export type Aggregation = keyof typeof AGGREGATIONS | '';
+export type AggregationKey = keyof typeof AGGREGATIONS | '';
+
+export type Aggregation = {
+  parameters: Readonly<AggregateParameter[]>;
+  // null means to inherit from the column.
+  outputType: null | ColumnType;
+  isSortable: boolean;
+};
 
 /**
  * Refer to src/sentry/snuba/events.py, search for Columns
@@ -298,7 +309,7 @@ export const FIELDS = {
 } as const;
 assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnType}>);
 
-export type Fields = keyof typeof FIELDS | string | '';
+export type FieldKey = keyof typeof FIELDS | string | '';
 
 // This list should be removed with the tranaction-events feature flag.
 export const TRACING_FIELDS = [
@@ -316,8 +327,9 @@ export const TRACING_FIELDS = [
   'error_rate',
   'apdex',
   'impact',
-  'rps',
-  'rpm',
+  'user_misery',
+  'eps',
+  'epm',
 ];
 
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
@@ -329,7 +341,7 @@ export function explodeFieldString(field: string): Column {
     return {
       kind: 'function',
       function: [
-        results[1] as Aggregation,
+        results[1] as AggregationKey,
         results[2],
         results[3] as AggregationRefinement,
       ],
@@ -337,6 +349,16 @@ export function explodeFieldString(field: string): Column {
   }
 
   return {kind: 'field', field};
+}
+
+export function generateFieldAsString(value: QueryFieldValue): string {
+  if (value.kind === 'field') {
+    return value.field;
+  }
+
+  const aggregation = value.function[0];
+  const parameters = value.function.slice(1).filter(i => i);
+  return `${aggregation}(${parameters.join(',')})`;
 }
 
 export function explodeField(field: Field): Column {

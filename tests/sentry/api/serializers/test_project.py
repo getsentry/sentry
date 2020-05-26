@@ -6,9 +6,11 @@ from datetime import timedelta
 
 import six
 import datetime
+from django.db.models import F
 from django.utils import timezone
 from exam import fixture
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
     bulk_fetch_project_latest_releases,
@@ -20,6 +22,7 @@ from sentry.models import (
     Deploy,
     Environment,
     EnvironmentProject,
+    Project,
     Release,
     ReleaseProjectEnvironment,
     UserReport,
@@ -141,6 +144,57 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
+    def test_project_features(self):
+        early_flag = "projects:TEST_early"
+        red_flag = "projects:TEST_red"
+        blue_flag = "projects:TEST_blue"
+
+        early_adopter = self.create_organization()
+        early_red = self.create_project(organization=early_adopter)
+        early_blue = self.create_project(organization=early_adopter)
+
+        late_adopter = self.create_organization()
+        late_red = self.create_project(organization=late_adopter)
+        late_blue = self.create_project(organization=late_adopter)
+
+        class EarlyAdopterFeatureHandler(features.BatchFeatureHandler):
+            features = {early_flag}
+
+            def _check_for_batch(self, feature_name, organization, actor):
+                return organization == early_adopter
+
+        def create_color_handler(color_flag, included_projects):
+            class ProjectColorFeatureHandler(features.FeatureHandler):
+                features = {color_flag}
+
+                def has(self, feature, actor):
+                    return feature.project in included_projects
+
+            return ProjectColorFeatureHandler()
+
+        features.add(early_flag, features.ProjectFeature)
+        features.add(red_flag, features.ProjectFeature)
+        features.add(blue_flag, features.ProjectFeature)
+        red_handler = create_color_handler(red_flag, [early_red, late_red])
+        blue_handler = create_color_handler(blue_flag, [early_blue, late_blue])
+        for handler in (EarlyAdopterFeatureHandler(), red_handler, blue_handler):
+            features.add_handler(handler)
+
+        def api_form(flag):
+            return flag[len("projects:") :]
+
+        flags_to_find = set(api_form(f) for f in [early_flag, red_flag, blue_flag])
+
+        def assert_has_features(project, expected_features):
+            serialized = serialize(project)
+            actual_features = set(f for f in serialized["features"] if f in flags_to_find)
+            assert actual_features == set(api_form(f) for f in expected_features)
+
+        assert_has_features(early_red, [early_flag, red_flag])
+        assert_has_features(early_blue, [early_flag, blue_flag])
+        assert_has_features(late_red, [red_flag])
+        assert_has_features(late_blue, [blue_flag])
+
 
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self):
@@ -211,6 +265,18 @@ class ProjectSummarySerializerTest(TestCase):
         }
         assert result["latestRelease"] == {"version": self.release.version}
         assert result["environments"] == ["production", "staging"]
+
+    def test_first_event_properties(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["firstEvent"] is None
+        assert result["firstTransactionEvent"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["firstEvent"]
+        assert result["firstTransactionEvent"] is True
 
     def test_user_reports(self):
         result = serialize(self.project, self.user, ProjectSummarySerializer())

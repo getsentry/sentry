@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {openCommandPalette} from 'app/actionCreators/modal';
 import App from 'app/views/app';
 import FormSearchStore from 'app/stores/formSearchStore';
@@ -47,6 +48,10 @@ describe('Command Palette Modal', function() {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/configs/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/sentry-apps/?status=published',
       body: [],
     });
     MockApiClient.addMockResponse({

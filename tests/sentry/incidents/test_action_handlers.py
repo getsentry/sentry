@@ -17,7 +17,6 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     IncidentStatus,
     IncidentStatusMethod,
-    QueryAggregations,
     TriggerStatus,
     INCIDENT_STATUS,
 )
@@ -87,6 +86,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         action = self.create_alert_rule_trigger_action()
         incident = self.create_incident()
         handler = EmailActionHandler(action, incident, self.project)
+        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
         expected = {
             "link": absolute_uri(
                 reverse(
@@ -108,10 +108,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                 )
             ),
             "incident_name": incident.title,
-            "aggregate": handler.query_aggregations_display[
-                QueryAggregations(action.alert_rule_trigger.alert_rule.aggregation)
-            ],
-            "query": action.alert_rule_trigger.alert_rule.query,
+            "aggregate": handler.query_aggregates_display.get(aggregate, aggregate),
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
             "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
             "environment": "All",
@@ -130,12 +128,12 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             self.create_environment(project=self.project, name="prod"),
             self.create_environment(project=self.project, name="dev"),
         ]
-        alert_rule = self.create_alert_rule(environment=environments)
+        alert_rule = self.create_alert_rule(environment=environments[0])
         alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
         action = self.create_alert_rule_trigger_action(alert_rule_trigger=alert_rule_trigger)
         incident = self.create_incident()
         handler = EmailActionHandler(action, incident, self.project)
-        assert "dev, prod" == handler.generate_email_context(status).get("environment")
+        assert "prod" == handler.generate_email_context(status).get("environment")
 
 
 @freeze_time()

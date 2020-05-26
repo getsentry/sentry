@@ -49,8 +49,6 @@ export function getUserTimezone(): string {
   return user && user.options && user.options.timezone;
 }
 
-// TODO(billy): The below functions should be refactored to a TimeRangeSelector specific utils
-
 /**
  * Given a UTC date, return a Date object in local time
  */
@@ -212,3 +210,7 @@ export function parsePeriodToHours(str: string): number {
       return -1;
   }
 }
+
+export const use24Hours = () => ConfigStore.get('user')?.options?.clock24Hours;
+
+export const getTimeFormat = () => (use24Hours() ? 'HH:mm' : 'LT');

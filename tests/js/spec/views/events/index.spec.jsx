@@ -3,6 +3,7 @@ import React from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import EventsContainer from 'app/views/events';
@@ -50,7 +51,7 @@ describe('EventsContainer', function() {
   });
 
   describe('Header', function() {
-    beforeEach(function() {
+    beforeEach(async function() {
       GlobalSelectionStore.reset();
       ProjectsStore.loadInitialData(organization.projects);
 
@@ -68,6 +69,9 @@ describe('EventsContainer', function() {
         </EventsContainer>,
         routerContext
       );
+
+      await tick();
+      wrapper.update();
 
       mockRouterPush(wrapper, router);
     });
@@ -112,18 +116,19 @@ describe('EventsContainer', function() {
         .find('CheckboxHitbox')
         .simulate('click');
 
-      expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([
-        'production',
-        'staging',
-      ]);
-
-      // close dropdown
+      // Value only updates if "Apply" is clicked or menu is closed
       wrapper
         .find('MultipleEnvironmentSelector StyledInput')
         .simulate('keyDown', {key: 'Escape'});
 
       await tick();
       wrapper.update();
+
+      expect(wrapper.find('MultipleEnvironmentSelector').prop('value')).toEqual([
+        'production',
+        'staging',
+      ]);
+
       expect(router.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/events/',
         query: {
@@ -170,9 +175,10 @@ describe('EventsContainer', function() {
       await tick();
       wrapper.update();
 
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/events/',
         query: {
+          environment: [],
           project: [2],
         },
       });
@@ -200,9 +206,10 @@ describe('EventsContainer', function() {
 
       wrapper.find('MultipleProjectSelector StyledChevron').simulate('click');
 
-      expect(router.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenLastCalledWith({
         pathname: '/organizations/org-slug/events/',
         query: {
+          environment: [],
           project: [2, 3],
         },
       });
@@ -331,54 +338,6 @@ describe('EventsContainer', function() {
           relative: '7d',
         })
       );
-    });
-
-    it('updates TimeRangeSelector when changing routes', async function() {
-      let newRouter = {
-        router: {
-          ...router,
-          location: {
-            pathname: '/organizations/org-slug/events2/',
-            query: {
-              end: '2017-10-17T02:41:20',
-              start: '2017-10-03T02:41:20',
-              utc: 'true',
-            },
-          },
-        },
-      };
-      wrapper.setProps(newRouter);
-      wrapper.setContext(newRouter);
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('TimeRangeSelector').text()).toEqual(
-        'Oct 3, 201702:41toOct 17, 201702:41'
-      );
-
-      newRouter = {
-        router: {
-          ...router,
-          location: {
-            pathname: '/organizations/org-slug/events/',
-            query: {
-              statsPeriod: '7d',
-              end: null,
-              start: null,
-              utc: 'true',
-            },
-          },
-        },
-      };
-
-      wrapper.setProps(newRouter);
-      wrapper.setContext(newRouter);
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('TimeRangeSelector').text()).toEqual('Last 7 days');
     });
   });
 });

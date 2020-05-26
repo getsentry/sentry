@@ -1,8 +1,10 @@
 import React from 'react';
 
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+
 import {Client} from 'app/api';
-import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
+import {SmartSearchBar} from 'app/components/smartSearchBar';
+import {addSpace, removeSpace} from 'app/components/smartSearchBar/utils';
 import TagStore from 'app/stores/tagStore';
 
 describe('addSpace()', function() {
@@ -43,6 +45,10 @@ describe('SmartSearchBar', function() {
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
     supportedTags = TagStore.getAllTags();
+    supportedTags.firstRelease = {
+      key: 'firstRelease',
+      name: 'firstRelease',
+    };
     organization = TestStubs.Organization({id: '123'});
 
     const location = {
@@ -75,7 +81,7 @@ describe('SmartSearchBar', function() {
     MockApiClient.clearMockResponses();
   });
 
-  it('calls preventDefault when there are no search items and is loading and enter is pressed', async function() {
+  it('does not preventDefault when there are no search items and is loading and enter is pressed', async function() {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
       return new Promise(() => {});
@@ -104,7 +110,7 @@ describe('SmartSearchBar', function() {
     const preventDefault = jest.fn();
     searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
     expect(onSearch).not.toHaveBeenCalled();
-    expect(preventDefault).toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 
   it('calls preventDefault when there are existing search items and is loading and enter is pressed', async function() {
@@ -144,6 +150,7 @@ describe('SmartSearchBar', function() {
     const preventDefault = jest.fn();
     searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
     expect(onSearch).not.toHaveBeenCalled();
+    // Prevent default since we need to select an item
     expect(preventDefault).toHaveBeenCalled();
   });
 
@@ -419,7 +426,7 @@ describe('SmartSearchBar', function() {
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('');
-      expect(searchBar.state.searchItems).toEqual([]);
+      expect(searchBar.state.searchGroups).toEqual([]);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
@@ -436,7 +443,7 @@ describe('SmartSearchBar', function() {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toEqual([
+      expect(searchBar.state.searchGroups).toEqual([
         expect.objectContaining({children: []}),
       ]);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
@@ -455,7 +462,7 @@ describe('SmartSearchBar', function() {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toEqual([
+      expect(searchBar.state.searchGroups).toEqual([
         expect.objectContaining({children: []}),
       ]);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
@@ -477,7 +484,7 @@ describe('SmartSearchBar', function() {
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
       // 1 items because of headers ("Tags")
-      expect(searchBar.state.searchItems).toHaveLength(1);
+      expect(searchBar.state.searchGroups).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
@@ -547,7 +554,20 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('onTogglePinnedSearch', function() {
+  describe('onAutoComplete()', function() {
+    it('completes terms from the list', function() {
+      const props = {
+        query: 'event.type:error ',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.onAutoComplete('myTag:', {type: 'tag'});
+      expect(searchBar.state.query).toEqual('event.type:error myTag:');
+    });
+  });
+
+  describe('onTogglePinnedSearch()', function() {
     let pinRequest, unpinRequest;
     beforeEach(function() {
       pinRequest = MockApiClient.addMockResponse({

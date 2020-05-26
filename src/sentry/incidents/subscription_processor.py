@@ -23,7 +23,6 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
-from sentry.snuba.models import query_aggregation_to_snuba, QueryAggregations
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.compat import zip
@@ -122,19 +121,17 @@ class SubscriptionProcessor(object):
 
         self.last_update = subscription_update["timestamp"]
 
-        aggregation = QueryAggregations(self.alert_rule.aggregation)
-        aggregation_name = query_aggregation_to_snuba[aggregation][2]
         if len(subscription_update["values"]["data"]) > 1:
             logger.warning(
                 "Subscription returned more than 1 row of data",
                 extra={
                     "subscription_id": self.subscription.id,
-                    "dataset": self.subscription.dataset,
+                    "dataset": self.subscription.snuba_query.dataset,
                     "snuba_subscription_id": self.subscription.subscription_id,
                     "result": subscription_update,
                 },
             )
-        aggregation_value = subscription_update["values"]["data"][0][aggregation_name]
+        aggregation_value = subscription_update["values"]["data"][0].values()[0]
 
         for trigger in self.triggers:
             alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
@@ -187,8 +184,6 @@ class SubscriptionProcessor(object):
                     # TODO: Include more info in name?
                     self.alert_rule.name,
                     alert_rule=self.alert_rule,
-                    query=self.subscription.query,
-                    aggregation=QueryAggregations(self.alert_rule.aggregation),
                     date_started=detected_at,
                     date_detected=detected_at,
                     projects=[self.subscription.project],

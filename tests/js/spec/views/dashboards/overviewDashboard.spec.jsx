@@ -3,6 +3,7 @@ import React from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import DashboardsContainer from 'app/views/dashboards';
 import OverviewDashboard from 'app/views/dashboards/overviewDashboard';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -29,13 +30,16 @@ describe('OverviewDashboard', function() {
 
   const org = organization;
 
-  const createWrapper = props => {
+  const createWrapper = async props => {
+    ProjectsStore.loadInitialData(organization.projects);
     wrapper = mountWithTheme(
       <DashboardsContainer>
         <OverviewDashboard params={{orgId: organization.slug}} {...props} />
       </DashboardsContainer>,
       routerContext
     );
+    await tick();
+    wrapper.update();
     mockRouterPush(wrapper, router);
   };
 
@@ -96,7 +100,7 @@ describe('OverviewDashboard', function() {
       eventsByReleaseWidget,
     ]);
 
-    createWrapper(dashboardData);
+    await createWrapper(dashboardData);
 
     // TODO(billy): Figure out why releases gets called twice
     expect(discoverMock).toHaveBeenCalledTimes(4);

@@ -14,7 +14,7 @@ import BreadcrumbTime from './breadcrumbTime';
 import BreadcrumbCollapsed from './breadcrumbCollapsed';
 import convertBreadcrumbType from './convertBreadcrumbType';
 import getBreadcrumbDetails from './getBreadcrumbDetails';
-import {Breadcrumb} from './types';
+import {Breadcrumb, BreadcrumbType, BreadcrumbLevelType} from './types';
 import {BreadCrumb, BreadCrumbIconWrapper} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
@@ -85,8 +85,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     if (exception) {
       const {type, value, module: mdl} = exception.data.values[0];
       return {
-        type: 'error',
-        level: 'error',
+        type: BreadcrumbType.ERROR,
+        level: BreadcrumbLevelType.ERROR,
         category: this.moduleToCategory(mdl) || 'exception',
         data: {
           type,
@@ -99,8 +99,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     const levelTag = (event.tags || []).find(tag => tag.key === 'level');
 
     return {
-      type: 'message',
-      level: levelTag?.value as Breadcrumb['level'],
+      type: BreadcrumbType.MESSAGE,
+      level: levelTag?.value as BreadcrumbLevelType,
       category: 'message',
       message: event.message,
       timestamp: event.dateCreated,
@@ -206,8 +206,8 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
                       data-test-id="breadcrumb"
                       key={idx}
                       hasError={
-                        convertedBreadcrumb.type === 'message' ||
-                        convertedBreadcrumb.type === 'error'
+                        convertedBreadcrumb.type === BreadcrumbType.MESSAGE ||
+                        convertedBreadcrumb.type === BreadcrumbType.ERROR
                       }
                     >
                       <BreadCrumbIconWrapper color={color} borderColor={borderColor}>

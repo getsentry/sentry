@@ -14,14 +14,9 @@ from sentry.incidents.endpoints.serializers import (
     string_to_action_target_type,
 )
 from sentry.incidents.logic import create_alert_rule_trigger
-from sentry.incidents.models import (
-    AlertRule,
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    AlertRuleEnvironment,
-)
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.models import Integration, Environment
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.models import QueryAggregations, QueryDatasets
 from sentry.testutils import TestCase
 
 
@@ -31,6 +26,7 @@ class TestAlertRuleSerializer(TestCase):
         return {
             "name": "hello",
             "time_window": 10,
+            "dataset": QueryDatasets.EVENTS.value,
             "query": "level:error",
             "threshold_type": 0,
             "resolve_threshold": 1,
@@ -94,62 +90,15 @@ class TestAlertRuleSerializer(TestCase):
             "triggers": field_is_required,
         }
 
-    def test_environment(self):
+    def test_environment_non_list(self):
         base_params = self.valid_params.copy()
         env_1 = Environment.objects.create(organization_id=self.organization.id, name="test_env_1")
-        env_2 = Environment.objects.create(organization_id=self.organization.id, name="test_env_2")
 
-        base_params.update({"environment": [env_1.name]})
+        base_params.update({"environment": env_1.name})
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
-        assert serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
-
-        # Make sure AlertRuleEnvironment entry was made:
-        alert_rule_env = AlertRuleEnvironment.objects.get(
-            environment=env_1.id, alert_rule=alert_rule
-        )
-        assert alert_rule_env
-
-        base_params.update({"id": alert_rule.id})
-        base_params.update({"environment": [env_1.name, env_2.name]})
-        serializer = AlertRuleSerializer(
-            context=self.context, instance=alert_rule, data=base_params
-        )
-        assert serializer.is_valid()
-        alert_rule = serializer.save()
-
-        assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 2
-        assert len(list(alert_rule.environment.all())) == 2
-
-        base_params.update({"environment": [env_2.name]})
-        serializer = AlertRuleSerializer(
-            context=self.context, instance=alert_rule, data=base_params
-        )
-        assert serializer.is_valid()
-        serializer.save()
-
-        # Make sure env_1 AlertRuleEnvironment was deleted:
-        try:
-            alert_rule_env = AlertRuleEnvironment.objects.get(
-                environment=env_1.id, alert_rule=alert_rule
-            )
-            assert False
-        except AlertRuleEnvironment.DoesNotExist:
-            assert True
-        # And that env_2 is still present:
-        assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 1
-        assert (
-            len(AlertRuleEnvironment.objects.filter(environment=env_2.id, alert_rule=alert_rule))
-            == 1
-        )
-
-        base_params.update({"environment": []})
-        serializer = AlertRuleSerializer(
-            context=self.context, instance=alert_rule, data=base_params
-        )
-        assert serializer.is_valid()
-        serializer.save()
-        assert len(AlertRuleEnvironment.objects.filter(alert_rule=alert_rule)) == 0
+        assert alert_rule.snuba_query.environment == env_1
 
     def test_time_window(self):
         self.run_fail_validation_test(
@@ -163,6 +112,12 @@ class TestAlertRuleSerializer(TestCase):
             {"timeWindow": 0}, {"timeWindow": ["Ensure this value is greater than or equal to 1."]}
         )
 
+    def test_dataset(self):
+        invalid_values = [
+            "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+        ]
+        self.run_fail_validation_test({"dataset": "events_wrong"}, {"dataset": invalid_values})
+
     def test_aggregation(self):
         invalid_values = [
             "Invalid aggregation, valid values are %s" % [item.value for item in QueryAggregations]
@@ -171,6 +126,49 @@ class TestAlertRuleSerializer(TestCase):
             {"aggregation": "a"}, {"aggregation": ["A valid integer is required."]}
         )
         self.run_fail_validation_test({"aggregation": 50}, {"aggregation": invalid_values})
+
+    def test_aggregate(self):
+        self.run_fail_validation_test(
+            {"aggregate": "what()", "aggregation": 0},
+            {"nonFieldErrors": ["Invalid Query or Aggregate: what() is not a valid function"]},
+        )
+        self.run_fail_validation_test(
+            {"aggregate": "what", "aggregation": 0},
+            {"nonFieldErrors": ["Invalid Aggregate: Please pass a valid function for aggregation"]},
+        )
+        self.run_fail_validation_test(
+            {"aggregate": "123", "aggregation": 0},
+            {"nonFieldErrors": ["Invalid Aggregate: Please pass a valid function for aggregation"]},
+        )
+        self.run_fail_validation_test(
+            {"aggregate": "count_unique(123, hello)", "aggregation": 0},
+            {
+                "nonFieldErrors": [
+                    "Invalid Query or Aggregate: count_unique(123, hello): expected 1 arguments"
+                ]
+            },
+        )
+        self.run_fail_validation_test(
+            {"aggregate": "max()", "aggregation": 0},
+            {"nonFieldErrors": ["Invalid Query or Aggregate: max(): expected 1 arguments"]},
+        )
+        aggregate = "count_unique(tags[sentry:user])"
+        base_params = self.valid_params.copy()
+        base_params["aggregate"] = aggregate
+        del base_params["aggregation"]
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.snuba_query.aggregate == aggregate
+
+    def test_aggregate_and_aggregation(self):
+        aggregate = "count_unique(tags[sentry:user])"
+        base_params = self.valid_params.copy()
+        base_params["aggregate"] = aggregate
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.snuba_query.aggregate == aggregate
 
     def test_simple_below_threshold(self):
         payload = {

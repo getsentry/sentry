@@ -87,6 +87,10 @@ const BannerContent = styled('div')`
   align-items: center;
   text-align: center;
   padding: ${space(4)};
+
+  @media (max-width: ${theme.breakpoints[0]}) {
+    position: relative;
+  }
 `;
 
 const BannerTitle = styled('h1')`

@@ -250,6 +250,18 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["message"] == self.event.message
         assert "event_id" not in data[0]
 
+    def test_latest_release_condition(self):
+        result = discover.query(
+            selected_columns=["id", "message"],
+            query="release:latest",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+        )
+        assert len(result["data"]) == 1
+        data = result["data"]
+        assert data[0]["id"] == self.event.event_id
+        assert data[0]["message"] == self.event.message
+        assert "event_id" not in data[0]
+
     def test_environment_condition(self):
         result = discover.query(
             selected_columns=["id", "message"],
@@ -605,6 +617,45 @@ class QueryTransformTest(TestCase):
                     None,
                     "error_rate",
                 ],
+                ["argMax", ["event_id", "timestamp"], "latest_event"],
+                ["argMax", ["project_id", "timestamp"], "projectid"],
+                [
+                    "transform(projectid, array({}), array('{}'), '')".format(
+                        six.text_type(self.project.id), self.project.slug
+                    ),
+                    None,
+                    "project.name",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_user_misery_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "user_misery_300"}],
+            "data": [{"transaction": "api.do_things", "user_misery_300": 15}],
+        }
+        discover.query(
+            selected_columns=["transaction", "user_misery(300)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                ["uniqIf(user, duration > 1200)", None, "user_misery_300"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [
@@ -1077,7 +1128,7 @@ class QueryTransformTest(TestCase):
                 ["avg", "duration", "avg_transaction_duration"],
                 ["max", "time", "max_time"],
             ],
-            having=[["max_time", ">", 1575158400000]],
+            having=[["max_time", ">", 1575158400]],
             end=end_time,
             start=start_time,
             orderby=None,
@@ -1198,7 +1249,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=["histogram(transaction.duration, 10)", "count()"],
             query="",
-            params={"project_id": [self.project.id]},
+            params={"project_id": [self.project.id], "environment": self.environment.name},
             auto_fields=True,
             use_aggregate_conditions=False,
         )
@@ -1225,7 +1276,7 @@ class QueryTransformTest(TestCase):
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["histogram_transaction_duration_10_1000_0"],
-            conditions=[],
+            conditions=[[["environment", "=", self.environment.name]]],
             end=None,
             start=None,
             orderby=None,
@@ -2129,7 +2180,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         projects = [f for f in result if f.key == "project"]
         assert [p.count for p in projects] == [1, 1]
 
-    def test_enviroment_promoted_tag(self):
+    def test_environment_promoted_tag(self):
         for env in ("prod", "staging", None):
             self.store_event(
                 data={

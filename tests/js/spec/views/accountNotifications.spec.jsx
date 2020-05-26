@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import AccountNotifications from 'app/views/settings/account/accountNotifications';
 
 describe('AccountNotifications', function() {
@@ -60,9 +61,9 @@ describe('AccountNotifications', function() {
     });
 
     wrapper
-      .find('Field[id="deployNotifications"] RadioLineItem')
+      .find('Field[id="deployNotifications"] Radio')
       .at(2)
-      .simulate('click');
+      .simulate('change');
 
     expect(mock).toHaveBeenCalledWith(
       url,

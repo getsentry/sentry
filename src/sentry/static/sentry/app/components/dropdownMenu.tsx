@@ -35,8 +35,8 @@ type MenuProps = {
   onMouseLeave: (e: React.MouseEvent<Element>) => void;
 };
 
-type GetActorPropsFn = (opts: GetActorArgs) => ActorProps;
-type GetMenuPropsFn = (opts: GetMenuArgs) => MenuProps;
+export type GetActorPropsFn = (opts?: GetActorArgs) => ActorProps;
+type GetMenuPropsFn = (opts?: GetMenuArgs) => MenuProps;
 
 type RenderProps = {
   isOpen: boolean;
@@ -75,7 +75,7 @@ type Props = DefaultProps & {
   shouldIgnoreClickOutside?: (event: MouseEvent) => boolean;
   /**
    * If this is set, then this will become a "controlled" component.
-   * It will no longer set local state and dropdown visiblity will
+   * It will no longer set local state and dropdown visibility will
    * only follow `isOpen`.
    */
   isOpen?: boolean;
@@ -320,7 +320,7 @@ class DropdownMenu extends React.Component<Props, State> {
     onKeyDown,
     style = {},
     ...props
-  } = {}) => {
+  }: GetActorArgs = {}) => {
     const {isNestedDropdown, closeOnEscape} = this.props;
 
     const refProps = {ref: this.handleActorMount};

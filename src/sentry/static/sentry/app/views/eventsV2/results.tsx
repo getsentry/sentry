@@ -12,6 +12,7 @@ import {Client} from 'app/api';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
+import Alert from 'app/components/alert';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -22,8 +23,8 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {ContentBox} from 'app/utils/discover/styles';
-import Alert from 'app/components/alert';
+import {ContentBox, Main, Side} from 'app/utils/discover/styles';
+import {generateQueryWithTag} from 'app/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
@@ -182,23 +183,34 @@ class Results extends React.Component<Props, State> {
     return generateTitle({eventView});
   }
 
-  renderTagsTable = () => {
+  renderTagsTable() {
     const {organization, location} = this.props;
     const {eventView, totalValues} = this.state;
 
-    // Move events-meta call out of Tags into this component
-    // so that we can push it into the chart footer.
     return (
       <Tags
+        generateUrl={this.generateTagUrl}
         totalValues={totalValues}
         eventView={eventView}
         organization={organization}
         location={location}
       />
     );
+  }
+
+  generateTagUrl = (key: string, value: string) => {
+    const {organization} = this.props;
+    const {eventView} = this.state;
+
+    const url = eventView.getResultsViewUrlTarget(organization.slug);
+    url.query = generateQueryWithTag(url.query, {
+      key,
+      value,
+    });
+    return url;
   };
 
-  renderError = error => {
+  renderError(error: string) {
     if (!error) {
       return null;
     }
@@ -207,9 +219,9 @@ class Results extends React.Component<Props, State> {
         {error}
       </Alert>
     );
-  };
+  }
 
-  setError = error => {
+  setError = (error: string) => {
     this.setState({error});
   };
 
@@ -221,49 +233,46 @@ class Results extends React.Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
-        <React.Fragment>
-          <GlobalSelectionHeader organization={organization} />
-          <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <ResultsHeader
-                organization={organization}
-                location={location}
-                eventView={eventView}
-              />
-              <ContentBox>
-                <Top>
-                  {this.renderError(error)}
-                  <StyledSearchBar
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={query}
-                    onSearch={this.handleSearch}
-                  />
-                  <ResultsChart
-                    api={api}
-                    router={router}
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    total={totalValues}
-                  />
-                </Top>
-                <Main eventView={eventView}>
-                  <Table
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                    title={title}
-                    setError={this.setError}
-                  />
-                </Main>
-                <Side eventView={eventView}>{this.renderTagsTable()}</Side>
-              </ContentBox>
-            </LightWeightNoProjectMessage>
-          </StyledPageContent>
-        </React.Fragment>
+        <StyledPageContent>
+          <LightWeightNoProjectMessage organization={organization}>
+            <ResultsHeader
+              organization={organization}
+              location={location}
+              eventView={eventView}
+            />
+            <ContentBox>
+              <Top>
+                {this.renderError(error)}
+                <StyledSearchBar
+                  organization={organization}
+                  projectIds={eventView.project}
+                  query={query}
+                  onSearch={this.handleSearch}
+                />
+                <ResultsChart
+                  api={api}
+                  router={router}
+                  organization={organization}
+                  eventView={eventView}
+                  location={location}
+                  onAxisChange={this.handleYAxisChange}
+                  onDisplayChange={this.handleDisplayChange}
+                  total={totalValues}
+                />
+              </Top>
+              <Main>
+                <Table
+                  organization={organization}
+                  eventView={eventView}
+                  location={location}
+                  title={title}
+                  setError={this.setError}
+                />
+              </Main>
+              <Side>{this.renderTagsTable()}</Side>
+            </ContentBox>
+          </LightWeightNoProjectMessage>
+        </StyledPageContent>
       </SentryDocumentTitle>
     );
   }
@@ -284,13 +293,23 @@ export const Top = styled('div')`
   grid-column: 1/3;
   flex-grow: 0;
 `;
-export const Main = styled('div')<{eventView: EventView}>`
-  grid-column: 1/2;
-  max-width: 100%;
-  overflow: hidden;
-`;
-export const Side = styled('div')<{eventView: EventView}>`
-  grid-column: 2/3;
-`;
 
-export default withApi(withOrganization(withGlobalSelection(Results)));
+function ResultsContainer(props: Props) {
+  /**
+   * Block `<Results>` from mounting until GSH is ready since there are API
+   * requests being performed on mount.
+   *
+   * Also, we skip loading last used projects if you have multiple projects feature as
+   * you no longer need to enforce a project if it is empty. We assume an empty project is
+   * the desired behavior because saved queries can contain a project filter.
+   */
+  return (
+    <GlobalSelectionHeader
+      skipLoadLastUsed={props.organization.features.includes('global-views')}
+    >
+      <Results {...props} />
+    </GlobalSelectionHeader>
+  );
+}
+
+export default withApi(withOrganization(withGlobalSelection(ResultsContainer)));

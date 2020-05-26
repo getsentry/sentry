@@ -1,5 +1,5 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
@@ -9,25 +9,28 @@ import Form from 'app/views/settings/components/forms/form';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
-import SentryTypes from 'app/sentryTypes';
+import {Organization, Project} from 'app/types';
 
-import DataPrivacyRulesPanel from '../components/dataPrivacyRulesPanel/dataPrivacyRulesPanel';
+import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
 
-class ProjectDataPrivacyContent extends AsyncView<{}> {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    // left the router contextType to satisfy the compiler
-    router: PropTypes.object,
-  };
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+  organization: Organization;
+  project: Project;
+};
 
+class ProjectDataPrivacyContent extends AsyncView<Props> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization, project} = this.context;
+    const {organization, project} = this.props;
     return [['data', `/projects/${organization.slug}/${project.slug}/`]];
   }
 
+  handleUpdateProject = (data: Project) => {
+    // This will update our project global state
+    ProjectActions.updateSuccess(data);
+  };
+
   renderBody() {
-    const {organization, project} = this.context;
+    const {organization, project} = this.props;
     const initialData = this.state.data;
     const endpoint = `/projects/${organization.slug}/${project.slug}/`;
     const access = new Set(organization.access);
@@ -44,10 +47,7 @@ class ProjectDataPrivacyContent extends AsyncView<{}> {
           initialData={initialData}
           apiMethod={apiMethod}
           apiEndpoint={endpoint}
-          onSubmitSuccess={resp => {
-            // This will update our project context
-            ProjectActions.updateSuccess(resp);
-          }}
+          onSubmitSuccess={this.handleUpdateProject}
         >
           <JsonForm
             title={t('Data Privacy')}
@@ -66,7 +66,7 @@ class ProjectDataPrivacyContent extends AsyncView<{}> {
             ]}
           />
         </Form>
-        <DataPrivacyRulesPanel
+        <DataPrivacyRules
           additionalContext={
             <span>
               {tct(
@@ -84,6 +84,11 @@ class ProjectDataPrivacyContent extends AsyncView<{}> {
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
           disabled={!access.has('project:write')}
+          organization={organization}
+          projectId={project.id}
+          onSubmitSuccess={resp => {
+            this.handleUpdateProject(resp as Project);
+          }}
         />
       </React.Fragment>
     );

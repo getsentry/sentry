@@ -64,15 +64,13 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
-export type Actor = {
-  id: string;
+export type Actor = User & {
   type: 'user' | 'team';
-  name: string;
 };
 
 /**
  * Organization summaries are sent when you request a
- * list of all organiations
+ * list of all organizations
  */
 export type OrganizationSummary = {
   status: {
@@ -96,8 +94,10 @@ export type OrganizationSummary = {
  * Lightweight in this case means it does not contain `projects` or `teams`
  */
 export type LightWeightOrganization = OrganizationSummary & {
+  relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
+  eventsMemberAdmin: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
   quota: {
@@ -149,22 +149,14 @@ export type Project = {
   hasUserReports?: boolean;
   hasAccess: boolean;
   firstEvent: 'string' | null;
+  firstTransactionEvent: boolean;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
 } & AvatarProject;
 
-export type ProjectRelease = {
-  version: string;
-  dateCreated: string;
-  dateReleased: string | null;
-  commitCount: number;
-  authors: User[];
-  newGroups: number;
-  healthData: Health | null;
-  project: ReleaseProject;
-};
+export type MinimalProject = Pick<Project, 'id' | 'slug'>;
 
 export type Health = {
   totalUsers: number;
@@ -285,6 +277,11 @@ type SentryEventBase = {
 
   oldestEventID: string | null;
   latestEventID: string | null;
+
+  groupingConfig: {
+    id: string;
+    enhancements: string;
+  };
 };
 
 export type SentryTransactionEvent = {
@@ -345,9 +342,10 @@ type UserEnrolledAuthenticator = {
   id: EnrolledAuthenticator['authId'];
 };
 
-export type User = AvatarUser & {
+export type User = Omit<AvatarUser, 'options'> & {
   lastLogin: string;
   isSuperuser: boolean;
+  isAuthenticated: boolean;
   emails: {
     is_verified: boolean;
     id: string;
@@ -387,7 +385,9 @@ export type Environment = {
 };
 
 // TODO(ts): This type is incomplete
-export type SavedSearch = {};
+export type SavedSearch = {
+  query?: string;
+};
 
 export type PluginNoProject = {
   id: string;
@@ -526,7 +526,11 @@ export type Config = {
   isOnPremise: boolean;
   lastOrganization: string | null;
   gravatarBaseUrl: string;
-  messages: string[];
+
+  /**
+   * This comes from django (django.contrib.messages)
+   */
+  messages: {message: string; level: string}[];
   dsn: string;
   userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
   termsUrl: string | null;
@@ -722,6 +726,8 @@ export type SentryAppSchemaIssueLink = {
 export type SentryAppSchemaStacktraceLink = {
   type: 'stacktrace-link';
   uri: string;
+  url: string;
+  params?: Array<string>;
 };
 
 export type SentryAppSchemaElement =
@@ -886,16 +892,8 @@ export type Release = {
   owner?: any; // TODO(ts)
   newGroups: number;
   projects: ReleaseProject[];
+  versionInfo: VersionInfo;
 } & BaseRelease;
-
-export type ReleaseProject = {
-  slug: string;
-  name: string;
-  id: number;
-  platform: string;
-  platforms: string[];
-  healthData: Health;
-};
 
 export type BaseRelease = {
   dateReleased: string;
@@ -904,6 +902,33 @@ export type BaseRelease = {
   version: string;
   shortVersion: string;
   ref: string;
+};
+
+export type ReleaseProject = {
+  slug: string;
+  name: string;
+  id: number;
+  platform: string;
+  platforms: string[];
+  newGroups: number;
+  healthData: Health;
+};
+
+export type ReleaseMeta = {
+  commitCount: number;
+  commitFilesChanged: number;
+  deployCount: number;
+  releaseFileCount: number;
+  version: string;
+  projects: ReleaseProject[];
+  versionInfo: VersionInfo;
+};
+
+export type VersionInfo = {
+  buildHash: string | null;
+  description: string;
+  package: string | null;
+  version: {raw: string};
 };
 
 export type Deploy = {
@@ -945,10 +970,10 @@ export type MemberRole = {
 export type SentryAppComponent = {
   uuid: string;
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
-  schema: SentryAppSchemaIssueLink;
+  schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: string;
+    slug: 'clickup' | 'clubhouse' | 'rookout';
     name: string;
   };
 };
@@ -1110,9 +1135,12 @@ export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
 export type Meta = {
   chunks: Array<Chunks>;
   len: number;
-  rem: Array<Array<string | number>>;
-  err: Array<any>;
+  rem: Array<MetaRemark>;
+  err: Array<MetaError>;
 };
+
+export type MetaError = [string, any];
+export type MetaRemark = Array<string | number>;
 
 export type Chunks = {
   text: string;
@@ -1187,3 +1215,50 @@ export type Activity = {
   project: Project;
   user?: User;
 };
+
+export type PlatformIntegration = {
+  id: string;
+  type: string;
+  language: string;
+  link: string | null;
+  name: string;
+};
+
+export type EventGroupComponent = {
+  contributes: boolean;
+  hint: string | null;
+  id: string;
+  name: string | null;
+  values: EventGroupComponent[] | string[];
+};
+export type EventGroupingConfig = {
+  base: string | null;
+  changelog: string;
+  delegates: string[];
+  hidden: boolean;
+  id: string;
+  latest: boolean;
+  risk: number;
+  strategies: string[];
+};
+
+type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
+
+export enum EventGroupVariantType {
+  CUSTOM_FINGERPRINT = 'custom-fingerprint',
+  COMPONENT = 'component',
+  SALTED_COMPONENT = 'salted-component',
+}
+
+export type EventGroupVariant = {
+  description: string | null;
+  hash: string | null;
+  hashMismatch: boolean;
+  key: EventGroupVariantKey;
+  type: EventGroupVariantType;
+  values?: string;
+  component?: EventGroupComponent;
+  config?: EventGroupingConfig;
+};
+
+export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;

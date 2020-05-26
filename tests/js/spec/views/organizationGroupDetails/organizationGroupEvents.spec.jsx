@@ -3,9 +3,10 @@ import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 
 import {mount, shallow} from 'sentry-test/enzyme';
+
 import {GroupEvents} from 'app/views/organizationGroupDetails/groupEvents';
 
-const OrgnanizationGroupEvents = GroupEvents;
+const OrganizationGroupEvents = GroupEvents;
 
 describe('groupEvents', function() {
   let request;
@@ -52,7 +53,7 @@ describe('groupEvents', function() {
 
   it('renders', function() {
     const component = mount(
-      <OrgnanizationGroupEvents
+      <OrganizationGroupEvents
         api={new MockApiClient()}
         group={TestStubs.Group()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
@@ -66,7 +67,7 @@ describe('groupEvents', function() {
 
   it('handles search', function() {
     const component = shallow(
-      <OrgnanizationGroupEvents
+      <OrganizationGroupEvents
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}
@@ -98,7 +99,7 @@ describe('groupEvents', function() {
 
   it('handles environment filtering', function() {
     shallow(
-      <OrgnanizationGroupEvents
+      <OrganizationGroupEvents
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}

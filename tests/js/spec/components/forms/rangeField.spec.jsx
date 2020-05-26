@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import {RangeField} from 'app/components/forms';
 
 describe('RangeField', function() {
@@ -62,7 +63,7 @@ describe('RangeField', function() {
         },
       });
 
-      expect(wrapper.find('input').prop('value')).toBe(0);
+      expect(wrapper.find('[name="fieldName"]').prop('value')).toBe(0);
     });
   });
 });

@@ -3,6 +3,7 @@ import React from 'react';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import Dashboard from 'app/views/dashboards/dashboard';
 import OrganizationDashboardContainer from 'app/views/dashboards';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -72,6 +73,8 @@ describe('OrganizationDashboard', function() {
 
   it('queries and renders discover-based widgets grouped by time', async function() {
     createWrapper(TestStubs.Dashboard());
+    await tick();
+    wrapper.update();
 
     expect(discoverMock).toHaveBeenCalledTimes(2);
     expect(discoverMock).toHaveBeenCalledWith(

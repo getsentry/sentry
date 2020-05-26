@@ -2,7 +2,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconSettings} from 'app/icons';
 import {IssueAlertRule} from 'app/types/alerts';
 import {Organization} from 'app/types';
 import {PanelTable} from 'app/components/panels';
@@ -11,6 +11,7 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
+import Pagination from 'app/components/pagination';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import RuleRow from 'app/views/settings/projectAlerts/ruleRow';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -77,7 +78,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
   renderBody() {
     const {canEditRule, location, organization, params} = this.props;
     const {orgId, projectId} = params;
-    const {loading, rules} = this.state;
+    const {loading, rules, rulesPageLinks} = this.state;
 
     const basePath = `/settings/${orgId}/projects/${projectId}/alerts/`;
 
@@ -87,7 +88,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
           title={t('Alerts')}
           action={
             <HeaderActions>
-              <Button to={`${basePath}settings/`} size="small" icon="icon-settings">
+              <Button to={`${basePath}settings/`} size="small" icon={<IconSettings />}>
                 {t('Settings')}
               </Button>
               <OnboardingHovercard organization={organization} location={location}>
@@ -100,7 +101,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
                     disabled={!canEditRule}
                     priority="primary"
                     size="small"
-                    icon={<IconAdd size="xs" circle />}
+                    icon={<IconAdd size="xs" isCircled />}
                   >
                     {t('New Alert Rule')}
                   </Button>
@@ -126,6 +127,8 @@ class ProjectAlertRules extends AsyncView<Props, State> {
             {() => this.renderResults()}
           </StyledPanelTable>
         </ScrollWrapper>
+
+        <Pagination pageLinks={rulesPageLinks} />
       </React.Fragment>
     );
   }
