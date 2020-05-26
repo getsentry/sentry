@@ -8,13 +8,13 @@ import {defined} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeHTTP} from '../types';
-import BreadcrumbDataSummary from './breadcrumbDataSummary';
+import {Summary} from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeHTTP;
 };
 
-const BreadcrumbDataHttp = ({breadcrumb}: Props) => {
+const Http = ({breadcrumb}: Props) => {
   const {data} = breadcrumb;
 
   const renderUrl = (url: any) => {
@@ -38,7 +38,7 @@ const BreadcrumbDataHttp = ({breadcrumb}: Props) => {
   const statusCode = data?.status_code;
 
   return (
-    <BreadcrumbDataSummary kvData={omit(data, ['method', 'url', 'status_code'])}>
+    <Summary kvData={omit(data, ['method', 'url', 'status_code'])}>
       {data?.method &&
         getBreadcrumbCustomRendererValue({
           value: <strong>{`${data.method} `}</strong>,
@@ -56,8 +56,8 @@ const BreadcrumbDataHttp = ({breadcrumb}: Props) => {
           ),
           meta: getMeta(data, 'status_code'),
         })}
-    </BreadcrumbDataSummary>
+    </Summary>
   );
 };
 
-export default BreadcrumbDataHttp;
+export {Http};

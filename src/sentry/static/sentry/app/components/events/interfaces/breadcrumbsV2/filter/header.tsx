@@ -11,11 +11,7 @@ type Props = {
   onSelectAll: (selectAll: boolean) => void;
 };
 
-const BreadcrumbFilterHeader = ({
-  selectedQuantity,
-  isAllSelected,
-  onSelectAll,
-}: Props) => {
+const Header = ({selectedQuantity, isAllSelected, onSelectAll}: Props) => {
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
 
@@ -69,4 +65,4 @@ const CheckboxWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export default BreadcrumbFilterHeader;
+export {Header};
