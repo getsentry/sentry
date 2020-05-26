@@ -4,7 +4,7 @@ YARN := ./bin/yarn
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
-develop: ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
+develop: ensure-pinned-pip setup-git install-yarn-pkgs install-dev
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -83,7 +83,7 @@ install-yarn-pkgs: node-version-check
 	# Add an additional check against `node_modules`
 	$(YARN) check --verify-tree || $(YARN) install --check-files
 
-install-sentry-dev: ensure-pinned-pip
+install-dev: ensure-pinned-pip
 	@echo "--> Installing Sentry (for development)"
 	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
 	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
@@ -226,7 +226,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
 
 
 ############################
