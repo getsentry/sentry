@@ -1513,6 +1513,7 @@ SENTRY_DEVSERVICES = {
         # started up, only pulled and made available for `devserver` which will start
         # it with `devservices attach --is-devserver reverse_proxy`.
         "with_devserver": True,
+        "devserver_alias": "proxy",
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
