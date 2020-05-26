@@ -122,6 +122,7 @@ const Permalink = styled('a')`
 const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
   justify-content: space-between;
+  align-items: center;
   position: relative;
   margin-bottom: ${space(3)};
 
