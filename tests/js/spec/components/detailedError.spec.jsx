@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import DetailedError from 'app/components/errors/detailedError';
 
 describe('DetailedError', function() {

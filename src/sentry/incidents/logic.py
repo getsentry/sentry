@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from collections import defaultdict
 from copy import deepcopy
 from datetime import timedelta
 
@@ -22,7 +21,6 @@ from sentry.incidents.models import (
     Incident,
     IncidentActivity,
     IncidentActivityType,
-    IncidentGroup,
     IncidentProject,
     IncidentSnapshot,
     PendingIncidentSnapshot,
@@ -33,19 +31,15 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.models import Integration, Project
-from sentry.snuba.discover import resolve_discover_aliases
-from sentry.snuba.models import query_aggregation_to_snuba, QueryDatasets
+from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
-    aggregate_to_query_aggregation,
     bulk_create_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
     update_snuba_query,
 )
-from sentry.snuba.tasks import apply_dataset_conditions
-from sentry.utils.db import attach_foreignkey
+from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
-from sentry.utils.compat import zip
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -65,23 +59,14 @@ def create_incident(
     organization,
     type_,
     title,
-    query,
-    aggregation,
     date_started,
     date_detected=None,
     # TODO: Probably remove detection_uuid?
     detection_uuid=None,
     projects=None,
-    groups=None,
     user=None,
     alert_rule=None,
 ):
-    if groups:
-        group_projects = [g.project for g in groups]
-        if projects is None:
-            projects = []
-        projects = list(set(projects + group_projects))
-
     if date_detected is None:
         date_detected = date_started
 
@@ -92,8 +77,6 @@ def create_incident(
             status=IncidentStatus.OPEN.value,
             type=type_.value,
             title=title,
-            query=query,
-            aggregation=aggregation.value,
             date_started=date_started,
             date_detected=date_detected,
             alert_rule=alert_rule,
@@ -108,11 +91,6 @@ def create_incident(
                 post_save.send(
                     sender=type(incident_project), instance=incident_project, created=True
                 )
-
-        if groups:
-            IncidentGroup.objects.bulk_create(
-                [IncidentGroup(incident=incident, group=group) for group in groups]
-            )
 
         create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
         analytics.record(
@@ -320,56 +298,34 @@ def create_event_stat_snapshot(incident, windowed_stats=False):
 
 
 def build_incident_query_params(incident, start=None, end=None, windowed_stats=False):
-    return bulk_build_incident_query_params(
-        [incident], start=start, end=end, windowed_stats=windowed_stats
-    )[0]
+    params = {}
+    params["start"], params["end"] = calculate_incident_time_range(
+        incident, start, end, windowed_stats=windowed_stats
+    )
 
+    project_ids = list(
+        IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+    )
+    if project_ids:
+        params["project_id"] = project_ids
 
-def bulk_build_incident_query_params(incidents, start=None, end=None, windowed_stats=False):
-    incident_groups = defaultdict(list)
-    for incident_id, group_id in IncidentGroup.objects.filter(incident__in=incidents).values_list(
-        "incident_id", "group_id"
-    ):
-        incident_groups[incident_id].append(group_id)
-    incident_projects = defaultdict(list)
-    for incident_id, project_id in IncidentProject.objects.filter(
-        incident__in=incidents
-    ).values_list("incident_id", "project_id"):
-        incident_projects[incident_id].append(project_id)
+    snuba_query = incident.alert_rule.snuba_query
+    snuba_filter = build_snuba_filter(
+        QueryDatasets(snuba_query.dataset),
+        snuba_query.query,
+        snuba_query.aggregate,
+        snuba_query.environment,
+        params=params,
+    )
 
-    attach_foreignkey(incidents, Incident.alert_rule)
-
-    query_args_list = []
-    for incident in incidents:
-        params = {}
-
-        params["start"], params["end"] = calculate_incident_time_range(
-            incident, start, end, windowed_stats=windowed_stats
-        )
-
-        group_ids = incident_groups[incident.id]
-        if group_ids:
-            params["group_ids"] = group_ids
-        project_ids = incident_projects[incident.id]
-        if project_ids:
-            params["project_id"] = project_ids
-
-        snuba_filter = get_filter(incident.alert_rule.snuba_query.query, params)
-        conditions = resolve_discover_aliases(snuba_filter)[0].conditions
-        if incident.alert_rule:
-            conditions = apply_dataset_conditions(
-                QueryDatasets(incident.alert_rule.snuba_query.dataset), conditions
-            )
-        snuba_args = {
-            "start": snuba_filter.start,
-            "end": snuba_filter.end,
-            "conditions": conditions,
-            "filter_keys": snuba_filter.filter_keys,
-            "having": [],
-        }
-        query_args_list.append(snuba_args)
-
-    return query_args_list
+    return {
+        "start": snuba_filter.start,
+        "end": snuba_filter.end,
+        "conditions": snuba_filter.conditions,
+        "filter_keys": snuba_filter.filter_keys,
+        "having": [],
+        "aggregations": snuba_filter.aggregations,
+    }
 
 
 def calculate_incident_time_range(incident, start=None, end=None, windowed_stats=False):
@@ -416,106 +372,77 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
     Gets event stats for an incident. If start/end are provided, uses that time
     period, otherwise uses the incident start/current_end.
     """
-    query_params = bulk_build_incident_query_params(
-        [incident], start=start, end=end, windowed_stats=windowed_stats
+    query_params = build_incident_query_params(
+        incident, start=start, end=end, windowed_stats=windowed_stats
     )
-    return bulk_get_incident_event_stats([incident], query_params)[0]
+    aggregations = query_params.pop("aggregations")[0]
+    snuba_params = SnubaQueryParams(
+        aggregations=[(aggregations[0], aggregations[1], "count")],
+        orderby="time",
+        groupby=["time"],
+        rollup=incident.alert_rule.snuba_query.time_window,
+        limit=10000,
+        **query_params
+    )
+
+    results = bulk_raw_query([snuba_params], referrer="incidents.get_incident_event_stats")
+    return SnubaTSResult(results[0], snuba_params.start, snuba_params.end, snuba_params.rollup)
 
 
-def bulk_get_incident_event_stats(incidents, query_params_list):
-    snuba_params_list = [
-        SnubaQueryParams(
-            aggregations=[
-                (
-                    query_aggregation_to_snuba[
-                        aggregate_to_query_aggregation[incident.alert_rule.snuba_query.aggregate]
-                    ][0],
-                    query_aggregation_to_snuba[
-                        aggregate_to_query_aggregation[incident.alert_rule.snuba_query.aggregate]
-                    ][1],
-                    "count",
-                )
-            ],
-            orderby="time",
-            groupby=["time"],
-            rollup=incident.alert_rule.snuba_query.time_window,
-            limit=10000,
-            **query_param
-        )
-        for incident, query_param in zip(incidents, query_params_list)
-    ]
-    results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_event_stats")
-    return [
-        SnubaTSResult(result, snuba_params.start, snuba_params.end, snuba_params.rollup)
-        for snuba_params, result in zip(snuba_params_list, results)
-    ]
-
-
-def get_incident_aggregates(incident, start=None, end=None, windowed_stats=False):
+def get_incident_aggregates(
+    incident, start=None, end=None, windowed_stats=False, use_alert_aggregate=False
+):
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
+    If `use_alert_aggregate` is True, calculates just the aggregate that the alert is
+    for, and returns as the `count` key.
+    If False, returns two values:
     - count: Total count of events
     - unique_users: Total number of unique users
     """
     query_params = build_incident_query_params(incident, start, end, windowed_stats)
-    return bulk_get_incident_aggregates([query_params])[0]
-
-
-def bulk_get_incident_aggregates(query_params_list):
-    snuba_params_list = [
-        SnubaQueryParams(
-            aggregations=[("count()", "", "count"), ("uniq", "tags[sentry:user]", "unique_users")],
-            limit=10000,
-            **query_param
-        )
-        for query_param in query_params_list
-    ]
+    if not use_alert_aggregate:
+        query_params["aggregations"] = [
+            ("count()", "", "count"),
+            ("uniq", "tags[sentry:user]", "unique_users"),
+        ]
+    else:
+        query_params["aggregations"][0][2] = "count"
+    snuba_params_list = [SnubaQueryParams(limit=10000, **query_params)]
     results = bulk_raw_query(snuba_params_list, referrer="incidents.get_incident_aggregates")
-    return [result["data"][0] for result in results]
+    return results[0]["data"][0]
 
 
-def bulk_get_incident_stats(incidents, windowed_stats=False):
+def get_incident_stats(incident, windowed_stats=False):
     """
-    Returns bulk stats for a list of incidents. This includes unique user count,
-    total event count and event stats.
+    Returns stats for an incident. This includes unique user count, total event count
+    and event stats.
     Note that even though this function accepts a windowed_stats parameter, it does not
     affect the snapshots. Only the live fetched stats.
     """
-    incident_stats = {}
-    if windowed_stats:
+    if windowed_stats and incident.status == IncidentStatus.CLOSED.value:
         # At the moment, snapshots are only ever created with windowed_stats as True
         # so if they send False, we need to do a live calculation below.
-        closed = [i for i in incidents if i.status == IncidentStatus.CLOSED.value]
-        snapshots = IncidentSnapshot.objects.filter(incident__in=closed)
-        for snapshot in snapshots:
+        try:
+            snapshot = IncidentSnapshot.objects.get(incident=incident)
             event_stats = snapshot.event_stats_snapshot
-            incident_stats[snapshot.incident_id] = {
+            return {
                 "event_stats": SnubaTSResult(
                     event_stats.snuba_values, event_stats.start, event_stats.end, event_stats.period
                 ),
                 "total_events": snapshot.total_events,
                 "unique_users": snapshot.unique_users,
             }
+        except IncidentSnapshot.DoesNotExist:
+            pass
 
-    to_fetch = [i for i in incidents if i.id not in incident_stats]
-    if to_fetch:
-        query_params_list = bulk_build_incident_query_params(to_fetch, windowed_stats=False)
-        if windowed_stats:
-            windowed_query_params_list = bulk_build_incident_query_params(
-                to_fetch, windowed_stats=True
-            )
-            all_event_stats = bulk_get_incident_event_stats(to_fetch, windowed_query_params_list)
-        else:
-            all_event_stats = bulk_get_incident_event_stats(to_fetch, query_params_list)
-        all_aggregates = bulk_get_incident_aggregates(query_params_list)
-        for incident, event_stats, aggregates in zip(to_fetch, all_event_stats, all_aggregates):
-            incident_stats[incident.id] = {
-                "event_stats": event_stats,
-                "total_events": aggregates["count"],
-                "unique_users": aggregates["unique_users"],
-            }
-
-    return [incident_stats[incident.id] for incident in incidents]
+    event_stats = get_incident_event_stats(incident, windowed_stats=windowed_stats)
+    aggregates = get_incident_aggregates(incident)
+    return {
+        "event_stats": event_stats,
+        "total_events": aggregates["count"],
+        "unique_users": aggregates["unique_users"],
+    }
 
 
 def subscribe_to_incident(incident, user):
@@ -546,12 +473,13 @@ def create_alert_rule(
     projects,
     name,
     query,
-    aggregation,
+    aggregate,
     time_window,
     threshold_period,
     environment=None,
     include_all_projects=False,
     excluded_projects=None,
+    dataset=QueryDatasets.EVENTS,
 ):
     """
     Creates an alert rule for an organization.
@@ -562,7 +490,7 @@ def create_alert_rule(
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
     :param query: An event search query to subscribe to and monitor for alerts
-    :param aggregation: A QueryAggregation to fetch for this alert rule
+    :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
     :param environment: An optional environment that this rule applies to
     :param threshold_period: How many update periods the value of the
@@ -571,10 +499,10 @@ def create_alert_rule(
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
     `include_all_projects`.
+    :param dataset: The dataset that this query will be executed on
 
     :return: The created `AlertRule`
     """
-    dataset = QueryDatasets.EVENTS
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
     validate_alert_rule_query(query)
     if AlertRule.objects.filter(organization=organization, name=name).exists():
@@ -583,7 +511,7 @@ def create_alert_rule(
         snuba_query = create_snuba_query(
             dataset,
             query,
-            aggregation,
+            aggregate,
             timedelta(minutes=time_window),
             timedelta(minutes=resolution),
             environment,
@@ -647,10 +575,11 @@ def snapshot_alert_rule(alert_rule):
 
 def update_alert_rule(
     alert_rule,
+    dataset=None,
     projects=None,
     name=None,
     query=None,
-    aggregation=None,
+    aggregate=None,
     time_window=None,
     environment=None,
     threshold_period=None,
@@ -666,7 +595,7 @@ def update_alert_rule(
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
     :param query: An event search query to subscribe to and monitor for alerts
-    :param aggregation: An AlertRuleAggregation that we want to fetch for this alert rule
+    :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
     :param environment: An optional environment that this rule applies to
     :param threshold_period: How many update periods the value of the
@@ -691,14 +620,16 @@ def update_alert_rule(
     if query is not None:
         validate_alert_rule_query(query)
         updated_query_fields["query"] = query
-    if aggregation is not None:
-        updated_query_fields["aggregation"] = aggregation
+    if aggregate is not None:
+        updated_query_fields["aggregate"] = aggregate
     if time_window:
         updated_query_fields["time_window"] = timedelta(minutes=time_window)
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
     if include_all_projects is not None:
         updated_fields["include_all_projects"] = include_all_projects
+    if dataset is not None and dataset.value != alert_rule.snuba_query.dataset:
+        updated_query_fields["dataset"] = dataset
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -708,12 +639,11 @@ def update_alert_rule(
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
             snuba_query = alert_rule.snuba_query
+            updated_query_fields.setdefault("dataset", QueryDatasets(snuba_query.dataset))
             updated_query_fields.setdefault("query", snuba_query.query)
             # XXX: We use the alert rule aggregation here since currently we're
             # expecting the enum value to be passed.
-            updated_query_fields.setdefault(
-                "aggregation", aggregate_to_query_aggregation[snuba_query.aggregate]
-            )
+            updated_query_fields.setdefault("aggregate", snuba_query.aggregate)
             updated_query_fields.setdefault(
                 "time_window", timedelta(seconds=snuba_query.time_window)
             )
@@ -727,7 +657,7 @@ def update_alert_rule(
         existing_subs = []
         if (
             query is not None
-            or aggregation is not None
+            or aggregate is not None
             or time_window is not None
             or projects is not None
             or include_all_projects is not None

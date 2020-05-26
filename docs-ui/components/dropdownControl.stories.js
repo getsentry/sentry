@@ -11,16 +11,18 @@ storiesOf('UI|Dropdowns/DropdownControl', module)
     'basic label + knobs',
     withInfo('Using a string value for the button label')(() => {
       const menuWidth = text('menuWidth', undefined);
-      const menuOffset = text('menuOffset', undefined);
       const alwaysRenderMenu = boolean('alwaysRenderMenu', true);
+      const alignRight = boolean('alignRight', false);
+      const blendWithActor = boolean('blendWithActor', false);
 
       return (
         <div className="clearfix">
           <DropdownControl
             label="Open Me"
             menuWidth={menuWidth}
-            menuOffset={menuOffset}
             alwaysRenderMenu={alwaysRenderMenu}
+            alignRight={alignRight}
+            blendWithActor={blendWithActor}
           >
             <DropdownItem href="">Href Item</DropdownItem>
             <DropdownItem to="">Router Item</DropdownItem>

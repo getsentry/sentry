@@ -3,7 +3,7 @@ import {Location} from 'history';
 import partial from 'lodash/partial';
 
 import {Organization} from 'app/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -13,7 +13,7 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import Version from 'app/components/version';
 import getDynamicText from 'app/utils/getDynamicText';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 
@@ -48,7 +48,7 @@ export type FieldFormatterRenderFunctionPartial = (
 ) => React.ReactNode;
 
 type FieldFormatter = {
-  sortField: boolean;
+  isSortable: boolean;
   renderFunc: FieldFormatterRenderFunction;
 };
 
@@ -75,14 +75,14 @@ const emptyValue = <span>{t('n/a')}</span>;
  */
 const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
-    sortField: true,
+    isSortable: true,
     renderFunc: (field, data) => {
       const value = data[field] ? t('yes') : t('no');
       return <Container>{value}</Container>;
     },
   },
   date: {
-    sortField: true,
+    isSortable: true,
     renderFunc: (field, data) => (
       <Container>
         {data[field]
@@ -95,7 +95,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   duration: {
-    sortField: true,
+    isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
         {typeof data[field] === 'number' ? (
@@ -107,7 +107,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   integer: {
-    sortField: true,
+    isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
         {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
@@ -115,7 +115,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   number: {
-    sortField: true,
+    isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
         {typeof data[field] === 'number' ? formatFloat(data[field], 4) : emptyValue}
@@ -123,7 +123,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   percentage: {
-    sortField: true,
+    isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
         {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
@@ -131,7 +131,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   string: {
-    sortField: true,
+    isSortable: true,
     renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
@@ -262,7 +262,7 @@ const SPECIAL_FIELDS: SpecialFields = {
 };
 
 type SpecialFunctions = {
-  user_misery: SpecialField;
+  user_misery: SpecialFieldRenderFunc;
 };
 
 /**
@@ -270,41 +270,45 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery: {
-    sortField: null,
-    renderFunc: data => {
-      const uniqueUsers = data.count_unique_user;
-      let userMiseryField;
-      for (const field in data) {
-        if (field.startsWith('user_misery')) {
-          userMiseryField = field;
-        }
+  user_misery: data => {
+    const uniqueUsers = data.count_unique_user;
+    let userMiseryField: string = '';
+    for (const field in data) {
+      if (field.startsWith('user_misery')) {
+        userMiseryField = field;
       }
-      if (!userMiseryField) {
-        return <NumberContainer>{emptyValue}</NumberContainer>;
-      }
+    }
+    if (!userMiseryField) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
+    }
 
-      const userMisery = data[userMiseryField];
-
-      if (!uniqueUsers && uniqueUsers !== 0) {
-        return (
-          <NumberContainer>
-            {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
-          </NumberContainer>
-        );
-      }
-
-      const palette = new Array(10).fill(theme.purpleDarkest);
-      const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
-      const miseryLimit = parseInt(userMiseryField.split('_').pop(), 10);
-      const title = `${userMisery} out of ${uniqueUsers} unique users waited more than ${4 *
-        miseryLimit}ms`;
+    const userMisery = data[userMiseryField];
+    if (!uniqueUsers && uniqueUsers !== 0) {
       return (
+        <NumberContainer>
+          {typeof userMisery === 'number' ? formatFloat(userMisery, 4) : emptyValue}
+        </NumberContainer>
+      );
+    }
+
+    const palette = new Array(10).fill(theme.purpleDarkest);
+    const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
+    const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+    const title = tct(
+      '[affectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
+      {
+        affectedUsers: userMisery,
+        totalUsers: uniqueUsers,
+        duration: 4 * miseryLimit,
+      }
+    );
+    return (
+      <NumberContainer>
         <Tooltip title={title} disabled={false}>
           <ScoreBar size={20} score={score} palette={palette} />
         </Tooltip>
-      );
-    },
+      </NumberContainer>
+    );
   },
 };
 
@@ -324,9 +328,15 @@ export function getSortField(
     return field;
   }
 
+  for (const alias in AGGREGATIONS) {
+    if (field.startsWith(alias)) {
+      return AGGREGATIONS[alias].isSortable ? field : null;
+    }
+  }
+
   const fieldType = tableMeta[field];
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    return FIELD_FORMATTERS[fieldType as keyof typeof FIELD_FORMATTERS].sortField
+    return FIELD_FORMATTERS[fieldType as keyof typeof FIELD_FORMATTERS].isSortable
       ? field
       : null;
   }
@@ -353,7 +363,7 @@ export function getFieldRenderer(
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
-      return SPECIAL_FUNCTIONS[alias].renderFunc;
+      return SPECIAL_FUNCTIONS[alias];
     }
   }
 

@@ -1,11 +1,12 @@
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {
   AssigneeSelectorComponent,
   putSessionUserFirst,
 } from 'app/components/assigneeSelector';
 import {Client} from 'app/api';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';

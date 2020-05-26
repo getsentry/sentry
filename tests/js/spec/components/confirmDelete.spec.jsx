@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ConfirmDelete from 'app/components/confirmDelete';
 
 describe('ConfirmDelete', function() {

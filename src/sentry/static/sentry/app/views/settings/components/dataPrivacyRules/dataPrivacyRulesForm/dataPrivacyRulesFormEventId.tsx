@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 
 import DataPrivacyRulesPanelFormField from './dataPrivacyRulesFormField';
 import DataPrivacyRulesFormEventIdStatusIcon from './dataPrivacyRulesFormEventIdStatusIcon';
-import {EventIdStatus} from './types';
+import {EventIdStatus} from '../types';
 
 type EventId = {
   value: string;

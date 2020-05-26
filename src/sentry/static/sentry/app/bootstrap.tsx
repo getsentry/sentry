@@ -26,6 +26,12 @@ import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
+import routes from 'app/routes';
+import {normalizeTransactionName} from 'app/utils/apm';
+
+if (process.env.NODE_ENV === 'development') {
+  import(/* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings');
+}
 
 function getSentryIntegrations(hasReplays: boolean = false) {
   const integrations = [
@@ -35,6 +41,10 @@ function getSentryIntegrations(hasReplays: boolean = false) {
     }),
     new Integrations.Tracing({
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
+      debug: {
+        spanDebugTimingInfo: true,
+        writeAsBreadcrumbs: true,
+      },
     }),
   ];
   if (hasReplays) {
@@ -70,10 +80,16 @@ const tracesSampleRate = config ? config.apmSampling : 0;
 const hasReplays =
   window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!process.env.DISABLE_RR_WEB;
 
+const appRoutes = Router.createRoutes(routes());
+
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
+  _experiments: {useEnvelope: true},
+  async beforeSend(event) {
+    return normalizeTransactionName(appRoutes, event);
+  },
 });
 
 if (window.__SENTRY__USER) {

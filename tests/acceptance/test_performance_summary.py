@@ -29,6 +29,7 @@ def make_event(event_data):
 
     event_data["start_timestamp"] = generate_timestamp(start_datetime)
     event_data["timestamp"] = generate_timestamp(end_datetime)
+    event_data["event_id"] = "c" * 32
 
     return event_data
 

@@ -6,12 +6,11 @@ import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
-import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import space from 'app/styles/space';
 
-import {AlertRuleAggregations, IncidentRule, TimeWindow, Trigger} from '../../types';
+import {IncidentRule, TimeWindow, Trigger} from '../../types';
 import ThresholdsChart from './thresholdsChart';
 
 type Props = {
@@ -21,8 +20,8 @@ type Props = {
 
   query: IncidentRule['query'];
   timeWindow: IncidentRule['timeWindow'];
-  environment: string | string[] | null;
-  aggregation: IncidentRule['aggregation'];
+  environment: string | null;
+  aggregate: IncidentRule['aggregate'];
   triggers: Trigger[];
 };
 
@@ -38,7 +37,7 @@ class TriggersChart extends React.PureComponent<Props> {
       projects,
       timeWindow,
       query,
-      aggregation,
+      aggregate,
       triggers,
       environment,
     } = this.props;
@@ -50,19 +49,13 @@ class TriggersChart extends React.PureComponent<Props> {
         api={api}
         organization={organization}
         query={query}
-        environment={
-          environment
-            ? Array.isArray(environment)
-              ? environment
-              : [environment]
-            : undefined
-        }
+        environment={environment ? [environment] : undefined}
         project={projects.map(({id}) => Number(id))}
         interval={`${timeWindow}m`}
         period={period}
-        yAxis={aggregation === AlertRuleAggregations.TOTAL ? 'event_count' : 'user_count'}
+        yAxis={aggregate}
         includePrevious={false}
-        currentSeriesName={getDisplayForAlertRuleAggregation(aggregation)}
+        currentSeriesName={aggregate}
       >
         {({loading, reloading, timeseriesData}) => {
           let maxValue: SeriesDataUnit | undefined;

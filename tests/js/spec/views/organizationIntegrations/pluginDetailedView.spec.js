@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {Client} from 'app/api';
 import PluginDetailedView from 'app/views/organizationIntegrations/pluginDetailedView';
 import * as modal from 'app/actionCreators/modal';
 

@@ -16,7 +16,7 @@ export const PERFORMANCE_EVENT_VIEW: Readonly<NewQuery> = {
   fields: [
     'transaction',
     'project',
-    'rpm()',
+    'epm()',
     'p50()',
     'p95()',
     'error_rate()',
@@ -26,6 +26,17 @@ export const PERFORMANCE_EVENT_VIEW: Readonly<NewQuery> = {
   ],
   version: 2,
 };
+export const COLUMN_TITLES = [
+  'transaction',
+  'project',
+  'tpm',
+  'p50',
+  'p95',
+  'error rate',
+  'apdex(300)',
+  'users',
+  'user misery',
+];
 
 export function generatePerformanceQuery(location: Location): Readonly<NewQuery> {
   const extra: {[key: string]: string} = {};
@@ -39,7 +50,7 @@ export function generatePerformanceQuery(location: Location): Readonly<NewQuery>
   }
 
   if (!query?.sort) {
-    extra.orderby = '-rpm';
+    extra.orderby = '-epm';
   } else {
     const sort = query?.sort;
     extra.orderby =
@@ -47,7 +58,7 @@ export function generatePerformanceQuery(location: Location): Readonly<NewQuery>
         ? sort[sort.length - 1]
         : typeof sort === 'string'
         ? sort
-        : '-rpm';
+        : '-epm';
   }
 
   if (query?.query) {

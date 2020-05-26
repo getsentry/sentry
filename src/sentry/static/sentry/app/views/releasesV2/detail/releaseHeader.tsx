@@ -26,7 +26,7 @@ type Props = {
   location: Location;
   orgId: string;
   release: Release;
-  project: ReleaseProject;
+  project: Required<ReleaseProject>;
   releaseMeta: ReleaseMeta;
 };
 

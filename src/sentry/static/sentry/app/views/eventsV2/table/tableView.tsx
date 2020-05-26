@@ -6,12 +6,14 @@ import {Location, LocationDescriptorObject} from 'history';
 import {Organization, OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import SortLink from 'app/components/gridEditable/sortLink';
 import {IconEvent, IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {openModal} from 'app/actionCreators/modal';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import EventView, {
+  isFieldSortable,
   MetaType,
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
@@ -19,12 +21,12 @@ import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 
-import {downloadAsCsv, getExpandedResults, pushEventViewToLocation} from '../utils';
-import SortLink from '../sortLink';
+import {getExpandedResults, pushEventViewToLocation} from '../utils';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
 import CellAction from './cellAction';
+import TableActions from './tableActions';
 
 export type TableViewProps = {
   location: Location;
@@ -104,19 +106,18 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridHeaderCell = (column: TableColumn<keyof TableDataRow>): React.ReactNode => {
     const {eventView, location, tableData} = this.props;
+    const tableMeta = tableData?.meta;
 
     return (
-      <HeaderCell column={column} tableData={tableData}>
+      <HeaderCell column={column} tableMeta={tableMeta}>
         {({align}) => {
-          const tableDataMeta = tableData && tableData.meta ? tableData.meta : undefined;
-
           const field = {field: column.name, width: column.width};
           function generateSortLink(): LocationDescriptorObject | undefined {
-            if (!tableDataMeta) {
+            if (!tableMeta) {
               return undefined;
             }
 
-            const nextEventView = eventView.sortOnField(field, tableDataMeta);
+            const nextEventView = eventView.sortOnField(field, tableMeta);
             const queryStringObject = nextEventView.generateQueryStringObject();
 
             return {
@@ -124,13 +125,15 @@ class TableView extends React.Component<TableViewProps> {
               query: queryStringObject,
             };
           }
+          const currentSort = eventView.sortForField(field, tableMeta);
+          const canSort = isFieldSortable(field, tableMeta);
 
           return (
             <SortLink
               align={align}
-              field={field}
-              eventView={eventView}
-              tableDataMeta={tableData && tableData.meta ? tableData.meta : undefined}
+              title={column.name}
+              direction={currentSort ? currentSort.kind : undefined}
+              canSort={canSort}
               generateSortLink={generateSortLink}
             />
           );
@@ -212,29 +215,36 @@ class TableView extends React.Component<TableViewProps> {
     browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
   };
 
+  renderHeaderButtons = () => {
+    const {organization, title, eventView, isLoading, tableData, location} = this.props;
+
+    return (
+      <TableActions
+        title={title}
+        isLoading={isLoading}
+        organization={organization}
+        eventView={eventView}
+        onEdit={this.handleEditColumns}
+        tableData={tableData}
+        location={location}
+      />
+    );
+  };
+
   render() {
-    const {
-      isLoading,
-      error,
-      location,
-      tableData,
-      eventView,
-      title,
-      organization,
-    } = this.props;
+    const {isLoading, error, location, tableData, eventView} = this.props;
 
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
 
     return (
       <GridEditable
-        editFeatures={['organizations:discover-query']}
-        noEditMessage={t('Requires discover query feature.')}
         isLoading={isLoading}
         error={error}
         data={tableData ? tableData.data : []}
         columnOrder={columnOrder}
         columnSortBy={columnSortBy}
+        title={t('Results')}
         grid={{
           renderHeadCell: this._renderGridHeaderCell as any,
           renderBodyCell: this._renderGridBodyCell as any,
@@ -242,18 +252,8 @@ class TableView extends React.Component<TableViewProps> {
           renderPrependColumns: this._renderPrependColumns as any,
           prependColumnWidths: ['40px'],
         }}
+        headerButtons={this.renderHeaderButtons}
         location={location}
-        actions={{
-          editColumns: this.handleEditColumns,
-          downloadAsCsv: () => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.results.download_csv',
-              eventName: 'Discoverv2: Download CSV',
-              organization_id: parseInt(organization.id, 10),
-            });
-            downloadAsCsv(tableData, columnOrder, title);
-          },
-        }}
       />
     );
   }

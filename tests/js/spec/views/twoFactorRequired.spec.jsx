@@ -2,6 +2,7 @@ import React from 'react';
 import Cookies from 'js-cookie';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import TwoFactorRequired from 'app/views/settings/account/accountSecurity/';
 import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/accountSecurityWrapper';
 

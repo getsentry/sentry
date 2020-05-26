@@ -279,6 +279,10 @@ class SearchVisitor(NodeVisitor):
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
+    def __init__(self, allow_boolean=True):
+        self.allow_boolean = allow_boolean
+        super(SearchVisitor, self).__init__()
+
     @cached_property
     def key_mappings_lookup(self):
         lookup = {}
@@ -619,6 +623,10 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_boolean_operator(self, node, children):
+        if not self.allow_boolean:
+            raise InvalidSearchQuery(
+                'Boolean statements containing "OR" or "AND" are not supported in this search'
+            )
         return node.text
 
     def visit_value(self, node, children):
@@ -657,7 +665,7 @@ class SearchVisitor(NodeVisitor):
         return children or node
 
 
-def parse_search_query(query):
+def parse_search_query(query, allow_boolean=True):
     try:
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
@@ -670,7 +678,7 @@ def parse_search_query(query):
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-    return SearchVisitor().visit(tree)
+    return SearchVisitor(allow_boolean).visit(tree)
 
 
 def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
@@ -806,7 +814,7 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query)
+            parsed_terms = parse_search_query(query, allow_boolean=False)
         except ParseError as e:
             raise InvalidSearchQuery(
                 u"Parse error: {} (column {:d})".format(e.expr.name, e.column())
@@ -1104,14 +1112,14 @@ FUNCTIONS = {
         "aggregate": [u"max", "transaction.duration", None],
         "result_type": "duration",
     },
-    "rps": {
-        "name": "rps",
+    "eps": {
+        "name": "eps",
         "args": [IntervalDefault("interval", 1, None)],
         "transform": u"divide(count(), {interval:g})",
         "result_type": "number",
     },
-    "rpm": {
-        "name": "rpm",
+    "epm": {
+        "name": "epm",
         "args": [IntervalDefault("interval", 60, None)],
         "transform": u"divide(count(), divide({interval:g}, 60))",
         "result_type": "number",
@@ -1264,7 +1272,7 @@ def resolve_function(field, match=None, params=None):
     function = FUNCTIONS[match.group("function")]
     columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
 
-    # Some functions can optionally take no parameters (rpm(), rps()). In that case use the
+    # Some functions can optionally take no parameters (epm(), eps()). In that case use the
     # passed in params to create a default argument if necessary.
     used_default = False
     if len(columns) == 0 and len(function["args"]) == 1:

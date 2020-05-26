@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import six
 
 from collections import namedtuple, defaultdict
+from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -16,6 +18,7 @@ from sentry.integrations import (
 
 from sentry.models import Integration, Rule, RuleStatus
 from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.slack import post_migration
@@ -172,11 +175,13 @@ class SlackIntegrationProvider(IntegrationProvider):
         # are using in post_install to send messages to slack
         if state.get("integration_id"):
             metadata["installation_type"] = "migrated_to_bot"
+            metadata["migrated_at"] = timezone.now()
 
             post_install_data = {
                 "user_id": state["user_id"],
                 "private_channels": state["private_channels"],
                 "missing_channels": state["missing_channels"],
+                "extra_orgs": state["extra_orgs"],
             }
 
             integration["integration_id"] = state.get("integration_id")
@@ -218,12 +223,27 @@ class SlackReAuthIntro(PipelineView):
     """
 
     def dispatch(self, request, pipeline):
-        if "integration_id" in request.GET:
-            pipeline.bind_state("integration_id", request.GET["integration_id"])
+        integration_id = request.GET.get("integration_id")
+
+        if integration_id:
+            pipeline.bind_state("integration_id", integration_id)
             pipeline.bind_state("user_id", request.user.id)
 
             try:
-                all_channels = _get_channels_from_rules(pipeline)
+                integration = Integration.objects.get(id=integration_id, provider="slack",)
+            except Integration.DoesNotExist:
+                return pipeline.error(IntegrationError("Could not find Slack integration."))
+
+            # We check if there are any other orgs tied to the integration to let the
+            # user know those organizations will be affected by the migration
+            extra_orgs = map(
+                lambda x: x.slug, integration.organizations.filter(~Q(id=pipeline.organization.id))
+            )
+
+            pipeline.bind_state("extra_orgs", extra_orgs)
+
+            try:
+                all_channels = _get_channels_from_rules(pipeline.organization, integration)
             except IntegrationError as error:
                 return pipeline.error(error)
 
@@ -235,6 +255,8 @@ class SlackReAuthIntro(PipelineView):
                 template="sentry/integrations/slack-reauth-introduction.html",
                 context={
                     "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_param),
+                    "workspace": integration.name,
+                    "extra_orgs": extra_orgs,
                 },
                 request=request,
             )
@@ -326,15 +348,7 @@ def _request_channel_info(pipeline):
     return channel_responses
 
 
-def _get_channels_from_rules(pipeline):
-    organization = pipeline.organization
-    integration_id = pipeline.fetch_state("integration_id")
-
-    try:
-        integration = Integration.objects.get(id=integration_id, provider="slack",)
-    except Integration.DoesNotExist:
-        raise IntegrationError("Could not find Slack integration.")
-
+def _get_channels_from_rules(organization, integration):
     rules = Rule.objects.filter(
         project__in=organization.project_set.all(), status=RuleStatus.ACTIVE,
     )

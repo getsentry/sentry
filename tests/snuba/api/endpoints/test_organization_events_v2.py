@@ -42,6 +42,19 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_or_errors(self):
+        self.login_as(user=self.user)
+        self.create_project()
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                {"field": ["id"], "query": "user.email:test OR user.email:foo"},
+                format="json",
+            )
+
+        assert response.status_code == 400
+
     def test_multi_project_feature_gate_rejection(self):
         self.login_as(user=self.user)
         team = self.create_team(organization=self.organization, members=[self.user])
@@ -1245,6 +1258,42 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["rpm"] == 0.5
         assert data[1]["transaction"] == event2.transaction
         assert data[1]["rpm"] == 0.5
+
+    def test_epm_function(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event1 = self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/2"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
+        event2 = self.store_event(data, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["transaction", "epm()"],
+                    "query": "event.type:transaction",
+                    "orderby": ["transaction"],
+                    "statsPeriod": "2m",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert data[0]["transaction"] == event1.transaction
+        assert data[0]["epm"] == 0.5
+        assert data[1]["transaction"] == event2.transaction
+        assert data[1]["epm"] == 0.5
 
     def test_nonexistent_fields(self):
         self.login_as(user=self.user)

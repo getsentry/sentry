@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 
 describe('Incident Rules Create', function() {
@@ -57,7 +58,7 @@ describe('Incident Rules Create', function() {
           project: [2],
           query: 'event.type:error',
           statsPeriod: '12h',
-          yAxis: 'event_count',
+          yAxis: 'count()',
         },
       })
     );

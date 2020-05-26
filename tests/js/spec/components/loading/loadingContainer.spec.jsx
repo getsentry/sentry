@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import LoadingContainer from 'app/components/loading/loadingContainer';
 
 describe('LoadingContainer', function() {

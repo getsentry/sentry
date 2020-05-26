@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import QueryList from 'app/views/eventsV2/queryList';
 
 function openContextMenu(card) {
@@ -50,6 +51,24 @@ describe('EventsV2 > QueryList', function() {
       query: {cursor: '0:1:1', statsPeriod: '14d'},
     };
     queryChangeMock = jest.fn();
+  });
+
+  it('renders an empty list', function() {
+    const wrapper = mountWithTheme(
+      <QueryList
+        organization={organization}
+        savedQueries={[]}
+        savedQuerySearchQuery="no matches"
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />,
+      TestStubs.routerContext()
+    );
+    const content = wrapper.find('QueryCard');
+    // No queries
+    expect(content).toHaveLength(0);
+    expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
   });
 
   it('renders pre-built queries and saved ones', function() {

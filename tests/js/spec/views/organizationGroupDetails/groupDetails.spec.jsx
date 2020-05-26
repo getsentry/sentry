@@ -3,6 +3,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupDetails from 'app/views/organizationGroupDetails';
 import ProjectsStore from 'app/stores/projectsStore';

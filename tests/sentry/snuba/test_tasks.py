@@ -9,8 +9,7 @@ from exam import patcher
 from mock import Mock, patch
 from six import add_metaclass
 
-from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription, SnubaQuery
-from sentry.snuba.subscriptions import translate_aggregation
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery
 from sentry.snuba.tasks import (
     create_subscription_in_snuba,
     update_subscription_in_snuba,
@@ -41,14 +40,14 @@ class BaseSnubaTaskTest(object):
         if status is None:
             status = self.expected_status
         dataset = QueryDatasets.EVENTS.value
-        aggregate = QueryAggregations.UNIQUE_USERS
+        aggregate = "count_unique(tags[sentry:user])"
         query = "hello"
         time_window = 60
         resolution = 60
 
         snuba_query = SnubaQuery.objects.create(
             dataset=dataset,
-            aggregate=translate_aggregation(aggregate),
+            aggregate=aggregate,
             query=query,
             time_window=time_window,
             resolution=resolution,

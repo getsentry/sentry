@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-
+import logging
 import operator
+from datetime import timedelta
 
 from rest_framework import serializers
 
 from django.db import transaction
+from django.utils import timezone
 
+from sentry.api.event_search import InvalidSearchQuery
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -33,8 +35,14 @@ from sentry.incidents.models import (
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.snuba.models import QueryAggregations
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QueryAggregations, QueryDatasets
+from sentry.snuba.subscriptions import aggregation_function_translations
+from sentry.snuba.tasks import build_snuba_filter
+from sentry.utils.snuba import raw_query
 from sentry.utils.compat import zip
+
+logger = logging.getLogger(__name__)
 
 
 string_to_action_type = {
@@ -274,21 +282,25 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     projects = serializers.ListField(child=ProjectField(), required=False)
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
     triggers = serializers.ListField(required=True)
+    dataset = serializers.CharField(required=False)
     query = serializers.CharField(required=True, allow_blank=True)
     time_window = serializers.IntegerField(
         required=True, min_value=1, max_value=int(timedelta(days=1).total_seconds() / 60)
     )
     threshold_period = serializers.IntegerField(default=1, min_value=1, max_value=20)
+    aggregate = serializers.CharField(required=False, min_length=1)
     aggregation = serializers.IntegerField(required=False)
 
     class Meta:
         model = AlertRule
         fields = [
             "name",
+            "dataset",
             "query",
             "time_window",
             "environment",
             "threshold_period",
+            "aggregate",
             "aggregation",
             "projects",
             "include_all_projects",
@@ -309,11 +321,77 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 % [item.value for item in QueryAggregations]
             )
 
+    def validate_dataset(self, dataset):
+        try:
+            return QueryDatasets(dataset)
+        except ValueError:
+            raise serializers.ValidationError(
+                "Invalid dataset, valid values are %s" % [item.value for item in QueryDatasets]
+            )
+
     def validate(self, data):
         """Performs validation on an alert rule's data
         This includes ensuring there is either 1 or 2 triggers, which each have actions, and have proper thresholds set.
         The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
+        data.setdefault("dataset", QueryDatasets.EVENTS)
+        if "aggregate" in data and "aggregation" in data:
+            # `aggregate` takes precedence over `aggregation`, so just drop `aggregation`
+            # if both are present.
+            data.pop("aggregation")
+        if "aggregation" in data:
+            data["aggregate"] = aggregation_function_translations[data.pop("aggregation")]
+        if "aggregate" in data:
+            project_id = data.get("projects")
+            if not project_id:
+                # We just need a valid project id from the org so that we can verify
+                # the query. We don't use the returned data anywhere, so it doesn't
+                # matter which.
+                project_id = list(self.context["organization"].project_set.all()[:1])
+            try:
+                snuba_filter = build_snuba_filter(
+                    data["dataset"],
+                    data["query"],
+                    data["aggregate"],
+                    data.get("environment"),
+                    params={
+                        "project_id": [p.id for p in project_id],
+                        "start": timezone.now() - timedelta(minutes=10),
+                        "end": timezone.now(),
+                    },
+                )
+            except (InvalidSearchQuery, ValueError) as e:
+                raise serializers.ValidationError(
+                    "Invalid Query or Aggregate: {}".format(e.message)
+                )
+            else:
+                if not snuba_filter.aggregations:
+                    raise serializers.ValidationError(
+                        "Invalid Aggregate: Please pass a valid function for aggregation"
+                    )
+
+                try:
+                    raw_query(
+                        aggregations=snuba_filter.aggregations,
+                        start=snuba_filter.start,
+                        end=snuba_filter.end,
+                        conditions=snuba_filter.conditions,
+                        filter_keys=snuba_filter.filter_keys,
+                        having=snuba_filter.having,
+                        dataset=Dataset(data["dataset"].value),
+                        limit=1,
+                        referrer="alertruleserializer.test_query",
+                    )
+                except Exception:
+                    logger.exception("Error while validating snuba alert rule query")
+                    raise serializers.ValidationError(
+                        "Invalid Query or Aggregate: An error occurred while attempting "
+                        "to run the query"
+                    )
+
+        else:
+            raise serializers.ValidationError("Must pass `aggregation` or `aggregate`")
+
         triggers = data.get("triggers", [])
         if not triggers:
             raise serializers.ValidationError("Must include at least one trigger")
@@ -402,7 +480,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 self._handle_triggers(alert_rule, triggers)
                 return alert_rule
         except AlertRuleNameAlreadyUsedError:
-            raise serializers.ValidationError("This name is already in use for this project")
+            raise serializers.ValidationError("This name is already in use for this organization")
 
     def update(self, instance, validated_data):
         triggers = validated_data.pop("triggers")
@@ -414,7 +492,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 self._handle_triggers(alert_rule, triggers)
                 return alert_rule
         except AlertRuleNameAlreadyUsedError:
-            raise serializers.ValidationError("This name is already in use for this project")
+            raise serializers.ValidationError("This name is already in use for this organization")
 
     def _handle_triggers(self, alert_rule, triggers):
         if triggers is not None:

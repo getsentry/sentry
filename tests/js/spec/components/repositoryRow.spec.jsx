@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {Client} from 'app/api';
 import RepositoryRow from 'app/components/repositoryRow';
 
 describe('RepositoryRow', function() {
@@ -17,7 +18,7 @@ describe('RepositoryRow', function() {
 
   describe('rendering with access', function() {
     const organization = TestStubs.Organization({
-      access: ['org:admin'],
+      access: ['org:integrations'],
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
@@ -85,7 +86,7 @@ describe('RepositoryRow', function() {
 
   describe('deletion', function() {
     const organization = TestStubs.Organization({
-      access: ['org:admin'],
+      access: ['org:integrations'],
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
@@ -114,7 +115,7 @@ describe('RepositoryRow', function() {
 
   describe('cancel deletion', function() {
     const organization = TestStubs.Organization({
-      access: ['org:admin'],
+      access: ['org:integrations'],
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 

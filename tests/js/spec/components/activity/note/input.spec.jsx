@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
+
 import NoteInput from 'app/components/activity/note/input';
 
 describe('NoteInput', function() {

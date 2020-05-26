@@ -55,6 +55,7 @@ const GridCell = styled('div')<{
 `;
 
 const GridCellLeft = styled(GridCell)`
+  padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(1)};
   position: relative;
   :before {
     content: '';
@@ -78,9 +79,9 @@ const Grid = styled('div')<{maxHeight?: React.CSSProperties['maxHeight']}>`
   > *:nth-last-child(5):before {
     bottom: calc(100% - ${space(1)});
   }
-  grid-template-columns: max-content 55px 1fr max-content max-content;
+  grid-template-columns: 45px 55px 1fr 76px 65px;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: max-content 110px 1fr max-content max-content;
+    grid-template-columns: 65px 110px 1fr 94px 84px;
   }
 `;
 

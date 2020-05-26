@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
 import DataPrivacyRulesPanelForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
-import {RuleType, MethodType} from './dataPrivacyRulesForm/types';
+import {RuleType, MethodType} from './types';
 
 const DEFAULT_RULE_SOURCE_VALUE = '';
 

@@ -131,7 +131,10 @@ class FeatureManager(object):
             if not remaining:
                 break
 
-            with sentry_sdk.start_span(op="feature.has_for_batch.handler") as span:
+            with sentry_sdk.start_span(
+                op="feature.has_for_batch.handler",
+                description="{0} ({1})".format(type(handler).__name__, name),
+            ) as span:
                 batch_size = len(remaining)
                 span.set_data("Batch Size", batch_size)
                 span.set_data("Feature Name", name)
