@@ -1224,7 +1224,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         channel_name = "#some_channel_that_doesnt_exist"
         with self.assertRaises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
-                self.trigger,
+                self.action,
                 type,
                 target_type,
                 target_identifier=channel_name,
