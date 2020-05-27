@@ -92,7 +92,7 @@ class Activity extends React.Component<Props> {
               error={createError}
               errorJSON={createErrorJSON}
               placeholder={t(
-                'Leave a comment, paste a tweet, or link any other relevant information about this Incident...'
+                'Leave a comment, paste a tweet, or link any other relevant information about this alert...'
               )}
               {...noteProps}
             />

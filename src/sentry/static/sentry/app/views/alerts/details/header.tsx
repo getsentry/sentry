@@ -52,7 +52,7 @@ export default class DetailsHeader extends React.Component<Props> {
       >
         <StatusMenuItem onSelect={onStatusChange}>
           <IconCheckmark isCircled color={theme.greenLight} />
-          {t('Resolve this incident')}
+          {t('Resolve this alert')}
         </StatusMenuItem>
       </DropdownControl>
     ) : (
