@@ -41,6 +41,7 @@ type Props = {
   location: Location;
   setError: (msg: string | undefined) => void;
   keyTransactions: boolean;
+  summaryConditions: string;
 
   projects: Project[];
 };
@@ -55,7 +56,7 @@ class Table extends React.Component<Props, State> {
   };
 
   renderBodyCell = (tableMeta: TableData['meta']) => {
-    const {eventView, organization, projects, location} = this.props;
+    const {eventView, organization, projects, location, summaryConditions} = this.props;
 
     return (
       column: TableColumn<keyof TableDataRow>,
@@ -70,13 +71,14 @@ class Table extends React.Component<Props, State> {
 
       if (field === 'transaction') {
         const projectID = getProjectID(dataRow, projects);
+        const summaryView = eventView.clone();
+        summaryView.query = summaryConditions;
 
-        const query = eventView.generateQueryStringObject();
         const target = transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
           transaction: String(dataRow.transaction) || '',
+          query: summaryView.generateQueryStringObject(),
           projectID,
-          query,
         });
 
         rendered = (

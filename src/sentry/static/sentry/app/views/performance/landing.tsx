@@ -26,6 +26,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
 import Table from './table';
@@ -129,10 +130,24 @@ class PerformanceLanding extends React.Component<Props, State> {
     }
   }
 
-  getTransactionSearchQuery(): string {
+  getTransactionSearchQuery() {
     const {location} = this.props;
 
     return String(decodeScalar(location.query.query) || '').trim();
+  }
+
+  /**
+   * Generate conditions to foward to the summary views.
+   *
+   * We drop the bare text string as in this view we apply it to
+   * the transaction name, and that condition is redundant in the
+   * summary view.
+   */
+  getSummaryConditions(query: string) {
+    const parsed = tokenizeSearch(query);
+    parsed.query = [];
+
+    return stringifyQueryObject(parsed);
   }
 
   renderHeaderButtons() {
@@ -192,6 +207,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     const {eventView} = this.state;
     const showOnboarding = this.shouldShowOnboarding();
     const filterString = this.getTransactionSearchQuery();
+    const summaryConditions = this.getSummaryConditions(filterString);
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
@@ -239,6 +255,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     location={location}
                     setError={this.setError}
                     keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
+                    summaryConditions={summaryConditions}
                   />
                 </div>
               )}
