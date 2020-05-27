@@ -3,8 +3,6 @@ from __future__ import absolute_import
 import operator
 import six
 
-import sentry_sdk
-
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
@@ -230,12 +228,6 @@ def get_event_file_committers(project, event, frame_limit=25):
         {match for match in commit_path_matches for match in commit_path_matches[match]}
     )
 
-    with sentry_sdk.start_span(op="get_event_file_committers") as span:
-        span.set_data("project_id", project.id)
-        span.set_data("group_id", event.group_id)
-        span.set_data("commit_path_matches", commit_path_matches)
-        span.set_data("relevant_commits", relevant_commits)
-
     return _get_committers(annotated_frames, relevant_commits)
 
 
@@ -254,7 +246,9 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
 
     for committer in committers:
         commit_ids = [commit.id for (commit, _) in committer["commits"]]
-        committer["commits"] = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
+        commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]
+        # Deduplicate commits
+        committer["commits"] = dedupe_commits(commits_result)
 
     metrics.incr(
         "feature.owners.has-committers",
@@ -262,3 +256,12 @@ def get_serialized_event_file_committers(project, event, frame_limit=25):
         skip_internal=False,
     )
     return committers
+
+
+def dedupe_commits(commits):
+    result = {}
+    for obj in commits:
+        if obj["id"] not in result:
+            result[obj["id"]] = obj
+
+    return result.values()
