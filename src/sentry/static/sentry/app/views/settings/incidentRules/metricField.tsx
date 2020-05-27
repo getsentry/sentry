@@ -102,9 +102,9 @@ const getFieldOptionConfig = (dataset: Dataset) => {
     config.fields.map(key => {
       // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
       // tags[sentry:user].
-      // if (key === 'user') {
-      //   return ['tags[sentry:user]', 'string'];
-      // }
+      if (key === 'user') {
+        return ['tags[sentry:user]', 'string'];
+      }
 
       return [key, FIELDS[key]];
     })
