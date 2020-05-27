@@ -109,7 +109,7 @@ const GroupExtra = styled('div')`
   grid-gap: ${space(2)};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: 12px;
   position: relative;
   min-width: 500px;
@@ -130,7 +130,7 @@ const CommentsLink = styled(Link)`
 const GroupShortId = styled(ShortId)`
   flex-shrink: 0;
   font-size: 12px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const GroupExtraIcon = styled(InlineSvg)`

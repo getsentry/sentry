@@ -147,7 +147,7 @@ const StyledIconOpen = styled(IconOpen)`
   top: 1px;
 
   &:hover {
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
   }
 `;
 

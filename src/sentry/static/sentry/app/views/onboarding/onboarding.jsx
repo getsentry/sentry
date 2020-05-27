@@ -281,7 +281,7 @@ const PosedProgressStatus = posed.div(
 );
 
 const ProgressStatus = styled(PosedProgressStatus)`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
 `;

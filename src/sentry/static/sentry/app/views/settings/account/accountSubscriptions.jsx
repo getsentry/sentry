@@ -141,7 +141,7 @@ const SubscriptionName = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-top: ${space(0.75)};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const SubscribedDescription = styled(Description)`

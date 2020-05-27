@@ -90,7 +90,7 @@ const StrengthProgress = styled('div')`
 const StrengthLabel = styled('div')`
   font-size: 0.8em;
   margin-top: 2px;
-  color: ${theme.gray3};
+  color: ${theme.gray600};
 `;
 
 const ScoreText = styled('strong')`

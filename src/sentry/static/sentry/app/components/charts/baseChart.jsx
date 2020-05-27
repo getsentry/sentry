@@ -365,7 +365,7 @@ const ChartContainer = styled('div')`
     align-items: baseline;
   }
   .tooltip-date {
-    border-top: 1px solid ${theme.gray3};
+    border-top: 1px solid ${theme.gray600};
     text-align: center;
     position: relative;
     width: auto;
