@@ -72,6 +72,7 @@ from sentry.models import (
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
+from sentry.snuba.models import QueryDatasets
 from sentry.utils import loremipsum, json
 
 
@@ -858,6 +859,7 @@ class Factories(object):
         environment=None,
         excluded_projects=None,
         date_added=None,
+        dataset=QueryDatasets.EVENTS,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -870,6 +872,7 @@ class Factories(object):
             aggregate,
             time_window,
             threshold_period,
+            dataset=dataset,
             environment=environment,
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
