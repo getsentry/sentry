@@ -63,7 +63,7 @@ const Undo = styled('div')`
   cursor: pointer;
 
   &:hover {
-    color: ${p => p.theme.gray1};
+    color: ${p => p.theme.gray400};
   }
 `;
 

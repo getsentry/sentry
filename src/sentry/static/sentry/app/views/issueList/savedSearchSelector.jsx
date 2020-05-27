@@ -152,20 +152,20 @@ const SearchQuery = styled('code')`
 `;
 
 const TooltipSearchQuery = styled('span')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-weight: normal;
   font-family: ${p => p.theme.text.familyMono};
 `;
 
 const DeleteButton = styled(Button)`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   background: transparent;
   flex-shrink: 0;
   padding: ${space(1)} ${space(1.5)} ${space(1)} 0;
 
   &:hover {
     background: transparent;
-    color: ${p => p.theme.blueLight};
+    color: ${p => p.theme.blue300};
   }
 `;
 

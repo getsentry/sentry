@@ -157,7 +157,7 @@ class SuggestedOwnerHovercard extends React.Component {
 const tagColors = {
   url: theme.greenLight,
   path: theme.purpleLight,
-  tag: theme.blueLight,
+  tag: theme.blue300,
 };
 
 const CommitIcon = styled(p => <IconCommit {...p} />)`

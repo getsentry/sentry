@@ -55,10 +55,10 @@ const defaultStyles = {
     alignItems: 'center',
     minHeight: '36px',
     '&:hover': {
-      borderColor: theme.gray1,
+      borderColor: theme.gray400,
     },
     ...(state.isFocused && {
-      border: `1px solid ${theme.gray1}`,
+      border: `1px solid ${theme.gray400}`,
       boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
     }),
     ...(state.menuIsOpen && {

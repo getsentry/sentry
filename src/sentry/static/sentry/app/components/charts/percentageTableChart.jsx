@@ -229,7 +229,7 @@ const Percentage = styled('div')`
 const Bar = styled('div', {shouldForwardProp: isPropValid})`
   flex: 1;
   width: ${p => p.width}%;
-  background-color: ${p => p.theme.gray1};
+  background-color: ${p => p.theme.gray400};
   height: 12px;
   border-radius: 2px;
 `;

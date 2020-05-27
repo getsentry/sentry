@@ -164,7 +164,7 @@ const ResultIcon = styled('div')`
 `;
 
 const DocsBadge = styled(p => <ResultIcon {...p}>docs</ResultIcon>)`
-  background: ${p => p.theme.blueLight};
+  background: ${p => p.theme.blue300};
 `;
 
 const FaqsBadge = styled(p => <ResultIcon {...p}>faqs</ResultIcon>)`

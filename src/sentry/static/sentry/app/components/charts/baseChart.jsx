@@ -317,11 +317,11 @@ class BaseChart extends React.Component {
                       name: previous.seriesName,
                       data: previous.data.map(({name, value}) => [name, value]),
                       lineStyle: {
-                        color: theme.gray1,
+                        color: theme.gray400,
                         type: 'dotted',
                       },
                       itemStyle: {
-                        color: theme.gray1,
+                        color: theme.gray400,
                       },
                     })
                   ),
