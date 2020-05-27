@@ -93,13 +93,6 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
 export default ThreadSelector;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
-  background: ${p => p.theme.white};
-  border: 1px solid ${p => p.theme.borderDark};
-  position: absolute;
-  top: 100%;
-  box-shadow: ${p => p.theme.dropShadowLight};
-  border-radius: ${p => p.theme.borderRadiusBottom};
-  margin-top: 0;
   width: 100%;
   min-width: 300px;
   @media (min-width: ${theme.breakpoints[0]}) {
