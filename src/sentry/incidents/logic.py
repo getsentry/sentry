@@ -31,6 +31,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.models import Integration, Project
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -319,6 +320,7 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
     )
 
     return {
+        "dataset": Dataset(snuba_query.dataset),
         "start": snuba_filter.start,
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
