@@ -153,7 +153,8 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
   },
 
   onLoadTagsSuccess(data) {
-    Object.assign(
+    this.state = Object.assign(
+      {},
       this.state,
       reduce(
         data,

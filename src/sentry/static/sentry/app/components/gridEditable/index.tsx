@@ -373,15 +373,17 @@ class GridEditable<
 
   render() {
     const {title, headerButtons} = this.props;
+    const showHeader = title || headerButtons;
     return (
       <React.Fragment>
-        <Header>
-          {title && <HeaderTitle>{title}</HeaderTitle>}
-          {headerButtons && (
-            <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
-          )}
-        </Header>
-
+        {showHeader && (
+          <Header>
+            {title && <HeaderTitle>{title}</HeaderTitle>}
+            {headerButtons && (
+              <HeaderButtonContainer>{headerButtons()}</HeaderButtonContainer>
+            )}
+          </Header>
+        )}
         <Body>
           <Grid data-test-id="grid-editable" ref={this.refGrid}>
             <GridHead>{this.renderGridHead()}</GridHead>

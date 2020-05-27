@@ -55,22 +55,28 @@ describe('Performance > Landing', function() {
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {
-          id: 'string',
           user: 'string',
-          'transaction.duration': 'duration',
+          transaction: 'string',
           'project.id': 'integer',
-          timestamp: 'date',
-          apdex: 'number',
+          epm: 'number',
+          p50: 'number',
+          p95: 'number',
+          error_rate: 'number',
+          apdex_300: 'number',
+          count_unique_user: 'number',
           user_misery_300: 'number',
         },
         data: [
           {
-            id: 'deadbeef',
-            user: 'uhoh@example.com',
-            'transaction.duration': 400,
+            transaction: '/apple/cart',
             'project.id': 1,
-            timestamp: '2020-05-21T15:31:18+00:00',
-            apdex: 0.6,
+            user: 'uhoh@example.com',
+            epm: 30,
+            p50: 100,
+            p95: 500,
+            error_rate: 0.1,
+            apdex_300: 0.6,
+            count_unique_user: 1000,
             user_misery_300: 122,
           },
         ],
@@ -154,5 +160,32 @@ describe('Performance > Landing', function() {
     wrapper.update();
 
     expect(wrapper.find('Onboarding')).toHaveLength(0);
+  });
+
+  it('forwards conditions to transaction summary', async function() {
+    const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
+    const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const link = wrapper.find('[data-test-id="grid-editable"] GridBody Link').at(0);
+    link.simulate('click', {button: 0});
+
+    expect(data.router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          transaction: '/apple/cart',
+          query: 'sentry:yes',
+        }),
+      })
+    );
   });
 });
