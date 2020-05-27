@@ -53,11 +53,11 @@ const Wrapper = styled('div')`
 `;
 
 const Title = styled(Link)<{selected: boolean}>`
-  color: ${p => (p.selected ? p.theme.gray3 : p.theme.gray2)};
+  color: ${p => (p.selected ? p.theme.gray600 : p.theme.gray500)};
 
   &:hover,
   &:focus {
-    color: ${p => (p.selected ? p.theme.gray3 : p.theme.gray2)};
+    color: ${p => (p.selected ? p.theme.gray600 : p.theme.gray500)};
   }
 `;
 

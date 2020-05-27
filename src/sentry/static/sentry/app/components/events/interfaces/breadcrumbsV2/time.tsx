@@ -33,6 +33,6 @@ export {Time};
 
 const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   ${overflowEllipsis};
 `;

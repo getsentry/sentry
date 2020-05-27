@@ -67,7 +67,7 @@ const Input = styled('input')`
   &.rdrDateDisplayItem {
     width: 100%;
     padding-left: 5%;
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
     border: 1px solid ${p => p.theme.borderLight};
     color: ${p => p.theme.gray2};
     box-shadow: none;

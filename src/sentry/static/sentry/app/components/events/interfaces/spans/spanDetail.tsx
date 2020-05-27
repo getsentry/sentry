@@ -382,7 +382,7 @@ const StyledButton = styled(Button)`
 `;
 
 const SpanDetailContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.gray1};
+  border-bottom: 1px solid ${p => p.theme.gray400};
   cursor: auto;
 `;
 

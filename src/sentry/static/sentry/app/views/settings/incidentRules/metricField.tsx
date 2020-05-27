@@ -147,7 +147,7 @@ const AggregateHeader = styled('div')`
   grid-gap: ${space(1)};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-weight: bold;
   margin-bottom: ${space(1)};
 `;
@@ -156,10 +156,10 @@ const PresetLink = styled(Button)<{isSelected: boolean}>`
   ${p =>
     p.isSelected &&
     css`
-      color: ${p.theme.gray4};
+      color: ${p.theme.gray700};
       &:hover,
       &:focus {
-        color: ${p.theme.gray5};
+        color: ${p.theme.gray800};
       }
     `}
 `;

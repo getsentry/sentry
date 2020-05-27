@@ -1243,7 +1243,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
         id="sidebar-flyout-portal"
       >
         <div
-          class="eky05z31 css-1uk3lji-PanelContainer-TaskSidebarPanel e1aybls60"
+          class="eky05z31 css-jt4yqz-PanelContainer-TaskSidebarPanel e1aybls60"
           orientation="left"
         >
           <div
@@ -1278,7 +1278,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   width="100%"
                 >
                   <div
-                    class="css-102hoso-Text-ProgressHeader eqr38d40"
+                    class="css-12rv3sk-Text-ProgressHeader eqr38d40"
                     style="opacity: 1; transform: none;"
                     x="50%"
                     y="50%"
@@ -1642,7 +1642,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
       orientation="left"
     >
       <div
-        className="eky05z31 css-1uk3lji-PanelContainer-TaskSidebarPanel e1aybls60"
+        className="eky05z31 css-jt4yqz-PanelContainer-TaskSidebarPanel e1aybls60"
         orientation="left"
       >
         <SidebarPanelBody
@@ -2002,7 +2002,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     y="50%"
                                   >
                                     <div
-                                      className="css-102hoso-Text-ProgressHeader eqr38d40"
+                                      className="css-12rv3sk-Text-ProgressHeader eqr38d40"
                                       x="50%"
                                       y="50%"
                                     >

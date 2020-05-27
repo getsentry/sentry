@@ -322,7 +322,7 @@ function ExpandAggregateRow(props: {
 const HeaderIcon = styled('span')`
   & > svg {
     vertical-align: top;
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
   }
 `;
 

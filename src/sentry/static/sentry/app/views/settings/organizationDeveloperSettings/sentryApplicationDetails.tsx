@@ -413,7 +413,7 @@ const TokenItem = styled('div')`
 `;
 
 const CreatedTitle = styled('span')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   margin-bottom: 2px;
 `;
 

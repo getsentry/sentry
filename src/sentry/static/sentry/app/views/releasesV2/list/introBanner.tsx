@@ -55,7 +55,7 @@ class IntroBanner extends React.Component<{}, State> {
 }
 
 const StyledBanner = styled(Banner)`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
 `;
 
 const BannerButton = styled(Button)`
