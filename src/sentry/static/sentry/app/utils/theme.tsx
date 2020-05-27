@@ -154,9 +154,9 @@ const alert = {
   //alias warn to warning
   warn: warning,
   success: {
-    backgroundLight: colors.greenLightest,
-    border: colors.green,
-    iconColor: colors.greenDark,
+    backgroundLight: colors.green100,
+    border: colors.green400,
+    iconColor: colors.green500,
     background: colors.green,
   },
   error: {
@@ -178,7 +178,7 @@ const badge = {
     indicatorColor: colors.purple,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green}, ${colors.greenDark})`,
+    background: `linear-gradient(90deg, ${colors.green}, ${colors.green500})`,
     indicatorColor: colors.green,
   },
 };

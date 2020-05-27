@@ -134,7 +134,7 @@ const GroupShortId = styled(ShortId)`
 `;
 
 const GroupExtraIcon = styled(InlineSvg)`
-  color: ${p => (p.isMentioned ? p.theme.green : null)};
+  color: ${p => (p.isMentioned ? p.theme.green400 : null)};
   font-size: 11px;
   margin-right: 4px;
 `;

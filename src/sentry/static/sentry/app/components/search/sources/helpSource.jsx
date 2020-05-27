@@ -168,7 +168,7 @@ const DocsBadge = styled(p => <ResultIcon {...p}>docs</ResultIcon>)`
 `;
 
 const FaqsBadge = styled(p => <ResultIcon {...p}>faqs</ResultIcon>)`
-  background: ${p => p.theme.greenLight};
+  background: ${p => p.theme.green300};
 `;
 
 export {HelpSource};
