@@ -178,7 +178,7 @@ const Header = styled(PageHeader)`
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   margin-bottom: 0;
-  padding: ${space(2)} ${space(4)};
+  padding: ${space(1.5)} ${space(4)} ${space(2)};
 
   grid-template-columns: max-content auto;
   display: grid;
