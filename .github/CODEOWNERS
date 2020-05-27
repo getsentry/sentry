@@ -35,11 +35,11 @@ setup.cfg           @getsentry/releases
 # TODO: owners-build (for travis / gha)
 requirements*.txt   @getsentry/owners-python-build
 pyproject.toml      @getsentry/owners-python-build
-tsconfig.*          @getsentry/owners-jsbuild
-webpack.config.*    @getsentry/owners-jsbuild
-package.json        @getsentry/owners-jsbuild
-babel.config.*      @getsentry/owners-jsbuild
-build-utils/        @getsentry/owners-jsbuild
+tsconfig.*          @getsentry/owners-js-build
+webpack.config.*    @getsentry/owners-js-build
+package.json        @getsentry/owners-js-build
+babel.config.*      @getsentry/owners-js-build
+build-utils/        @getsentry/owners-js-build
 
 # Dev
 /config/hooks/              @getsentry/owners-sentry-dev
