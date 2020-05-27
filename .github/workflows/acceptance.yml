@@ -207,7 +207,7 @@ jobs:
           run: |
             yarn webpack --display errors-only
 
-        - name: Acceptance tests (#${{ matrix.instance }} of ${{ strategy.job-total }})
+        - name: Acceptance tests (#${{ matrix.instance }})
           if: always()
           uses: percy/exec-action@v0.3.0
           with:
