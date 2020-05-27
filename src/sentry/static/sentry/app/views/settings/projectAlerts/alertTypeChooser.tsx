@@ -7,7 +7,6 @@ import space from 'app/styles/space';
 import Radio from 'app/components/radio';
 import textStyles from 'app/styles/text';
 import BulletList from 'app/styles/bulletList';
-import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
 
 type Props = {
@@ -18,8 +17,7 @@ type Props = {
 const IssuesTooltip = ({children}: {children?: React.ReactNode}) => (
   <Tooltip
     title={t(
-      `Sentry automatically groups similar errors into issues. Similarity is
-       determined by stack trace and other factors.`
+      `An issue is a unique error in Sentry, created by grouping error events based on stack trace and other factors.`
     )}
   >
     <abbr>{children}</abbr>
@@ -38,17 +36,20 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
         {t('Issue Alert')}
       </RadioLabel>
       <p>
-        {t(`Get notified when individual Sentry Issues match your alerting criteria.`)}
+        {tct(
+          `Get notified when [note:individual Sentry Issues] match your alerting criteria.`,
+          {note: <IssuesTooltip />}
+        )}
       </p>
       {!selected && (
         <BulletList>
           <li>
             {t('New or regressed issues')}
-            <Example>{t('There is a new issue on the checkout page')}</Example>
+            <Example>{t('New issue on the checkout page')}</Example>
           </li>
           <li>
             {t('Issue frequency')}
-            <Example>{t('When an issue affects more than X users')}</Example>
+            <Example>{t('Issue affecting more than X users')}</Example>
           </li>
         </BulletList>
       )}
@@ -61,24 +62,22 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
           onChange={() => onChange('metric')}
         />
         {t('Metric Alert')}
-        <FeatureBadge type="beta" />
       </RadioLabel>
       <p>
-        {tct(
-          `Compute aggregates and set thresholds on all errors in your project,
-           regardless of the [note:Sentry Issue].`,
-          {note: <IssuesTooltip />}
+        {t(
+          `Apply aggregate functions to your data to alert on performance metrics like latency, or overall error count (across multiple issues), in any part of your app.`
         )}
       </p>
       {!selected && (
         <BulletList>
           <li>
-            {t('Overall error volume')}
-            <Example>{t('A broken service is affecting more than X users')}</Example>
+            {t('Performance metrics')}
+            <Example>{t('Latency, transaction volume, apdex, error rate')}</Example>
           </li>
           <li>
-            {t('Events across issues')}
+            {t('Errors across issues')}
             <Example>{t('100 or more errors with "database" in the title')}</Example>
+            <Example>{t('1000 or more errors in the entire project')}</Example>
           </li>
         </BulletList>
       )}
