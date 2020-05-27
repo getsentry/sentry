@@ -4620,7 +4620,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         value="Default Value"
                                       >
                                         <ForwardRef
-                                          className="css-1eaosb4-TextArea e1oph3pe0"
+                                          className="css-eyk1fm-TextArea e1oph3pe0"
                                           default="Default Value"
                                           disabled={false}
                                           id="comment"
@@ -4633,7 +4633,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           value="Default Value"
                                         >
                                           <textarea
-                                            className="css-1eaosb4-TextArea e1oph3pe0"
+                                            className="css-eyk1fm-TextArea e1oph3pe0"
                                             default="Default Value"
                                             disabled={false}
                                             id="comment"

@@ -281,7 +281,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
         >
           <StyledToolbar>
             <div
-              className="css-i4bstz-Toolbar-StyledToolbar e1seayw31"
+              className="css-1n85dbn-Toolbar-StyledToolbar e1seayw31"
             >
               <SpreadLayout>
                 <div
