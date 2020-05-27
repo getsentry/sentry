@@ -684,7 +684,7 @@ exports[`ProjectPlugins renders 1`] = `
                                             size="lg"
                                           >
                                             <span
-                                              className="css-j7jjrc-Toggle ezmyi9u1"
+                                              className="css-1wbwbmn-Toggle ezmyi9u1"
                                               size="lg"
                                             />
                                           </Toggle>
