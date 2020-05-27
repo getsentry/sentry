@@ -7,20 +7,19 @@ import space from 'app/styles/space';
 import {Grid, GridCell} from './styles';
 
 const ListHeader = () => (
-  <Grid>
+  <StyledGrid>
     <StyledGridCell>{t('Type')}</StyledGridCell>
     <StyledGridCellCategory>{t('Category')}</StyledGridCellCategory>
     <StyledGridCell>{t('Description')}</StyledGridCell>
     <StyledGridCell>{t('Level')}</StyledGridCell>
     <StyledGridCell>{t('Time')}</StyledGridCell>
-  </Grid>
+  </StyledGrid>
 );
 
 export {ListHeader};
 
 const StyledGridCell = styled(GridCell)`
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  margin: 1px 0 0;
+  border-bottom: none;
   background: ${p => p.theme.offWhite};
   color: ${p => p.theme.gray3};
   font-weight: 600;
@@ -38,4 +37,8 @@ const StyledGridCellCategory = styled(StyledGridCell)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-left: ${space(1)};
   }
+`;
+
+const StyledGrid = styled(Grid)`
+  border-radius: ${p => p.theme.borderRadiusTop};
 `;

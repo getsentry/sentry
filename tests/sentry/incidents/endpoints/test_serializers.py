@@ -58,6 +58,14 @@ class TestAlertRuleSerializer(TestCase):
         }
 
     @fixture
+    def valid_transaction_params(self):
+        params = self.valid_params.copy()
+        params["dataset"] = QueryDatasets.TRANSACTIONS.value
+        params["aggregate"] = "count()"
+        params.pop("aggregation")
+        return params
+
+    @fixture
     def access(self):
         return from_user(self.user, self.organization)
 
@@ -169,6 +177,13 @@ class TestAlertRuleSerializer(TestCase):
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
         assert alert_rule.snuba_query.aggregate == aggregate
+
+    def test_transaction_dataset(self):
+        serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        assert alert_rule.snuba_query.dataset == QueryDatasets.TRANSACTIONS.value
+        assert alert_rule.snuba_query.aggregate == "count()"
 
     def test_simple_below_threshold(self):
         payload = {

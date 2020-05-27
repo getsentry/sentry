@@ -2,9 +2,12 @@ PIP := python -m pip --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
 YARN := ./bin/yarn
 
+# Currently, this is only required to install black via pre-commit.
+REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
+
 bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
-develop: ensure-pinned-pip setup-git install-yarn-pkgs install-sentry-dev
+develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
 
 clean:
 	@echo "--> Cleaning static cache"
@@ -46,6 +49,9 @@ apply-migrations: ensure-venv
 
 reset-db: drop-db create-db apply-migrations
 
+setup-pyenv:
+	@cat .python-version | xargs -n1 pyenv install --skip-existing
+
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
@@ -60,6 +66,8 @@ setup-git-config:
 setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
+	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
+
 	@# XXX(joshuarli): virtualenv >= 20 doesn't work with the version of six we have pinned for sentry.
 	@# Since pre-commit is installed in the venv, it will install virtualenv in the venv as well.
 	@# We need to tell pre-commit to install an older virtualenv,
@@ -67,13 +75,14 @@ setup-git: ensure-venv setup-git-config
 	@# won't complain about a newer six being present.
 	@# So, this six pin here needs to be synced with requirements-base.txt.
 	$(PIP) install "pre-commit==1.18.2" "virtualenv>=16.7,<20" "six>=1.10.0,<1.11.0"
-	pre-commit install --install-hooks
+
+	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) pre-commit install --install-hooks
 	@echo ""
 
 node-version-check:
 	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/volta-cli/volta'; exit 1)
 
-install-yarn-pkgs: node-version-check
+install-js-dev: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
 	NODE_ENV=development $(YARN) install --frozen-lockfile
@@ -83,7 +92,7 @@ install-yarn-pkgs: node-version-check
 	# Add an additional check against `node_modules`
 	$(YARN) check --verify-tree || $(YARN) install --check-files
 
-install-sentry-dev: ensure-pinned-pip
+install-py-dev: ensure-pinned-pip
 	@echo "--> Installing Sentry (for development)"
 	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
 	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
@@ -226,7 +235,7 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-yarn-pkgs install-sentry-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: develop build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
 
 
 ############################

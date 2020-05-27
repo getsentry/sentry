@@ -20,9 +20,12 @@ import {IconCheckmark} from 'app/icons';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import {Dataset} from 'app/views/settings/incidentRules/types';
+import DropdownControl from 'app/components/dropdownControl';
+import theme from 'app/utils/theme';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 import Status from '../status';
+import {isOpen} from '../utils';
 
 type Props = {
   className?: string;
@@ -35,6 +38,30 @@ type Props = {
 };
 
 export default class DetailsHeader extends React.Component<Props> {
+  renderStatus() {
+    const {incident, onStatusChange} = this.props;
+
+    const isIncidentOpen = incident && isOpen(incident);
+    const statusLabel = incident ? <Status incident={incident} /> : null;
+
+    return isIncidentOpen ? (
+      <DropdownControl
+        data-test-id="status-dropdown"
+        label={statusLabel}
+        menuWidth="200px"
+        alignRight
+        buttonProps={{size: 'small', disabled: !incident}}
+      >
+        <StatusMenuItem onSelect={onStatusChange}>
+          <IconCheckmark isCircled color={theme.greenLight} />
+          {t('Resolve this alert')}
+        </StatusMenuItem>
+      </DropdownControl>
+    ) : (
+      statusLabel
+    );
+  }
+
   render() {
     const {
       hasIncidentDetailsError,

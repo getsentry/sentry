@@ -123,14 +123,6 @@ class BaseBuildCommand(Command):
                 return True
         return False
 
-    def _setup_git(self):
-        work_path = self.work_path
-
-        if os.path.exists(os.path.join(work_path, ".git")):
-            log.info("initializing git submodules")
-            self._run_command(["git", "submodule", "init"])
-            self._run_command(["git", "submodule", "update"])
-
     def _setup_js_deps(self):
         node_version = None
         try:
@@ -195,7 +187,6 @@ class BaseBuildCommand(Command):
 
     def run(self):
         if self.force or self._needs_built():
-            self._setup_git()
             self._setup_js_deps()
             self._build()
             self.update_manifests()

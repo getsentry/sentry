@@ -1,9 +1,8 @@
 import React from 'react';
 import moment from 'moment';
 
-import {AlertRuleAggregations} from 'app/views/settings/incidentRules/types';
-import {getDisplayForAlertRuleAggregation} from 'app/views/alerts/utils';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
 
@@ -66,82 +65,88 @@ function getDataValue(data: Data) {
 
 type Props = {
   data: Data[];
-  aggregation: AlertRuleAggregations;
+  aggregate: string;
   detected: string;
   closed?: string;
 };
 
-export default class Chart extends React.PureComponent<Props> {
-  render() {
-    const {aggregation, data, detected, closed} = this.props;
-    const detectedTs = detected && moment.utc(detected).unix();
-    const closedTs = closed && moment.utc(closed).unix();
-    const chartData = data.map(([ts, val]) => [
-      ts * 1000,
-      val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
-    ]);
+const Chart = (props: Props) => {
+  const {aggregate, data, detected, closed} = props;
+  const detectedTs = detected && moment.utc(detected).unix();
+  const closedTs = closed && moment.utc(closed).unix();
+  const chartData = data.map(([ts, val]) => [
+    ts * 1000,
+    val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
+  ]);
 
-    let detectedCoordinate: number[] | undefined;
-    if (detectedTs) {
-      const nearbyDetectedTimestampIndex = getNearbyIndex(data, detectedTs);
-      const detectedYValue =
-        nearbyDetectedTimestampIndex &&
-        getAverageBetweenPoints(data, nearbyDetectedTimestampIndex);
-      detectedCoordinate = [detectedTs * 1000, detectedYValue];
-      chartData.splice(nearbyDetectedTimestampIndex + 1, 0, detectedCoordinate);
-    }
-
-    const showClosedMarker =
-      data && closedTs && data[data.length - 1] && data[data.length - 1][0] >= closedTs
-        ? true
-        : false;
-    let closedCoordinate: number[] | undefined;
-    if (closedTs && showClosedMarker) {
-      const nearbyClosedTimestampIndex = getNearbyIndex(data, closedTs);
-      const closedYValue =
-        nearbyClosedTimestampIndex &&
-        getAverageBetweenPoints(data, nearbyClosedTimestampIndex);
-      closedCoordinate = [closedTs * 1000, closedYValue];
-      chartData.splice(nearbyClosedTimestampIndex + 1, 0, closedCoordinate);
-    }
-
-    const seriesName = getDisplayForAlertRuleAggregation(aggregation);
-
-    return (
-      <LineChart
-        isGroupedByDate
-        showTimeInTooltip
-        series={[
-          {
-            // e.g. Events or Users
-            seriesName,
-            dataArray: chartData,
-            markPoint: MarkPoint({
-              data: [
-                {
-                  labelForValue: seriesName,
-                  seriesName,
-                  symbol: `image://${detectedSymbol}`,
-                  name: t('Alert Triggered'),
-                  coord: detectedCoordinate,
-                },
-                ...(closedTs
-                  ? [
-                      {
-                        labelForValue: seriesName,
-                        seriesName,
-                        symbol: `image://${closedSymbol}`,
-                        symbolSize: 24,
-                        name: t('Alert Resolved'),
-                        coord: closedCoordinate,
-                      },
-                    ]
-                  : []),
-              ],
-            }),
-          },
-        ]}
-      />
-    );
+  let detectedCoordinate: number[] | undefined;
+  if (detectedTs) {
+    const nearbyDetectedTimestampIndex = getNearbyIndex(data, detectedTs);
+    const detectedYValue =
+      nearbyDetectedTimestampIndex &&
+      getAverageBetweenPoints(data, nearbyDetectedTimestampIndex);
+    detectedCoordinate = [detectedTs * 1000, detectedYValue];
+    chartData.splice(nearbyDetectedTimestampIndex + 1, 0, detectedCoordinate);
   }
-}
+
+  const showClosedMarker =
+    data && closedTs && data[data.length - 1] && data[data.length - 1][0] >= closedTs
+      ? true
+      : false;
+  let closedCoordinate: number[] | undefined;
+  if (closedTs && showClosedMarker) {
+    const nearbyClosedTimestampIndex = getNearbyIndex(data, closedTs);
+    const closedYValue =
+      nearbyClosedTimestampIndex &&
+      getAverageBetweenPoints(data, nearbyClosedTimestampIndex);
+    closedCoordinate = [closedTs * 1000, closedYValue];
+    chartData.splice(nearbyClosedTimestampIndex + 1, 0, closedCoordinate);
+  }
+
+  const seriesName = aggregate;
+
+  return (
+    <LineChart
+      isGroupedByDate
+      showTimeInTooltip
+      grid={{
+        left: 0,
+        right: 0,
+        top: space(2),
+        bottom: 0,
+      }}
+      series={[
+        {
+          // e.g. Events or Users
+          seriesName,
+          dataArray: chartData,
+          markPoint: MarkPoint({
+            data: [
+              {
+                labelForValue: seriesName,
+                seriesName,
+                symbol: `image://${detectedSymbol}`,
+                name: t('Alert Triggered'),
+                coord: detectedCoordinate,
+              },
+              ...(closedTs
+                ? [
+                    {
+                      labelForValue: seriesName,
+                      seriesName,
+                      symbol: `image://${closedSymbol}`,
+                      symbolSize: 24,
+                      name: t('Alert Resolved'),
+                      coord: closedCoordinate,
+                    },
+                  ]
+                : []),
+            ],
+          }),
+        },
+      ]}
+    />
+  );
+};
+
+export default Chart;

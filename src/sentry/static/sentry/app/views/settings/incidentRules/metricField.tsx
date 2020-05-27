@@ -22,49 +22,11 @@ import {
 } from 'app/utils/discover/fields';
 
 import {Dataset} from './types';
+import {PRESET_AGGREGATES} from './constants';
 
 type Props = Omit<FormField['props'], 'children' | 'help'> & {
   organization: Organization;
 };
-
-const cannedAggregates = [
-  {
-    match: /^count\(\)/,
-    name: 'Number of errors',
-    validDataset: [Dataset.ERRORS],
-    default: 'count()',
-  },
-  {
-    match: /^count_unique\(user(\.id)?\)/,
-    name: 'Users affected',
-    validDataset: [Dataset.ERRORS],
-    default: 'count_unique(user)',
-  },
-  {
-    match: /^(p[0-9]{2,3}|percentile\(transaction\.duration,[^)]+\))/,
-    name: 'Latency',
-    validDataset: [Dataset.TRANSACTIONS],
-    default: 'percentile(transaction.duration, 0.95)',
-  },
-  {
-    match: /^apdex\([0-9.]+\)/,
-    name: 'Apdex',
-    validDataset: [Dataset.TRANSACTIONS],
-    default: 'apdex(300)',
-  },
-  {
-    match: /^count\(\)/,
-    name: 'Throughput',
-    validDataset: [Dataset.TRANSACTIONS],
-    default: 'count()',
-  },
-  {
-    match: /^error_rate\(\)/,
-    name: 'Error rate',
-    validDataset: [Dataset.TRANSACTIONS],
-    default: 'error_rate()',
-  },
-];
 
 type OptionConfig = {
   aggregations: AggregationKey[];
@@ -98,7 +60,17 @@ const getFieldOptionConfig = (dataset: Dataset) => {
   const aggregations = Object.fromEntries(
     config.aggregations.map(key => [key, AGGREGATIONS[key]])
   );
-  const fields = Object.fromEntries(config.fields.map(key => [key, FIELDS[key]]));
+  const fields = Object.fromEntries(
+    config.fields.map(key => {
+      // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
+      // tags[sentry:user].
+      if (key === 'user') {
+        return ['tags[sentry:user]', 'string'];
+      }
+
+      return [key, FIELDS[key]];
+    })
+  );
 
   return {aggregations, fields};
 };
@@ -106,8 +78,9 @@ const getFieldOptionConfig = (dataset: Dataset) => {
 const help = ({name, model}: {name: string; model: FormModel}) => {
   const aggregate = model.getValue(name) as string;
 
-  const presets = cannedAggregates
-    .filter(preset => preset.validDataset.includes(model.getValue('dataset') as Dataset))
+  const presets = PRESET_AGGREGATES.filter(preset =>
+    preset.validDataset.includes(model.getValue('dataset') as Dataset)
+  )
     .map(preset => ({...preset, selected: preset.match.test(aggregate)}))
     .map((preset, i, list) => (
       <React.Fragment key={preset.name}>
