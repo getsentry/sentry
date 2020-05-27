@@ -43,7 +43,7 @@ const Filename = styled('div')`
 `;
 
 const StyledIconFile = styled(IconFile)`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   margin-right: ${space(1)};
 `;
 

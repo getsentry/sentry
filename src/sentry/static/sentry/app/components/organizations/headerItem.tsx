@@ -116,9 +116,9 @@ class HeaderItem extends React.Component<Props> {
 // Infer props here because of styled/theme
 const getColor = p => {
   if (p.locked) {
-    return p.theme.gray2;
+    return p.theme.gray500;
   }
-  return p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2;
+  return p.isOpen || p.hasSelected ? p.theme.gray700 : p.theme.gray500;
 };
 
 type ColorProps = {
@@ -183,7 +183,7 @@ const StyledChevron = styled('div')<StyledChevronProps>`
 `;
 
 const SettingsIconLink = styled(Link)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -191,12 +191,12 @@ const SettingsIconLink = styled(Link)`
   transition: 0.5s opacity ease-out;
 
   &:hover {
-    color: ${p => p.theme.gray4};
+    color: ${p => p.theme.gray700};
   }
 `;
 
 const StyledLock = styled(InlineSvg)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   width: ${space(2)};
   height: ${space(2)};
   stroke-width: 1.5;

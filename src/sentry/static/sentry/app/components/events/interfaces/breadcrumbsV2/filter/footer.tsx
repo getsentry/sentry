@@ -21,7 +21,7 @@ const Footer = ({onSubmit}: Props) => (
 const Wrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   padding: ${space(1)};
 `;
 

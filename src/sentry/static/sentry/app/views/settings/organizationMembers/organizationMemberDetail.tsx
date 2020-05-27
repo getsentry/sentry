@@ -365,7 +365,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 export default withOrganization(OrganizationMemberDetail);
 
 const ExtraHeaderText = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeLarge};
 `;
@@ -386,7 +386,7 @@ const Details = styled('div')`
 const DetailLabel = styled('div')`
   font-weight: bold;
   margin-bottom: ${space(0.5)};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 const OverflowWrapper = styled('div')`

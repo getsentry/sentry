@@ -163,11 +163,11 @@ const StyledActivityAvatar = styled(ActivityAvatar)`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 export default ActivityItem;

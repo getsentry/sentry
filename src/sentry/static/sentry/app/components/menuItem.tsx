@@ -199,10 +199,10 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
 
   return `
     ${common}
-    color: ${props.theme.foreground};
+    color: ${props.theme.gray700};
 
     &:hover {
-      background: ${props.theme.offWhite};
+      background: ${props.theme.gray100};
     }
   `;
 }
@@ -242,7 +242,7 @@ background-color: ${p.theme.borderLight};
     padding: ${space(0.25)} ${space(1)};
     font-size: ${p.theme.fontSizeSmall};
     line-height: 1.4;
-    color: ${p.theme.gray2};
+    color: ${p.theme.gray500};
   `}
 
   ${getChildStyles}

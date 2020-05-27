@@ -351,7 +351,7 @@ const getSvgStyle = () => `
 `;
 
 const IconUser = styled(InlineSvg)`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   height: 20px;
   width: 20px;
 

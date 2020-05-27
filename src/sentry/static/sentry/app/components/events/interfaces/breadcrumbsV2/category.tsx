@@ -22,7 +22,7 @@ const Category = ({category}: Props) => {
 export {Category};
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 700;
   line-height: 26px;

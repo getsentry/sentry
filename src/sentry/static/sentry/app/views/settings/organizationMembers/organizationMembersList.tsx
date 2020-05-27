@@ -262,7 +262,7 @@ const StyledMembersFilter = styled(MembersFilter)`
     height: 16px;
     width: 16px;
     border: 8px solid transparent;
-    border-bottom-color: ${p => p.theme.offWhite};
+    border-bottom-color: ${p => p.theme.gray100};
   }
 
   &:before {

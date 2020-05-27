@@ -149,7 +149,7 @@ class Tags extends React.Component<Props, State> {
     } else {
       return (
         <StyledError>
-          <StyledIconWarning color={theme.gray2} size="lg" />
+          <StyledIconWarning color={theme.gray500} size="lg" />
           {t('No tags found')}
         </StyledError>
       );
@@ -171,7 +171,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 `;
 
 const StyledError = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   display: flex;
   align-items: center;
 `;

@@ -121,7 +121,7 @@ const ProjectCardContainer = createReactClass({
 
 const ChartContainer = styled('div')`
   position: relative;
-  background: ${p => p.theme.offWhite};
+  background: ${p => p.theme.gray100};
   padding-top: ${space(1)};
 `;
 
@@ -145,7 +145,7 @@ const StyledProjectCard = styled('div')`
 
 const LoadingCard = styled('div')`
   border: 1px solid transparent;
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   height: 210px;
 `;
 

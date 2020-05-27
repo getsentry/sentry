@@ -96,9 +96,9 @@ const Environment = styled(TextOverflow)`
   font-size: 11px;
   text-transform: uppercase;
   width: 80px;
-  border: 1px solid ${p => p.theme.offWhite2};
+  border: 1px solid ${p => p.theme.gray300};
   margin-right: ${space(1)};
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   text-align: center;
   border-radius: ${p => p.theme.borderRadius};
   flex-shrink: 0;
@@ -140,7 +140,7 @@ const DeployContainer = styled('div')`
 const Background = styled('div')`
   display: flex;
   height: 100%;
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   align-items: center;
   justify-content: center;
 `;

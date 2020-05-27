@@ -17,10 +17,10 @@ const QuestionIconContainer = styled('span')<ContainerProps>`
 
   & svg {
     transition: 0.15s color;
-    color: ${p => p.theme.gray1};
+    color: ${p => p.theme.gray400};
 
     &:hover {
-      color: ${p => p.theme.gray2};
+      color: ${p => p.theme.gray500};
     }
   }
 `;

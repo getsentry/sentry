@@ -93,7 +93,7 @@ export default withApi(withOrganization(withGlobalSelection(EventsContainer)));
 export {EventsContainer};
 
 const Body = styled('div')`
-  background-color: ${p => p.theme.whiteDark};
+  background-color: ${p => p.theme.gray100};
   flex-direction: column;
   flex: 1;
 `;

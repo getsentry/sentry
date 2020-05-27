@@ -21,10 +21,10 @@ const ProgressHeader = ({allTasks, completedTasks}: Props) => (
       animateText
       value={(completedTasks.length / allTasks.length) * 100}
       progressEndcaps="round"
-      backgroundColor={theme.offWhite2}
+      backgroundColor={theme.gray300}
       textCss={() => css`
         font-size: 26px;
-        color: ${theme.gray2};
+        color: ${theme.gray500};
       `}
     />
     <HeadingText>
@@ -51,7 +51,7 @@ const HeadingText = styled('div')`
   }
 
   p {
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
     margin: 0;
     line-height: 2rem;
   }

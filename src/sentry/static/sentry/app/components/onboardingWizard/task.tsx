@@ -168,7 +168,7 @@ const Description = styled('p')`
   padding-top: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.75rem;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   margin: 0;
 `;
 
@@ -216,7 +216,7 @@ const CTA = styled('div')`
 `;
 
 const SkipButton = styled(Button)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const PosedItemComplete = posed(Card)({
@@ -225,7 +225,7 @@ const PosedItemComplete = posed(Card)({
 
 const ItemComplete = styled(PosedItemComplete)`
   cursor: pointer;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   padding: ${space(1)} ${space(1.5)};
   display: grid;
   grid-template-columns: max-content 1fr max-content 20px;
@@ -257,7 +257,7 @@ SkippedIndicator.defaultProps = {
 };
 
 const CompletedDate = styled(posed.div(completedItemPoses))`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

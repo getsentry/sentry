@@ -141,7 +141,7 @@ class SummaryContent extends React.Component<Props> {
 
 const StyledTitleHeader = styled('span')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   grid-column: 1/2;
   align-self: center;
   min-height: 30px;

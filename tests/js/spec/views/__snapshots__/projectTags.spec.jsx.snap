@@ -1067,7 +1067,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <Component
                                                           aria-disabled={true}
-                                                          className="css-1lloe1u-StyledButton edwq9my0"
+                                                          className="css-1a2o3lm-StyledButton edwq9my0"
                                                           data-test-id="delete"
                                                           forwardRef={null}
                                                           onClick={[Function]}
@@ -1076,7 +1076,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-1lloe1u-StyledButton edwq9my0"
+                                                            className="css-1a2o3lm-StyledButton edwq9my0"
                                                             data-test-id="delete"
                                                             onClick={[Function]}
                                                             role="button"
@@ -1306,7 +1306,7 @@ exports[`ProjectTags renders 1`] = `
                                                       >
                                                         <Component
                                                           aria-disabled={true}
-                                                          className="css-1lloe1u-StyledButton edwq9my0"
+                                                          className="css-1a2o3lm-StyledButton edwq9my0"
                                                           data-test-id="delete"
                                                           forwardRef={null}
                                                           onClick={[Function]}
@@ -1315,7 +1315,7 @@ exports[`ProjectTags renders 1`] = `
                                                         >
                                                           <button
                                                             aria-disabled={true}
-                                                            className="css-1lloe1u-StyledButton edwq9my0"
+                                                            className="css-1a2o3lm-StyledButton edwq9my0"
                                                             data-test-id="delete"
                                                             onClick={[Function]}
                                                             role="button"

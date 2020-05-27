@@ -36,7 +36,7 @@ const EmptyMessage = styled(
   text-align: center;
   align-items: center;
   flex-direction: column;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   padding: ${p => p.theme.grid * 4}px 15%;
   font-size: ${p =>
     p.size && p.size === 'large' ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge};
@@ -52,7 +52,7 @@ EmptyMessage.propTypes = {
 };
 
 const IconWrapper = styled('div')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   margin-bottom: ${space(1)};
 `;
 

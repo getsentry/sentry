@@ -144,7 +144,7 @@ const HeaderButton = styled('button')<{disabled?: boolean}>`
 
   background: none;
   border: none;
-  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+  color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray600)};
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   font-size: ${p => p.theme.fontSizeSmall};
 
@@ -158,7 +158,7 @@ const HeaderButton = styled('button')<{disabled?: boolean}>`
 
   &:hover,
   &:active {
-    color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
+    color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray700)};
   }
 `;
 
@@ -167,7 +167,7 @@ const HeaderDownloadButton = styled(DataExport)<{disabled: boolean}>`
   border: none;
   font-weight: normal;
   box-shadow: none;
-  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+  color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray600)};
 
   padding: 0;
   margin: 0;
@@ -182,7 +182,7 @@ const HeaderDownloadButton = styled(DataExport)<{disabled: boolean}>`
 
   &:hover,
   &:active {
-    color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray4)};
+    color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray700)};
     box-shadow: none;
   }
 `;

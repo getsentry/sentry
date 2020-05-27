@@ -58,7 +58,7 @@ const FooterLink = styled(ExternalLink)`
 
 const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-weight: bold;
   margin-left: ${space(1)};
 `;

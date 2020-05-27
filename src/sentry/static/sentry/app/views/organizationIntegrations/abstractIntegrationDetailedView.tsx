@@ -473,7 +473,7 @@ const DisableWrapper = styled('div')`
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-weight: 600;
   font-size: 12px;
 `;

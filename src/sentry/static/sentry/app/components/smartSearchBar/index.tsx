@@ -63,7 +63,7 @@ const getInputButtonStyles = (p: {
   isActive?: boolean;
   collapseIntoEllipsisMenu?: number;
 }) => `
-  color: ${p.isActive ? theme.blueLight : theme.gray2};
+  color: ${p.isActive ? theme.blueLight : theme.gray500};
   margin-left: ${space(0.5)};
   width: 18px;
 
@@ -74,7 +74,7 @@ const getInputButtonStyles = (p: {
   }
 
   &:hover {
-    color: ${theme.gray3};
+    color: ${theme.gray600};
   }
 
   ${p.collapseIntoEllipsisMenu &&
@@ -85,7 +85,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
-  color: ${theme.gray4};
+  color: ${theme.gray700};
   align-items: center;
   min-width: 190px;
   height: 38px;
@@ -95,7 +95,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.gray1}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.gray400}`};
     border-radius: 0;
   }
 
@@ -1248,7 +1248,7 @@ const Container = styled('div')<{isOpen: boolean}>`
   display: flex;
 
   .show-sidebar & {
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
   }
 `;
 
@@ -1261,7 +1261,7 @@ const StyledForm = styled('form')`
 `;
 
 const StyledInput = styled('input')`
-  color: ${p => p.theme.foreground};
+  color: ${p => p.theme.gray700};
   background: transparent;
   border: 0;
   outline: none;
@@ -1273,7 +1273,7 @@ const StyledInput = styled('input')`
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {
-    color: ${p => p.theme.gray1};
+    color: ${p => p.theme.gray400};
   }
   &:focus {
     border-color: ${p => p.theme.borderDark};
@@ -1333,5 +1333,5 @@ const SearchLabel = styled('label')`
   align-items: center;
   margin: 0;
   padding-left: ${space(1)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;

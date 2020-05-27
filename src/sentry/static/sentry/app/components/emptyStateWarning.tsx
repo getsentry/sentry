@@ -24,7 +24,7 @@ const EmptyStateWarning = ({
   small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconWarning color={theme.gray2} size="lg" />}
+        {withIcon && <StyledIconWarning color={theme.gray500} size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
@@ -60,7 +60,7 @@ const EmptyStreamWrapper = styled('div')`
 const SmallMessage = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1em;
 `;

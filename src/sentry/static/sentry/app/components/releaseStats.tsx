@@ -40,7 +40,7 @@ ReleaseStats.propTypes = {
 };
 
 const ReleaseSummaryHeading = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;
   font-weight: 600;

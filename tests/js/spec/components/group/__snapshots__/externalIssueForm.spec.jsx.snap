@@ -1460,7 +1460,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 autoload={true}
                                                 backspaceRemoves={false}
                                                 cache={false}
-                                                className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                className="css-1miq8qr-StyledSelect e1ynsgsr0"
                                                 clearable={false}
                                                 default="scefali/test"
                                                 deleteRemoves={false}
@@ -1648,7 +1648,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   autoload={true}
                                                   backspaceRemoves={false}
                                                   cache={false}
-                                                  className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                  className="css-1miq8qr-StyledSelect e1ynsgsr0"
                                                   clearable={false}
                                                   default="scefali/test"
                                                   deleteRemoves={false}
@@ -1841,7 +1841,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     backspaceRemoves={false}
                                                     backspaceToRemoveMessage="Press backspace to remove {label}"
                                                     cache={false}
-                                                    className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                    className="css-1miq8qr-StyledSelect e1ynsgsr0"
                                                     clearAllText="Clear all"
                                                     clearRenderer={[Function]}
                                                     clearValueText="Clear value"
@@ -2046,7 +2046,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     valueKey="value"
                                                   >
                                                     <div
-                                                      className="Select css-140v9or-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
+                                                      className="Select css-1miq8qr-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
                                                     >
                                                       <div
                                                         className="Select-control"
@@ -3357,7 +3357,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                 autoload={true}
                                                 backspaceRemoves={false}
                                                 cache={false}
-                                                className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                className="css-1miq8qr-StyledSelect e1ynsgsr0"
                                                 clearable={false}
                                                 default=""
                                                 deleteRemoves={false}
@@ -3533,7 +3533,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                   autoload={true}
                                                   backspaceRemoves={false}
                                                   cache={false}
-                                                  className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                  className="css-1miq8qr-StyledSelect e1ynsgsr0"
                                                   clearable={false}
                                                   default=""
                                                   deleteRemoves={false}
@@ -3714,7 +3714,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     backspaceRemoves={false}
                                                     backspaceToRemoveMessage="Press backspace to remove {label}"
                                                     cache={false}
-                                                    className="css-140v9or-StyledSelect e1ynsgsr0"
+                                                    className="css-1miq8qr-StyledSelect e1ynsgsr0"
                                                     clearAllText="Clear all"
                                                     clearRenderer={[Function]}
                                                     clearValueText="Clear value"
@@ -3918,7 +3918,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                                     valueKey="value"
                                                   >
                                                     <div
-                                                      className="Select css-140v9or-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
+                                                      className="Select css-1miq8qr-StyledSelect e1ynsgsr0 is-loading is-searchable Select--single"
                                                     >
                                                       <div
                                                         className="Select-control"
@@ -4620,7 +4620,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         value="Default Value"
                                       >
                                         <ForwardRef
-                                          className="css-1eaosb4-TextArea e1oph3pe0"
+                                          className="css-1g9y5dx-TextArea e1oph3pe0"
                                           default="Default Value"
                                           disabled={false}
                                           id="comment"
@@ -4633,7 +4633,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           value="Default Value"
                                         >
                                           <textarea
-                                            className="css-1eaosb4-TextArea e1oph3pe0"
+                                            className="css-1g9y5dx-TextArea e1oph3pe0"
                                             default="Default Value"
                                             disabled={false}
                                             id="comment"

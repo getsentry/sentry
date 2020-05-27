@@ -19,7 +19,7 @@ const BulletList = styled('ul')`
       display: block;
       height: 8px;
       width: 8px;
-      background: ${p => p.theme.gray6};
+      background: ${p => p.theme.gray400};
       border-radius: 50%;
     }
   }

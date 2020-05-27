@@ -492,16 +492,16 @@ const SuggestionItem = styled('li')<{active: boolean}>`
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
   cursor: pointer;
-  background: ${p => (p.active ? p.theme.offWhiteLight : p.theme.white)};
+  background: ${p => (p.active ? p.theme.gray200 : p.theme.white)};
   :hover {
-    background: ${p => (p.active ? p.theme.offWhiteLight : p.theme.offWhite)};
+    background: ${p => (p.active ? p.theme.gray200 : p.theme.gray100)};
   }
 `;
 
 const SuggestionDescription = styled('div')`
   display: flex;
   overflow: hidden;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const SuggestionsOverlay = styled('div')`

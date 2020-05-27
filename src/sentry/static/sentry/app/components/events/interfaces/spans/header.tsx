@@ -479,7 +479,7 @@ const TimeAxis = styled('div')`
   border-top: 1px solid ${p => p.theme.borderDark};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.white};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: 10px;
   font-weight: 500;
 `;
@@ -599,7 +599,7 @@ const ViewHandleContainer = styled('div')`
 
 const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
-  background-color: ${p => p.theme.gray5};
+  background-color: ${p => p.theme.gray800};
   cursor: col-resize;
   width: 8px;
   height: ${VIEW_HANDLE_HEIGHT}px;

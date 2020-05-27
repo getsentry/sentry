@@ -348,5 +348,5 @@ const StyledErrorsOnlyButton = styled(Button)`
 
 const StyledInlineSvg = styled(InlineSvg)`
   margin-left: 6px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;

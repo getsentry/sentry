@@ -55,7 +55,7 @@ class HealthChart extends React.Component<Props> {
           scale: true,
           axisLabel: {
             formatter: '{value}%',
-            color: theme.gray1,
+            color: theme.gray400,
           },
         };
       case YAxis.SESSION_DURATION:

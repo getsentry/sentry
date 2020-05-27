@@ -78,7 +78,7 @@ export const GroupingValue = styled('code')<{valueType: string}>`
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
-  color: ${p => (p.isContributing ? null : p.theme.gray6)};
+  color: ${p => (p.isContributing ? null : p.theme.gray400)};
 
   ${GroupingValue}, button {
     opacity: ${p => (p.isContributing ? 1 : 0.6)};

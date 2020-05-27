@@ -85,7 +85,7 @@ ResolutionBox.propTypes = {
 };
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

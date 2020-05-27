@@ -217,7 +217,7 @@ const PercentageLabel = styled('div')`
 const BarWrapper = styled('div')`
   flex: 1;
   margin-right: ${space(1)};
-  background-color: ${p => p.theme.whiteDark};
+  background-color: ${p => p.theme.gray100};
 `;
 
 const Percentage = styled('div')`

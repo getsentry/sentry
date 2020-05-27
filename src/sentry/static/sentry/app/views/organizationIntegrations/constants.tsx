@@ -7,9 +7,9 @@ export const LEARN_MORE = 'Learn More' as const;
 
 export const COLORS = {
   [INSTALLED]: 'success',
-  [NOT_INSTALLED]: 'gray2',
+  [NOT_INSTALLED]: 'gray500',
   [PENDING]: 'yellowOrange',
-  [LEARN_MORE]: 'gray2',
+  [LEARN_MORE]: 'gray500',
 } as const;
 
 /**

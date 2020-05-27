@@ -272,7 +272,7 @@ export const StyledPageHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   height: 40px;
   margin-bottom: ${space(1)};
 `;

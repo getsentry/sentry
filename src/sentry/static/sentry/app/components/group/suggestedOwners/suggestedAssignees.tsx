@@ -51,7 +51,7 @@ export {SuggestedAssignees};
 
 const StyledSmall = styled('small')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   line-height: 100%;
 `;
 

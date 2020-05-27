@@ -122,7 +122,7 @@ const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
 const Address = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.foreground};
+  color: ${p => p.theme.gray700};
   letter-spacing: -0.25px;
   width: 100%;
   flex-grow: 0;

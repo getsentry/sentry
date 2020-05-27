@@ -48,7 +48,7 @@ const BreadCrumbIconWrapper = styled('div')<{color?: Color; borderColor?: Color}
   position: relative;
   color: ${p => (p.color ? p.theme[p.color] : 'inherit')};
   border-color: ${p => (p.borderColor ? p.theme[p.borderColor] : 'currentColor')};
-  border: 1px solid ${p => (p.color ? p.theme[p.color] : p.theme.gray2)};
+  border: 1px solid ${p => (p.color ? p.theme[p.color] : p.theme.gray500)};
 `;
 
 export {BreadCrumb, BreadCrumbIconWrapper};

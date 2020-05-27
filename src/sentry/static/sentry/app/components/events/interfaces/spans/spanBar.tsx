@@ -823,9 +823,9 @@ const getBackgroundColor = ({
   }
 
   if (showDetail) {
-    return theme.gray5;
+    return theme.gray800;
   }
-  return showStriping ? theme.offWhite : theme.white;
+  return showStriping ? theme.gray100 : theme.white;
 };
 
 type SpanRowCellProps = OmitHtmlDivProps<{
@@ -871,7 +871,7 @@ export const DividerLine = styled('div')`
   z-index: ${zIndex.dividerLine};
 
   &.hovering {
-    background-color: ${p => p.theme.gray5};
+    background-color: ${p => p.theme.gray800};
     width: 2px;
     cursor: col-resize;
   }
@@ -918,14 +918,15 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
 const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray1};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray400};
   position: absolute;
   top: 0;
 
   &:before {
     content: '';
     height: 1px;
-    border-bottom: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray1};
+    border-bottom: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
+      ${p => p.theme.gray400};
 
     width: 100%;
     position: absolute;
@@ -934,7 +935,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
 
   &:after {
     content: '';
-    background-color: ${p => p.theme.gray1};
+    background-color: ${p => p.theme.gray400};
     border-radius: 4px;
     height: 3px;
     width: 3px;
@@ -947,7 +948,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
 const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray1};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray400};
   top: -5px;
   position: absolute;
 `;
@@ -966,7 +967,7 @@ const getTogglerTheme = ({
   if (disabled) {
     return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.gray1};
+    border: 1px solid ${theme.gray400};
     color: ${buttonTheme.color};
     cursor: default;
   `;
@@ -974,7 +975,7 @@ const getTogglerTheme = ({
 
   return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.gray1};
+    border: 1px solid ${theme.gray400};
     color: ${buttonTheme.color};
   `;
 };
@@ -1017,7 +1018,7 @@ const getDurationPillAlignment = ({
     default:
       return `
         right: ${space(0.75)};
-        color: ${spanBarHatch === true ? theme.gray2 : theme.white};
+        color: ${spanBarHatch === true ? theme.gray500 : theme.white};
       `;
   }
 };
@@ -1034,7 +1035,7 @@ const DurationPill = styled('div')<{
   transform: translateY(-50%);
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => (p.showDetail === true ? p.theme.gray1 : p.theme.gray2)};
+  color: ${p => (p.showDetail === true ? p.theme.gray400 : p.theme.gray500)};
 
   ${getDurationPillAlignment}
 

@@ -69,7 +69,7 @@ class DataPrivacyRulesPanelFormSelectControl extends React.Component<Props> {
 export default DataPrivacyRulesPanelFormSelectControl;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const Wrapper = styled('div')<{isSelected?: boolean}>`

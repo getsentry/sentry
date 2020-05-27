@@ -158,7 +158,7 @@ const StyledUserAvatar = styled(UserAvatar)`
 
 const AuthorName = styled('div')`
   font-weight: 600;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   padding-right: ${space(0.5)};
   ${overflowEllipsis};
 `;
@@ -171,13 +171,13 @@ const Stats = styled('div')`
 `;
 
 const Commits = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const Percent = styled('div')`
   min-width: 40px;
   text-align: right;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const StyledButton = styled(Button)`

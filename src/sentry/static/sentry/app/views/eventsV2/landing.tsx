@@ -327,7 +327,7 @@ export const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   justify-content: space-between;
   margin-bottom: ${space(2)};
 `;

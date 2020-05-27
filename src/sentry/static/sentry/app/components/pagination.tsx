@@ -96,5 +96,5 @@ export default styled(Pagination)`
 // TODO this component and the icons should be replaced with IconChevron but
 // that icon has rendering issues on percy.
 const IconSpan = styled('span')<{disabled: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.foreground)};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray700)};
 `;

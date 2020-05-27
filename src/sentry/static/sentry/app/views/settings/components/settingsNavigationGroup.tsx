@@ -60,7 +60,7 @@ const NavSection = styled('div')`
 `;
 
 const SettingsHeading = styled('div')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
