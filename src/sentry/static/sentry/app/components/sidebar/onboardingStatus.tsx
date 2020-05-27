@@ -104,7 +104,7 @@ class OnboardingStatus extends React.Component<Props> {
 
 const Heading = styled('div')`
   transition: color 100ms;
-  font-size: ${p => p.theme.offWhite};
+  font-size: ${p => p.theme.gray100};
   color: ${p => p.theme.gray1};
   margin-bottom: ${space(0.25)};
 `;

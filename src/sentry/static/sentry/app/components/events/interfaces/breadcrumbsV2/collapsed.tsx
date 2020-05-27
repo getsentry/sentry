@@ -25,7 +25,7 @@ export {Collapsed};
 
 const Wrapper = styled(GridCellLeft)`
   cursor: pointer;
-  background: ${p => p.theme.whiteDark};
+  background: ${p => p.theme.gray100};
   font-size: ${p => p.theme.fontSizeMedium};
   grid-column-start: 1;
   grid-column-end: -1;

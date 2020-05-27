@@ -97,7 +97,7 @@ const StyledPanelBody = styled(PanelBody)`
 `;
 
 const Placeholder = styled('div')`
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   height: 237px;
 `;
 

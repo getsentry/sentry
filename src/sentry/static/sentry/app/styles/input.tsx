@@ -45,7 +45,7 @@ const inputStyles = (props: Props) =>
     }
 
     &[disabled] {
-      background: ${props.theme.whiteDark};
+      background: ${props.theme.gray100};
       color: ${props.theme.gray2};
       border: 1px solid ${props.theme.borderDark};
       cursor: not-allowed;

@@ -155,7 +155,7 @@ const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
 
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   color: ${p => p.theme.gray2};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -178,7 +178,7 @@ const SearchListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
   }
 `;
 

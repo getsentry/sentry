@@ -94,7 +94,7 @@ const PillValue = styled(PillName)<PillValueProps>`
         `;
       default:
         return `
-          background: ${p.theme.whiteDark};
+          background: ${p.theme.gray100};
         `;
     }
   }}

@@ -3,6 +3,8 @@ import color from 'color';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
+  white: '#FFFFFF',
+
   gray100: '#FAF9FB',
   gray200: '#F2F0F5',
   gray300: '#E7E1EC',
@@ -54,12 +56,12 @@ const colors = {
   pink400: '#E1567C',
   pink500: '#902D4C',
 
-  // Colors
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Old Colors
   offWhite: '#FAF9FB',
   offWhiteLight: '#F2F0F5',
   offWhite2: '#E7E1EC',
 
-  white: '#FFFFFF',
   whiteDark: '#fbfbfc',
   foreground: '#493E54',
 
@@ -137,7 +139,7 @@ const warning = {
 
 const alert = {
   muted: {
-    backgroundLight: colors.offWhite,
+    backgroundLight: colors.gray100,
     background: colors.gray1,
     iconColor: 'inherit',
     border: colors.gray6,

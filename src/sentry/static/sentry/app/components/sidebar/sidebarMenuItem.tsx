@@ -36,7 +36,7 @@ const menuItemStyles = (
   &:hover,
   &:active,
   &.focus-visible {
-    background: ${p.theme.offWhite};
+    background: ${p.theme.gray100};
     color: ${p.theme.gray5};
     outline: none;
   }

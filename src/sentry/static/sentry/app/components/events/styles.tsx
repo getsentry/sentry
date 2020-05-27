@@ -5,7 +5,7 @@ import theme from 'app/utils/theme';
 
 const COLORS = {
   default: {
-    background: theme.whiteDark,
+    background: theme.gray100,
     border: theme.borderLight,
   },
   danger: {

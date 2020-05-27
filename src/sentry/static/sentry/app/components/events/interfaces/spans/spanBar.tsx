@@ -825,7 +825,7 @@ const getBackgroundColor = ({
   if (showDetail) {
     return theme.gray5;
   }
-  return showStriping ? theme.offWhite : theme.white;
+  return showStriping ? theme.gray100 : theme.white;
 };
 
 type SpanRowCellProps = OmitHtmlDivProps<{

@@ -81,7 +81,7 @@ const PanelContainer = styled('div')`
   display: flex;
   flex-direction: column;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
-  background: ${p => p.theme.whiteDark};
+  background: ${p => p.theme.gray100};
   color: ${p => p.theme.sidebar.background};
   border-right: 1px solid ${p => p.theme.borderLight};
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
