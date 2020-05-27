@@ -20,6 +20,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {IconCheckmark} from 'app/icons';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import Button from 'app/components/button';
 
 import {Incident, IncidentStats} from '../types';
 import {isOpen} from '../utils';
@@ -36,30 +37,6 @@ type Props = {
 };
 
 export default class DetailsHeader extends React.Component<Props> {
-  renderStatus() {
-    const {incident, onStatusChange} = this.props;
-
-    const isIncidentOpen = incident && isOpen(incident);
-    const statusLabel = incident ? <Status incident={incident} /> : null;
-
-    return isIncidentOpen ? (
-      <DropdownControl
-        data-test-id="status-dropdown"
-        label={statusLabel}
-        menuWidth="200px"
-        alignRight
-        buttonProps={{size: 'small', disabled: !incident}}
-      >
-        <StatusMenuItem onSelect={onStatusChange}>
-          <IconCheckmark isCircled color={theme.greenLight} />
-          {t('Resolve this incident')}
-        </StatusMenuItem>
-      </DropdownControl>
-    ) : (
-      statusLabel
-    );
-  }
-
   render() {
     const {
       hasIncidentDetailsError,
@@ -69,89 +46,92 @@ export default class DetailsHeader extends React.Component<Props> {
       onSubscriptionChange,
     } = this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
-    const dateStarted = incident && moment(incident.dateStarted).format('LL');
+    const dateStarted = incident && moment(new Date(incident.dateStarted)).format('llll');
     const duration =
       incident &&
-      moment
-        .duration(
-          moment(incident.dateClosed || new Date()).diff(moment(incident.dateStarted))
-        )
-        .as('seconds');
+      moment(incident.dateClosed ? new Date(incident.dateClosed) : new Date()).diff(
+        moment(new Date(incident.dateStarted)),
+        'seconds'
+      );
 
     const project = incident && incident.projects && incident.projects[0];
 
     return (
-      <Header>
-        <PageHeading>
+      <React.Fragment>
+        <BreadCrumbBar>
           <AlertBreadcrumbs
             crumbs={[
               {label: t('Alerts'), to: `/organizations/${params.orgId}/alerts/`},
-              {label: dateStarted ?? t('Alert details')},
+              {label: incident && `#${incident.id}`},
             ]}
           />
-          <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
-            {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
-          </IncidentTitle>
-        </PageHeading>
+          <AlertControls>
+            <Button size="small">{t('Subscribe')}</Button>
+            <Button size="small">{t('Resolve')}</Button>
+          </AlertControls>
+        </BreadCrumbBar>
+        <Header>
+          <div>
+            <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
+              {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
+            </IncidentTitle>
+            <IncidentSubTitle loading={!isIncidentReady}>
+              Triggered: {dateStarted}
+            </IncidentSubTitle>
+          </div>
 
-        {hasIncidentDetailsError ? (
-          <StyledLoadingError />
-        ) : (
-          <GroupedHeaderItems>
-            <ItemTitle>{t('Status')}</ItemTitle>
-            <ItemTitle>{t('Project')}</ItemTitle>
-            <ItemTitle>{t('Users affected')}</ItemTitle>
-            <ItemTitle>{t('Total events')}</ItemTitle>
-            <ItemTitle>{t('Duration')}</ItemTitle>
-            <ItemTitle>{t('Notifications')}</ItemTitle>
-            <ItemValue>{this.renderStatus()}</ItemValue>
-            <ItemValue>
-              {project && (
-                <Projects slugs={[project]} orgId={params.orgId}>
-                  {({projects}) => (
-                    <ProjectBadge
-                      avatarSize={18}
-                      project={projects && projects.length && projects[0]}
-                    />
-                  )}
-                </Projects>
+          {hasIncidentDetailsError ? (
+            <StyledLoadingError />
+          ) : (
+            <GroupedHeaderItems>
+              <ItemTitle>{t('Status')}</ItemTitle>
+              <ItemTitle>{t('Project')}</ItemTitle>
+              <ItemTitle>{t('Users affected')}</ItemTitle>
+              <ItemTitle>{t('Total events')}</ItemTitle>
+              <ItemTitle>{t('Duration')}</ItemTitle>
+              <ItemValue>{incident && <Status incident={incident} />}</ItemValue>
+              <ItemValue>
+                {project && (
+                  <Projects slugs={[project]} orgId={params.orgId}>
+                    {({projects}) => (
+                      <ProjectBadge
+                        avatarSize={18}
+                        project={projects && projects.length && projects[0]}
+                      />
+                    )}
+                  </Projects>
+                )}
+              </ItemValue>
+              {stats && (
+                <ItemValue>
+                  <Count value={stats.uniqueUsers} />
+                </ItemValue>
               )}
-            </ItemValue>
-            {stats && (
-              <ItemValue>
-                <Count value={stats.uniqueUsers} />
-              </ItemValue>
-            )}
-            {stats && (
-              <ItemValue>
-                <Count value={stats.totalEvents} />
-              </ItemValue>
-            )}
-            {incident && (
-              <ItemValue>
-                <Duration seconds={getDynamicText({value: duration || 0, fixed: 1200})} />
-              </ItemValue>
-            )}
-            <ItemValue>
-              <SubscribeButton
-                disabled={!isIncidentReady}
-                isSubscribed={incident && !!incident.isSubscribed}
-                onClick={onSubscriptionChange}
-                size="small"
-              />
-            </ItemValue>
-          </GroupedHeaderItems>
-        )}
-      </Header>
+              {stats && (
+                <ItemValue>
+                  <Count value={stats.totalEvents} />
+                </ItemValue>
+              )}
+              {incident && (
+                <ItemValue>
+                  <Duration
+                    seconds={getDynamicText({value: duration || 0, fixed: 1200})}
+                  />
+                </ItemValue>
+              )}
+            </GroupedHeaderItems>
+          )}
+        </Header>
+      </React.Fragment>
     );
   }
 }
 
 const Header = styled(PageHeader)`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   margin-bottom: 0;
-  padding: ${space(3)};
+  padding: ${space(2)} ${space(4)};
 
   grid-template-columns: max-content auto;
   display: grid;
@@ -164,6 +144,22 @@ const Header = styled(PageHeader)`
   }
 `;
 
+const BreadCrumbBar = styled(Header)`
+  border-bottom: 0;
+  padding: ${space(2)} ${space(4)} 0 ${space(4)};
+`;
+
+const AlertBreadcrumbs = styled(Breadcrumbs)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  padding: 0;
+`;
+
+const AlertControls = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+`;
+
 const StyledLoadingError = styled(LoadingError)`
   flex: 1;
 
@@ -174,9 +170,10 @@ const StyledLoadingError = styled(LoadingError)`
 
 const GroupedHeaderItems = styled('div')`
   display: grid;
-  grid-template-columns: repeat(6, max-content);
+  grid-template-columns: repeat(5, max-content);
   grid-gap: ${space(1)} ${space(4)};
   text-align: right;
+  margin-top: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     text-align: left;
@@ -198,16 +195,19 @@ const ItemValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-const AlertBreadcrumbs = styled(Breadcrumbs)`
-  font-size: ${p => p.theme.fontSizeLarge};
-  padding: 0;
-  margin-bottom: ${space(1)};
-`;
-
-const IncidentTitle = styled('div', {
+const IncidentTitle = styled(PageHeading, {
   shouldForwardProp: p => isPropValid(p) && p !== 'loading',
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
+  line-height: 1.5;
+`;
+
+const IncidentSubTitle = styled('div', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+})<{loading: boolean}>`
+  ${p => p.loading && 'opacity: 0'};
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.gray2};
 `;
 
 const StatusMenuItem = styled(MenuItem)`
