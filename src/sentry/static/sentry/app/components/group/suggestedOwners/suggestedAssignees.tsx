@@ -7,8 +7,9 @@ import ActorAvatar from 'app/components/avatar/actorAvatar';
 import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
 import {Actor, Commit} from 'app/types';
 import space from 'app/styles/space';
+import {Heading} from 'app/components/heading';
 
-import {Wrapper, Header, Heading} from './styles';
+import {Wrapper, Header} from './styles';
 
 type Owner = {
   actor: Actor;
@@ -24,7 +25,7 @@ type Props = {
 const SuggestedAssignees = ({owners, onAssign}: Props) => (
   <Wrapper>
     <Header>
-      <Heading>{t('Suggested Assignees')}</Heading>
+      <Heading is="h6">{t('Suggested Assignees')}</Heading>
       <StyledSmall>{t('Click to assign')}</StyledSmall>
     </Header>
     <Content>

@@ -7,11 +7,12 @@ import {openCreateOwnershipRule} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import {Heading} from 'app/components/heading';
 import Hovercard from 'app/components/hovercard';
 import space from 'app/styles/space';
 import {Project, Organization} from 'app/types';
 
-import {Wrapper, Header, Heading} from './styles';
+import {Wrapper, Header} from './styles';
 
 type Props = {
   project: Project;
@@ -27,7 +28,7 @@ const OwnershipRules = ({project, organization, issueId}: Props) => {
   return (
     <Wrapper>
       <Header>
-        <Heading>{t('Ownership Rules')}</Heading>
+        <Heading is="h6">{t('Ownership Rules')}</Heading>
         <ClassNames>
           {({css}) => (
             <Hovercard
