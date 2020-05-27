@@ -1091,7 +1091,8 @@ exports[`Project Ownership Input renders 1`] = `
       onChange={[Function]}
       placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
-url:http://example.com/settings/* #product"
+url:http://example.com/settings/* #product
+tags.sku_class:enterprise #enterprise"
       rows={1}
       spellCheck="false"
       value="new"
@@ -1105,7 +1106,8 @@ url:http://example.com/settings/* #product"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
-url:http://example.com/settings/* #product"
+url:http://example.com/settings/* #product
+tags.sku_class:enterprise #enterprise"
         rows={1}
         spellCheck="false"
         value="new"
@@ -1119,7 +1121,8 @@ url:http://example.com/settings/* #product"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
-url:http://example.com/settings/* #product"
+url:http://example.com/settings/* #product
+tags.sku_class:enterprise #enterprise"
           rows={1}
           spellCheck="false"
           value="new"

@@ -3,9 +3,20 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 type Props = React.ComponentProps<typeof Button> & {
+  /**
+   * The fixed prefix text to show in the button eg: 'Sort By'
+   */
+  prefix?: React.ReactNode;
+  /**
+   * Whether or not the button should render as open
+   */
   isOpen?: boolean;
+  /**
+   * Should a chevron icon be shown?
+   */
   showChevron?: boolean;
   forwardedRef?: React.Ref<typeof Button>;
 };
@@ -14,10 +25,12 @@ const DropdownButton = ({
   isOpen,
   children,
   forwardedRef,
+  prefix,
   showChevron = false,
   ...props
 }: Props) => (
   <StyledButton type="button" isOpen={isOpen} ref={forwardedRef} {...props}>
+    {prefix && <LabelText>{prefix}:</LabelText>}
     {children}
     {showChevron && <StyledChevronDown />}
   </StyledButton>
@@ -46,6 +59,12 @@ const StyledButton = styled(Button)<Pick<Props, 'isOpen' | 'disabled'>>`
   &:hover {
     border-bottom-color: ${p => (p.isOpen ? 'transparent' : p.theme.borderDark)};
   }
+`;
+
+const LabelText = styled('em')`
+  font-style: normal;
+  color: ${p => p.theme.gray2};
+  padding-right: ${space(0.75)};
 `;
 
 export default React.forwardRef<typeof Button, Props>((props, ref) => (
