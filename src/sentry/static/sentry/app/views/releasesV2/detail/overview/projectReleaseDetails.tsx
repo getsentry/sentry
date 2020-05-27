@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Release} from 'app/types';
+import {ReleaseWithHealth} from 'app/types';
 import Version from 'app/components/version';
 import TimeSince from 'app/components/timeSince';
 import DateTime from 'app/components/dateTime';
@@ -11,7 +11,7 @@ import DateTime from 'app/components/dateTime';
 import {SectionHeading, Wrapper} from './styles';
 
 type Props = {
-  release: Release;
+  release: ReleaseWithHealth;
 };
 
 const ProjectReleaseDetails = ({release}: Props) => {
