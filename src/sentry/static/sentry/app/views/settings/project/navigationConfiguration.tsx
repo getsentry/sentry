@@ -65,6 +65,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/android-mappings/`,
           title: t('Android Mappings'),
+          show: () => organization.features?.includes('android-mappings'),
         },
         {
           path: `${pathPrefix}/data-privacy/`,
