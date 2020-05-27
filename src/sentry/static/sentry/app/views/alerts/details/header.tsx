@@ -18,12 +18,11 @@ import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 import {IconCheckmark} from 'app/icons';
 import Breadcrumbs from 'app/components/breadcrumbs';
-import Button from 'app/components/button';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 import DropdownControl from 'app/components/dropdownControl';
 import theme from 'app/utils/theme';
 
-import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {Incident, IncidentStats} from '../types';
 import Status from '../status';
 import {isOpen} from '../utils';
 
@@ -44,21 +43,17 @@ export default class DetailsHeader extends React.Component<Props> {
     const isIncidentOpen = incident && isOpen(incident);
     const statusLabel = incident ? <Status incident={incident} /> : null;
 
-    return isIncidentOpen ? (
+    return (
       <DropdownControl
         data-test-id="status-dropdown"
         label={statusLabel}
-        menuWidth="200px"
-        alignRight
-        buttonProps={{size: 'small', disabled: !incident}}
+        buttonProps={{size: 'small', disabled: !incident || !isIncidentOpen}}
       >
         <StatusMenuItem onSelect={onStatusChange}>
-          <IconCheckmark isCircled color={theme.greenLight} />
-          {t('Resolve this alert')}
+          <IconCheckmark color={theme.greenLight} />
+          {t('Resolve')}
         </StatusMenuItem>
       </DropdownControl>
-    ) : (
-      statusLabel
     );
   }
 
@@ -69,7 +64,6 @@ export default class DetailsHeader extends React.Component<Props> {
       params,
       stats,
       onSubscriptionChange,
-      onStatusChange,
     } = this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
     const dateStarted = incident && moment(new Date(incident.dateStarted)).format('llll');
@@ -80,6 +74,7 @@ export default class DetailsHeader extends React.Component<Props> {
         'seconds'
       );
     const isErrorDataset = incident?.alertRule?.dataset === Dataset.ERRORS;
+    const environmentLabel = incident?.alertRule?.environment ?? t('All Environments');
 
     const project = incident && incident.projects && incident.projects[0];
 
@@ -99,14 +94,7 @@ export default class DetailsHeader extends React.Component<Props> {
               onClick={onSubscriptionChange}
               size="small"
             />
-            <Button
-              icon={<IconCheckmark />}
-              disabled={!isIncidentReady || incident?.status === IncidentStatus.CLOSED}
-              size="small"
-              onClick={onStatusChange}
-            >
-              {t('Resolve')}
-            </Button>
+            {this.renderStatus()}
           </AlertControls>
         </BreadCrumbBar>
         <Header>
@@ -122,13 +110,13 @@ export default class DetailsHeader extends React.Component<Props> {
           {hasIncidentDetailsError ? (
             <StyledLoadingError />
           ) : (
-            <GroupedHeaderItems>
-              <ItemTitle>{t('Status')}</ItemTitle>
+            <GroupedHeaderItems columns={isErrorDataset ? 5 : 3}>
+              <ItemTitle>{t('Environment')}</ItemTitle>
               <ItemTitle>{t('Project')}</ItemTitle>
               {isErrorDataset && stats && <ItemTitle>{t('Users affected')}</ItemTitle>}
               {isErrorDataset && stats && <ItemTitle>{t('Total events')}</ItemTitle>}
-              <ItemTitle>{t('Duration')}</ItemTitle>
-              <ItemValue>{incident && <Status incident={incident} />}</ItemValue>
+              <ItemTitle>{t('Active For')}</ItemTitle>
+              <ItemValue>{environmentLabel}</ItemValue>
               <ItemValue>
                 {project && (
                   <Projects slugs={[project]} orgId={params.orgId}>
@@ -169,7 +157,7 @@ export default class DetailsHeader extends React.Component<Props> {
 const BreadCrumbBar = styled('div')`
   background-color: ${p => p.theme.offWhite};
   margin-bottom: 0;
-  padding: ${space(2)} ${space(4)};
+  padding: ${space(2)} ${space(4)} ${space(1)};
 
   display: flex;
 `;
@@ -211,9 +199,9 @@ const StyledLoadingError = styled(LoadingError)`
   }
 `;
 
-const GroupedHeaderItems = styled('div')`
+const GroupedHeaderItems = styled('div')<{columns: number}>`
   display: grid;
-  grid-template-columns: repeat(5, max-content);
+  grid-template-columns: repeat(${p => p.columns}, max-content);
   grid-gap: ${space(1)} ${space(4)};
   text-align: right;
   margin-top: ${space(1)};
@@ -259,7 +247,7 @@ const StatusMenuItem = styled(MenuItem)`
     text-align: left;
     display: grid;
     grid-template-columns: max-content 1fr;
-    grid-gap: ${space(1)};
+    grid-gap: ${space(0.5)};
     align-items: center;
   }
 `;
