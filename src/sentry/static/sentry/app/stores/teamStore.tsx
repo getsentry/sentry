@@ -50,21 +50,27 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
 
     if (!item) {
       this.state.push(response);
-    } else {
-      // Slug was changed
-      // Note: This is the proper way to handle slug changes but unfortunately not all of our
-      // components use stores correctly. To be safe reload browser :((
-      if (response.slug !== itemId) {
-        // Remove old team
-        this.state = this.state.filter(({slug}) => slug !== itemId);
-        // Add team w/ updated slug
-        this.state.push(response);
-        this.trigger(new Set([response.slug]));
-        return;
-      }
-
-      $.extend(true /*deep*/, item, response);
+      this.trigger(new Set([itemId]));
+      return;
     }
+
+    // Slug was changed
+    // Note: This is the proper way to handle slug changes but unfortunately not all of our
+    // components use stores correctly. To be safe reload browser :((
+    if (response.slug !== itemId) {
+      // Remove old team
+      this.state = this.state.filter(({slug}) => slug !== itemId);
+
+      // Add team w/ updated slug
+      this.state.push(response);
+      this.trigger(new Set([response.slug]));
+      return;
+    }
+
+    const nextState = [...this.state];
+    const index = nextState.findIndex(team => team.slug === response.slug);
+    nextState[index] = response;
+    this.state = nextState;
 
     this.trigger(new Set([itemId]));
   },
