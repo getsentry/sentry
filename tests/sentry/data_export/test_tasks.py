@@ -6,6 +6,7 @@ from sentry.data_export.tasks import assemble_download
 from sentry.models import File
 from sentry.snuba.discover import InvalidSearchQuery
 from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat.mock import patch
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
@@ -27,13 +28,28 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         self.org = self.create_organization()
         self.project = self.create_project()
         self.event = self.store_event(
-            data={"tags": {"foo": "bar"}, "fingerprint": ["group-1"]}, project_id=self.project.id
+            data={
+                "tags": {"foo": "bar"},
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
         )
         self.store_event(
-            data={"tags": {"foo": "bar2"}, "fingerprint": ["group-1"]}, project_id=self.project.id
+            data={
+                "tags": {"foo": "bar2"},
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
         )
         self.store_event(
-            data={"tags": {"foo": "bar2"}, "fingerprint": ["group-1"]}, project_id=self.project.id
+            data={
+                "tags": {"foo": "bar2"},
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
         )
 
     def test_task_persistent_name(self):
