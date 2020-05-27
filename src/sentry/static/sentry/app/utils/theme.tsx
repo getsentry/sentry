@@ -146,7 +146,7 @@ const alert = {
   },
   info: {
     backgroundLight: colors.blueLightest,
-    border: colors.blueLight,
+    border: colors.blue300,
     iconColor: colors.blue,
     background: colors.blue,
   },
