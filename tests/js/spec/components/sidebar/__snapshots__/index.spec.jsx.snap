@@ -1335,7 +1335,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   class="css-1qxx2qs-ActionBar e9zebce3"
                 >
                   <div
-                    class="css-wf3dy3-CTA e9zebce5"
+                    class="css-1tn7xj7-CTA e9zebce5"
                   >
                     Setup now
                   </div>
@@ -1361,7 +1361,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   class="css-1qxx2qs-ActionBar e9zebce3"
                 >
                   <div
-                    class="css-wf3dy3-CTA e9zebce5"
+                    class="css-1tn7xj7-CTA e9zebce5"
                   >
                     Setup now
                   </div>
@@ -2620,7 +2620,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       >
                                         <CTA>
                                           <div
-                                            className="css-wf3dy3-CTA e9zebce5"
+                                            className="css-1tn7xj7-CTA e9zebce5"
                                           >
                                             Setup now
                                           </div>
@@ -3174,7 +3174,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       >
                                         <CTA>
                                           <div
-                                            className="css-wf3dy3-CTA e9zebce5"
+                                            className="css-1tn7xj7-CTA e9zebce5"
                                           >
                                             Setup now
                                           </div>
