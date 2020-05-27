@@ -88,7 +88,7 @@ const TeamBadgeContainer = createReactClass<Props, ContainerState>({
     }
 
     const team = TeamStore.getById(this.state.team.id);
-    if (isEqual(team.avatar, this.state.team.avatar)) {
+    if (!team || isEqual(team.avatar, this.state.team.avatar)) {
       return;
     }
 

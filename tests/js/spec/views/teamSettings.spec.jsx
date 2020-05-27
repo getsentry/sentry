@@ -120,7 +120,7 @@ describe('TeamSettings', function() {
     await tick();
     expect(routerPushMock).toHaveBeenCalledWith('/settings/org/teams/');
 
-    expect(TeamStore.items).toEqual([]);
+    expect(TeamStore.getAll()).toEqual([]);
 
     TeamStore.trigger.mockRestore();
   });
