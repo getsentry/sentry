@@ -60,8 +60,6 @@ class SentryInstrumentation {
    * Measures the file sizes of assets emitted from the entrypoints
    */
   measureAssetSizes(compilation) {
-    const hub = this.Sentry.getCurrentHub();
-
     [...compilation.entrypoints].forEach(([entrypointName, entry]) =>
       entry.chunks.forEach(chunk =>
         chunk.files
@@ -70,20 +68,21 @@ class SentryInstrumentation {
             const asset = compilation.assets[assetName];
             const sizeInKb = asset.size() / 1024;
 
-            const transaction = hub.startSpan({
+            const transaction = this.Sentry.startTransaction({
               op: 'webpack-asset',
-              transaction: assetName,
+              name: assetName,
               description: `webpack bundle size for ${entrypointName} -> ${assetName}`,
               data: {
                 entrypointName,
                 file: assetName,
                 size: `${Math.round(sizeInKb)} KB`,
               },
+              trimEnd: true,
             });
 
             const start = transaction.startTimestamp;
 
-            const span = hub.startSpan({
+            const span = transaction.startChild({
               op: 'asset',
               startTimestamp: start,
               description: assetName,
@@ -93,10 +92,8 @@ class SentryInstrumentation {
                 size: `${Math.round(sizeInKb)} KB`,
               },
             });
-            span.startTimestamp = start;
-            span.finish();
-            span.timestamp = start + sizeInKb / 1000;
-            transaction.finish(true);
+            span.finish(start + sizeInKb / 1000);
+            transaction.finish();
           })
       )
     );
@@ -107,19 +104,15 @@ class SentryInstrumentation {
       return;
     }
 
-    const hub = this.Sentry.getCurrentHub();
-
-    const transaction = hub.startSpan(
-      {
-        op: 'webpack-build',
-        transaction: !this.initialBuild ? 'initial-build' : 'incremental-build',
-        description: 'webpack build times',
-      },
-      true
-    );
+    const transaction = this.Sentry.startTransaction({
+      op: 'webpack-build',
+      name: !this.initialBuild ? 'initial-build' : 'incremental-build',
+      description: 'webpack build times',
+      trimEnd: true,
+    });
     transaction.startTimestamp = startTime;
 
-    const span = transaction.child({
+    const span = transaction.startChild({
       op: 'build',
       description: 'webpack build',
       data: {
@@ -131,12 +124,10 @@ class SentryInstrumentation {
           : 'N/A',
         loadavg: os.loadavg(),
       },
+      startTimestamp: startTime,
     });
-    span.startTimestamp = startTime;
-    span.finish();
-    span.timestamp = endTime;
-
-    transaction.finish(true);
+    span.finish(endTime);
+    transaction.finish();
   }
 
   apply(compiler) {
