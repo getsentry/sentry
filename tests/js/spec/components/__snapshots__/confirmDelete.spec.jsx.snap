@@ -131,7 +131,7 @@ exports[`ConfirmDelete renders 1`] = `
                                 value=""
                               >
                                 <input
-                                  className="css-gs3p5u-Input e1xej46s0"
+                                  className="css-1iurn5e-Input e1xej46s0"
                                   onChange={[Function]}
                                   placeholder="CoolOrg"
                                   type="text"
@@ -263,7 +263,7 @@ exports[`ConfirmDelete renders 1`] = `
                   aria-disabled={true}
                   aria-label="Confirm"
                   autoFocus={true}
-                  className="css-1e3hcbu-StyledButton edwq9my0"
+                  className="css-9j7ei9-StyledButton edwq9my0"
                   data-test-id="confirm-button"
                   forwardRef={null}
                   onClick={[Function]}
@@ -273,7 +273,7 @@ exports[`ConfirmDelete renders 1`] = `
                     aria-disabled={true}
                     aria-label="Confirm"
                     autoFocus={true}
-                    className="css-1e3hcbu-StyledButton edwq9my0"
+                    className="css-9j7ei9-StyledButton edwq9my0"
                     data-test-id="confirm-button"
                     onClick={[Function]}
                     role="button"
