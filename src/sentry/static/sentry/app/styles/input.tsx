@@ -11,7 +11,7 @@ type Props = {
 
 const inputStyles = (props: Props) =>
   css`
-    color: ${props.disabled ? props.theme.disabled : props.theme.gray5};
+    color: ${props.disabled ? props.theme.disabled : props.theme.gray800};
     display: block;
     width: 100%;
     background: #fff;

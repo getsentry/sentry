@@ -196,7 +196,7 @@ const PresetLink = styled(Button)<{isSelected: boolean}>`
       color: ${p.theme.gray700};
       &:hover,
       &:focus {
-        color: ${p.theme.gray5};
+        color: ${p.theme.gray800};
       }
     `}
 `;

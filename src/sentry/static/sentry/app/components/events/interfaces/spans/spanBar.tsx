@@ -823,7 +823,7 @@ const getBackgroundColor = ({
   }
 
   if (showDetail) {
-    return theme.gray5;
+    return theme.gray800;
   }
   return showStriping ? theme.gray100 : theme.white;
 };
@@ -871,7 +871,7 @@ export const DividerLine = styled('div')`
   z-index: ${zIndex.dividerLine};
 
   &.hovering {
-    background-color: ${p => p.theme.gray5};
+    background-color: ${p => p.theme.gray800};
     width: 2px;
     cursor: col-resize;
   }

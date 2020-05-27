@@ -37,7 +37,7 @@ const OrgSummary = styled('div')`
   overflow: hidden;
 `;
 const SummaryOrgName = styled('div')`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   font-size: 16px;
   line-height: 1.1;
   font-weight: bold;

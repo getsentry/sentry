@@ -184,7 +184,7 @@ const badge = {
 };
 
 const aliases = {
-  textColor: colors.gray5,
+  textColor: colors.gray800,
   success: colors.green,
   error: colors.red,
   disabled: colors.gray400,
