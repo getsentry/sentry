@@ -17,23 +17,10 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 
-import {PERFORMANCE_TERMS} from '../constants';
+import {AXIS_OPTIONS} from '../constants';
 import {HeaderContainer, HeaderTitle, ErrorPanel} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
-
-const YAXIS_OPTIONS = [
-  {
-    label: 'Apdex',
-    value: 'apdex(300)',
-    tooltip: PERFORMANCE_TERMS.apdex,
-  },
-  {
-    label: 'Transactions per Minute',
-    value: 'epm()',
-    tooltip: PERFORMANCE_TERMS.tpm,
-  },
-];
 
 type Props = {
   api: Client;
@@ -45,11 +32,20 @@ type Props = {
 };
 
 class Container extends React.Component<Props> {
+  getChartParameters() {
+    const {location} = this.props;
+    const left =
+      AXIS_OPTIONS.find(opt => opt.value === location.query.left) || AXIS_OPTIONS[0];
+    const right =
+      AXIS_OPTIONS.find(opt => opt.value === location.query.right) || AXIS_OPTIONS[1];
+
+    return [left, right];
+  }
+
   render() {
     const {api, organization, location, eventView, router, keyTransactions} = this.props;
 
     // construct request parameters for fetching chart data
-
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.start
       ? getUtcToLocalDateObject(globalSelection.start)
@@ -60,6 +56,7 @@ class Container extends React.Component<Props> {
       : undefined;
 
     const {utc} = getParams(location.query);
+    const axisOptions = this.getChartParameters();
 
     return (
       <Panel>
@@ -82,7 +79,7 @@ class Container extends React.Component<Props> {
           showLoading={false}
           query={eventView.getEventsAPIPayload(location).query}
           includePrevious={false}
-          yAxis={YAXIS_OPTIONS.map(option => option.value)}
+          yAxis={axisOptions.map(i => i.value)}
           keyTransactions={keyTransactions}
         >
           {({loading, reloading, errored, results}) => {
@@ -97,8 +94,8 @@ class Container extends React.Component<Props> {
             return (
               <React.Fragment>
                 <HeaderContainer>
-                  {YAXIS_OPTIONS.map(option => (
-                    <div key={option.label}>
+                  {axisOptions.map((option, i) => (
+                    <div key={`${option.label}:${i}`}>
                       <HeaderTitle>
                         {option.label}
                         <QuestionTooltip
@@ -134,6 +131,8 @@ class Container extends React.Component<Props> {
         </EventsRequest>
         <Footer
           api={api}
+          leftAxis={axisOptions[0].value}
+          rightAxis={axisOptions[1].value}
           organization={organization}
           eventView={eventView}
           location={location}
