@@ -87,7 +87,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         key = "%s.%s" % (mod, ty)
 
         for view in self.mapping_views:
-            frame = view.remap(key)
+            frame = view.remap(key)[0]
             if frame["class"] != key:
                 new_module, new_cls = frame["class"].rsplit(".", 1)
                 exception["module"] = new_module
