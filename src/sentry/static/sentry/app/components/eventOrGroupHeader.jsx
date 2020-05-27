@@ -180,7 +180,7 @@ const GroupLevel = styled('div')`
       case 'sample':
         return p.theme.purple;
       case 'info':
-        return p.theme.blue;
+        return p.theme.blue400;
       case 'warning':
         return p.theme.yellowOrange;
       case 'error':
