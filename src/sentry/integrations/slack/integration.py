@@ -191,6 +191,10 @@ class SlackIntegrationProvider(IntegrationProvider):
         return integration
 
     def create_audit_log_entry(self, integration, organization, request, action, extra=None):
+        super(SlackIntegrationProvider, self).create_audit_log_entry(
+            integration, organization, request, action
+        )
+
         if action == "upgrade":
             create_audit_entry(
                 request=request,
@@ -211,10 +215,6 @@ class SlackIntegrationProvider(IntegrationProvider):
                     )
 
             return
-
-        super(SlackIntegrationProvider, self).create_audit_log_entry(
-            integration, organization, request, action
-        )
 
     def post_install(self, integration, organization, extra=None):
         # normal installtions don't have extra, quit immediately
