@@ -148,7 +148,7 @@ type HasBorderProp = {
 };
 
 const RuleType = styled('div')<RowSpansProp>`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
   text-transform: uppercase;

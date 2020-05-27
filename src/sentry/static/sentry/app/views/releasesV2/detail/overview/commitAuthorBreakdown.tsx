@@ -177,7 +177,7 @@ const Commits = styled('div')`
 const Percent = styled('div')`
   min-width: 40px;
   text-align: right;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const StyledButton = styled(Button)`

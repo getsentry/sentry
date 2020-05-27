@@ -25,7 +25,7 @@ export const SectionHeading = styled('h4')`
   grid-gap: ${space(1.5)};
   align-items: center;
 
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
   padding-right: ${space(1)};
@@ -33,7 +33,7 @@ export const SectionHeading = styled('h4')`
 `;
 
 export const SectionValue = styled('span')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
 `;

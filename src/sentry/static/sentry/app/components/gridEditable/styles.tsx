@@ -30,7 +30,7 @@ export const Header = styled('div')`
 export const HeaderTitle = styled('h4')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 export const HeaderButtonContainer = styled('div')`
@@ -118,7 +118,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
   background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;

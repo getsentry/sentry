@@ -55,7 +55,7 @@ function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}
 const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};
   font-weight: normal;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 
   &:hover,
   &:focus,

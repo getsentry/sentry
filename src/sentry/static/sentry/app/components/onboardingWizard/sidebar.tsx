@@ -47,7 +47,7 @@ const Heading = styled(posed.h4())`
   margin: 0;
   font-weight: normal;
   border-bottom: 1px solid ${p => p.theme.gray300};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   padding-bottom: ${space(1)};
 `;
 

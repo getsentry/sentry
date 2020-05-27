@@ -105,7 +105,7 @@ const SubMenuCaret = styled('span')`
 
   &:hover,
   &:active {
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
   }
 `;
 

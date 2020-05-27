@@ -21,7 +21,7 @@ export {ListHeader};
 const StyledGridCell = styled(GridCell)`
   border-bottom: 1px solid ${p => p.theme.borderDark};
   background: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-weight: 600;
   text-transform: uppercase;
   line-height: 1;

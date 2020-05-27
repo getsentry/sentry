@@ -95,7 +95,7 @@ const StyledTr = styled('tr')`
 `;
 
 const TagKey = styled('td')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;

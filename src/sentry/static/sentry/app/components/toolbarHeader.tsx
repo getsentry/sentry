@@ -4,7 +4,7 @@ const ToolbarHeader = styled('div')`
   font-size: 12px;
   text-transform: uppercase;
   font-weight: bold;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 export default ToolbarHeader;

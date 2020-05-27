@@ -78,5 +78,5 @@ const Text = styled('div')`
 `;
 
 const Message = styled(Text)`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;

@@ -178,7 +178,7 @@ export const SelectListItem = styled('div')`
 export const SidebarLabel = styled('label')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 export const QueryFieldsContainer = styled('div')`
@@ -244,7 +244,7 @@ export const ChartWrapper = styled(Panel)`
 export const ChartNote = styled('div')`
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   margin-bottom: ${space(3)};
 `;
 

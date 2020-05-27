@@ -249,7 +249,7 @@ const StatsHeader = styled('h6')`
   margin-bottom: ${space(1)};
   font-size: 12px;
   text-transform: uppercase;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const StyledFooter = styled('div')`

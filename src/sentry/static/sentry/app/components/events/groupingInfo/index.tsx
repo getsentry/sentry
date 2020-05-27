@@ -162,7 +162,7 @@ const SummaryGroupedBy = styled('small')`
 
 const ToggleButton = styled(Button)`
   font-weight: 700;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   &:hover,
   &:focus {
     color: ${p => p.theme.gray4};

@@ -80,6 +80,6 @@ const OpenInLink = styled(Link)`
 `;
 
 const OpenInName = styled('strong')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-weight: 700;
 `;

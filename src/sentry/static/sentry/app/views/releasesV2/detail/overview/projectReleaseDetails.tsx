@@ -74,7 +74,7 @@ const TagKey = styled('td')`
 
 const TagValue = styled(TagKey)`
   text-align: right;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     width: 160px;
   }

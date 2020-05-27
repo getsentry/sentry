@@ -109,7 +109,7 @@ const Container = styled('div')`
 
 const StatTitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   margin: ${space(1)} 0 ${space(1.5)} 0;
 `;
 

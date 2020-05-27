@@ -144,7 +144,7 @@ const HeaderButton = styled('button')<{disabled?: boolean}>`
 
   background: none;
   border: none;
-  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray600)};
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   font-size: ${p => p.theme.fontSizeSmall};
 
@@ -167,7 +167,7 @@ const HeaderDownloadButton = styled(DataExport)<{disabled: boolean}>`
   border: none;
   font-weight: normal;
   box-shadow: none;
-  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray3)};
+  color: ${p => (p.disabled ? p.theme.gray6 : p.theme.gray600)};
 
   padding: 0;
   margin: 0;

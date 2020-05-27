@@ -74,7 +74,7 @@ const getInputButtonStyles = (p: {
   }
 
   &:hover {
-    color: ${theme.gray3};
+    color: ${theme.gray600};
   }
 
   ${p.collapseIntoEllipsisMenu &&

@@ -12,7 +12,7 @@ const EventAnnotation = styled('span')`
     color: ${p => p.theme.gray500};
 
     &:hover {
-      color: ${p => p.theme.gray3};
+      color: ${p => p.theme.gray600};
     }
   }
 `;
