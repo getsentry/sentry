@@ -9,7 +9,7 @@ from rest_framework import serializers
 from django.db import transaction
 from django.utils import timezone
 
-from sentry.api.event_search import InvalidSearchQuery
+from sentry.api.event_search import InvalidSearchQuery, resolve_field
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -58,6 +58,41 @@ string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.
 
 CRITICAL_TRIGGER_LABEL = "critical"
 WARNING_TRIGGER_LABEL = "warning"
+
+# TODO: This is temporarily needed.
+# Use a function from discover to break the aggregate down into parts, and then compare the "field"
+# to a list of accepted fields, or a list of fields we need to translate.
+# This can be dropped once snuba can handle this aliasing.
+SUPPORTED_COLUMNS = [None, "tags[sentry:user]", "transaction.duration"]
+TRANSLATABLE_COLUMNS = {
+    "user": "tags[sentry:user]",
+    "dist": "tags[sentry:dist]",
+    "release": "tags[sentry:release]",
+}
+
+
+def forward_translate_snuba_field(aggregate):
+    field = resolve_field(aggregate)
+    column = field[1][0][1]
+    if column in SUPPORTED_COLUMNS:
+        return aggregate
+    elif column in TRANSLATABLE_COLUMNS.keys():
+        return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])
+
+    return False
+
+
+def reverse_translate_snuba_field(aggregate):
+    field = resolve_field(aggregate)
+    column = field[1][0][1]
+    if column is None:
+        return aggregate
+
+    for field, translated_field in TRANSLATABLE_COLUMNS.items():
+        if translated_field == column:
+            return aggregate.replace(column, field)
+
+    return False
 
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
@@ -312,33 +347,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "include_all_projects": {"default": False},
         }
 
-    RECOGNIZED_COLUMNS = ["tags[sentry:user]", "transaction.duration"]
-    TRANSLATABLE_COLUMNS = {
-        "user": "tags[sentry:user]",
-        "dist": "tags[sentry:dist]",
-        "release": "tags[sentry:release]"
-    }
-    
     def validate_aggregate(self, aggregate):
-        # TODO: This is temporary needed while
-        # Rewrite certain column aliases and return a rewritten query.
-        # Or an error for unrecognized queries?
-        from sentry.api.event_search import resolve_field
-        print("self.RECO:", self.RECOGNIZED_COLUMNS)
-        print("self.TR",self.TRANSLATABLE_COLUMNS)
-        field = resolve_field(aggregate)
-        print("aggregate:",aggregate)
-        print("field:",field)
-        if field[1][0][1] is None:
-            return aggregate
-        elif field[1][0][1] in self.RECOGNIZED_COLUMNS:
-            return aggregate
-        elif field[1][0][1] in self.TRANSLATABLE_COLUMNS.keys():
-            return aggregate.replace(field[1][0][1], self.TRANSLATABLE_COLUMNS[field[1][0][1]])
-        else:
-             raise serializers.ValidationError(
+        aggregate = forward_translate_snuba_field(aggregate)
+        if aggregate is False:
+            raise serializers.ValidationError(
                 "Invalid metric provided. We could not recognize the field."
             )
+        return aggregate
 
     def validate_aggregation(self, aggregation):
         try:
