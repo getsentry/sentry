@@ -24,7 +24,7 @@ class SentryInstrumentation {
 
     this.initialBuild = false;
     this.Sentry = require('@sentry/node');
-    require('@sentry/apm');
+    require('@sentry/apm'); // This is required to patch Sentry
 
     this.Sentry.init({
       dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
@@ -47,19 +47,11 @@ class SentryInstrumentation {
   }
 
   /**
-   * Waits for Sentry SDK to finish requests
-   */
-  async sdkFinish() {
-    const client = this.Sentry.getCurrentHub().getClient();
-    if (client) {
-      await client.flush();
-    }
-  }
-
-  /**
    * Measures the file sizes of assets emitted from the entrypoints
    */
   measureAssetSizes(compilation) {
+    const hub = this.Sentry.getCurrentHub();
+
     [...compilation.entrypoints].forEach(([entrypointName, entry]) =>
       entry.chunks.forEach(chunk =>
         chunk.files
@@ -68,7 +60,8 @@ class SentryInstrumentation {
             const asset = compilation.assets[assetName];
             const sizeInKb = asset.size() / 1024;
 
-            const transaction = this.Sentry.startTransaction({
+            // can also be written as this.Sentry.startTransaction
+            const transaction = hub.startSpan({
               op: 'webpack-asset',
               name: assetName,
               description: `webpack bundle size for ${entrypointName} -> ${assetName}`,
@@ -103,14 +96,16 @@ class SentryInstrumentation {
     if (!this.Sentry) {
       return;
     }
+    const hub = this.Sentry.getCurrentHub();
 
-    const transaction = this.Sentry.startTransaction({
+    // can also be written as this.Sentry.startTransaction
+    const transaction = hub.startSpan({
       op: 'webpack-build',
       name: !this.initialBuild ? 'initial-build' : 'incremental-build',
       description: 'webpack build times',
+      startTimestamp: startTime,
       trimEnd: true,
     });
-    transaction.startTimestamp = startTime;
 
     const span = transaction.startChild({
       op: 'build',
@@ -147,7 +142,7 @@ class SentryInstrumentation {
         }
 
         this.initialBuild = true;
-        await this.sdkFinish();
+        await this.Sentry.flush();
         done();
       }
     );
