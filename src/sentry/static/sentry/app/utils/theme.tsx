@@ -140,7 +140,7 @@ const warning = {
 const alert = {
   muted: {
     backgroundLight: colors.gray100,
-    background: colors.gray1,
+    background: colors.gray400,
     iconColor: 'inherit',
     border: colors.gray6,
   },
@@ -187,7 +187,7 @@ const aliases = {
   textColor: colors.gray5,
   success: colors.green,
   error: colors.red,
-  disabled: colors.gray1,
+  disabled: colors.gray400,
 } as const;
 
 const button = {
@@ -374,7 +374,7 @@ const theme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
-    previousPeriod: colors.gray1,
+    previousPeriod: colors.gray400,
     symbolSize: 6,
   },
 

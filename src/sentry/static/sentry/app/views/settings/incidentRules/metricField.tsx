@@ -184,7 +184,7 @@ const AggregateHeader = styled('div')`
   grid-gap: ${space(1)};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-weight: bold;
   margin-bottom: ${space(1)};
 `;

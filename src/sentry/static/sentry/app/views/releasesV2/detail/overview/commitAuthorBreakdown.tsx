@@ -171,7 +171,7 @@ const Stats = styled('div')`
 `;
 
 const Commits = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const Percent = styled('div')`

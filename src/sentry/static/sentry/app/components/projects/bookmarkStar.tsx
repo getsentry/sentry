@@ -78,7 +78,7 @@ const Star = styled(InlineSvg)<{isBookmarked: boolean}>`
   color: ${p => (p.isBookmarked ? p.theme.yellowOrange : p.theme.gray1)};
 
   &:hover {
-    color: ${p => (p.isBookmarked ? p.theme.yellowOrangeLight : p.theme.gray2)};
+    color: ${p => (p.isBookmarked ? p.theme.yellowOrangeLight : p.theme.gray500)};
   }
 `;
 

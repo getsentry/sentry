@@ -417,6 +417,6 @@ const Bubble = styled('div')<{clipped: boolean}>`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   padding-left: ${space(1)};
 `;

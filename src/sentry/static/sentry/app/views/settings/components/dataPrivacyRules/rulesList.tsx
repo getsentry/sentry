@@ -75,7 +75,7 @@ const List = styled('ul')<{isDisabled?: boolean}>`
   ${p =>
     p.isDisabled &&
     `
-      color: ${p.theme.gray1};
+      color: ${p.theme.gray400};
       background: ${p.theme.gray100};
   `}
 `;

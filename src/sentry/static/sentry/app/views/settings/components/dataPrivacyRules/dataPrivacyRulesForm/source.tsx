@@ -501,7 +501,7 @@ const SuggestionItem = styled('li')<{active: boolean}>`
 const SuggestionDescription = styled('div')`
   display: flex;
   overflow: hidden;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const SuggestionsOverlay = styled('div')`

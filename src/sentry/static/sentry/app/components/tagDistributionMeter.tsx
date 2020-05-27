@@ -251,7 +251,7 @@ const TitleType = styled('div')`
 
 const TitleDescription = styled('div')`
   display: flex;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   text-align: right;
 `;
 

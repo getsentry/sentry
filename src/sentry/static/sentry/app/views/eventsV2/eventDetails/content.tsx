@@ -346,7 +346,7 @@ const StyledButton = styled(Button)`
 
 const StyledEventHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   grid-column: 1/2;
   align-self: center;
   ${overflowEllipsis};

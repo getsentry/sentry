@@ -52,7 +52,7 @@ EmptyMessage.propTypes = {
 };
 
 const IconWrapper = styled('div')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   margin-bottom: ${space(1)};
 `;
 

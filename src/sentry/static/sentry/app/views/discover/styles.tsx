@@ -192,7 +192,7 @@ export const AddText = styled('span')`
   margin-left: 4px;
   font-size: 13px;
   line-height: 16px;
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
 `;
 
 const spin = keyframes`

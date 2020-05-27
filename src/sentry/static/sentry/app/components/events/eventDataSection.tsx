@@ -131,7 +131,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
   }
 
   & h3 {
@@ -144,7 +144,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
 
   & small {
-    color: ${p => p.theme.foreground};
+    color: ${p => p.theme.gray700};
     font-size: ${p => p.theme.fontSizeMedium};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
@@ -152,7 +152,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     text-transform: none;
   }
   & small a {
-    color: ${p => p.theme.foreground};
+    color: ${p => p.theme.gray700};
     border-bottom: 1px dotted ${p => p.theme.gray6};
     font-weight: normal;
   }

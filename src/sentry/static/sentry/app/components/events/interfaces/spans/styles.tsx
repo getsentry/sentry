@@ -22,7 +22,7 @@ type SpanRowAndDivProps = Omit<React.HTMLProps<HTMLDivElement>, keyof SpanRowPro
 
 export const SpanRow = styled('div')<SpanRowAndDivProps>`
   display: ${p => (p.visible ? 'block' : 'none')};
-  border-top: ${p => (p.showBorder ? `1px solid ${p.theme.gray1}` : null)};
+  border-top: ${p => (p.showBorder ? `1px solid ${p.theme.gray400}` : null)};
   margin-top: ${p => (p.showBorder ? '-1px' : null)}; /* to prevent offset on toggle */
   position: relative;
   overflow: hidden;
@@ -43,7 +43,7 @@ export const SpanRowMessage = styled(SpanRow)`
   line-height: ${SPAN_ROW_HEIGHT}px;
   padding-left: ${space(1)};
   padding-right: ${space(1)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   background-color: ${p => p.theme.gray200};
   outline: 1px solid ${p => p.theme.borderDark};
   font-size: ${p => p.theme.fontSizeSmall};

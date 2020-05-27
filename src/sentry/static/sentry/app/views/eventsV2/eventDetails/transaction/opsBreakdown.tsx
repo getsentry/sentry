@@ -289,7 +289,7 @@ const OpsName = styled('div')`
 `;
 
 const Dur = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const Pct = styled('div')`

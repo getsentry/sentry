@@ -190,7 +190,7 @@ const ConditionsWithHeader = styled('div')`
 const MatchTypeHeader = styled('div')`
   font-weight: bold;
   text-transform: uppercase;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   margin-bottom: ${space(1)};
 `;
 

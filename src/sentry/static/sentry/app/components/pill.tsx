@@ -58,7 +58,7 @@ const StyledPill = styled('li')`
   white-space: nowrap;
   margin: 0 10px 10px 0;
   display: flex;
-  border: 1px solid ${p => p.theme.gray1};
+  border: 1px solid ${p => p.theme.gray400};
   border-radius: ${p => p.theme.button.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLightest};
   line-height: 1.2;
@@ -99,7 +99,7 @@ const PillValue = styled(PillName)<PillValueProps>`
     }
   }}
 
-  border-left: 1px solid ${p => p.theme.gray1};
+  border-left: 1px solid ${p => p.theme.gray400};
   border-radius: ${p =>
     `0 ${p.theme.button.borderRadius} ${p.theme.button.borderRadius} 0`};
   font-family: ${p => p.theme.text.familyMono};
@@ -118,7 +118,7 @@ const PillValue = styled(PillName)<PillValueProps>`
   .external-icon {
     display: inline;
     margin: 0 0 0 ${space(1)};
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
     line-height: 1.2;
     &:hover {
       color: ${p => p.theme.gray4};

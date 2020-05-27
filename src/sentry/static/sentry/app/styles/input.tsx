@@ -37,16 +37,16 @@ const inputStyles = (props: Props) =>
     &:hover,
     &:focus,
     &:active {
-      border: 1px solid ${props.theme.gray1};
+      border: 1px solid ${props.theme.gray400};
     }
 
     &::placeholder {
-      color: ${props.theme.gray2};
+      color: ${props.theme.gray500};
     }
 
     &[disabled] {
       background: ${props.theme.gray100};
-      color: ${props.theme.gray2};
+      color: ${props.theme.gray500};
       border: 1px solid ${props.theme.borderDark};
       cursor: not-allowed;
 

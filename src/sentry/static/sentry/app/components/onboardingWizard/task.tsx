@@ -216,7 +216,7 @@ const CTA = styled('div')`
 `;
 
 const SkipButton = styled(Button)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const PosedItemComplete = posed(Card)({
@@ -257,7 +257,7 @@ SkippedIndicator.defaultProps = {
 };
 
 const CompletedDate = styled(posed.div(completedItemPoses))`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

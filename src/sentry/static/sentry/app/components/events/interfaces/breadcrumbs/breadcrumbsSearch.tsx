@@ -49,7 +49,7 @@ const StyledTextField = styled(TextField)<TextField['props']>`
 
 const StyledIconSearch = styled(IconSearch)`
   position: absolute;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeMedium};
   left: ${space(1)};
 `;

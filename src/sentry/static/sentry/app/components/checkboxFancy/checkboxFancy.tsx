@@ -16,8 +16,8 @@ type Props = {
 const disabledStyles = (p: Props & {theme: Theme}) =>
   p.isDisabled &&
   css`
-    background: ${p.isChecked || p.isIndeterminate ? p.theme.gray1 : p.theme.gray100};
-    border-color: ${p.theme.gray1};
+    background: ${p.isChecked || p.isIndeterminate ? p.theme.gray400 : p.theme.gray100};
+    border-color: ${p.theme.gray400};
   `;
 
 const hoverStyles = (p: Props & {theme: Theme}) =>
@@ -49,7 +49,7 @@ const CheckboxFancy = styled(
   border-radius: 5px;
   background: ${p => (p.isChecked || p.isIndeterminate ? p.theme.purple : 'transparent')};
   border: 2px solid
-    ${p => (p.isChecked || p.isIndeterminate ? p.theme.purple : p.theme.gray2)};
+    ${p => (p.isChecked || p.isIndeterminate ? p.theme.purple : p.theme.gray500)};
   cursor: ${p => (p.isDisabled ? 'not-allowed' : 'pointer')};
   ${p => (!p.isChecked || !p.isIndeterminate) && 'transition: 500ms border ease-out'};
 

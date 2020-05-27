@@ -64,7 +64,7 @@ const Title = styled('div')`
   text-align: left;
 `;
 const Value = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   text-align: right;
 `;
 const Divider = styled('div')`
