@@ -115,7 +115,7 @@ const Permalink = styled('a')`
   position: absolute;
   top: -1.5px;
   left: -22px;
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
   padding: ${space(0.25)} 5px;
 `;
 
@@ -153,7 +153,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
   & small a {
     color: ${p => p.theme.gray700};
-    border-bottom: 1px dotted ${p => p.theme.gray6};
+    border-bottom: 1px dotted ${p => p.theme.gray400};
     font-weight: normal;
   }
 

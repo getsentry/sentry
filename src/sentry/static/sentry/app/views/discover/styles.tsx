@@ -153,7 +153,7 @@ export const SidebarTabs = styled((props: any) => <NavTabs {...props} underlined
 `;
 
 export const PlaceholderText = styled('div')`
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
   font-size: 15px;
 `;
 
@@ -217,7 +217,7 @@ export const ButtonSpinner = styled('div')`
 `;
 
 export const ResultSummary = styled('div')`
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
@@ -249,7 +249,7 @@ export const ChartNote = styled('div')`
 `;
 
 export const SavedQueryAction = styled(Link)`
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
   margin-left: ${space(2)};
   display: flex;
 `;
@@ -278,7 +278,7 @@ export const SavedQueryLink = styled(Link)`
 
 export const SavedQueryUpdated = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
 `;
 
 export const QueryPanelContainer = styled('div')`
@@ -302,7 +302,7 @@ export const QueryPanelTitle = styled('div')`
 `;
 
 export const QueryPanelCloseLink = styled(Link)`
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
 `;
 
 export const QueryActions = styled('div')`

@@ -142,7 +142,7 @@ const alert = {
     backgroundLight: colors.gray100,
     background: colors.gray400,
     iconColor: 'inherit',
-    border: colors.gray6,
+    border: colors.gray400,
   },
   info: {
     backgroundLight: colors.blueLightest,
