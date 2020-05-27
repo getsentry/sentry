@@ -133,6 +133,9 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         }
         return value;
       },
+      nameFormatter(value) {
+        return value === 'epm()' ? 'tpm()' : value;
+      },
     },
   };
 
@@ -152,8 +155,8 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
       </ChartTitle>
 
       <ChartTitle top="190px" key="throughput">
-        {t('Throughput')}
-        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.rpm} size="sm" />
+        {t('TPM')}
+        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.tpm} size="sm" />
       </ChartTitle>
 
       <ChartTitle top="410px" key="error-rate">
