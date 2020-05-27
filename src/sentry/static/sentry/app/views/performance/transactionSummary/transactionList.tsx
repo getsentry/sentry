@@ -7,7 +7,6 @@ import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
@@ -77,12 +76,8 @@ class TransactionList extends React.PureComponent<WrapperProps> {
         <Header>
           <DropdownControl
             data-test-id="filter-transactions"
-            button={({getActorProps}) => (
-              <DropdownButton {...getActorProps()} size="small" isOpen={false}>
-                <LabelText>{t('Filter')}: &nbsp; </LabelText>
-                {activeFilter.label}
-              </DropdownButton>
-            )}
+            label={activeFilter.label}
+            buttonProps={{prefix: t('Filter'), size: 'small'}}
           >
             {TOP_TRANSACTION_FILTERS.map(({value, label}) => (
               <DropdownItem
@@ -274,12 +269,6 @@ const Header = styled('div')`
 const HeaderButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
-`;
-
-const LabelText = styled('em')`
-  font-style: normal;
-  font-weight: normal;
-  color: ${p => p.theme.gray2};
 `;
 
 export default TransactionList;
