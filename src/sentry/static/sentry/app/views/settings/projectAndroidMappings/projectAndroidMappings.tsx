@@ -109,7 +109,9 @@ class ProjectAndroidMappings extends AsyncView<Props, State> {
     }
 
     return mappings.map(mapping => {
-      const downloadUrl = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${mapping.id}`;
+      const downloadUrl = `${
+        this.api.baseUrl
+      }/projects/${orgId}/${projectId}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
 
       return (
         <DebugFileRow
