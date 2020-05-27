@@ -62,12 +62,8 @@ class IssueListSortOptions extends React.PureComponent {
     return (
       <Container>
         <DropdownControl
-          label={
-            <React.Fragment>
-              <LabelText>{t('Sort by')}: &nbsp; </LabelText>
-              {this.getSortLabel(this.state.sortKey)}
-            </React.Fragment>
-          }
+          buttonProps={{prefix: t('Sort by')}}
+          label={this.getSortLabel(this.state.sortKey)}
         >
           {this.getMenuItem('priority')}
           {this.getMenuItem('date')}
@@ -82,11 +78,6 @@ class IssueListSortOptions extends React.PureComponent {
 
 const Container = styled('div')`
   margin-right: ${space(0.5)};
-`;
-
-const LabelText = styled('em')`
-  font-style: normal;
-  color: ${p => p.theme.gray2};
 `;
 
 export default IssueListSortOptions;

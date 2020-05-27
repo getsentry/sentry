@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
@@ -16,15 +15,10 @@ type Props = {
 };
 
 const ReleaseListDropdown = ({label, options, selected, onSelect}: Props) => {
-  const labelNode = (
-    <React.Fragment>
-      <LabelText>{label}: &nbsp; </LabelText>
-      {options.find(option => option.key === selected)?.label}
-    </React.Fragment>
-  );
+  const selectedOption = options.find(option => option.key === selected)?.label;
 
   return (
-    <DropdownControl label={labelNode}>
+    <DropdownControl buttonProps={{prefix: label}} label={selectedOption}>
       {options.map(option => (
         <DropdownItem
           key={option.key}
@@ -38,10 +32,5 @@ const ReleaseListDropdown = ({label, options, selected, onSelect}: Props) => {
     </DropdownControl>
   );
 };
-
-const LabelText = styled('em')`
-  font-style: normal;
-  color: ${p => p.theme.gray2};
-`;
 
 export default ReleaseListDropdown;

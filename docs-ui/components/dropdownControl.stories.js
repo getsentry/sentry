@@ -51,7 +51,18 @@ storiesOf('UI|Dropdowns/DropdownControl', module)
     'element label',
     withInfo('Element labels replace the button contents')(() => (
       <div className="clearfix">
-        <DropdownControl label={<em>Slanty</em>}>
+        <DropdownControl label={<em>Created Date</em>}>
+          <MenuItem href="">Item</MenuItem>
+          <MenuItem href="">Item</MenuItem>
+        </DropdownControl>
+      </div>
+    ))
+  )
+  .add(
+    'prefixed label',
+    withInfo('Element labels replace the button contents')(() => (
+      <div className="clearfix">
+        <DropdownControl buttonProps={{prefix: 'Sort By'}} label={<em>Created At</em>}>
           <MenuItem href="">Item</MenuItem>
           <MenuItem href="">Item</MenuItem>
         </DropdownControl>
