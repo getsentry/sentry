@@ -64,6 +64,7 @@ class InternalCreator(Mediator):
                 organization=self.organization,
                 target_object=self.organization.id,
                 event=AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD,
+                data={"name": self.sentry_app.name},
             )
 
     def record_analytics(self):

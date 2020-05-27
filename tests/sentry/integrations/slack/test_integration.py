@@ -7,6 +7,8 @@ from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.slack import SlackIntegrationProvider, SlackIntegration
 from sentry.models import (
+    AuditLogEntry,
+    AuditLogEntryEvent,
     Identity,
     IdentityProvider,
     IdentityStatus,
@@ -108,6 +110,9 @@ class SlackIntegrationTest(IntegrationTestCase):
         idp = IdentityProvider.objects.get(type="slack", external_id="TXXXXXXX1")
         identity = Identity.objects.get(idp=idp, user=self.user, external_id="UXXXXXXX1")
         assert identity.status == IdentityStatus.VALID
+
+        audit_entry = AuditLogEntry.objects.get(event=AuditLogEntryEvent.INTEGRATION_ADD)
+        assert audit_entry.get_note() == "installed Example for the slack integration"
 
     @responses.activate
     def test_multiple_integrations(self):

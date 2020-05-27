@@ -7,6 +7,8 @@ from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.slack import SlackIntegrationProvider
 from sentry.models import (
+    AuditLogEntry,
+    AuditLogEntryEvent,
     Identity,
     IdentityProvider,
     IdentityStatus,
@@ -165,6 +167,9 @@ class SlackMigrationTest(IntegrationTestCase):
             }
         )
 
+        audit_entry = AuditLogEntry.objects.get(event=AuditLogEntryEvent.INTEGRATION_UPGRADE)
+        assert audit_entry.get_note() == "upgraded Example for the slack integration"
+
     def test_multiple_orgs_same_workspace(self):
         new_org = self.create_organization(owner=self.create_user())
         OrganizationIntegration.objects.create(organization=new_org, integration=self.integration)
@@ -175,6 +180,23 @@ class SlackMigrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertContains(resp, self.integration.name)
         self.assertContains(resp, new_org.slug)
+
+    @responses.activate
+    def test_multiple_orgs_same_workspace_audit_log_entries(self):
+        new_org = self.create_organization(owner=self.create_user())
+        OrganizationIntegration.objects.create(organization=new_org, integration=self.integration)
+
+        self.assert_setup_flow()
+
+        audit_entry1 = AuditLogEntry.objects.get(
+            organization=self.organization, event=AuditLogEntryEvent.INTEGRATION_UPGRADE
+        )
+        assert audit_entry1.get_note() == "upgraded Example for the slack integration"
+
+        audit_entry2 = AuditLogEntry.objects.get(
+            organization=new_org, event=AuditLogEntryEvent.INTEGRATION_UPGRADE
+        )
+        assert audit_entry2.get_note() == "upgraded Example for the slack integration"
 
     @patch("sentry.integrations.slack.post_migration.run_post_migration")
     @responses.activate

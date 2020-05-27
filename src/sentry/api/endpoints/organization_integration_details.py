@@ -8,8 +8,9 @@ from django.http import Http404
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.models import Integration, ObjectStatus, OrganizationIntegration
+from sentry.models import AuditLogEntryEvent, Integration, ObjectStatus, OrganizationIntegration
 from sentry.tasks.deletion import delete_organization_integration
+from sentry.utils.audit import create_audit_entry
 
 
 class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
@@ -47,6 +48,14 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
                     "actor_id": request.user.id,
                 },
                 countdown=0,
+            )
+            integration = org_integration.integration
+            create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=integration.id,
+                event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+                data={"provider": integration.provider, "name": integration.name},
             )
 
         return self.respond(status=204)
