@@ -129,7 +129,7 @@ class SuggestedOwnerHovercard extends React.Component {
             {rules !== undefined && (
               <React.Fragment>
                 <div className="divider">
-                  <h6>{t('Related Ownership Rules')}</h6>
+                  <h6>{t('Matching Ownership Rules')}</h6>
                 </div>
                 <div>
                   {rules
