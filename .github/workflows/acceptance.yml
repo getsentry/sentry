@@ -55,7 +55,7 @@ jobs:
         PERCY_PROJECT: ${{ secrets.PERCY_PROJECT }}
 
         # Number of matrix instances
-        TOTAL_TEST_GROUPS: 3
+        TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
 
       services:
         clickhouse:
@@ -207,7 +207,7 @@ jobs:
           run: |
             yarn webpack --display errors-only
 
-        - name: Acceptance tests (#${{ matrix.instance }})
+        - name: Acceptance tests (#${{ matrix.instance }} of ${{ strategy.job-total }})
           if: always()
           uses: percy/exec-action@v0.3.0
           with:
