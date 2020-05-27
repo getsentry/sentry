@@ -49,7 +49,7 @@ class ListBody extends React.Component<Props, State> {
     const {breadCrumbListHeight} = this.state;
 
     return (
-      <Grid maxHeight={breadCrumbListHeight} ref={this.listRef}>
+      <StyledGrid maxHeight={breadCrumbListHeight} ref={this.listRef}>
         {collapsedQuantity > 0 && (
           <Collapsed onClick={onToggleCollapse} quantity={collapsedQuantity} />
         )}
@@ -78,7 +78,7 @@ class ListBody extends React.Component<Props, State> {
             </React.Fragment>
           );
         })}
-      </Grid>
+      </StyledGrid>
     );
   }
 }
@@ -89,4 +89,9 @@ const GridCellCategory = styled(GridCell)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-left: ${space(1)};
   }
+`;
+
+const StyledGrid = styled(Grid)`
+  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-top: 0;
 `;

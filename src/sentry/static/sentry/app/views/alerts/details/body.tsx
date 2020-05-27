@@ -3,11 +3,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
+import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/constants';
 import {NewQuery, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
 import EventView from 'app/utils/discover/eventView';
@@ -22,6 +23,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import {Panel} from 'app/components/panels';
 
 import {
   Incident,
@@ -94,6 +96,13 @@ export default class DetailsBody extends React.Component<Props> {
     return `${direction} ${trigger[key]}`;
   }
 
+  get friendlyIncidentType() {
+    const aggregate = this.props?.incident?.alertRule?.aggregate;
+    const preset = PRESET_AGGREGATES.find(p => p.match.test(aggregate ?? ''));
+
+    return preset?.name ?? t('Custom metric');
+  }
+
   renderRuleDetails() {
     const {incident} = this.props;
 
@@ -145,6 +154,36 @@ export default class DetailsBody extends React.Component<Props> {
     );
   }
 
+  renderChartHeader() {
+    const {incident} = this.props;
+    const alertRule = incident?.alertRule;
+
+    return (
+      <ChartHeader>
+        {this.friendlyIncidentType}
+
+        <ChartParameters>
+          {tct('Metric: [metric] over [window]', {
+            metric: <code>{alertRule?.aggregate ?? '...'}</code>,
+            window: (
+              <code>
+                {incident ? (
+                  <Duration seconds={incident.alertRule.timeWindow * 60} />
+                ) : (
+                  '...'
+                )}
+              </code>
+            ),
+          })}
+          {alertRule?.query &&
+            tct('Filter: [filter]', {
+              filter: <code>{alertRule.query}</code>,
+            })}
+        </ChartParameters>
+      </ChartHeader>
+    );
+  }
+
   render() {
     const {params, incident, stats} = this.props;
 
@@ -161,82 +200,86 @@ export default class DetailsBody extends React.Component<Props> {
               </Alert>
             </AlertWrapper>
           )}
-        <ChartWrapper>
-          {incident && stats ? (
-            <Chart
-              aggregate={incident.alertRule.aggregate}
-              data={stats.eventStats.data}
-              detected={incident.dateDetected}
-              closed={incident.dateClosed}
-            />
-          ) : (
-            <Placeholder height="200px" />
-          )}
-        </ChartWrapper>
-
         <Main>
-          <ActivityPageContent>
-            <StyledNavTabs underlined>
-              <li className="active">
-                <Link to="">{t('Activity')}</Link>
-              </li>
-
-              <SeenByTab>
-                {incident && (
-                  <StyledSeenByList
-                    iconPosition="right"
-                    seenBy={incident.seenBy}
-                    iconTooltip={t('People who have viewed this alert')}
-                  />
-                )}
-              </SeenByTab>
-            </StyledNavTabs>
-            <Activity
-              incident={incident}
-              params={params}
-              incidentStatus={!!incident ? incident.status : null}
-            />
-          </ActivityPageContent>
-          <Sidebar>
-            <SidebarHeading>
-              <span>{t('Alert Rule')}</span>
-              {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
-                <SideHeaderLink
-                  to={{
-                    pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
-                  }}
-                >
-                  {t('View Rule')}
-                  <IconLink size="xs" />
-                </SideHeaderLink>
+          <PageContent>
+            <ChartPanel>
+              {this.renderChartHeader()}
+              {incident && stats ? (
+                <Chart
+                  aggregate={incident.alertRule.aggregate}
+                  data={stats.eventStats.data}
+                  detected={incident.dateDetected}
+                  closed={incident.dateClosed}
+                />
+              ) : (
+                <Placeholder height="200px" />
               )}
-            </SidebarHeading>
-            {this.renderRuleDetails()}
+            </ChartPanel>
+          </PageContent>
+          <DetailWrapper>
+            <ActivityPageContent>
+              <StyledNavTabs underlined>
+                <li className="active">
+                  <Link to="">{t('Activity')}</Link>
+                </li>
 
-            <SidebarHeading>
-              <span>{t('Query')}</span>
-              <Feature features={['discover-basic']}>
-                <Projects slugs={incident?.projects} orgId={params.orgId}>
-                  {({initiallyLoaded, fetching, projects}) => (
-                    <SideHeaderLink
-                      disabled={!incident || fetching || !initiallyLoaded}
-                      to={this.getDiscoverUrl(
-                        ((initiallyLoaded && projects) as Project[]) || []
-                      )}
-                    >
-                      {t('View in Discover')}
-                      <IconTelescope size="xs" />
-                    </SideHeaderLink>
+                <SeenByTab>
+                  {incident && (
+                    <StyledSeenByList
+                      iconPosition="right"
+                      seenBy={incident.seenBy}
+                      iconTooltip={t('People who have viewed this alert')}
+                    />
                   )}
-                </Projects>
-              </Feature>
-            </SidebarHeading>
-            {incident ? (
-              <Query>{incident?.alertRule.query || '""'}</Query>
-            ) : (
-              <Placeholder height="30px" />
-            )}
-          </Sidebar>
+                </SeenByTab>
+              </StyledNavTabs>
+              <Activity
+                incident={incident}
+                params={params}
+                incidentStatus={!!incident ? incident.status : null}
+              />
+            </ActivityPageContent>
+            <Sidebar>
+              <SidebarHeading>
+                <span>{t('Alert Rule')}</span>
+                {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
+                  <SideHeaderLink
+                    to={{
+                      pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
+                    }}
+                  >
+                    {t('View Rule')}
+                    <IconLink size="xs" />
+                  </SideHeaderLink>
+                )}
+              </SidebarHeading>
+              {this.renderRuleDetails()}
+
+              <SidebarHeading>
+                <span>{t('Query')}</span>
+                <Feature features={['discover-basic']}>
+                  <Projects slugs={incident?.projects} orgId={params.orgId}>
+                    {({initiallyLoaded, fetching, projects}) => (
+                      <SideHeaderLink
+                        disabled={!incident || fetching || !initiallyLoaded}
+                        to={this.getDiscoverUrl(
+                          ((initiallyLoaded && projects) as Project[]) || []
+                        )}
+                      >
+                        {t('View in Discover')}
+                        <IconTelescope size="xs" />
+                      </SideHeaderLink>
+                    )}
+                  </Projects>
+                </Feature>
+              </SidebarHeading>
+              {incident ? (
+                <Query>{incident?.alertRule.query || '""'}</Query>
+              ) : (
+                <Placeholder height="30px" />
+              )}
+            </Sidebar>
+          </DetailWrapper>
         </Main>
       </StyledPageContent>
     );
@@ -244,10 +287,14 @@ export default class DetailsBody extends React.Component<Props> {
 }
 
 const Main = styled('div')`
+  background-color: ${p => p.theme.white};
+  padding-top: ${space(3)};
+  flex-grow: 1;
+`;
+
+const DetailWrapper = styled('div')`
   display: flex;
   flex: 1;
-  border-top: 1px solid ${p => p.theme.borderLight};
-  background-color: ${p => p.theme.white};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-direction: column-reverse;
@@ -292,8 +339,37 @@ const StyledPageContent = styled(PageContent)`
   flex-direction: column;
 `;
 
-const ChartWrapper = styled('div')`
+const ChartPanel = styled(Panel)`
   padding: ${space(2)};
+`;
+
+const ChartHeader = styled('div')`
+  margin-bottom: ${space(1)};
+`;
+
+const ChartParameters = styled('div')`
+  color: ${p => p.theme.gray3};
+  font-size: ${p => p.theme.fontSizeMedium};
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-gap: ${space(4)};
+  align-items: center;
+
+  > * {
+    position: relative;
+  }
+
+  > *:not(:last-of-type):after {
+    content: '';
+    display: block;
+    height: 70%;
+    width: 1px;
+    background: ${p => p.theme.borderLight};
+    position: absolute;
+    right: -${space(2)};
+    top: 15%;
+  }
 `;
 
 const AlertWrapper = styled('div')`
