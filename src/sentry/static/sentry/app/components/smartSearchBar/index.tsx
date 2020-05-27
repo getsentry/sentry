@@ -100,7 +100,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   }
 
   &:hover {
-    color: ${theme.blueDark};
+    color: ${theme.blue500};
   }
 
   ${p.showBelowMediaQuery &&
