@@ -4,7 +4,7 @@ import logging
 
 from django.db import transaction
 
-from sentry.snuba.models import QueryAggregations, QueryDatasets, QuerySubscription, SnubaQuery
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery
 from sentry.snuba.tasks import (
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
@@ -12,14 +12,6 @@ from sentry.snuba.tasks import (
 )
 
 logger = logging.getLogger(__name__)
-
-aggregation_function_translations = {
-    QueryAggregations.TOTAL: "count()",
-    QueryAggregations.UNIQUE_USERS: "count_unique(tags[sentry:user])",
-}
-aggregate_to_query_aggregation = {
-    val: key for key, val in aggregation_function_translations.items()
-}
 
 
 def create_snuba_query(dataset, query, aggregate, time_window, resolution, environment):
@@ -29,7 +21,7 @@ def create_snuba_query(dataset, query, aggregate, time_window, resolution, envir
     :param dataset: The snuba dataset to query and aggregate over
     :param query: An event search query that we can parse and convert into a
     set of Snuba conditions
-    :param aggregation: An aggregation to calculate over the time window
+    :param aggregate: An aggregate to calculate over the time window
     :param time_window: The time window to aggregate over
     :param resolution: How often to receive updates/bucket size
     :param environment: An optional environment to filter by

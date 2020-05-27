@@ -76,8 +76,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
         self.login_as(self.user)
         valid_alert_rule = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "triggers": [

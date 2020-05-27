@@ -36,8 +36,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QueryAggregations, QueryDatasets
-from sentry.snuba.subscriptions import aggregation_function_translations
+from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.snuba import raw_query
 from sentry.utils.compat import zip
@@ -288,8 +287,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         required=True, min_value=1, max_value=int(timedelta(days=1).total_seconds() / 60)
     )
     threshold_period = serializers.IntegerField(default=1, min_value=1, max_value=20)
-    aggregate = serializers.CharField(required=False, min_length=1)
-    aggregation = serializers.IntegerField(required=False)
+    aggregate = serializers.CharField(required=True, min_length=1)
 
     class Meta:
         model = AlertRule
@@ -301,7 +299,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "environment",
             "threshold_period",
             "aggregate",
-            "aggregation",
             "projects",
             "include_all_projects",
             "excluded_projects",
@@ -311,15 +308,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "name": {"min_length": 1, "max_length": 64},
             "include_all_projects": {"default": False},
         }
-
-    def validate_aggregation(self, aggregation):
-        try:
-            return QueryAggregations(aggregation)
-        except ValueError:
-            raise serializers.ValidationError(
-                "Invalid aggregation, valid values are %s"
-                % [item.value for item in QueryAggregations]
-            )
 
     def validate_dataset(self, dataset):
         try:
@@ -335,62 +323,50 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         The critical trigger should both alert and resolve 'after' the warning trigger (whether that means > or < the value depends on threshold type).
         """
         data.setdefault("dataset", QueryDatasets.EVENTS)
-        if "aggregate" in data and "aggregation" in data:
-            # `aggregate` takes precedence over `aggregation`, so just drop `aggregation`
-            # if both are present.
-            data.pop("aggregation")
-        if "aggregation" in data:
-            data["aggregate"] = aggregation_function_translations[data.pop("aggregation")]
-        if "aggregate" in data:
-            project_id = data.get("projects")
-            if not project_id:
-                # We just need a valid project id from the org so that we can verify
-                # the query. We don't use the returned data anywhere, so it doesn't
-                # matter which.
-                project_id = list(self.context["organization"].project_set.all()[:1])
-            try:
-                snuba_filter = build_snuba_filter(
-                    data["dataset"],
-                    data["query"],
-                    data["aggregate"],
-                    data.get("environment"),
-                    params={
-                        "project_id": [p.id for p in project_id],
-                        "start": timezone.now() - timedelta(minutes=10),
-                        "end": timezone.now(),
-                    },
-                )
-            except (InvalidSearchQuery, ValueError) as e:
-                raise serializers.ValidationError(
-                    "Invalid Query or Aggregate: {}".format(e.message)
-                )
-            else:
-                if not snuba_filter.aggregations:
-                    raise serializers.ValidationError(
-                        "Invalid Aggregate: Please pass a valid function for aggregation"
-                    )
-
-                try:
-                    raw_query(
-                        aggregations=snuba_filter.aggregations,
-                        start=snuba_filter.start,
-                        end=snuba_filter.end,
-                        conditions=snuba_filter.conditions,
-                        filter_keys=snuba_filter.filter_keys,
-                        having=snuba_filter.having,
-                        dataset=Dataset(data["dataset"].value),
-                        limit=1,
-                        referrer="alertruleserializer.test_query",
-                    )
-                except Exception:
-                    logger.exception("Error while validating snuba alert rule query")
-                    raise serializers.ValidationError(
-                        "Invalid Query or Aggregate: An error occurred while attempting "
-                        "to run the query"
-                    )
-
+        project_id = data.get("projects")
+        if not project_id:
+            # We just need a valid project id from the org so that we can verify
+            # the query. We don't use the returned data anywhere, so it doesn't
+            # matter which.
+            project_id = list(self.context["organization"].project_set.all()[:1])
+        try:
+            snuba_filter = build_snuba_filter(
+                data["dataset"],
+                data["query"],
+                data["aggregate"],
+                data.get("environment"),
+                params={
+                    "project_id": [p.id for p in project_id],
+                    "start": timezone.now() - timedelta(minutes=10),
+                    "end": timezone.now(),
+                },
+            )
+        except (InvalidSearchQuery, ValueError) as e:
+            raise serializers.ValidationError("Invalid Query or Aggregate: {}".format(e.message))
         else:
-            raise serializers.ValidationError("Must pass `aggregation` or `aggregate`")
+            if not snuba_filter.aggregations:
+                raise serializers.ValidationError(
+                    "Invalid Aggregate: Please pass a valid function for aggregation"
+                )
+
+            try:
+                raw_query(
+                    aggregations=snuba_filter.aggregations,
+                    start=snuba_filter.start,
+                    end=snuba_filter.end,
+                    conditions=snuba_filter.conditions,
+                    filter_keys=snuba_filter.filter_keys,
+                    having=snuba_filter.having,
+                    dataset=Dataset(data["dataset"].value),
+                    limit=1,
+                    referrer="alertruleserializer.test_query",
+                )
+            except Exception:
+                logger.exception("Error while validating snuba alert rule query")
+                raise serializers.ValidationError(
+                    "Invalid Query or Aggregate: An error occurred while attempting "
+                    "to run the query"
+                )
 
         triggers = data.get("triggers", [])
         if not triggers:

@@ -33,8 +33,7 @@ class AlertRuleDetailsBase(object):
     @fixture
     def alert_rule_dict(self):
         return {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -179,7 +178,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         # Alert rule should be exactly the same
         assert resp.data == serialize(self.alert_rule)
-        # If the aggregation changed we'd have a new subscription, validate that
+        # If the aggregate changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
         updated_sub = AlertRule.objects.get(id=self.alert_rule.id).snuba_query.subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id

@@ -20,7 +20,7 @@ class AlertRuleDetailsBase(object):
             "threshold_type": 0,
             "resolve_threshold": 1,
             "alert_threshold": 0,
-            "aggregation": 0,
+            "aggregate": "count()",
             "threshold_period": 1,
             "projects": [self.project.slug],
             "triggers": [
@@ -156,7 +156,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         # Alert rule should be exactly the same
         assert resp.data == serialize(self.alert_rule)
-        # If the aggregation changed we'd have a new subscription, validate that
+        # If the aggregate changed we'd have a new subscription, validate that
         # it hasn't changed explicitly
         updated_sub = AlertRule.objects.get(id=self.alert_rule.id).snuba_query.subscriptions.first()
         assert updated_sub.subscription_id == existing_sub.subscription_id

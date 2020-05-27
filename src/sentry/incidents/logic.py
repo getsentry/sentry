@@ -643,8 +643,6 @@ def update_alert_rule(
             snuba_query = alert_rule.snuba_query
             updated_query_fields.setdefault("dataset", QueryDatasets(snuba_query.dataset))
             updated_query_fields.setdefault("query", snuba_query.query)
-            # XXX: We use the alert rule aggregation here since currently we're
-            # expecting the enum value to be passed.
             updated_query_fields.setdefault("aggregate", snuba_query.aggregate)
             updated_query_fields.setdefault(
                 "time_window", timedelta(seconds=snuba_query.time_window)
