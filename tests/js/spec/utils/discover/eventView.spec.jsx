@@ -1954,6 +1954,38 @@ describe('EventView.sortOnField()', function() {
   });
 });
 
+describe('EventView.withSorts()', function() {
+  it('returns a clone', function() {
+    const eventView = new EventView({
+      fields: [{field: 'event.type'}],
+    });
+    const updated = eventView.withSorts([{kind: 'desc', field: 'event.type'}]);
+    expect(updated.sorts).not.toEqual(eventView.sorts);
+  });
+
+  it('only accepts sorting on fields in the view', function() {
+    const eventView = new EventView({
+      fields: [{field: 'event.type'}],
+    });
+    const updated = eventView.withSorts([
+      {kind: 'desc', field: 'event.type'},
+      {kind: 'asc', field: 'unknown'},
+    ]);
+    expect(updated.sorts).toEqual([{kind: 'desc', field: 'event.type'}]);
+  });
+
+  it('accepts aggregate field sorts', function() {
+    const eventView = new EventView({
+      fields: [{field: 'p50()'}],
+    });
+    const updated = eventView.withSorts([
+      {kind: 'desc', field: 'p50()'},
+      {kind: 'asc', field: 'unknown'},
+    ]);
+    expect(updated.sorts).toEqual([{kind: 'desc', field: 'p50()'}]);
+  });
+});
+
 describe('EventView.isEqualTo()', function() {
   it('should be true when equal', function() {
     const state = {
@@ -2072,7 +2104,7 @@ describe('EventView.getResultsViewUrlTarget()', function() {
   });
 });
 
-describe('EventView.getGlobalSelection', function() {
+describe('EventView.getGlobalSelection()', function() {
   it('return default global selection', function() {
     const eventView = new EventView({});
 
@@ -2100,7 +2132,7 @@ describe('EventView.getGlobalSelection', function() {
   });
 });
 
-describe('EventView.generateBlankQueryStringObject', function() {
+describe('EventView.generateBlankQueryStringObject()', function() {
   it('should return blank values', function() {
     const eventView = new EventView({});
 
@@ -2121,7 +2153,7 @@ describe('EventView.generateBlankQueryStringObject', function() {
   });
 });
 
-describe('EventView.getYAxisOptions', function() {
+describe('EventView.getYAxisOptions()', function() {
   const state = {
     fields: [],
     sorts: [],
@@ -2182,7 +2214,7 @@ describe('EventView.getYAxisOptions', function() {
   });
 });
 
-describe('EventView.getYAxis', function() {
+describe('EventView.getYAxis()', function() {
   const state = {
     fields: [],
     sorts: [],

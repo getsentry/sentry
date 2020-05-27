@@ -152,6 +152,9 @@ describe('Performance > TransactionSummary', function() {
 
     // Ensure open issues button exists.
     expect(wrapper.find('a[data-test-id="issues-open"]')).toHaveLength(1);
+
+    // Ensure transaction filter button exists
+    expect(wrapper.find('[data-test-id="filter-transactions"]')).toHaveLength(1);
   });
 
   it('triggers a navigation on search', async function() {
@@ -207,5 +210,37 @@ describe('Performance > TransactionSummary', function() {
 
     // Ensure request was made.
     expect(mockUpdate).toHaveBeenCalled();
+  });
+
+  it('triggers a navigation on transaction filter', async function() {
+    const initialData = initializeData();
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // Open the transaction filter dropdown
+    wrapper.find('[data-test-id="filter-transactions"] button').simulate('click');
+
+    // Click the second item (fastest transactions)
+    wrapper
+      .find('[data-test-id="filter-transactions"] DropdownItem span')
+      .at(1)
+      .simulate('click');
+
+    // Check the navigation.
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: undefined,
+      query: {
+        transaction: '/performance',
+        project: 1,
+        showTransactions: 'fastest',
+      },
+    });
   });
 });

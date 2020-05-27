@@ -561,6 +561,14 @@ class EventView {
     });
   }
 
+  withSorts(sorts: Sort[]): EventView {
+    const newEventView = this.clone();
+    const fields = newEventView.fields.map(field => field.field);
+    newEventView.sorts = sorts.filter(sort => fields.includes(sort.field));
+
+    return newEventView;
+  }
+
   withColumns(columns: Column[]): EventView {
     const newEventView = this.clone();
     const fields: Field[] = columns
