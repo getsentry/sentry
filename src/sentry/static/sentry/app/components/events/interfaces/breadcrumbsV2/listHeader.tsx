@@ -41,5 +41,4 @@ const StyledGridCellCategory = styled(StyledGridCell)`
 
 const StyledGrid = styled(Grid)`
   border-radius: ${p => p.theme.borderRadiusTop};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
 `;
