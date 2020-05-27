@@ -124,7 +124,7 @@ const StyledTimes = styled(Times)`
 `;
 
 const CommentsLink = styled(Link)`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 const GroupShortId = styled(ShortId)`
@@ -145,7 +145,7 @@ const AnnotationNoMargin = styled(EventAnnotation)`
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 export default withRouter(EventOrGroupExtraDetails);

@@ -77,7 +77,7 @@ const StyledBanner = styled(BannerContainer)`
     font-weight: bold;
     color: ${p => p.theme.gray600};
     &:hover {
-      color: ${p => p.theme.gray4};
+      color: ${p => p.theme.gray700};
     }
   }
 
