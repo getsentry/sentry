@@ -50,31 +50,34 @@ export default class CspInterface extends React.Component {
     const {view, data} = this.state;
     const {event} = this.props;
 
-    const title = (
-      <div>
-        <ButtonBar merged active={view}>
-          <Button
-            barId="report"
-            size="xsmall"
-            onClick={this.toggleView.bind(this, 'report')}
-          >
-            {t('Report')}
-          </Button>
-          <Button barId="raw" size="xsmall" onClick={this.toggleView.bind(this, 'raw')}>
-            {t('Raw')}
-          </Button>
-          <Button barId="help" size="xsmall" onClick={this.toggleView.bind(this, 'help')}>
-            {t('Help')}
-          </Button>
-        </ButtonBar>
-        <h3>{t('CSP Report')}</h3>
-      </div>
+    const actions = (
+      <ButtonBar merged active={view}>
+        <Button
+          barId="report"
+          size="xsmall"
+          onClick={this.toggleView.bind(this, 'report')}
+        >
+          {t('Report')}
+        </Button>
+        <Button barId="raw" size="xsmall" onClick={this.toggleView.bind(this, 'raw')}>
+          {t('Raw')}
+        </Button>
+        <Button barId="help" size="xsmall" onClick={this.toggleView.bind(this, 'help')}>
+          {t('Help')}
+        </Button>
+      </ButtonBar>
     );
 
     const children = getView(view, data);
 
     return (
-      <EventDataSection event={event} type="csp" title={title} wrapTitle={false}>
+      <EventDataSection
+        event={event}
+        type="csp"
+        title={<h3>{t('CSP Report')}</h3>}
+        actions={actions}
+        wrapTitle={false}
+      >
         {children}
       </EventDataSection>
     );

@@ -1,25 +1,126 @@
 import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
+import {browserHistory} from 'react-router';
 
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import {SectionHeading} from 'app/components/charts/styles';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import EventView, {isFieldSortable, MetaType} from 'app/utils/discover/eventView';
+import EventView, {MetaType} from 'app/utils/discover/eventView';
 import SortLink from 'app/components/gridEditable/sortLink';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {decodeScalar} from 'app/utils/queryString';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import {
+  TOP_TRANSACTION_LIMIT,
+  TOP_TRANSACTION_FILTERS,
+} from 'app/views/performance/constants';
 
 import {GridBodyCell, GridBodyCellNumber, GridHeadCell} from '../styles';
+
+type WrapperProps = {
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+};
+
+class TransactionList extends React.PureComponent<WrapperProps> {
+  getTransactionSort(location: Location) {
+    const urlParam = decodeScalar(location.query.showTransactions) || 'slowest';
+    const option =
+      TOP_TRANSACTION_FILTERS.find(opt => opt.value === urlParam) ||
+      TOP_TRANSACTION_FILTERS[0];
+    return option;
+  }
+
+  handleTransactionFilterChange = (value: string) => {
+    const {location, organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.filter_transactions',
+      eventName: 'Performance Views: Filter transactions table',
+      organization_id: parseInt(organization.id, 10),
+      value,
+    });
+    const target = {
+      pathname: location.pathname,
+      query: {...location.query, showTransactions: value},
+    };
+    browserHistory.push(target);
+  };
+
+  handleDiscoverViewClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.view_in_discover',
+      eventName: 'Performance Views: View in Discover from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
+  render() {
+    const {eventView, location, organization} = this.props;
+    const activeFilter = this.getTransactionSort(location);
+    const sortedEventView = eventView.withSorts([activeFilter.sort]);
+
+    return (
+      <React.Fragment>
+        <Header>
+          <DropdownControl
+            data-test-id="filter-transactions"
+            label={activeFilter.label}
+            buttonProps={{prefix: t('Filter'), size: 'small'}}
+          >
+            {TOP_TRANSACTION_FILTERS.map(({value, label}) => (
+              <DropdownItem
+                key={value}
+                onSelect={this.handleTransactionFilterChange}
+                eventKey={value}
+                isActive={value === activeFilter.value}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </DropdownControl>
+          <HeaderButtonContainer>
+            <Button
+              onClick={this.handleDiscoverViewClick}
+              to={sortedEventView.getResultsViewUrlTarget(organization.slug)}
+              size="small"
+              data-test-id="discover-open"
+            >
+              {t('Open in Discover')}
+            </Button>
+          </HeaderButtonContainer>
+        </Header>
+        <DiscoverQuery
+          location={location}
+          eventView={sortedEventView}
+          orgSlug={organization.slug}
+          limit={TOP_TRANSACTION_LIMIT}
+        >
+          {({isLoading, tableData}) => (
+            <TransactionTable
+              organization={organization}
+              location={location}
+              eventView={eventView}
+              tableData={tableData}
+              isLoading={isLoading}
+            />
+          )}
+        </DiscoverQuery>
+      </React.Fragment>
+    );
+  }
+}
 
 type Props = {
   eventView: EventView;
@@ -30,16 +131,7 @@ type Props = {
   tableData: TableData | null | undefined;
 };
 
-class SummaryContentTable extends React.Component<Props> {
-  handleDiscoverViewClick = () => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.view_in_discover',
-      eventName: 'Performance Views: View in Discover from Transaction Summary',
-      organization_id: parseInt(organization.id, 10),
-    });
-  };
-
+class TransactionTable extends React.PureComponent<Props> {
   handleViewDetailsClick = () => {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -59,17 +151,13 @@ class SummaryContentTable extends React.Component<Props> {
     return columnOrder.map((column, index) => (
       <HeaderCell column={column} tableMeta={tableMeta} key={index}>
         {({align}) => {
-          const field = {field: column.name, width: column.width};
-          const currentSort = eventView.sortForField(field, tableMeta);
-          const canSort = isFieldSortable(field, tableMeta);
-
           return (
             <GridHeadCell>
               <SortLink
                 align={align}
                 title={column.name}
-                direction={currentSort ? currentSort.kind : undefined}
-                canSort={canSort}
+                direction={undefined}
+                canSort={false}
                 generateSortLink={generateSortLink}
               />
             </GridHeadCell>
@@ -150,31 +238,13 @@ class SummaryContentTable extends React.Component<Props> {
   }
 
   render() {
-    const {eventView, organization, isLoading, tableData} = this.props;
+    const {isLoading, tableData} = this.props;
 
-    let title = t('Slowest Transactions');
-    const parsed = tokenizeSearch(eventView.query);
-    if (parsed['transaction.duration']) {
-      title = t('Requests %s and %s in duration', ...parsed['transaction.duration']);
-    }
     const hasResults =
       tableData && tableData.data && tableData.meta && tableData.data.length > 0;
 
     return (
       <React.Fragment>
-        <Header>
-          <SectionHeading>{title}</SectionHeading>
-          <HeaderButtonContainer>
-            <Button
-              onClick={this.handleDiscoverViewClick}
-              to={eventView.getResultsViewUrlTarget(organization.slug)}
-              size="small"
-              data-test-id="discover-open"
-            >
-              {t('Open in Discover')}
-            </Button>
-          </HeaderButtonContainer>
-        </Header>
         <PanelTable
           isEmpty={!hasResults}
           emptyMessage={t('No transactions found')}
@@ -189,16 +259,16 @@ class SummaryContentTable extends React.Component<Props> {
   }
 }
 
-export const Header = styled('div')`
+const Header = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin: 0 0 ${space(1)} 0;
 `;
 
-export const HeaderButtonContainer = styled('div')`
+const HeaderButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
 `;
 
-export default SummaryContentTable;
+export default TransactionList;

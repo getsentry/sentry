@@ -65,7 +65,7 @@ class UserStats extends React.Component<Props> {
         eventView={eventView}
         orgSlug={organization.slug}
         location={location}
-        extraQuery={{per_page: 1}}
+        limit={1}
       >
         {({tableData, isLoading}) => {
           const hasResults =
