@@ -345,7 +345,7 @@ const ChartContainer = styled('div')`
   .tooltip-date {
     color: ${theme.gray500};
     font-family: ${theme.text.family};
-    background: ${theme.gray5};
+    background: ${theme.gray800};
     padding: ${space(1)} ${space(2)};
     border-radius: ${theme.borderRadius} ${theme.borderRadius} 0 0;
   }
@@ -380,7 +380,7 @@ const ChartContainer = styled('div')`
     width: 0;
     position: absolute;
     pointer-events: none;
-    border-top-color: ${theme.gray5};
+    border-top-color: ${theme.gray800};
     border-width: 8px;
     margin-left: -8px;
   }

@@ -34,7 +34,7 @@ const Toast = styled(posed.div(toastAnimation))`
   height: 40px;
   padding: 0 15px 0 10px;
   margin-top: 15px;
-  background: ${p => p.theme.gray5};
+  background: ${p => p.theme.gray800};
   color: #fff;
   border-radius: 44px 7px 7px 44px;
   box-shadow: 0 4px 12px 0 rgba(47, 40, 55, 0.16);

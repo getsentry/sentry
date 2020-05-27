@@ -104,7 +104,7 @@ const CrumbLink = styled(Link)`
 
   color: ${p => p.theme.gray600};
   &:hover {
-    color: ${p => p.theme.gray5};
+    color: ${p => p.theme.gray800};
   }
 `;
 

@@ -241,7 +241,7 @@ const Header = styled('header')`
 const LogoSvg = styled(InlineSvg)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
 `;
 
 const ProgressBar = styled('div')`
