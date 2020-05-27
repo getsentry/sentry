@@ -28,6 +28,31 @@ const IssuesTooltip = ({children}: {children?: React.ReactNode}) => (
 
 const AlertTypeChooser = ({selected, onChange}: Props) => (
   <Container>
+    <TypeCard interactive onClick={() => onChange('issue')}>
+      <RadioLabel>
+        <Radio
+          aria-label="issue"
+          checked={selected === 'issue'}
+          onChange={() => onChange('issue')}
+        />
+        {t('Issue Alert')}
+      </RadioLabel>
+      <p>
+        {t(`Get notified when individual Sentry Issues match your alerting criteria.`)}
+      </p>
+      {!selected && (
+        <BulletList>
+          <li>
+            {t('New or regressed issues')}
+            <Example>{t('There is a new issue on the checkout page')}</Example>
+          </li>
+          <li>
+            {t('Issue frequency')}
+            <Example>{t('When an issue affects more than X users')}</Example>
+          </li>
+        </BulletList>
+      )}
+    </TypeCard>
     <TypeCard interactive onClick={() => onChange('metric')}>
       <RadioLabel>
         <Radio
@@ -54,31 +79,6 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
           <li>
             {t('Events across issues')}
             <Example>{t('100 or more errors with "database" in the title')}</Example>
-          </li>
-        </BulletList>
-      )}
-    </TypeCard>
-    <TypeCard interactive onClick={() => onChange('issue')}>
-      <RadioLabel>
-        <Radio
-          aria-label="issue"
-          checked={selected === 'issue'}
-          onChange={() => onChange('issue')}
-        />
-        {t('Issue Alert')}
-      </RadioLabel>
-      <p>
-        {t(`Get notified when individual Sentry Issues match your alerting criteria.`)}
-      </p>
-      {!selected && (
-        <BulletList>
-          <li>
-            {t('New or regressed issues')}
-            <Example>{t('There is a new issue on the checkout page')}</Example>
-          </li>
-          <li>
-            {t('Issue frequency')}
-            <Example>{t('When an issue affects more than X users')}</Example>
           </li>
         </BulletList>
       )}
