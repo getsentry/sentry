@@ -127,7 +127,7 @@ def trace_func(**span_kwargs):
 def process_transactions_batch(messages, projects):
     if options.get("store.transactions-celery") is True:
         for message in messages:
-            process_event(message, projects)
+            _do_process_event(message, projects)
         return
 
     jobs = []
@@ -146,9 +146,8 @@ def process_transactions_batch(messages, projects):
     save_transaction_events(jobs, projects)
 
 
-@trace_func(transaction="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
-def process_event(message, projects):
+def _do_process_event(message, projects):
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
@@ -220,6 +219,11 @@ def process_event(message, projects):
 
     # emit event_accepted once everything is done
     event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+
+
+@trace_func(transaction="ingest_consumer.process_event")
+def process_event(message, projects):
+    return _do_process_event(message, projects)
 
 
 @trace_func(transaction="ingest_consumer.process_attachment_chunk")
