@@ -18,8 +18,8 @@ type Props = {
   location: Location;
   eventView: EventView;
   orgSlug: string;
-  extraQuery?: {[key: string]: any};
   keyTransactions?: boolean;
+  limit?: number;
 
   children: (props: ChildrenProps) => React.ReactNode;
 };
@@ -67,11 +67,14 @@ class DiscoverQuery extends React.Component<Props, State> {
     const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
     const otherAPIPayload = prevProps.eventView.getEventsAPIPayload(prevProps.location);
 
-    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+    return (
+      !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
+      prevProps.limit !== this.props.limit
+    );
   };
 
   fetchData = () => {
-    const {eventView, orgSlug, location, extraQuery, keyTransactions} = this.props;
+    const {eventView, orgSlug, location, limit, keyTransactions} = this.props;
 
     if (!eventView.isValid()) {
       return;
@@ -85,6 +88,10 @@ class DiscoverQuery extends React.Component<Props, State> {
 
     this.setState({isLoading: true, tableFetchID});
 
+    if (limit) {
+      apiPayload.per_page = limit;
+    }
+
     this.props.api
       .requestPromise(url, {
         method: 'GET',
@@ -92,7 +99,6 @@ class DiscoverQuery extends React.Component<Props, State> {
         query: {
           // marking apiPayload as any so as to not cause typescript errors
           ...(apiPayload as any),
-          ...extraQuery,
         },
       })
       .then(([data, _, jqXHR]) => {
