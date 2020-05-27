@@ -30,6 +30,7 @@ from sentry.utils import json
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
+DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
 
 
 def upload_from_request(request, project):
@@ -100,8 +101,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
         debug_id = request.GET.get("debug_id")
         query = request.GET.get("query")
         file_formats = request.GET.getlist("file_formats")
-
-        DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
 
         # If this query contains a debug identifier, normalize it to allow for
         # more lenient queries (e.g. supporting Breakpad ids). Use the index to

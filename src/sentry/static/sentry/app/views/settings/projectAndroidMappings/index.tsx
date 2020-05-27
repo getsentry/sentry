@@ -9,7 +9,9 @@ import withOrganization from 'app/utils/withOrganization';
 
 import ProjectAndroidMappings from './projectAndroidMappings';
 
-class ReleasesContainer extends React.Component<ProjectAndroidMappings['props']> {
+class ProjectAndroidMappingsContainer extends React.Component<
+  ProjectAndroidMappings['props']
+> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };
@@ -37,4 +39,4 @@ class ReleasesContainer extends React.Component<ProjectAndroidMappings['props']>
   }
 }
 
-export default withOrganization(ReleasesContainer);
+export default withOrganization(ProjectAndroidMappingsContainer);

@@ -64,10 +64,13 @@ class ProjectAndroidMappings extends AsyncView<Props, State> {
       loading: true,
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/files/dsyms/?id=${id}`, {
-      method: 'DELETE',
-      complete: () => this.fetchData(),
-    });
+    this.api.request(
+      `/projects/${orgId}/${projectId}/files/dsyms/?id=${encodeURIComponent(id)}`,
+      {
+        method: 'DELETE',
+        complete: () => this.fetchData(),
+      }
+    );
   };
 
   handleSearch = (query: string) => {
@@ -129,7 +132,7 @@ class ProjectAndroidMappings extends AsyncView<Props, State> {
 
         <TextBlock>
           {t(
-            `Android mapping files are used to convert minified classes, methods and field names into human readable format.`
+            `Android mapping files are used to convert minified classes, methods and field names into a human readable format.`
           )}
         </TextBlock>
 
