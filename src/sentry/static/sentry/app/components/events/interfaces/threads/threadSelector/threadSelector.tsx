@@ -90,7 +90,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
   );
 };
 
-export default ThreadSelector;
+export {ThreadSelector};
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   width: 100%;

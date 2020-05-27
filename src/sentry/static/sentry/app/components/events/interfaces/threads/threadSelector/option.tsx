@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
+import {Color} from 'app/utils/theme';
 import {t, tct} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
 import TextOverflow from 'app/components/textOverflow';
@@ -29,35 +30,35 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
   return (
     <Grid>
       <GridCell>
-        <Id>
+        <InnerCell>
           <Tooltip title={`#${id}`} position="top">
             <TextOverflow>{`#${id}`}</TextOverflow>
           </Tooltip>
-        </Id>
+        </InnerCell>
       </GridCell>
       <GridCell>
-        <Name>
+        <InnerCell isBold>
           <Tooltip title={optionName} position="top">
             <TextOverflow>{optionName}</TextOverflow>
           </Tooltip>
-        </Name>
+        </InnerCell>
       </GridCell>
       <GridCell>
-        <Label>
+        <InnerCell color="blue">
           <Tooltip title={label} position="top">
             <TextOverflow>{label}</TextOverflow>
           </Tooltip>
-        </Label>
+        </InnerCell>
       </GridCell>
       <GridCell>
-        <FileName>
+        <InnerCell color="purple">
           <Tooltip title={filename} position="top">
             <TextOverflow>{filename}</TextOverflow>
           </Tooltip>
-        </FileName>
+        </InnerCell>
       </GridCell>
       <GridCell>
-        <Icon>
+        <InnerCell isCentered>
           {crashed ? (
             crashedInfo ? (
               <Tooltip
@@ -74,7 +75,7 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
           ) : (
             <IconCheckmark color="green" size="xs" />
           )}
-        </Icon>
+        </InnerCell>
       </GridCell>
     </Grid>
   );
@@ -88,25 +89,9 @@ const centerCss = css`
   height: 100%;
 `;
 
-const Label = styled('strong')`
-  color: ${p => p.theme.blue};
+const InnerCell = styled('div')<{isCentered?: boolean; color?: Color; isBold?: boolean}>`
   ${centerCss};
-`;
-
-const Id = styled('div')`
-  ${centerCss};
-`;
-
-const Name = styled('div')`
-  ${centerCss};
-`;
-
-const Icon = styled('div')`
-  ${centerCss};
-  justify-content: center;
-`;
-
-const FileName = styled('div')`
-  color: ${p => p.theme.purple};
-  ${centerCss};
+  justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};
+  font-weight: ${p => (p.isBold ? 600 : 400)};
+  ${p => p.color && `color: ${p.theme[p.color]}`}
 `;
