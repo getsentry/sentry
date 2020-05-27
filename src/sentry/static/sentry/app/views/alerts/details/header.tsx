@@ -7,7 +7,6 @@ import isPropValid from '@emotion/is-prop-valid';
 import {PageHeader} from 'app/styles/organization';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
-import DropdownControl from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
@@ -17,13 +16,11 @@ import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {IconCheckmark} from 'app/icons';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 
-import {Incident, IncidentStats} from '../types';
-import {isOpen} from '../utils';
+import {Incident, IncidentStats, IncidentStatus} from '../types';
 import Status from '../status';
 
 type Props = {
@@ -44,6 +41,7 @@ export default class DetailsHeader extends React.Component<Props> {
       params,
       stats,
       onSubscriptionChange,
+      onStatusChange,
     } = this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
     const dateStarted = incident && moment(new Date(incident.dateStarted)).format('llll');
@@ -66,8 +64,20 @@ export default class DetailsHeader extends React.Component<Props> {
             ]}
           />
           <AlertControls>
-            <Button size="small">{t('Subscribe')}</Button>
-            <Button size="small">{t('Resolve')}</Button>
+            <SubscribeButton
+              disabled={!isIncidentReady}
+              isSubscribed={incident?.isSubscribed}
+              onClick={onSubscriptionChange}
+              size="small"
+            />
+            <Button
+              icon={<IconCheckmark />}
+              disabled={!isIncidentReady || incident?.status === IncidentStatus.CLOSED}
+              size="small"
+              onClick={onStatusChange}
+            >
+              {t('Resolve')}
+            </Button>
           </AlertControls>
         </BreadCrumbBar>
         <Header>
@@ -127,6 +137,26 @@ export default class DetailsHeader extends React.Component<Props> {
   }
 }
 
+const BreadCrumbBar = styled('div')`
+  background-color: ${p => p.theme.offWhite};
+  margin-bottom: 0;
+  padding: ${space(2)} ${space(4)};
+
+  display: flex;
+`;
+
+const AlertBreadcrumbs = styled(Breadcrumbs)`
+  flex-grow: 1;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  padding: 0;
+`;
+
+const AlertControls = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+`;
+
 const Header = styled(PageHeader)`
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
@@ -142,22 +172,6 @@ const Header = styled(PageHeader)`
     grid-template-columns: auto;
     grid-auto-flow: row;
   }
-`;
-
-const BreadCrumbBar = styled(Header)`
-  border-bottom: 0;
-  padding: ${space(2)} ${space(4)} 0 ${space(4)};
-`;
-
-const AlertBreadcrumbs = styled(Breadcrumbs)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  padding: 0;
-`;
-
-const AlertControls = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
 `;
 
 const StyledLoadingError = styled(LoadingError)`

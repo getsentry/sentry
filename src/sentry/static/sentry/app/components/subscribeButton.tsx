@@ -1,9 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';
+import {IconBell} from 'app/icons/iconBell';
 
 type Props = {
   onClick: (e: React.MouseEvent) => void;
@@ -13,35 +12,14 @@ type Props = {
 };
 
 export default class SubscribeButton extends React.Component<Props> {
-  static propTypes = {
-    isSubscribed: PropTypes.bool,
-    onClick: PropTypes.func.isRequired,
-    disabled: PropTypes.bool,
-    // `Object is possibly 'undefined'` if we try to use Button.propTypes.size
-    size: PropTypes.any,
-  };
-
   render() {
     const {size, isSubscribed, onClick, disabled} = this.props;
+    const icon = <IconBell color={isSubscribed ? 'blue' : 'black'} />;
 
     return (
-      <Button size={size} onClick={onClick} disabled={disabled}>
-        <Content>
-          <SignalIcon className="icon-signal" isSubscribed={isSubscribed} />
-          {isSubscribed ? t('Unsubscribe') : t('Subscribe')}
-        </Content>
+      <Button size={size} icon={icon} onClick={onClick} disabled={disabled}>
+        {isSubscribed ? t('Unsubscribe') : t('Subscribe')}
       </Button>
     );
   }
 }
-
-const Content = styled('span')`
-  display: flex;
-  align-items: center;
-`;
-
-const SignalIcon = styled('span')<{isSubscribed?: boolean}>`
-  font-size: 1.2em;
-  margin-right: 5px;
-  ${p => p.isSubscribed && `color: ${p.theme.blue}`};
-`;
