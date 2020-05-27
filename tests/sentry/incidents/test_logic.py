@@ -21,6 +21,7 @@ from sentry.incidents.events import (
 from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
+    InvalidTriggerActionError,
     get_incident_stats,
     create_alert_rule,
     create_alert_rule_trigger,
@@ -1081,7 +1082,7 @@ class BaseAlertRuleTriggerActionTest(object):
         )
 
 
-class CreateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
+class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase):
     def test(self):
         type = AlertRuleTriggerAction.Type.EMAIL
         target_type = AlertRuleTriggerAction.TargetType.USER
@@ -1125,6 +1126,25 @@ class CreateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
         assert action.integration == integration
+
+    def test_slack_not_existing(self):
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel_that_doesnt_exist"
+        with self.assertRaises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_name,
+                integration=integration,
+            )
 
 
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
@@ -1179,6 +1199,25 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
         assert action.integration == integration
+
+    def test_slack_not_existing(self):
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel_that_doesnt_exist"
+        with self.assertRaises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_name,
+                integration=integration,
+            )
 
 
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
