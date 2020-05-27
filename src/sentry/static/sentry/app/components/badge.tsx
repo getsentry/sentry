@@ -7,7 +7,7 @@ import theme from 'app/utils/theme';
 
 const priorityColors = {
   new: theme.red,
-  strong: theme.blue,
+  strong: theme.blue400,
   highlight: theme.green,
 } as const;
 

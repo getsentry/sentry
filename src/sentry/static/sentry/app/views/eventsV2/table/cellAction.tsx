@@ -194,7 +194,11 @@ export default class CellAction extends React.Component<Props, State> {
           <Reference>
             {({ref}) => (
               <MenuButton ref={ref} onClick={this.handleMenuToggle}>
-                <IconEllipsis size="sm" data-test-id="cell-action" color={theme.blue} />
+                <IconEllipsis
+                  size="sm"
+                  data-test-id="cell-action"
+                  color={theme.blue400}
+                />
               </MenuButton>
             )}
           </Reference>
