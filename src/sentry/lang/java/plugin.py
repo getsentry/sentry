@@ -105,7 +105,8 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             mapped = map(lambda f: map_frame(frame, f), mapped)
 
             if len(mapped) > 1 or mapped[0] != raw_frame:
-                return mapped, [raw_frame], []
+                # sentry expects stack traces in reverse order
+                return reversed(mapped), [raw_frame], []
 
         return
 
