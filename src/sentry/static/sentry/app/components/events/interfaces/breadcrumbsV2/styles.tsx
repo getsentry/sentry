@@ -50,13 +50,12 @@ const GridCell = styled('div')<{
       border-top: 1px solid #fa4747;
       border-bottom: 1px solid #fa4747;
       z-index: 1;
-      ${p.isLastItem && 'margin-bottom: 0'};
     `}
+  ${p => p.isLastItem && `border-bottom: none`};
 `;
 
 const GridCellLeft = styled(GridCell)`
   padding: ${space(1)} ${space(0.5)} ${space(1)} ${space(1)};
-  position: relative;
   :before {
     content: '';
     display: block;
@@ -73,6 +72,7 @@ const GridCellLeft = styled(GridCell)`
 `;
 
 const Grid = styled('div')<{maxHeight?: React.CSSProperties['maxHeight']}>`
+  border: 1px solid ${p => p.theme.borderDark};
   display: grid;
   overflow-y: auto;
   ${p => p.maxHeight && `max-height: ${p.maxHeight}`};

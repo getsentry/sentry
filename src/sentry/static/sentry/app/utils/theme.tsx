@@ -65,6 +65,7 @@ const colors = {
   borderDark: '#D1CAD8',
   borderRadius: '4px',
   borderRadiusBottom: '0 0 4px 4px',
+  borderRadiusTop: '4px 4px 0 0',
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
 

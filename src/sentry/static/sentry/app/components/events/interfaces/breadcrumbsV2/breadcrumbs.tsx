@@ -336,7 +336,7 @@ class Breadcrumbs extends React.Component<Props, State> {
               />
             </React.Fragment>
           ) : (
-            <EmptyMessage
+            <StyledEmptyMessage
               icon={<IconWarning size="xl" />}
               action={
                 <Button onClick={this.handleResetFilter} priority="primary">
@@ -345,7 +345,7 @@ class Breadcrumbs extends React.Component<Props, State> {
               }
             >
               {t('Sorry, no breadcrumbs match your search query.')}
-            </EmptyMessage>
+            </StyledEmptyMessage>
           )}
         </Content>
       </EventDataSection>
@@ -356,10 +356,14 @@ class Breadcrumbs extends React.Component<Props, State> {
 export {Breadcrumbs};
 
 const Content = styled('div')`
+  box-shadow: ${p => p.theme.dropShadowLightest};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-bottom: ${space(3)};
+`;
+
+const StyledEmptyMessage = styled(EmptyMessage)`
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  margin-bottom: ${space(3)};
 `;
 
 const Search = styled('div')`
