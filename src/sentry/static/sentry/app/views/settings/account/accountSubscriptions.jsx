@@ -145,7 +145,7 @@ const Description = styled('div')`
 `;
 
 const SubscribedDescription = styled(Description)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 export default AccountSubscriptions;

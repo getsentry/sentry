@@ -61,7 +61,7 @@ const StyledButton = styled(Button)<Pick<Props, 'isOpen' | 'disabled'>>`
 
 const LabelText = styled('em')`
   font-style: normal;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   padding-right: ${space(0.75)};
 `;
 

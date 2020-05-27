@@ -337,7 +337,7 @@ const TimeAndUtcPicker = styled('div')`
 `;
 
 const UtcPicker = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   display: flex;
   align-items: center;
   justify-content: flex-end;

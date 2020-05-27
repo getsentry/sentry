@@ -188,7 +188,7 @@ const GroupLevel = styled('div')`
       case 'fatal':
         return p.theme.red;
       default:
-        return p.theme.gray2;
+        return p.theme.gray500;
     }
   }};
 

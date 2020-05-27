@@ -69,7 +69,7 @@ const Input = styled('input')`
     padding-left: 5%;
     background: ${p => p.theme.gray100};
     border: 1px solid ${p => p.theme.borderLight};
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
     box-shadow: none;
   }
 `;

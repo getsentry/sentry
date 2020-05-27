@@ -343,7 +343,7 @@ const ChartContainer = styled('div')`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {
-    color: ${theme.gray2};
+    color: ${theme.gray500};
     font-family: ${theme.text.family};
     background: ${theme.gray5};
     padding: ${space(1)} ${space(2)};

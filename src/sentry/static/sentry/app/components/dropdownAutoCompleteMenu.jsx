@@ -523,7 +523,7 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     padding: ${space(1)};
     font-weight: normal;
-    color: ${p => p.gray2};
+    color: ${p => p.gray500};
   }
 `;
 
