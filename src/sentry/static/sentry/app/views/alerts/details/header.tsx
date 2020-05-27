@@ -19,6 +19,7 @@ import space from 'app/styles/space';
 import {IconCheckmark} from 'app/icons';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
+import {Dataset} from 'app/views/settings/incidentRules/types';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 import Status from '../status';
@@ -51,6 +52,7 @@ export default class DetailsHeader extends React.Component<Props> {
         moment(new Date(incident.dateStarted)),
         'seconds'
       );
+    const isErrorDataset = incident?.alertRule?.dataset === Dataset.ERRORS;
 
     const project = incident && incident.projects && incident.projects[0];
 
@@ -96,8 +98,8 @@ export default class DetailsHeader extends React.Component<Props> {
             <GroupedHeaderItems>
               <ItemTitle>{t('Status')}</ItemTitle>
               <ItemTitle>{t('Project')}</ItemTitle>
-              <ItemTitle>{t('Users affected')}</ItemTitle>
-              <ItemTitle>{t('Total events')}</ItemTitle>
+              {isErrorDataset && stats && <ItemTitle>{t('Users affected')}</ItemTitle>}
+              {isErrorDataset && stats && <ItemTitle>{t('Total events')}</ItemTitle>}
               <ItemTitle>{t('Duration')}</ItemTitle>
               <ItemValue>{incident && <Status incident={incident} />}</ItemValue>
               <ItemValue>
@@ -112,12 +114,12 @@ export default class DetailsHeader extends React.Component<Props> {
                   </Projects>
                 )}
               </ItemValue>
-              {stats && (
+              {isErrorDataset && stats && (
                 <ItemValue>
                   <Count value={stats.uniqueUsers} />
                 </ItemValue>
               )}
-              {stats && (
+              {isErrorDataset && stats && (
                 <ItemValue>
                   <Count value={stats.totalEvents} />
                 </ItemValue>
