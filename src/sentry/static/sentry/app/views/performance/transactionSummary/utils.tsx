@@ -28,6 +28,7 @@ export function transactionSummaryRouteWithQuery({
       statsPeriod: query.statsPeriod,
       start: query.start,
       end: query.end,
+      query: query.query,
     },
   };
 }
