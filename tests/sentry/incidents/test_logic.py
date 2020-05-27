@@ -558,6 +558,18 @@ class GetIncidentStatsTest(TestCase, BaseIncidentsTest):
         )
         self.run_test(closed_incident)
 
+    def test_transaction(self):
+        alert_rule = self.create_alert_rule(
+            self.organization, dataset=QueryDatasets.TRANSACTIONS, aggregate="p75()"
+        )
+        open_incident = self.create_incident(
+            self.organization,
+            title="Open",
+            date_started=timezone.now() - timedelta(days=30),
+            alert_rule=alert_rule,
+        )
+        self.run_test(open_incident)
+
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test(self):

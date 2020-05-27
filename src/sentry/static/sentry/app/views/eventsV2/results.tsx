@@ -44,6 +44,7 @@ type Props = {
 type State = {
   eventView: EventView;
   error: string;
+  errorCode: number;
   totalValues: null | number;
 };
 
@@ -56,6 +57,7 @@ class Results extends React.Component<Props, State> {
   state = {
     eventView: EventView.fromLocation(this.props.location),
     error: '',
+    errorCode: 200,
     totalValues: null,
   };
 
@@ -221,13 +223,13 @@ class Results extends React.Component<Props, State> {
     );
   }
 
-  setError = (error: string) => {
-    this.setState({error});
+  setError = (error: string, errorCode: number) => {
+    this.setState({error, errorCode});
   };
 
   render() {
     const {organization, location, router, api} = this.props;
-    const {eventView, error, totalValues} = this.state;
+    const {eventView, error, errorCode, totalValues} = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
 
@@ -236,6 +238,7 @@ class Results extends React.Component<Props, State> {
         <StyledPageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <ResultsHeader
+              errorCode={errorCode}
               organization={organization}
               location={location}
               eventView={eventView}

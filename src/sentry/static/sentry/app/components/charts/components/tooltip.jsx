@@ -21,6 +21,10 @@ function defaultValueFormatter(value) {
   return value;
 }
 
+function defaultNameFormatter(value) {
+  return value;
+}
+
 function getSeriesValue(series, offset) {
   if (Array.isArray(series.data)) {
     return series.data[offset];
@@ -40,6 +44,7 @@ function getFormatter({
   formatAxisLabel,
   utc,
   valueFormatter = defaultValueFormatter,
+  nameFormatter = defaultNameFormatter,
 }) {
   const getFilter = seriesParam => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -80,6 +85,7 @@ function getFormatter({
         seriesParamsOrParam.data.coord[1],
         seriesParamsOrParam.name
       );
+
       return [
         '<div class="tooltip-series">',
         `<div>
@@ -110,7 +116,9 @@ function getFormatter({
       seriesParams
         .filter(getFilter)
         .map(s => {
-          const formattedLabel = truncationFormatter(s.seriesName, truncate);
+          const formattedLabel = nameFormatter(
+            truncationFormatter(s.seriesName, truncate)
+          );
           const value = valueFormatter(getSeriesValue(s, 1), s.seriesName);
           return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
         })
@@ -131,6 +139,7 @@ export default function Tooltip({
   utc,
   formatAxisLabel,
   valueFormatter,
+  nameFormatter,
   ...props
 } = {}) {
   formatter =
@@ -143,6 +152,7 @@ export default function Tooltip({
       utc,
       formatAxisLabel,
       valueFormatter,
+      nameFormatter,
     });
 
   return {

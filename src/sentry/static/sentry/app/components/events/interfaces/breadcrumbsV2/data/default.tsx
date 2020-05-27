@@ -4,20 +4,20 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from '../types';
-import BreadcrumbDataSummary from './breadcrumbDataSummary';
+import {Summary} from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
 };
 
-const BreadcrumbDataDefault = ({breadcrumb}: Props) => (
-  <BreadcrumbDataSummary kvData={breadcrumb.data}>
+const Default = ({breadcrumb}: Props) => (
+  <Summary kvData={breadcrumb.data}>
     {breadcrumb?.message &&
       getBreadcrumbCustomRendererValue({
         value: breadcrumb.message,
         meta: getMeta(breadcrumb, 'message'),
       })}
-  </BreadcrumbDataSummary>
+  </Summary>
 );
 
-export default BreadcrumbDataDefault;
+export {Default};

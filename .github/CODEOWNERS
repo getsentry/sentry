@@ -32,9 +32,14 @@
 /docker             @getsentry/releases
 setup.py            @getsentry/releases
 setup.cfg           @getsentry/releases
-# TODO: owners-js-build, owners-build (for travis / gha)
+# TODO: owners-build (for travis / gha)
 requirements*.txt   @getsentry/owners-python-build
 pyproject.toml      @getsentry/owners-python-build
+tsconfig.*          @getsentry/owners-js-build
+webpack.config.*    @getsentry/owners-js-build
+package.json        @getsentry/owners-js-build
+babel.config.*      @getsentry/owners-js-build
+build-utils/        @getsentry/owners-js-build
 
 # Dev
 /config/hooks/              @getsentry/owners-sentry-dev
@@ -43,3 +48,32 @@ Makefile                    @getsentry/owners-sentry-dev
 .envrc                      @getsentry/owners-sentry-dev
 .pre-commit-config.yaml     @getsentry/owners-sentry-dev
 .git-blame-ignore-revs      @getsentry/owners-sentry-dev
+
+
+# Owners by product feature
+
+
+### Issue/Metric Alerts ###
+/src/sentry/static/sentry/app/views/settings/projectAlerts/     @getsentry/workflow
+/tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
+
+/src/sentry/static/sentry/app/views/settings/incidentRules/     @getsentry/workflow
+/tests/js/spec/views/settings/incidentRules/                    @getsentry/workflow
+
+/src/sentry/static/sentry/app/views/alerts/                     @getsentry/workflow
+/tests/js/spec/views/alerts/                                    @getsentry/workflow
+
+/src/sentry/templates/sentry/emails/incidents/                  @getsentry/workflow
+/src/sentry/incidents/                                          @getsentry/workflow
+/tests/sentry/incidents/                                        @getsentry/workflow
+/tests/acceptance/test_incidents.py                             @getsentry/workflow
+
+/src/sentry/snuba/models.py                                     @getsentry/workflow
+/src/sentry/snuba/query_subscription_consumer.py                @getsentry/workflow
+/src/sentry/snuba/subscriptions.py                              @getsentry/workflow
+/tests/snuba/incidents/                                         @getsentry/workflow
+/tests/sentry/snuba/test_query_subscription_consumer.py         @getsentry/workflow
+/tests/sentry/snuba/test_subscriptions.py                       @getsentry/workflow
+/tests/sentry/snuba/test_tasks.py                               @getsentry/workflow
+/tests/snuba/snuba/test_query_subscription_consumer.py          @getsentry/workflow
+### Endof Issue/Metric Alerts ###
