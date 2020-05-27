@@ -85,7 +85,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
-  color: ${theme.gray4};
+  color: ${theme.gray700};
   align-items: center;
   min-width: 190px;
   height: 38px;

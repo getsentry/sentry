@@ -181,7 +181,7 @@ const StyledDeployBadge = styled(DeployBadge)`
 
 const ReleaseName = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   margin-bottom: ${space(2)};
   display: flex;
   align-items: center;
@@ -197,7 +197,7 @@ const IconWrapper = styled('span')`
     display: flex;
     &:hover {
       cursor: pointer;
-      color: ${p => p.theme.gray4};
+      color: ${p => p.theme.gray700};
     }
   }
 `;

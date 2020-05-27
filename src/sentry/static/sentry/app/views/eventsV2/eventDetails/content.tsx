@@ -353,7 +353,7 @@ const StyledEventHeader = styled('div')`
 `;
 
 const StyledTitle = styled('span')`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   margin-right: ${space(1)};
 `;
 

@@ -60,7 +60,7 @@ const StyledDropdownButton = styled(DropdownButton)`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.theme.gray4};
+    color: ${p => p.theme.gray700};
   }
 `;
 

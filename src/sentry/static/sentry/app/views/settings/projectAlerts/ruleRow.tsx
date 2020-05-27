@@ -214,7 +214,7 @@ const TriggerDescription = styled('div')`
 
 const StatusBadge = styled('div')`
   background-color: ${p => p.theme.gray300};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   text-transform: uppercase;
   padding: ${space(0.25)} ${space(0.5)};
   font-weight: 600;

@@ -343,5 +343,5 @@ const Query = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   background-color: ${p => p.theme.gray100};
   padding: ${space(0.5)} ${space(1)};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;

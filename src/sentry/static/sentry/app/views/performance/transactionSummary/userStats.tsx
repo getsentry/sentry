@@ -115,7 +115,7 @@ const StatTitle = styled('h4')`
 
 const StatNumber = styled('div')`
   font-size: 32px;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 export default UserStats;

@@ -121,7 +121,7 @@ const PillValue = styled(PillName)<PillValueProps>`
     color: ${p => p.theme.gray500};
     line-height: 1.2;
     &:hover {
-      color: ${p => p.theme.gray4};
+      color: ${p => p.theme.gray700};
     }
   }
 `;

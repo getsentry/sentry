@@ -203,7 +203,7 @@ const CategoryTag = styled(
   margin-right: ${space(1)};
   line-height: ${space(3)};
   text-align: center;
-  color: ${p => (p.priority ? p.theme.white : p.theme.gray4)};
+  color: ${p => (p.priority ? p.theme.white : p.theme.gray700)};
 `;
 
 const ResolveNowButton = styled(Button)`

@@ -244,7 +244,7 @@ const Title = styled('div')`
 `;
 
 const TitleType = styled('div')`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   font-weight: bold;
   ${overflowEllipsis};
 `;
@@ -263,7 +263,7 @@ const Label = styled('div')`
 const Percent = styled('div')`
   font-weight: bold;
   padding-left: ${space(0.5)};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 const OtherSegment = styled('span')`

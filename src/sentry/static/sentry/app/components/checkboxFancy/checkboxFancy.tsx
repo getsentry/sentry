@@ -23,7 +23,8 @@ const disabledStyles = (p: Props & {theme: Theme}) =>
 const hoverStyles = (p: Props & {theme: Theme}) =>
   !p.isDisabled &&
   css`
-    border: 2px solid ${p.isChecked || p.isIndeterminate ? p.theme.purple : p.theme.gray4};
+    border: 2px solid
+      ${p.isChecked || p.isIndeterminate ? p.theme.purple : p.theme.gray700};
   `;
 
 const CheckboxFancy = styled(
