@@ -142,7 +142,7 @@ const Header = styled('h3')`
 const StyledIconOpen = styled(IconOpen)`
   transition: 0.1s linear color;
   margin: 0 ${space(0.5)};
-  color: ${p => p.theme.gray6};
+  color: ${p => p.theme.gray400};
   position: relative;
   top: 1px;
 
