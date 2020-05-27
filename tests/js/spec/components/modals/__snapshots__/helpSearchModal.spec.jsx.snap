@@ -303,13 +303,13 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                     >
                       <FaqsBadge>
                         <Component
-                          className="css-1orbeog-FaqsBadge ekxyuw12"
+                          className="css-1tt1mhp-FaqsBadge ekxyuw12"
                         >
                           <ResultIcon
-                            className="css-1orbeog-FaqsBadge ekxyuw12"
+                            className="css-1tt1mhp-FaqsBadge ekxyuw12"
                           >
                             <div
-                              className="ekxyuw12 css-mwc7vi-ResultIcon-FaqsBadge ekxyuw10"
+                              className="ekxyuw12 css-925f05-ResultIcon-FaqsBadge ekxyuw10"
                             >
                               faqs
                             </div>

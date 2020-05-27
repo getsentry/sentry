@@ -203,7 +203,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                       size="lg"
                                     >
                                       <span
-                                        className="css-kwqtwq-Toggle ezmyi9u1"
+                                        className="css-7219fh-Toggle ezmyi9u1"
                                         size="lg"
                                       />
                                     </Toggle>

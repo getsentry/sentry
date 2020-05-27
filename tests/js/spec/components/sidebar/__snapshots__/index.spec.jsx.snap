@@ -1265,8 +1265,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   r="38"
                 />
                 <circle
-                  class="css-sn14z-RingBar eqr38d43"
-                  color="#57be8c"
+                  class="css-f63l5e-RingBar eqr38d43"
+                  color="#8FE7BF"
                   cx="44"
                   cy="44"
                   r="38"
@@ -1910,7 +1910,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         <RingBar
                           barWidth={12}
                           circumference={238.76104167282426}
-                          color="#57be8c"
+                          color="#8FE7BF"
                           cx={44}
                           cy={44}
                           r={38}
@@ -1918,8 +1918,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           strokeLinecap="round"
                         >
                           <circle
-                            className="css-sn14z-RingBar eqr38d43"
-                            color="#57be8c"
+                            className="css-f63l5e-RingBar eqr38d43"
+                            color="#8FE7BF"
                             cx={44}
                             cy={44}
                             r={38}
