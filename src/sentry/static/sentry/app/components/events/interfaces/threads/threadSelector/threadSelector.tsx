@@ -98,6 +98,9 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   @media (min-width: ${theme.breakpoints[0]}) {
     width: 500px;
   }
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    top: calc(100% - 2px);
+  }
 `;
 
 const StyledDropdownButton = styled(DropdownButton)`

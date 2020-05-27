@@ -108,6 +108,7 @@ const DropdownBubble = styled('div')<Params>`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
+  top: calc(100% - 1px);
   ${p => (p.width ? `width: ${p.width}` : '')};
   right: 0;
   box-shadow: ${p => p.theme.dropShadowLight};
@@ -124,11 +125,6 @@ const DropdownBubble = styled('div')<Params>`
 
   ${/* sc-selector */ SettingsHeader} & {
     z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu + 2};
-  }
-
-  top: calc(100% - 2px);
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    top: calc(100% - 1px);
   }
 `;
 

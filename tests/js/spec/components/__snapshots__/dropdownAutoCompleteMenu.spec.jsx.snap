@@ -70,7 +70,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                     [Function],
                     ";border:1px solid ",
                     [Function],
-                    ";position:absolute;",
+                    ";position:absolute;top:calc(100% - 1px);",
                     [Function],
                     ";right:0;box-shadow:",
                     [Function],
@@ -107,9 +107,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                     },
                     " &{z-index:",
                     [Function],
-                    ";}top:calc(100% - 2px);@media (min-width:",
-                    [Function],
-                    "){top:calc(100% - 1px);}",
+                    ";}",
                     "label:BubbleWithMinWidth;",
                     Object {
                       "name": "13s4dk6",
@@ -137,7 +135,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                 onMouseLeave={[Function]}
               >
                 <div
-                  className="css-17u06hp-DropdownBubble-BubbleWithMinWidth ejumqxq11"
+                  className="css-1lfbn3y-DropdownBubble-BubbleWithMinWidth ejumqxq11"
                   onClick={[Function]}
                   onMouseDown={[Function]}
                   onMouseEnter={[Function]}
@@ -311,7 +309,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                     [Function],
                     ";border:1px solid ",
                     [Function],
-                    ";position:absolute;",
+                    ";position:absolute;top:calc(100% - 1px);",
                     [Function],
                     ";right:0;box-shadow:",
                     [Function],
@@ -348,9 +346,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                     },
                     " &{z-index:",
                     [Function],
-                    ";}top:calc(100% - 2px);@media (min-width:",
-                    [Function],
-                    "){top:calc(100% - 1px);}",
+                    ";}",
                     "label:BubbleWithMinWidth;",
                     Object {
                       "name": "13s4dk6",
@@ -378,7 +374,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                 onMouseLeave={[Function]}
               >
                 <div
-                  className="css-17u06hp-DropdownBubble-BubbleWithMinWidth ejumqxq11"
+                  className="css-1lfbn3y-DropdownBubble-BubbleWithMinWidth ejumqxq11"
                   onClick={[Function]}
                   onMouseDown={[Function]}
                   onMouseEnter={[Function]}
