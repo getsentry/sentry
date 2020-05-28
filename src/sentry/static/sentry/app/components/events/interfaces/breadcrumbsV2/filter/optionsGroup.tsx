@@ -16,8 +16,6 @@ type Props = {
 };
 
 const OptionsGroup = ({type, options, onClick}: Props) => {
-  const renderTitle = () => (type === 'type' ? t('Type') : t('Level'));
-
   const handleClick = (option: Option) => (event: React.MouseEvent<HTMLLIElement>) => {
     event.stopPropagation();
 
@@ -30,7 +28,7 @@ const OptionsGroup = ({type, options, onClick}: Props) => {
 
   return (
     <div>
-      <Header>{renderTitle()}</Header>
+      <Header>{type === 'type' ? t('Type') : t('Level')}</Header>
       <List>
         {options.map(option => (
           <ListItem
