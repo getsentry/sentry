@@ -42,10 +42,14 @@ const KeyValueList = ({
       <tbody>
         {getData().map(
           ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => {
-            const dataValue =
+            const dataValue: string | React.ReactNode | undefined =
               typeof value === 'object' && !React.isValidElement(value)
                 ? JSON.stringify(value, null, 2)
                 : value;
+
+            const valueIsReactRenderable: boolean =
+              typeof dataValue !== 'string' && React.isValidElement(dataValue);
+
             return (
               <tr key={key}>
                 <TableSubject className="key" wide={longKeys}>
@@ -60,6 +64,8 @@ const KeyValueList = ({
                     >
                       {subjectIcon}
                     </ContextData>
+                  ) : valueIsReactRenderable ? (
+                    dataValue
                   ) : (
                     <pre className="val-string">
                       <AnnotatedText value={dataValue} meta={meta} />

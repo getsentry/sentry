@@ -1,0 +1,39 @@
+import {Event, Organization} from 'app/types';
+import {defined} from 'app/utils';
+import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+
+import {TraceKnownData, TraceKnownDataType} from './types';
+import getUserKnownDataDetails from './getTraceKnownDataDetails';
+
+function getTraceKnownData(
+  data: TraceKnownData,
+  traceKnownDataValues: Array<TraceKnownDataType>,
+  event: Event,
+  organization: Organization
+): Array<KeyValueListData> {
+  const knownData: Array<KeyValueListData> = [];
+
+  const dataKeys = traceKnownDataValues.filter(
+    traceKnownDataValue => data[traceKnownDataValue]
+  );
+
+  for (const key of dataKeys) {
+    const knownDataDetails = getUserKnownDataDetails(data, key, event, organization);
+
+    if ((knownDataDetails && !defined(knownDataDetails.value)) || !knownDataDetails) {
+      continue;
+    }
+
+    knownData.push({
+      key,
+      ...knownDataDetails,
+      meta: getMeta(data, key),
+      subjectDataTestId: `trace-context-${key.toLowerCase()}-value`,
+    });
+  }
+
+  return knownData;
+}
+
+export default getTraceKnownData;
