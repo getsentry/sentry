@@ -1,5 +1,5 @@
 PIP := python -m pip --disable-pip-version-check
-WEBPACK := NODE_ENV=production ./bin/yarn webpack
+WEBPACK := NODE_ENV=production yarn webpack
 
 # Currently, this is only required to install black via pre-commit.
 REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)

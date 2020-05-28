@@ -94,14 +94,14 @@ after_script:
       pip install -U codecov
       codecov -e TEST_SUITE
     fi
-  - ./bin/yarn global add @zeus-ci/cli
-  - $(./bin/yarn global bin)/zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
-  - $(./bin/yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
-  - $(./bin/yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
-  - $(./bin/yarn global bin)/zeus upload -t "text/html+pytest" .artifacts/*pytest.html
-  - $(./bin/yarn global bin)/zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
-  - $(./bin/yarn global bin)/zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
-  - $(./bin/yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
+  - yarn global add @zeus-ci/cli
+  - $(yarn global bin)/zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
+  - $(yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
+  - $(yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
+  - $(yarn global bin)/zeus upload -t "text/html+pytest" .artifacts/*pytest.html
+  - $(yarn global bin)/zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
+  - $(yarn global bin)/zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
+  - $(yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
 
 base_postgres: &postgres_default
   python: 2.7
@@ -133,7 +133,7 @@ base_acceptance: &acceptance_default
     - nvm install
     - docker ps -a
   install:
-    - ./bin/yarn install --frozen-lockfile
+    - yarn install --frozen-lockfile
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
     - |
@@ -160,7 +160,7 @@ matrix:
         # is no pyenv python installed.
         - rm .python-version
         - nvm install
-        - ./bin/yarn install --frozen-lockfile
+        - yarn install --frozen-lockfile
 
     - python: 3.7
       name: 'pre-commit hooks (includes python linting + format check) and dependency scanning'
@@ -209,7 +209,7 @@ matrix:
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
       install:
-        - ./bin/yarn install --frozen-lockfile
+        - yarn install --frozen-lockfile
 
     - python: 2.7
       name: 'Frontend [build]'
@@ -218,7 +218,7 @@ matrix:
         - find "$NODE_DIR" -type d -empty -delete
         - nvm install
       install:
-        - ./bin/yarn install --frozen-lockfile
+        - yarn install --frozen-lockfile
 
     - python: 2.7
       name: 'Command Line'
@@ -304,8 +304,8 @@ matrix:
         # travis pyenv will attempt to use .python-version, but the appropriate python version won't be installed.
         # since we don't need python here, we have to remove this.
         - rm .python-version
-      install: ./bin/yarn install --frozen-lockfile
-      script: ./bin/yarn run storybook-build
+      install: yarn install --frozen-lockfile
+      script: yarn run storybook-build
       after_success: .travis/deploy-storybook.sh
       after_failure: skip
 
