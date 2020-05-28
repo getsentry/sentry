@@ -10,7 +10,7 @@ cache:
   yarn: true
   directories:
     - "${HOME}/virtualenv/python$(python -c 'import platform; print(platform.python_version())')"
-    - '$NODE_DIR'
+    - '$VOLTA_HOME'
     - node_modules
     - '${HOME}/google-cloud-sdk'
 
@@ -32,8 +32,9 @@ env:
     - MIGRATIONS_TEST_MIGRATE=0
     # Use this to override the django version in the requirements file.
     - DJANGO_VERSION=">=1.11,<1.12"
-    # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
-    - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
+    - VOLTA_VERSION=0.8.1
+    - VOLTA_HOME="${HOME}/.volta"
+    - PATH="${PATH}:${HOME}/.volta/bin"
     - NODE_OPTIONS=--max-old-space-size=4096
     - PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
     - SENTRY_KAFKA_HOSTS=localhost:9092
@@ -130,7 +131,12 @@ base_acceptance: &acceptance_default
     - *base_install
     - *start_snuba
     - find "$NODE_DIR" -type d -empty -delete
-    - nvm install
+    - |
+      command -v volta && exit 0
+      wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
+      tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+      # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+      volta -v
     - docker ps -a
   install:
     - yarn install --frozen-lockfile
@@ -159,7 +165,12 @@ matrix:
         # Under a "generic" language environment, this will make travis pyenv error because there
         # is no pyenv python installed.
         - rm .python-version
-        - nvm install
+        - |
+          command -v volta && exit 0
+          wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
+          tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+          volta -v
         - yarn install --frozen-lockfile
 
     - python: 3.7
@@ -207,7 +218,12 @@ matrix:
       env: TEST_SUITE=js
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
-        - nvm install
+        - |
+          command -v volta && exit 0
+          wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
+          tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+          volta -v
       install:
         - yarn install --frozen-lockfile
 
@@ -216,7 +232,12 @@ matrix:
       env: TEST_SUITE=js-build
       before_install:
         - find "$NODE_DIR" -type d -empty -delete
-        - nvm install
+        - |
+          command -v volta && exit 0
+          wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
+          tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+          volta -v
       install:
         - yarn install --frozen-lockfile
 
