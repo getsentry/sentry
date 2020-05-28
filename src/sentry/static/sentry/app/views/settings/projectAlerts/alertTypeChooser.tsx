@@ -97,7 +97,7 @@ const RadioLabel = styled('label')`
 
 const Example = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   font-style: italic;
 `;
 

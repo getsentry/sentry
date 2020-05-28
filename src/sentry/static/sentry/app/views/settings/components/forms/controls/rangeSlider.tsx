@@ -352,17 +352,17 @@ const Slider = styled('input')<{hasLabel: boolean}>`
 
   &[disabled] {
     &::-webkit-slider-thumb {
-      background: ${p => p.theme.gray6};
+      background: ${p => p.theme.gray400};
       cursor: default;
     }
 
     &::-moz-range-thumb {
-      background: ${p => p.theme.gray6};
+      background: ${p => p.theme.gray400};
       cursor: default;
     }
 
     &::-ms-thumb {
-      background: ${p => p.theme.gray6};
+      background: ${p => p.theme.gray400};
       cursor: default;
     }
 
@@ -383,7 +383,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
 const Label = styled('label')`
   font-size: 14px;
   margin-bottom: ${p => p.theme.grid}px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const SliderAndInputWrapper = styled('div')<{showCustomInput?: boolean}>`

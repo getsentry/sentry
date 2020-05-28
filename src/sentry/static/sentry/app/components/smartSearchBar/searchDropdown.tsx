@@ -132,7 +132,7 @@ const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -155,8 +155,8 @@ const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
 
-  background-color: ${p => p.theme.offWhite};
-  color: ${p => p.theme.gray2};
+  background-color: ${p => p.theme.gray100};
+  color: ${p => p.theme.gray500};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -178,7 +178,7 @@ const SearchListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
   }
 `;
 

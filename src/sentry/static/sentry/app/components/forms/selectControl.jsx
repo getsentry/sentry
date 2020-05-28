@@ -68,7 +68,7 @@ const defaultStyles = {
     }),
     ...(state.isDisabled && {
       borderColor: theme.borderDark,
-      background: theme.whiteDark,
+      background: theme.gray100,
       color: theme.gray2,
       cursor: 'not-allowed',
     }),
@@ -98,12 +98,12 @@ const defaultStyles = {
       ? theme.white
       : theme.textColor,
     backgroundColor: state.isFocused
-      ? theme.offWhiteLight
+      ? theme.gray200
       : state.isSelected
       ? theme.purple
       : 'transparent',
     '&:active': {
-      backgroundColor: theme.offWhiteLight,
+      backgroundColor: theme.gray200,
     },
   }),
   valueContainer: provided => ({

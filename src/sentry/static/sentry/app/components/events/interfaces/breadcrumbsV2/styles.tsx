@@ -20,7 +20,7 @@ const IconWrapper = styled('div', {
   border-radius: 32px;
   z-index: 1;
   position: relative;
-  border: 1px solid ${p => p.theme.gray2};
+  border: 1px solid ${p => p.theme.gray500};
   ${p =>
     p.color &&
     css`

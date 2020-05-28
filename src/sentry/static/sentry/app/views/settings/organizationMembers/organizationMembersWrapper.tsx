@@ -191,7 +191,7 @@ const Heading = styled('h1')`
 
 const SubText = styled('p')`
   margin: 0;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: 15px;
 `;
 

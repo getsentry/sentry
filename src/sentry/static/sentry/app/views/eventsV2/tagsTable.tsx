@@ -90,12 +90,12 @@ const StyledTable = styled('table')`
 
 const StyledTr = styled('tr')`
   &:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.offWhite};
+    background-color: ${p => p.theme.gray100};
   }
 `;
 
 const TagKey = styled('td')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;

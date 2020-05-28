@@ -62,7 +62,7 @@ const SearchInputWrapper = styled('div')`
 `;
 
 const SearchInputIcon = styled(props => <InlineSvg src="icon-search" {...props} />)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   position: absolute;
   left: 10px;
   top: 8px;
@@ -82,10 +82,10 @@ const SearchInput = styled('input')`
 
   &:focus {
     outline: none;
-    border: 1px solid ${p => p.theme.gray1};
+    border: 1px solid ${p => p.theme.gray400};
   }
 
   &::placeholder {
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
   }
 `;

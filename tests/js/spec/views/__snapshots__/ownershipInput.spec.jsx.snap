@@ -325,7 +325,7 @@ exports[`Project Ownership Input renders 1`] = `
                           <SelectPicker
                             arrowRenderer={[Function]}
                             backspaceRemoves={false}
-                            className="e1qrhqd00 css-j0gflv-StyledSelect-StyledSelectControl e1ynsgsr0"
+                            className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
                             clearable={false}
                             deleteRemoves={false}
                             disabled={false}
@@ -359,7 +359,7 @@ exports[`Project Ownership Input renders 1`] = `
                               autosize={true}
                               backspaceRemoves={false}
                               backspaceToRemoveMessage="Press backspace to remove {label}"
-                              className="e1qrhqd00 css-j0gflv-StyledSelect-StyledSelectControl e1ynsgsr0"
+                              className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
                               clearAllText="Clear all"
                               clearRenderer={[Function]}
                               clearValueText="Clear value"
@@ -423,7 +423,7 @@ exports[`Project Ownership Input renders 1`] = `
                               valueKey="value"
                             >
                               <div
-                                className="Select e1qrhqd00 css-j0gflv-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
+                                className="Select e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
                               >
                                 <input
                                   disabled={false}
@@ -557,7 +557,7 @@ exports[`Project Ownership Input renders 1`] = `
           value=""
         >
           <input
-            className="css-v3z08s-Input-BuilderInput e1hyuoc77"
+            className="css-1i5uufk-Input-BuilderInput e1hyuoc77"
             onChange={[Function]}
             placeholder="src/example/*"
             value=""
@@ -750,7 +750,7 @@ exports[`Project Ownership Input renders 1`] = `
                             async={true}
                             backspaceRemoves={true}
                             cache={false}
-                            className="css-gv7e0o-StyledSelect-SelectOwners e1ynsgsr0"
+                            className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
                             clearable={true}
                             defaultOptions={true}
                             deleteRemoves={true}
@@ -771,7 +771,7 @@ exports[`Project Ownership Input renders 1`] = `
                               autoload={true}
                               backspaceRemoves={true}
                               cache={false}
-                              className="css-gv7e0o-StyledSelect-SelectOwners e1ynsgsr0"
+                              className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
                               clearable={true}
                               defaultOptions={true}
                               deleteRemoves={true}
@@ -798,7 +798,7 @@ exports[`Project Ownership Input renders 1`] = `
                                 backspaceRemoves={true}
                                 backspaceToRemoveMessage="Press backspace to remove {label}"
                                 cache={false}
-                                className="css-gv7e0o-StyledSelect-SelectOwners e1ynsgsr0"
+                                className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
                                 clearAllText="Clear all"
                                 clearRenderer={[Function]}
                                 clearValueText="Clear value"
@@ -850,7 +850,7 @@ exports[`Project Ownership Input renders 1`] = `
                                 valueKey="value"
                               >
                                 <div
-                                  className="Select css-gv7e0o-StyledSelect-SelectOwners e1ynsgsr0 is-clearable is-loading is-searchable Select--multi"
+                                  className="Select css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0 is-clearable is-loading is-searchable Select--multi"
                                 >
                                   <div
                                     className="Select-control"
@@ -1008,7 +1008,7 @@ exports[`Project Ownership Input renders 1`] = `
               >
                 <Component
                   aria-disabled={true}
-                  className="e1hyuoc711 css-1vf07fg-StyledButton-AddButton edwq9my0"
+                  className="e1hyuoc711 css-10s1rks-StyledButton-AddButton edwq9my0"
                   forwardRef={null}
                   onClick={[Function]}
                   role="button"
@@ -1016,7 +1016,7 @@ exports[`Project Ownership Input renders 1`] = `
                 >
                   <button
                     aria-disabled={true}
-                    className="e1hyuoc711 css-1vf07fg-StyledButton-AddButton edwq9my0"
+                    className="e1hyuoc711 css-10s1rks-StyledButton-AddButton edwq9my0"
                     onClick={[Function]}
                     role="button"
                     size="small"
@@ -1102,7 +1102,7 @@ tags.sku_class:enterprise #enterprise"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-2r1wnf-StyledTextArea en3n9di3"
+        className="css-1bcdesj-StyledTextArea en3n9di3"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1117,7 +1117,7 @@ tags.sku_class:enterprise #enterprise"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-2r1wnf-StyledTextArea en3n9di3"
+          className="css-1bcdesj-StyledTextArea en3n9di3"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
