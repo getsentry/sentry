@@ -86,10 +86,10 @@ Sentry.init({
   ...window.__SENTRY__OPTIONS,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
-  _experiments: {useEnvelope: true},
-  async beforeSend(event) {
-    return normalizeTransactionName(appRoutes, event);
-  },
+});
+
+Sentry.addGlobalEventProcessor(async event => {
+  return normalizeTransactionName(appRoutes, event);
 });
 
 if (window.__SENTRY__USER) {

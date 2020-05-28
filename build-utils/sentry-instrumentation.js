@@ -24,7 +24,7 @@ class SentryInstrumentation {
 
     this.initialBuild = false;
     this.Sentry = require('@sentry/node');
-    require('@sentry/apm');
+    require('@sentry/apm'); // This is required to patch Sentry
 
     this.Sentry.init({
       dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
@@ -47,16 +47,6 @@ class SentryInstrumentation {
   }
 
   /**
-   * Waits for Sentry SDK to finish requests
-   */
-  async sdkFinish() {
-    const client = this.Sentry.getCurrentHub().getClient();
-    if (client) {
-      await client.flush();
-    }
-  }
-
-  /**
    * Measures the file sizes of assets emitted from the entrypoints
    */
   measureAssetSizes(compilation) {
@@ -70,20 +60,22 @@ class SentryInstrumentation {
             const asset = compilation.assets[assetName];
             const sizeInKb = asset.size() / 1024;
 
+            // can also be written as this.Sentry.startTransaction
             const transaction = hub.startSpan({
               op: 'webpack-asset',
-              transaction: assetName,
+              name: assetName,
               description: `webpack bundle size for ${entrypointName} -> ${assetName}`,
               data: {
                 entrypointName,
                 file: assetName,
                 size: `${Math.round(sizeInKb)} KB`,
               },
+              trimEnd: true,
             });
 
             const start = transaction.startTimestamp;
 
-            const span = hub.startSpan({
+            const span = transaction.startChild({
               op: 'asset',
               startTimestamp: start,
               description: assetName,
@@ -93,10 +85,8 @@ class SentryInstrumentation {
                 size: `${Math.round(sizeInKb)} KB`,
               },
             });
-            span.startTimestamp = start;
-            span.finish();
-            span.timestamp = start + sizeInKb / 1000;
-            transaction.finish(true);
+            span.finish(start + sizeInKb / 1000);
+            transaction.finish();
           })
       )
     );
@@ -106,20 +96,18 @@ class SentryInstrumentation {
     if (!this.Sentry) {
       return;
     }
-
     const hub = this.Sentry.getCurrentHub();
 
-    const transaction = hub.startSpan(
-      {
-        op: 'webpack-build',
-        transaction: !this.initialBuild ? 'initial-build' : 'incremental-build',
-        description: 'webpack build times',
-      },
-      true
-    );
-    transaction.startTimestamp = startTime;
+    // can also be written as this.Sentry.startTransaction
+    const transaction = hub.startSpan({
+      op: 'webpack-build',
+      name: !this.initialBuild ? 'initial-build' : 'incremental-build',
+      description: 'webpack build times',
+      startTimestamp: startTime,
+      trimEnd: true,
+    });
 
-    const span = transaction.child({
+    const span = transaction.startChild({
       op: 'build',
       description: 'webpack build',
       data: {
@@ -131,12 +119,10 @@ class SentryInstrumentation {
           : 'N/A',
         loadavg: os.loadavg(),
       },
+      startTimestamp: startTime,
     });
-    span.startTimestamp = startTime;
-    span.finish();
-    span.timestamp = endTime;
-
-    transaction.finish(true);
+    span.finish(endTime);
+    transaction.finish();
   }
 
   apply(compiler) {
@@ -156,7 +142,7 @@ class SentryInstrumentation {
         }
 
         this.initialBuild = true;
-        await this.sdkFinish();
+        await this.Sentry.flush();
         done();
       }
     );
