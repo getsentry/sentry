@@ -79,7 +79,7 @@ setup-git: ensure-venv setup-git-config
 	@echo ""
 
 node-version-check:
-	@test "$$(node -v)" = v"$$(cat .nvmrc)" || (echo 'node version does not match .nvmrc. Recommended to use https://github.com/volta-cli/volta'; exit 1)
+	@test "$$(node -v)" = v10.16.3 || (echo 'node version does not match 10.16.3. Recommended to use https://github.com/volta-cli/volta'; exit 1)
 
 install-js-dev: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
