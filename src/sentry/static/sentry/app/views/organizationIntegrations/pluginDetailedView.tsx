@@ -54,9 +54,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get integrationName() {
-    const isLegacy = this.plugin.isHidden;
-    const displayName = `${this.plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
-    return displayName;
+    return `${this.plugin.name}${this.plugin.isHidden ? ' (Legacy)' : ''}`;
   }
 
   get featureData() {
