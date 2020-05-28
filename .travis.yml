@@ -36,7 +36,7 @@ env:
     - DJANGO_VERSION=">=1.11,<1.12"
     - VOLTA_VERSION=0.8.1
     - VOLTA_HOME="${HOME}/.volta"
-    - PATH="${PATH}:${HOME}/.volta/bin"
+    - PATH="${HOME}/.volta/bin:${PATH}"
     - NODE_OPTIONS=--max-old-space-size=4096
     - PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079
     - SENTRY_KAFKA_HOSTS=localhost:9092
