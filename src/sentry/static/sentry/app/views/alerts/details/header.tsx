@@ -16,15 +16,15 @@ import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 import {IconCheckmark} from 'app/icons';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 import DropdownControl from 'app/components/dropdownControl';
-import theme from 'app/utils/theme';
 
 import {Incident, IncidentStats} from '../types';
-import Status from '../status';
 import {isOpen} from '../utils';
+import Status from '../status';
 
 type Props = {
   className?: string;
@@ -79,7 +79,7 @@ export default class DetailsHeader extends React.Component<Props> {
     const project = incident && incident.projects && incident.projects[0];
 
     return (
-      <React.Fragment>
+      <Header>
         <BreadCrumbBar>
           <AlertBreadcrumbs
             crumbs={[
@@ -87,7 +87,7 @@ export default class DetailsHeader extends React.Component<Props> {
               {label: incident && `#${incident.id}`},
             ]}
           />
-          <AlertControls>
+          <Controls>
             <SubscribeButton
               disabled={!isIncidentReady}
               isSubscribed={incident?.isSubscribed}
@@ -95,9 +95,9 @@ export default class DetailsHeader extends React.Component<Props> {
               size="small"
             />
             {this.renderStatus()}
-          </AlertControls>
+          </Controls>
         </BreadCrumbBar>
-        <Header>
+        <Details>
           <div>
             <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
               {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
@@ -148,11 +148,15 @@ export default class DetailsHeader extends React.Component<Props> {
               )}
             </GroupedHeaderItems>
           )}
-        </Header>
-      </React.Fragment>
+        </Details>
+      </Header>
     );
   }
 }
+
+const Header = styled('div')`
+  background-color: ${p => p.theme.offWhite};
+`;
 
 const BreadCrumbBar = styled('div')`
   background-color: ${p => p.theme.offWhite};
@@ -168,13 +172,13 @@ const AlertBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;
 `;
 
-const AlertControls = styled('div')`
+const Controls = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-gap: ${space(1)};
 `;
 
-const Header = styled(PageHeader)`
+const Details = styled(PageHeader)`
   background-color: ${p => p.theme.offWhite};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   margin-bottom: 0;
