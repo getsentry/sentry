@@ -155,15 +155,14 @@ export default class DetailsHeader extends React.Component<Props> {
 }
 
 const Header = styled('div')`
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
 `;
 
 const BreadCrumbBar = styled('div')`
-  background-color: ${p => p.theme.offWhite};
+  display: flex;
   margin-bottom: 0;
   padding: ${space(2)} ${space(4)} ${space(1)};
-
-  display: flex;
 `;
 
 const AlertBreadcrumbs = styled(Breadcrumbs)`
@@ -179,8 +178,6 @@ const Controls = styled('div')`
 `;
 
 const Details = styled(PageHeader)`
-  background-color: ${p => p.theme.offWhite};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
   margin-bottom: 0;
   padding: ${space(1.5)} ${space(4)} ${space(2)};
 
@@ -203,7 +200,9 @@ const StyledLoadingError = styled(LoadingError)`
   }
 `;
 
-const GroupedHeaderItems = styled('div')<{columns: number}>`
+const GroupedHeaderItems = styled('div', {
+  shouldForwardProp: p => isPropValid(p) && p !== 'columns',
+})<{columns: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, max-content);
   grid-gap: ${space(1)} ${space(4)};
