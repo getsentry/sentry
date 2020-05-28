@@ -47,7 +47,7 @@ const colors = {
   green100: '#F5FFFB',
   green200: '#C0F3DD',
   green300: '#8FE7BF',
-  green400: '#8FE7BF',
+  green400: '#4DC771',
   green500: '#1C8952',
 
   pink100: '#FFF5F9',
