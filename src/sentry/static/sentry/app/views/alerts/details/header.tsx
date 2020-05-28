@@ -21,6 +21,7 @@ import {IconCheckmark} from 'app/icons';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 import DropdownControl from 'app/components/dropdownControl';
+import {use24Hours} from 'app/utils/dates';
 
 import {Incident, IncidentStats} from '../types';
 import {isOpen} from '../utils';
@@ -66,7 +67,10 @@ export default class DetailsHeader extends React.Component<Props> {
       onSubscriptionChange,
     } = this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
-    const dateStarted = incident && moment(new Date(incident.dateStarted)).format('llll');
+    // ex - Wed, May 27, 2020 11:09 AM
+    const dateFormat = use24Hours() ? 'ddd, MMM D, YYYY HH:mm' : 'llll';
+    const dateStarted =
+      incident && moment(new Date(incident.dateStarted)).format(dateFormat);
     const duration =
       incident &&
       moment(incident.dateClosed ? new Date(incident.dateClosed) : new Date()).diff(
