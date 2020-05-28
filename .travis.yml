@@ -44,13 +44,6 @@ env:
 base_install: &base_install |-
   pip install --no-cache-dir "pip>=20.0.2"
 
-  command -v volta || {
-    wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
-    tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
-    # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
-    volta -v
-  }
-
   docker run \
     --name sentry_zookeeper \
     -d --network host \
@@ -137,6 +130,12 @@ base_acceptance: &acceptance_default
   before_install:
     - *base_install
     - *start_snuba
+    - |
+      command -v volta && exit 0
+      wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
+      tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+      # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+      volta -v
     - docker ps -a
   install:
     - yarn install --frozen-lockfile
@@ -164,6 +163,12 @@ matrix:
         # Under a "generic" language environment, this will make travis pyenv error because there
         # is no pyenv python installed.
         - rm .python-version
+        - |
+          command -v volta && exit 0
+          wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
+          tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+          volta -v
         - yarn install --frozen-lockfile
 
     - python: 3.7
@@ -209,12 +214,26 @@ matrix:
     - python: 2.7
       name: 'Frontend [test]'
       env: TEST_SUITE=js
+      before_install:
+        - |
+          command -v volta && exit 0
+          wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
+          tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+          volta -v
       install:
         - yarn install --frozen-lockfile
 
     - python: 2.7
       name: 'Frontend [build]'
       env: TEST_SUITE=js-build
+      before_install:
+        - |
+          command -v volta && exit 0
+          wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
+          tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+          volta -v
       install:
         - yarn install --frozen-lockfile
 
