@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
-import omit from 'lodash/omit';
 
+import SvgIcon from 'app/icons/svgIcon';
 import EventDataSection from 'app/components/events/eventDataSection';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -26,10 +26,9 @@ import Filter from './filter/filter';
 import ListHeader from './listHeader';
 import ListBody from './listBody';
 import Level from './level';
-import Icon from './icon';
+import Badge from './badge';
 
-const MAX_CRUMBS_WHEN_COLLAPSED = 10;
-
+type SvgIconProps = React.ComponentProps<typeof SvgIcon>;
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
 type State = {
@@ -95,12 +94,13 @@ class Breadcrumbs extends React.Component<Props, State> {
     const tranformedCrumbs = transformCrumbs(breadcrumbs);
     // const filterOptions = this.getFilterOptions(tranformedCrumbs);
     // const collapsedCrumbs = collapseCrumbSameType(tranformedCrumbs);
+    const collapseCrumbs = collapseCrumbSameType(tranformedCrumbs);
 
     this.setState({
-      breadcrumbs: tranformedCrumbs,
-      filteredBreadcrumbs: tranformedCrumbs,
-      filteredByFilter: tranformedCrumbs,
-      filteredByCustomSearch: tranformedCrumbs,
+      breadcrumbs: collapseCrumbs,
+      filteredBreadcrumbs: collapseCrumbs,
+      filteredByFilter: collapseCrumbs,
+      filteredByCustomSearch: collapseCrumbs,
       filterOptions: [[], []],
     });
   };
@@ -119,10 +119,16 @@ class Breadcrumbs extends React.Component<Props, State> {
       const foundFilterType = filterTypes.findIndex(f => f.type === breadcrumb.type);
 
       if (foundFilterType === -1) {
+        const Icon = breadcrumb.icon as React.ComponentType<SvgIconProps>;
+
         filterTypes.push({
           type: breadcrumb.type,
           description: breadcrumb.description,
-          symbol: <Icon {...omit(breadcrumb, 'description')} size="xs" />,
+          symbol: (
+            <Badge color={breadcrumb.color}>
+              <Icon size="xs" />
+            </Badge>
+          ),
           levels: breadcrumb?.level ? [breadcrumb.level] : [],
           isChecked: true,
           isDisabled: false,
@@ -208,26 +214,6 @@ class Breadcrumbs extends React.Component<Props, State> {
       category: 'message',
       message: event.message,
       timestamp: event.dateCreated,
-    };
-  };
-
-  getCollapsedCrumbQuantity = (): {
-    filteredCollapsedBreadcrumbs: BreadcrumbsWithDetails;
-    collapsedQuantity: number;
-  } => {
-    const {isCollapsed, filteredBreadcrumbs} = this.state;
-
-    let filteredCollapsedBreadcrumbs = filteredBreadcrumbs;
-
-    if (isCollapsed && filteredCollapsedBreadcrumbs.length > MAX_CRUMBS_WHEN_COLLAPSED) {
-      filteredCollapsedBreadcrumbs = filteredCollapsedBreadcrumbs.slice(
-        -MAX_CRUMBS_WHEN_COLLAPSED
-      );
-    }
-
-    return {
-      filteredCollapsedBreadcrumbs,
-      collapsedQuantity: filteredBreadcrumbs.length - filteredCollapsedBreadcrumbs.length,
     };
   };
 
@@ -341,12 +327,7 @@ class Breadcrumbs extends React.Component<Props, State> {
 
   render() {
     const {type, event, orgId} = this.props;
-    const {filterOptions, searchTerm, listBodyHeight} = this.state;
-
-    const {
-      collapsedQuantity,
-      filteredCollapsedBreadcrumbs,
-    } = this.getCollapsedCrumbQuantity();
+    const {filterOptions, searchTerm, listBodyHeight, filteredBreadcrumbs} = this.state;
 
     return (
       <EventDataSection
@@ -374,15 +355,13 @@ class Breadcrumbs extends React.Component<Props, State> {
         isCentered
       >
         <Content>
-          {filteredCollapsedBreadcrumbs.length > 0 ? (
+          {filteredBreadcrumbs.length > 0 ? (
             <React.Fragment>
               <ListHeader />
               <ListBody
                 event={event}
                 orgId={orgId}
-                onToggleCollapse={this.handleToggleCollapse}
-                collapsedQuantity={collapsedQuantity}
-                breadcrumbs={filteredCollapsedBreadcrumbs}
+                breadcrumbs={filteredBreadcrumbs}
                 maxHeight={listBodyHeight}
                 ref={this.listBodyRef}
               />

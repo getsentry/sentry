@@ -56,7 +56,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.HTTP:
       return {
-        color: 'green400',
+        color: '#4DC771',
         icon: IconSwitch,
         description: t('HTTP request'),
       };
@@ -93,6 +93,8 @@ function getCrumbDetails(type: BreadcrumbType) {
       };
     default:
       return {
+        color: 'gray800',
+        borderColor: 'gray400',
         icon: IconTerminal,
         description: t('Default'),
       };

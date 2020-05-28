@@ -1,33 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
-
-const IconWrapper = styled('div', {
-  shouldForwardProp: prop => prop !== 'color',
-})<{
-  color?: Color | React.CSSProperties['color'];
-  size?: number;
-}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  background: ${p => p.theme.white};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  border-radius: 32px;
-  z-index: 1;
-  position: relative;
-  border: 1px solid ${p => p.theme.gray400};
-  color: ${p => p.theme.gray800};
-  ${p =>
-    p.color &&
-    `
-      color: ${p.theme[p.color] || p.color};
-      border-color: ${p.theme[p.color] || p.color};
-    `}
-`;
 
 const GridCell = styled('div')<{
   hasError?: boolean;
@@ -86,4 +59,4 @@ const Grid = styled('div')<{maxHeight?: React.CSSProperties['maxHeight']}>`
   }
 `;
 
-export {Grid, GridCell, GridCellLeft, IconWrapper};
+export {Grid, GridCell, GridCellLeft};

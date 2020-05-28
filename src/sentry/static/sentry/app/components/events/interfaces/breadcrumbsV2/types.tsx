@@ -100,9 +100,15 @@ export type Breadcrumb =
   | BreadcrumbTypeDefault;
 
 type BreadcrumbDetails = {
-  color?: Color | React.CSSProperties['color'];
-  icon?: React.ComponentType<IconProps>;
+  color: NonNullable<Color | React.CSSProperties['color']>;
   description: string;
+  icon?: React.ComponentType<IconProps>;
+  borderColor?: Color | React.CSSProperties['color'];
 };
 
-export type BreadcrumbsWithDetails = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;
+type BreadcrumbWithDetails = Breadcrumb &
+  BreadcrumbDetails & {
+    breadcrumbs?: Array<Breadcrumb & BreadcrumbDetails>;
+  };
+
+export type BreadcrumbsWithDetails = Array<BreadcrumbWithDetails>;
