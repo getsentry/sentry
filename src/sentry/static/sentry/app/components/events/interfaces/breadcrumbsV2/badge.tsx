@@ -15,7 +15,8 @@ const Badge = ({children, ...props}: Props) => <Wrapper {...props}>{children}</W
 export default Badge;
 
 const Wrapper = styled('div', {
-  shouldForwardProp: prop => prop !== 'color' && prop !== 'isNumeric',
+  shouldForwardProp: prop =>
+    prop !== 'color' && prop !== 'isNumeric' && prop !== 'borderColor',
 })<Props>`
   display: flex;
   align-items: center;

@@ -6,7 +6,7 @@ import {Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 
 import {Grid} from './styles';
-import {BreadcrumbsWithDetails, BreadcrumbType} from './types';
+import {BreadcrumbsWithDetails} from './types';
 import Breadcrumb from './breadcrumb';
 
 type Props = {
@@ -23,7 +23,6 @@ const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
   return (
     <StyledGrid maxHeight={maxHeight} ref={ref}>
       {breadcrumbs.map((breadcrumb, idx) => {
-        const hasError = breadcrumb.type === BreadcrumbType.ERROR;
         const isLastItem = breadcrumbs.length - 1 === idx;
         return (
           <Breadcrumb
@@ -32,7 +31,6 @@ const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
             orgId={orgId}
             event={event}
             isLastItem={isLastItem}
-            hasError={hasError}
           />
         );
       })}

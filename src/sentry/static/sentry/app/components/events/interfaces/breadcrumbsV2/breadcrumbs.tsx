@@ -92,8 +92,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     }
 
     const tranformedCrumbs = transformCrumbs(breadcrumbs);
-    // const filterOptions = this.getFilterOptions(tranformedCrumbs);
-    // const collapsedCrumbs = collapseCrumbSameType(tranformedCrumbs);
+    const filterOptions = this.getFilterOptions(tranformedCrumbs);
     const collapseCrumbs = collapseCrumbSameType(tranformedCrumbs);
 
     this.setState({
@@ -101,7 +100,7 @@ class Breadcrumbs extends React.Component<Props, State> {
       filteredBreadcrumbs: collapseCrumbs,
       filteredByFilter: collapseCrumbs,
       filteredByCustomSearch: collapseCrumbs,
-      filterOptions: [[], []],
+      filterOptions,
     });
   };
 
