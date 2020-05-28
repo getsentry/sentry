@@ -6,7 +6,10 @@ function collapseCrumbSameType(breadcrumbs: BreadcrumbsWithDetails) {
   for (let index = 0; index < breadcrumbs.length; index++) {
     const breadcrumb = breadcrumbs[index];
 
-    if (breadcrumb.type !== breadcrumbs[index - 1]?.type) {
+    if (
+      breadcrumb.type !== breadcrumbs[index - 1]?.type ||
+      breadcrumb.level !== breadcrumbs[index - 1]?.level
+    ) {
       collapsedCrumbs.push(breadcrumb);
       continue;
     }
