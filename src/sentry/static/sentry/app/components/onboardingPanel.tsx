@@ -26,7 +26,7 @@ const Container = styled('div')`
   justify-content: center;
   flex-wrap: wrap;
   min-height: 450px;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(4)};
 `;
 
 const StyledBox = styled('div')`
