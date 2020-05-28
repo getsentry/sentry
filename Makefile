@@ -1,6 +1,5 @@
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := NODE_ENV=production ./bin/yarn webpack
-YARN := ./bin/yarn
 
 # Currently, this is only required to install black via pre-commit.
 REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
@@ -85,12 +84,12 @@ node-version-check:
 install-js-dev: node-version-check
 	@echo "--> Installing Yarn packages (for development)"
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-	NODE_ENV=development $(YARN) install --frozen-lockfile
+	NODE_ENV=development yarn install --frozen-lockfile
 	# A common problem is with node packages not existing in `node_modules` even though `yarn install`
 	# says everything is up to date. Even though `yarn install` is run already, it doesn't take into
 	# account the state of the current filesystem (it only checks .yarn-integrity).
 	# Add an additional check against `node_modules`
-	$(YARN) check --verify-tree || $(YARN) install --check-files
+	yarn check --verify-tree || yarn install --check-files
 
 install-py-dev: ensure-pinned-pip
 	@echo "--> Installing Sentry (for development)"
@@ -154,24 +153,24 @@ test-cli:
 
 test-js-build: node-version-check
 	@echo "--> Running type check"
-	@$(YARN) run tsc
+	@yarn run tsc
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
 
 test-js: node-version-check
 	@echo "--> Running JavaScript tests"
-	@$(YARN) run test
+	@yarn run test
 	@echo ""
 
 test-js-ci: node-version-check
 	@echo "--> Running CI JavaScript tests"
-	@$(YARN) run test-ci
+	@yarn run test-ci
 	@echo ""
 
 # builds and creates percy snapshots
 test-styleguide:
 	@echo "--> Building and snapshotting styleguide"
-	@$(YARN) run snapshot
+	@yarn run snapshot
 	@echo ""
 
 test-python:
