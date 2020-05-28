@@ -39,7 +39,7 @@ const DropDownButton = ({isOpen, getActorProps, checkedQuantity}: Props) => {
   );
 };
 
-export {DropDownButton};
+export default DropDownButton;
 
 const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
   border-right: 0;

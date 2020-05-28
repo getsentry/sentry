@@ -7,12 +7,12 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import SentryTypes from 'app/sentryTypes';
 
-import {Time} from './time';
-import {CollapsedInfo} from './collapsedInfo';
-import {Data} from './data/data';
-import {Category} from './category';
-import {Icon} from './icon';
-import {Level} from './level';
+import Time from './time';
+import CollapsedInfo from './collapsedInfo';
+import Data from './data/data';
+import Category from './category';
+import Icon from './icon';
+import Level from './level';
 import {Grid, GridCell, GridCellLeft} from './styles';
 import {Breadcrumb, BreadcrumbDetails, BreadcrumbType} from './types';
 
@@ -65,7 +65,7 @@ const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
   );
 });
 
-export {ListBody};
+export default ListBody;
 
 ListBody.propTypes = {
   breadcrumbs: PropTypes.array.isRequired,

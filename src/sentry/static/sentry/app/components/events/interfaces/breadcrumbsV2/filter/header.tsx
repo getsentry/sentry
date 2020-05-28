@@ -48,7 +48,7 @@ const Header = ({checkedQuantity, isAllChecked, onCheckAll}: Props) => {
   );
 };
 
-export {Header};
+export default Header;
 
 const Wrapper = styled('div')`
   display: flex;

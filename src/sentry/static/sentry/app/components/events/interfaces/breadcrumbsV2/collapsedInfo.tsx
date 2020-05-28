@@ -21,7 +21,7 @@ const CollapsedInfo = ({quantity, onClick}: Props) => (
   </Wrapper>
 );
 
-export {CollapsedInfo};
+export default CollapsedInfo;
 
 const Wrapper = styled(GridCellLeft)`
   cursor: pointer;

@@ -101,4 +101,4 @@ function getCrumbDetails(type: BreadcrumbType) {
   }
 }
 
-export {getCrumbDetails};
+export default getCrumbDetails;

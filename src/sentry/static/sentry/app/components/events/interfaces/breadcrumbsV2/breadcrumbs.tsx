@@ -20,12 +20,12 @@ import {
   BreadcrumbType,
   BreadcrumbLevelType,
 } from './types';
-import {transformCrumbs} from './transformCrumbs';
-import {Filter} from './filter/filter';
-import {ListHeader} from './listHeader';
-import {ListBody} from './listBody';
-import {Level} from './level';
-import {Icon} from './icon';
+import transformCrumbs from './transformCrumbs';
+import Filter from './filter/filter';
+import ListHeader from './listHeader';
+import ListBody from './listBody';
+import Level from './level';
+import Icon from './icon';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
@@ -404,7 +404,7 @@ class Breadcrumbs extends React.Component<Props, State> {
   }
 }
 
-export {Breadcrumbs};
+export default Breadcrumbs;
 
 const Content = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLightest};

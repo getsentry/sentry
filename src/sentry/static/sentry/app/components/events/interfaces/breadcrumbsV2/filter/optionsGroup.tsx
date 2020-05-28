@@ -49,7 +49,7 @@ const OptionsGroup = ({type, options, onClick}: Props) => {
   );
 };
 
-export {OptionsGroup};
+export default OptionsGroup;
 
 const Header = styled('div')`
   display: flex;

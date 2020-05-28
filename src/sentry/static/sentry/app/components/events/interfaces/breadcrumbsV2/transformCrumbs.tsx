@@ -1,5 +1,5 @@
-import {convertCrumbType} from './convertCrumbType';
-import {getCrumbDetails} from './getCrumbDetails';
+import convertCrumbType from './convertCrumbType';
+import getCrumbDetails from './getCrumbDetails';
 import {Breadcrumb} from './types';
 
 const transformCrumbs = (breadcrumbs: Array<Breadcrumb>) => {
@@ -14,4 +14,4 @@ const transformCrumbs = (breadcrumbs: Array<Breadcrumb>) => {
   });
 };
 
-export {transformCrumbs};
+export default transformCrumbs;

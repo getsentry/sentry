@@ -4,9 +4,9 @@ import isEqual from 'lodash/isEqual';
 
 import DropdownControl from 'app/components/dropdownControl';
 
-import {DropDownButton} from './dropdownButton';
-import {OptionsGroup} from './optionsGroup';
-import {Header} from './header';
+import DropDownButton from './dropdownButton';
+import OptionsGroup from './optionsGroup';
+import Header from './header';
 import {OptionType, OptionLevel, Option} from './types';
 
 type OnClick = React.ComponentProps<typeof OptionsGroup>['onClick'];
@@ -196,7 +196,7 @@ class Filter extends React.Component<Props, State> {
   }
 }
 
-export {Filter};
+export default Filter;
 
 const Wrapper = styled('div')`
   position: relative;
