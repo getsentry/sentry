@@ -17,16 +17,16 @@ from sentry.incidents.logic import (
     AlertRuleNameAlreadyUsedError,
     AlertRuleTriggerLabelAlreadyUsedError,
     InvalidTriggerActionError,
+    check_aggregate_column_support,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
+    delete_alert_rule_trigger,
+    delete_alert_rule_trigger_action,
+    translate_aggregate_field,
     update_alert_rule,
     update_alert_rule_trigger,
     update_alert_rule_trigger_action,
-    delete_alert_rule_trigger_action,
-    delete_alert_rule_trigger,
-    translate_aggregate_field,
-    check_aggregate_column_support,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -315,14 +315,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         try:
             if not check_aggregate_column_support(aggregate):
                 raise serializers.ValidationError(
-                    "Invalid metric provided. We do not currently support this field."
+                    "Invalid Metric. We do not currently support this field."
                 )
-        except InvalidSearchQuery:
-            raise serializers.ValidationError(
-                "Invalid metric provided. We do not recognize this query."
-            )
-        aggregate = translate_aggregate_field(aggregate)
-        return aggregate
+        except InvalidSearchQuery as e:
+            raise serializers.ValidationError("Invalid Metric: {}".format(e.message))
+        return translate_aggregate_field(aggregate)
 
     def validate_dataset(self, dataset):
         try:
@@ -357,11 +354,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 },
             )
         except (InvalidSearchQuery, ValueError) as e:
-            raise serializers.ValidationError("Invalid Query or Aggregate: {}".format(e.message))
+            raise serializers.ValidationError("Invalid Query or Metric: {}".format(e.message))
         else:
             if not snuba_filter.aggregations:
                 raise serializers.ValidationError(
-                    "Invalid Aggregate: Please pass a valid function for aggregation"
+                    "Invalid Metric: Please pass a valid function for aggregation"
                 )
 
             try:
@@ -379,7 +376,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             except Exception:
                 logger.exception("Error while validating snuba alert rule query")
                 raise serializers.ValidationError(
-                    "Invalid Query or Aggregate: An error occurred while attempting "
+                    "Invalid Query or Metric: An error occurred while attempting "
                     "to run the query"
                 )
 

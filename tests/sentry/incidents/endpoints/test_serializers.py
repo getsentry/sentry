@@ -128,27 +128,22 @@ class TestAlertRuleSerializer(TestCase):
     def test_aggregate(self):
         self.run_fail_validation_test(
             {"aggregate": "what()"},
-            {"nonFieldErrors": ["Invalid Query or Aggregate: what() is not a valid function"]},
+            {"aggregate": ["Invalid Metric: what() is not a valid function"]},
         )
         self.run_fail_validation_test(
             {"aggregate": "what"},
-            {"nonFieldErrors": ["Invalid Aggregate: Please pass a valid function for aggregation"]},
+            {"nonFieldErrors": ["Invalid Metric: Please pass a valid function for aggregation"]},
         )
         self.run_fail_validation_test(
             {"aggregate": "123"},
-            {"nonFieldErrors": ["Invalid Aggregate: Please pass a valid function for aggregation"]},
+            {"nonFieldErrors": ["Invalid Metric: Please pass a valid function for aggregation"]},
         )
         self.run_fail_validation_test(
             {"aggregate": "count_unique(123, hello)"},
-            {
-                "nonFieldErrors": [
-                    "Invalid Query or Aggregate: count_unique(123, hello): expected 1 arguments"
-                ]
-            },
+            {"aggregate": ["Invalid Metric: count_unique(123, hello): expected 1 arguments"]},
         )
         self.run_fail_validation_test(
-            {"aggregate": "max()"},
-            {"nonFieldErrors": ["Invalid Query or Aggregate: max(): expected 1 arguments"]},
+            {"aggregate": "max()"}, {"aggregate": ["Invalid Metric: max(): expected 1 arguments"]},
         )
         aggregate = "count_unique(tags[sentry:user])"
         base_params = self.valid_params.copy()

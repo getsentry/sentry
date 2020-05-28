@@ -116,6 +116,25 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         assert resp.data == serialize(self.alert_rule)
 
+    def test_aggregate_translation(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            "hello",
+            "level:error",
+            "count_unique(tags[sentry:user])",
+            10,
+            1,
+        )
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug, self.project.slug, alert_rule.id)
+            assert resp.data["aggregate"] == "count_unique(user)"
+            assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
+
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "put"
@@ -182,20 +201,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 status_code=404,
                 **serialized_alert_rule
             )
-
-    def test_aggregate_translation(self):
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        alert_rule = self.alert_rule
-        alert_rule.aggregate = "count_unique(tags[sentry:user])"
-        alert_rule.save()
-        with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id
-            )
-            assert resp.data["aggregate"] == "count_unqiue(user)"
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
