@@ -65,6 +65,16 @@ base_install: &base_install |-
 
   [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
 
+install_node: &install_node |-
+  command -v volta && exit 0
+  wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
+  sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
+  # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
+  volta -v
+  # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
+  node -v
+  yarn -v
+
 start_snuba: &start_snuba |-
   docker run \
     --name sentry_clickhouse \
@@ -132,15 +142,7 @@ base_acceptance: &acceptance_default
   before_install:
     - *base_install
     - *start_snuba
-    - |
-      command -v volta && exit 0
-      wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
-      sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
-      # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
-      volta -v
-      # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
-      node -v
-      yarn -v
+    - *install_node
     - docker ps -a
   install:
     - yarn install --frozen-lockfile
@@ -164,19 +166,12 @@ matrix:
     - language: generic
       name: 'Linter (Javascript)'
       env: TEST_SUITE=lint-js
-      install:
+      before_install:
         # Under a "generic" language environment, this will make travis pyenv error because there
         # is no pyenv python installed.
         - rm .python-version
-        - |
-          command -v volta && exit 0
-          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
-          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
-          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
-          volta -v
-          # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
-          node -v
-          yarn -v
+        - *install_node
+      install:
         - yarn install --frozen-lockfile
 
     - python: 3.7
@@ -223,15 +218,7 @@ matrix:
       name: 'Frontend [test]'
       env: TEST_SUITE=js
       before_install:
-        - |
-          command -v volta && exit 0
-          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
-          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
-          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
-          volta -v
-          # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
-          node -v
-          yarn -v
+        - *install_node
       install:
         - yarn install --frozen-lockfile
 
@@ -239,15 +226,7 @@ matrix:
       name: 'Frontend [build]'
       env: TEST_SUITE=js-build
       before_install:
-        - |
-          command -v volta && exit 0
-          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
-          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
-          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
-          volta -v
-          # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
-          node -v
-          yarn -v
+        - *install_node
       install:
         - yarn install --frozen-lockfile
 
@@ -335,16 +314,8 @@ matrix:
         # travis pyenv will attempt to use .python-version, but the appropriate python version won't be installed.
         # since we don't need python here, we have to remove this.
         - rm .python-version
+        - *install_node
       install:
-        - |
-          command -v volta && exit 0
-          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
-          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
-          # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
-          volta -v
-          # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
-          node -v
-          yarn -v
         - yarn install --frozen-lockfile
       script: yarn run storybook-build
       after_success: .travis/deploy-storybook.sh
