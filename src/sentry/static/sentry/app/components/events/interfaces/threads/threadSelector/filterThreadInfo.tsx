@@ -6,19 +6,14 @@ import getThreadStacktrace from './getThreadStacktrace';
 import getRelevantFrame from './getRelevantFrame';
 import trimFilename from './trimFilename';
 
-// TODO(i18n): add traslations here
-const NOT_FOUND_FRAME = '<unknown>';
-
 type ThreadInfo = {
-  label: string;
+  label?: string;
   filename?: string;
 };
 
 function filterThreadInfo(thread: Thread, event: Event): ThreadInfo {
   const stacktrace = getThreadStacktrace(thread, event, false);
-  const threadInfo: ThreadInfo = {
-    label: NOT_FOUND_FRAME,
-  };
+  const threadInfo: ThreadInfo = {};
 
   if (!stacktrace) {
     return threadInfo;

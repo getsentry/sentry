@@ -2,8 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import {IconChevron} from 'app/icons';
 
 type Props = React.ComponentProps<typeof Button> & {
   /**
@@ -32,7 +32,7 @@ const DropdownButton = ({
   <StyledButton type="button" isOpen={isOpen} ref={forwardedRef} {...props}>
     {prefix && <LabelText>{prefix}:</LabelText>}
     {children}
-    {showChevron && <StyledChevronDown />}
+    {showChevron && <StyledChevron size="10px" direction={isOpen ? 'up' : 'down'} />}
   </StyledButton>
 );
 
@@ -40,9 +40,7 @@ DropdownButton.defaultProps = {
   showChevron: true,
 };
 
-const StyledChevronDown = styled(props => (
-  <InlineSvg src="icon-chevron-down" {...props} />
-))`
+const StyledChevron = styled(IconChevron)`
   margin-left: 0.33em;
 `;
 
