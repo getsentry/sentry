@@ -133,7 +133,7 @@ base_acceptance: &acceptance_default
     - |
       command -v volta && exit 0
       wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
-      tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+      sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
       # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
       volta -v
     - docker ps -a
@@ -166,7 +166,7 @@ matrix:
         - |
           command -v volta && exit 0
           wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
-          tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
           # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
           volta -v
         - yarn install --frozen-lockfile
@@ -218,7 +218,7 @@ matrix:
         - |
           command -v volta && exit 0
           wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
-          tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
           # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
           volta -v
       install:
@@ -231,7 +231,7 @@ matrix:
         - |
           command -v volta && exit 0
           wget "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
-          tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
           # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
           volta -v
       install:
