@@ -40,7 +40,7 @@ DropdownButton.defaultProps = {
   showChevron: true,
 };
 
-const StyledChevronDown = styled(IconChevron)`
+const StyledChevron = styled(IconChevron)`
   margin-left: 0.33em;
 `;
 
