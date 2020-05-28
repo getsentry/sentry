@@ -245,7 +245,7 @@ const IncidentSubTitle = styled('div', {
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const StatusMenuItem = styled(MenuItem)`
