@@ -5,8 +5,8 @@ import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 
 type Props = React.PropsWithChildren<{
-  className?: string;
   image: React.ReactNode;
+  className?: string;
 }>;
 
 function OnboardingPanel({className, image, children}: Props) {
