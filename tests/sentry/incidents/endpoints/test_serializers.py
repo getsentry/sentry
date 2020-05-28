@@ -301,13 +301,13 @@ class TestAlertRuleSerializer(TestCase):
     def test_invalid_metric_field(self):
         self.run_fail_validation_test(
             {"name": "Aun1qu3n4m3", "aggregate": "percentile(transaction.length,0.5)"},
-            {"aggregate": ["Invalid metric provided. We do not recognize this query."]},
+            {"aggregate": ["Invalid Metric. We do not recognize this query."]},
         )
 
     def test_unsupported_metric_field(self):
         self.run_fail_validation_test(
             {"name": "Aun1qu3n4m3", "aggregate": "count_unique(stack.filename)"},
-            {"aggregate": ["Invalid metric provided. We do not currently support this field."]},
+            {"aggregate": ["Invalid Metric. We do not currently support this field."]},
         )
 
 
