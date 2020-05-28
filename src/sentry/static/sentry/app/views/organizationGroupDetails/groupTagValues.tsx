@@ -104,12 +104,12 @@ class GroupTagValues extends AsyncComponent<
               </GlobalSelectionLink>
               {tagValue.email && (
                 <StyledExternalLink href={`mailto:${tagValue.email}`}>
-                  <IconMail size="xs" color={theme.gray2} />
+                  <IconMail size="xs" color={theme.gray500} />
                 </StyledExternalLink>
               )}
               {isUrl(tagValue.value) && (
                 <StyledExternalLink href={tagValue.value}>
-                  <IconOpen size="xs" color={theme.gray2} />
+                  <IconOpen size="xs" color={theme.gray500} />
                 </StyledExternalLink>
               )}
             </ValueWrapper>

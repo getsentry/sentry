@@ -26,6 +26,7 @@ export enum BreadcrumbType {
   NAVIGATION = 'navigation',
   SYSTEM = 'system',
   SESSION = 'session',
+  TRANSACTION = 'transaction',
 }
 
 type BreadcrumbTypeBase = {
@@ -88,7 +89,8 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.DEFAULT
     | BreadcrumbType.SESSION
     | BreadcrumbType.SYSTEM
-    | BreadcrumbType.SESSION;
+    | BreadcrumbType.SESSION
+    | BreadcrumbType.TRANSACTION;
   data?: {[key: string]: any};
 } & BreadcrumbTypeBase;
 

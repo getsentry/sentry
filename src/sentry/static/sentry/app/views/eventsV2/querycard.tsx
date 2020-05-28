@@ -68,7 +68,7 @@ class QueryCard extends React.PureComponent<Props> {
 }
 
 const AvatarWrapper = styled('span')`
-  border: 3px solid ${p => p.theme.offWhite2};
+  border: 3px solid ${p => p.theme.gray300};
   border-radius: 50%;
   height: min-content;
 `;
@@ -101,13 +101,13 @@ const QueryTitle = styled('div')`
 const QueryDetail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   line-height: 1.5;
   ${overflowEllipsis};
 `;
 
 const QueryCardBody = styled('div')`
-  background: ${p => p.theme.offWhite};
+  background: ${p => p.theme.gray100};
   max-height: 100px;
   height: 100%;
   overflow: hidden;
@@ -118,7 +118,7 @@ const QueryCardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const StyledCreator = styled('div')`

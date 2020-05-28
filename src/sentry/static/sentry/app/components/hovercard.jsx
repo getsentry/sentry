@@ -191,7 +191,7 @@ const slideIn = p => keyframes`
   }
 `;
 
-const getTipColor = p => (p.placement === 'bottom' ? p.theme.offWhite : '#fff');
+const getTipColor = p => (p.placement === 'bottom' ? p.theme.gray100 : '#fff');
 const getTipDirection = p =>
   VALID_DIRECTIONS.includes(p.placement) ? p.placement : 'top';
 const getOffset = p => p.offset ?? space(2);
@@ -229,7 +229,7 @@ const StyledHovercard = styled('div')`
 
 const Header = styled('div')`
   font-size: 14px;
-  background: ${p => p.theme.offWhite};
+  background: ${p => p.theme.gray100};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   border-radius: 4px 4px 0 0;
   font-weight: 600;

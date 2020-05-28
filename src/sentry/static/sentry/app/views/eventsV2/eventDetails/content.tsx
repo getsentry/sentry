@@ -346,14 +346,14 @@ const StyledButton = styled(Button)`
 
 const StyledEventHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   grid-column: 1/2;
   align-self: center;
   ${overflowEllipsis};
 `;
 
 const StyledTitle = styled('span')`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   margin-right: ${space(1)};
 `;
 
@@ -364,7 +364,7 @@ const MetaDataID = styled('div')`
 const MetadataContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

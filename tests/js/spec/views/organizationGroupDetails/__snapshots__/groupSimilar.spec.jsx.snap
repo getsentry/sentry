@@ -395,7 +395,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             className="similar-toolbar"
           >
             <div
-              className="similar-toolbar css-lblm1m-Toolbar e1pdx9kr0"
+              className="similar-toolbar css-1drcb0e-Toolbar e1pdx9kr0"
             >
               <SpreadLayout
                 responsive={true}

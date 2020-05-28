@@ -30,13 +30,13 @@ const PanelHeader = styled('div')<Props>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.lightText ? p.theme.gray2 : p.theme.gray3)};
+  color: ${p => (p.lightText ? p.theme.gray500 : p.theme.gray600)};
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  background: ${p => p.theme.offWhite};
+  background: ${p => p.theme.gray100};
   line-height: 1;
   position: relative;
   ${getPadding};
