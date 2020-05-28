@@ -227,12 +227,7 @@ def devserver(
 
     for name, container_options in _prepare_containers("sentry", silent=True).items():
         if container_options.get("with_devserver", False):
-            daemons += [
-                (
-                    container_options.get("devserver_alias", name),
-                    ["sentry", "devservices", "attach", "--fast", name],
-                )
-            ]
+            daemons += [(name, ["sentry", "devservices", "attach", "--fast", name])]
 
     # A better log-format for local dev when running through honcho,
     # but if there aren't any other daemons, we don't want to override.
