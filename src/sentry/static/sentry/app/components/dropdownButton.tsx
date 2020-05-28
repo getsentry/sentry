@@ -32,7 +32,7 @@ const DropdownButton = ({
   <StyledButton type="button" isOpen={isOpen} ref={forwardedRef} {...props}>
     {prefix && <LabelText>{prefix}:</LabelText>}
     {children}
-    {showChevron && <StyledChevronDown size="10px" direction={isOpen ? 'up' : 'down'} />}
+    {showChevron && <StyledChevron size="10px" direction={isOpen ? 'up' : 'down'} />}
   </StyledButton>
 );
 
