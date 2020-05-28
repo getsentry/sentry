@@ -7,6 +7,7 @@ import space from 'app/styles/space';
 import Radio from 'app/components/radio';
 import textStyles from 'app/styles/text';
 import BulletList from 'app/styles/bulletList';
+import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
 
 type Props = {
@@ -17,7 +18,7 @@ type Props = {
 const IssuesTooltip = ({children}: {children?: React.ReactNode}) => (
   <Tooltip
     title={t(
-      `An issue is a unique error in Sentry, created by grouping error events based on stack trace and other factors.`
+      `An Issue is a unique error in Sentry, created by grouping error events based on stack trace and other factors.`
     )}
   >
     <abbr>{children}</abbr>
@@ -26,34 +27,6 @@ const IssuesTooltip = ({children}: {children?: React.ReactNode}) => (
 
 const AlertTypeChooser = ({selected, onChange}: Props) => (
   <Container>
-    <TypeCard interactive onClick={() => onChange('issue')}>
-      <RadioLabel>
-        <Radio
-          aria-label="issue"
-          checked={selected === 'issue'}
-          onChange={() => onChange('issue')}
-        />
-        {t('Issue Alert')}
-      </RadioLabel>
-      <p>
-        {tct(
-          `Get notified when [note:individual Sentry Issues] match your alerting criteria.`,
-          {note: <IssuesTooltip />}
-        )}
-      </p>
-      {!selected && (
-        <BulletList>
-          <li>
-            {t('New or regressed issues')}
-            <Example>{t('New issue on the checkout page')}</Example>
-          </li>
-          <li>
-            {t('Issue frequency')}
-            <Example>{t('Issue affecting more than X users')}</Example>
-          </li>
-        </BulletList>
-      )}
-    </TypeCard>
     <TypeCard interactive onClick={() => onChange('metric')}>
       <RadioLabel>
         <Radio
@@ -62,10 +35,12 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
           onChange={() => onChange('metric')}
         />
         {t('Metric Alert')}
+        <FeatureBadge type="beta" />
       </RadioLabel>
       <p>
-        {t(
-          `Apply aggregate functions to your data to alert on performance metrics like latency, or overall error count (across multiple issues), in any part of your app.`
+        {tct(
+          `Alert on performance metrics like latency, or total error count across multiple [note:Issues], in any part of your app.`,
+          {note: <IssuesTooltip />}
         )}
       </p>
       {!selected && (
@@ -78,6 +53,31 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
             {t('Errors across issues')}
             <Example>{t('100 or more errors with "database" in the title')}</Example>
             <Example>{t('1000 or more errors in the entire project')}</Example>
+          </li>
+        </BulletList>
+      )}
+    </TypeCard>
+    <TypeCard interactive onClick={() => onChange('issue')}>
+      <RadioLabel>
+        <Radio
+          aria-label="issue"
+          checked={selected === 'issue'}
+          onChange={() => onChange('issue')}
+        />
+        {t('Issue Alert')}
+      </RadioLabel>
+      <p>
+        {t(`Get notified when individual Sentry Issues match your alerting criteria.`)}
+      </p>
+      {!selected && (
+        <BulletList>
+          <li>
+            {t('New or regressed issues')}
+            <Example>{t('New issue on the checkout page')}</Example>
+          </li>
+          <li>
+            {t('Issue frequency')}
+            <Example>{t('Issue affecting more than X users')}</Example>
           </li>
         </BulletList>
       )}
