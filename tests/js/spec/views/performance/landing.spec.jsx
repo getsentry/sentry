@@ -2,6 +2,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectsStore from 'app/stores/projectsStore';
 import PerformanceLanding from 'app/views/performance/landing';
 
