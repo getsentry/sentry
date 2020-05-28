@@ -154,7 +154,7 @@ class SAML2ACSView(AuthView):
 
         helper.bind_state("auth_attributes", auth.get_attributes())
 
-        # 5/28/2020 Temporarily adding logging here to check if any IdPs send a SessionNotOnOrAfter
+        # XXX(slohmes): 5/28/2020 Temporarily adding logging here to check if any IdPs send a SessionNotOnOrAfter
         # value in their SAML response.
         if auth.get_session_expiration() is not None:
             logging.warning(
