@@ -16,7 +16,6 @@ import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {IconCheckmark} from 'app/icons';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import {Dataset} from 'app/views/settings/incidentRules/types';
@@ -51,7 +50,7 @@ export default class DetailsHeader extends React.Component<Props> {
         buttonProps={{size: 'small', disabled: !incident || !isIncidentOpen}}
       >
         <StatusMenuItem onSelect={onStatusChange}>
-          <IconCheckmark color={theme.greenLight} />
+          <IconCheckmark color="green400" />
           {t('Resolve')}
         </StatusMenuItem>
       </DropdownControl>
