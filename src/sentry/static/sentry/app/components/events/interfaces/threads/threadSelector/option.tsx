@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 
 import {Color} from 'app/utils/theme';
 import {t, tct} from 'app/locale';
@@ -25,8 +24,8 @@ type ThreadInfo = {
 };
 
 const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
-  const {label = t('<unknown>'), filename = t('<unknown>')} = details;
-  const optionName = name || t('<unknown>');
+  const {label = `<${t('unknown')}>`, filename = `<${t('unknown')}>`} = details;
+  const optionName = name || `<${t('unknown')}>`;
   return (
     <Grid>
       <GridCell>
@@ -81,16 +80,12 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
   );
 };
 
-export {Option};
+export default Option;
 
-const centerCss = css`
+const InnerCell = styled('div')<{isCentered?: boolean; color?: Color; isBold?: boolean}>`
   display: flex;
   align-items: center;
   height: 100%;
-`;
-
-const InnerCell = styled('div')<{isCentered?: boolean; color?: Color; isBold?: boolean}>`
-  ${centerCss};
   justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};
   font-weight: ${p => (p.isBold ? 600 : 400)};
   ${p => p.color && `color: ${p.theme[p.color]}`}

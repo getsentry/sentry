@@ -22,7 +22,7 @@ const SelectedOption = ({id, details}: Props) => (
   </Wrapper>
 );
 
-export {SelectedOption};
+export default SelectedOption;
 
 const Wrapper = styled('div')`
   grid-template-columns: auto 1fr;

@@ -8,11 +8,11 @@ import DropdownButton from 'app/components/dropdownButton';
 import theme from 'app/utils/theme';
 import {t} from 'app/locale';
 
-import {filterThreadInfo} from './filterThreadInfo';
-import {getThreadException} from './getThreadException';
-import {Option} from './option';
-import {SelectedOption} from './selectedOption';
-import {Header} from './header';
+import filterThreadInfo from './filterThreadInfo';
+import getThreadException from './getThreadException';
+import Option from './option';
+import SelectedOption from './selectedOption';
+import Header from './header';
 
 type Props = {
   threads: Array<Thread>;
@@ -90,7 +90,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
   );
 };
 
-export {ThreadSelector};
+export default ThreadSelector;
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   width: 100%;

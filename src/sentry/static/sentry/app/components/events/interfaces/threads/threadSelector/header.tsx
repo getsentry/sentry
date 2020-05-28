@@ -14,4 +14,4 @@ const Header = () => (
   </Grid>
 );
 
-export {Header};
+export default Header;

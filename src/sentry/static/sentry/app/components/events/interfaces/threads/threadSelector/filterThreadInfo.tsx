@@ -2,9 +2,9 @@ import {Thread, Frame} from 'app/types/events';
 import {Event} from 'app/types';
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
 
-import {getThreadStacktrace} from './getThreadStacktrace';
-import {getRelevantFrame} from './getRelevantFrame';
-import {trimFilename} from './trimFilename';
+import getThreadStacktrace from './getThreadStacktrace';
+import getRelevantFrame from './getRelevantFrame';
+import trimFilename from './trimFilename';
 
 type ThreadInfo = {
   label?: string;
@@ -43,4 +43,4 @@ function filterThreadInfo(thread: Thread, event: Event): ThreadInfo {
   return threadInfo;
 }
 
-export {filterThreadInfo};
+export default filterThreadInfo;
