@@ -28,6 +28,8 @@ import ListBody from './listBody';
 import Level from './level';
 import Badge from './badge';
 
+const MAX_CRUMBS_WHEN_COLLAPSED = 10;
+
 type SvgIconProps = React.ComponentProps<typeof SvgIcon>;
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
@@ -216,6 +218,26 @@ class Breadcrumbs extends React.Component<Props, State> {
     };
   };
 
+  getCollapsedCrumbQuantity = (): {
+    filteredCollapsedBreadcrumbs: BreadcrumbsWithDetails;
+    collapsedQuantity: number;
+  } => {
+    const {isCollapsed, filteredBreadcrumbs} = this.state;
+
+    let filteredCollapsedBreadcrumbs = filteredBreadcrumbs;
+
+    if (isCollapsed && filteredCollapsedBreadcrumbs.length > MAX_CRUMBS_WHEN_COLLAPSED) {
+      filteredCollapsedBreadcrumbs = filteredCollapsedBreadcrumbs.slice(
+        -MAX_CRUMBS_WHEN_COLLAPSED
+      );
+    }
+
+    return {
+      filteredCollapsedBreadcrumbs,
+      collapsedQuantity: filteredBreadcrumbs.length - filteredCollapsedBreadcrumbs.length,
+    };
+  };
+
   handleFilterBySearchTerm = (value: string) => {
     const {filteredByFilter} = this.state;
 
@@ -326,7 +348,12 @@ class Breadcrumbs extends React.Component<Props, State> {
 
   render() {
     const {type, event, orgId} = this.props;
-    const {filterOptions, searchTerm, listBodyHeight, filteredBreadcrumbs} = this.state;
+    const {filterOptions, searchTerm, listBodyHeight} = this.state;
+
+    const {
+      collapsedQuantity,
+      filteredCollapsedBreadcrumbs,
+    } = this.getCollapsedCrumbQuantity();
 
     return (
       <EventDataSection
@@ -354,13 +381,15 @@ class Breadcrumbs extends React.Component<Props, State> {
         isCentered
       >
         <Content>
-          {filteredBreadcrumbs.length > 0 ? (
+          {filteredCollapsedBreadcrumbs.length > 0 ? (
             <React.Fragment>
               <ListHeader />
               <ListBody
                 event={event}
                 orgId={orgId}
-                breadcrumbs={filteredBreadcrumbs}
+                onToggleCollapse={this.handleToggleCollapse}
+                collapsedQuantity={collapsedQuantity}
+                breadcrumbs={filteredCollapsedBreadcrumbs}
                 maxHeight={listBodyHeight}
                 ref={this.listBodyRef}
               />
