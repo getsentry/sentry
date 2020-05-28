@@ -315,21 +315,6 @@ class TestAlertRuleSerializer(TestCase):
             {"aggregate": ["Invalid metric provided. We do not currently support this field."]},
         )
 
-    # def test_valid_metric_field(self):
-    #     base_params = self.valid_params.copy()
-    #     # base_params["name"] = "Aun1qu3n4m3123"
-    #     # base_params["aggregate"] = "count(user)"
-    #     print("base_params:",base_params)
-    #     serializer = AlertRuleTriggerSerializer(context=self.context, data=base_params)
-    #     print(serializer.is_valid())
-    #     print(serializer.errors)
-    #     assert serializer.is_valid(), serializer.errors
-    #     rule = serializer.save()
-
-    #     assert len(list(AlertRule.objects.filter(name="Aun1qu3n4m3"))) == 1
-    #     alert_rule = AlertRule.objects.filter(name="Aun1qu3n4m3").first()
-    #     assert alert_rule.snuba_query.aggregate == "count(tags[sentry:user])"
-
 
 class TestAlertRuleTriggerSerializer(TestCase):
     @fixture
