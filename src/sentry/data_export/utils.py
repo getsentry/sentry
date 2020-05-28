@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 from contextlib import contextmanager
 
+from sentry.snuba import discover
 from sentry.utils import metrics, snuba
 from sentry.utils.sdk import capture_exception
 
@@ -14,6 +15,11 @@ from .base import ExportError
 def snuba_error_handler(logger):
     try:
         yield
+    except discover.InvalidSearchQuery as error:
+        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
+        logger.info("dataexport.error: {}".format(six.text_type(error)))
+        capture_exception(error)
+        raise ExportError("Invalid query. Please fix the query and try again.")
     except snuba.QueryOutsideRetentionError as error:
         metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
         logger.info("dataexport.error: {}".format(six.text_type(error)))
