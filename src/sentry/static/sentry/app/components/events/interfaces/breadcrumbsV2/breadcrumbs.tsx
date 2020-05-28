@@ -16,10 +16,11 @@ import {defined} from 'app/utils';
 
 import {
   Breadcrumb,
-  BreadcrumbDetails,
+  BreadcrumbsWithDetails,
   BreadcrumbType,
   BreadcrumbLevelType,
 } from './types';
+import collapseCrumbSameType from './collapseCrumbSameType';
 import transformCrumbs from './transformCrumbs';
 import Filter from './filter/filter';
 import ListHeader from './listHeader';
@@ -29,7 +30,6 @@ import Icon from './icon';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
-type BreadcrumbsWithDetails = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
 type State = {
@@ -93,14 +93,15 @@ class Breadcrumbs extends React.Component<Props, State> {
     }
 
     const tranformedCrumbs = transformCrumbs(breadcrumbs);
-    const filterOptions = this.getFilterOptions(tranformedCrumbs);
+    // const filterOptions = this.getFilterOptions(tranformedCrumbs);
+    // const collapsedCrumbs = collapseCrumbSameType(tranformedCrumbs);
 
     this.setState({
       breadcrumbs: tranformedCrumbs,
       filteredBreadcrumbs: tranformedCrumbs,
       filteredByFilter: tranformedCrumbs,
       filteredByCustomSearch: tranformedCrumbs,
-      filterOptions,
+      filterOptions: [[], []],
     });
   };
 
