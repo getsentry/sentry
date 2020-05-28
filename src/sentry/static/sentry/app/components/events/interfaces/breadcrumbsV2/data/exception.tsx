@@ -10,7 +10,7 @@ import Link from 'app/components/links/link';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeDefault} from '../types';
-import {Summary} from './summary';
+import Summary from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeDefault;
@@ -93,4 +93,4 @@ const FormatMessage = withProjects(function FormatMessageInner({
   return <React.Fragment>{message}</React.Fragment>;
 });
 
-export {Exception};
+export default Exception;

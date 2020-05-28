@@ -8,7 +8,7 @@ import {defined} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeHTTP} from '../types';
-import {Summary} from './summary';
+import Summary from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeHTTP;
@@ -60,4 +60,4 @@ const Http = ({breadcrumb}: Props) => {
   );
 };
 
-export {Http};
+export default Http;

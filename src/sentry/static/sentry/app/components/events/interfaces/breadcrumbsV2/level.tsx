@@ -23,4 +23,4 @@ const Level = ({level}: Props) => {
   }
 };
 
-export {Level};
+export default Level;

@@ -19,7 +19,7 @@ const Category = ({category}: Props) => {
   );
 };
 
-export {Category};
+export default Category;
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.gray800};

@@ -1,28 +1,19 @@
-import {BreadcrumbDetails, BreadcrumbType, BreadcrumbLevelType} from '../types';
+import {BreadcrumbType, BreadcrumbLevelType} from '../types';
 
-export enum FilterGroupType {
-  LEVEL = 'level',
-  TYPE = 'type',
-}
-
-type FilterGroupBase = {
+type OptionBase = {
+  symbol: React.ReactElement;
   isChecked: boolean;
-  symbol: React.ReactNode;
+  isDisabled: boolean;
   description?: string;
 };
 
-type FilterGroupTypeType = {
-  groupType: FilterGroupType.TYPE;
+export type OptionType = {
   type: BreadcrumbType;
-} & FilterGroupBase;
+  levels: Array<BreadcrumbLevelType>;
+} & OptionBase;
 
-type FilterGroupTypeLevel = {
-  groupType: FilterGroupType.LEVEL;
+export type OptionLevel = {
   type: BreadcrumbLevelType;
-} & FilterGroupBase;
+} & OptionBase;
 
-export type FilterGroup = FilterGroupTypeType | FilterGroupTypeLevel;
-
-export type FilterType = BreadcrumbLevelType | BreadcrumbType;
-
-export {BreadcrumbDetails};
+export type Option = OptionType | OptionLevel;

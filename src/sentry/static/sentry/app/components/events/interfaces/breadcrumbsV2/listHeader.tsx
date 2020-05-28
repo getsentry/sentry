@@ -16,7 +16,7 @@ const ListHeader = () => (
   </StyledGrid>
 );
 
-export {ListHeader};
+export default ListHeader;
 
 const StyledGridCell = styled(GridCell)`
   border-bottom: 1px solid ${p => p.theme.borderDark};

@@ -18,4 +18,4 @@ const Icon = ({icon, color, size}: Props) => {
   );
 };
 
-export {Icon};
+export default Icon;

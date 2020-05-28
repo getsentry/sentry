@@ -29,7 +29,7 @@ const Time = ({timestamp}: Props) =>
     </Tooltip>
   ) : null;
 
-export {Time};
+export default Time;
 
 const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};

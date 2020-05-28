@@ -4,7 +4,7 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from '../types';
-import {Summary} from './summary';
+import Summary from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
@@ -20,4 +20,4 @@ const Default = ({breadcrumb}: Props) => (
   </Summary>
 );
 
-export {Default};
+export default Default;
