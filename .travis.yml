@@ -137,7 +137,6 @@ base_acceptance: &acceptance_default
   before_install:
     - *base_install
     - *start_snuba
-    - find "$NODE_DIR" -type d -empty -delete
     - docker ps -a
   install:
     - yarn install --frozen-lockfile
@@ -162,7 +161,6 @@ matrix:
       name: 'Linter (Javascript)'
       env: TEST_SUITE=lint-js
       install:
-        - find "$NODE_DIR" -type d -empty -delete
         # Under a "generic" language environment, this will make travis pyenv error because there
         # is no pyenv python installed.
         - rm .python-version
@@ -211,16 +209,12 @@ matrix:
     - python: 2.7
       name: 'Frontend [test]'
       env: TEST_SUITE=js
-      before_install:
-        - find "$NODE_DIR" -type d -empty -delete
       install:
         - yarn install --frozen-lockfile
 
     - python: 2.7
       name: 'Frontend [build]'
       env: TEST_SUITE=js-build
-      before_install:
-        - find "$NODE_DIR" -type d -empty -delete
       install:
         - yarn install --frozen-lockfile
 
