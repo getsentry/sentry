@@ -529,3 +529,24 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert trace["parent_span_id"] == original_trace["parent_span_id"]
         assert trace["description"].endswith("...")
         assert trace["description"][:-3] in original_trace["description"]
+
+    def test_blank_fields(self):
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "a" * 32,
+            },
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                url, data={"field": ["", " "], "statsPeriod": "24h"}, format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == "a" * 32
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] == format_project_event(self.project.slug, "b" * 32)
+        assert response.data["projectSlug"] == self.project.slug

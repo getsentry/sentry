@@ -112,7 +112,7 @@ class RuleRow extends React.Component<Props, State> {
                 <Trigger key={`trigger-${i}`} hideBorder={hideBorder}>
                   <StatusBadge>{trigger.label}</StatusBadge>
                   <TriggerDescription>
-                    {data.aggregations[0] === 0 ? t('Events') : t('Users')}{' '}
+                    {data.aggregate}{' '}
                     {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
                     {trigger.alertThreshold}/{data.timeWindow}
                     {t('min')}

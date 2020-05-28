@@ -110,6 +110,39 @@ class ProjectPermissionTest(ProjectPermissionBase):
         self.create_member(user=user, organization=self.org, role="owner", teams=[self.team])
         assert self.has_object_perm("POST", self.project, user=user)
 
+    def test_project_no_team_sentry_app_installed(self):
+        project = self.create_project(teams=[self.team])
+        self.team.delete()
+        other_org = self.create_organization()
+        sentry_app = self.create_sentry_app(
+            name="my_app",
+            organization=other_org,
+            scopes=("project:write",),
+            webhook_url="http://example.com",
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.org, user=self.user
+        )
+
+        assert self.has_object_perm("POST", project, user=sentry_app.proxy_user)
+
+    def test_project_no_team_sentry_app_not_installed(self):
+        project = self.create_project(teams=[self.team])
+        self.team.delete()
+        other_org = self.create_organization()
+        sentry_app = self.create_sentry_app(
+            name="my_app",
+            organization=other_org,
+            scopes=("project:write",),
+            webhook_url="http://example.com",
+        )
+        # install on other org
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=other_org, user=self.user
+        )
+
+        assert not self.has_object_perm("POST", project, user=sentry_app.proxy_user)
+
 
 class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
     def setUp(self):

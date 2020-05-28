@@ -16,12 +16,13 @@ from sentry.integrations import (
     IntegrationInstallation,
 )
 
-from sentry.models import Integration, Rule, RuleStatus
+from sentry.models import AuditLogEntryEvent, Integration, Organization, Rule, RuleStatus
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.compat import map
 from sentry.utils.http import absolute_uri
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.slack import post_migration
+from sentry.utils.audit import create_audit_entry
 
 from .client import SlackClient
 from .utils import logger
@@ -188,6 +189,32 @@ class SlackIntegrationProvider(IntegrationProvider):
             integration["post_install_data"] = post_install_data
 
         return integration
+
+    def create_audit_log_entry(self, integration, organization, request, action, extra=None):
+        super(SlackIntegrationProvider, self).create_audit_log_entry(
+            integration, organization, request, action
+        )
+
+        if action == "upgrade":
+            create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=integration.id,
+                event=AuditLogEntryEvent.INTEGRATION_UPGRADE,
+                data={"provider": integration.provider, "name": integration.name},
+            )
+
+            if extra and extra.get("extra_orgs"):
+                for org in Organization.objects.filter(slug__in=extra["extra_orgs"]):
+                    create_audit_entry(
+                        request=request,
+                        organization=org,
+                        target_object=integration.id,
+                        event=AuditLogEntryEvent.INTEGRATION_UPGRADE,
+                        data={"provider": integration.provider, "name": integration.name},
+                    )
+
+            return
 
     def post_install(self, integration, organization, extra=None):
         # normal installtions don't have extra, quit immediately

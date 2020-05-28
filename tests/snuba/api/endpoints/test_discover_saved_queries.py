@@ -298,3 +298,20 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
             )
         assert response.status_code == 201, response.content
         assert response.data["projects"] == [-1]
+
+    def test_save_invalid_query(self):
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "Bad query",
+                    "projects": [-1],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "query": "spaceAfterColon: 1",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert not DiscoverSavedQuery.objects.filter(name="Bad query").exists()
