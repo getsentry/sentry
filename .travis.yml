@@ -138,6 +138,9 @@ base_acceptance: &acceptance_default
       sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
       # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
       volta -v
+      # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
+      node -v
+      yarn -v
     - docker ps -a
   install:
     - yarn install --frozen-lockfile
@@ -171,6 +174,9 @@ matrix:
           sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
           # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
           volta -v
+          # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
+          node -v
+          yarn -v
         - yarn install --frozen-lockfile
 
     - python: 3.7
@@ -223,6 +229,9 @@ matrix:
           sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
           # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
           volta -v
+          # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
+          node -v
+          yarn -v
       install:
         - yarn install --frozen-lockfile
 
@@ -236,6 +245,9 @@ matrix:
           sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
           # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
           volta -v
+          # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
+          node -v
+          yarn -v
       install:
         - yarn install --frozen-lockfile
 
