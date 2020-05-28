@@ -107,7 +107,8 @@ export default class DetailsHeader extends React.Component<Props> {
               {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
             </IncidentTitle>
             <IncidentSubTitle loading={!isIncidentReady}>
-              Triggered: {dateStarted}
+              {t('Triggered: ')}
+              {dateStarted}
             </IncidentSubTitle>
           </div>
 
