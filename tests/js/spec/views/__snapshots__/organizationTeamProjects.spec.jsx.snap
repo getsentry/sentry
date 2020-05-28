@@ -243,12 +243,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                     className="css-1dw46ju-ButtonLabel edwq9my1"
                                                   >
                                                     Add Project
-                                                    <StyledChevronDown
+                                                    <StyledChevron
                                                       direction="down"
                                                       size="10px"
                                                     >
                                                       <ForwardRef
-                                                        className="css-1jdzfs8-StyledChevronDown eenpoef0"
+                                                        className="css-17f1s2z-StyledChevron eenpoef0"
                                                         direction="down"
                                                         size="10px"
                                                       >
@@ -264,7 +264,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                               "render": [Function],
                                                             }
                                                           }
-                                                          className="css-1jdzfs8-StyledChevronDown eenpoef0"
+                                                          className="css-17f1s2z-StyledChevron eenpoef0"
                                                           css={
                                                             Object {
                                                               "map": undefined,
@@ -277,11 +277,11 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                           size="10px"
                                                         >
                                                           <ForwardRef(SvgIcon)
-                                                            className="eenpoef0 css-qtlj8b-IconChevron-StyledChevronDown"
+                                                            className="eenpoef0 css-hsco9l-IconChevron-StyledChevron"
                                                             size="10px"
                                                           >
                                                             <svg
-                                                              className="eenpoef0 css-qtlj8b-IconChevron-StyledChevronDown"
+                                                              className="eenpoef0 css-hsco9l-IconChevron-StyledChevron"
                                                               fill="currentColor"
                                                               height="10px"
                                                               viewBox="0 0 16 16"
@@ -294,7 +294,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                           </ForwardRef(SvgIcon)>
                                                         </EmotionCssPropInternal>
                                                       </ForwardRef>
-                                                    </StyledChevronDown>
+                                                    </StyledChevron>
                                                   </span>
                                                 </ButtonLabel>
                                               </button>
