@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -16,15 +15,26 @@ import withApi from 'app/utils/withApi';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy} from 'app/icons';
 import Version from 'app/components/version';
+import {Client} from 'app/api';
+import {Release, Deploy} from 'app/types';
 
-class VersionHoverCard extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    version: PropTypes.string.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-  };
+type Props = {
+  api: Client;
+  orgSlug: string;
+  projectSlug: string;
+  releaseVersion: string;
+};
+type State = {
+  loading: boolean;
+  error: boolean;
+  data: {};
+  visible: boolean;
+  hasRepos: boolean;
+  deploys: Deploy[];
+  release: Release | null;
+};
 
+class VersionHoverCard extends React.Component<Props, State> {
   state = {
     loading: true,
     error: false,
@@ -33,31 +43,31 @@ class VersionHoverCard extends React.Component {
     hasRepos: false,
     deploys: [],
     release: null,
-  };
+  } as State;
 
   componentDidMount() {
     this.fetchData();
   }
 
   async fetchData() {
-    const {api, orgId, projectId, version} = this.props;
+    const {api, orgSlug, projectSlug, releaseVersion} = this.props;
 
     // releases
-    const releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-      version
+    const releasePath = `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
+      releaseVersion
     )}/`;
     const releaseRequest = api.requestPromise(releasePath, {
       method: 'GET',
     });
 
     // repos
-    const repoRequest = api.requestPromise(`/organizations/${orgId}/repos/`, {
+    const repoRequest = api.requestPromise(`/organizations/${orgSlug}/repos/`, {
       method: 'GET',
     });
 
     //deploys
-    const deployPath = `/organizations/${orgId}/releases/${encodeURIComponent(
-      version
+    const deployPath = `/organizations/${orgSlug}/releases/${encodeURIComponent(
+      releaseVersion
     )}/deploys/`;
     const deployRequest = api.requestPromise(deployPath, {
       method: 'GET',
@@ -87,8 +97,9 @@ class VersionHoverCard extends React.Component {
   }
 
   getRepoLink() {
-    const {orgId} = this.props;
+    const {orgSlug} = this.props;
     return {
+      header: null,
       body: (
         <ConnectRepo>
           <h5>{t('Releases are better with commit data!')}</h5>
@@ -97,7 +108,7 @@ class VersionHoverCard extends React.Component {
               'Connect a repository to see commit info, files changed, and authors involved in future releases.'
             )}
           </p>
-          <Button href={`/organizations/${orgId}/repos/`} priority="primary">
+          <Button href={`/organizations/${orgSlug}/repos/`} priority="primary">
             {t('Connect a repository')}
           </Button>
         </ConnectRepo>
@@ -106,10 +117,13 @@ class VersionHoverCard extends React.Component {
   }
 
   getBody() {
+    const {releaseVersion} = this.props;
     const {release, deploys} = this.state;
-    const {version} = this.props;
-    const lastCommit = release.lastCommit;
+    if (!release) {
+      return {header: null, body: null};
+    }
 
+    const lastCommit = release.lastCommit;
     const recentDeploysByEnvironment = deploys.reduce(function(dbe, deploy) {
       const {dateFinished, environment} = deploy;
       if (!dbe.hasOwnProperty(environment)) {
@@ -119,17 +133,19 @@ class VersionHoverCard extends React.Component {
       return dbe;
     }, {});
     let mostRecentDeploySlice = Object.keys(recentDeploysByEnvironment);
+
     if (Object.keys(recentDeploysByEnvironment).length > 3) {
       mostRecentDeploySlice = Object.keys(recentDeploysByEnvironment).slice(0, 3);
     }
+
     return {
       header: (
         <HeaderWrapper>
           {t('Release')}
           <VersionWrapper>
-            <StyledVersion version={version} truncate anchor={false} />
+            <StyledVersion version={releaseVersion} truncate anchor={false} />
 
-            <Clipboard value={version}>
+            <Clipboard value={releaseVersion}>
               <ClipboardIconWrapper>
                 <IconCopy size="xs" />
               </ClipboardIconWrapper>
@@ -154,7 +170,7 @@ class VersionHoverCard extends React.Component {
               <AvatarList
                 users={release.authors}
                 avatarSize={25}
-                tooltipOptions={{container: 'body'}}
+                tooltipOptions={{container: 'body'} as any}
                 typeMembers="authors"
               />
             </div>
@@ -185,14 +201,16 @@ class VersionHoverCard extends React.Component {
 
   render() {
     const {loading, error, hasRepos, release} = this.state;
-    let header = null;
-    let body = null;
+    let header: React.ReactNode = null;
+    let body: React.ReactNode = null;
+
     if (loading) {
       body = <LoadingIndicator mini />;
     } else if (error) {
       body = <LoadingError />;
     } else {
-      const renderObj = hasRepos && release ? this.getBody() : this.getRepoLink();
+      const renderObj: {[key: string]: React.ReactNode} =
+        hasRepos && release ? this.getBody() : this.getRepoLink();
       header = renderObj.header;
       body = renderObj.body;
     }
