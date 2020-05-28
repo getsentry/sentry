@@ -182,7 +182,7 @@ class ReleasesList extends AsyncView<Props, State> {
       return <LoadingIndicator />;
     }
 
-    if (!releases.length) {
+    if (!releases?.length) {
       return this.renderEmptyMessage();
     }
 
