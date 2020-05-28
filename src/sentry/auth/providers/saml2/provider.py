@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.core.urlresolvers import reverse
@@ -151,6 +153,14 @@ class SAML2ACSView(AuthView):
             return helper.error(ERR_SAML_FAILED.format(reason=auth.get_last_error_reason()))
 
         helper.bind_state("auth_attributes", auth.get_attributes())
+
+        # XXX(slohmes): 5/28/2020 Temporarily adding logging here to check if any IdPs send a SessionNotOnOrAfter
+        # value in their SAML response.
+        if auth.get_session_expiration() is not None:
+            logging.warning(
+                "Received SessionNotOnOrAfter value in SAML response",
+                extra={"session_expiration": auth.get_session_expiration()},
+            )
 
         return helper.next_step()
 
