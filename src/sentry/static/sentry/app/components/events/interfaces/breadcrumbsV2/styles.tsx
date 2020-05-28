@@ -48,6 +48,7 @@ const GridCellLeft = styled(GridCell)`
 `;
 
 const Grid = styled('div')<{maxHeight?: React.CSSProperties['maxHeight']}>`
+  font-size: ${p => p.theme.fontSizeMedium};
   border: 1px solid ${p => p.theme.borderDark};
   display: grid;
   overflow-y: auto;

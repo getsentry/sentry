@@ -1,14 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import {Event} from 'app/types';
 import space from 'app/styles/space';
+import {tct} from 'app/locale';
 
 import Time from './time';
 import Data from './data/data';
 import Category from './category';
-import BreadcrumbBadge from './breadcrumbBadge';
 import Level from './level';
+import BadgeIcon from './badgeIcon';
+import BadgeCollapsed from './badgeCollapsed';
 import {GridCell, GridCellLeft} from './styles';
 import {BreadcrumbsWithDetails, BreadcrumbType} from './types';
 
@@ -23,55 +26,113 @@ type Props = {
 
 type State = {
   breadcrumbs: BreadcrumbsWithDetails;
-  showCollapsedQuantity: number;
+  showCollapsedQtd: number;
 };
 
 class Breadcrumb extends React.Component<Props, State> {
   state: State = {
-    breadcrumbs: this.props.breadcrumb?.breadcrumbs || [],
-    showCollapsedQuantity: 0,
+    breadcrumbs: this.props.breadcrumb?.breadcrumbs
+      ? [omit(this.props.breadcrumb, 'breadcrumbs'), ...this.props.breadcrumb.breadcrumbs]
+      : ([omit(this.props.breadcrumb, 'breadcrumbs')] as any),
+    showCollapsedQtd: 0,
   };
 
-  handleClick = () => {
+  handleExpand = () => {
     this.setState({
-      showCollapsedQuantity:
-        this.state.showCollapsedQuantity >= this.state.breadcrumbs.length
-          ? this.state.showCollapsedQuantity
-          : this.state.showCollapsedQuantity + MAX_BREADCRUMB_QUANTITY,
+      showCollapsedQtd:
+        this.state.showCollapsedQtd >= this.state.breadcrumbs.length - 1
+          ? this.state.showCollapsedQtd
+          : this.state.showCollapsedQtd + MAX_BREADCRUMB_QUANTITY,
+    });
+  };
+
+  handleCollapse = () => {
+    this.setState({
+      showCollapsedQtd: 0,
     });
   };
 
   render() {
     const {breadcrumb, orgId, event, ...rest} = this.props;
+    const {showCollapsedQtd, breadcrumbs} = this.state;
+    const {
+      color,
+      icon,
+      description,
+      borderColor,
+      type,
+      category,
+      level,
+      timestamp,
+    } = breadcrumb;
+
+    const showBreadcrumbs = breadcrumbs.slice(0, showCollapsedQtd);
+    const isFullyExpanded = showBreadcrumbs.length === this.state.breadcrumbs.length;
 
     const crumbProps = {
       ...rest,
-      hasError: breadcrumb.type === BreadcrumbType.ERROR,
-      onClick: breadcrumb?.breadcrumbs ? this.handleClick : undefined,
+      hasError: type === BreadcrumbType.ERROR,
+      onClick:
+        breadcrumbs.length > 1
+          ? isFullyExpanded
+            ? this.handleCollapse
+            : this.handleExpand
+          : undefined,
     };
 
     return (
       <React.Fragment>
         <GridCellLeft {...crumbProps}>
-          <BreadcrumbBadge breadcrumb={breadcrumb} />
+          {breadcrumbs.length > 1 ? (
+            <BadgeCollapsed
+              crumbsQuantity={
+                isFullyExpanded
+                  ? showBreadcrumbs.length
+                  : breadcrumbs.length - showBreadcrumbs.length
+              }
+              color={color}
+              isFullyExpanded={isFullyExpanded}
+            />
+          ) : (
+            <BadgeIcon
+              color={color}
+              borderColor={borderColor}
+              icon={icon}
+              description={description}
+            />
+          )}
         </GridCellLeft>
         <GridCellCategory {...crumbProps}>
-          <Category category={breadcrumb?.category} />
+          <Category category={category} />
         </GridCellCategory>
         <GridCell {...crumbProps}>
-          <Data event={event} orgId={orgId} breadcrumb={breadcrumb} />
+          {breadcrumbs.length > 1 ? (
+            isFullyExpanded ? (
+              tct('[quantity] Expanded Crumbs', {
+                quantity: showBreadcrumbs.length,
+              })
+            ) : showCollapsedQtd >= MAX_BREADCRUMB_QUANTITY ? (
+              tct('[quantity] More Similar Crumbs', {
+                quantity: breadcrumbs.length - showCollapsedQtd,
+              })
+            ) : (
+              tct('[quantity] Collapsed Crumbs', {
+                quantity: breadcrumbs.length - showCollapsedQtd,
+              })
+            )
+          ) : (
+            <Data event={event} orgId={orgId} breadcrumb={breadcrumb} />
+          )}
         </GridCell>
         <GridCell {...crumbProps}>
-          <Level level={breadcrumb.level} />
+          <Level level={level} />
         </GridCell>
         <GridCell {...crumbProps}>
-          <Time timestamp={breadcrumb.timestamp} />
+          <Time timestamp={timestamp} />
         </GridCell>
-        {this.state.breadcrumbs
-          .slice(0, this.state.showCollapsedQuantity)
-          .map((crumb, idx) => (
-            <Breadcrumb key={idx} breadcrumb={crumb} event={event} orgId={orgId} />
-          ))}
+        {showBreadcrumbs.map((crumb, idx) => (
+          <Breadcrumb key={idx} breadcrumb={crumb} event={event} orgId={orgId} />
+        ))}
       </React.Fragment>
     );
   }
