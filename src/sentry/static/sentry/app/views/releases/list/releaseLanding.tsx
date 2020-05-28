@@ -123,16 +123,12 @@ const ReleaseLanding = withOrganization(
         const card = this.getCard(stepId);
 
         return (
-          <div className="container">
-            <div className="row">
-              <ReleaseLandingCard
-                onClick={this.handleClick}
-                card={card}
-                step={stepId}
-                cardsLength={cards.length}
-              />
-            </div>
-          </div>
+          <ReleaseLandingCard
+            onClick={this.handleClick}
+            card={card}
+            step={stepId}
+            cardsLength={cards.length}
+          />
         );
       }
     }
