@@ -1274,9 +1274,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 format="json",
             )
 
-        data = response.data
-
         assert response.status_code == 200, response.content
+        data = response.data
         assert len(data) == 3
 
         results = data[""]
@@ -1297,3 +1296,32 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 1}],
             [{"count": 0}],
         ]
+
+    def test_top_events_with_aggregate_condition(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["message", "count()"],
+                    "query": "count():>4",
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 3
+
+        for index, event in enumerate(self.events[:3]):
+            message = event.message or event.transaction
+            results = data[message]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]

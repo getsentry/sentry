@@ -906,6 +906,7 @@ def top_events_timeseries(
             orderby=orderby,
             limit=limit,
             referrer=referrer,
+            use_aggregate_conditions=True,
         )
 
     with sentry_sdk.start_span(
