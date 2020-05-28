@@ -5,6 +5,7 @@ import space from 'app/styles/space';
 const GridCell = styled('div')<{
   hasError?: boolean;
   isLastItem?: boolean;
+  onClick?: () => void;
 }>`
   position: relative;
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -23,7 +24,8 @@ const GridCell = styled('div')<{
       border-bottom: 1px solid #fa4747;
       z-index: 1;
     `}
-  ${p => p.isLastItem && `border-bottom: none`};
+  ${p => p.isLastItem && 'border-bottom: none'};
+  ${p => p.onClick && 'cursor: pointer'};
 `;
 
 const GridCellLeft = styled(GridCell)`

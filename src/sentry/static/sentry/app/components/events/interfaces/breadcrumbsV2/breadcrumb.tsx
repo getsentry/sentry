@@ -21,23 +21,30 @@ type Props = {
 };
 
 class Breadcrumb extends React.Component<Props> {
+  handleClick = () => {};
   render() {
-    const {breadcrumb, orgId, event, isLastItem, hasError} = this.props;
+    const {breadcrumb, orgId, event, ...rest} = this.props;
+
+    const crumbProps = {
+      ...rest,
+      onClick: breadcrumb?.breadcrumbs ? this.handleClick : undefined,
+    };
+
     return (
       <React.Fragment>
-        <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
+        <GridCellLeft {...crumbProps}>
           <BreadcrumbBadge breadcrumb={breadcrumb} />
         </GridCellLeft>
-        <GridCellCategory hasError={hasError} isLastItem={isLastItem}>
+        <GridCellCategory {...crumbProps}>
           <Category category={breadcrumb?.category} />
         </GridCellCategory>
-        <GridCell hasError={hasError} isLastItem={isLastItem}>
+        <GridCell {...crumbProps}>
           <Data event={event} orgId={orgId} breadcrumb={breadcrumb} />
         </GridCell>
-        <GridCell hasError={hasError} isLastItem={isLastItem}>
+        <GridCell {...crumbProps}>
           <Level level={breadcrumb.level} />
         </GridCell>
-        <GridCell hasError={hasError} isLastItem={isLastItem}>
+        <GridCell {...crumbProps}>
           <Time timestamp={breadcrumb.timestamp} />
         </GridCell>
       </React.Fragment>
