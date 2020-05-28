@@ -18,7 +18,7 @@ type ThreadInfo = {
 const SelectedOption = ({id, details}: Props) => (
   <Wrapper>
     <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
-    <Label>{details?.label || t('<unknown>')}</Label>
+    <Label>{details?.label || `<${t('unknown')}>`}</Label>
   </Wrapper>
 );
 
