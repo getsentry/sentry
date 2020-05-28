@@ -40,7 +40,7 @@ function convertCrumbType(breadcrumb: Breadcrumb): Breadcrumb {
     ) {
       return {
         ...breadcrumb,
-        type: BreadcrumbType.ERROR,
+        type: BreadcrumbType.TRANSACTION,
       };
     }
   }
