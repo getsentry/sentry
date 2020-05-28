@@ -204,7 +204,7 @@ const GuideContainer = styled('div')`
   line-height: 1.5;
   background-color: ${p => p.theme.purple};
   border-color: ${p => p.theme.purple};
-  color: ${p => p.theme.offWhite};
+  color: ${p => p.theme.gray100};
 `;
 
 const GuideContent = styled('div')`
@@ -213,7 +213,7 @@ const GuideContent = styled('div')`
   grid-gap: ${space(1)};
 
   a {
-    color: ${p => p.theme.offWhite};
+    color: ${p => p.theme.gray100};
     text-decoration: underline;
   }
 `;
@@ -234,7 +234,7 @@ const GuideAction = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  border-color: ${p => p.theme.offWhite};
+  border-color: ${p => p.theme.gray100};
   min-width: 40%;
 `;
 
@@ -244,7 +244,7 @@ const DismissButton = styled(StyledButton)`
   &:hover,
   &:focus,
   &:active {
-    border-color: ${p => p.theme.offWhite};
+    border-color: ${p => p.theme.gray100};
   }
 `;
 

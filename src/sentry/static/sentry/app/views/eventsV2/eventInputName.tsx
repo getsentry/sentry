@@ -90,7 +90,7 @@ class EventInputName extends React.Component<Props> {
 
 const StyledListHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   grid-column: 1/2;
   min-height: 30px;
   ${overflowEllipsis};

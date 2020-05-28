@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 
 import {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
@@ -20,10 +19,10 @@ const IconWrapper = styled('div', {
   border-radius: 32px;
   z-index: 1;
   position: relative;
-  border: 1px solid ${p => p.theme.gray2};
+  border: 1px solid ${p => p.theme.gray500};
   ${p =>
     p.color &&
-    css`
+    `
       color: ${p.theme[p.color] || p.color};
       border-color: ${p.theme[p.color] || p.color};
     `}
@@ -45,7 +44,7 @@ const GridCell = styled('div')<{
   }
   ${p =>
     p.hasError &&
-    css`
+    `
       background: #fffcfb;
       border-top: 1px solid #fa4747;
       border-bottom: 1px solid #fa4747;

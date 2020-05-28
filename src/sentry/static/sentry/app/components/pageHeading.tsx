@@ -13,7 +13,7 @@ const PageHeading = styled('h1')<Props>`
   font-size: ${p => p.theme.headerFontSize};
   line-height: ${p => p.theme.headerFontSize};
   font-weight: normal;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   margin: 0;
   margin-bottom: ${p => p.withMargins && space(3)};
   margin-top: ${p => p.withMargins && space(1)};

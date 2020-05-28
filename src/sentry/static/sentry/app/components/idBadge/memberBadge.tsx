@@ -100,7 +100,7 @@ const StyledNameAndEmail = styled('div')`
 const StyledEmail = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   ${overflowEllipsis};
 `;
 
