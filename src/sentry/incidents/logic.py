@@ -31,6 +31,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.models import Integration, Project
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -319,6 +320,7 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
     )
 
     return {
+        "dataset": Dataset(snuba_query.dataset),
         "start": snuba_filter.start,
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
@@ -641,8 +643,6 @@ def update_alert_rule(
             snuba_query = alert_rule.snuba_query
             updated_query_fields.setdefault("dataset", QueryDatasets(snuba_query.dataset))
             updated_query_fields.setdefault("query", snuba_query.query)
-            # XXX: We use the alert rule aggregation here since currently we're
-            # expecting the enum value to be passed.
             updated_query_fields.setdefault("aggregate", snuba_query.aggregate)
             updated_query_fields.setdefault(
                 "time_window", timedelta(seconds=snuba_query.time_window)

@@ -116,7 +116,7 @@ const ClientKeyItemPanel = styled(Panel)`
 `;
 
 const PanelHeaderLink = styled(Link)`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const Title = styled('div')<{disabled: boolean}>`

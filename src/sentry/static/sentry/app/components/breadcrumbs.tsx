@@ -87,12 +87,12 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
 };
 
 const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
-  color: ${p.theme.gray2};
+  color: ${p.theme.gray500};
   ${overflowEllipsis};
   width: auto;
 
   &:last-child {
-    color: ${p.theme.gray4};
+    color: ${p.theme.gray700};
   }
 `;
 
@@ -109,7 +109,7 @@ const BreadcrumbLink = styled(({preserveGlobalSelection, ...props}) =>
 
   &:hover,
   &:active {
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
   }
 `;
 
@@ -118,7 +118,7 @@ const BreadcrumbItem = styled('span')`
 `;
 
 const BreadcrumbDividerIcon = styled(IconChevron)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   margin: 0 ${space(1)};
   flex-shrink: 0;
 `;

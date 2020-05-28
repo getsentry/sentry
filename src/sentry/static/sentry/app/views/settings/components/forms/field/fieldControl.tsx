@@ -75,7 +75,7 @@ const FieldControlErrorWrapper = styled('div')<{inline?: boolean}>`
 `;
 
 const FieldControlStyled = styled('div')<{alignRight?: boolean}>`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   display: flex;
   flex: 1;
   flex-direction: column;

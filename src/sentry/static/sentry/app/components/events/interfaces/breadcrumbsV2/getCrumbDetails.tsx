@@ -10,88 +10,86 @@ import {
   IconStack,
   IconMobile,
   IconSwitch,
+  IconSpan,
 } from 'app/icons';
 import {t} from 'app/locale';
 
-import {BreadcrumbType, BreadcrumbDetails} from './types';
+import {BreadcrumbType} from './types';
 
-function getTypeDetails(type: BreadcrumbType): BreadcrumbDetails {
+function getCrumbDetails(type: BreadcrumbType) {
   switch (type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
       return {
-        color: 'purple',
+        color: 'purple400',
         icon: IconUser,
         description: t('User Action'),
       };
 
     case BreadcrumbType.NAVIGATION:
       return {
-        // TODO(style): replace the color below, as soon as it is part of the theme
-        color: '#1C8952',
+        color: 'green500',
         icon: IconLocation,
         description: t('Navigation'),
       };
 
     case BreadcrumbType.DEBUG:
       return {
-        // TODO(style): replace the color below, as soon as it is part of the theme
-        color: '#3E2C73',
+        color: 'purple500',
         icon: IconFix,
         description: t('Debug'),
       };
 
     case BreadcrumbType.INFO:
       return {
-        // TODO(style): replace the color below, as soon as it is part of the theme
-        color: '#3D74DB',
+        color: 'blue400',
         icon: IconInfo,
         description: t('Info'),
       };
 
     case BreadcrumbType.ERROR:
       return {
-        // TODO(style): replace the color below, as soon as it is part of the theme
-        color: '#FA4747',
+        color: 'red400',
         icon: IconFire,
         description: t('Error'),
       };
 
     case BreadcrumbType.HTTP:
       return {
-        // TODO(style): replace the color below, as soon as it is part of the theme
-        color: '#4DC771',
+        color: 'green400',
         icon: IconSwitch,
         description: t('HTTP request'),
       };
 
     case BreadcrumbType.WARNING:
       return {
-        // TODO(style): replace the color below, as soon as it is part of the theme
-        color: '#FF7738',
+        color: 'orange400',
         icon: IconWarning,
         description: t('Warning'),
       };
     case BreadcrumbType.QUERY:
       return {
-        // TODO(style): replace the color below, as soon as it is part of the theme
-        color: '#194591',
+        color: 'blue500',
         icon: IconStack,
         description: t('Query'),
       };
     case BreadcrumbType.SYSTEM:
       return {
-        // TODO(style): replace the color below, as soon as it is part of the theme
-        color: '#FF99BC',
+        color: 'pink300',
         icon: IconMobile,
         description: t('System'),
       };
     case BreadcrumbType.SESSION:
       return {
-        // TODO(style): replace the color below, as soon as it is part of the theme
-        color: '#BA4A23',
+        color: 'orange500',
         icon: IconRefresh,
         description: t('Session'),
+      };
+    case BreadcrumbType.TRANSACTION:
+      return {
+        color: 'pink400',
+        icon: IconSpan,
+        description: t('Transaction'),
       };
     default:
       return {
@@ -101,4 +99,4 @@ function getTypeDetails(type: BreadcrumbType): BreadcrumbDetails {
   }
 }
 
-export {getTypeDetails};
+export default getCrumbDetails;

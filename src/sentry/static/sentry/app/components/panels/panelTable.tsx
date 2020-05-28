@@ -141,12 +141,12 @@ const Wrapper = styled(Panel, {
 `;
 
 export const PanelTableHeader = styled('div')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  background: ${p => p.theme.offWhite};
+  background: ${p => p.theme.gray100};
   line-height: 1;
 `;
 

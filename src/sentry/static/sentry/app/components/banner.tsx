@@ -54,7 +54,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
     if (p.backgroundImg) {
       return 'url(' + p.backgroundImg + ')';
     }
-    return p.theme.gray4;
+    return p.theme.gray700;
   }};
   background-repeat: no-repeat;
   background-size: cover;
