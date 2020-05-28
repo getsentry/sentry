@@ -128,3 +128,16 @@ class ExportedData(Model):
         db_table = "sentry_exporteddata"
 
     __repr__ = sane_repr("query_type", "query_info")
+
+
+class ExportedDataBlob(Model):
+    __core__ = False
+
+    data_export = FlexibleForeignKey("sentry.ExportedData")
+    blob = FlexibleForeignKey("sentry.FileBlob")
+    offset = BoundedPositiveIntegerField()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_exporteddatablob"
+        unique_together = (("data_export", "blob", "offset"),)
