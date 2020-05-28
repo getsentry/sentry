@@ -18,7 +18,7 @@ addons:
   apt:
     update: true
     packages:
-      # Volta links against openssl 1.1, hopefully xenial's libssl-dev provides it.
+      # Volta links against openssl 1.0, which xenial's libssl-dev provides.
       - libssl-dev
       - libxmlsec1-dev
       - libmaxminddb-dev
@@ -134,8 +134,8 @@ base_acceptance: &acceptance_default
     - *start_snuba
     - |
       command -v volta && exit 0
-      wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
-      sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+      wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
+      sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
       # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
       volta -v
     - docker ps -a
@@ -167,8 +167,8 @@ matrix:
         - rm .python-version
         - |
           command -v volta && exit 0
-          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
-          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
+          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
           # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
           volta -v
         - yarn install --frozen-lockfile
@@ -219,8 +219,8 @@ matrix:
       before_install:
         - |
           command -v volta && exit 0
-          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
-          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
+          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
           # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
           volta -v
       install:
@@ -232,8 +232,8 @@ matrix:
       before_install:
         - |
           command -v volta && exit 0
-          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz"
-          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.1.tar.gz" -C /usr/local/bin
+          wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
+          sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
           # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
           volta -v
       install:
