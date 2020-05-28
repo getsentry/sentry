@@ -64,11 +64,11 @@ const Title = styled('div')`
   text-align: left;
 `;
 const Value = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   text-align: right;
 `;
 const Divider = styled('div')`
-  border-top: 1px solid ${p => p.theme.gray5};
+  border-top: 1px solid ${p => p.theme.gray800};
   margin: ${space(0.75)} -${space(2)} ${space(1)};
 `;
 

@@ -37,7 +37,7 @@ export const HeaderTitle = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
   line-height: 1.2;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   padding: 0 ${space(1)};
 `;
 

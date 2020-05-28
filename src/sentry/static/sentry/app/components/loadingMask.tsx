@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 const LoadingMask = styled('div')`
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
   position: absolute;
   top: 0;

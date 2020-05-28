@@ -2,9 +2,9 @@ import React from 'react';
 
 import {Event} from 'app/types';
 
-import {Default} from './default';
-import {Exception} from './exception';
-import {Http} from './http';
+import Default from './default';
+import Exception from './exception';
+import Http from './http';
 import {Breadcrumb, BreadcrumbType} from '../types';
 
 type Props = {
@@ -28,4 +28,4 @@ const Data = ({breadcrumb, event, orgId}: Props) => {
   return <Default breadcrumb={breadcrumb} />;
 };
 
-export {Data};
+export default Data;

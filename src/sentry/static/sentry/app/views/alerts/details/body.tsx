@@ -289,6 +289,7 @@ export default class DetailsBody extends React.Component<Props> {
 const Main = styled('div')`
   background-color: ${p => p.theme.white};
   padding-top: ${space(3)};
+  flex-grow: 1;
 `;
 
 const DetailWrapper = styled('div')`
@@ -409,14 +410,14 @@ const RuleDetails = styled('div')`
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
-    background-color: ${p => p.theme.offWhite};
+    background-color: ${p => p.theme.gray100};
   }
 `;
 
 const Query = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   padding: ${space(0.5)} ${space(1)};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;

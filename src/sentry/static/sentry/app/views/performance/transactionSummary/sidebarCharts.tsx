@@ -92,7 +92,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         gridIndex: 0,
         axisLabel: {
           formatter: (value: number) => formatFloat(value, 2),
-          color: theme.gray1,
+          color: theme.gray400,
         },
         ...axisLineConfig,
       },
@@ -101,7 +101,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         gridIndex: 1,
         axisLabel: {
           formatter: formatAbbreviatedNumber,
-          color: theme.gray1,
+          color: theme.gray400,
         },
         ...axisLineConfig,
       },
@@ -110,7 +110,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         gridIndex: 2,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 2),
-          color: theme.gray1,
+          color: theme.gray400,
         },
         ...axisLineConfig,
       },
@@ -190,7 +190,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
               if (errored) {
                 return (
                   <ErrorPanel>
-                    <IconWarning color={theme.gray2} size="lg" />
+                    <IconWarning color={theme.gray500} size="lg" />
                   </ErrorPanel>
                 );
               }
