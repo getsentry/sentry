@@ -15,6 +15,7 @@ import AsyncView from 'app/views/asyncView';
 import routeTitleGen from 'app/utils/routeTitle';
 import {formatVersion} from 'app/utils/formatters';
 import withOrganization from 'app/utils/withOrganization';
+import Pagination from 'app/components/pagination';
 
 import {getCommitsByRepository, CommitsByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
@@ -121,7 +122,7 @@ class ReleaseCommits extends AsyncView<Props, State> {
 
   renderBody() {
     const {orgId} = this.props.params;
-    const {commits, repos, activeRepo} = this.state;
+    const {commits, commitsPageLinks, repos, activeRepo} = this.state;
 
     const commitsByRepository = getCommitsByRepository(commits);
     const reposToRender =
@@ -152,6 +153,8 @@ class ReleaseCommits extends AsyncView<Props, State> {
         {reposToRender.map(repoName =>
           this.renderCommitsForRepo(repoName, commitsByRepository)
         )}
+
+        <Pagination pageLinks={commitsPageLinks} />
       </React.Fragment>
     );
   }
