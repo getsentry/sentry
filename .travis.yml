@@ -114,13 +114,14 @@ after_script:
       codecov -e TEST_SUITE
     fi
   - yarn global add @zeus-ci/cli
-  - $(yarn global bin)/zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
-  - $(yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
-  - $(yarn global bin)/zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
-  - $(yarn global bin)/zeus upload -t "text/html+pytest" .artifacts/*pytest.html
-  - $(yarn global bin)/zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
-  - $(yarn global bin)/zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
-  - $(yarn global bin)/zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
+  - export PATH="$(yarn global bin):${PATH}"
+  - zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
+  - zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
+  - zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
+  - zeus upload -t "text/html+pytest" .artifacts/*pytest.html
+  - zeus upload -t "text/plain+pycodestyle" .artifacts/*pycodestyle.log
+  - zeus upload -t "text/xml+checkstyle" .artifacts/*checkstyle.xml
+  - zeus upload -t "application/webpack-stats+json" .artifacts/*webpack-stats.json
 
 base_postgres: &postgres_default
   python: 2.7
