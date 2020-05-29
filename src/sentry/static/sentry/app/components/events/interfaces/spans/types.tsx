@@ -15,9 +15,24 @@ export type RawSpanType = {
   same_process_as_parent?: boolean;
   op?: string;
   description?: string;
+  status?: string;
   data: Object;
   tags?: {[key: string]: string};
 };
+
+export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
+  'trace_id',
+  'parent_span_id',
+  'span_id',
+  'start_timestamp',
+  'timestamp',
+  'same_process_as_parent',
+  'op',
+  'description',
+  'status',
+  'data',
+  'tags',
+]);
 
 export type OrphanSpanType = {
   type: 'orphan';
