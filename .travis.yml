@@ -71,7 +71,7 @@ base_install: &base_install |-
 install_volta: &install_volta |-
   command -v volta && exit 0
   wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
-  sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
+  tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C "${HOME}/bin"
   # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
   volta -v
 
@@ -162,7 +162,7 @@ base_acceptance: &acceptance_default
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
     - unzip ~/chromedriver_linux64.zip -d ~/
     - rm ~/chromedriver_linux64.zip
-    - sudo install -m755 ~/chromedriver /usr/local/bin/
+    - install -m755 ~/chromedriver -C "${HOME}/bin"
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
