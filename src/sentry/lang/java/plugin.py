@@ -67,7 +67,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if error_type is None:
                 continue
 
-            self.data.setdefault("_metrics", {})["error.processing"] = True
+            self.data.setdefault("_metrics", {})["flag.processing.error"] = True
 
             self.data.setdefault("errors", []).append(
                 {"type": error_type, "mapping_uuid": debug_id}

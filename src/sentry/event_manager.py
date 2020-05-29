@@ -1347,7 +1347,7 @@ def _materialize_event_metrics(jobs):
         # Capture the actual size that goes into node store.
         event_metrics["bytes.stored.event"] = len(json.dumps(dict(job["event"].data.items())))
 
-        for metric_name in ("error.processing", "fatal.processing"):
+        for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):
                 metrics.incr("event_manager.save.event_metrics.%s" % (metric_name,))
 

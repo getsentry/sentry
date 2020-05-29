@@ -239,8 +239,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                 "symbolicate.failed.infinite_retry",
                 extra={"project_id": project_id, "event_id": event_id},
             )
-            data.setdefault("_metrics", {})["error.processing"] = True
-            data.setdefault("_metrics", {})["fatal.processing"] = True
+            data.setdefault("_metrics", {})["flag.processing.error"] = True
+            data.setdefault("_metrics", {})["flag.processing.fatal"] = True
             has_changed = True
         else:
             # Requeue the task in the "sleep" queue
@@ -259,8 +259,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             return
     except Exception:
         error_logger.exception("tasks.store.symbolicate_event.symbolication")
-        data.setdefault("_metrics", {})["error.processing"] = True
-        data.setdefault("_metrics", {})["fatal.processing"] = True
+        data.setdefault("_metrics", {})["flag.processing.error"] = True
+        data.setdefault("_metrics", {})["flag.processing.fatal"] = True
         has_changed = True
 
     # We cannot persist canonical types in the cache, so we need to
@@ -492,7 +492,7 @@ def _do_process_event(
                         result = processor(data)
                     except Exception:
                         error_logger.exception("tasks.store.preprocessors.error")
-                        data.setdefault("_metrics", {})["error.processing"] = True
+                        data.setdefault("_metrics", {})["flag.processing.error"] = True
                         has_changed = True
                     else:
                         if result:
