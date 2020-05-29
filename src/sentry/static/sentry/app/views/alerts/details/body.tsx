@@ -348,7 +348,7 @@ const ChartHeader = styled('div')`
 `;
 
 const ChartParameters = styled('div')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
   grid-auto-flow: column;

@@ -96,6 +96,7 @@ class SummaryContent extends React.Component<Props> {
               organization={organization}
               projectIds={eventView.project}
               query={query}
+              fields={eventView.fields}
               onSearch={this.handleSearch}
             />
             <TransactionSummaryCharts

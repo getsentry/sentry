@@ -219,7 +219,7 @@ const VersionRepoLabel = styled(RepoLabel)`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   position: absolute;
   left: 98px;
   width: 50%;

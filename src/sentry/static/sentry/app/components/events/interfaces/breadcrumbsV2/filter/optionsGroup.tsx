@@ -87,7 +87,7 @@ const ListItem = styled('li')<{isChecked?: boolean; isDisabled?: boolean}>`
   }
 
   &:hover span {
-    color: ${p => p.theme.blue};
+    color: ${p => p.theme.blue400};
     text-decoration: underline;
   }
 `;

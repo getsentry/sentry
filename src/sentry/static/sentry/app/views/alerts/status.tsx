@@ -41,7 +41,7 @@ type WrapperProps = {status: IncidentStatus};
 
 function getColor({theme, status}) {
   if (status === IncidentStatus.CLOSED) {
-    return theme.greenDark;
+    return theme.green500;
   } else if (status === IncidentStatus.WARNING) {
     return theme.yellowDark;
   }

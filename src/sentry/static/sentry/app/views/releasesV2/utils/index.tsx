@@ -99,7 +99,7 @@ export const getCrashFreePercentColor: ProgressRingColorFn = ({percent, theme}) 
     return theme.yellow;
   }
 
-  return theme.green;
+  return theme.green400;
 };
 
 export const getReleaseNewIssuesUrl = (
