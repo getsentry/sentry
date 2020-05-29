@@ -492,7 +492,7 @@ def _do_process_event(
                         result = processor(data)
                     except Exception:
                         error_logger.exception("tasks.store.preprocessors.error")
-                        data.setdefault("_metrics")["error.processing"] = True
+                        data.setdefault("_metrics", {})["error.processing"] = True
                         has_changed = True
                     else:
                         if result:

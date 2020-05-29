@@ -559,12 +559,12 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
                 changed = True
             if errors:
                 data.setdefault("errors", []).extend(dedup_errors(errors))
-                data.setdefault("_metrics")["error.processing"] = True
+                data.setdefault("_metrics", {})["error.processing"] = True
                 changed = True
 
     except Exception:
-        data.setdefault("_metrics")["fatal.processing"] = True
-        data.setdefault("_metrics")["error.processing"] = True
+        data.setdefault("_metrics", {})["fatal.processing"] = True
+        data.setdefault("_metrics", {})["error.processing"] = True
         changed = True
     finally:
         for processor in processors:
