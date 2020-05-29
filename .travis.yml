@@ -65,7 +65,7 @@ base_install: &base_install |-
 
   [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
 
-install_node: &install_node |-
+install_node_dependencies: &install_node |-
   command -v volta && exit 0
   wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
   sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
@@ -76,6 +76,7 @@ install_node: &install_node |-
   # Tracking: https://github.com/volta-cli/volta/issues/653#issuecomment-628909923
   node -v
   yarn -v
+  yarn install --frozen-lockfile
 
 start_snuba: &start_snuba |-
   docker run \
@@ -144,10 +145,9 @@ base_acceptance: &acceptance_default
   before_install:
     - *base_install
     - *start_snuba
-    - *install_node
     - docker ps -a
   install:
-    - yarn install --frozen-lockfile
+    - *install_node_dependencies
     - python setup.py install_egg_info
     - pip install -U -e ".[dev]"
     - |
@@ -172,9 +172,8 @@ matrix:
         # Under a "generic" language environment, this will make travis pyenv error because there
         # is no pyenv python installed.
         - rm .python-version
-        - *install_node
       install:
-        - yarn install --frozen-lockfile
+        - *install_node_dependencies
 
     - python: 3.7
       name: 'pre-commit hooks (includes python linting + format check) and dependency scanning'
@@ -219,18 +218,14 @@ matrix:
     - python: 2.7
       name: 'Frontend [test]'
       env: TEST_SUITE=js
-      before_install:
-        - *install_node
       install:
-        - yarn install --frozen-lockfile
+        - *install_node_dependencies
 
     - python: 2.7
       name: 'Frontend [build]'
       env: TEST_SUITE=js-build
-      before_install:
-        - *install_node
       install:
-        - yarn install --frozen-lockfile
+        - *install_node_dependencies
 
     - python: 2.7
       name: 'Command Line'
@@ -316,9 +311,8 @@ matrix:
         # travis pyenv will attempt to use .python-version, but the appropriate python version won't be installed.
         # since we don't need python here, we have to remove this.
         - rm .python-version
-        - *install_node
       install:
-        - yarn install --frozen-lockfile
+        - *install_node_dependencies
       script: yarn run storybook-build
       after_success: .travis/deploy-storybook.sh
       after_failure: skip
