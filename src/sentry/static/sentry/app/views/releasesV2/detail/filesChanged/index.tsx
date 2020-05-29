@@ -13,9 +13,14 @@ import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {formatVersion} from 'app/utils/formatters';
 import {Panel, PanelBody} from 'app/components/panels';
+import Button from 'app/components/button';
 
 import {getFilesByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
+
+import {ReleaseContext} from '..';
+
+const FILES_LIMIT = 200;
 
 type RouteParams = {
   orgId: string;
@@ -48,13 +53,25 @@ class FilesChanged extends AsyncView<Props, State> {
       [
         'fileList',
         `/organizations/${orgId}/releases/${encodeURIComponent(release)}/commitfiles/`,
+        {
+          query: {
+            limit: this.shouldFetchAll() ? null : FILES_LIMIT,
+          },
+        },
       ],
       ['repos', `/organizations/${orgId}/repos/`],
     ];
   }
 
+  shouldFetchAll() {
+    const {location} = this.props;
+
+    return location.query.full === '1';
+  }
+
   renderBody() {
-    const {orgId} = this.props.params;
+    const {params, location} = this.props;
+    const {orgId} = params;
     const {fileList, repos} = this.state;
     const filesByRepository = getFilesByRepository(fileList);
 
@@ -65,14 +82,35 @@ class FilesChanged extends AsyncView<Props, State> {
     return (
       <ContentBox>
         {fileList.length ? (
-          Object.keys(filesByRepository).map(repository => (
-            <RepositoryFileSummary
-              key={repository}
-              repository={repository}
-              fileChangeSummary={filesByRepository[repository]}
-              collapsable={false}
-            />
-          ))
+          <React.Fragment>
+            {Object.entries(filesByRepository).map(([repository, file]) => (
+              <RepositoryFileSummary
+                key={repository}
+                repository={repository}
+                fileChangeSummary={file}
+                collapsable={false}
+              />
+            ))}
+
+            <ReleaseContext.Consumer>
+              {({releaseMeta}) =>
+                !this.shouldFetchAll() && releaseMeta.commitFilesChanged > FILES_LIMIT ? (
+                  <ShowAllWrapper>
+                    <Button
+                      priority="primary"
+                      size="small"
+                      to={{
+                        pathname: location.pathname,
+                        query: {...location.query, full: 1},
+                      }}
+                    >
+                      {t('Show all')}
+                    </Button>
+                  </ShowAllWrapper>
+                ) : null
+              }
+            </ReleaseContext.Consumer>
+          </React.Fragment>
         ) : (
           <Panel>
             <PanelBody>
@@ -93,6 +131,10 @@ const ContentBox = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     margin-bottom: ${space(1.5)};
   }
+`;
+
+const ShowAllWrapper = styled('div')`
+  text-align: center;
 `;
 
 export default withOrganization(FilesChanged);

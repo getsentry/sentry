@@ -21,6 +21,7 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
+        :qparam int limit: how many files should be returned at maximum
         :auth: required
         """
         try:
@@ -31,12 +32,18 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
+        limit_param = request.GET.get("limit")
+        try:
+            limit = int(limit_param) if limit_param is not None else None
+        except ValueError:
+            limit = None
+
         queryset = list(
             CommitFileChange.objects.filter(
                 commit_id__in=ReleaseCommit.objects.filter(release=release).values_list(
                     "commit_id", flat=True
                 )
-            )
+            )[:limit]
         )
 
         context = serialize(queryset, request.user)
