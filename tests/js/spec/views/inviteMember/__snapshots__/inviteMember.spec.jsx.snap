@@ -270,7 +270,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                               >
                                 <input
                                   checked={false}
-                                  className="css-1hspfy0-Radio e1d7o7s40"
+                                  className="css-12liw0k-Radio e1d7o7s40"
                                   id="1"
                                   readOnly={true}
                                   type="radio"
@@ -368,7 +368,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                               >
                                 <input
                                   checked={false}
-                                  className="css-1hspfy0-Radio e1d7o7s40"
+                                  className="css-12liw0k-Radio e1d7o7s40"
                                   id="2"
                                   readOnly={true}
                                   type="radio"
