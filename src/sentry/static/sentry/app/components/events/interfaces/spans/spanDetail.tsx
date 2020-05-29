@@ -2,6 +2,7 @@ import React from 'react';
 import map from 'lodash/map';
 import styled from '@emotion/styled';
 
+import {Organization} from 'app/types';
 import {Client} from 'app/api';
 import {IconWarning} from 'app/icons';
 import {TableDataRow} from 'app/views/eventsV2/table/types';
@@ -33,6 +34,7 @@ type TransactionResult = {
 type Props = {
   api: Client;
   orgId: string;
+  organization: Organization;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
   eventView: EventView;

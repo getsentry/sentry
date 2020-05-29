@@ -1,5 +1,6 @@
 import React from 'react';
 
+import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {TableData, TableDataRow} from 'app/views/eventsV2/table/types';
 
@@ -9,6 +10,7 @@ import SpanBar from './spanBar';
 
 type PropType = {
   orgId: string;
+  organization: Organization;
   eventView: EventView;
   span: Readonly<ProcessedSpanType>;
   trace: Readonly<ParsedTraceType>;
@@ -90,6 +92,7 @@ class SpanGroup extends React.Component<PropType, State> {
       spanNumber,
       isCurrentSpanFilteredOut,
       orgId,
+      organization,
       eventView,
     } = this.props;
 
@@ -97,6 +100,7 @@ class SpanGroup extends React.Component<PropType, State> {
       <React.Fragment>
         <SpanBar
           eventView={eventView}
+          organization={organization}
           orgId={orgId}
           spanBarColour={spanBarColour}
           spanBarHatch={spanBarHatch}

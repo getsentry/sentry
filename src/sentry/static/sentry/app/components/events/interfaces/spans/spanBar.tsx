@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import 'intersection-observer'; // this is a polyfill
 
+import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import space from 'app/styles/space';
@@ -171,6 +172,7 @@ const getDurationDisplay = ({
 
 type SpanBarProps = {
   orgId: string;
+  organization: Organization;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<ProcessedSpanType>;
   spanBarColour?: string;
@@ -230,6 +232,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const {
       span,
       orgId,
+      organization,
       isRoot,
       eventView,
       trace,
@@ -241,6 +244,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       <SpanDetail
         span={span}
         orgId={orgId}
+        organization={organization}
         isRoot={!!isRoot}
         eventView={eventView}
         trace={trace}
