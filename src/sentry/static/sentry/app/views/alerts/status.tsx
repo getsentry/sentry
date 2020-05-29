@@ -42,9 +42,9 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   align-items: center;
   grid-template-columns: auto 1fr;
+  grid-gap: ${space(0.75)};
 `;
 
 const Icon = styled('span')`
-  margin-right: ${space(0.75)};
   margin-bottom: -3px;
 `;
