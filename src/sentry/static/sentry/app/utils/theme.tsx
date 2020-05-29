@@ -58,9 +58,6 @@ const colors = {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Old Colors
-  gray5: '#302839',
-  gray6: '#AFA3BB', // form disabled
-
   blue: '#3B6ECC',
   blueLight: '#628BD6',
   blueLightest: '#F5FAFE',
