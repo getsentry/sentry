@@ -201,7 +201,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
     resourceLinks: [
       {
         title: 'Documentation',
-        url: 'https://www.npmjs.com/package/@sentry/fullstory',
+        url: 'https://www.npmjs.com/package/@sentry/netlify-build-plugin',
       },
       {
         title: 'View Source',
