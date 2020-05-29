@@ -260,7 +260,7 @@ class SearchVisitor(NodeVisitor):
             "p75",
             "p95",
             "p99",
-            "error_rate",
+            "failure_rate",
             "user_misery",
         ]
     )
@@ -1160,8 +1160,8 @@ FUNCTIONS = {
         "transform": u"uniqIf(user, duration > {tolerated:g})",
         "result_type": "number",
     },
-    "error_rate": {
-        "name": "error_rate",
+    "failure_rate": {
+        "name": "failure_rate",
         "args": [],
         "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
         "result_type": "percentage",

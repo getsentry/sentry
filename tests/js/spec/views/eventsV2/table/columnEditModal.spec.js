@@ -251,14 +251,14 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
 
     it('clears all unused parameters', function() {
-      // Choose percentile, then error_rate which has no parameters.
+      // Choose percentile, then failure_rate which has no parameters.
       selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
-      selectByLabel(wrapper, 'error_rate()', {name: 'field', at: 0, control: true});
+      selectByLabel(wrapper, 'failure_rate()', {name: 'field', at: 0, control: true});
 
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['error_rate', '', undefined]},
+        {kind: 'function', function: ['failure_rate', '', undefined]},
       ]);
     });
   });

@@ -797,17 +797,17 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["count_id"] == 2
         assert data[1]["count_unique_user_email"] == 2
 
-    def test_error_rate_alias_field(self):
+    def test_failure_rate_alias_field(self):
         self.login_as(user=self.user)
         project = self.create_project()
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/success"
+        data["transaction"] = "/failure_rate/success"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(data, project_id=project.id)
 
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/unknown"
+        data["transaction"] = "/failure_rate/unknown"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["contexts"]["trace"]["status"] = "unknown_error"
@@ -815,7 +815,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         for i in range(6):
             data = load_data("transaction")
-            data["transaction"] = "/error_rate/{}".format(i)
+            data["transaction"] = "/failure_rate/{}".format(i)
             data["timestamp"] = iso_format(before_now(minutes=1))
             data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
             data["contexts"]["trace"]["status"] = "unauthenticated"
@@ -825,13 +825,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"field": ["error_rate()"], "query": "event.type:transaction"},
+                data={"field": ["failure_rate()"], "query": "event.type:transaction"},
             )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert data[0]["error_rate"] == 0.75
+        assert data[0]["failure_rate"] == 0.75
 
     def test_user_misery_alias_field(self):
         self.login_as(user=self.user)
@@ -1817,13 +1817,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         project = self.create_project()
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/failure_rate/1"
         data["timestamp"] = iso_format(before_now(minutes=2))
         data["start_timestamp"] = iso_format(before_now(minutes=2, seconds=5))
         self.store_event(data, project_id=project.id)
 
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/failure_rate/1"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["contexts"]["trace"]["status"] = "unauthenticated"
@@ -1847,7 +1847,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                         "apdex(300)",
                         "impact(300)",
                         "user_misery(300)",
-                        "error_rate()",
+                        "failure_rate()",
                     ],
                     "query": "event.type:transaction",
                 },
@@ -1862,7 +1862,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert meta["p100"] == "duration"
             assert meta["percentile_transaction_duration_0_99"] == "duration"
             assert meta["apdex_300"] == "number"
-            assert meta["error_rate"] == "percentage"
+            assert meta["failure_rate"] == "percentage"
             assert meta["impact_300"] == "number"
             assert meta["user_misery_300"] == "number"
 
@@ -1877,7 +1877,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["apdex_300"] == 0.0
             assert data[0]["impact_300"] == 1.0
             assert data[0]["user_misery_300"] == 1
-            assert data[0]["error_rate"] == 0.5
+            assert data[0]["failure_rate"] == 0.5
 
         with self.feature(
             {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -1935,13 +1935,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         data = load_data("transaction")
 
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/failure_rate/1"
         data["timestamp"] = iso_format(before_now(minutes=2))
         data["start_timestamp"] = iso_format(before_now(minutes=2, seconds=5))
         self.store_event(data, project_id=project.id)
 
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/2"
+        data["transaction"] = "/failure_rate/2"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["contexts"]["trace"]["status"] = "unauthenticated"
@@ -1982,8 +1982,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["event.type", "apdex()", "impact()", "error_rate()"],
-                    "query": "event.type:transaction apdex:>-1.0 impact():>0.5 error_rate():>0.25",
+                    "field": ["event.type", "apdex()", "impact()", "failure_rate()"],
+                    "query": "event.type:transaction apdex:>-1.0 impact():>0.5 failure_rate():>0.25",
                 },
             )
 
@@ -1992,7 +1992,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert len(data) == 1
             assert data[0]["apdex"] == 0.0
             assert data[0]["impact"] == 1.0
-            assert data[0]["error_rate"] == 0.5
+            assert data[0]["failure_rate"] == 0.5
 
         with self.feature(
             {"organizations:discover-basic": True, "organizations:global-views": True}
@@ -2078,13 +2078,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         data = load_data("transaction")
 
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/failure_rate/1"
         data["timestamp"] = iso_format(before_now(minutes=2))
         data["start_timestamp"] = iso_format(before_now(minutes=2, seconds=5))
         self.store_event(data, project_id=project.id)
 
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/2"
+        data["transaction"] = "/failure_rate/2"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["contexts"]["trace"]["status"] = "unauthenticated"
@@ -2312,7 +2312,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data["spans"] = transaction_data["spans"]
         data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         data["type"] = "transaction"
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/failure_rate/1"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
@@ -2377,7 +2377,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data["spans"] = transaction_data["spans"]
         data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         data["type"] = "error"
-        data["transaction"] = "/error_rate/1"
+        data["transaction"] = "/failure_rate/1"
         data["timestamp"] = iso_format(before_now(minutes=1))
         data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
@@ -2452,7 +2452,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 milliseconds = random.randint(bucket[0], bucket[1])
                 values.append(milliseconds)
                 data = load_data("transaction")
-                data["transaction"] = "/error_rate/{}".format(milliseconds)
+                data["transaction"] = "/failure_rate/{}".format(milliseconds)
                 data["timestamp"] = iso_format(start)
                 data["start_timestamp"] = (start - timedelta(milliseconds=milliseconds)).isoformat()
                 self.store_event(data, project_id=project.id)
@@ -2507,7 +2507,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 milliseconds = random.randint(bucket[0], bucket[1])
                 values.append(milliseconds)
                 data = load_data("transaction")
-                data["transaction"] = "/error_rate/sleepy_gary/{}".format(milliseconds)
+                data["transaction"] = "/failure_rate/sleepy_gary/{}".format(milliseconds)
                 data["timestamp"] = iso_format(start)
                 data["start_timestamp"] = (start - timedelta(milliseconds=milliseconds)).isoformat()
                 self.store_event(data, project_id=project.id)
@@ -2515,7 +2515,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # Add a transaction that totally throws off the buckets
         milliseconds = random.randint(bucket[0], bucket[1])
         data = load_data("transaction")
-        data["transaction"] = "/error_rate/hamurai"
+        data["transaction"] = "/failure_rate/hamurai"
         data["timestamp"] = iso_format(start)
         data["start_timestamp"] = iso_format(start - timedelta(milliseconds=1000000))
         self.store_event(data, project_id=project.id)
@@ -2528,7 +2528,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 format="json",
                 data={
                     "field": ["histogram(transaction.duration, 10)", "count()"],
-                    "query": "event.type:transaction transaction:/error_rate/sleepy_gary*",
+                    "query": "event.type:transaction transaction:/failure_rate/sleepy_gary*",
                     "sort": "histogram_transaction_duration_10",
                 },
             )

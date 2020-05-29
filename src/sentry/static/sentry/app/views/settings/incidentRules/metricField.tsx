@@ -42,7 +42,7 @@ const transactionFieldConfig: OptionConfig = {
   aggregations: [
     'avg',
     'percentile',
-    'error_rate',
+    'failure_rate',
     'apdex',
     'count',
     'p50',
