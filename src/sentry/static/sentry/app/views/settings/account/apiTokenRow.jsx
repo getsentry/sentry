@@ -98,7 +98,7 @@ const Time = styled('time')`
 const Heading = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: uppercase;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   margin-bottom: ${space(1)};
 `;
 

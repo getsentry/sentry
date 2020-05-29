@@ -218,7 +218,7 @@ const VariantTitle = styled('h5')`
 
 const ContributionIcon = styled(({isContributing, ...p}) =>
   isContributing ? (
-    <IconCheckmark size="sm" isCircled color={theme.green} {...p} />
+    <IconCheckmark size="sm" isCircled color={theme.green400} {...p} />
   ) : (
     <IconClose size="sm" isCircled color={theme.red} {...p} />
   )

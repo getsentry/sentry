@@ -58,7 +58,7 @@ const StyledSettingsWrapper = styled('div')`
   display: flex;
   flex: 1;
   font-size: 16px;
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   margin-bottom: -20px; /* to account for footer margin top */
   line-height: 1;
 

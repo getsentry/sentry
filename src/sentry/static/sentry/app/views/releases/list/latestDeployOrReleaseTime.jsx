@@ -61,7 +61,7 @@ const TimeWithIcon = styled(({date, ...props}) => (
 ))`
   display: inline-flex;
   align-items: center;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

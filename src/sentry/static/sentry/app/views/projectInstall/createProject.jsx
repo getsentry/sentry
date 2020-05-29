@@ -378,7 +378,7 @@ const TeamSelectInput = styled('div')`
 `;
 
 const HelpText = styled('p')`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   max-width: 700px;
 `;
 

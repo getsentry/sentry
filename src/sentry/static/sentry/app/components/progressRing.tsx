@@ -81,7 +81,7 @@ const ProgressRing = ({
   text,
   textCss,
   animateText = false,
-  progressColor = theme.green,
+  progressColor = theme.green400,
   backgroundColor = theme.gray300,
   progressEndcaps,
   ...p

@@ -7,7 +7,7 @@ const Crumb = styled('div')`
   align-items: center;
   position: relative;
   font-size: 18px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   padding-right: ${space(1)};
   cursor: pointer;
   > span {
@@ -15,7 +15,7 @@ const Crumb = styled('div')`
   }
 
   &:hover {
-    color: ${p => p.theme.gray5};
+    color: ${p => p.theme.gray800};
   }
 `;
 

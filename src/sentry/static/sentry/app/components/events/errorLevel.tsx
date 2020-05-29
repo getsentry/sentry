@@ -7,7 +7,7 @@ const DEFAULT_SIZE = '13px';
 function getLevelColor({level = '', theme}) {
   const COLORS = {
     error: theme.orange,
-    info: theme.blue,
+    info: theme.blue400,
     warning: theme.yellowOrange,
     fatal: theme.red,
     sample: theme.purple,

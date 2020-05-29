@@ -133,7 +133,7 @@ const hoverCss = (p: {theme: Theme}) => css`
     stroke: rgba(255, 255, 255, 0.3);
   }
   ${RingBar} {
-    stroke: ${p.theme.greenLight};
+    stroke: ${p.theme.green300};
   }
   ${RingText} {
     color: ${p.theme.white};

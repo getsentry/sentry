@@ -209,6 +209,6 @@ const EventTitle = styled(TableData)`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   ${overflowEllipsis};
 `;

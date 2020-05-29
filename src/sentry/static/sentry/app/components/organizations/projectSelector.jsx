@@ -390,10 +390,10 @@ const CreateProjectButton = styled(Button)`
 const AddButton = styled(Button)`
   display: block;
   margin: 0 ${space(1)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 
   &:hover {
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
   }
 `;
 
@@ -406,7 +406,7 @@ const BadgeWrapper = styled('div')`
 `;
 
 const SettingsIconLink = styled(Link)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -415,13 +415,13 @@ const SettingsIconLink = styled(Link)`
   transition: 0.5s opacity ease-out;
 
   &:hover {
-    color: ${p => p.theme.gray4};
+    color: ${p => p.theme.gray700};
   }
 `;
 
 const Label = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const BadgeAndActionsWrapper = styled('div')`

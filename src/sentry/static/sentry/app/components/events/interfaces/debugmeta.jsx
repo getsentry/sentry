@@ -592,11 +592,11 @@ const CodeFile = styled('span')`
 `;
 
 const DebugFile = styled('span')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const ImageSubtext = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const ImageProp = styled('span')`

@@ -63,7 +63,7 @@ const getInputButtonStyles = (p: {
   isActive?: boolean;
   collapseIntoEllipsisMenu?: number;
 }) => `
-  color: ${p.isActive ? theme.blueLight : theme.gray500};
+  color: ${p.isActive ? theme.blue300 : theme.gray500};
   margin-left: ${space(0.5)};
   width: 18px;
 
@@ -100,7 +100,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   }
 
   &:hover {
-    color: ${theme.blueDark};
+    color: ${theme.blue500};
   }
 
   ${p.showBelowMediaQuery &&

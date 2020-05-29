@@ -670,11 +670,11 @@ exports[`SharedGroupDetails renders 1`] = `
                           href="/api/"
                         >
                           <ForwardRef(ExternalLink)
-                            className="hidden-xs css-aovf7d-FooterLink e1xhjlxg0"
+                            className="hidden-xs css-1k8mivk-FooterLink e1xhjlxg0"
                             href="/api/"
                           >
                             <a
-                              className="hidden-xs css-aovf7d-FooterLink e1xhjlxg0"
+                              className="hidden-xs css-1k8mivk-FooterLink e1xhjlxg0"
                               href="/api/"
                               rel="noreferrer noopener"
                               target="_blank"
@@ -687,11 +687,11 @@ exports[`SharedGroupDetails renders 1`] = `
                           href="/docs/"
                         >
                           <ForwardRef(ExternalLink)
-                            className="css-aovf7d-FooterLink e1xhjlxg0"
+                            className="css-1k8mivk-FooterLink e1xhjlxg0"
                             href="/docs/"
                           >
                             <a
-                              className="css-aovf7d-FooterLink e1xhjlxg0"
+                              className="css-1k8mivk-FooterLink e1xhjlxg0"
                               href="/docs/"
                               rel="noreferrer noopener"
                               target="_blank"
@@ -705,11 +705,11 @@ exports[`SharedGroupDetails renders 1`] = `
                           href="https://github.com/getsentry/sentry"
                         >
                           <ForwardRef(ExternalLink)
-                            className="hidden-xs css-aovf7d-FooterLink e1xhjlxg0"
+                            className="hidden-xs css-1k8mivk-FooterLink e1xhjlxg0"
                             href="https://github.com/getsentry/sentry"
                           >
                             <a
-                              className="hidden-xs css-aovf7d-FooterLink e1xhjlxg0"
+                              className="hidden-xs css-1k8mivk-FooterLink e1xhjlxg0"
                               href="https://github.com/getsentry/sentry"
                               rel="noreferrer noopener"
                               target="_blank"

@@ -241,7 +241,7 @@ const Header = styled('header')`
 const LogoSvg = styled(InlineSvg)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
 `;
 
 const ProgressBar = styled('div')`
@@ -281,7 +281,7 @@ const PosedProgressStatus = posed.div(
 );
 
 const ProgressStatus = styled(PosedProgressStatus)`
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
 `;
@@ -310,7 +310,7 @@ const OnboardingStep = styled(PosedOnboardingStep)`
     height: 30px;
     top: -5px;
     left: -30px;
-    background-color: ${p => (p.active ? Theme.colors.pink : p.theme.gray2)};
+    background-color: ${p => (p.active ? Theme.colors.pink : p.theme.gray500)};
     border-radius: 50%;
     color: #fff;
     font-size: 1.5rem;

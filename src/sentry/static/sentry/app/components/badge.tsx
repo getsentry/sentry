@@ -7,8 +7,8 @@ import theme from 'app/utils/theme';
 
 const priorityColors = {
   new: theme.red,
-  strong: theme.blue,
-  highlight: theme.green,
+  strong: theme.blue400,
+  highlight: theme.green400,
 } as const;
 
 type Props = React.HTMLProps<HTMLSpanElement> & {

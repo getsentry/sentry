@@ -1265,8 +1265,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   r="38"
                 />
                 <circle
-                  class="css-sn14z-RingBar eqr38d43"
-                  color="#57be8c"
+                  class="css-1vu8rbp-RingBar eqr38d43"
+                  color="#4DC771"
                   cx="44"
                   cy="44"
                   r="38"
@@ -1335,7 +1335,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   class="css-1qxx2qs-ActionBar e9zebce3"
                 >
                   <div
-                    class="css-wf3dy3-CTA e9zebce5"
+                    class="css-1tn7xj7-CTA e9zebce5"
                   >
                     Setup now
                   </div>
@@ -1361,14 +1361,14 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   class="css-1qxx2qs-ActionBar e9zebce3"
                 >
                   <div
-                    class="css-wf3dy3-CTA e9zebce5"
+                    class="css-1tn7xj7-CTA e9zebce5"
                   >
                     Setup now
                   </div>
                   <button
                     aria-disabled="false"
                     aria-label="Skip task"
-                    class="e9zebce6 css-1x12sty-StyledButton-SkipButton edwq9my0"
+                    class="e9zebce6 css-jpr2t-StyledButton-SkipButton edwq9my0"
                     role="button"
                   >
                     <span
@@ -1910,7 +1910,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         <RingBar
                           barWidth={12}
                           circumference={238.76104167282426}
-                          color="#57be8c"
+                          color="#4DC771"
                           cx={44}
                           cy={44}
                           r={38}
@@ -1918,8 +1918,8 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           strokeLinecap="round"
                         >
                           <circle
-                            className="css-sn14z-RingBar eqr38d43"
-                            color="#57be8c"
+                            className="css-1vu8rbp-RingBar eqr38d43"
+                            color="#4DC771"
                             cx={44}
                             cy={44}
                             r={38}
@@ -2620,7 +2620,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       >
                                         <CTA>
                                           <div
-                                            className="css-wf3dy3-CTA e9zebce5"
+                                            className="css-1tn7xj7-CTA e9zebce5"
                                           >
                                             Setup now
                                           </div>
@@ -3174,7 +3174,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       >
                                         <CTA>
                                           <div
-                                            className="css-wf3dy3-CTA e9zebce5"
+                                            className="css-1tn7xj7-CTA e9zebce5"
                                           >
                                             Setup now
                                           </div>
@@ -3212,7 +3212,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                   <Component
                                                     aria-disabled={false}
                                                     aria-label="Skip task"
-                                                    className="e9zebce6 css-1x12sty-StyledButton-SkipButton edwq9my0"
+                                                    className="e9zebce6 css-jpr2t-StyledButton-SkipButton edwq9my0"
                                                     forwardRef={null}
                                                     onClick={[Function]}
                                                     role="button"
@@ -3220,7 +3220,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     <button
                                                       aria-disabled={false}
                                                       aria-label="Skip task"
-                                                      className="e9zebce6 css-1x12sty-StyledButton-SkipButton edwq9my0"
+                                                      className="e9zebce6 css-jpr2t-StyledButton-SkipButton edwq9my0"
                                                       onClick={[Function]}
                                                       role="button"
                                                     >

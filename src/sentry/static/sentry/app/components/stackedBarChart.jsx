@@ -231,7 +231,7 @@ class StackedBarChart extends React.Component {
             r="4"
             cx="50%"
             cy="50%"
-            fill={marker.fill || theme.gray2}
+            fill={marker.fill || theme.gray500}
             stroke="#fff"
             strokeWidth="2"
           >

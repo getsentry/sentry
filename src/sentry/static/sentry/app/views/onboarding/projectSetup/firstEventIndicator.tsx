@@ -91,7 +91,7 @@ const PosedReceivedIndicator = posed(InlineSvg)(indicatorPoses);
 
 const ReceivedIndicator = styled(PosedReceivedIndicator)`
   color: #fff;
-  background: ${p => p.theme.green};
+  background: ${p => p.theme.green400};
   border-radius: 50%;
   height: 20px;
   width: 20px;

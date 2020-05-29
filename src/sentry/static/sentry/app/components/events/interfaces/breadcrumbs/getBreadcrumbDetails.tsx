@@ -27,14 +27,14 @@ function getBreadcrumbDetails(breadcrumb: Breadcrumb): Partial<Output> {
     }
     case BreadcrumbType.NAVIGATION: {
       return {
-        color: 'blue',
+        color: 'blue400',
         icon: <IconLocation />,
         renderer: <DefaultRenderer breadcrumb={breadcrumb} />,
       };
     }
     case BreadcrumbType.INFO: {
       return {
-        color: 'blue',
+        color: 'blue400',
         icon: <IconInfo />,
         renderer: <DefaultRenderer breadcrumb={breadcrumb} />,
       };
