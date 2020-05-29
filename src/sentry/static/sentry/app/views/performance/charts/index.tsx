@@ -15,7 +15,6 @@ import EventView from 'app/utils/discover/eventView';
 import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
 
 import {PERFORMANCE_TERMS} from '../constants';
 import {HeaderContainer, HeaderTitle, ErrorPanel} from '../styles';
@@ -89,7 +88,7 @@ class Container extends React.Component<Props> {
             if (errored) {
               return (
                 <ErrorPanel>
-                  <IconWarning color={theme.gray500} size="lg" />
+                  <IconWarning color="gray500" size="lg" />
                 </ErrorPanel>
               );
             }

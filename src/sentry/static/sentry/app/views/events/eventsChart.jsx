@@ -196,7 +196,7 @@ class EventsChart extends React.Component {
       if (errored) {
         return (
           <ErrorPanel>
-            <IconWarning color={theme.gray500} size="lg" />
+            <IconWarning color="gray500" size="lg" />
           </ErrorPanel>
         );
       }

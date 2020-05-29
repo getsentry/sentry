@@ -89,7 +89,7 @@ class MiniGraph extends React.Component<Props> {
           if (errored) {
             return (
               <StyledGraphContainer>
-                <IconWarning color={theme.gray500} size="md" />
+                <IconWarning color="gray500" size="md" />
               </StyledGraphContainer>
             );
           }
