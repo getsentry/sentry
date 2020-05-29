@@ -35,7 +35,7 @@ type State = {
 };
 
 class VersionHoverCard extends React.Component<Props, State> {
-  state = {
+  state: State = {
     loading: true,
     error: false,
     data: {},
@@ -43,7 +43,7 @@ class VersionHoverCard extends React.Component<Props, State> {
     hasRepos: false,
     deploys: [],
     release: null,
-  } as State;
+  };
 
   componentDidMount() {
     this.fetchData();
@@ -123,7 +123,7 @@ class VersionHoverCard extends React.Component<Props, State> {
       return {header: null, body: null};
     }
 
-    const lastCommit = release.lastCommit;
+    const {lastCommit} = release;
     const recentDeploysByEnvironment = deploys.reduce(function(dbe, deploy) {
       const {dateFinished, environment} = deploy;
       if (!dbe.hasOwnProperty(environment)) {
