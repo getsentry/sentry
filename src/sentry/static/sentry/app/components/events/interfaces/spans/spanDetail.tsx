@@ -338,6 +338,7 @@ class SpanDetail extends React.Component<Props, State> {
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               <Row title="Description">{span?.description ?? ''}</Row>
+              <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
