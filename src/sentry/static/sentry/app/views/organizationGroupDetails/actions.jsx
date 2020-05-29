@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from '@emotion/styled';
 
 import {
   addErrorMessage,
@@ -10,7 +11,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
 import {openModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
@@ -29,6 +30,18 @@ import ShareIssue from 'app/components/shareIssue';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import Tooltip from 'app/components/tooltip';
+import {IconBell} from 'app/icons/iconBell';
+
+const SUBSCRIPTION_REASONS = {
+  commented: t("You're receiving updates because you have commented on this issue."),
+  assigned: t("You're receiving updates because you were assigned to this issue."),
+  bookmarked: t("You're receiving updates because you have bookmarked this issue."),
+  changed_status: t(
+    "You're receiving updates because you have changed the status of this issue."
+  ),
+  mentioned: t("You're receiving updates because you have been mentioned in this issue."),
+};
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -255,6 +268,38 @@ const GroupDetailsActions = createReactClass({
     });
   },
 
+  getNotificationText() {
+    const {group} = this.props;
+
+    if (group.isSubscribed) {
+      let result = t(
+        "You're receiving updates because you are subscribed to this issue."
+      );
+      if (group.subscriptionDetails) {
+        const reason = group.subscriptionDetails.reason;
+        if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+          result = SUBSCRIPTION_REASONS[reason];
+        }
+      } else {
+        result = tct(
+          "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
+          {
+            link: <a href="/account/settings/notifications/" />,
+          }
+        );
+      }
+      return result;
+    } else {
+      if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
+        return tct('You have [link:disabled workflow notifications] for this project.', {
+          link: <a href="/account/settings/notifications/" />,
+        });
+      } else {
+        return t("You're not subscribed to this issue.");
+      }
+    }
+  },
+
   render() {
     const {group, project, organization} = this.props;
     const orgFeatures = new Set(organization.features);
@@ -320,13 +365,17 @@ const GroupDetailsActions = createReactClass({
           </div>
         )}
         <div className="btn-group">
-          <div
-            className={subscribedClassName}
-            title={t('Subscribe')}
-            onClick={this.onToggleSubscribe}
-          >
-            <span className="icon-signal" />
-          </div>
+          <Tooltip title={t('Subscribe to workflow notifications for this issue')}>
+            <div
+              className={subscribedClassName}
+              title={t('Subscribe')}
+              onClick={this.onToggleSubscribe}
+            >
+              <IconWrapperSpan>
+                <IconBell size="xs" />
+              </IconWrapperSpan>
+            </div>
+          </Tooltip>
         </div>
         {orgFeatures.has('discover-basic') && (
           <div className="btn-group">
@@ -347,3 +396,10 @@ const GroupDetailsActions = createReactClass({
 export {GroupDetailsActions};
 
 export default withApi(withOrganization(GroupDetailsActions));
+
+// used to match the styles of .btn.icon
+const IconWrapperSpan = styled('span')`
+  position: relative;
+  top: 2px;
+  margin-right: -1px;
+`;
