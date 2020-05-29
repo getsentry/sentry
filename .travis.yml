@@ -18,11 +18,6 @@ addons:
   apt:
     update: true
     packages:
-      # Xenial's libssl-dev provides an openssl 1.0 SO.
-      # Until we can upgrade the linux distribution, we're stuck here.
-      # Volta also ships binaries linked against openssl 1.1, but then we'd have to build it ourselves.
-      # There's also volta-cli/volta/pull/754 which builds volta with rustls to avoid this.
-      - libssl-dev
       - libxmlsec1-dev
       - libmaxminddb-dev
   chrome: stable
