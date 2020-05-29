@@ -21,7 +21,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
-import {ProcessedSpanType, RawSpanType, ParsedTraceType} from './types';
+import {ProcessedSpanType, RawSpanType, ParsedTraceType, rawSpanKeys} from './types';
 import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
 
 type TransactionResult = {
@@ -313,6 +313,10 @@ class SpanDetail extends React.Component<Props, State> {
       return null;
     }
 
+    const unknownKeys = Object.keys(span).filter(key => {
+      return !rawSpanKeys.has(key as any);
+    });
+
     return (
       <SpanDetailContainer
         data-component="span-detail"
@@ -334,6 +338,7 @@ class SpanDetail extends React.Component<Props, State> {
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               <Row title="Description">{span?.description ?? ''}</Row>
+              <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
                 {getDynamicText({
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
@@ -367,6 +372,11 @@ class SpanDetail extends React.Component<Props, State> {
                   {JSON.stringify(value, null, 4) || ''}
                 </Row>
               ))}
+              {unknownKeys.map(key => (
+                <Row title={key} key={key}>
+                  {JSON.stringify(span[key], null, 4) || ''}
+                </Row>
+              ))}
             </tbody>
           </table>
         </SpanDetails>
@@ -382,7 +392,7 @@ const StyledButton = styled(Button)`
 `;
 
 const SpanDetailContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.gray1};
+  border-bottom: 1px solid ${p => p.theme.gray400};
   cursor: auto;
 `;
 

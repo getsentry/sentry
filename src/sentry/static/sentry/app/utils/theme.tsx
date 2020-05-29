@@ -3,12 +3,65 @@ import color from 'color';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
-  // Colors
+  white: '#FFFFFF',
+
+  gray100: '#FAF9FB',
+  gray200: '#F2F0F5',
+  gray300: '#E7E1EC',
+  gray400: '#C6BECF',
+  gray500: '#9585A3',
+  gray600: '#645574',
+  gray700: '#4A3E56',
+  gray800: '#302839',
+
+  yellow100: '#FFFDF5',
+  yellow200: '#FFF8C4',
+  yellow300: '#FFF492',
+  yellow400: '#FFC227',
+  yellow500: '#E2A301',
+
+  purple100: '#FAF5FF',
+  purple200: '#E7D3FF',
+  purple300: '#B9A2FD',
+  purple400: '#6C5FC7',
+  purple500: '#3E2C73',
+
+  blue100: '#F5F9FF',
+  blue200: '#AFC7EE',
+  blue300: '#7199DD',
+  blue400: '#3D74DB',
+  blue500: '#194591',
+
+  orange100: '#FCF8F7',
+  orange200: '#F9C7B9',
+  orange300: '#F69C7D',
+  orange400: '#FF7738',
+  orange500: '#BA4A23',
+
+  red100: '#FFF5F7',
+  red200: '#F4B1BB',
+  red300: '#EA7282',
+  red400: '#FA4747',
+  red500: '#AC1025',
+
+  green100: '#F5FFFB',
+  green200: '#C0F3DD',
+  green300: '#8FE7BF',
+  green400: '#4DC771',
+  green500: '#1C8952',
+
+  pink100: '#FFF5F9',
+  pink200: '#FFCEE4',
+  pink300: '#FF99BC',
+  pink400: '#E1567C',
+  pink500: '#902D4C',
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Old Colors
   offWhite: '#FAF9FB',
   offWhiteLight: '#F2F0F5',
   offWhite2: '#E7E1EC',
 
-  white: '#FFFFFF',
   whiteDark: '#fbfbfc',
   foreground: '#493E54',
 
@@ -65,6 +118,7 @@ const colors = {
   borderDark: '#D1CAD8',
   borderRadius: '4px',
   borderRadiusBottom: '0 0 4px 4px',
+  borderRadiusTop: '4px 4px 0 0',
   headerSelectorRowHeight: 44,
   headerSelectorLabelHeight: 28,
 
@@ -85,25 +139,25 @@ const warning = {
 
 const alert = {
   muted: {
-    backgroundLight: colors.offWhite,
-    background: colors.gray1,
+    backgroundLight: colors.gray100,
+    background: colors.gray400,
     iconColor: 'inherit',
-    border: colors.gray6,
+    border: colors.gray400,
   },
   info: {
-    backgroundLight: colors.blueLightest,
-    border: colors.blueLight,
-    iconColor: colors.blue,
-    background: colors.blue,
+    backgroundLight: colors.blue100,
+    border: colors.blue300,
+    iconColor: colors.blue400,
+    background: colors.blue400,
   },
   warning,
   //alias warn to warning
   warn: warning,
   success: {
-    backgroundLight: colors.greenLightest,
-    border: colors.green,
-    iconColor: colors.greenDark,
-    background: colors.green,
+    backgroundLight: colors.green100,
+    border: colors.green400,
+    iconColor: colors.green500,
+    background: colors.green400,
   },
   error: {
     backgroundLight: colors.redLightest,
@@ -124,16 +178,16 @@ const badge = {
     indicatorColor: colors.purple,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green}, ${colors.greenDark})`,
-    indicatorColor: colors.green,
+    background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
+    indicatorColor: colors.green400,
   },
 };
 
 const aliases = {
-  textColor: colors.gray5,
-  success: colors.green,
+  textColor: colors.gray800,
+  success: colors.green400,
   error: colors.red,
-  disabled: colors.gray1,
+  disabled: colors.gray400,
 } as const;
 
 const button = {
@@ -165,10 +219,10 @@ const button = {
     color: colors.white,
     colorActive: colors.white,
     background: '#3fa372',
-    backgroundActive: colors.green,
+    backgroundActive: colors.green400,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green)
+    focusShadow: color(colors.green400)
       .alpha(0.5)
       .string(),
   },
@@ -184,8 +238,8 @@ const button = {
       .string(),
   },
   link: {
-    color: colors.blue,
-    colorActive: colors.blue,
+    color: colors.blue400,
+    colorActive: colors.blue400,
     background: 'transparent',
     border: false,
     borderActive: false,
@@ -320,7 +374,7 @@ const theme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
-    previousPeriod: colors.gray1,
+    previousPeriod: colors.gray400,
     symbolSize: 6,
   },
 

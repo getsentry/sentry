@@ -63,7 +63,6 @@ class EventDataDeletionTask(BaseDeletionTask):
 class GroupDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
-        from sentry.incidents.models import IncidentGroup
 
         relations = []
 
@@ -87,7 +86,6 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupSubscription,
             models.UserReport,
             models.EventAttachment,
-            IncidentGroup,
         )
 
         relations.extend([ModelRelation(m, {"group_id": instance.id}) for m in model_list])

@@ -66,8 +66,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
         self.login_as(self.user)
         valid_alert_rule = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "triggers": [
@@ -108,8 +107,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
         self.login_as(self.user)
         rule_one_trigger_no_label = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -137,8 +135,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
         self.login_as(self.user)
         rule_one_trigger_only_critical = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -170,8 +167,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.login_as(self.user)
 
         rule_no_triggers = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -191,8 +187,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.login_as(self.user)
 
         rule_one_trigger_only_warning = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -223,8 +218,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.login_as(self.user)
 
         rule_one_trigger_only_critical_no_action = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -261,7 +255,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 name="an alert",
                 thresholdType=1,
                 query="hi",
-                aggregation=0,
+                aggregate="count()",
                 timeWindow=10,
                 alertThreshold=1000,
                 resolveThreshold=100,

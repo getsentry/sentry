@@ -1259,6 +1259,42 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[1]["transaction"] == event2.transaction
         assert data[1]["rpm"] == 0.5
 
+    def test_epm_function(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/1"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        event1 = self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction")
+        data["transaction"] = "/aggregates/2"
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
+        event2 = self.store_event(data, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["transaction", "epm()"],
+                    "query": "event.type:transaction",
+                    "orderby": ["transaction"],
+                    "statsPeriod": "2m",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert data[0]["transaction"] == event1.transaction
+        assert data[0]["epm"] == 0.5
+        assert data[1]["transaction"] == event2.transaction
+        assert data[1]["epm"] == 0.5
+
     def test_nonexistent_fields(self):
         self.login_as(user=self.user)
 
@@ -2018,6 +2054,23 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert data[0]["max_transaction_duration"] == 5000
             assert data[0]["avg_transaction_duration"] == 5000
             assert data[0]["sum_transaction_duration"] == 10000
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "apdex(400)"],
+                    "query": "event.type:transaction apdex(400):0",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["apdex_400"] == 0
 
     def test_functions_in_orderby(self):
         self.login_as(user=self.user)

@@ -13,7 +13,7 @@ from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models import AuthProvider, Organization, OrganizationStatus, OrganizationMember
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -140,6 +140,13 @@ class AuthLoginView(BaseView):
             # can_register should only allow a single registration
             request.session.pop("can_register", None)
             request.session.pop("invite_email", None)
+
+            # In single org mode, associate the user to the orgnaization
+            if settings.SENTRY_SINGLE_ORGANIZATION:
+                organization = Organization.get_default()
+                OrganizationMember.objects.create(
+                    organization=organization, role=organization.default_role, user=user
+                )
 
             # Attempt to directly accept any pending invites
             invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)

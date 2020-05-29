@@ -136,7 +136,7 @@ const ButtonTitle = styled('span')`
 `;
 
 const SearchTitle = styled('strong')`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   padding: 0;
   background: inherit;
 
@@ -146,26 +146,26 @@ const SearchTitle = styled('strong')`
 `;
 
 const SearchQuery = styled('code')`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   padding: 0;
   background: inherit;
 `;
 
 const TooltipSearchQuery = styled('span')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-weight: normal;
   font-family: ${p => p.theme.text.familyMono};
 `;
 
 const DeleteButton = styled(Button)`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   background: transparent;
   flex-shrink: 0;
   padding: ${space(1)} ${space(1.5)} ${space(1)} 0;
 
   &:hover {
     background: transparent;
-    color: ${p => p.theme.blueLight};
+    color: ${p => p.theme.blue300};
   }
 `;
 
@@ -178,7 +178,7 @@ const MenuItem = styled('li')`
   padding: 0;
 
   & :hover {
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
   }
 `;
 

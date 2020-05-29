@@ -319,6 +319,7 @@ class DebugMetaInterface extends React.PureComponent {
 
   filterImage(image) {
     const {showUnused, filter} = this.state;
+
     if (!filter || filter.length < MIN_FILTER_LEN) {
       if (showUnused) {
         return true;
@@ -591,11 +592,11 @@ const CodeFile = styled('span')`
 `;
 
 const DebugFile = styled('span')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const ImageSubtext = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const ImageProp = styled('span')`

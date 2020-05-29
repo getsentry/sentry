@@ -328,7 +328,7 @@ const Grid = styled('div')<{visibleRows: number}>`
 ` as any;
 
 const Cell = styled('div')<{isOddRow: boolean; align: 'right' | 'left'}>`
-  ${p => !p.isOddRow && `background-color: ${p.theme.whiteDark};`};
+  ${p => !p.isOddRow && `background-color: ${p.theme.gray100};`};
   ${p => `text-align: ${p.align};`};
   overflow: scroll;
   font-size: 14px;
@@ -348,8 +348,8 @@ const Cell = styled('div')<{isOddRow: boolean; align: 'right' | 'left'}>`
 ` as any;
 
 const TableHeader = styled(Cell)`
-  background: ${p => p.theme.offWhite};
-  color: ${p => p.theme.gray3};
+  background: ${p => p.theme.gray100};
+  color: ${p => p.theme.gray600};
   border-top: none;
   border-bottom: 1px solid ${p => p.theme.borderDark};
   &:first-of-type {

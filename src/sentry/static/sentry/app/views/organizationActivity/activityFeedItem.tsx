@@ -70,7 +70,11 @@ class ActivityItem extends React.Component<Props, State> {
     ) : null;
 
     const versionLink = data.version ? (
-      <VersionHoverCard orgId={orgId} projectId={project.slug} version={data.version}>
+      <VersionHoverCard
+        orgSlug={orgId}
+        projectSlug={project.slug}
+        releaseVersion={data.version}
+      >
         <Version version={data.version} projectId={project.id} />
       </VersionHoverCard>
     ) : null;
@@ -366,7 +370,7 @@ const ActivityAuthor = styled('span')`
 `;
 
 const Meta = styled('div')`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 const Project = styled('span')`
@@ -374,7 +378,7 @@ const Project = styled('span')`
 `;
 
 const Bubble = styled('div')<{clipped: boolean}>`
-  background: ${p => p.theme.whiteDark};
+  background: ${p => p.theme.gray100};
   margin: ${space(0.5)} 0;
   padding: ${space(1)} ${space(2)};
   border: 1px solid ${p => p.theme.borderLight};
@@ -417,6 +421,6 @@ const Bubble = styled('div')<{clipped: boolean}>`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   padding-left: ${space(1)};
 `;

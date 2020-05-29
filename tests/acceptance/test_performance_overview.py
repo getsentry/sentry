@@ -6,6 +6,8 @@ import time
 
 from mock import patch
 
+from django.db.models import F
+from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -48,13 +50,13 @@ class PerformanceOverviewTest(AcceptanceTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    def test_empty_state(self, mock_now):
+    def test_onboarding(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
-            self.browser.snapshot("performance overview - empty")
+            self.browser.snapshot("performance overview - onboarding")
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
@@ -62,6 +64,7 @@ class PerformanceOverviewTest(AcceptanceTestCase):
 
         event = make_event(load_data("transaction"))
         self.store_event(data=event, project_id=self.project.id)
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)

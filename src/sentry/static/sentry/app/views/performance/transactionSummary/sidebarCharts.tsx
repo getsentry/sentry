@@ -92,7 +92,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         gridIndex: 0,
         axisLabel: {
           formatter: (value: number) => formatFloat(value, 2),
-          color: theme.gray1,
+          color: theme.gray400,
         },
         ...axisLineConfig,
       },
@@ -101,7 +101,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         gridIndex: 1,
         axisLabel: {
           formatter: formatAbbreviatedNumber,
-          color: theme.gray1,
+          color: theme.gray400,
         },
         ...axisLineConfig,
       },
@@ -110,7 +110,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         gridIndex: 2,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 2),
-          color: theme.gray1,
+          color: theme.gray400,
         },
         ...axisLineConfig,
       },
@@ -133,6 +133,9 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         }
         return value;
       },
+      nameFormatter(value) {
+        return value === 'epm()' ? 'tpm()' : value;
+      },
     },
   };
 
@@ -152,8 +155,8 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
       </ChartTitle>
 
       <ChartTitle top="190px" key="throughput">
-        {t('Throughput')}
-        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.rpm} size="sm" />
+        {t('TPM')}
+        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.tpm} size="sm" />
       </ChartTitle>
 
       <ChartTitle top="410px" key="error-rate">
@@ -181,13 +184,13 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={['apdex(300)', 'rpm()', 'error_rate()']}
+            yAxis={['apdex(300)', 'epm()', 'error_rate()']}
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {
                 return (
                   <ErrorPanel>
-                    <IconWarning color={theme.gray2} size="lg" />
+                    <IconWarning color={theme.gray500} size="lg" />
                   </ErrorPanel>
                 );
               }

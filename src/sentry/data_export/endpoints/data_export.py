@@ -85,7 +85,7 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     "dataexport.enqueue", tags={"query_type": data["query_type"]}, sample_rate=1.0
                 )
                 assemble_download.delay(
-                    data_export_id=data_export.id, limit=limit, environment_id=environment_id
+                    data_export_id=data_export.id, export_limit=limit, environment_id=environment_id
                 )
                 status = 201
         except ValidationError as e:

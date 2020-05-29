@@ -12,6 +12,7 @@ import {IconCheckmark, IconClose} from 'app/icons';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import QuestionTooltip from 'app/components/questionTooltip';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import {hasNonContributingComponent} from './utils';
 import GroupingComponent from './groupingComponent';
@@ -49,7 +50,7 @@ class GroupVariant extends React.Component<Props, State> {
       data.push([
         t('Hash'),
         <TextWithQuestionTooltip key="hash">
-          {variant.hash}
+          <Hash>{variant.hash}</Hash>
           <QuestionTooltip
             size="xs"
             position="top"
@@ -167,14 +168,14 @@ class GroupVariant extends React.Component<Props, State> {
     const {showNonContributing} = this.state;
 
     return (
-      <ButtonBar merged active={showNonContributing ? 'all' : 'relevant'}>
+      <ContributingToggle merged active={showNonContributing ? 'all' : 'relevant'}>
         <Button barId="relevant" size="xsmall" onClick={this.handleHideNonContributing}>
           {t('Contributing values')}
         </Button>
         <Button barId="all" size="xsmall" onClick={this.handleShowNonContributing}>
           {t('All values')}
         </Button>
-      </ButtonBar>
+      </ContributingToggle>
     );
   }
 
@@ -203,6 +204,9 @@ const Header = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(2)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+  }
 `;
 
 const VariantTitle = styled('h5')`
@@ -214,12 +218,19 @@ const VariantTitle = styled('h5')`
 
 const ContributionIcon = styled(({isContributing, ...p}) =>
   isContributing ? (
-    <IconCheckmark size="sm" isCircled color={theme.green} {...p} />
+    <IconCheckmark size="sm" isCircled color={theme.green400} {...p} />
   ) : (
     <IconClose size="sm" isCircled color={theme.red} {...p} />
   )
 )`
   margin-right: ${space(1)};
+`;
+
+const ContributingToggle = styled(ButtonBar)`
+  justify-content: flex-end;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: ${space(0.5)};
+  }
 `;
 
 const GroupingTree = styled('div')`
@@ -231,6 +242,13 @@ const TextWithQuestionTooltip = styled('div')`
   align-items: center;
   grid-template-columns: max-content min-content;
   grid-gap: ${space(0.5)};
+`;
+
+const Hash = styled('span')`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    ${overflowEllipsis};
+    width: 210px;
+  }
 `;
 
 export default GroupVariant;

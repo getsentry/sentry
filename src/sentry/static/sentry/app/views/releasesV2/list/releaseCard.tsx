@@ -28,9 +28,17 @@ type Props = {
   location: Location;
   selection: GlobalSelection;
   reloading: boolean;
+  showHealthPlaceholders: boolean;
 };
 
-const ReleaseCard = ({release, orgSlug, location, selection, reloading}: Props) => {
+const ReleaseCard = ({
+  release,
+  orgSlug,
+  location,
+  reloading,
+  selection,
+  showHealthPlaceholders,
+}: Props) => {
   const {version, commitCount, lastDeploy, authors, dateCreated} = release;
 
   return (
@@ -112,6 +120,7 @@ const ReleaseCard = ({release, orgSlug, location, selection, reloading}: Props) 
         release={release}
         orgSlug={orgSlug}
         location={location}
+        showPlaceholders={showHealthPlaceholders}
         selection={selection}
       />
     </StyledPanel>
@@ -188,7 +197,7 @@ const NewIssuesColumn = styled(RightAlignedColumn)`
 
 const ColumnTitle = styled('div')`
   text-transform: uppercase;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   margin-bottom: ${space(0.75)};

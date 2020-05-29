@@ -50,7 +50,7 @@ const EmailValue = styled('div')<{status: InviteStatus[string]}>`
   }
 
   .Select-value ${InlineSvg} {
-    color: ${p => (p.status && p.status.sent ? p.theme.green : 'inherit')};
+    color: ${p => (p.status && p.status.sent ? p.theme.green400 : 'inherit')};
   }
 `;
 

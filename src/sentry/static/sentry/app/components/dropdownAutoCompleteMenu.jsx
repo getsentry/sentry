@@ -523,7 +523,7 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     padding: ${space(1)};
     font-weight: normal;
-    color: ${p => p.gray2};
+    color: ${p => p.gray500};
   }
 `;
 
@@ -547,7 +547,7 @@ const AutoCompleteItem = styled('div')`
 
   font-size: 0.9em;
   background-color: ${p =>
-    p.index === p.highlightedIndex ? p.theme.offWhite : 'transparent'};
+    p.index === p.highlightedIndex ? p.theme.gray100 : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -557,15 +557,15 @@ const AutoCompleteItem = styled('div')`
   }
 
   &:hover {
-    background-color: ${p => p.theme.offWhite};
+    background-color: ${p => p.theme.gray100};
   }
 `;
 
 const LabelWithBorder = styled('div')`
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
 
   &:first-child {
@@ -597,7 +597,7 @@ const BusyMessage = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   padding: ${space(2)};
   text-align: center;
   text-transform: none;

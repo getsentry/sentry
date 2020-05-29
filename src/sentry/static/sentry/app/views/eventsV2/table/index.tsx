@@ -20,7 +20,7 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   tags: {[key: string]: Tag};
-  setError: (msg: string | undefined) => void;
+  setError: (msg: string, code: number) => void;
   title: string;
 };
 
@@ -81,7 +81,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
-    setError(undefined);
+    setError('', 200);
 
     this.setState({isLoading: true, tableFetchID});
     metric.mark({name: `discover-events-start-${apiPayload.query}`});
@@ -130,7 +130,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
           pageLinks: null,
           tableData: null,
         });
-        setError(message);
+        setError(message, err.status);
       });
   };
 

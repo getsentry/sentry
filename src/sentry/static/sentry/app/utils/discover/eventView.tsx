@@ -23,6 +23,7 @@ import {
   ColumnType,
   isAggregateField,
   getAggregateAlias,
+  generateFieldAsString,
 } from './fields';
 import {getSortField} from './fieldRenderers';
 import {CHART_AXIS_OPTIONS, DisplayModes, DISPLAY_MODE_OPTIONS} from './types';
@@ -83,16 +84,6 @@ function getSortKeyFromField(field: Field, tableMeta?: MetaType): string | null 
 export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
   return !!getSortKeyFromField(field, tableMeta);
 }
-
-const generateFieldAsString = (col: Column): string => {
-  if (col.kind === 'field') {
-    return col.field;
-  }
-
-  const aggregation = col.function[0];
-  const parameters = col.function.slice(1).filter(i => i);
-  return `${aggregation}(${parameters.join(',')})`;
-};
 
 const decodeFields = (location: Location): Array<Field> => {
   const {query} = location;
@@ -458,6 +449,9 @@ class EventView {
     return newQuery;
   }
 
+  // TODO(mark) Refactor this to return the GlobalSelection type instead.
+  // We'll likely also need a function somewhere to convert GlobalSelection
+  // into query parameters, as that is how this method is currently used.
   getGlobalSelection(): {
     start: string | undefined;
     end: string | undefined;
@@ -565,6 +559,14 @@ class EventView {
       display: this.display,
       createdBy: this.createdBy,
     });
+  }
+
+  withSorts(sorts: Sort[]): EventView {
+    const newEventView = this.clone();
+    const fields = newEventView.fields.map(field => field.field);
+    newEventView.sorts = sorts.filter(sort => fields.includes(sort.field));
+
+    return newEventView;
   }
 
   withColumns(columns: Column[]): EventView {

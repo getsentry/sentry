@@ -17,7 +17,7 @@ import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import TextOverflow from 'app/components/textOverflow';
-import ClippedBox from 'app/components/clippedBox';
+import Placeholder from 'app/components/placeholder';
 import Link from 'app/components/links/link';
 
 import HealthStatsChart from './healthStatsChart';
@@ -31,15 +31,23 @@ import HealthStatsSubject, {StatsSubject} from './healthStatsSubject';
 import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
 import AdoptionTooltip from './adoptionTooltip';
 import NotAvailable from './notAvailable';
+import ClippedHealthRows from './clippedHealthRows';
 
 type Props = {
   release: Release;
   orgSlug: string;
   location: Location;
+  showPlaceholders: boolean;
   selection: GlobalSelection;
 };
 
-const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
+const ReleaseHealth = ({
+  release,
+  orgSlug,
+  location,
+  selection,
+  showPlaceholders,
+}: Props) => {
   const activeStatsPeriod = (location.query.healthStatsPeriod || '24h') as StatsPeriod;
   const activeStatsSubject = (location.query.healthStat || 'sessions') as StatsSubject;
 
@@ -61,17 +69,8 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
           <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
           <CrashFreeSessionsColumn>{t('Crash free sessions')}</CrashFreeSessionsColumn>
           <DailyUsersColumn>
-            {release.projects.some(p => p.healthData.hasHealthData) ? (
-              <React.Fragment>
-                <HealthStatsSubject
-                  location={location}
-                  activeSubject={activeStatsSubject}
-                />
-                <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
-              </React.Fragment>
-            ) : (
-              t('Daily active users')
-            )}
+            <HealthStatsSubject location={location} activeSubject={activeStatsSubject} />
+            <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
           </DailyUsersColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
           <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
@@ -79,8 +78,8 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
       </StyledPanelHeader>
 
       <PanelBody>
-        <ClippedBox clipHeight={200}>
-          {sortedProjects.map(project => {
+        <ClippedHealthRows fadeHeight="46px" maxVisibleItems={4}>
+          {sortedProjects.map((project, index) => {
             const {id, slug, healthData, newGroups} = project;
             const {
               hasHealthData,
@@ -93,10 +92,13 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
               totalUsers24h,
               totalSessions,
               totalSessions24h,
-            } = healthData;
+            } = healthData || {};
 
             return (
-              <StyledPanelItem key={`${release.version}-${slug}-health`}>
+              <StyledPanelItem
+                key={`${release.version}-${slug}-health`}
+                isLast={index === sortedProjects.length - 1}
+              >
                 <Layout>
                   <ProjectColumn>
                     <GlobalSelectionLink
@@ -112,15 +114,17 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
                   </ProjectColumn>
 
                   <AdoptionColumn>
-                    {defined(adoption) ? (
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="150px" />
+                    ) : defined(adoption) ? (
                       <AdoptionWrapper>
                         <Tooltip
                           title={
                             <AdoptionTooltip
-                              totalUsers={totalUsers}
-                              totalSessions={totalSessions}
-                              totalUsers24h={totalUsers24h}
-                              totalSessions24h={totalSessions24h}
+                              totalUsers={totalUsers!}
+                              totalSessions={totalSessions!}
+                              totalUsers24h={totalUsers24h!}
+                              totalSessions24h={totalSessions24h!}
                             />
                           }
                         >
@@ -129,7 +133,7 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
                             size={20}
                             thickness={5}
                             radius={0}
-                            palette={Array(10).fill(theme.green)}
+                            palette={Array(10).fill(theme.green400)}
                           />
                         </Tooltip>
                         <TextOverflow>
@@ -143,7 +147,9 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
                   </AdoptionColumn>
 
                   <CrashFreeUsersColumn>
-                    {defined(crashFreeUsers) ? (
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="60px" />
+                    ) : defined(crashFreeUsers) ? (
                       <React.Fragment>
                         <StyledProgressRing
                           progressColor={getCrashFreePercentColor}
@@ -159,7 +165,9 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
                   </CrashFreeUsersColumn>
 
                   <CrashFreeSessionsColumn>
-                    {defined(crashFreeSessions) ? (
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="60px" />
+                    ) : defined(crashFreeSessions) ? (
                       <React.Fragment>
                         <StyledProgressRing
                           progressColor={getCrashFreePercentColor}
@@ -175,7 +183,9 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
                   </CrashFreeSessionsColumn>
 
                   <DailyUsersColumn>
-                    {hasHealthData ? (
+                    {showPlaceholders ? (
+                      <StyledPlaceholder />
+                    ) : hasHealthData && defined(stats) ? (
                       <ChartWrapper>
                         <HealthStatsChart
                           data={stats}
@@ -190,7 +200,13 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
                   </DailyUsersColumn>
 
                   <CrashesColumn>
-                    {hasHealthData ? <Count value={sessionsCrashed} /> : <NotAvailable />}
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="30px" />
+                    ) : hasHealthData && defined(sessionsCrashed) ? (
+                      <Count value={sessionsCrashed} />
+                    ) : (
+                      <NotAvailable />
+                    )}
                   </CrashesColumn>
 
                   <NewIssuesColumn>
@@ -206,7 +222,7 @@ const ReleaseHealth = ({release, orgSlug, location, selection}: Props) => {
               </StyledPanelItem>
             );
           })}
-        </ClippedBox>
+        </ClippedHealthRows>
       </PanelBody>
     </React.Fragment>
   );
@@ -216,13 +232,14 @@ const StyledPanelHeader = styled(PanelHeader)`
   border-top: 1px solid ${p => p.theme.borderDark};
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const StyledPanelItem = styled(PanelItem)`
+const StyledPanelItem = styled(PanelItem)<{isLast: boolean}>`
   padding: ${space(1)} ${space(2)};
   min-height: 46px;
+  border: ${p => (p.isLast ? 'none' : null)};
 `;
 
 const Layout = styled('div')`
@@ -331,6 +348,13 @@ const ChartWrapper = styled('div')`
     background: #c6becf;
     fill: #c6becf;
   }
+`;
+
+const StyledPlaceholder = styled(Placeholder)`
+  height: 20px;
+  display: inline-block;
+  position: relative;
+  top: ${space(0.25)};
 `;
 
 export default ReleaseHealth;

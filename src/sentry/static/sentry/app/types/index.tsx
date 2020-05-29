@@ -64,10 +64,8 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
-export type Actor = {
-  id: string;
+export type Actor = User & {
   type: 'user' | 'team';
-  name: string;
 };
 
 /**
@@ -151,6 +149,7 @@ export type Project = {
   hasUserReports?: boolean;
   hasAccess: boolean;
   firstEvent: 'string' | null;
+  firstTransactionEvent: boolean;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
@@ -343,9 +342,10 @@ type UserEnrolledAuthenticator = {
   id: EnrolledAuthenticator['authId'];
 };
 
-export type User = AvatarUser & {
+export type User = Omit<AvatarUser, 'options'> & {
   lastLogin: string;
   isSuperuser: boolean;
+  isAuthenticated: boolean;
   emails: {
     is_verified: boolean;
     id: string;
@@ -880,7 +880,17 @@ export type UserReport = {
   email: string;
 };
 
-export type Release = {
+export type Release = BaseRelease &
+  ReleaseData & {
+    projects: ReleaseProject[];
+  };
+
+export type ReleaseWithHealth = BaseRelease &
+  ReleaseData & {
+    projects: Required<ReleaseProject>[];
+  };
+
+type ReleaseData = {
   commitCount: number;
   data: {};
   lastDeploy?: Deploy;
@@ -891,11 +901,10 @@ export type Release = {
   authors: User[];
   owner?: any; // TODO(ts)
   newGroups: number;
-  projects: ReleaseProject[];
   versionInfo: VersionInfo;
-} & BaseRelease;
+};
 
-export type BaseRelease = {
+type BaseRelease = {
   dateReleased: string;
   url: string;
   dateCreated: string;
@@ -911,7 +920,7 @@ export type ReleaseProject = {
   platform: string;
   platforms: string[];
   newGroups: number;
-  healthData: Health;
+  healthData?: Health;
 };
 
 export type ReleaseMeta = {

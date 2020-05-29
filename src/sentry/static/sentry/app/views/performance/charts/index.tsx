@@ -29,9 +29,9 @@ const YAXIS_OPTIONS = [
     tooltip: PERFORMANCE_TERMS.apdex,
   },
   {
-    label: 'Throughput',
-    value: 'rpm()',
-    tooltip: PERFORMANCE_TERMS.rpm,
+    label: 'Transactions per Minute',
+    value: 'epm()',
+    tooltip: PERFORMANCE_TERMS.tpm,
   },
 ];
 
@@ -89,13 +89,9 @@ class Container extends React.Component<Props> {
             if (errored) {
               return (
                 <ErrorPanel>
-                  <IconWarning color={theme.gray2} size="lg" />
+                  <IconWarning color={theme.gray500} size="lg" />
                 </ErrorPanel>
               );
-            }
-
-            if (!results) {
-              return <LoadingPanel data-test-id="events-request-loading" />;
             }
 
             return (
@@ -114,20 +110,24 @@ class Container extends React.Component<Props> {
                     </div>
                   ))}
                 </HeaderContainer>
-                {getDynamicText({
-                  value: (
-                    <Chart
-                      data={results}
-                      loading={loading || reloading}
-                      router={router}
-                      statsPeriod={globalSelection.statsPeriod}
-                      utc={utc === 'true'}
-                      projects={globalSelection.project}
-                      environments={globalSelection.environment}
-                    />
-                  ),
-                  fixed: 'apdex and throughput charts',
-                })}
+                {results ? (
+                  getDynamicText({
+                    value: (
+                      <Chart
+                        data={results}
+                        loading={loading || reloading}
+                        router={router}
+                        statsPeriod={globalSelection.statsPeriod}
+                        utc={utc === 'true'}
+                        projects={globalSelection.project}
+                        environments={globalSelection.environment}
+                      />
+                    ),
+                    fixed: 'apdex and throughput charts',
+                  })
+                ) : (
+                  <LoadingPanel data-test-id="events-request-loading" />
+                )}
               </React.Fragment>
             );
           }}

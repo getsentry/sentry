@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Release} from 'app/types';
+import {ReleaseWithHealth} from 'app/types';
 import Version from 'app/components/version';
 import TimeSince from 'app/components/timeSince';
 import DateTime from 'app/components/dateTime';
@@ -11,7 +11,7 @@ import DateTime from 'app/components/dateTime';
 import {SectionHeading, Wrapper} from './styles';
 
 type Props = {
-  release: Release;
+  release: ReleaseWithHealth;
 };
 
 const ProjectReleaseDetails = ({release}: Props) => {
@@ -59,12 +59,12 @@ const StyledTable = styled('table')`
 
 const StyledTr = styled('tr')`
   &:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.offWhite};
+    background-color: ${p => p.theme.gray100};
   }
 `;
 
 const TagKey = styled('td')`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;
@@ -74,7 +74,7 @@ const TagKey = styled('td')`
 
 const TagValue = styled(TagKey)`
   text-align: right;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     width: 160px;
   }

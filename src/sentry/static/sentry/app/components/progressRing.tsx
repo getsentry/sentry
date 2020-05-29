@@ -57,7 +57,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   justify-content: center;
   height: 100%;
   width: 100%;
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding-top: 1px;
   transition: color 100ms;
@@ -81,8 +81,8 @@ const ProgressRing = ({
   text,
   textCss,
   animateText = false,
-  progressColor = theme.green,
-  backgroundColor = theme.offWhite2,
+  progressColor = theme.green400,
+  backgroundColor = theme.gray300,
   progressEndcaps,
   ...p
 }: Props) => {

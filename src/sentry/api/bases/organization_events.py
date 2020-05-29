@@ -179,8 +179,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 column_map = {
                     "user_count": "count_unique(user)",
                     "event_count": "count()",
-                    "rpm()": "rpm(%d)" % rollup,
-                    "rps()": "rps(%d)" % rollup,
+                    "epm()": "epm(%d)" % rollup,
+                    "eps()": "eps(%d)" % rollup,
                 }
                 query_columns = [column_map.get(column, column) for column in columns]
                 reference_event = self.reference_event(

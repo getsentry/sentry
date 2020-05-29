@@ -239,7 +239,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 400, response.content
 
-    def test_throughput_rpm_hour_rollup(self):
+    def test_throughput_epm_hour_rollup(self):
         project = self.create_project()
         # Each of these denotes how many events to create in each hour
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -266,7 +266,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=6)),
                     "interval": "1h",
-                    "yAxis": "rpm()",
+                    "yAxis": "epm()",
                     "project": project.id,
                 },
             )
@@ -278,7 +278,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
-    def test_throughput_rpm_day_rollup(self):
+    def test_throughput_epm_day_rollup(self):
         project = self.create_project()
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -305,7 +305,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=6)),
                     "interval": "24h",
-                    "yAxis": "rpm()",
+                    "yAxis": "epm()",
                     "project": project.id,
                 },
             )
@@ -315,7 +315,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
-    def test_throughput_rps_minute_rollup(self):
+    def test_throughput_eps_minute_rollup(self):
         project = self.create_project()
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -342,7 +342,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(minutes=6)),
                     "interval": "1m",
-                    "yAxis": "rps()",
+                    "yAxis": "eps()",
                     "project": project.id,
                 },
             )
@@ -354,7 +354,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0] / 60.0
 
-    def test_throughput_rps_no_rollup(self):
+    def test_throughput_eps_no_rollup(self):
         project = self.create_project()
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -381,7 +381,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(minutes=1)),
                     "interval": "1s",
-                    "yAxis": "rps()",
+                    "yAxis": "eps()",
                     "project": project.id,
                 },
             )
@@ -570,7 +570,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
-                    "yAxis": ["user_count", "event_count", "rpm()", "rps()"],
+                    "yAxis": ["user_count", "event_count", "epm()", "eps()"],
                 },
                 format="json",
             )
@@ -958,7 +958,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 0}],
         ]
 
-    def test_top_events_with_rpm(self):
+    def test_top_events_with_epm(self):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
                 self.url,
@@ -966,7 +966,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
-                    "yAxis": "rpm()",
+                    "yAxis": "epm()",
                     "orderby": ["-count()"],
                     "field": ["message", "user.email", "count()"],
                     "topEvents": 5,
@@ -996,7 +996,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
                     "interval": "1h",
-                    "yAxis": ["rpm()", "count()"],
+                    "yAxis": ["epm()", "count()"],
                     "orderby": ["-count()"],
                     "field": ["message", "user.email", "count()"],
                     "topEvents": 5,
@@ -1014,10 +1014,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
             assert results["order"] == index
-            assert results["rpm()"]["order"] == 0
+            assert results["epm()"]["order"] == 0
             assert results["count()"]["order"] == 1
             assert [{"count": self.event_data[index]["count"] / (3600.0 / 60.0)}] in [
-                attrs for time, attrs in results["rpm()"]["data"]
+                attrs for time, attrs in results["epm()"]["data"]
             ]
 
             assert [{"count": self.event_data[index]["count"]}] in [
@@ -1274,9 +1274,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 format="json",
             )
 
-        data = response.data
-
         assert response.status_code == 200, response.content
+        data = response.data
         assert len(data) == 3
 
         results = data[""]
@@ -1297,3 +1296,32 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             [{"count": 1}],
             [{"count": 0}],
         ]
+
+    def test_top_events_with_aggregate_condition(self):
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=1, minutes=59)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["message", "count()"],
+                    "query": "count():>4",
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 3
+
+        for index, event in enumerate(self.events[:3]):
+            message = event.message or event.transaction
+            results = data[message]
+            assert results["order"] == index
+            assert [{"count": self.event_data[index]["count"]}] in [
+                attrs for time, attrs in results["data"]
+            ]

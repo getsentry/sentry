@@ -26,7 +26,7 @@ type Props = {
   location: Location;
   orgId: string;
   release: Release;
-  project: ReleaseProject;
+  project: Required<ReleaseProject>;
   releaseMeta: ReleaseMeta;
 };
 
@@ -181,7 +181,7 @@ const StyledDeployBadge = styled(DeployBadge)`
 
 const ReleaseName = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   margin-bottom: ${space(2)};
   display: flex;
   align-items: center;
@@ -193,11 +193,11 @@ const IconWrapper = styled('span')`
 
   &,
   a {
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
     display: flex;
     &:hover {
       cursor: pointer;
-      color: ${p => p.theme.gray4};
+      color: ${p => p.theme.gray700};
     }
   }
 `;

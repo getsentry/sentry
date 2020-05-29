@@ -126,15 +126,6 @@ class Issues extends React.Component<Props, State> {
     this.setState({issuesType});
   };
 
-  renderFilterLabel(label: string | undefined) {
-    return (
-      <React.Fragment>
-        <LabelText>{t('Filter')}: &nbsp; </LabelText>
-        {label}
-      </React.Fragment>
-    );
-  }
-
   renderEmptyMessage = () => {
     const {selection} = this.props;
     const {issuesType} = this.state;
@@ -179,10 +170,8 @@ class Issues extends React.Component<Props, State> {
         <ControlsWrapper>
           <DropdownControl
             button={({getActorProps}) => (
-              <FilterButton {...getActorProps()} isOpen={false}>
-                {this.renderFilterLabel(
-                  issuesTypes.find(i => i.value === issuesType)?.label
-                )}
+              <FilterButton prefix={t('Filter')} {...getActorProps()} isOpen={false}>
+                {issuesTypes.find(i => i.value === issuesType)?.label}
               </FilterButton>
             )}
           >
@@ -252,11 +241,6 @@ const TableWrapper = styled('div')`
     /* smaller space between table and pagination */
     margin-bottom: -${space(1)};
   }
-`;
-
-const LabelText = styled('em')`
-  font-style: normal;
-  color: ${p => p.theme.gray2};
 `;
 
 export default Issues;

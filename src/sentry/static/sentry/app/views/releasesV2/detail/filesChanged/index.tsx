@@ -89,7 +89,7 @@ class FilesChanged extends AsyncView<Props, State> {
 
 const ContentBox = styled('div')`
   h5 {
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
     font-size: ${p => p.theme.fontSizeMedium};
     margin-bottom: ${space(1.5)};
   }

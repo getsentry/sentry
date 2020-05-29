@@ -52,13 +52,13 @@ const Footer = () => {
 const FooterLink = styled(ExternalLink)`
   &.focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue} 0 2px 0;
+    box-shadow: ${p => p.theme.blue400} 0 2px 0;
   }
 `;
 
 const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-weight: bold;
   margin-left: ${space(1)};
 `;

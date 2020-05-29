@@ -159,8 +159,8 @@ export const IntegrationLink = styled('a')`
   text-decoration: none;
   padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
-  color: ${p => p.theme.gray4};
-  border-bottom: 1px solid ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
+  border-bottom: 1px solid ${p => p.theme.gray700};
   cursor: pointer;
   line-height: 1;
   white-space: nowrap;
@@ -169,13 +169,13 @@ export const IntegrationLink = styled('a')`
 
   &,
   &:hover {
-    border-bottom: 1px solid ${p => p.theme.blue};
+    border-bottom: 1px solid ${p => p.theme.blue400};
   }
 `;
 
 export const OpenCloseIcon = styled(InlineSvg)<{isLinked: boolean}>`
   height: ${space(1.5)};
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   transition: 0.2s transform;
   cursor: pointer;
   box-sizing: content-box;

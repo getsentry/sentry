@@ -8,10 +8,10 @@ import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {defined} from 'app/utils';
-import {fetchReleases} from 'app/actionCreators/releases';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
@@ -63,7 +63,7 @@ const getInputButtonStyles = (p: {
   isActive?: boolean;
   collapseIntoEllipsisMenu?: number;
 }) => `
-  color: ${p.isActive ? theme.blueLight : theme.gray2};
+  color: ${p.isActive ? theme.blue300 : theme.gray500};
   margin-left: ${space(0.5)};
   width: 18px;
 
@@ -74,7 +74,7 @@ const getInputButtonStyles = (p: {
   }
 
   &:hover {
-    color: ${theme.gray3};
+    color: ${theme.gray600};
   }
 
   ${p.collapseIntoEllipsisMenu &&
@@ -85,7 +85,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
-  color: ${theme.gray4};
+  color: ${theme.gray700};
   align-items: center;
   min-width: 190px;
   height: 38px;
@@ -95,12 +95,12 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.gray1}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.gray400}`};
     border-radius: 0;
   }
 
   &:hover {
-    color: ${theme.blueDark};
+    color: ${theme.blue500};
   }
 
   ${p.showBelowMediaQuery &&
@@ -194,6 +194,12 @@ type Props = {
    * Called when the search is blurred
    */
   onBlur?: (value: string) => void;
+
+  /**
+   * Called on key down
+   */
+  onKeyDown?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
+
   /**
    * Called when a recent search is saved
    */
@@ -399,13 +405,10 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Handle keyboard navigation
    */
   onKeyDown = (evt: React.KeyboardEvent<HTMLInputElement>) => {
+    const {onKeyDown} = this.props;
     const {key} = evt;
 
-    // If tab or enter is pressed while the search bar is in a loading state then
-    // we should prevent any the form from submitting from this component
-    if ((key === 'Tab' || key === 'Enter') && this.state.loading) {
-      evt.preventDefault();
-    }
+    callIfFunction(onKeyDown, evt);
 
     if (!this.state.searchGroups.length) {
       return;
@@ -469,10 +472,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     if ((key === 'Tab' || key === 'Enter') && isSelectingDropdownItems) {
       evt.preventDefault();
 
-      if (this.state.loading) {
-        return;
-      }
-
       const {activeSearchItem, searchGroups} = this.state;
       const [groupIndex, childrenIndex] = filterSearchGroupsByIndex(
         searchGroups,
@@ -490,11 +489,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     if (key === 'Enter') {
-      // If we are still loading dropdown, do nothing
-      if (this.state.loading) {
-        return;
-      }
-
       if (!useFormWrapper && !isSelectingDropdownItems) {
         // If enter is pressed, and we are not wrapping input in a `<form>`,
         // and we are not selecting an item from the dropdown, then we should
@@ -615,7 +609,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           ? `"${value.replace('"', '\\"')}"`
           : value;
 
-        return {value: escapedValue, desc: escapedValue};
+        return {value: escapedValue, desc: escapedValue, type: 'tag-value' as ItemType};
       });
     },
     DEFAULT_DEBOUNCE_DURATION,
@@ -705,21 +699,32 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Fetches latest releases from a organization/project. Returns an empty array
    * if an error is encountered.
    */
-  fetchReleases = async (query: string): Promise<any[]> => {
+  fetchReleases = async (releaseVersion: string): Promise<any[]> => {
     const {api, organization} = this.props;
     const {location} = this.context.router;
 
     const project = location && location.query ? location.query.projectId : undefined;
 
+    const url = `/organizations/${organization.slug}/releases/`;
+    const fetchQuery: {[key: string]: string | number} = {
+      per_page: MAX_AUTOCOMPLETE_RELEASES,
+    };
+
+    if (releaseVersion) {
+      fetchQuery.query = releaseVersion;
+    }
+
+    if (project) {
+      fetchQuery.project = project;
+    }
+
     try {
-      return await fetchReleases(
-        api,
-        organization.slug,
-        project,
-        query,
-        MAX_AUTOCOMPLETE_RELEASES
-      );
+      return await api.requestPromise(url, {
+        method: 'GET',
+        query: fetchQuery,
+      });
     } catch (e) {
+      addErrorMessage(t('Unable to fetch releases'));
       Sentry.captureException(e);
     }
 
@@ -973,10 +978,9 @@ class SmartSearchBar extends React.Component<Props, State> {
     let newQuery: string;
 
     // If not postfixed with : (tag value), add trailing space
-    const lastChar = replaceText.charAt(replaceText.length - 1);
-    replaceText += lastChar === ':' || lastChar === '.' ? '' : ' ';
+    replaceText += item.type !== 'tag-value' || cursor < query.length ? '' : ' ';
 
-    const isNewTerm = query.charAt(query.length - 1) === ' ';
+    const isNewTerm = query.charAt(query.length - 1) === ' ' && item.type !== 'tag-value';
 
     if (!terms) {
       newQuery = replaceText;
@@ -1244,7 +1248,7 @@ const Container = styled('div')<{isOpen: boolean}>`
   display: flex;
 
   .show-sidebar & {
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
   }
 `;
 
@@ -1257,7 +1261,7 @@ const StyledForm = styled('form')`
 `;
 
 const StyledInput = styled('input')`
-  color: ${p => p.theme.foreground};
+  color: ${p => p.theme.gray700};
   background: transparent;
   border: 0;
   outline: none;
@@ -1269,7 +1273,7 @@ const StyledInput = styled('input')`
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {
-    color: ${p => p.theme.gray1};
+    color: ${p => p.theme.gray400};
   }
   &:focus {
     border-color: ${p => p.theme.borderDark};
@@ -1329,5 +1333,5 @@ const SearchLabel = styled('label')`
   align-items: center;
   margin: 0;
   padding-left: ${space(1)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;

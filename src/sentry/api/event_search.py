@@ -1112,14 +1112,14 @@ FUNCTIONS = {
         "aggregate": [u"max", "transaction.duration", None],
         "result_type": "duration",
     },
-    "rps": {
-        "name": "rps",
+    "eps": {
+        "name": "eps",
         "args": [IntervalDefault("interval", 1, None)],
         "transform": u"divide(count(), {interval:g})",
         "result_type": "number",
     },
-    "rpm": {
-        "name": "rpm",
+    "epm": {
+        "name": "epm",
         "args": [IntervalDefault("interval", 60, None)],
         "transform": u"divide(count(), divide({interval:g}, 60))",
         "result_type": "number",
@@ -1272,7 +1272,7 @@ def resolve_function(field, match=None, params=None):
     function = FUNCTIONS[match.group("function")]
     columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
 
-    # Some functions can optionally take no parameters (rpm(), rps()). In that case use the
+    # Some functions can optionally take no parameters (epm(), eps()). In that case use the
     # passed in params to create a default argument if necessary.
     used_default = False
     if len(columns) == 0 and len(function["args"]) == 1:

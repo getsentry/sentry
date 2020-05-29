@@ -93,7 +93,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
 }
 
 const LightDuration = styled(Duration)`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-size: 0.9em;
   margin-left: ${space(1)};
 `;

@@ -9,7 +9,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.api.event_search import get_filter
+from sentry.api.event_search import get_filter, resolve_field
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -31,6 +31,7 @@ from sentry.incidents.models import (
     TimeSeriesSnapshot,
 )
 from sentry.models import Integration, Project
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -319,6 +320,7 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
     )
 
     return {
+        "dataset": Dataset(snuba_query.dataset),
         "start": snuba_filter.start,
         "end": snuba_filter.end,
         "conditions": snuba_filter.conditions,
@@ -641,8 +643,6 @@ def update_alert_rule(
             snuba_query = alert_rule.snuba_query
             updated_query_fields.setdefault("dataset", QueryDatasets(snuba_query.dataset))
             updated_query_fields.setdefault("query", snuba_query.query)
-            # XXX: We use the alert rule aggregation here since currently we're
-            # expecting the enum value to be passed.
             updated_query_fields.setdefault("aggregate", snuba_query.aggregate)
             updated_query_fields.setdefault(
                 "time_window", timedelta(seconds=snuba_query.time_window)
@@ -932,19 +932,13 @@ def create_alert_rule_trigger_action(
     """
     target_display = None
     if type == AlertRuleTriggerAction.Type.SLACK:
-        from sentry.integrations.slack.utils import get_channel_id
 
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Slack action must specify channel")
 
-        prefix, channel_id, _ = get_channel_id(
+        channel_id = get_alert_rule_trigger_action_slack_channel_id(
             trigger.alert_rule.organization, integration.id, target_identifier
         )
-        if channel_id is None:
-            raise InvalidTriggerActionError(
-                "Could not find channel %s. Channel may not exist, or Sentry may not "
-                "have been granted permission to access it" % target_identifier
-            )
 
         # Use the channel name for display
         target_display = target_identifier
@@ -984,14 +978,13 @@ def update_alert_rule_trigger_action(
         type = updated_fields.get("type", trigger_action.type)
 
         if type == AlertRuleTriggerAction.Type.SLACK.value:
-            from sentry.integrations.slack.utils import get_channel_id
-
             integration = updated_fields.get("integration", trigger_action.integration)
-            prefix, channel_id, _ = get_channel_id(
+            channel_id = get_alert_rule_trigger_action_slack_channel_id(
                 trigger_action.alert_rule_trigger.alert_rule.organization,
                 integration.id,
                 target_identifier,
             )
+
             # Use the channel name for display
             updated_fields["target_display"] = target_identifier
             updated_fields["target_identifier"] = channel_id
@@ -1000,6 +993,24 @@ def update_alert_rule_trigger_action(
 
     trigger_action.update(**updated_fields)
     return trigger_action
+
+
+def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id, name):
+    from sentry.integrations.slack.utils import get_channel_id
+
+    _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name,)
+    if timed_out:
+        raise InvalidTriggerActionError(
+            "Could not find channel %s. We have timed out trying to look for it. " % name
+        )
+
+    if channel_id is None:
+        raise InvalidTriggerActionError(
+            "Could not find channel %s. Channel may not exist, or Sentry may not "
+            "have been granted permission to access it" % name
+        )
+
+    return channel_id
 
 
 def delete_alert_rule_trigger_action(trigger_action):
@@ -1025,3 +1036,46 @@ def get_available_action_integrations_for_org(organization):
         if registration.integration_provider is not None
     ]
     return Integration.objects.filter(organizations=organization, provider__in=providers)
+
+
+# TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
+# Uses a function from discover to break the aggregate down into parts, and then compare the "field"
+# to a list of accepted fields, or a list of fields we need to translate.
+# This can be dropped once snuba can handle this aliasing.
+SUPPORTED_COLUMNS = [
+    "tags[sentry:user]",
+    "tags[sentry:dist]",
+    "tags[sentry:release]",
+    "transaction.duration",
+]
+TRANSLATABLE_COLUMNS = {
+    "user": "tags[sentry:user]",
+    "dist": "tags[sentry:dist]",
+    "release": "tags[sentry:release]",
+}
+
+
+def get_column_from_aggregate(aggregate):
+    field = resolve_field(aggregate)
+    if field[1] is not None:
+        column = field[1][0][1]
+        return column
+    return None
+
+
+def check_aggregate_column_support(aggregate):
+    column = get_column_from_aggregate(aggregate)
+    return column is None or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS.keys()
+
+
+def translate_aggregate_field(aggregate, reverse=False):
+    column = get_column_from_aggregate(aggregate)
+    if not reverse:
+        if column in TRANSLATABLE_COLUMNS.keys():
+            return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])
+    else:
+        if column is not None:
+            for field, translated_field in TRANSLATABLE_COLUMNS.items():
+                if translated_field == column:
+                    return aggregate.replace(column, field)
+    return aggregate

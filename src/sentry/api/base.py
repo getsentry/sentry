@@ -275,7 +275,7 @@ class Endpoint(APIView):
                 span.set_data("Limit", per_page)
                 cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
-            return ParseError(detail=six.text_type(e))
+            raise ParseError(detail=six.text_type(e))
 
         # map results based on callback
         if on_results:

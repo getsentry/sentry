@@ -20,30 +20,27 @@ import {
   BreadcrumbType,
   BreadcrumbLevelType,
 } from './types';
-import BreadcrumbFilter from './breadcrumbFilter/breadcrumbFilter';
-import convertBreadcrumbType from './convertBreadcrumbType';
-import getBreadcrumbTypeDetails from './getBreadcrumbTypeDetails';
-import {FilterGroupType} from './breadcrumbFilter/types';
-import BreadcrumbsListHeader from './breadcrumbsListHeader';
-import BreadcrumbsListBody from './breadcrumbsListBody';
-import BreadcrumbLevel from './breadcrumbLevel';
-import BreadcrumbIcon from './breadcrumbIcon';
+import transformCrumbs from './transformCrumbs';
+import Filter from './filter/filter';
+import ListHeader from './listHeader';
+import ListBody from './listBody';
+import Level from './level';
+import Icon from './icon';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
-type BreadcrumbWithDetails = Breadcrumb & BreadcrumbDetails & {id: number};
-type BreadcrumbFilterGroups = React.ComponentProps<
-  typeof BreadcrumbFilter
->['filterGroups'];
+type BreadcrumbsWithDetails = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;
+type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
 type State = {
   isCollapsed: boolean;
   searchTerm: string;
-  breadcrumbs: Array<BreadcrumbWithDetails>;
-  filteredByFilter: Array<BreadcrumbWithDetails>;
-  filteredByCustomSearch: Array<BreadcrumbWithDetails>;
-  filteredBreadcrumbs: Array<BreadcrumbWithDetails>;
-  filterGroups: BreadcrumbFilterGroups;
+  breadcrumbs: BreadcrumbsWithDetails;
+  filteredByFilter: BreadcrumbsWithDetails;
+  filteredByCustomSearch: BreadcrumbsWithDetails;
+  filteredBreadcrumbs: BreadcrumbsWithDetails;
+  filterOptions: FilterOptions;
+  listBodyHeight?: React.CSSProperties['maxHeight'];
 };
 
 type Props = {
@@ -55,7 +52,7 @@ type Props = {
   };
 };
 
-class BreadcrumbsContainer extends React.Component<Props, State> {
+class Breadcrumbs extends React.Component<Props, State> {
   state: State = {
     isCollapsed: true,
     searchTerm: '',
@@ -63,12 +60,27 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
     filteredByFilter: [],
     filteredByCustomSearch: [],
     filteredBreadcrumbs: [],
-    filterGroups: [],
+    filterOptions: [[], []],
   };
 
   componentDidMount() {
     this.loadBreadcrumbs();
   }
+
+  componentDidUpdate() {
+    this.loadListBodyHeight();
+  }
+
+  listBodyRef = React.createRef<HTMLDivElement>();
+
+  loadListBodyHeight = () => {
+    if (!this.state.listBodyHeight) {
+      const offsetHeight = this.listBodyRef?.current?.offsetHeight;
+      this.setState({
+        listBodyHeight: offsetHeight ? `${offsetHeight}px` : 'none',
+      });
+    }
+  };
 
   loadBreadcrumbs = () => {
     const {data} = this.props;
@@ -80,56 +92,75 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       breadcrumbs = [...breadcrumbs, virtualCrumb];
     }
 
-    const breadcrumbTypes: BreadcrumbFilterGroups = [];
-    const breadcrumbLevels: BreadcrumbFilterGroups = [];
-
-    const convertedBreadcrumbs = breadcrumbs.map((breadcrumb, index) => {
-      const convertedBreadcrumb = convertBreadcrumbType(breadcrumb);
-      const breadcrumbTypeDetails = getBreadcrumbTypeDetails(convertedBreadcrumb.type);
-
-      if (!breadcrumbTypes.find(b => b.type === convertedBreadcrumb.type)) {
-        breadcrumbTypes.push({
-          groupType: FilterGroupType.TYPE,
-          type: convertedBreadcrumb.type,
-          description: breadcrumbTypeDetails.description,
-          symbol: (
-            <BreadcrumbIcon {...omit(breadcrumbTypeDetails, 'description')} size="xs" />
-          ),
-          isChecked: true,
-        });
-      }
-
-      if (!breadcrumbLevels.find(b => b.type === String(convertedBreadcrumb?.level))) {
-        breadcrumbLevels.push({
-          groupType: FilterGroupType.LEVEL,
-          type: String(convertedBreadcrumb?.level) as BreadcrumbLevelType,
-          symbol: <BreadcrumbLevel level={convertedBreadcrumb.level} />,
-          isChecked: true,
-        });
-      }
-
-      return {
-        id: index,
-        ...convertedBreadcrumb,
-        ...breadcrumbTypeDetails,
-      };
-    });
+    const tranformedCrumbs = transformCrumbs(breadcrumbs);
+    const filterOptions = this.getFilterOptions(tranformedCrumbs);
 
     this.setState({
-      breadcrumbs: convertedBreadcrumbs,
-      filteredBreadcrumbs: convertedBreadcrumbs,
-      filteredByFilter: convertedBreadcrumbs,
-      filteredByCustomSearch: convertedBreadcrumbs,
-      filterGroups: [
-        ...breadcrumbTypes
-          // in case of a breadcrumb of type BreadcrumbType.DEFAULT, moves it to the last position of the array
-          .filter(crumbType => crumbType.type !== BreadcrumbType.DEFAULT)
-          .concat(
-            breadcrumbTypes.filter(crumbType => crumbType.type === BreadcrumbType.DEFAULT)
-          ),
-        ...breadcrumbLevels,
-      ],
+      breadcrumbs: tranformedCrumbs,
+      filteredBreadcrumbs: tranformedCrumbs,
+      filteredByFilter: tranformedCrumbs,
+      filteredByCustomSearch: tranformedCrumbs,
+      filterOptions,
     });
+  };
+
+  getFilterOptions = (breadcrumbs: ReturnType<typeof transformCrumbs>): FilterOptions => {
+    const types = this.getFilterTypes(breadcrumbs);
+    const levels = this.getFilterLevels(types);
+    return [types, levels];
+  };
+
+  getFilterTypes = (breadcrumbs: ReturnType<typeof transformCrumbs>) => {
+    const filterTypes: FilterOptions[0] = [];
+
+    for (const index in breadcrumbs) {
+      const breadcrumb = breadcrumbs[index];
+      const foundFilterType = filterTypes.findIndex(f => f.type === breadcrumb.type);
+
+      if (foundFilterType === -1) {
+        filterTypes.push({
+          type: breadcrumb.type,
+          description: breadcrumb.description,
+          symbol: <Icon {...omit(breadcrumb, 'description')} size="xs" />,
+          levels: breadcrumb?.level ? [breadcrumb.level] : [],
+          isChecked: true,
+          isDisabled: false,
+        });
+        continue;
+      }
+
+      if (
+        breadcrumb?.level &&
+        !filterTypes[foundFilterType].levels.includes(breadcrumb.level)
+      ) {
+        filterTypes[foundFilterType].levels.push(breadcrumb.level);
+      }
+    }
+
+    return filterTypes;
+  };
+
+  getFilterLevels = (types: FilterOptions[0]) => {
+    const filterLevels: FilterOptions[1] = [];
+
+    for (const indexType in types) {
+      for (const indexLevel in types[indexType].levels) {
+        const level = types[indexType].levels[indexLevel];
+
+        if (filterLevels.some(f => f.type === level)) {
+          continue;
+        }
+
+        filterLevels.push({
+          type: level,
+          symbol: <Level level={level} />,
+          isChecked: true,
+          isDisabled: false,
+        });
+      }
+    }
+
+    return filterLevels;
   };
 
   moduleToCategory = (module: any) => {
@@ -180,7 +211,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
   };
 
   getCollapsedCrumbQuantity = (): {
-    filteredCollapsedBreadcrumbs: Array<BreadcrumbWithDetails>;
+    filteredCollapsedBreadcrumbs: BreadcrumbsWithDetails;
     collapsedQuantity: number;
   } => {
     const {isCollapsed, filteredBreadcrumbs} = this.state;
@@ -197,52 +228,6 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       filteredCollapsedBreadcrumbs,
       collapsedQuantity: filteredBreadcrumbs.length - filteredCollapsedBreadcrumbs.length,
     };
-  };
-
-  handleFilter = (filterGroups: BreadcrumbFilterGroups) => () => {
-    //types
-    const breadcrumbFilterGroupTypes = filterGroups
-      .filter(
-        breadcrumbFilterGroup =>
-          breadcrumbFilterGroup.groupType === 'type' && breadcrumbFilterGroup.isChecked
-      )
-      .map(breadcrumbFilterGroup => breadcrumbFilterGroup.type);
-
-    //levels
-    const breadcrumbFilterGroupLevels = filterGroups
-      .filter(
-        breadcrumbFilterGroup =>
-          breadcrumbFilterGroup.groupType === 'level' && breadcrumbFilterGroup.isChecked
-      )
-      .map(breadcrumbFilterGroup => breadcrumbFilterGroup.type);
-
-    const filteredByFilter = this.state.breadcrumbs.filter(({type, level}) => {
-      if (
-        breadcrumbFilterGroupLevels.length > 0 &&
-        breadcrumbFilterGroupTypes.length > 0
-      ) {
-        return (
-          breadcrumbFilterGroupTypes.includes(type) ||
-          breadcrumbFilterGroupLevels.includes(String(level) as BreadcrumbLevelType)
-        );
-      }
-
-      if (breadcrumbFilterGroupLevels.length > 0) {
-        return breadcrumbFilterGroupLevels.includes(String(level) as BreadcrumbLevelType);
-      }
-
-      return breadcrumbFilterGroupTypes.includes(type);
-    });
-
-    this.setState(
-      {
-        filteredByFilter,
-        filterGroups,
-      },
-      () => {
-        this.handleFilterBySearchTerm(this.state.searchTerm);
-      }
-    );
   };
 
   handleFilterBySearchTerm = (value: string) => {
@@ -283,14 +268,70 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
   };
 
   handleResetFilter = () => {
+    this.handleClickFilterCheckAll(true);
+  };
+
+  handleClickFilterCheckAll = (checkAll: boolean) => {
+    const {filterOptions} = this.state;
+    const updatedFilterOptions: FilterOptions = [[], []];
+
+    for (const index in filterOptions) {
+      for (const option in filterOptions[index]) {
+        updatedFilterOptions[index][option] = {
+          ...filterOptions[index][option],
+          isChecked: checkAll,
+          isDisabled: false,
+        };
+      }
+    }
+
     this.setState(
       prevState => ({
-        filteredByFilter: prevState.breadcrumbs,
-        filterGroups: prevState.filterGroups.map(filterGroup => ({
-          ...filterGroup,
-          isChecked: true,
-        })),
+        filteredByFilter: checkAll ? prevState.breadcrumbs : [],
+        filterOptions: updatedFilterOptions,
       }),
+      () => {
+        this.handleFilterBySearchTerm(this.state.searchTerm);
+      }
+    );
+  };
+
+  filterCrumbsBy = (
+    type: keyof Pick<BreadcrumbsWithDetails[0], 'level' | 'type'>,
+    breadcrumbs: BreadcrumbsWithDetails,
+    filterOptions: Array<FilterOptions[0][0] | FilterOptions[1][0]>
+  ) =>
+    breadcrumbs.filter(b => {
+      const crumbProperty = b[type];
+      if (!crumbProperty) {
+        return true;
+      }
+      const foundInFilterOptions = filterOptions.find(f => f.type === crumbProperty);
+      if (foundInFilterOptions) {
+        return foundInFilterOptions.isChecked;
+      }
+      return true;
+    });
+
+  handleFilter = (filterOptions: FilterOptions) => {
+    const {breadcrumbs} = this.state;
+
+    const filteredCrumbsByType = this.filterCrumbsBy(
+      'type',
+      breadcrumbs,
+      filterOptions[0]
+    );
+    const filteredCrumbsByLevel = this.filterCrumbsBy(
+      'level',
+      filteredCrumbsByType,
+      filterOptions[1]
+    );
+
+    this.setState(
+      {
+        filterOptions,
+        filteredByFilter: filteredCrumbsByLevel,
+      },
       () => {
         this.handleFilterBySearchTerm(this.state.searchTerm);
       }
@@ -299,7 +340,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
 
   render() {
     const {type, event, orgId} = this.props;
-    const {filterGroups, searchTerm} = this.state;
+    const {filterOptions, searchTerm, listBodyHeight} = this.state;
 
     const {
       collapsedQuantity,
@@ -310,15 +351,17 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
       <EventDataSection
         type={type}
         title={
-          <h3>
-            <GuideAnchor target="breadcrumbs" position="bottom">
-              {t('Breadcrumbs')}
-            </GuideAnchor>
-          </h3>
+          <GuideAnchor target="breadcrumbs" position="bottom">
+            <h3>{t('Breadcrumbs')}</h3>
+          </GuideAnchor>
         }
         actions={
           <Search>
-            <BreadcrumbFilter onFilter={this.handleFilter} filterGroups={filterGroups} />
+            <Filter
+              onCheckAll={this.handleClickFilterCheckAll}
+              onFilter={this.handleFilter}
+              options={filterOptions}
+            />
             <StyledSearchBar
               placeholder={t('Search breadcrumbs\u2026')}
               onChange={this.handleFilterBySearchTerm}
@@ -332,17 +375,19 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
         <Content>
           {filteredCollapsedBreadcrumbs.length > 0 ? (
             <React.Fragment>
-              <BreadcrumbsListHeader />
-              <BreadcrumbsListBody
+              <ListHeader />
+              <ListBody
                 event={event}
                 orgId={orgId}
                 onToggleCollapse={this.handleToggleCollapse}
                 collapsedQuantity={collapsedQuantity}
                 breadcrumbs={filteredCollapsedBreadcrumbs}
+                maxHeight={listBodyHeight}
+                ref={this.listBodyRef}
               />
             </React.Fragment>
           ) : (
-            <EmptyMessage
+            <StyledEmptyMessage
               icon={<IconWarning size="xl" />}
               action={
                 <Button onClick={this.handleResetFilter} priority="primary">
@@ -351,7 +396,7 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
               }
             >
               {t('Sorry, no breadcrumbs match your search query.')}
-            </EmptyMessage>
+            </StyledEmptyMessage>
           )}
         </Content>
       </EventDataSection>
@@ -359,13 +404,17 @@ class BreadcrumbsContainer extends React.Component<Props, State> {
   }
 }
 
-export default BreadcrumbsContainer;
+export default Breadcrumbs;
 
 const Content = styled('div')`
+  box-shadow: ${p => p.theme.dropShadowLightest};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-bottom: ${space(3)};
+`;
+
+const StyledEmptyMessage = styled(EmptyMessage)`
   border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  margin-bottom: ${space(3)};
 `;
 
 const Search = styled('div')`

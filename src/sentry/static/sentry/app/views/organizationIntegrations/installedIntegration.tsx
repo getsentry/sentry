@@ -24,7 +24,7 @@ export type Props = {
   integration: Integration;
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
-  onReinstallIntegration: (integration: Integration) => void;
+  onReAuthIntegration: (integration: Integration) => void;
   trackIntegrationEvent: (
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
   ) => void; //analytics callback
@@ -49,11 +49,8 @@ export default class InstalledIntegration extends React.Component<Props> {
     );
   }
 
-  reinstallIntegration = () => {
-    const activeIntegration = Object.assign({}, this.props.integration, {
-      status: 'active',
-    });
-    this.props.onReinstallIntegration(activeIntegration);
+  handleReAuthIntegration = (integration: Integration) => {
+    this.props.onReAuthIntegration(integration);
   };
 
   handleUninstallClick = () => {
@@ -157,8 +154,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                   <AddIntegrationButton
                     disabled={!hasAccess}
                     provider={provider}
-                    // TODO: actually pass in an onInstall function
-                    onAddIntegration={() => {}}
+                    onAddIntegration={this.handleReAuthIntegration}
                     integrationId={integration.id}
                     priority="primary"
                     size="small"
@@ -228,7 +224,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 }
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const IntegrationFlex = styled('div')`
@@ -243,7 +239,7 @@ const IntegrationItemBox = styled('div')`
 const IntegrationStatus = styled(
   (props: React.HTMLAttributes<HTMLElement> & {status: ObjectStatus}) => {
     const {status, ...p} = props;
-    const color = status === 'active' ? theme.success : theme.gray2;
+    const color = status === 'active' ? theme.success : theme.gray500;
     const titleText =
       status === 'active'
         ? t('This Integration can be disabled by clicking the Uninstall button')
@@ -262,12 +258,12 @@ const IntegrationStatus = styled(
 )`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-weight: light;
   text-transform: capitalize;
   &:before {
     content: '|';
-    color: ${p => p.theme.gray1};
+    color: ${p => p.theme.gray400};
     margin-right: ${space(1)};
     font-weight: normal;
   }

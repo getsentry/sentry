@@ -81,7 +81,7 @@ describe('SmartSearchBar', function() {
     MockApiClient.clearMockResponses();
   });
 
-  it('calls preventDefault when there are no search items and is loading and enter is pressed', async function() {
+  it('does not preventDefault when there are no search items and is loading and enter is pressed', async function() {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
       return new Promise(() => {});
@@ -110,7 +110,7 @@ describe('SmartSearchBar', function() {
     const preventDefault = jest.fn();
     searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
     expect(onSearch).not.toHaveBeenCalled();
-    expect(preventDefault).toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 
   it('calls preventDefault when there are existing search items and is loading and enter is pressed', async function() {
@@ -150,6 +150,7 @@ describe('SmartSearchBar', function() {
     const preventDefault = jest.fn();
     searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
     expect(onSearch).not.toHaveBeenCalled();
+    // Prevent default since we need to select an item
     expect(preventDefault).toHaveBeenCalled();
   });
 
@@ -563,6 +564,30 @@ describe('SmartSearchBar', function() {
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
       searchBar.onAutoComplete('myTag:', {type: 'tag'});
       expect(searchBar.state.query).toEqual('event.type:error myTag:');
+    });
+
+    it('completes values if cursor is not at the end', function() {
+      const props = {
+        query: 'id: event.type:error ',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(3);
+      searchBar.onAutoComplete('12345', {type: 'tag-value'});
+      expect(searchBar.state.query).toEqual('id:12345 event.type:error ');
+    });
+
+    it('completes values if cursor is at the end', function() {
+      const props = {
+        query: 'event.type:error id:',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      searchBar.onAutoComplete('12345', {type: 'tag-value'});
+      expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
     });
   });
 

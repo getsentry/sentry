@@ -72,7 +72,10 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
       .sort((a, b) => a!.toLowerCase().localeCompare(b!.toLowerCase()))
       .join(', ');
 
-    return <small>{`(${t('grouped by')} ${groupedBy || t('nothing')})`}</small>;
+    return (
+      <SummaryGroupedBy>{`(${t('grouped by')} ${groupedBy ||
+        t('nothing')})`}</SummaryGroupedBy>
+    );
   }
 
   renderGroupConfigSelect() {
@@ -150,12 +153,19 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
   }
 }
 
+const SummaryGroupedBy = styled('small')`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+    margin: 0 !important;
+  }
+`;
+
 const ToggleButton = styled(Button)`
   font-weight: 700;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray4};
+    color: ${p => p.theme.gray700};
   }
 `;
 

@@ -1,10 +1,6 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
-import styled from '@emotion/styled';
-import {browserHistory} from 'react-router';
 
-import space from 'app/styles/space';
-import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
@@ -13,9 +9,6 @@ import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/typ
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import {decodeScalar} from 'app/utils/queryString';
-import withProjects from 'app/utils/withProjects';
-import SearchBar from 'app/components/searchBar';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -48,9 +41,9 @@ type Props = {
   location: Location;
   setError: (msg: string | undefined) => void;
   keyTransactions: boolean;
+  summaryConditions: string;
 
   projects: Project[];
-  loadingProjects: boolean;
 };
 
 type State = {
@@ -63,7 +56,7 @@ class Table extends React.Component<Props, State> {
   };
 
   renderBodyCell = (tableMeta: TableData['meta']) => {
-    const {eventView, organization, projects, location} = this.props;
+    const {eventView, organization, projects, location, summaryConditions} = this.props;
 
     return (
       column: TableColumn<keyof TableDataRow>,
@@ -78,13 +71,14 @@ class Table extends React.Component<Props, State> {
 
       if (field === 'transaction') {
         const projectID = getProjectID(dataRow, projects);
+        const summaryView = eventView.clone();
+        summaryView.query = summaryConditions;
 
-        const query = eventView.generateQueryStringObject();
         const target = transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
           transaction: String(dataRow.transaction) || '',
+          query: summaryView.generateQueryStringObject(),
           projectID,
-          query,
         });
 
         rendered = (
@@ -138,37 +132,12 @@ class Table extends React.Component<Props, State> {
     };
   };
 
-  getTransactionSearchQuery(): string {
-    const {location} = this.props;
-
-    return String(decodeScalar(location.query.query) || '').trim();
-  }
-
   handleSummaryClick = () => {
     const {organization} = this.props;
     trackAnalyticsEvent({
       eventKey: 'performance_views.overview.navigate.summary',
       eventName: 'Performance Views: Overview view summary',
       organization_id: parseInt(organization.id, 10),
-    });
-  };
-
-  handleTransactionSearchQuery = (searchQuery: string) => {
-    const {location, organization} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.overview.search',
-      eventName: 'Performance Views: Transaction overview search',
-      organization_id: parseInt(organization.id, 10),
-    });
-
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
-      },
     });
   };
 
@@ -193,45 +162,35 @@ class Table extends React.Component<Props, State> {
       });
 
     const columnSortBy = eventView.getSorts();
-
     return (
-      <DiscoverQuery
-        eventView={eventView}
-        orgSlug={organization.slug}
-        location={location}
-        keyTransactions={keyTransactions}
-      >
-        {({pageLinks, isLoading, tableData}) => (
-          <div>
-            <StyledSearchBar
-              query={this.getTransactionSearchQuery()}
-              placeholder={t('Filter Transactions')}
-              onSearch={this.handleTransactionSearchQuery}
-            />
-            <GridEditable
-              isLoading={isLoading}
-              data={tableData ? tableData.data : []}
-              columnOrder={columnOrder}
-              columnSortBy={columnSortBy}
-              grid={{
-                onResizeColumn: this.handleResizeColumn,
-                renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
-                renderBodyCell: this.renderBodyCell(tableData?.meta) as any,
-              }}
-              location={location}
-            />
-            <Pagination pageLinks={pageLinks} />
-          </div>
-        )}
-      </DiscoverQuery>
+      <div>
+        <DiscoverQuery
+          eventView={eventView}
+          orgSlug={organization.slug}
+          location={location}
+          keyTransactions={keyTransactions}
+        >
+          {({pageLinks, isLoading, tableData}) => (
+            <React.Fragment>
+              <GridEditable
+                isLoading={isLoading}
+                data={tableData ? tableData.data : []}
+                columnOrder={columnOrder}
+                columnSortBy={columnSortBy}
+                grid={{
+                  onResizeColumn: this.handleResizeColumn,
+                  renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
+                  renderBodyCell: this.renderBodyCell(tableData?.meta) as any,
+                }}
+                location={location}
+              />
+              <Pagination pageLinks={pageLinks} />
+            </React.Fragment>
+          )}
+        </DiscoverQuery>
+      </div>
     );
   }
 }
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-
-  margin-bottom: ${space(1)};
-`;
-
-export default withProjects(Table);
+export default Table;

@@ -65,7 +65,7 @@ class UserStats extends React.Component<Props> {
         eventView={eventView}
         orgSlug={organization.slug}
         location={location}
-        extraQuery={{per_page: 1}}
+        limit={1}
       >
         {({tableData, isLoading}) => {
           const hasResults =
@@ -109,13 +109,13 @@ const Container = styled('div')`
 
 const StatTitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   margin: ${space(1)} 0 ${space(1.5)} 0;
 `;
 
 const StatNumber = styled('div')`
   font-size: 32px;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 export default UserStats;

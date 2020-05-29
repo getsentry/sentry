@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {Location, LocationDescriptor} from 'history';
 import * as Sentry from '@sentry/browser';
 
 import {t} from 'app/locale';
@@ -17,7 +17,6 @@ import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
 import {Organization} from 'app/types';
-import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 
@@ -27,6 +26,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   totalValues: null | number;
+  generateUrl: (key: string, value: string) => LocationDescriptor;
 };
 
 type State = {
@@ -85,7 +85,7 @@ class Tags extends React.Component<Props, State> {
     }
   };
 
-  onTagClick = (tag: string) => {
+  handleTagClick = (tag: string) => {
     const {organization} = this.props;
     // metrics
     trackAnalyticsEvent({
@@ -97,15 +97,10 @@ class Tags extends React.Component<Props, State> {
   };
 
   renderTag(tag: Tag) {
-    const {organization, eventView, totalValues} = this.props;
+    const {generateUrl, totalValues} = this.props;
 
     const segments: TagSegment[] = tag.topValues.map(segment => {
-      const url = eventView.getResultsViewUrlTarget(organization.slug);
-      url.query = generateQueryWithTag(url.query, {
-        key: tag.key,
-        value: segment.value,
-      });
-      segment.url = url;
+      segment.url = generateUrl(tag.key, segment.value);
 
       return segment;
     });
@@ -122,7 +117,7 @@ class Tags extends React.Component<Props, State> {
         segments={segments}
         totalValues={Number(maxTotalValues)}
         renderLoading={() => <StyledPlaceholder height="16px" />}
-        onTagClick={this.onTagClick}
+        onTagClick={this.handleTagClick}
         showReleasePackage
       />
     );
@@ -154,7 +149,7 @@ class Tags extends React.Component<Props, State> {
     } else {
       return (
         <StyledError>
-          <StyledIconWarning color={theme.gray2} size="lg" />
+          <StyledIconWarning color={theme.gray500} size="lg" />
           {t('No tags found')}
         </StyledError>
       );
@@ -176,7 +171,7 @@ const StyledSectionHeading = styled(SectionHeading)`
 `;
 
 const StyledError = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   display: flex;
   align-items: center;
 `;

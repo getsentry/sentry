@@ -7,9 +7,9 @@ export const LEARN_MORE = 'Learn More' as const;
 
 export const COLORS = {
   [INSTALLED]: 'success',
-  [NOT_INSTALLED]: 'gray2',
+  [NOT_INSTALLED]: 'gray500',
   [PENDING]: 'yellowOrange',
-  [LEARN_MORE]: 'gray2',
+  [LEARN_MORE]: 'gray500',
 } as const;
 
 /**
@@ -60,6 +60,7 @@ export const POPULARITY_WEIGHT: {
   fullstory: 8,
   datadog: 8,
   msteams: 8,
+  netlify: 8,
   asayer: 8,
   rocketchat: 8,
 } as const;
@@ -68,7 +69,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
   {
     slug: 'fullstory',
     name: 'FullStory',
-    author: 'Sentry',
+    author: 'The Sentry Team',
     docUrl: 'https://www.npmjs.com/package/@sentry/fullstory',
     description:
       'The Sentry-FullStory integration seamlessly integrates the Sentry and FullStory platforms. When you look at a browser error in Sentry, you will see a link to the FullStory session replay at that exact moment in time. When you are watching a FullStory replay and your user experiences an error, you will see a link that will take you to that error in Sentry.',
@@ -144,7 +145,7 @@ export const documentIntegrationList: DocumentIntegration[] = [
   {
     slug: 'asayer',
     name: 'Asayer',
-    author: 'Sentry',
+    author: 'The Sentry Team',
     docUrl: 'https://docs.asayer.io/integrations/sentry',
     description:
       'Asayer is a session replay tool for developers. Replay each user session alongside your front/backend logs and other data spread across your stack so you can immediately find, reproduce and fix bugs faster.',
@@ -181,6 +182,34 @@ export const documentIntegrationList: DocumentIntegration[] = [
       {
         title: 'Documentation',
         url: 'https://rocket.chat/docs/administrator-guides/integrations/sentry/',
+      },
+    ],
+  },
+  {
+    slug: 'netlify',
+    name: 'Netlify Build Plugin',
+    author: 'The Sentry Team',
+    docUrl: 'https://www.npmjs.com/package/@sentry/netlify-build-plugin',
+    description:
+      'The Sentry Netlify build plugin automatically uploads source maps and notifies Sentry of new releases being deployed to your site after it finishes building in Netlify.',
+    features: [
+      {
+        featureGate: 'release-management',
+        description: 'Notify Sentry of new releases being deployed.',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'Documentation',
+        url: 'https://www.npmjs.com/package/@sentry/netlify-build-plugin',
+      },
+      {
+        title: 'View Source',
+        url: 'https://github.com/getsentry/sentry-netlify-build-plugin',
+      },
+      {
+        title: 'Report Issue',
+        url: 'https://github.com/getsentry/sentry-netlify-build-plugin/issues',
       },
     ],
   },

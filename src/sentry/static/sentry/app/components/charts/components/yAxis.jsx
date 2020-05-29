@@ -9,11 +9,11 @@ export default function YAxis(props = {}) {
       show: false,
     },
     axisLabel: {
-      color: theme.gray1,
+      color: theme.gray400,
     },
     splitLine: {
       lineStyle: {
-        color: theme.offWhite,
+        color: theme.gray100,
       },
     },
     ...props,

@@ -111,7 +111,7 @@ const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
     if (p.isFoundByStackScanning) {
       return `1px dashed ${p.theme.red}`;
     } else if (p.isInlineFrame) {
-      return `1px dashed ${p.theme.blue}`;
+      return `1px dashed ${p.theme.blue400}`;
     } else {
       return 'none';
     }
@@ -122,7 +122,7 @@ const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
 const Address = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.foreground};
+  color: ${p => p.theme.gray700};
   letter-spacing: -0.25px;
   width: 100%;
   flex-grow: 0;
