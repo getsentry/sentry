@@ -160,7 +160,7 @@ const GroupCheckbox = styled(Box)`
 
 const StyledCount = styled(Count)`
   font-size: 18px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 export default StreamGroup;

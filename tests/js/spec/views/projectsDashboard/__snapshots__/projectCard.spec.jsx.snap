@@ -606,13 +606,13 @@ exports[`ProjectCard renders 1`] = `
                     src="icon-star-small-filled"
                   >
                     <ForwardRef
-                      className="css-176na0z-InlineSvg-Star ez1a7zv0"
+                      className="css-13jrg9a-InlineSvg-Star ez1a7zv0"
                       isBookmarked={false}
                       onClick={[Function]}
                       src="icon-star-small-filled"
                     >
                       <svg
-                        className="css-176na0z-InlineSvg-Star ez1a7zv0"
+                        className="css-13jrg9a-InlineSvg-Star ez1a7zv0"
                         height="1em"
                         onClick={[Function]}
                         viewBox={Object {}}

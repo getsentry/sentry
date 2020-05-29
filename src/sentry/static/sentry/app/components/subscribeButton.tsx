@@ -43,5 +43,5 @@ const Content = styled('span')`
 const SignalIcon = styled('span')<{isSubscribed?: boolean}>`
   font-size: 1.2em;
   margin-right: 5px;
-  ${p => p.isSubscribed && `color: ${p.theme.blue}`};
+  ${p => p.isSubscribed && `color: ${p.theme.blue400}`};
 `;

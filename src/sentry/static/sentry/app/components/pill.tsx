@@ -82,8 +82,8 @@ const PillValue = styled(PillName)<PillValueProps>`
     switch (p.type) {
       case 'positive':
         return `
-          background: ${p.theme.greenLightest};
-          border: 1px solid ${p.theme.green};
+          background: ${p.theme.green100};
+          border: 1px solid ${p.theme.green400};
           margin: -1px;
         `;
       case 'negative':

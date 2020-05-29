@@ -109,7 +109,7 @@ const GroupExtra = styled('div')`
   grid-gap: ${space(2)};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: 12px;
   position: relative;
   min-width: 500px;
@@ -124,17 +124,17 @@ const StyledTimes = styled(Times)`
 `;
 
 const CommentsLink = styled(Link)`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 const GroupShortId = styled(ShortId)`
   flex-shrink: 0;
   font-size: 12px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const GroupExtraIcon = styled(InlineSvg)`
-  color: ${p => (p.isMentioned ? p.theme.green : null)};
+  color: ${p => (p.isMentioned ? p.theme.green400 : null)};
   font-size: 11px;
   margin-right: 4px;
 `;
@@ -145,7 +145,7 @@ const AnnotationNoMargin = styled(EventAnnotation)`
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 export default withRouter(EventOrGroupExtraDetails);
