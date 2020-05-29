@@ -2,17 +2,13 @@
 
 from __future__ import absolute_import
 
-import six
 import pytest
 
 from sentry.coreapi import (
-    APIError,
     APIUnauthorized,
     Auth,
     ClientApiHelper,
     ClientAuthHelper,
-    decode_data,
-    safely_load_json_string,
 )
 from sentry.interfaces.base import get_interface
 from sentry.testutils import TestCase
@@ -53,32 +49,6 @@ class ProjectIdFromAuthTest(BaseAPITest):
         auth = Auth(public_key="\xc3\xbc")
         with pytest.raises(APIUnauthorized):
             self.helper.project_id_from_auth(auth)
-
-
-def test_safely_load_json_string_valid_payload():
-    data = safely_load_json_string('{"foo": "bar"}')
-    assert data == {"foo": "bar"}
-
-
-def test_safely_load_json_string_invalid_json():
-    with pytest.raises(APIError):
-        safely_load_json_string("{")
-
-
-def test_safely_load_json_string_unexpected_type():
-    with pytest.raises(APIError):
-        safely_load_json_string("1")
-
-
-def test_valid_data():
-    data = decode_data("foo")
-    assert data == u"foo"
-    assert isinstance(data, six.text_type)
-
-
-def test_invalid_data():
-    with pytest.raises(APIError):
-        decode_data("\x99")
 
 
 def test_get_interface_does_not_let_through_disallowed_name():
