@@ -32,8 +32,9 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
+        limit_param = request.GET.get("limit")
         try:
-            limit = int(request.GET.get("limit"))
+            limit = int(limit_param) if limit_param is not None else None
         except ValueError:
             limit = None
 
