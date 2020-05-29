@@ -70,7 +70,11 @@ class ActivityItem extends React.Component<Props, State> {
     ) : null;
 
     const versionLink = data.version ? (
-      <VersionHoverCard orgId={orgId} projectId={project.slug} version={data.version}>
+      <VersionHoverCard
+        orgSlug={orgId}
+        projectSlug={project.slug}
+        releaseVersion={data.version}
+      >
         <Version version={data.version} projectId={project.id} />
       </VersionHoverCard>
     ) : null;

@@ -105,9 +105,9 @@ class SeenInfo extends React.Component {
         {defined(release) ? (
           <dd key={5}>
             <VersionHoverCard
-              orgId={orgSlug}
-              projectId={projectSlug}
-              version={release.version}
+              orgSlug={orgSlug}
+              projectSlug={projectSlug}
+              releaseVersion={release.version}
             >
               <Version version={release.version} truncate projectId={projectId} />
             </VersionHoverCard>
