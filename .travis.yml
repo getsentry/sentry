@@ -71,7 +71,9 @@ install_node: &install_node |-
   sudo tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C /usr/local/bin
   # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
   volta -v
-  # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project
+  # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project.
+  # There might be a more readable `volta install` in the future that would replace this magic.
+  # Tracking: https://github.com/volta-cli/volta/issues/653#issuecomment-628909923
   node -v
   yarn -v
 
