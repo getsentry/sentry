@@ -45,7 +45,7 @@ const defaultStyles = {
   control: (_, state) => ({
     height: '100%',
     fontSize: '15px',
-    color: theme.gray5,
+    color: theme.gray800,
     display: 'flex',
     background: '#fff',
     border: `1px solid ${theme.borderDark}`,
@@ -55,10 +55,10 @@ const defaultStyles = {
     alignItems: 'center',
     minHeight: '36px',
     '&:hover': {
-      borderColor: theme.gray1,
+      borderColor: theme.gray400,
     },
     ...(state.isFocused && {
-      border: `1px solid ${theme.gray1}`,
+      border: `1px solid ${theme.gray400}`,
       boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
     }),
     ...(state.menuIsOpen && {
@@ -69,7 +69,7 @@ const defaultStyles = {
     ...(state.isDisabled && {
       borderColor: theme.borderDark,
       background: theme.gray100,
-      color: theme.gray2,
+      color: theme.gray500,
       cursor: 'not-allowed',
     }),
     ...(!state.isSearchable && {

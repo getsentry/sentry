@@ -144,13 +144,13 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                     >
                       <DocsBadge>
                         <Component
-                          className="css-ygowzu-DocsBadge ekxyuw11"
+                          className="css-zqi2o4-DocsBadge ekxyuw11"
                         >
                           <ResultIcon
-                            className="css-ygowzu-DocsBadge ekxyuw11"
+                            className="css-zqi2o4-DocsBadge ekxyuw11"
                           >
                             <div
-                              className="ekxyuw11 css-1djfny4-ResultIcon-DocsBadge ekxyuw10"
+                              className="ekxyuw11 css-clpxgs-ResultIcon-DocsBadge ekxyuw10"
                             >
                               docs
                             </div>
@@ -303,13 +303,13 @@ exports[`Docs Search Modal can open help search modal and complete a search 1`] 
                     >
                       <FaqsBadge>
                         <Component
-                          className="css-1orbeog-FaqsBadge ekxyuw12"
+                          className="css-1tt1mhp-FaqsBadge ekxyuw12"
                         >
                           <ResultIcon
-                            className="css-1orbeog-FaqsBadge ekxyuw12"
+                            className="css-1tt1mhp-FaqsBadge ekxyuw12"
                           >
                             <div
-                              className="ekxyuw12 css-mwc7vi-ResultIcon-FaqsBadge ekxyuw10"
+                              className="ekxyuw12 css-925f05-ResultIcon-FaqsBadge ekxyuw10"
                             >
                               faqs
                             </div>

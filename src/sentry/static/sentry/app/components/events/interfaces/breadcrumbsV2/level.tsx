@@ -20,7 +20,7 @@ const Level = ({level}: Props) => {
     case BreadcrumbLevelType.INFO:
       return <StyledTag color="blue400">{level}</StyledTag>;
     case BreadcrumbLevelType.WARNING:
-      return <StyledTag color="orange400">>{level}</StyledTag>;
+      return <StyledTag color="orange400">{level}</StyledTag>;
     default:
       return <Tag>{level || t('undefined')}</Tag>;
   }

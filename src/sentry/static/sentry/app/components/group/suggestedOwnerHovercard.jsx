@@ -155,9 +155,9 @@ class SuggestedOwnerHovercard extends React.Component {
 }
 
 const tagColors = {
-  url: theme.greenLight,
+  url: theme.green300,
   path: theme.purpleLight,
-  tag: theme.blueLight,
+  tag: theme.blue300,
 };
 
 const CommitIcon = styled(p => <IconCommit {...p} />)`
@@ -171,7 +171,7 @@ const CommitMessage = styled(({message = '', date, ...props}) => (
     <CommitDate date={date} />
   </div>
 ))`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   font-size: 11px;
   margin-top: ${space(0.25)};
 `;
@@ -180,7 +180,7 @@ const CommitDate = styled(({date, ...props}) => (
   <div {...props}>{moment(date).fromNow()}</div>
 ))`
   margin-top: ${space(0.5)};
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
 `;
 
 const CommitReasonItem = styled('div')`
@@ -219,7 +219,7 @@ const ViewMoreButton = styled(p => (
   </Button>
 ))`
   border: none;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(1)} ${space(0.25)} ${space(0.25)} 0;
