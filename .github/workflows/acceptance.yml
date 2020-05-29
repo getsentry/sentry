@@ -37,7 +37,6 @@ jobs:
         DJANGO_VERSION: ">=1.11,<1.12"
 
         # Node configuration
-        # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
         NODE_OPTIONS: --max-old-space-size=4096
         NODE_ENV: development
 
@@ -119,15 +118,13 @@ jobs:
         # Checkout codebase
         - uses: actions/checkout@v2
 
+        # Install node
+        - uses: volta-cli/action@v1
+
         # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
         - name: Get yarn cache dir
           id: yarn-cache-dir-path
           run: echo "::set-output name=dir::$(yarn cache dir)"
-
-        # Use nvmrc so we don't have yet another place node version is defined
-        - name: Get node version from .nvmrc
-          id: nvmrc
-          run: echo "::set-output name=version::$(cat .nvmrc)"
 
         # yarn cache
         - uses: actions/cache@v1
@@ -137,11 +134,6 @@ jobs:
             key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
             restore-keys: |
               ${{ runner.os }}-yarn-
-
-        # Setup node
-        - uses: actions/setup-node@v1
-          with:
-            node-version: ${{ steps.nvmrc.outputs.version }}
 
         # Use `.python-version` to avoid duplication
         # XXX: can't actually read from .python-version because GitHub Actions

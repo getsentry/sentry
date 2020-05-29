@@ -18,7 +18,7 @@ _DEFAULT_DAEMONS = {
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
-    "storybook": ["./bin/yarn", "storybook"],
+    "storybook": ["yarn", "storybook"],
 }
 
 
