@@ -252,6 +252,7 @@ class SpanTree extends React.Component<PropType> {
           eventView={eventView}
           orgId={orgId}
           organization={organization}
+          event={event}
           spanNumber={spanNumber}
           isLast={false}
           continuingTreeDepths={continuingTreeDepths}
@@ -280,6 +281,7 @@ class SpanTree extends React.Component<PropType> {
             eventView={eventView}
             orgId={orgId}
             organization={organization}
+            event={event}
             spanNumber={spanGroupNumber}
             isLast={isLast}
             continuingTreeDepths={continuingTreeDepths}

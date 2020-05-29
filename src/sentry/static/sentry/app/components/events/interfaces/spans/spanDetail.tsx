@@ -2,7 +2,7 @@ import React from 'react';
 import map from 'lodash/map';
 import styled from '@emotion/styled';
 
-import {Organization} from 'app/types';
+import {Organization, SentryTransactionEvent} from 'app/types';
 import {Client} from 'app/api';
 import {IconWarning} from 'app/icons';
 import {TableDataRow} from 'app/views/eventsV2/table/types';
@@ -35,6 +35,7 @@ type Props = {
   api: Client;
   orgId: string;
   organization: Organization;
+  event: Readonly<SentryTransactionEvent>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
   eventView: EventView;
@@ -119,7 +120,7 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
-    const {span, orgId, trace, eventView} = this.props;
+    const {span, orgId, trace, eventView, organization, event} = this.props;
 
     assert(!isGapSpan(span));
 
