@@ -79,7 +79,7 @@ class Container extends React.Component<Props> {
           showLoading={false}
           query={eventView.getEventsAPIPayload(location).query}
           includePrevious={false}
-          yAxis={axisOptions.map(i => i.value)}
+          yAxis={axisOptions.map(opt => opt.value)}
           keyTransactions={keyTransactions}
         >
           {({loading, reloading, errored, results}) => {

@@ -9,8 +9,8 @@ export const PERFORMANCE_TERMS: Record<string, string> = {
   errorRate: t(
     'Error rate is the percentage of recorded transactions that had a known and unsuccessful status.'
   ),
-  p50: t('p50 indicates the duration that 50% of transactions were faster than.'),
-  p95: t('p95 indicates the duration that 95% of transactions were faster than.'),
+  p50: t('p50 indicates the duration that 50% of transactions are faster than.'),
+  p95: t('p95 indicates the duration that 95% of transactions are faster than.'),
   p99: t('p99 indicates the duration that 99% of transactions were faster than.'),
 };
 
