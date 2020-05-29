@@ -32,6 +32,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             DiscoverSavedQuery.objects.filter(organization=organization)
             .select_related("created_by")
             .prefetch_related("projects")
+            .extra(select={"lower_name": "lower(name)"})
         )
         query = request.query_params.get("query")
         if query:
@@ -48,7 +49,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
 
         sort_by = request.query_params.get("sortBy")
         if sort_by in ("name", "-name"):
-            order_by = sort_by
+            order_by = "-lower_name" if sort_by.startswith("-") else "lower_name"
         elif sort_by in ("dateCreated", "-dateCreated"):
             order_by = "-date_created" if sort_by.startswith("-") else "date_created"
         elif sort_by in ("dateUpdated", "-dateUpdated"):
