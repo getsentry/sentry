@@ -176,6 +176,13 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Invalid date range. Please try a more recent date range."
 
+        # unicode
+        mock_query.side_effect = QueryOutsideRetentionError(u"\xfc")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Invalid date range. Please try a more recent date range."
+
     @patch("sentry.snuba.discover.query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_invalid_search_query(self, emailer, mock_query):
@@ -187,6 +194,13 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         )
 
         mock_query.side_effect = InvalidSearchQuery("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Invalid query. Please fix the query and try again."
+
+        # unicode
+        mock_query.side_effect = InvalidSearchQuery(u"\xfc")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
@@ -208,7 +222,21 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Invalid query. Argument to function is wrong type."
 
+        # unicode
+        mock_query.side_effect = QueryIllegalTypeOfArgument(u"\xfc")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Invalid query. Argument to function is wrong type."
+
         mock_query.side_effect = SnubaError("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Internal error. Please try again."
+
+        # unicode
+        mock_query.side_effect = SnubaError(u"\xfc")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]

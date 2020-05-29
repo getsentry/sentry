@@ -13,7 +13,7 @@ from sentry.utils.sdk import capture_exception
 
 from .base import ExportError, ExportQueryType, SNUBA_MAX_RESULTS
 from .models import ExportedData
-from .utils import convert_to_utf8, snuba_error_handler
+from .utils import convert_to_utf8, handle_snuba_errors
 from .processors.discover import DiscoverProcessor
 from .processors.issues_by_tag import IssuesByTagProcessor
 
@@ -94,6 +94,7 @@ def assemble_download(
         return data_export.email_failure(message="Internal processing failure")
 
 
+@handle_snuba_errors(logger)
 def process_issues_by_tag(data_export, file, export_limit, batch_size, environment_id):
     """
     Convert the tag query to a CSV, writing it to the provided file.
@@ -114,26 +115,26 @@ def process_issues_by_tag(data_export, file, export_limit, batch_size, environme
 
     writer = create_writer(file, processor.header_fields)
     iteration = 0
-    with snuba_error_handler(logger=logger):
-        is_completed = False
-        while not is_completed:
-            offset = batch_size * iteration
-            next_offset = batch_size * (iteration + 1)
-            is_exceeding_limit = export_limit and export_limit < next_offset
-            gtv_list_unicode = processor.get_serialized_data(limit=batch_size, offset=offset)
-            # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
-            # See associated comment in './utils.py'
-            gtv_list = convert_to_utf8(gtv_list_unicode)
-            if is_exceeding_limit:
-                # Since the next offset will pass the export_limit, just write the remainder
-                writer.writerows(gtv_list[: export_limit % batch_size])
-            else:
-                writer.writerows(gtv_list)
-                iteration += 1
-            # If there are no returned results, or we've passed the export_limit, stop iterating
-            is_completed = len(gtv_list) == 0 or is_exceeding_limit
+    is_completed = False
+    while not is_completed:
+        offset = batch_size * iteration
+        next_offset = batch_size * (iteration + 1)
+        is_exceeding_limit = export_limit and export_limit < next_offset
+        gtv_list_unicode = processor.get_serialized_data(limit=batch_size, offset=offset)
+        # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
+        # See associated comment in './utils.py'
+        gtv_list = convert_to_utf8(gtv_list_unicode)
+        if is_exceeding_limit:
+            # Since the next offset will pass the export_limit, just write the remainder
+            writer.writerows(gtv_list[: export_limit % batch_size])
+        else:
+            writer.writerows(gtv_list)
+            iteration += 1
+        # If there are no returned results, or we've passed the export_limit, stop iterating
+        is_completed = len(gtv_list) == 0 or is_exceeding_limit
 
 
+@handle_snuba_errors(logger)
 def process_discover(data_export, file, export_limit, batch_size, environment_id):
     """
     Convert the discovery query to a CSV, writing it to the provided file.
@@ -150,25 +151,24 @@ def process_discover(data_export, file, export_limit, batch_size, environment_id
 
     writer = create_writer(file, processor.header_fields)
     iteration = 0
-    with snuba_error_handler(logger=logger):
-        is_completed = False
-        while not is_completed:
-            offset = batch_size * iteration
-            next_offset = batch_size * (iteration + 1)
-            is_exceeding_limit = export_limit and export_limit < next_offset
-            raw_data_unicode = processor.data_fn(offset=offset, limit=batch_size)["data"]
-            # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
-            # See associated comment in './utils.py'
-            raw_data = convert_to_utf8(raw_data_unicode)
-            raw_data = processor.handle_fields(raw_data)
-            if is_exceeding_limit:
-                # Since the next offset will pass the export_limit, just write the remainder
-                writer.writerows(raw_data[: export_limit % batch_size])
-            else:
-                writer.writerows(raw_data)
-                iteration += 1
-            # If there are no returned results, or we've passed the export_limit, stop iterating
-            is_completed = len(raw_data) == 0 or is_exceeding_limit
+    is_completed = False
+    while not is_completed:
+        offset = batch_size * iteration
+        next_offset = batch_size * (iteration + 1)
+        is_exceeding_limit = export_limit and export_limit < next_offset
+        raw_data_unicode = processor.data_fn(offset=offset, limit=batch_size)["data"]
+        # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
+        # See associated comment in './utils.py'
+        raw_data = convert_to_utf8(raw_data_unicode)
+        raw_data = processor.handle_fields(raw_data)
+        if is_exceeding_limit:
+            # Since the next offset will pass the export_limit, just write the remainder
+            writer.writerows(raw_data[: export_limit % batch_size])
+        else:
+            writer.writerows(raw_data)
+            iteration += 1
+        # If there are no returned results, or we've passed the export_limit, stop iterating
+        is_completed = len(raw_data) == 0 or is_exceeding_limit
 
 
 def create_writer(file, fields):
