@@ -234,7 +234,15 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderSpanErrorMessage() {
-    const {orgId, spanErrors, totalNumberOfErrors, span, trace, eventView} = this.props;
+    const {
+      orgId,
+      spanErrors,
+      totalNumberOfErrors,
+      span,
+      trace,
+      organization,
+      event,
+    } = this.props;
 
     if (spanErrors.length === 0 || totalNumberOfErrors === 0 || isGapSpan(span)) {
       return null;
@@ -249,13 +257,15 @@ class SpanDetail extends React.Component<Props, State> {
       end: trace.traceEndTimestamp,
     });
 
+    const orgFeatures = new Set(organization.features);
+
     const errorsEventView = EventView.fromSavedQuery({
       id: undefined,
       name: `Error events associated with span ${span.span_id}`,
       fields: ['title', 'project', 'issue', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:error trace:${span.trace_id} trace.span:${span.span_id}`,
-      projects: eventView.project,
+      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
       version: 2,
       start,
       end,
