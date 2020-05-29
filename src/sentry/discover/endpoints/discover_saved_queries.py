@@ -55,7 +55,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         elif sort_by in ("dateUpdated", "-dateUpdated"):
             order_by = "-date_updated" if sort_by.startswith("-") else "date_updated"
         else:
-            order_by = "name"
+            order_by = "lower_name"
         queryset = queryset.order_by(order_by)
 
         # Old discover expects all queries and uses this parameter.
