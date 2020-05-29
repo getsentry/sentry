@@ -9,6 +9,7 @@ import {formatVersion} from 'app/utils/formatters';
 import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
 import AlertLink from 'app/components/alertLink';
+import Feature from 'app/components/acl/feature';
 
 import {ReleaseContext} from '..';
 
@@ -39,14 +40,16 @@ class ReleaseArtifacts extends AsyncView<Props> {
 
     return (
       <React.Fragment>
-        <AlertLink
-          to={`/settings/${organization.slug}/projects/${project.slug}/source-maps/`}
-          priority="info"
-        >
-          {tct('Artifacts were moved to [sourceMaps] in Settings.', {
-            sourceMaps: <u>{t('Source Maps')}</u>,
-          })}
-        </AlertLink>
+        <Feature features={['artifacts-in-settings']}>
+          <AlertLink
+            to={`/settings/${organization.slug}/projects/${project.slug}/source-maps/`}
+            priority="info"
+          >
+            {tct('Artifacts were moved to [sourceMaps] in Settings.', {
+              sourceMaps: <u>{t('Source Maps')}</u>,
+            })}
+          </AlertLink>
+        </Feature>
 
         <ReleaseArtifactsV1
           params={params}

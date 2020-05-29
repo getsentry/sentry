@@ -9,6 +9,7 @@ import TimeSince from 'app/components/timeSince';
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
 import Count from 'app/components/count';
+import Feature from 'app/components/acl/feature';
 
 import {SectionHeading, Wrapper} from './styles';
 
@@ -51,15 +52,17 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
             <TagValue>{lastEvent ? <TimeSince date={lastEvent} /> : '-'}</TagValue>
           </StyledTr>
 
-          <StyledTr>
-            <TagKey>{t('Source Maps')}</TagKey>
-            <TagValue>
-              <Link to={`/settings/${orgSlug}/projects/${projectSlug}/source-maps/`}>
-                <Count value={releaseMeta.releaseFileCount} />{' '}
-                {tn('file uploaded', 'files uploaded', releaseMeta.releaseFileCount)}
-              </Link>
-            </TagValue>
-          </StyledTr>
+          <Feature features={['artifacts-in-settings']}>
+            <StyledTr>
+              <TagKey>{t('Source Maps')}</TagKey>
+              <TagValue>
+                <Link to={`/settings/${orgSlug}/projects/${projectSlug}/source-maps/`}>
+                  <Count value={releaseMeta.releaseFileCount} />{' '}
+                  {tn('file uploaded', 'files uploaded', releaseMeta.releaseFileCount)}
+                </Link>
+              </TagValue>
+            </StyledTr>
+          </Feature>
         </tbody>
       </StyledTable>
     </Wrapper>
