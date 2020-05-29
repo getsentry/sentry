@@ -932,19 +932,13 @@ def create_alert_rule_trigger_action(
     """
     target_display = None
     if type == AlertRuleTriggerAction.Type.SLACK:
-        from sentry.integrations.slack.utils import get_channel_id
 
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Slack action must specify channel")
 
-        prefix, channel_id, _ = get_channel_id(
+        channel_id = get_alert_rule_trigger_action_slack_channel_id(
             trigger.alert_rule.organization, integration.id, target_identifier
         )
-        if channel_id is None:
-            raise InvalidTriggerActionError(
-                "Could not find channel %s. Channel may not exist, or Sentry may not "
-                "have been granted permission to access it" % target_identifier
-            )
 
         # Use the channel name for display
         target_display = target_identifier
@@ -984,14 +978,13 @@ def update_alert_rule_trigger_action(
         type = updated_fields.get("type", trigger_action.type)
 
         if type == AlertRuleTriggerAction.Type.SLACK.value:
-            from sentry.integrations.slack.utils import get_channel_id
-
             integration = updated_fields.get("integration", trigger_action.integration)
-            prefix, channel_id, _ = get_channel_id(
+            channel_id = get_alert_rule_trigger_action_slack_channel_id(
                 trigger_action.alert_rule_trigger.alert_rule.organization,
                 integration.id,
                 target_identifier,
             )
+
             # Use the channel name for display
             updated_fields["target_display"] = target_identifier
             updated_fields["target_identifier"] = channel_id
@@ -1000,6 +993,24 @@ def update_alert_rule_trigger_action(
 
     trigger_action.update(**updated_fields)
     return trigger_action
+
+
+def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id, name):
+    from sentry.integrations.slack.utils import get_channel_id
+
+    _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name,)
+    if timed_out:
+        raise InvalidTriggerActionError(
+            "Could not find channel %s. We have timed out trying to look for it. " % name
+        )
+
+    if channel_id is None:
+        raise InvalidTriggerActionError(
+            "Could not find channel %s. Channel may not exist, or Sentry may not "
+            "have been granted permission to access it" % name
+        )
+
+    return channel_id
 
 
 def delete_alert_rule_trigger_action(trigger_action):
