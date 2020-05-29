@@ -2588,3 +2588,18 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
 
             assert len(mock_quantize.mock_calls) == 2
+
+    def test_limit_number_of_fields(self):
+        self.login_as(user=self.user)
+        self.create_project()
+        with self.feature("organizations:discover-basic"):
+            for i in range(1, 40):
+                response = self.client.get(self.url, {"field": ["id"] * i})
+                if i <= 20:
+                    assert response.status_code == 200
+                else:
+                    assert response.status_code == 400
+                    assert (
+                        response.data["detail"]
+                        == "You can view up to 20 fields at a time. Please delete some and try again."
+                    )

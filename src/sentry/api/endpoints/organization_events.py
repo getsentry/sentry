@@ -132,6 +132,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             )
             if not has_global_views and len(params.get("project_id", [])) > 1:
                 raise ParseError(detail="You cannot view events from multiple projects.")
+            if len(request.GET.getlist("field")) > 20:
+                raise ParseError(
+                    detail="You can view up to 20 fields at a time. Please delete some and try again."
+                )
 
         def data_fn(offset, limit):
             return discover.query(
