@@ -72,7 +72,7 @@ class Summary extends React.Component<Props, State> {
   }
 }
 
-export {Summary};
+export default Summary;
 
 const StyledPre = styled('pre')`
   padding: 0;

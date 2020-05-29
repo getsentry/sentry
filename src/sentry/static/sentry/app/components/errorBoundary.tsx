@@ -106,7 +106,7 @@ Anyway, we apologize for the inconvenience.`
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   padding: ${p => p.theme.grid * 3}px;
   max-width: 1000px;
   margin: auto;

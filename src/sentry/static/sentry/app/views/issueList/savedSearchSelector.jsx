@@ -178,7 +178,7 @@ const MenuItem = styled('li')`
   padding: 0;
 
   & :hover {
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
   }
 `;
 

@@ -55,7 +55,14 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       [
         'debugFiles',
         `/projects/${orgId}/${projectId}/files/dsyms/`,
-        {query: {query: location.query.query}},
+        {
+          query: {
+            query: location.query.query,
+            file_formats: organization.features.includes('android-mappings')
+              ? ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle']
+              : undefined,
+          },
+        },
       ],
     ];
 
@@ -205,7 +212,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         <StyledPanelTable
           headers={[
             t('Debug ID'),
-            t('Name'),
+            t('Information'),
             <TextRight key="actions">{t('Actions')}</TextRight>,
           ]}
           emptyMessage={this.getEmptyMessage()}

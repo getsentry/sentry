@@ -100,7 +100,7 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  background: ${p => p.theme.whiteDark};
+  background: ${p => p.theme.gray100};
   opacity: ${({disabled}: {disabled: boolean}) => (disabled ? 0.3 : 1)};
   border-radius: 3px;
   flex: 1;
@@ -116,7 +116,7 @@ const SubscriptionGridItemWrapper = styled('div')`
 const SubscriptionDescription = styled('div')`
   font-size: 12px;
   line-height: 1;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   white-space: nowrap;
 `;
 

@@ -208,7 +208,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             showChevron={false}
             disabled={disabled}
           >
-            <StyledIconBookmark size="xs" color={theme.gray2} />
+            <StyledIconBookmark size="xs" color={theme.gray500} />
             {t('Save as...')}
           </ButtonSaveAs>
         )}

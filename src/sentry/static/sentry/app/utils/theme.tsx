@@ -3,12 +3,65 @@ import color from 'color';
 import CHART_PALETTE from 'app/constants/chartPalette';
 
 const colors = {
-  // Colors
+  white: '#FFFFFF',
+
+  gray100: '#FAF9FB',
+  gray200: '#F2F0F5',
+  gray300: '#E7E1EC',
+  gray400: '#C6BECF',
+  gray500: '#9585A3',
+  gray600: '#645574',
+  gray700: '#4A3E56',
+  gray800: '#302839',
+
+  yellow100: '#FFFDF5',
+  yellow200: '#FFF8C4',
+  yellow300: '#FFF492',
+  yellow400: '#FFC227',
+  yellow500: '#E2A301',
+
+  purple100: '#FAF5FF',
+  purple200: '#E7D3FF',
+  purple300: '#B9A2FD',
+  purple400: '#6C5FC7',
+  purple500: '#3E2C73',
+
+  blue100: '#F5F9FF',
+  blue200: '#AFC7EE',
+  blue300: '#7199DD',
+  blue400: '#3D74DB',
+  blue500: '#194591',
+
+  orange100: '#FCF8F7',
+  orange200: '#F9C7B9',
+  orange300: '#F69C7D',
+  orange400: '#FF7738',
+  orange500: '#BA4A23',
+
+  red100: '#FFF5F7',
+  red200: '#F4B1BB',
+  red300: '#EA7282',
+  red400: '#FA4747',
+  red500: '#AC1025',
+
+  green100: '#F5FFFB',
+  green200: '#C0F3DD',
+  green300: '#8FE7BF',
+  green400: '#4DC771',
+  green500: '#1C8952',
+
+  pink100: '#FFF5F9',
+  pink200: '#FFCEE4',
+  pink300: '#FF99BC',
+  pink400: '#E1567C',
+  pink500: '#902D4C',
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Old Colors
   offWhite: '#FAF9FB',
   offWhiteLight: '#F2F0F5',
   offWhite2: '#E7E1EC',
 
-  white: '#FFFFFF',
   whiteDark: '#fbfbfc',
   foreground: '#493E54',
 
@@ -86,10 +139,10 @@ const warning = {
 
 const alert = {
   muted: {
-    backgroundLight: colors.offWhite,
-    background: colors.gray1,
+    backgroundLight: colors.gray100,
+    background: colors.gray400,
     iconColor: 'inherit',
-    border: colors.gray6,
+    border: colors.gray400,
   },
   info: {
     backgroundLight: colors.blueLightest,
@@ -131,10 +184,10 @@ const badge = {
 };
 
 const aliases = {
-  textColor: colors.gray5,
+  textColor: colors.gray800,
   success: colors.green,
   error: colors.red,
-  disabled: colors.gray1,
+  disabled: colors.gray400,
 } as const;
 
 const button = {
@@ -321,7 +374,7 @@ const theme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
-    previousPeriod: colors.gray1,
+    previousPeriod: colors.gray400,
     symbolSize: 6,
   },
 

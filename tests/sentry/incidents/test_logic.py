@@ -49,6 +49,7 @@ from sentry.incidents.logic import (
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
     update_incident_status,
+    translate_aggregate_field,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -1281,3 +1282,23 @@ class GetAvailableActionIntegrationsForOrgTest(TestCase):
         other_integration = Integration.objects.create(external_id="12345", provider="random")
         other_integration.add_organization(self.organization)
         assert list(get_available_action_integrations_for_org(self.organization)) == [integration]
+
+
+class MetricTranslationTest(TestCase):
+    def test_simple(self):
+        aggregate = "count_unique(user)"
+        translated = translate_aggregate_field(aggregate)
+        assert translated == "count_unique(tags[sentry:user])"
+
+        # Make sure it doesn't double encode:
+        translated_2 = translate_aggregate_field(translated)
+        assert translated_2 == "count_unique(tags[sentry:user])"
+
+    def test_reverse(self):
+        aggregate = "count_unique(tags[sentry:user])"
+        translated = translate_aggregate_field(aggregate, reverse=True)
+        assert translated == "count_unique(user)"
+
+        # Make sure it doesn't do anything wonky running twice:
+        translated_2 = translate_aggregate_field(translated, reverse=True)
+        assert translated_2 == "count_unique(user)"
