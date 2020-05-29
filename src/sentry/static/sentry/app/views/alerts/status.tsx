@@ -46,5 +46,5 @@ const Wrapper = styled('div')`
 
 const Icon = styled('span')`
   margin-right: ${space(0.75)};
-  margin-top: 3px;
+  margin-bottom: -3px;
 `;
