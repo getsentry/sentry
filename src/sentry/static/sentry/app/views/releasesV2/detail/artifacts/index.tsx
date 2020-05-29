@@ -1,13 +1,14 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import ReleaseArtifactsV1 from 'app/views/releases/detail/releaseArtifacts';
 import AsyncView from 'app/views/asyncView';
 import routeTitleGen from 'app/utils/routeTitle';
 import {formatVersion} from 'app/utils/formatters';
 import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
+import AlertLink from 'app/components/alertLink';
 
 import {ReleaseContext} from '..';
 
@@ -34,15 +35,26 @@ class ReleaseArtifacts extends AsyncView<Props> {
 
   renderBody() {
     const {project} = this.context;
-    const {params, location} = this.props;
+    const {params, location, organization} = this.props;
 
     return (
-      <ReleaseArtifactsV1
-        params={params}
-        location={location}
-        projectId={project.slug}
-        smallEmptyMessage
-      />
+      <React.Fragment>
+        <AlertLink
+          to={`/settings/${organization.slug}/projects/${project.slug}/source-maps/`}
+          priority="info"
+        >
+          {tct('Artifacts were moved to [sourceMaps] in Settings.', {
+            sourceMaps: <u>{t('Source Maps')}</u>,
+          })}
+        </AlertLink>
+
+        <ReleaseArtifactsV1
+          params={params}
+          location={location}
+          projectId={project.slug}
+          smallEmptyMessage
+        />
+      </React.Fragment>
     );
   }
 }
