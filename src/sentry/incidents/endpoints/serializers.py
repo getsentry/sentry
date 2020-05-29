@@ -315,7 +315,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         try:
             if not check_aggregate_column_support(aggregate):
                 raise serializers.ValidationError(
-                    "Invalid Metric. We do not currently support this field."
+                    "Invalid Metric: We do not currently support this field."
                 )
         except InvalidSearchQuery as e:
             raise serializers.ValidationError("Invalid Metric: {}".format(e.message))
