@@ -37,8 +37,10 @@ const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Name'), value: 'name'},
-  {label: t('Date Created'), value: '-dateCreated'},
-  {label: t('Date Updated'), value: '-dateUpdated'},
+  {label: t('Newest'), value: '-dateCreated'},
+  {label: t('Oldest'), value: 'dateCreated'},
+  {label: t('Recently updated'), value: '-dateUpdated'},
+  {label: t('Least recently updated'), value: 'dateUpdated'},
 ];
 
 function checkIsBannerHidden(): boolean {
