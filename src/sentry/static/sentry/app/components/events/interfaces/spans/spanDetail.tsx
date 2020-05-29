@@ -142,6 +142,8 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
+    const orgFeatures = new Set(organization.features);
+
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
       end: trace.traceEndTimestamp,
@@ -159,7 +161,7 @@ class SpanDetail extends React.Component<Props, State> {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
-      projects: eventView.project,
+      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
       version: 2,
       start,
       end,
