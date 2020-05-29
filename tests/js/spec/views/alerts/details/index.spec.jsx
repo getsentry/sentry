@@ -184,13 +184,13 @@ describe('IncidentDetails', function() {
     });
 
     // Should be subscribed, so button should show "Unsubscribe"
-    expect(wrapper.find('SubscribeButton Content').text()).toBe('Unsubscribe');
+    expect(wrapper.find('SubscribeButton').text()).toBe('Unsubscribe');
 
     // Click to unsubscribe
     wrapper.find('SubscribeButton').simulate('click');
     expect(unsubscribe).toHaveBeenCalled();
     expect(subscribe).not.toHaveBeenCalled();
-    expect(wrapper.find('SubscribeButton Content').text()).toBe('Subscribe');
+    expect(wrapper.find('SubscribeButton').text()).toBe('Subscribe');
 
     // Click again to re-subscribe
     wrapper.find('SubscribeButton').simulate('click');
