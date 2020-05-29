@@ -22,6 +22,7 @@ import jira from 'app/../images/logos/logo-jira.svg';
 import jiraserver from 'app/../images/logos/logo-jira-server.svg';
 import lighthouse from 'app/../images/logos/logo-lighthouse.svg';
 import msteams from 'app/../images/logos/logo-msteams.svg';
+import netlify from 'app/../images/logos/logo-netlify.svg';
 import opsgenie from 'app/../images/logos/logo-opsgenie.svg';
 import pagerduty from 'app/../images/logos/logo-pagerduty.svg';
 import phabricator from 'app/../images/logos/logo-phabricator.svg';
@@ -75,6 +76,7 @@ export const ICON_PATHS = {
   jira_server: jiraserver,
   lighthouse,
   msteams,
+  netlify,
   opsgenie,
   pagerduty,
   phabricator,
