@@ -83,11 +83,11 @@ class FilesChanged extends AsyncView<Props, State> {
       <ContentBox>
         {fileList.length ? (
           <React.Fragment>
-            {Object.keys(filesByRepository).map(repository => (
+            {Object.entries(filesByRepository).map(([repository, file]) => (
               <RepositoryFileSummary
                 key={repository}
                 repository={repository}
-                fileChangeSummary={filesByRepository[repository]}
+                fileChangeSummary={file}
                 collapsable={false}
               />
             ))}
