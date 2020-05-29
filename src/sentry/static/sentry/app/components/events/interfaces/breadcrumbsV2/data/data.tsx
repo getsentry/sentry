@@ -22,10 +22,10 @@ const Data = ({breadcrumb, event, orgId}: Props) => {
     breadcrumb.type === BreadcrumbType.WARNING ||
     breadcrumb.type === BreadcrumbType.ERROR
   ) {
-    return <Exception event={event} orgId={orgId} breadcrumb={breadcrumb} />;
+    return <Exception breadcrumb={breadcrumb} />;
   }
 
-  return <Default breadcrumb={breadcrumb} />;
+  return <Default event={event} orgId={orgId} breadcrumb={breadcrumb} />;
 };
 
 export default Data;
