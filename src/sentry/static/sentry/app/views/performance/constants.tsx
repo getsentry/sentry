@@ -47,7 +47,7 @@ export const AXIS_OPTIONS: TooltipOption[] = [
   {
     tooltip: PERFORMANCE_TERMS.tpm,
     value: 'epm()',
-    label: t('Throughput'),
+    label: t('Transactions per Minute'),
   },
   {
     tooltip: PERFORMANCE_TERMS.errorRate,
