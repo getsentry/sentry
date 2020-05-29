@@ -9,7 +9,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry import analytics
-from sentry.api.event_search import get_filter
+from sentry.api.event_search import get_filter, resolve_field
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -1025,3 +1025,46 @@ def get_available_action_integrations_for_org(organization):
         if registration.integration_provider is not None
     ]
     return Integration.objects.filter(organizations=organization, provider__in=providers)
+
+
+# TODO: This is temporarily needed to support back and forth translations for snuba / frontend.
+# Uses a function from discover to break the aggregate down into parts, and then compare the "field"
+# to a list of accepted fields, or a list of fields we need to translate.
+# This can be dropped once snuba can handle this aliasing.
+SUPPORTED_COLUMNS = [
+    "tags[sentry:user]",
+    "tags[sentry:dist]",
+    "tags[sentry:release]",
+    "transaction.duration",
+]
+TRANSLATABLE_COLUMNS = {
+    "user": "tags[sentry:user]",
+    "dist": "tags[sentry:dist]",
+    "release": "tags[sentry:release]",
+}
+
+
+def get_column_from_aggregate(aggregate):
+    field = resolve_field(aggregate)
+    if field[1] is not None:
+        column = field[1][0][1]
+        return column
+    return None
+
+
+def check_aggregate_column_support(aggregate):
+    column = get_column_from_aggregate(aggregate)
+    return column is None or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS.keys()
+
+
+def translate_aggregate_field(aggregate, reverse=False):
+    column = get_column_from_aggregate(aggregate)
+    if not reverse:
+        if column in TRANSLATABLE_COLUMNS.keys():
+            return aggregate.replace(column, TRANSLATABLE_COLUMNS[column])
+    else:
+        if column is not None:
+            for field, translated_field in TRANSLATABLE_COLUMNS.items():
+                if translated_field == column:
+                    return aggregate.replace(column, field)
+    return aggregate
