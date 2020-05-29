@@ -289,59 +289,26 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
-  render() {
-    let body: React.ReactNode;
+  renderBody() {
     const {location, organization} = this.props;
-    const {loading, savedQueries, savedQueriesPageLinks, error} = this.state;
+    const {savedQueries, savedQueriesPageLinks} = this.state;
+
+    return (
+      <QueryList
+        pageLinks={savedQueriesPageLinks}
+        savedQueries={savedQueries}
+        savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
+        location={location}
+        organization={organization}
+        onQueryChange={this.handleQueryChange}
+      />
+    );
+  }
+
+  render() {
+    const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
     const to = eventView.getResultsViewUrlTarget(organization.slug);
-    if (loading) {
-      body = this.renderLoading();
-    } else if (error) {
-      body = this.renderError();
-    } else {
-      body = (
-        <PageContent>
-          <StyledPageHeader>
-            {t('Discover')}
-            <StyledButton
-              data-test-id="build-new-query"
-              to={to}
-              priority="primary"
-              onClick={() => {
-                trackAnalyticsEvent({
-                  eventKey: 'discover_v2.build_new_query',
-                  eventName: 'Discoverv2: Build a new Discover Query',
-                  organization_id: parseInt(this.props.organization.id, 10),
-                });
-              }}
-            >
-              {t('Build a new query')}
-            </StyledButton>
-          </StyledPageHeader>
-          {this.renderBanner()}
-          {this.renderActions()}
-          <QueryList
-            pageLinks={savedQueriesPageLinks}
-            savedQueries={savedQueries}
-            savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
-            location={location}
-            organization={organization}
-            onQueryChange={this.handleQueryChange}
-          />
-          <Feature features={['organizations:discover']} organization={organization}>
-            <div>
-              <SwitchLink
-                href={`/organizations/${organization.slug}/discover/`}
-                onClick={this.onGoLegacyDiscover}
-              >
-                {t('Go to Legacy Discover')}
-              </SwitchLink>
-            </div>
-          </Feature>
-        </PageContent>
-      );
-    }
 
     return (
       <Feature
@@ -352,7 +319,41 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         <SentryDocumentTitle title={t('Discover')} objSlug={organization.slug}>
           <StyledPageContent>
             <LightWeightNoProjectMessage organization={organization}>
-              {body}
+              <PageContent>
+                <StyledPageHeader>
+                  {t('Discover')}
+                  <StyledButton
+                    data-test-id="build-new-query"
+                    to={to}
+                    priority="primary"
+                    onClick={() => {
+                      trackAnalyticsEvent({
+                        eventKey: 'discover_v2.build_new_query',
+                        eventName: 'Discoverv2: Build a new Discover Query',
+                        organization_id: parseInt(this.props.organization.id, 10),
+                      });
+                    }}
+                  >
+                    {t('Build a new query')}
+                  </StyledButton>
+                </StyledPageHeader>
+                {this.renderBanner()}
+                {this.renderActions()}
+                {this.renderComponent()}
+                <Feature
+                  features={['organizations:discover']}
+                  organization={organization}
+                >
+                  <div>
+                    <SwitchLink
+                      href={`/organizations/${organization.slug}/discover/`}
+                      onClick={this.onGoLegacyDiscover}
+                    >
+                      {t('Go to Legacy Discover')}
+                    </SwitchLink>
+                  </div>
+                </Feature>
+              </PageContent>
             </LightWeightNoProjectMessage>
           </StyledPageContent>
         </SentryDocumentTitle>
