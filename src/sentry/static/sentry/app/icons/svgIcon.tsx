@@ -19,10 +19,6 @@ const SvgIcon = React.forwardRef<SVGSVGElement, Props>(function SvgIcon(
   },
   ref
 ) {
-  if (providedColor !== 'currentColor' && !theme[providedColor]) {
-    throw new Error('Error to find incorrect colors');
-  }
-
   const color = theme[providedColor] ?? providedColor;
   const size = theme.iconSizes[providedSize] ?? providedSize;
 
