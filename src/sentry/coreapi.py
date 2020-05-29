@@ -4,27 +4,21 @@
 from __future__ import absolute_import, print_function
 
 import abc
-import base64
 import logging
 import re
 import six
-import zlib
 
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
-from gzip import GzipFile
-from six import BytesIO
 from time import time
 
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
-from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.http import origin_from_request
-from sentry.utils.strings import decompress
 from sentry.utils.sdk import configure_scope, set_current_project
 from sentry.utils.canonical import CANONICAL_TYPES
 
@@ -213,103 +207,3 @@ class ClientAuthHelper(AbstractAuthHelper):
         if request.META.get("HTTP_ORIGIN") == "null":
             return "null"
         return origin_from_request(request)
-
-
-class MinidumpAuthHelper(AbstractAuthHelper):
-    @classmethod
-    def origin_from_request(cls, request):
-        # We don't use an origin here
-        return None
-
-    @classmethod
-    def auth_from_request(cls, request):
-        key = request.GET.get("sentry_key")
-        if not key:
-            raise APIUnauthorized("Unable to find authentication information")
-
-        # Minidump requests are always "trusted".  We at this point only
-        # use is_public to identify requests that have an origin set (via
-        # CORS)
-        auth = Auth(public_key=key, client="sentry-minidump", is_public=False)
-        return auth
-
-
-class SecurityAuthHelper(AbstractAuthHelper):
-    @classmethod
-    def origin_from_request(cls, request):
-        # In the case of security reports, the origin is not available at the
-        # dispatch() stage, as we need to parse it out of the request body, so
-        # we do our own CORS check once we have parsed it.
-        return None
-
-    @classmethod
-    def auth_from_request(cls, request):
-        key = request.GET.get("sentry_key")
-        if not key:
-            raise APIUnauthorized("Unable to find authentication information")
-
-        auth = Auth(public_key=key, is_public=True)
-        auth.client = request.META.get("HTTP_USER_AGENT")
-        return auth
-
-
-def decompress_deflate(encoded_data):
-    try:
-        return zlib.decompress(encoded_data).decode("utf-8")
-    except Exception as e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.debug(six.text_type(e), exc_info=True)
-        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
-
-
-def decompress_gzip(encoded_data):
-    try:
-        fp = BytesIO(encoded_data)
-        try:
-            f = GzipFile(fileobj=fp)
-            return f.read().decode("utf-8")
-        finally:
-            f.close()
-    except Exception as e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.debug(six.text_type(e), exc_info=True)
-        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
-
-
-def decode_and_decompress_data(encoded_data):
-    try:
-        try:
-            return decompress(encoded_data).decode("utf-8")
-        except zlib.error:
-            return base64.b64decode(encoded_data).decode("utf-8")
-    except Exception as e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.debug(six.text_type(e), exc_info=True)
-        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
-
-
-def decode_data(encoded_data):
-    try:
-        return encoded_data.decode("utf-8")
-    except UnicodeDecodeError as e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.debug(six.text_type(e), exc_info=True)
-        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
-
-
-def safely_load_json_string(json_string):
-    try:
-        if isinstance(json_string, six.binary_type):
-            json_string = json_string.decode("utf-8")
-        obj = json.loads(json_string)
-        assert isinstance(obj, dict)
-    except Exception as e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.debug(six.text_type(e), exc_info=True)
-        raise APIError("Bad data reconstructing object (%s, %s)" % (type(e).__name__, e))
-    return obj

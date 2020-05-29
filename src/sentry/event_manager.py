@@ -35,11 +35,6 @@ from sentry.grouping.api import (
 from sentry.coreapi import (
     APIError,
     APIForbidden,
-    decompress_gzip,
-    decompress_deflate,
-    decode_and_decompress_data,
-    decode_data,
-    safely_load_json_string,
 )
 from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -251,22 +246,6 @@ def add_meta_errors(errors, meta):
             errors.append(error)
 
 
-def _decode_event(data, content_encoding):
-    if isinstance(data, six.binary_type):
-        if content_encoding == "gzip":
-            data = decompress_gzip(data)
-        elif content_encoding == "deflate":
-            data = decompress_deflate(data)
-        elif data[0] != b"{":
-            data = decode_and_decompress_data(data)
-        else:
-            data = decode_data(data)
-    if isinstance(data, six.text_type):
-        data = safely_load_json_string(data)
-
-    return CanonicalKeyDict(data)
-
-
 class EventManager(object):
     """
     Handles normalization in both the store endpoint and the save task. The
@@ -289,7 +268,7 @@ class EventManager(object):
         project_config=None,
         sent_at=None,
     ):
-        self._data = _decode_event(data, content_encoding=content_encoding)
+        self._data = data
         self.version = version
         self._project = project
         # if not explicitly specified try to get the grouping from project_config
