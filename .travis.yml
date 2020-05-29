@@ -72,6 +72,9 @@ install_volta: &install_volta |-
 
 install_node_dependencies: &install_node_dependencies |-
   echo "$PATH"
+  command -v volta
+  command -v node
+  command -v yarn
   # Running `node -v` and `yarn -v` triggers Volta to install the versions set in the project.
   # There might be a more readable `volta install` in the future that would replace this magic.
   # Tracking: https://github.com/volta-cli/volta/issues/653#issuecomment-628909923
@@ -175,8 +178,8 @@ matrix:
         # Under a "generic" language environment, this will make travis pyenv error because there
         # is no pyenv python installed.
         - rm .python-version
-        - *install_volta
       install:
+        - *install_volta
         - *install_node_dependencies
 
     - python: 3.7
@@ -222,9 +225,8 @@ matrix:
     - python: 2.7
       name: 'Frontend [test]'
       env: TEST_SUITE=js
-      before_install:
-        - *install_volta
       install:
+        - *install_volta
         - *install_node_dependencies
 
     - python: 2.7
