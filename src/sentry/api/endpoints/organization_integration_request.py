@@ -25,9 +25,9 @@ def get_url(organization, provider_type, provider_slug):
             u"/settings",
             organization.slug,
             {
-                "sentryapp": "sentry-apps",
+                "first_party": "integrations",
                 "plugin": "plugins",
-                "integration": "integrations",
+                "sentry_app": "sentry-apps",
             }.get(provider_type),
             provider_slug,
         ])
@@ -49,25 +49,17 @@ def get_provider_name(provider_type, provider_slug):
     :raises: ValueError if provider_type is not one of the three from above.
     :raises: Exception if the provider is not found.
     """
-    if provider_type == "sentry_app":
-        sentry_app = SentryApp.objects.get(slug=provider_slug)
-        if not sentry_app:
-            raise Exception("Provider {} not found".format(provider_slug))
-        return sentry_app.name
-
-    elif provider_type == "first_party":
-        try:
-            return integrations.get(provider_slug).name
-        except KeyError:
-            raise Exception("Provider {} not found".format(provider_slug))
-
-    elif provider_type == "plugin":
-        try:
+    try:
+        if provider_type == "first_party":
+            return integrations.get(provider_slug).name,
+        elif provider_type == "plugin":
             return plugins.get(provider_slug).title
-        except KeyError:
-            raise Exception("Provider {} not found".format(provider_slug))
-    else:
-        raise ValueError("Invalid provider_type {}".format(provider_type))
+        elif provider_type == "sentry_app":
+            return SentryApp.objects.get(slug=provider_slug).name
+        else:
+            raise ValueError(u"Invalid provider_type {}".format(provider_type))
+    except (KeyError, SentryApp.DoesNotExist):
+        raise Exception(u"Provider {} not found".format(provider_slug))
 
 
 class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):

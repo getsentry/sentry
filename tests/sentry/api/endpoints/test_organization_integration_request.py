@@ -19,7 +19,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
         response = self.get_response(
             self.org.slug,
             providerSlug="github",
-            providerType="plugin",
+            providerType="first_party",
         )
 
         assert response.status_code == 201, response.content
@@ -53,7 +53,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
         response = self.get_response(
             self.org.slug,
             providerSlug="github",
-            providerType="plugin",
+            providerType="first_party",
         )
         assert response.status_code == 200, response.content
         assert response.data["detail"] == "User can install integration"
@@ -63,6 +63,6 @@ class OrganizationIntegrationRequestTest(APITestCase):
         response = self.get_response(
             self.org.slug,
             providerSlug="github",
-            providerType="plugin",
+            providerType="first_party",
         )
         assert response.status_code == 403, response.content
