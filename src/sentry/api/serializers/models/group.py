@@ -11,6 +11,8 @@ from django.conf import settings
 from django.db.models import Min, Q
 from django.utils import timezone
 
+import sentry_sdk
+
 from sentry import tagstore, tsdb
 from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
@@ -334,9 +336,12 @@ class GroupSerializerBase(Serializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        status_details, status_label = self._get_status(attrs, obj)
-        permalink = self._get_permalink(obj, user)
-        is_subscribed, subscription_details = self._get_subscription(attrs)
+        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.status"):
+            status_details, status_label = self._get_status(attrs, obj)
+        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink"):
+            permalink = self._get_permalink(obj, user)
+        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.subscription"):
+            is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
 
         return {
