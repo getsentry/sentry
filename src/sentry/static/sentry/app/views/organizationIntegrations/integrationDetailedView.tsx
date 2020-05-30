@@ -18,7 +18,6 @@ import withOrganization from 'app/utils/withOrganization';
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import AddIntegrationButton from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
-import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 
 type State = {
   configurations: Integration[];
@@ -199,14 +198,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       );
     }
 
-    return (
-      <RequestIntegrationButton
-        organization={organization}
-        name={provider.name}
-        slug={provider.slug}
-        type="integration"
-      />
-    );
+    return this.renderRequestIntegrationButton(provider);
   }
 
   renderConfigurations() {

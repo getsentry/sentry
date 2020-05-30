@@ -21,7 +21,6 @@ import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 import SplitInstallationIdModal from './SplitInstallationIdModal';
 
 type State = {
@@ -273,14 +272,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       );
     }
 
-    return (
-      <RequestIntegrationButton
-        organization={this.props.organization}
-        name={this.sentryApp.name}
-        slug={this.sentryApp.slug}
-        type="sentryapp"
-      />
-    );
+    return this.renderRequestIntegrationButton(this.sentryApp);
   }
 
   //no configurations for sentry apps

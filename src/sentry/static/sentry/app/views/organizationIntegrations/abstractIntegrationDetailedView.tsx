@@ -31,6 +31,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Tag from 'app/views/settings/components/tag';
 
 import IntegrationStatus from './integrationStatus';
+import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 
 type Tab = 'overview' | 'configurations';
 
@@ -236,6 +237,17 @@ class AbstractIntegrationDetailedView<
 
   cleanTags() {
     return getCategories(this.featureData);
+  }
+
+  renderRequestIntegrationButton(provider) {
+    return (
+      <RequestIntegrationButton
+        organization={this.props.organization}
+        name={provider.name}
+        slug={provider.slug}
+        type={this.integrationType}
+      />
+    );
   }
 
   renderAddInstallButton(hideButtonIfDisabled = false) {

@@ -11,7 +11,6 @@ import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import InstalledPlugin from './installedPlugin';
-import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 
 type State = {
   plugins: PluginWithProjectList[];
@@ -148,14 +147,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       );
     }
 
-    return (
-      <RequestIntegrationButton
-        organization={this.props.organization}
-        name={this.plugin.name}
-        slug={this.plugin.slug}
-        type="plugin"
-      />
-    );
+    return this.renderRequestIntegrationButton(this.plugin);
   }
 
   renderConfigurations() {
