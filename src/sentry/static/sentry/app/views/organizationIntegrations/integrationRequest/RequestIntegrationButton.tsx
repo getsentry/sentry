@@ -16,14 +16,10 @@ type State = {
 };
 
 export default class RequestIntegrationButton extends React.Component<Props, State> {
-  constructor(props: Props, context) {
-    super(props, context);
-
-    this.state = {
-      isOpen: false,
-      isSent: false,
-    };
-  }
+  state = {
+    isOpen: false,
+    isSent: false,
+  };
 
   openRequestModal() {
     this.setState({isOpen: true});
