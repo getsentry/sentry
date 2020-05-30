@@ -42,7 +42,7 @@ def get_provider_name(provider_type, provider_slug):
     want and not what type they want. This function looks up the display name
     for the integration they want installed.
 
-    :param provider_type: One of: "integrations", "plugins", or "sentryapps".
+    :param provider_type: One of: "first_party", "plugin", or "sentry_app".
     :param provider_slug: The unique identifier for the provider.
     :return: The display name for the provider.
 
@@ -67,7 +67,7 @@ def get_provider_name(provider_type, provider_slug):
         except KeyError:
             raise Exception("Provider {} not found".format(provider_slug))
     else:
-        raise ValueError("Invalid provider_type")
+        raise ValueError("Invalid provider_type {}".format(provider_type))
 
 
 class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
@@ -81,12 +81,12 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
         they lack the ability to install them themselves. POSTing to this API
         alerts users with permission that there is demand for this integration.
 
-        :param string provider_slug: Unique string that identifies the integration.
-        :param string provider_name: One of: integration, plugin, sentryapp.
+        :param string providerSlug: Unique string that identifies the integration.
+        :param string providerType: One of: first_party, plugin, sentry_app.
         :param string message: Optional message from the requester to the owners.
         """
-        provider_type = request.data.get("provider_type")
-        provider_slug = request.data.get("provider_slug")
+        provider_type = request.data.get("providerType")
+        provider_slug = request.data.get("providerSlug")
         message_option = request.data.get("message", "").strip()
 
         try:
