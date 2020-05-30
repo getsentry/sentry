@@ -59,6 +59,7 @@ export const ICON_PATHS = {
   asana,
   asayer,
   bitbucket,
+  bitbucket_release_pipe: bitbucket,
   bitbucket_server: bitbucketserver,
   campfire,
   clickup,
