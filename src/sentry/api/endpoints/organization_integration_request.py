@@ -94,9 +94,11 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
         except Exception as error:
             return Response({"detail": error.message}, status=400)
 
-        # If for some reason the user had permissions all along, silently fail.
         requester = request.user
-        if requester.id in [user.id for user in organization.get_owners()]:
+        owners_list = organization.get_owners()
+
+        # If for some reason the user had permissions all along, silently fail.
+        if requester.id in [user.id for user in owners_list]:
             return Response({"detail": "User can install integration"}, status=200)
 
         msg = MessageBuilder(
@@ -120,6 +122,6 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
             },
         )
 
-        msg.send_async([user.email for user in organization.get_owners()])
+        msg.send_async([user.email for user in owners_list])
 
         return Response(status=201)
