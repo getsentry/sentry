@@ -335,49 +335,6 @@ class GroupSerializerBase(Serializer):
             result[item].update(seen_stats.get(item, {}))
         return result
 
-    def serialize(self, obj, attrs, user):
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.status"):
-            status_details, status_label = self._get_status(attrs, obj)
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink"):
-            permalink = self._get_permalink(obj, user)
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.subscription"):
-            is_subscribed, subscription_details = self._get_subscription(attrs)
-        share_id = attrs["share_id"]
-
-        return {
-            "id": six.text_type(obj.id),
-            "shareId": share_id,
-            "shortId": obj.qualified_short_id,
-            "count": six.text_type(attrs["times_seen"]),
-            "userCount": attrs["user_count"],
-            "title": obj.title,
-            "culprit": obj.culprit,
-            "permalink": permalink,
-            "firstSeen": attrs["first_seen"],
-            "lastSeen": attrs["last_seen"],
-            "logger": obj.logger or None,
-            "level": LOG_LEVELS.get(obj.level, "unknown"),
-            "status": status_label,
-            "statusDetails": status_details,
-            "isPublic": share_id is not None,
-            "platform": obj.platform,
-            "project": {
-                "id": six.text_type(obj.project.id),
-                "name": obj.project.name,
-                "slug": obj.project.slug,
-                "platform": obj.project.platform,
-            },
-            "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
-            "numComments": obj.num_comments,
-            "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
-            "isBookmarked": attrs["is_bookmarked"],
-            "isSubscribed": is_subscribed,
-            "subscriptionDetails": subscription_details,
-            "hasSeen": attrs["has_seen"],
-            "annotations": attrs["annotations"],
-        }
-
     def _get_status(self, attrs, obj):
         status = obj.status
         status_details = {}
@@ -469,6 +426,49 @@ class GroupSerializerBase(Serializer):
             is_subscribed = False
             subscription_details = {"disabled": True}
         return is_subscribed, subscription_details
+
+    def serialize(self, obj, attrs, user):
+        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.status"):
+            status_details, status_label = self._get_status(attrs, obj)
+        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink"):
+            permalink = self._get_permalink(obj, user)
+        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.subscription"):
+            is_subscribed, subscription_details = self._get_subscription(attrs)
+        share_id = attrs["share_id"]
+
+        return {
+            "id": six.text_type(obj.id),
+            "shareId": share_id,
+            "shortId": obj.qualified_short_id,
+            "count": six.text_type(attrs["times_seen"]),
+            "userCount": attrs["user_count"],
+            "title": obj.title,
+            "culprit": obj.culprit,
+            "permalink": permalink,
+            "firstSeen": attrs["first_seen"],
+            "lastSeen": attrs["last_seen"],
+            "logger": obj.logger or None,
+            "level": LOG_LEVELS.get(obj.level, "unknown"),
+            "status": status_label,
+            "statusDetails": status_details,
+            "isPublic": share_id is not None,
+            "platform": obj.platform,
+            "project": {
+                "id": six.text_type(obj.project.id),
+                "name": obj.project.name,
+                "slug": obj.project.slug,
+                "platform": obj.project.platform,
+            },
+            "type": obj.get_event_type(),
+            "metadata": obj.get_event_metadata(),
+            "numComments": obj.num_comments,
+            "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
+            "isBookmarked": attrs["is_bookmarked"],
+            "isSubscribed": is_subscribed,
+            "subscriptionDetails": subscription_details,
+            "hasSeen": attrs["has_seen"],
+            "annotations": attrs["annotations"],
+        }
 
 
 @register(Group)
