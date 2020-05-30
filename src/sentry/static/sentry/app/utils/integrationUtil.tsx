@@ -301,7 +301,7 @@ export const convertIntegrationTypeToSnakeCase = (
     case 'sentryApp':
       return 'sentry_app';
     case 'documentIntegration':
-      return 'document_integration';
+      return 'document';
     default:
       return type;
   }
