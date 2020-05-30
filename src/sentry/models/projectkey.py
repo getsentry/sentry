@@ -197,7 +197,7 @@ class ProjectKey(Model):
 
     @property
     def unreal_endpoint(self):
-        return "%s/api/%s/unreal/%s" % (self.get_endpoint(), self.project_id, self.public_key)
+        return "%s/api/%s/unreal/%s/" % (self.get_endpoint(), self.project_id, self.public_key)
 
     @property
     def js_sdk_loader_cdn_url(self):
