@@ -16,6 +16,7 @@ import space from 'app/styles/space';
 import {
   IntegrationFeature,
   IntegrationInstallationStatus,
+  IntegrationType,
   Organization,
   SentryAppStatus,
 } from 'app/types';
@@ -72,7 +73,7 @@ class AbstractIntegrationDetailedView<
    */
 
   //The analytics type used in analytics which is snake case
-  get integrationType(): 'sentry_app' | 'first_party' | 'plugin' | 'document' {
+  get integrationType(): IntegrationType {
     // Allow children to implement this
     throw new Error('Not implemented');
   }

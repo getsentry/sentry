@@ -435,6 +435,12 @@ export type AppOrProviderOrPlugin =
   | PluginWithProjectList
   | DocumentIntegration;
 
+export type IntegrationType =
+  | 'document_integration'
+  | 'plugin'
+  | 'first_party'
+  | 'sentry_app';
+
 export type DocumentIntegration = {
   slug: string;
   name: string;

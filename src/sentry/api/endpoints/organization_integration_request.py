@@ -49,13 +49,13 @@ def get_provider_name(provider_type, provider_slug):
     :raises: ValueError if provider_type is not one of the three from above.
     :raises: Exception if the provider is not found.
     """
-    if provider_type == "sentryapp":
+    if provider_type == "sentry_app":
         sentry_app = SentryApp.objects.get(slug=provider_slug)
         if not sentry_app:
             raise Exception("Provider {} not found".format(provider_slug))
         return sentry_app.name
 
-    elif provider_type == "integration":
+    elif provider_type == "first_party":
         try:
             return integrations.get(provider_slug).name
         except KeyError:

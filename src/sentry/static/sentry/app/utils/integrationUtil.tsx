@@ -73,7 +73,7 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Reauth Start'
     | 'Integrations: Reauth Complete';
   integration: string; //the slug
-  integration_type: 'plugin' | 'first_party' | 'sentry_app' | 'document_integration';
+  integration_type: IntegrationType;
   already_installed?: boolean;
   integration_tab?: 'configurations' | 'overview';
   plan?: string;
