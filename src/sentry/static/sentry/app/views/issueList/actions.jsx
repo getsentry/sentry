@@ -693,7 +693,7 @@ const GraphToggle = styled('a')`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => (p.active ? p.theme.gray4 : p.theme.disabled)};
+    color: ${p => (p.active ? p.theme.gray700 : p.theme.disabled)};
   }
 `;
 
