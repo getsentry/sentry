@@ -774,7 +774,7 @@ class SnubaTestCase(BaseTestCase):
 
     init_endpoints = (
         "/tests/events/drop",
-        "tests/groupedmessage/drop",
+        "/tests/groupedmessage/drop",
         "/tests/transactions/drop",
         "/tests/sessions/drop",
     )
