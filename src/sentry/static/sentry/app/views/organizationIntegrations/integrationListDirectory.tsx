@@ -520,16 +520,16 @@ export class IntegrationListDirectory extends AsyncComponent<
                   {tct('No Integrations found for "[searchTerm]".', {
                     searchTerm: searchInput,
                   })}
-                  <p style={{fontWeight: 'bold'}}>
+                  <EmptyResultsBodyBold>
                     {t("Not seeing what you're looking for?")}
-                  </p>
-                  <p>
+                  </EmptyResultsBodyBold>
+                  <EmptyResultsBody>
                     {tct('[link:Build it on the Sentry Integration Platform.]', {
                       link: (
                         <a href="https://docs.sentry.io/workflow/integrations/integration-platform/" />
                       ),
                     })}
-                  </p>
+                  </EmptyResultsBody>
                 </EmptyResultsBody>
               </EmptyResultsContainer>
             )}
@@ -556,6 +556,14 @@ const EmptyResultsContainer = styled('div')`
 
 const EmptyResultsBody = styled('div')`
   font-size: 16px;
+  line-height: 28px;
+  color: ${p => p.theme.gray500};
+  padding-bottom: ${space(2)};
+`;
+
+const EmptyResultsBodyBold = styled('div')`
+  font-size: 16px;
+  font-weight: bold;
   line-height: 28px;
   color: ${p => p.theme.gray500};
   padding-bottom: ${space(2)};
