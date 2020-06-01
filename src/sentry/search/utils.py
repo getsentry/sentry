@@ -234,7 +234,7 @@ def get_latest_release(projects, environments, organization_id=None):
 
     release_qs = Release.objects.filter(organization_id=organization_id, projects__in=projects)
 
-    if environments is not None:
+    if environments:
         release_qs = release_qs.filter(
             releaseprojectenvironment__environment__id__in=[
                 environment.id for environment in environments
