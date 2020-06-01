@@ -3,31 +3,51 @@
 /* global process */
 const fs = require('fs');
 const CLIEngine = require('eslint').CLIEngine;
+const Worker = require('jest-worker').default;
 
-const argv = process.argv.slice(2);
+async function main() {
+  const argv = process.argv.slice(2);
+  const extensions = argv[1].split(',');
 
-const cli = new CLIEngine({
-  fix: false,
-  extensions: argv[1].split(','),
-  configFile: '.eslintrc.relax.js',
-});
-
-// Lint all files
-const report = cli.executeOnFiles(argv.slice(3));
-
-// get the default formatter
-const consoleFormatter = cli.getFormatter();
-
-const otherFormatterType = argv.indexOf('--format=checkstyle') > -1 ? 'checkstyle' : null;
-
-// output to console
-console.log(consoleFormatter(report.results));
-
-// Output to checkstyle format for zeus
-if (otherFormatterType) {
-  const otherFormatter = cli.getFormatter(otherFormatterType);
-
-  fs.writeFile('eslint.checkstyle.xml', otherFormatter(report.results), 'utf8', () => {
-    process.exit(report.errorCount);
+  const cli = new CLIEngine({
+    fix: false,
+    extensions: extensions,
+    configFile: '.eslintrc.relax.js',
   });
+
+  const eslintWorker = new Worker(require.resolve('../scripts/eslint-worker.js'), {
+    numWorkers: 4,
+    setupArgs: [extensions],
+    enableWorkerThreads: true,
+  });
+
+  const reports = await Promise.all(
+    argv.slice(3).map(filename => eslintWorker.lintFile(filename))
+  );
+  const terminator = eslintWorker.end();
+  const results = [].concat(...reports.map(report => report.results));
+
+  // get the default formatter
+  const consoleFormatter = cli.getFormatter();
+
+  const otherFormatterType =
+    argv.indexOf('--format=checkstyle') > -1 ? 'checkstyle' : null;
+
+  // output to console
+  console.log(consoleFormatter(results));
+
+  await terminator;
+  // Output to checkstyle format for zeus
+  if (otherFormatterType) {
+    const otherFormatter = cli.getFormatter(otherFormatterType);
+
+    fs.writeFile('eslint.checkstyle.xml', otherFormatter(results), 'utf8', () => {
+      const totalErrorCount = reports.reduce(
+        (total, report) => total + report.errorCount
+      );
+      process.exit(totalErrorCount);
+    });
+  }
 }
+
+main();
