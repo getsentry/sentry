@@ -5,11 +5,16 @@ import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {IntegrationType, Organization} from 'app/types';
 
-import {RequestIntegrationProps} from '.';
 import RequestIntegrationModal from './RequestIntegrationModal';
 
-type Props = RequestIntegrationProps;
+type Props = {
+  organization: Organization;
+  name: string;
+  slug: string;
+  type: IntegrationType;
+};
 type State = {
   isOpen: boolean;
   isSent: boolean;

@@ -8,11 +8,11 @@ import {t} from 'app/locale';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-import {RequestIntegrationProps} from '.';
+import RequestIntegrationButton from './RequestIntegrationButton';
 
 type Props = {
   onSuccess: () => void;
-} & RequestIntegrationProps &
+} & RequestIntegrationButton['props'] &
   ModalRenderProps &
   AsyncComponent['props'];
 type State = {
