@@ -785,6 +785,7 @@ class QueryTransformTest(TestCase):
             groupby=["project_id", "event_id"],
             having=[],
             limit=50,
+            limitby=[50, "event_id"],
             offset=None,
             referrer=None,
         )

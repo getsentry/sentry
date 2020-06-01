@@ -654,22 +654,24 @@ def query(
             snuba_filter.conditions.extend(conditions)
 
     with sentry_sdk.start_span(op="discover.discover", description="query.snuba_query"):
-        result = raw_query(
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            groupby=snuba_filter.groupby,
-            conditions=snuba_filter.conditions,
-            aggregations=snuba_filter.aggregations,
-            selected_columns=snuba_filter.selected_columns,
-            filter_keys=snuba_filter.filter_keys,
-            having=snuba_filter.having,
-            orderby=snuba_filter.orderby,
-            dataset=Dataset.Discover,
-            limit=limit,
-            limitby=[limit, "event_id"] if "event_id" in snuba_filter.selected_columns else None,
-            offset=offset,
-            referrer=referrer,
-        )
+        query_args = {
+            "start": snuba_filter.start,
+            "end": snuba_filter.end,
+            "groupby": snuba_filter.groupby,
+            "conditions": snuba_filter.conditions,
+            "aggregations": snuba_filter.aggregations,
+            "selected_columns": snuba_filter.selected_columns,
+            "filter_keys": snuba_filter.filter_keys,
+            "having": snuba_filter.having,
+            "orderby": snuba_filter.orderby,
+            "dataset": Dataset.Discover,
+            "limit": limit,
+            "offset": offset,
+            "referrer": referrer,
+        }
+        if "event_id" in snuba_filter.selected_columns:
+            query_args["limitby"] = [limit, "event_id"]
+        result = raw_query(**query_args)
 
     with sentry_sdk.start_span(
         op="discover.discover", description="query.transform_results"
