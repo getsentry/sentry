@@ -666,6 +666,7 @@ def query(
             orderby=snuba_filter.orderby,
             dataset=Dataset.Discover,
             limit=limit,
+            limitby=[limit, "event_id"] if "event_id" in snuba_filter.selected_columns else None,
             offset=offset,
             referrer=referrer,
         )
