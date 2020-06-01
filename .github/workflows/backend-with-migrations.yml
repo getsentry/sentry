@@ -93,15 +93,6 @@ jobs:
         # Checkout codebase
         - uses: actions/checkout@v2
 
-        # yarn cache
-        - uses: actions/cache@v1
-          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-          with:
-            path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-yarn-
-
         # Use `.python-version` to avoid duplication
         # XXX: can't actually read from .python-version because GitHub Actions
         # does not support our version (2.7.16)
