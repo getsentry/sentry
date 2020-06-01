@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''pip-faster is a thin wrapper around pip.
+"""pip-faster is a thin wrapper around pip.
 
 It only adds a --prune option to the `install` subcommand.
 `pip-faster install --prune` will *uninstall* any installed packages that are
@@ -11,7 +11,7 @@ more quickly, especially in the case of pinned requirements (e.g.
 package-x==1.2.3).
 
 Version control at: https://github.com/yelp/venv-update
-'''
+"""
 from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -56,9 +56,10 @@ except ImportError:  # :pragma:nocover: pip<18.1
 # Thanks six!
 PY2 = str is bytes
 if PY2:  # :pragma:nocover:
-    _reraise_src = 'def reraise(tp, value, tb=None): raise tp, value, tb'
-    exec(_reraise_src)
+    _reraise_src = "def reraise(tp, value, tb=None): raise tp, value, tb"
+    exec (_reraise_src)
 else:  # :pragma:nocover:
+
     def reraise(tp, value, tb=None):
         if value is None:
             value = tp()
@@ -69,27 +70,25 @@ else:  # :pragma:nocover:
 
 class CACHE(object):
     _cache_dir = user_cache_dir()
-    wheelhouse = os.path.join(_cache_dir, 'pip-faster', 'wheelhouse')
-    pip_wheelhouse = os.path.join(_cache_dir, 'pip', 'wheels')
+    wheelhouse = os.path.join(_cache_dir, "pip-faster", "wheelhouse")
+    pip_wheelhouse = os.path.join(_cache_dir, "pip", "wheels")
 
 
 def ignorecase_glob(glob):
-    return ''.join([
-        '[{}{}]'.format(char.lower(), char.upper())
-        if char.isalpha() else char
-        for char in glob
-    ])
+    return "".join(
+        ["[{}{}]".format(char.lower(), char.upper()) if char.isalpha() else char for char in glob]
+    )
 
 
 def optimistic_wheel_search(req, index_urls):
-    name = req.name.replace('-', '_').lower()
+    name = req.name.replace("-", "_").lower()
 
     for index_url in index_urls:
         expected_location = os.path.join(
-            CACHE.wheelhouse, index_url, ignorecase_glob(name) + '-*.whl',
+            CACHE.wheelhouse, index_url, ignorecase_glob(name) + "-*.whl",
         )
         for link in glob.glob(expected_location):
-            link = Link('file:' + link)
+            link = Link("file:" + link)
             wheel = Wheel(link.filename)
             if req.specifier.contains(wheel.version) and wheel.supported():
                 return link
@@ -101,32 +100,31 @@ def is_req_pinned(requirement):
         return False
 
     for spec in requirement.specifier:
-        if spec.operator == '==' and not spec.version.endswith('.*'):
+        if spec.operator == "==" and not spec.version.endswith(".*"):
             return True
     return False
 
 
 class FasterPackageFinder(PackageFinder):
-
     def find_requirement(self, req, upgrade):
         if is_req_pinned(req.req):
             # if the version is pinned-down by a ==
             # first try to use any installed package that satisfies the req
             if req.satisfied_by:
-                logger.info('Faster! pinned requirement already installed.')
+                logger.info("Faster! pinned requirement already installed.")
                 raise BestVersionAlreadyInstalled
 
             # then try an optimistic search for a .whl file:
             link = optimistic_wheel_search(req.req, self.index_urls)
             if link is None:
                 # The wheel will be built during prepare_files
-                logger.debug('No wheel found locally for pinned requirement %s', req)
+                logger.debug("No wheel found locally for pinned requirement %s", req)
             else:
-                logger.info('Faster! Pinned wheel found, without hitting PyPI.')
+                logger.info("Faster! Pinned wheel found, without hitting PyPI.")
                 return link
         else:
             # unpinned requirements aren't very notable. only show with -v
-            logger.info('slow: full search for unpinned requirement %s', req)
+            logger.info("slow: full search for unpinned requirement %s", req)
 
         # otherwise, do the full network search, per usual
         try:
@@ -143,7 +141,8 @@ class FasterPackageFinder(PackageFinder):
 
 def _can_be_cached(package):
     return (
-        package.is_wheel and
+        package.is_wheel
+        and
         # An assertion that we're looking in the pip wheel dir
         package.link.path.startswith(CACHE.pip_wheelhouse)
     )
@@ -160,7 +159,7 @@ def mkdirp(pth):
 def _store_wheel_in_cache(file_path, index_url):
     filename = os.path.basename(file_path)
     cache = os.path.join(CACHE.wheelhouse, index_url, filename)
-    cache_tmp = '{}.{}'.format(cache, random.randint(0, sys.maxsize))
+    cache_tmp = "{}.{}".format(cache, random.randint(0, sys.maxsize))
     cache_dir = os.path.dirname(cache)
     mkdirp(cache_dir)
     # Atomicity
@@ -187,25 +186,27 @@ def get_patched_download_http_url(orig_download_http_url, index_urls):
         if link.is_wheel:
             for index_url in index_urls:
                 if (
-                        # pip <18.1
-                        isinstance(link.comes_from, HTMLPage) and
-                        link.comes_from.url.startswith(index_url)
+                    # pip <18.1
+                    isinstance(link.comes_from, HTMLPage)
+                    and link.comes_from.url.startswith(index_url)
                 ) or (
-                        # pip >= 18.1
-                        isinstance(link.comes_from, (str, type(''))) and
-                        link.comes_from.startswith(index_url)
+                    # pip >= 18.1
+                    isinstance(link.comes_from, (str, type("")))
+                    and link.comes_from.startswith(index_url)
                 ):
                     _store_wheel_in_cache(file_path, index_url)
                     break
         return file_path, content_type
+
     return pipfaster_download_http_url
 
 
 def pip(args):
     """Run pip, in-process."""
     from sys import stdout
-    stdout.write(colorize(('pip',) + args))
-    stdout.write('\n')
+
+    stdout.write(colorize(("pip",) + args))
+    stdout.write("\n")
     stdout.flush()
 
     return pipmodule._internal.main(list(args))
@@ -237,27 +238,27 @@ def pip_get_installed():
         dist_to_req(dist)
         for dist in fresh_working_set()
         if dist_is_local(dist)
-        if dist.key != 'python'  # See #220
+        if dist.key != "python"  # See #220
     )
 
 
 def normalize_name(name):
     """Normalize a python package name a la PEP 503"""
     # https://www.python.org/dev/peps/pep-0503/#normalized-names
-    return re.sub('[-_.]+', '-', name).lower()
+    return re.sub("[-_.]+", "-", name).lower()
 
 
 def fresh_working_set():
     """return a pkg_resources "working set", representing the *currently* installed packages"""
-    class WorkingSetPlusEditableInstalls(pkg_resources.WorkingSet):
 
+    class WorkingSetPlusEditableInstalls(pkg_resources.WorkingSet):
         def __init__(self, *args, **kwargs):
             self._normalized_name_mapping = {}
             super(WorkingSetPlusEditableInstalls, self).__init__(*args, **kwargs)
 
         def add_entry(self, entry):
             """Same as the original .add_entry, but sets only=False, so that egg-links are honored."""
-            logger.debug('working-set entry: %r', entry)
+            logger.debug("working-set entry: %r", entry)
             self.entry_keys.setdefault(entry, [])
             self.entries.append(entry)
             for dist in pkg_resources.find_distributions(entry, False):
@@ -268,7 +269,7 @@ def fresh_working_set():
                 # entirely arbitrary (an implemenation detail of file system),
                 # without calling site.main(), an .egg-link file may or may not
                 # be honored, depending on the filesystem
-                replace = (dist.precedence == pkg_resources.EGG_DIST)
+                replace = dist.precedence == pkg_resources.EGG_DIST
                 self._normalized_name_mapping[normalize_name(dist.key)] = dist.key
                 self.add(dist, entry, False, replace=replace)
 
@@ -299,6 +300,7 @@ def pretty_req(req):
     at the expense of removing some of its data
     """
     from copy import copy
+
     req = copy(req)
     req.link = None
     req.satisfied_by = None
@@ -318,6 +320,7 @@ def trace_requirements(requirements):
 
     # breadth-first traversal:
     from collections import deque
+
     queue = deque(requirements)
     queued = {_package_req_to_pkg_resources_req(req.req) for req in queue}
     errors = []
@@ -325,16 +328,18 @@ def trace_requirements(requirements):
     while queue:
         req = queue.popleft()
 
-        logger.debug('tracing: %s', req)
+        logger.debug("tracing: %s", req)
         try:
             dist = working_set.find_normalized(_package_req_to_pkg_resources_req(req.req))
         except pkg_resources.VersionConflict as conflict:
             dist = conflict.args[0]
-            errors.append('Error: version conflict: {} ({}) <-> {}'.format(
-                dist, timid_relpath(dist.location), req
-            ))
+            errors.append(
+                "Error: version conflict: {} ({}) <-> {}".format(
+                    dist, timid_relpath(dist.location), req
+                )
+            )
 
-        assert dist is not None, 'Should be unreachable in pip8+'
+        assert dist is not None, "Should be unreachable in pip8+"
         result.append(dist_to_req(dist))
 
         # TODO: pip does no validation of extras. should we?
@@ -343,18 +348,18 @@ def trace_requirements(requirements):
             sub_req = InstallRequirement(sub_req, req)
 
             if req_cycle(sub_req):
-                logger.warning('Circular dependency! %s', sub_req)
+                logger.warning("Circular dependency! %s", sub_req)
                 continue
             elif sub_req.req in queued:
-                logger.debug('already queued: %s', sub_req)
+                logger.debug("already queued: %s", sub_req)
                 continue
             else:
-                logger.debug('adding sub-requirement %s', sub_req)
+                logger.debug("adding sub-requirement %s", sub_req)
                 queue.append(sub_req)
                 queued.add(sub_req.req)
 
     if errors:
-        raise InstallationError('\n'.join(errors))
+        raise InstallationError("\n".join(errors))
 
     return result
 
@@ -364,24 +369,23 @@ def reqnames(reqs):
 
 
 class FasterInstallCommand(InstallCommand):
-
     def __init__(self, *args, **kw):
         super(FasterInstallCommand, self).__init__(*args, **kw)
 
         cmd_opts = self.cmd_opts
         cmd_opts.add_option(
-            '--prune',
-            action='store_true',
-            dest='prune',
+            "--prune",
+            action="store_true",
+            dest="prune",
             default=False,
-            help='Uninstall any non-required packages.',
+            help="Uninstall any non-required packages.",
         )
 
         cmd_opts.add_option(
-            '--no-prune',
-            action='store_false',
-            dest='prune',
-            help='Do not uninstall any non-required packages.',
+            "--no-prune",
+            action="store_false",
+            dest="prune",
+            help="Do not uninstall any non-required packages.",
         )
 
     def run(self, options, args):
@@ -391,9 +395,7 @@ class FasterInstallCommand(InstallCommand):
 
         index_urls = [options.index_url] + options.extra_index_urls
         with pipfaster_download_cacher(index_urls):
-            requirement_set = super(FasterInstallCommand, self).run(
-                options, args,
-            )
+            requirement_set = super(FasterInstallCommand, self).run(options, args,)
 
         required = requirement_set.requirements.values()
 
@@ -410,19 +412,22 @@ class FasterInstallCommand(InstallCommand):
                 return requirement_set
 
             extraneous = (
-                reqnames(previously_installed) -
-                reqnames(required) -
+                reqnames(previously_installed)
+                - reqnames(required)
+                -
                 # the stage1 bootstrap packages
-                reqnames(trace_requirements([install_req_from_line('venv-update')])) -
+                reqnames(trace_requirements([install_req_from_line("venv-update")]))
+                -
                 # See #186
-                frozenset(('pkg-resources',))
+                frozenset(("pkg-resources",))
             )
 
             if extraneous:
                 extraneous = sorted(extraneous)
-                pip(('uninstall', '--yes') + tuple(extraneous))
+                pip(("uninstall", "--yes") + tuple(extraneous))
 
         # TODO: Cleanup: remove stale values from the cache and wheelhouse that have not been accessed in a week.
+
 
 # TODO: a pip_faster.patch module
 
@@ -444,11 +449,16 @@ def patched(attrs, updates):
         yield orig
     finally:
         patch(attrs, orig.items())
+
+
 # END: pip_faster.patch module
 
 
 def pipfaster_install_prune_option():
-    return patched(pipmodule._internal.commands.commands_dict, {FasterInstallCommand.name: FasterInstallCommand})
+    return patched(
+        pipmodule._internal.commands.commands_dict,
+        {FasterInstallCommand.name: FasterInstallCommand},
+    )
 
 
 def pipfaster_packagefinder():
@@ -461,7 +471,7 @@ def pipfaster_packagefinder():
         from pip._internal.cli import base_command
     except ImportError:  # :pragma:nocover: pip<18.1
         from pip._internal import basecommand as base_command
-    return patched(vars(base_command), {'PackageFinder': FasterPackageFinder})
+    return patched(vars(base_command), {"PackageFinder": FasterPackageFinder})
 
 
 def pipfaster_download_cacher(index_urls):
@@ -470,9 +480,10 @@ def pipfaster_download_cacher(index_urls):
     cache
     """
     from pip._internal import download
+
     orig = download._download_http_url
     patched_fn = get_patched_download_http_url(orig, index_urls)
-    return patched(vars(download), {'_download_http_url': patched_fn})
+    return patched(vars(download), {"_download_http_url": patched_fn})
 
 
 def main():
@@ -481,5 +492,5 @@ def main():
             raise_on_failure(pipmodule._internal.main)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(main())
