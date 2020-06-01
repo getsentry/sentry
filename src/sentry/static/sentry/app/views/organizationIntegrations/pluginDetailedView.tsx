@@ -147,7 +147,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       );
     }
 
-    return this.renderRequestIntegrationButton(this.plugin);
+    return this.renderRequestIntegrationButton();
   }
 
   renderConfigurations() {

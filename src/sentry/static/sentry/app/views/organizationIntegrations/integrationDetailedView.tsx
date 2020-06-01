@@ -198,7 +198,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       );
     }
 
-    return this.renderRequestIntegrationButton(provider);
+    return this.renderRequestIntegrationButton();
   }
 
   renderConfigurations() {

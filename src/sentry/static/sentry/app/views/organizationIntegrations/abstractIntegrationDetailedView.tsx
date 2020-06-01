@@ -239,12 +239,12 @@ class AbstractIntegrationDetailedView<
     return getCategories(this.featureData);
   }
 
-  renderRequestIntegrationButton(provider) {
+  renderRequestIntegrationButton() {
     return (
       <RequestIntegrationButton
         organization={this.props.organization}
-        name={provider.name}
-        slug={provider.slug}
+        name={this.integrationName}
+        slug={this.integrationSlug}
         type={this.integrationType}
       />
     );

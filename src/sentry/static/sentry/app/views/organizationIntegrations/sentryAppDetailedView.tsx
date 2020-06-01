@@ -272,7 +272,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       );
     }
 
-    return this.renderRequestIntegrationButton(this.sentryApp);
+    return this.renderRequestIntegrationButton();
   }
 
   //no configurations for sentry apps
