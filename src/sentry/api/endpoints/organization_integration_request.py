@@ -51,13 +51,13 @@ def get_provider_name(provider_type, provider_slug):
     """
     try:
         if provider_type == "first_party":
-            return integrations.get(provider_slug).name,
+            return integrations.get(provider_slug).name
         elif provider_type == "plugin":
             return plugins.get(provider_slug).title
         elif provider_type == "sentry_app":
             return SentryApp.objects.get(slug=provider_slug).name
         else:
-            raise ValueError(u"Invalid provider_type {}".format(provider_type))
+            raise ValueError(u"Invalid providerType {}".format(provider_type))
     except (KeyError, SentryApp.DoesNotExist):
         raise Exception(u"Provider {} not found".format(provider_slug))
 

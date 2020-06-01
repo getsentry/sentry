@@ -40,8 +40,8 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
     this.api.request(endpoint, {
       method: 'POST',
       data: {
-        provider_slug: slug,
-        provider_type: type,
+        providerSlug: slug,
+        providerType: type,
         message,
       },
       success: this.handleSubmitSuccess,
