@@ -17,7 +17,7 @@ async function main() {
     configFile: '.eslintrc.relax.js',
   });
 
-  const numWorkers = Math.max(cpus().length - 1, 1);
+  const numWorkers = Math.max(cpus().length - 1, 4);
   const eslintWorker = new Worker(require.resolve('../scripts/eslint-worker.js'), {
     numWorkers,
     setupArgs: [extensions],
