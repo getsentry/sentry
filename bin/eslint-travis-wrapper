@@ -2,6 +2,8 @@
 /* eslint no-console:0 import/no-nodejs-modules:0 */
 /* global process */
 const fs = require('fs');
+const {cpus} = require('os');
+
 const CLIEngine = require('eslint').CLIEngine;
 const Worker = require('jest-worker').default;
 
@@ -11,19 +13,24 @@ async function main() {
 
   const cli = new CLIEngine({
     fix: false,
-    extensions: extensions,
+    extensions,
     configFile: '.eslintrc.relax.js',
   });
 
+  const numWorkers = Math.max(cpus().length - 1, 1);
   const eslintWorker = new Worker(require.resolve('../scripts/eslint-worker.js'), {
-    numWorkers: 4,
+    numWorkers,
     setupArgs: [extensions],
     enableWorkerThreads: true,
   });
 
-  const reports = await Promise.all(
-    argv.slice(3).map(filename => eslintWorker.lintFile(filename))
-  );
+  const chunks = [];
+  const chunkSize = Math.ceil((argv.length - 3) / numWorkers);
+  for (const i = 3; i < argv.length; i += chunkSize) {
+    chunks.push(eslintWorker.lintFiles(argv.slice(i, i + chunkSize)));
+  }
+
+  const reports = await Promise.all(chunks);
   const terminator = eslintWorker.end();
   const results = [].concat(...reports.map(report => report.results));
 
