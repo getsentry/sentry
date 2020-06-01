@@ -151,12 +151,19 @@ jobs:
             pip install -U -e ".[dev]"
             psql -c 'create database sentry;' -h localhost -U postgres
 
+        - name: Get readable instance number
+          id: instance-number
+          env:
+            NUM: ${{ matrix.instance }}
+          run: |
+            echo "::set-output name=number::$(($NUM+200))"
+
         # - name: Build platform assets
           # run: |
             # sentry init
             # make build-platform-assets
 
-        - name: Backend with migrations [Postgres] (#${{ matrix.instance + 1 }})
+        - name: Backend with migrations [Postgres] (#${{ steps.instance-number.outputs.number }}/${{ strategy.jobs-total }})
           if: always()
           run: |
             make travis-test-postgres
