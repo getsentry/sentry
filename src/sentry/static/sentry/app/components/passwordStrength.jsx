@@ -37,7 +37,7 @@ class PasswordStrength extends React.Component {
 
   static defaultProps = {
     labels: ['Very Weak', 'Very Weak', 'Weak', 'Strong', 'Very Strong'],
-    colors: [theme.red, theme.red, theme.yellow, theme.green, theme.green],
+    colors: [theme.red, theme.red, theme.yellow, theme.green400, theme.green400],
   };
 
   render() {
@@ -90,7 +90,7 @@ const StrengthProgress = styled('div')`
 const StrengthLabel = styled('div')`
   font-size: 0.8em;
   margin-top: 2px;
-  color: ${theme.gray3};
+  color: ${theme.gray600};
 `;
 
 const ScoreText = styled('strong')`

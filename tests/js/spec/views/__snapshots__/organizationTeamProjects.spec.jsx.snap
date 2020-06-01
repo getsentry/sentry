@@ -544,13 +544,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 src="icon-star-small-filled"
                               >
                                 <ForwardRef
-                                  className="enngb6z1 css-lulb5m-InlineSvg-Star-BookmarkLink ez1a7zv0"
+                                  className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                   isBookmarked={false}
                                   onClick={[Function]}
                                   src="icon-star-small-filled"
                                 >
                                   <svg
-                                    className="enngb6z1 css-lulb5m-InlineSvg-Star-BookmarkLink ez1a7zv0"
+                                    className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                     height="1em"
                                     onClick={[Function]}
                                     viewBox={Object {}}
@@ -906,13 +906,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 src="icon-star-small-filled"
                               >
                                 <ForwardRef
-                                  className="enngb6z1 css-lulb5m-InlineSvg-Star-BookmarkLink ez1a7zv0"
+                                  className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                   isBookmarked={false}
                                   onClick={[Function]}
                                   src="icon-star-small-filled"
                                 >
                                   <svg
-                                    className="enngb6z1 css-lulb5m-InlineSvg-Star-BookmarkLink ez1a7zv0"
+                                    className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
                                     height="1em"
                                     onClick={[Function]}
                                     viewBox={Object {}}

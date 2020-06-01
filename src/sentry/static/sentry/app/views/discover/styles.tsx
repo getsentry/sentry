@@ -96,7 +96,7 @@ export const DocsSeparator = styled('div')`
 export const DocsLink = styled(ExternalLink)`
   color: ${p => p.theme.gray700};
   &:hover {
-    color: ${p => p.theme.blue};
+    color: ${p => p.theme.blue400};
   }
 `;
 

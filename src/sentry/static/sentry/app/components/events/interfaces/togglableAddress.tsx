@@ -111,7 +111,7 @@ const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
     if (p.isFoundByStackScanning) {
       return `1px dashed ${p.theme.red}`;
     } else if (p.isInlineFrame) {
-      return `1px dashed ${p.theme.blue}`;
+      return `1px dashed ${p.theme.blue400}`;
     } else {
       return 'none';
     }

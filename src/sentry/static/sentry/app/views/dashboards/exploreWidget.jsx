@@ -205,7 +205,7 @@ const ExploreButton = styled(props => {
   return <UnstyledButton {...remaining} />;
 })`
   position: relative;
-  color: ${p => (p.isOpen ? p.theme.purple : p.theme.gray2)};
+  color: ${p => (p.isOpen ? p.theme.purple : p.theme.gray500)};
   padding: ${space(1)} ${space(2)};
   border-radius: 0 0 ${p => p.theme.borderRadius} 0;
   ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};

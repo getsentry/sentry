@@ -122,7 +122,7 @@ const Title = styled('div')`
     font-size: 14px;
     font-style: normal;
     font-weight: 300;
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
   }
 `;
 
@@ -132,7 +132,7 @@ const LocationWrapper = styled('div')`
   direction: rtl;
   text-align: left;
   font-size: 14px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   span {
     direction: ltr;
   }
@@ -180,7 +180,7 @@ const GroupLevel = styled('div')`
       case 'sample':
         return p.theme.purple;
       case 'info':
-        return p.theme.blue;
+        return p.theme.blue400;
       case 'warning':
         return p.theme.yellowOrange;
       case 'error':
@@ -188,7 +188,7 @@ const GroupLevel = styled('div')`
       case 'fatal':
         return p.theme.red;
       default:
-        return p.theme.gray2;
+        return p.theme.gray500;
     }
   }};
 

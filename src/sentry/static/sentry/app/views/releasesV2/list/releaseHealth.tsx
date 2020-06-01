@@ -133,7 +133,7 @@ const ReleaseHealth = ({
                             size={20}
                             thickness={5}
                             radius={0}
-                            palette={Array(10).fill(theme.green)}
+                            palette={Array(10).fill(theme.green400)}
                           />
                         </Tooltip>
                         <TextOverflow>

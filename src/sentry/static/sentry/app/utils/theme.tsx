@@ -145,19 +145,19 @@ const alert = {
     border: colors.gray400,
   },
   info: {
-    backgroundLight: colors.blueLightest,
-    border: colors.blueLight,
-    iconColor: colors.blue,
-    background: colors.blue,
+    backgroundLight: colors.blue100,
+    border: colors.blue300,
+    iconColor: colors.blue400,
+    background: colors.blue400,
   },
   warning,
   //alias warn to warning
   warn: warning,
   success: {
-    backgroundLight: colors.greenLightest,
-    border: colors.green,
-    iconColor: colors.greenDark,
-    background: colors.green,
+    backgroundLight: colors.green100,
+    border: colors.green400,
+    iconColor: colors.green500,
+    background: colors.green400,
   },
   error: {
     backgroundLight: colors.redLightest,
@@ -178,14 +178,14 @@ const badge = {
     indicatorColor: colors.purple,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green}, ${colors.greenDark})`,
-    indicatorColor: colors.green,
+    background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
+    indicatorColor: colors.green400,
   },
 };
 
 const aliases = {
   textColor: colors.gray800,
-  success: colors.green,
+  success: colors.green400,
   error: colors.red,
   disabled: colors.gray400,
 } as const;
@@ -219,10 +219,10 @@ const button = {
     color: colors.white,
     colorActive: colors.white,
     background: '#3fa372',
-    backgroundActive: colors.green,
+    backgroundActive: colors.green400,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green)
+    focusShadow: color(colors.green400)
       .alpha(0.5)
       .string(),
   },
@@ -238,8 +238,8 @@ const button = {
       .string(),
   },
   link: {
-    color: colors.blue,
-    colorActive: colors.blue,
+    color: colors.blue400,
+    colorActive: colors.blue400,
     background: 'transparent',
     border: false,
     borderActive: false,

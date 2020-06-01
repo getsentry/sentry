@@ -29,8 +29,6 @@ class TestAlertRuleSerializer(TestCase):
             "dataset": QueryDatasets.EVENTS.value,
             "query": "level:error",
             "threshold_type": 0,
-            "resolve_threshold": 1,
-            "alert_threshold": 0,
             "aggregate": "count()",
             "threshold_period": 1,
             "projects": [self.project.slug],
@@ -128,27 +126,22 @@ class TestAlertRuleSerializer(TestCase):
     def test_aggregate(self):
         self.run_fail_validation_test(
             {"aggregate": "what()"},
-            {"nonFieldErrors": ["Invalid Query or Aggregate: what() is not a valid function"]},
+            {"aggregate": ["Invalid Metric: what() is not a valid function"]},
         )
         self.run_fail_validation_test(
             {"aggregate": "what"},
-            {"nonFieldErrors": ["Invalid Aggregate: Please pass a valid function for aggregation"]},
+            {"nonFieldErrors": ["Invalid Metric: Please pass a valid function for aggregation"]},
         )
         self.run_fail_validation_test(
             {"aggregate": "123"},
-            {"nonFieldErrors": ["Invalid Aggregate: Please pass a valid function for aggregation"]},
+            {"nonFieldErrors": ["Invalid Metric: Please pass a valid function for aggregation"]},
         )
         self.run_fail_validation_test(
             {"aggregate": "count_unique(123, hello)"},
-            {
-                "nonFieldErrors": [
-                    "Invalid Query or Aggregate: count_unique(123, hello): expected 1 arguments"
-                ]
-            },
+            {"aggregate": ["Invalid Metric: count_unique(123, hello): expected 1 arguments"]},
         )
         self.run_fail_validation_test(
-            {"aggregate": "max()"},
-            {"nonFieldErrors": ["Invalid Query or Aggregate: max(): expected 1 arguments"]},
+            {"aggregate": "max()"}, {"aggregate": ["Invalid Metric: max(): expected 1 arguments"]},
         )
         aggregate = "count_unique(tags[sentry:user])"
         base_params = self.valid_params.copy()
@@ -165,14 +158,27 @@ class TestAlertRuleSerializer(TestCase):
         assert alert_rule.snuba_query.dataset == QueryDatasets.TRANSACTIONS.value
         assert alert_rule.snuba_query.aggregate == "count()"
 
+    def test_decimal(self):
+        params = self.valid_transaction_params.copy()
+        alert_threshold = 0.8
+        resolve_threshold = 0.7
+        params["triggers"][0]["alertThreshold"] = alert_threshold
+        params["triggers"][0]["resolveThreshold"] = resolve_threshold
+        # Drop off the warning trigger
+        params["triggers"].pop()
+        serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        trigger = alert_rule.alertruletrigger_set.filter(label="critical").get()
+        assert trigger.alert_threshold == alert_threshold
+        assert trigger.resolve_threshold == resolve_threshold
+
     def test_simple_below_threshold(self):
         payload = {
             "name": "hello_im_a_test",
             "time_window": 10,
             "query": "level:error",
             "threshold_type": 0,
-            "resolve_threshold": 1,
-            "alert_threshold": 0,
             "aggregate": "count()",
             "threshold_period": 1,
             "projects": [self.project.slug],
@@ -292,6 +298,32 @@ class TestAlertRuleSerializer(TestCase):
             AlertRuleTriggerAction.objects.filter(integration=integration)
         )
         assert len(alert_rule_trigger_actions) == 0
+
+    def test_valid_metric_field(self):
+        base_params = self.valid_params.copy()
+        base_params.update({"name": "Aun1qu3n4m3", "aggregate": "count_unique(user)"})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        assert serializer.is_valid()
+        serializer.save()
+        assert len(list(AlertRule.objects.filter(name="Aun1qu3n4m3"))) == 1
+        alert_rule = AlertRule.objects.filter(name="Aun1qu3n4m3").first()
+        assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
+
+    def test_invalid_metric_field(self):
+        self.run_fail_validation_test(
+            {"name": "Aun1qu3n4m3", "aggregate": "percentile(transaction.length,0.5)"},
+            {
+                "aggregate": [
+                    "Invalid Metric: percentile(transaction.length,0.5): column argument invalid: transaction.length is not a valid column"
+                ]
+            },
+        )
+
+    def test_unsupported_metric_field(self):
+        self.run_fail_validation_test(
+            {"name": "Aun1qu3n4m3", "aggregate": "count_unique(stack.filename)"},
+            {"aggregate": ["Invalid Metric: We do not currently support this field."]},
+        )
 
 
 class TestAlertRuleTriggerSerializer(TestCase):
