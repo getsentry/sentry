@@ -5,6 +5,7 @@ import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
 import fromEntries from 'object.fromentries';
+
 import ConfigStore from 'app/stores/configStore';
 
 import {loadFixtures} from './sentry-test/loadFixtures';
