@@ -238,6 +238,7 @@ describe('getExpandedResults()', function() {
         {field: 'p99()'},
         {field: 'p100()'},
         {field: 'p9001()'}, // it's over 9000
+        {field: 'foobar()'}, // unknown function with no parameter
         {field: 'custom_tag'},
         {field: 'title'}, // not expected to be dropped
         {field: 'unique_count(id)'},

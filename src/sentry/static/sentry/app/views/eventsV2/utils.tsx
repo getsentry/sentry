@@ -268,6 +268,13 @@ export function getExpandedResults(
       if (exploded.function[0] === 'count') {
         field = 'id';
       }
+
+      if (!field) {
+        // This is a function with no field alias. We delete this column as it'll add a blank column in the drilldown.
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
       transformedFields.add(field);
 
       const updatedColumn: Column = {
