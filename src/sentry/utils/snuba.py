@@ -718,6 +718,7 @@ def resolve_column(dataset):
 
         if col in DATASETS[dataset]:
             return DATASETS[dataset][col]
+
         return u"tags[{}]".format(col)
 
     return _resolve_column
