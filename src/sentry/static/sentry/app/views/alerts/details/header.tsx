@@ -51,7 +51,7 @@ export default class DetailsHeader extends React.Component<Props> {
       >
         <StatusMenuItem onSelect={onStatusChange}>
           <IconCheckmark color="green400" />
-          {t('Resolve')}
+          {t('Resolved')}
         </StatusMenuItem>
       </DropdownControl>
     );
@@ -250,11 +250,12 @@ const IncidentSubTitle = styled('div', {
 
 const StatusMenuItem = styled(MenuItem)`
   > span {
+    padding: ${space(0.5)} ${space(1.5)};
     font-size: ${p => p.theme.fontSizeMedium};
     text-align: left;
     display: grid;
     grid-template-columns: max-content 1fr;
-    grid-gap: ${space(0.5)};
+    grid-gap: ${space(0.75)};
     align-items: center;
   }
 `;
