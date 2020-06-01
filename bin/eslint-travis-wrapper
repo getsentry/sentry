@@ -26,7 +26,7 @@ async function main() {
 
   const chunks = [];
   const chunkSize = Math.ceil((argv.length - 3) / numWorkers);
-  for (const i = 3; i < argv.length; i += chunkSize) {
+  for (let i = 3; i < argv.length; i += chunkSize) {
     chunks.push(eslintWorker.lintFiles(argv.slice(i, i + chunkSize)));
   }
 
