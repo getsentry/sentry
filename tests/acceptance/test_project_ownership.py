@@ -7,6 +7,7 @@ class ProjectOwnershipTest(AcceptanceTestCase):
     def setUp(self):
         super(ProjectOwnershipTest, self).setUp()
         self.login_as(self.user)
+        self.dismiss_assistant("discover_sidebar")
         self.path = u"/settings/{}/projects/{}/ownership/".format(
             self.organization.slug, self.project.slug
         )

@@ -109,9 +109,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_groupid_filter_invalid_value(self):
         url = "%s?group=not-a-number" % (self.url,)
-        response = self.client.get(url, format="json")
+        with self.feature({"organizations:discover-basic": False}):
+            response = self.client.get(url, format="json")
 
-        assert response.status_code == 400, response.content
+            assert response.status_code == 400, response.content
 
     def test_user_count(self):
         self.store_event(

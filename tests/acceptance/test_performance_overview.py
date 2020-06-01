@@ -47,7 +47,7 @@ class PerformanceOverviewTest(AcceptanceTestCase):
         self.path = u"/organizations/{}/performance/".format(self.org.slug)
 
         self.page = BasePage(self.browser)
-        self.dismiss_assistant()
+        self.dismiss_assistant("discover_sidebar")
 
     @patch("django.utils.timezone.now")
     def test_onboarding(self, mock_now):

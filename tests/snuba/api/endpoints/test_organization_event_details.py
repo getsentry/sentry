@@ -170,17 +170,18 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["oldestEventID"] == format_project_event(self.project.slug, "a" * 32)
 
     def test_no_access_missing_feature(self):
-        url = reverse(
-            "sentry-api-0-organization-event-details",
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-                "event_id": "a" * 32,
-            },
-        )
+        with self.feature({"organizations:discover-basic": False}):
+            url = reverse(
+                "sentry-api-0-organization-event-details",
+                kwargs={
+                    "organization_slug": self.project.organization.slug,
+                    "project_slug": self.project.slug,
+                    "event_id": "a" * 32,
+                },
+            )
 
-        response = self.client.get(url, format="json")
-        assert response.status_code == 404, response.content
+            response = self.client.get(url, format="json")
+            assert response.status_code == 404, response.content
 
     def test_access_non_member_project(self):
         # Add a new user to a project and then access events on project they are not part of.
