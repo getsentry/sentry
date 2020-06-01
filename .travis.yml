@@ -195,12 +195,12 @@ matrix:
         # see the note in bin/scan on why this needs to be done for now.
         # Note that this will mostly noop because we pull in a cached venv from Travis.
         - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
+        # Sync the virtualenv, pruning away any dependencies we don't use.
+        # Travis likes to preinstall some stuff, like numpy, which has caused problems with safety scan in the past.
+        - echo $VIRTUAL_ENV
+        - which python
+        - make travis-venv-sync
         - pip install safety
-        # XXX: fun fact, as of April 2020 travis preinstalls numpy 1.15.4 in their 3.7 environments
-        # and the safety scanner won't like that (safety id 36810)
-        # Previously we had 36810 ignored in bin/scan until it was removed because it was fixed in
-        # travis 2.7. So this is isolated to at least travis 3.7.
-        - pip uninstall -y numpy
         - bin/scan
 
     - <<: *postgres_default

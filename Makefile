@@ -261,3 +261,19 @@ travis-test-js-build: test-js-build
 travis-test-cli: test-cli
 travis-test-plugins: test-plugins
 travis-test-relay-integration: test-relay-integration
+
+.PHONY: travis-venv-sync
+travis-venv-sync: ./bin/venv-update requirements-base.txt
+	./bin/venv-update \
+		install= -r requirements-base.txt \
+		pip-command= ./bin/pip-faster install --upgrade --prune
+
+.PHONY: venv-sync-dev
+# Note: this is a WIP if you'd like to use it, which is why it's shoved all the way down here.
+# Bad things:
+#   - pre-commit is pruned
+venv-sync-dev: ./bin/venv-update requirements-base.txt requirements-dev.txt
+	./bin/venv-update \
+		venv= -ppython ./.venv \
+		install= -r requirements-base.txt -r requirements-dev.txt \
+		pip-command= ./bin/pip-faster install --upgrade --prune
