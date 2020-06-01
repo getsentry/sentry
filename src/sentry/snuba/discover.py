@@ -216,9 +216,9 @@ def find_histogram_buckets(field, params, conditions):
 
     # Determine the first bucket that will show up in our results so that we can
     # zerofill correctly.
-    offset = floor(bucket_min / bucket_size) * bucket_size
+    offset = int(floor(bucket_min / bucket_size) * bucket_size)
 
-    return "histogram({}, {:g}, {:g}, {:g})".format(column, num_buckets, bucket_size, offset)
+    return "histogram({}, {:g}, {:.0f}, {:.0f})".format(column, num_buckets, bucket_size, offset)
 
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
