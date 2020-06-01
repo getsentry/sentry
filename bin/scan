@@ -18,6 +18,9 @@ ignored=(
     # Arbitrary code execution in full_load/SafeLoader - doesn't apply to us.
     38100
 
+    # Pipenv is complaining. We don't use it and it comes with travis by default.
+    38334
+
     # LOW priority: djangorestframework
     # XXX: This is... unfortunately not present in safety's db right now. It is in synk though:
     # https://snyk.io/vuln/SNYK-PYTHON-DJANGORESTFRAMEWORK-450194
