@@ -520,6 +520,16 @@ export class IntegrationListDirectory extends AsyncComponent<
                   {tct('No Integrations found for "[searchTerm]".', {
                     searchTerm: searchInput,
                   })}
+                  <p style={{fontWeight: 'bold'}}>
+                    {t("Not seeing what you're looking for?")}
+                  </p>
+                  <p>
+                    {tct('[link:Build it on the Sentry Integration Platform.]', {
+                      link: (
+                        <a href="https://docs.sentry.io/workflow/integrations/integration-platform/" />
+                      ),
+                    })}
+                  </p>
                 </EmptyResultsBody>
               </EmptyResultsContainer>
             )}
