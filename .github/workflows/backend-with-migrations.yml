@@ -35,7 +35,7 @@ jobs:
       services:
         clickhouse:
           image: yandex/clickhouse-server:19.11
-          options: --ulimit nofile=262144:262144
+          options: --ulimit nofile=262144:262144 --name sentry_clickhouse
           ports:
             - 9000:9000
 
@@ -48,6 +48,7 @@ jobs:
             CLICKHOUSE_PORT: 9000
           ports:
             - 1218:1218
+          options: --name sentry_snuba
 
         redis:
           image: redis:5.0-alpine
@@ -78,6 +79,7 @@ jobs:
           image: confluentinc/cp-zookeeper:4.1.0
           env:
             ZOOKEEPER_CLIENT_PORT: 2181
+          options: --name sentry_zookeeper
 
         kafka:
           image: confluentinc/cp-kafka:5.1.2
@@ -88,6 +90,7 @@ jobs:
             KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
             KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
             KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          options: --name sentry_kafka
 
       steps:
         # Checkout codebase
