@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 const SearchResultWrapper = styled(props => <div {...omit(props, 'highlighted')} />)`
   cursor: pointer;
   display: block;
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   padding: 10px;
 
   ${p =>
