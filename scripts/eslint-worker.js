@@ -14,8 +14,8 @@ function setup(extensions) {
 
 // Lint all files
 
-function lintFiles(filename) {
+function lintFile(filename) {
   return cli.executeOnFiles([filename]);
 }
 
-module.exports = {setup, lintFiles};
+module.exports = {setup, lintFile};
