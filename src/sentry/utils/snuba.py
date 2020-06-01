@@ -846,7 +846,7 @@ def resolve_complex_column(col, resolve_column):
 
     for i in range(len(args)):
         if isinstance(args[i], (list, tuple)):
-            resolve_complex_column(args[i])
+            resolve_complex_column(args[i], resolve_column)
         elif isinstance(args[i], six.string_types):
             args[i] = resolve_column(args[i])
 
