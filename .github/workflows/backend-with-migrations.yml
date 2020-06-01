@@ -147,19 +147,19 @@ jobs:
           env:
             NUM: ${{ matrix.instance }}
           run: |
-            echo "::set-output name=number::$(($NUM+200))"
+            echo "::set-output name=number::$(($NUM+1))"
 
         # - name: Build platform assets
           # run: |
             # sentry init
             # make build-platform-assets
 
-        - name: Backend with migrations [Postgres] (#${{ steps.instance-number.outputs.number }}/${{ strategy.jobs-total }})
+        - name: Backend with migrations [Postgres] (#${{ steps.instance-number.outputs.number }}/${{ strategy.job-total }})
           if: always()
           run: |
             make travis-test-postgres
           env:
             DB: postgres
-            TOTAL_TEST_GROUPS: ${{ strategy.jobs-total }}
+            TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
             TEST_GROUP: ${{ matrix.instance }}
             MIGRATIONS_TEST_MIGRATE: 1
