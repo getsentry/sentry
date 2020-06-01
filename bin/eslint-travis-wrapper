@@ -25,13 +25,9 @@ async function main() {
   });
 
   console.log(`Linting ${argv.length - 3} files in ${numWorkers} processes...`);
-  const chunks = [];
-  const chunkSize = Math.ceil((argv.length - 3) / numWorkers);
-  for (let i = 3; i < argv.length; i += chunkSize) {
-    chunks.push(eslintWorker.lintFiles(argv.slice(i, i + chunkSize)));
-  }
-
-  const reports = await Promise.all(chunks);
+  const reports = await Promise.all(
+    argv.slice(3).map(filename => eslintWorker.lintFile(filename))
+  );
   const terminator = eslintWorker.end();
 
   console.log(`Done linting, merging results...`);
