@@ -11,6 +11,8 @@ from django.conf import settings
 from django.db.models import Min, Q
 from django.utils import timezone
 
+import sentry_sdk
+
 from sentry import tagstore, tsdb
 from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
@@ -408,7 +410,8 @@ class GroupSerializerBase(Serializer):
             or is_valid_sentryapp
             or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
         ):
-            return obj.get_absolute_url()
+            with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+                return obj.get_absolute_url()
         else:
             return None
 
