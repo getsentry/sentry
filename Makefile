@@ -265,6 +265,7 @@ travis-test-relay-integration: test-relay-integration
 .PHONY: travis-venv-sync
 travis-venv-sync: ./bin/venv-update requirements-base.txt
 	./bin/venv-update \
+		venv= -ppython $$VIRTUAL_ENV \
 		install= -r requirements-base.txt \
 		pip-command= ./bin/pip-faster install --upgrade --prune
 
@@ -274,6 +275,6 @@ travis-venv-sync: ./bin/venv-update requirements-base.txt
 #   - pre-commit is pruned
 venv-sync-dev: ./bin/venv-update requirements-base.txt requirements-dev.txt
 	./bin/venv-update \
-		venv= -ppython ./.venv \
+		venv= -ppython $$VIRTUAL_ENV \
 		install= -r requirements-base.txt -r requirements-dev.txt \
 		pip-command= ./bin/pip-faster install --upgrade --prune

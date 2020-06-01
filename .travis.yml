@@ -197,8 +197,6 @@ matrix:
         - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install -e .
         # Sync the virtualenv, pruning away any dependencies we don't use.
         # Travis likes to preinstall some stuff, like numpy, which has caused problems with safety scan in the past.
-        - echo $VIRTUAL_ENV
-        - which python
         - make travis-venv-sync
         - pip install safety
         - bin/scan
