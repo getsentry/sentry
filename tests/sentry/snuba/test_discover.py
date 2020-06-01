@@ -1574,6 +1574,34 @@ class QueryTransformTest(TestCase):
         assert results["data"][0]["histogram_transaction_duration_10"] == 869
         assert results["data"][0]["count"] == 1
 
+    @patch("sentry.snuba.discover.raw_query")
+    def test_histogram_enormous_max(self, mock_query):
+        mock_query.side_effect = [
+            {"data": [{"max_transaction.duration": 64733000000, "min_transaction.duration": 1}]},
+            {
+                "meta": [
+                    {"name": "histogram_transaction_duration_10_6473300000_0"},
+                    {"name": "count"},
+                ],
+                "data": [
+                    {"histogram_transaction_duration_10_6473300000_0": 64733000000, "count": 1}
+                ],
+            },
+        ]
+
+        results = discover.query(
+            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            query="",
+            params={"project_id": [self.project.id]},
+            orderby="histogram_transaction_duration_10",
+            auto_fields=True,
+            use_aggregate_conditions=False,
+        )
+
+        assert len(results["data"]) == 11
+        assert results["data"][-1]["histogram_transaction_duration_10"] == 64733000000
+        assert results["data"][-1]["count"] == 1
+
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def setUp(self):
