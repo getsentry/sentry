@@ -272,7 +272,7 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
     return new_results
 
 
-def resolve_column(col, *args, **kwargs):
+def resolve_column(col):
     """
     Used as a column resolver in discover queries.
 
