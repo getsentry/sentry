@@ -10,19 +10,23 @@ import {Incident, IncidentStatus} from './types';
 type Props = {
   className?: string;
   incident: Incident;
+  /**
+   * Use inherited color for icons
+   */
+  disableIconColor?: boolean;
 };
 
-const Status = ({className, incident}: Props) => {
+const Status = ({className, incident, disableIconColor}: Props) => {
   const {status} = incident;
   const isResolved = status === IncidentStatus.CLOSED;
   const isWarning = status === IncidentStatus.WARNING;
 
   const icon = isResolved ? (
-    <IconCheckmark color="green400" />
+    <IconCheckmark color={disableIconColor ? undefined : 'green400'} />
   ) : isWarning ? (
-    <IconWarning color="orange400" />
+    <IconWarning color={disableIconColor ? undefined : 'orange400'} />
   ) : (
-    <IconFire color="red400" />
+    <IconFire color={disableIconColor ? undefined : 'red400'} />
   );
 
   const text = isResolved ? t('Resolved') : isWarning ? t('Warning') : t('Critical');
