@@ -719,7 +719,7 @@ def resolve_condition(cond, column_resolver):
     """
     When conditions have been parsed by the api.event_search module
     we can end up with conditions that are not valid on the current dataset
-    due to how ap.event_search checks for valid field names without
+    due to how api.event_search checks for valid field names without
     being aware of the dataset.
 
     We have the dataset context here, so we need to re-scope conditions to the
@@ -836,6 +836,86 @@ def aliased_query(
         orderby=orderby,
         **kwargs
     )
+
+
+# TODO (evanh) Since we are assuming that all string values are columns,
+# this will get tricky if we ever have complex columns where there are
+# string arguments to the functions that aren't columns
+def resolve_complex_column(col, resolve_column):
+    args = col[1]
+
+    for i in range(len(args)):
+        if isinstance(args[i], (list, tuple)):
+            resolve_complex_column(args[i])
+        elif isinstance(args[i], six.string_types):
+            args[i] = resolve_column(args[i])
+
+
+def resolve_snuba_aliases(snuba_filter, resolve_column, function_translations=None):
+    resolved = snuba_filter.clone()
+    translated_columns = {}
+    derived_columns = set()
+    if function_translations:
+        for snuba_name, sentry_name in six.iteritems(function_translations):
+            derived_columns.add(snuba_name)
+            translated_columns[snuba_name] = sentry_name
+
+    selected_columns = resolved.selected_columns
+    if selected_columns:
+        for (idx, col) in enumerate(selected_columns):
+            if isinstance(col, (list, tuple)):
+                resolve_complex_column(col, resolve_column)
+            else:
+                name = resolve_column(col)
+                selected_columns[idx] = name
+                translated_columns[name] = col
+
+        resolved.selected_columns = selected_columns
+
+    groupby = resolved.groupby
+    if groupby:
+        for (idx, col) in enumerate(groupby):
+            name = col
+            if isinstance(col, (list, tuple)):
+                if len(col) == 3:
+                    name = col[2]
+            elif col not in derived_columns:
+                name = resolve_column(col)
+
+            groupby[idx] = name
+        resolved.groupby = groupby
+
+    aggregations = resolved.aggregations
+    for aggregation in aggregations or []:
+        derived_columns.add(aggregation[2])
+        if isinstance(aggregation[1], six.string_types):
+            aggregation[1] = resolve_column(aggregation[1])
+        elif isinstance(aggregation[1], (set, tuple, list)):
+            aggregation[1] = [resolve_column(col) for col in aggregation[1]]
+    resolved.aggregations = aggregations
+
+    conditions = resolved.conditions
+    if conditions:
+        for (i, condition) in enumerate(conditions):
+            replacement = resolve_condition(condition, resolve_column)
+            conditions[i] = replacement
+        resolved.conditions = [c for c in conditions if c]
+
+    orderby = resolved.orderby
+    if orderby:
+        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+        resolved_orderby = []
+
+        for field_with_order in orderby:
+            field = field_with_order.lstrip("-")
+            resolved_orderby.append(
+                u"{}{}".format(
+                    "-" if field_with_order.startswith("-") else "",
+                    field if field in derived_columns else resolve_column(field),
+                )
+            )
+        resolved.orderby = resolved_orderby
+    return resolved, translated_columns
 
 
 JSON_TYPE_MAP = {
