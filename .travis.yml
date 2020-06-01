@@ -110,8 +110,8 @@ after_script:
       pip install -U codecov
       codecov -e TEST_SUITE
     fi
-  - yarn global add @zeus-ci/cli
-  - export PATH="$(yarn global bin):${PATH}"
+  - *install_volta
+  - volta install @zeus-ci/cli
   - zeus upload -t "text/xml+xunit" .artifacts/*junit.xml
   - zeus upload -t "text/xml+coverage" .artifacts/*coverage.xml
   - zeus upload -t "text/xml+coverage" .artifacts/coverage/cobertura-coverage.xml
