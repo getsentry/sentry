@@ -2,13 +2,13 @@ import React from 'react';
 
 import {chart, doZoom, mockZoomRange} from 'sentry-test/charts';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {EventsChart} from 'app/views/events/eventsChart';
+import {EventsChart} from 'app/components/charts/eventsChart';
 import * as globalSelection from 'app/actionCreators/globalSelection';
 
-jest.mock('app/views/events/utils/eventsRequest', () => jest.fn(() => null));
+jest.mock('app/components/charts/eventsRequest', () => jest.fn(() => null));
 jest.spyOn(globalSelection, 'updateDateTime');
 
 describe('EventsChart', function() {
@@ -19,7 +19,7 @@ describe('EventsChart', function() {
   beforeEach(function() {
     globalSelection.updateDateTime.mockClear();
     mockZoomRange(1543449600000, 1543708800000);
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <EventsChart
         api={new MockApiClient()}
         location={{query: {}}}

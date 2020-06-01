@@ -7,10 +7,10 @@ import isEqual from 'lodash/isEqual';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {Client} from 'app/api';
+import {EventsChart} from 'app/components/charts/eventsChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
-import {EventsChart} from 'app/views/events/eventsChart';
 import EventView from 'app/utils/discover/eventView';
 import {DisplayModes} from 'app/utils/discover/types';
 

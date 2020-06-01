@@ -4,9 +4,9 @@ import {mockZoomRange} from 'sentry-test/charts';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {EventsChart} from 'app/views/events/eventsChart';
+import {EventsChart} from 'app/components/charts/eventsChart';
 
-describe('EventsChart', function() {
+describe('EventsChart with legend', function() {
   const {router, routerContext, org} = initializeOrg();
   let wrapper;
 

@@ -13,8 +13,8 @@ import {Series, SeriesDataUnit} from 'app/types/echarts';
 import LoadingPanel from 'app/components/charts/loadingPanel';
 import {Client} from 'app/api';
 import {doEventsRequest} from 'app/actionCreators/events';
+import {canIncludePreviousPeriod} from 'app/components/charts/utils';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {canIncludePreviousPeriod} from 'app/views/events/utils/canIncludePreviousPeriod';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
