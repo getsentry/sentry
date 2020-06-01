@@ -783,7 +783,7 @@ class SnubaTestCase(BaseTestCase):
         super(SnubaTestCase, self).setUp()
         self.init_snuba()
 
-    def call_snuba(endpoint):
+    def call_snuba(self, endpoint):
         return requests.post(settings.SENTRY_SNUBA + endpoint).status_code
 
     def init_snuba(self):
