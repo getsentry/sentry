@@ -68,7 +68,7 @@ const getPublicFormFields = (): Field[] => [
     label: 'Schema',
     autosize: true,
     help: tct(
-      'Schema for your UI components. Click [schema_docs:here] for documentation',
+      'Schema for your UI components. Click [schema_docs:here] for documentation.',
       {
         schema_docs: (
           <a href="https://docs.sentry.io/workflow/integrations/integration-platform/ui-components/" />
