@@ -63,6 +63,7 @@ export const POPULARITY_WEIGHT: {
   netlify: 8,
   asayer: 8,
   rocketchat: 8,
+  bitbucket_release_pipe: 8,
 } as const;
 
 export const documentIntegrationList: DocumentIntegration[] = [
@@ -210,6 +211,31 @@ export const documentIntegrationList: DocumentIntegration[] = [
       {
         title: 'Report Issue',
         url: 'https://github.com/getsentry/sentry-netlify-build-plugin/issues',
+      },
+    ],
+  },
+  {
+    slug: 'bitbucket_release_pipe',
+    name: 'Bitbucket Release Pipe',
+    author: 'The Sentry Team',
+    docUrl:
+      'https://bitbucket.org/product/features/pipelines/integrations?p=sentryio/sentry-new-release',
+    description:
+      'Notify Sentry of any Bitbucket Pipelines builds to automatically manage releases and quickly surface any errors associated with a given build.  **Requirement:** Bitbucket source code integration must be installed for the release pipe to work.',
+    features: [
+      {
+        featureGate: 'release-management',
+        description: 'Notify Sentry of new releases being deployed.',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'View Source',
+        url: 'https://bitbucket.org/sentryio/sentry-new-release/src/master/',
+      },
+      {
+        title: 'Report Issue',
+        url: 'https://bitbucket.org/sentryio/sentry-new-release/issues',
       },
     ],
   },

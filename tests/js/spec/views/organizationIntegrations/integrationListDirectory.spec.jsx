@@ -47,7 +47,7 @@ describe('IntegrationListDirectory', function() {
     it('shows installed integrations at the top in order of weight', async function() {
       expect(wrapper.find('SearchBar').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
-      expect(wrapper.find('IntegrationRow')).toHaveLength(12);
+      expect(wrapper.find('IntegrationRow')).toHaveLength(13);
 
       [
         'bitbucket',
@@ -55,6 +55,7 @@ describe('IntegrationListDirectory', function() {
         'my-headband-washer-289499',
         'clickup',
         'asayer',
+        'bitbucket_release_pipe',
         'datadog',
         'fullstory',
         'msteams',
