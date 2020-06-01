@@ -5,7 +5,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
-import InputField from 'app/views/settings/components/forms/inputField';
+import TextareaField from 'app/views/settings/components/forms/textareaField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import {RequestIntegrationProps} from '.';
@@ -80,7 +80,7 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
               name
             )}
           </TextBlock>
-          <InputField
+          <TextareaField
             inline={false}
             flexibleControlStateSize
             stacked
