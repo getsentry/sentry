@@ -784,19 +784,16 @@ class SnubaTestCase(BaseTestCase):
         self.init_snuba()
 
     def call_snuba(endpoint):
-        return requests.post(settings.SENTRY_SNUBA + endpoint)
-
-    def ensure_successful_call(response):
-        assert response.status_code == 200
+        return requests.post(settings.SENTRY_SNUBA + endpoint).status_code
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
         executor = ThreadPool(4)
-        executor.map_async(
-            self.call_snuba, self.init_endpoints, callback=self.ensure_successful_call
-        )
+        response_codes = executor.map_async(self.call_snuba, self.init_endpoints)
         executor.close()
+        assert all(response_code == 200 for response_code in response_codes.get())
+        executor.join()
 
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
