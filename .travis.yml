@@ -64,7 +64,7 @@ base_install: &base_install |-
   [ "$TRAVIS_PULL_REQUEST" != "false" ] || export PYTEST_SENTRY_ALWAYS_REPORT=1
 
 install_volta: &install_volta |-
-  command -v volta && exit 0
+  command -v volta && return 0
   wget --quiet "https://github.com/volta-cli/volta/releases/download/v$VOLTA_VERSION/volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz"
   tar -xzf "volta-$VOLTA_VERSION-linux-openssl-1.0.tar.gz" -C "${HOME}/bin"
   # Running `volta -v` triggers setting up the shims in VOLTA_HOME (otherwise node won't work)
