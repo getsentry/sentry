@@ -2,8 +2,8 @@
 /* eslint no-console:0 import/no-nodejs-modules:0 */
 /* global process */
 const fs = require('fs');
-const {cpus} = require('os');
 
+const {cpus} = require('os');
 const CLIEngine = require('eslint').CLIEngine;
 const Worker = require('jest-worker').default;
 
@@ -24,6 +24,7 @@ async function main() {
     enableWorkerThreads: true,
   });
 
+  console.log(`Linting ${argv.length - 3} files in ${numWorkers} processes...`);
   const chunks = [];
   const chunkSize = Math.ceil((argv.length - 3) / numWorkers);
   for (let i = 3; i < argv.length; i += chunkSize) {
@@ -32,6 +33,9 @@ async function main() {
 
   const reports = await Promise.all(chunks);
   const terminator = eslintWorker.end();
+
+  console.log(`Done linting, merging results...`);
+
   const results = [].concat(...reports.map(report => report.results));
 
   // get the default formatter
