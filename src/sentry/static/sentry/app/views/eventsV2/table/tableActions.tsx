@@ -130,8 +130,8 @@ function HeaderActions(props: Props) {
     >
       {({hasFeature}) => (
         <React.Fragment>
-          {renderDownloadButton(hasFeature, props)}
           {renderEditButton(hasFeature, props)}
+          {renderDownloadButton(hasFeature, props)}
         </React.Fragment>
       )}
     </Feature>
