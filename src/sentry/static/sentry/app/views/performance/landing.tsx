@@ -122,9 +122,9 @@ class PerformanceLanding extends React.Component<Props, State> {
   getViewLabel(currentView: FilterViews): string {
     switch (currentView) {
       case FilterViews.ALL_TRANSACTIONS:
-        return t('All Transactions');
+        return t('By Transaction');
       case FilterViews.KEY_TRANSACTIONS:
-        return t('My Key Transactions');
+        return t('By Key Transaction');
       default:
         throw Error(`Unknown view: ${currentView}`);
     }

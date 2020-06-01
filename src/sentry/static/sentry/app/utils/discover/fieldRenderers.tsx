@@ -20,6 +20,7 @@ import theme from 'app/utils/theme';
 import {
   Container,
   EventId,
+  BarContainer,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
@@ -303,11 +304,11 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       }
     );
     return (
-      <NumberContainer>
-        <Tooltip title={title} disabled={false}>
-          <ScoreBar size={20} score={score} palette={palette} />
+      <BarContainer>
+        <Tooltip title={title} disabled={false} containerDisplayMode="block">
+          <ScoreBar size={20} score={score} palette={palette} radius={0} />
         </Tooltip>
-      </NumberContainer>
+      </BarContainer>
     );
   },
 };
