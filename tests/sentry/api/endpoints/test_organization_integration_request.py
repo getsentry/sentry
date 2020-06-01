@@ -45,10 +45,6 @@ class OrganizationIntegrationRequestTest(APITestCase):
         assert response.status_code == 400, response.content
 
     def test_integration_request_as_owner(self):
-        """
-        This is a little counter-intuitive. If the user has permissions to add
-        integrations, then they should NOT be able to hit this endpoint.
-        """
         self.login_as(user=self.owner)
         response = self.get_response(
             self.org.slug,
