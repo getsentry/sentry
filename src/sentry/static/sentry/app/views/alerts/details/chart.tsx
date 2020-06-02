@@ -68,6 +68,8 @@ type Props = {
   aggregate: string;
   detected: string;
   closed?: string;
+  seriesMarkLine: object;
+  options: object;
 };
 
 const Chart = (props: Props) => {
@@ -143,8 +145,10 @@ const Chart = (props: Props) => {
                 : []),
             ],
           }),
+          markLine: props.seriesMarkLine,
         },
       ]}
+      options={props.options}
     />
   );
 };

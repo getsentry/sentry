@@ -20,6 +20,8 @@ import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
 import {IconTelescope, IconWarning, IconLink} from 'app/icons';
 import {SectionHeading} from 'app/components/charts/styles';
+import MarkLine from 'app/components/charts/components/markLine';
+import VisualMap from 'app/components/charts/components/visualMap';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -187,6 +189,9 @@ export default class DetailsBody extends React.Component<Props> {
   render() {
     const {params, incident, stats} = this.props;
 
+    const criticalTrigger =
+      incident && incident.alertRule.triggers.find(trig => trig.label === 'critical');
+
     return (
       <StyledPageContent>
         {incident &&
@@ -210,6 +215,33 @@ export default class DetailsBody extends React.Component<Props> {
                   data={stats.eventStats.data}
                   detected={incident.dateDetected}
                   closed={incident.dateClosed}
+                  seriesMarkLine={MarkLine({
+                    silent: true,
+                    lineStyle: {
+                      normal: {
+                        color: theme.red300,
+                      },
+                    },
+                    data: [
+                      criticalTrigger && {
+                        yAxis: criticalTrigger.alertThreshold,
+                      },
+                    ].filter(Boolean),
+                  })}
+                  options={{
+                    visualMap: VisualMap({
+                      outOfRange: {
+                        color: '#4A4D7F',
+                      },
+                      pieces: [
+                        criticalTrigger && {
+                          min: criticalTrigger.alertThreshold,
+                          color: theme.red300,
+                        },
+                      ].filter(Boolean),
+                      show: false,
+                    }),
+                  }}
                 />
               ) : (
                 <Placeholder height="200px" />
