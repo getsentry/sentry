@@ -36,12 +36,12 @@ import backgroundSpace from '../../../images/spot/background-space.svg';
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
-  {label: t('Query Name'), value: 'name'},
+  {label: t('Recently Updated'), value: '-dateUpdated'},
   {label: t('My Queries'), value: 'myqueries'},
-  {label: t('Newest'), value: '-dateCreated'},
-  {label: t('Oldest'), value: 'dateCreated'},
-  {label: t('Recently updated'), value: '-dateUpdated'},
-  {label: t('Most outdated'), value: 'dateUpdated'},
+  {label: t('Query Name (A-Z)'), value: 'name'},
+  {label: t('Date Created (Newest)'), value: '-dateCreated'},
+  {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+  {label: t('Most Outdated'), value: 'dateUpdated'},
 ];
 
 function checkIsBannerHidden(): boolean {
