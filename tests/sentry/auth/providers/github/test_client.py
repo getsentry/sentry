@@ -1,32 +1,25 @@
 from __future__ import absolute_import
 
+import responses
+
 from sentry.testutils import TestCase
-from sentry.utils.compat.mock import patch
 
 from sentry.auth.providers.github.client import GitHubClient
+from sentry.auth.providers.github.constants import API_DOMAIN
 
 
-class MockReq:
-    def __init__(self, status_code=200, content=None):
-        self.status_code = status_code
-        self.content = content
-
-
-class MockHttp:
-    def __init__(self):
-        self.calledKwargs = {}
-
-    def get(self, *args, **kwargs):
-        self.calledKwargs = kwargs
-        return MockReq()
-
-
-@patch("sentry.utils.json.loads")
 class GitHubClientTest(TestCase):
-    def test_request_sends_client_id_and_secret(self, mock_loads):
+    @responses.activate
+    def test_request_sends_client_id_and_secret(self):
+
+        # headers = {"Authorization": "token {0}".format(access_token)}
+
+        responses.add(
+            responses.GET, "https://{0}/".format(API_DOMAIN), json={"status": "SUCCESS"}, status=200
+        )
+
         client = GitHubClient()
-        mock = MockHttp()
-        client.http = mock
         client._request("/", "accessToken")
 
-        assert mock.calledKwargs["headers"]["Authorization"] == "token accessToken"
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.headers["Authorization"] == "token accessToken"
