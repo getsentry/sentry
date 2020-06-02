@@ -30,15 +30,13 @@ class GitHubOAuth2Provider(OAuth2Provider):
                 client_id=self.client_id,
                 client_secret=self.client_secret,
             ),
-            FetchUser(client_id=self.client_id, client_secret=self.client_secret, org=self.org),
+            FetchUser(org=self.org),
             ConfirmEmail(),
         ]
 
     def get_setup_pipeline(self):
         pipeline = self.get_auth_pipeline()
-        pipeline.append(
-            SelectOrganization(client_id=self.client_id, client_secret=self.client_secret)
-        )
+        pipeline.append(SelectOrganization())
         return pipeline
 
     def get_refresh_token_url(self):
@@ -58,7 +56,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
         }
 
     def refresh_identity(self, auth_identity):
-        client = GitHubClient(self.client_id, self.client_secret)
+        client = GitHubClient()
         access_token = auth_identity.data["access_token"]
 
         try:

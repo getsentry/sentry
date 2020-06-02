@@ -24,7 +24,7 @@ class MockHttp:
 @patch("sentry.utils.json.loads")
 class GitHubClientTest(TestCase):
     def test_request_sends_client_id_and_secret(self, mock_loads):
-        client = GitHubClient("clientId", "clientSecret")
+        client = GitHubClient()
         mock = MockHttp()
         client.http = mock
         client._request("/", "accessToken")

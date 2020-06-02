@@ -26,9 +26,9 @@ def _get_name_from_email(email):
 
 
 class FetchUser(AuthView):
-    def __init__(self, client_id, client_secret, org=None, *args, **kwargs):
+    def __init__(self, org=None, *args, **kwargs):
         self.org = org
-        self.client = GitHubClient(client_id, client_secret)
+        self.client = GitHubClient()
         super(FetchUser, self).__init__(*args, **kwargs)
 
     def handle(self, request, helper):
@@ -114,8 +114,8 @@ class SelectOrganizationForm(forms.Form):
 
 
 class SelectOrganization(AuthView):
-    def __init__(self, client_id, client_secret, *args, **kwargs):
-        self.client = GitHubClient(client_id, client_secret)
+    def __init__(self, *args, **kwargs):
+        self.client = GitHubClient()
         super(SelectOrganization, self).__init__(*args, **kwargs)
 
     def handle(self, request, helper):
