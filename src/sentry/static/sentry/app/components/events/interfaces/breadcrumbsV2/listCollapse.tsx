@@ -17,14 +17,9 @@ type Props = {
 
 const ListCollapse = ({quantity, onClick, hasBeenExpanded, isScrolling}: Props) => {
   const renderDescription = () => {
-    if (isScrolling) {
-      return null;
-    }
-
     if (hasBeenExpanded) {
       return tct('Hide [quantity] expanded crumbs', {quantity});
     }
-
     return tct('Show [quantity] collapsed crumbs', {quantity});
   };
 
@@ -49,7 +44,7 @@ const ListCollapse = ({quantity, onClick, hasBeenExpanded, isScrolling}: Props) 
             <IconChevron size="xs" direction={hasBeenExpanded ? 'up' : 'down'} />
           )}
         </IconWrapper>
-        {renderDescription()}
+        {!isScrolling && renderDescription()}
       </Wrapper>
     </StyledGrid>
   );
