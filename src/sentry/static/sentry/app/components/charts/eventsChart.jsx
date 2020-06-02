@@ -9,9 +9,6 @@ import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
-import SentryTypes from 'app/sentryTypes';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
@@ -269,29 +266,4 @@ class EventsChart extends React.Component {
   }
 }
 
-const EventsChartContainer = withGlobalSelection(
-  withApi(
-    class EventsChartWithParams extends React.Component {
-      static propTypes = {
-        selection: SentryTypes.GlobalSelection,
-      };
-
-      render() {
-        const {selection, ...props} = this.props;
-        const {datetime, projects, environments} = selection;
-
-        return (
-          <EventsChart
-            {...datetime}
-            projects={projects || []}
-            environments={environments || []}
-            {...props}
-          />
-        );
-      }
-    }
-  )
-);
-
-export default EventsChartContainer;
-export {EventsChart};
+export default EventsChart;

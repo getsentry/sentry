@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {EventsChart} from 'app/components/charts/eventsChart';
+import EventsChart from 'app/components/charts/eventsChart';
 import * as globalSelection from 'app/actionCreators/globalSelection';
 
 jest.mock('app/components/charts/eventsRequest', () => jest.fn(() => null));

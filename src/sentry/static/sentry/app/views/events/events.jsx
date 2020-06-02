@@ -9,7 +9,6 @@ import {Panel} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import EventsChart from 'app/components/charts/eventsChart';
 import AsyncView from 'app/views/asyncView';
 import Feature from 'app/components/acl/feature';
 import Pagination from 'app/components/pagination';
@@ -19,6 +18,7 @@ import withOrganization from 'app/utils/withOrganization';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 import EventsTable from './eventsTable';
+import Chart from './chart';
 
 const parseRowFromLinks = (links, numRows) => {
   links = parseLinkHeader(links);
@@ -193,7 +193,7 @@ class Events extends AsyncView {
             true
           )}
         <Panel>
-          <EventsChart
+          <Chart
             router={router}
             query={location.query.query}
             organization={organization}
