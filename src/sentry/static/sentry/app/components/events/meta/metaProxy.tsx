@@ -1,6 +1,8 @@
 import isEmpty from 'lodash/isEmpty';
 import isNull from 'lodash/isNull';
 
+import {Meta} from 'app/types';
+
 const GET_META = Symbol('GET_META');
 const IS_PROXY = Symbol('IS_PROXY');
 
@@ -12,6 +14,8 @@ function isAnnotated(meta) {
 }
 
 export class MetaProxy {
+  private local: any;
+
   constructor(local) {
     this.local = local;
   }
@@ -24,9 +28,9 @@ export class MetaProxy {
           // TODO: Error checks
           const meta = this.local[key][''];
 
-          return isAnnotated(meta) ? meta : null;
+          return isAnnotated(meta) ? meta : undefined;
         }
-        return null;
+        return undefined;
       };
     }
 
@@ -36,7 +40,7 @@ export class MetaProxy {
     }
 
     const value = Reflect.get(obj, prop, receiver);
-    if (!Reflect.has(obj, prop, receiver) || typeof value !== 'object' || isNull(value)) {
+    if (!Reflect.has(obj, prop) || typeof value !== 'object' || isNull(value)) {
       return value;
     }
 
@@ -52,9 +56,9 @@ export class MetaProxy {
   }
 }
 
-export function withMeta(event) {
+export function withMeta<T>(event: T): T {
   if (!event) {
-    return null;
+    return event;
   }
 
   // Return unproxied `event` if browser does not support `Proxy`
@@ -62,14 +66,13 @@ export function withMeta(event) {
     return event;
   }
 
-  const _meta = event._meta;
-  return new Proxy(event, new MetaProxy(_meta));
+  return new Proxy(event, new MetaProxy((event as any)._meta));
 }
 
-export function getMeta(obj, prop) {
+export function getMeta(obj: any, prop: string): Meta | undefined {
   if (typeof obj[GET_META] !== 'function') {
-    return null;
+    return undefined;
   }
 
-  return obj[GET_META](prop);
+  return obj[GET_META](prop) || undefined;
 }

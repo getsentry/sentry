@@ -20,7 +20,7 @@ type Props = {
   query: Query;
   orgId: string;
   projectId: string;
-  meta: Meta;
+  meta?: Meta;
 };
 
 const EventTagsPill = ({
