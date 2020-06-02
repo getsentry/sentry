@@ -38,13 +38,14 @@ class DataForwardingStats extends AsyncComponent {
   renderBody() {
     const {projectId} = this.props.params;
     const stats = this.state.stats.map(p => ({x: p[0], y: [p[1]]}));
+    const fowardedAny = stats.some(({y}) => y[0]);
 
     return (
       <Panel>
         <SentryDocumentTitle title={t('Data Forwarding')} objSlug={projectId} />
         <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
         <PanelBody>
-          {stats.length > 0 && stats[0][0] ? (
+          {fowardedAny ? (
             <StackedBarChart
               style={{
                 border: 'none',
