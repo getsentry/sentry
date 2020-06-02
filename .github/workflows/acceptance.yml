@@ -3,7 +3,7 @@ on: pull_request
 
 jobs:
     percynonce:
-      name: Generate Percy nonce
+      name: Generate Percy ID
       runs-on: ubuntu-latest
       steps:
         - name: Generate Percy nonce
@@ -206,7 +206,7 @@ jobs:
           run: |
             yarn webpack --display errors-only
 
-        - name: Acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+        - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
           if: always()
           uses: percy/exec-action@v0.3.0
           with:
