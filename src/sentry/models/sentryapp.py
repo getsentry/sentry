@@ -100,7 +100,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
     uuid = models.CharField(max_length=64, default=default_uuid)
 
     redirect_url = models.URLField(null=True)
-    webhook_url = models.URLField(null=True)
+    webhook_url = models.URLField(max_length=512, null=True)
     # does the application subscribe to `event.alert`,
     # meaning can it be used in alert rules as a {service} ?
     is_alertable = models.BooleanField(default=False)

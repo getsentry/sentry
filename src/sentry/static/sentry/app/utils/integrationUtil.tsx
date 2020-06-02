@@ -1,23 +1,24 @@
 import capitalize from 'lodash/capitalize';
 import React from 'react';
 
-import {uniqueId} from 'app/utils/guid';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import HookStore from 'app/stores/hookStore';
 import {
-  Organization,
-  SentryAppInstallation,
-  IntegrationInstallationStatus,
-  SentryAppStatus,
-  IntegrationFeature,
   AppOrProviderOrPlugin,
-  SentryApp,
-  PluginWithProjectList,
   DocumentIntegration,
   Integration,
+  IntegrationFeature,
+  IntegrationInstallationStatus,
   IntegrationProvider,
+  IntegrationType,
+  Organization,
+  PluginWithProjectList,
+  SentryApp,
+  SentryAppInstallation,
+  SentryAppStatus,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
-import HookStore from 'app/stores/hookStore';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {uniqueId} from 'app/utils/guid';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 
@@ -72,7 +73,7 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Reauth Start'
     | 'Integrations: Reauth Complete';
   integration: string; //the slug
-  integration_type: 'plugin' | 'first_party' | 'sentry_app' | 'document_integration';
+  integration_type: IntegrationType;
   already_installed?: boolean;
   integration_tab?: 'configurations' | 'overview';
   plan?: string;
@@ -300,7 +301,7 @@ export const convertIntegrationTypeToSnakeCase = (
     case 'sentryApp':
       return 'sentry_app';
     case 'documentIntegration':
-      return 'document_integration';
+      return 'document';
     default:
       return type;
   }
