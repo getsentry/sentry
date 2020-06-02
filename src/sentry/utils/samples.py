@@ -155,7 +155,7 @@ def load_data(platform, default=None, sample_name=None):
     start_time = to_timestamp(now - timedelta(seconds=2))
     data.setdefault("timestamp", now_time)
 
-    if "start_timestamp" in data:
+    if data.get("type") == "transaction":
         data["start_timestamp"] = start_time
 
     for span in data.get("spans") or ():
