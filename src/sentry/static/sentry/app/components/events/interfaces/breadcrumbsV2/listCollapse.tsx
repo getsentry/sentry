@@ -1,8 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {tct, t} from 'app/locale';
-import {IconEllipsis} from 'app/icons';
+import {tct} from 'app/locale';
+import {IconChevron} from 'app/icons';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
 
 import {GridCellLeft, IconWrapper, Grid} from './styles';
@@ -15,13 +16,9 @@ type Props = {
 };
 
 const ListCollapse = ({quantity, onClick, hasBeenExpanded, isScrolling}: Props) => {
-  if (quantity <= 0) {
-    return null;
-  }
-
   const renderDescription = () => {
     if (isScrolling) {
-      return t('scrolling\u2026');
+      return null;
     }
 
     if (hasBeenExpanded) {
@@ -38,7 +35,19 @@ const ListCollapse = ({quantity, onClick, hasBeenExpanded, isScrolling}: Props) 
         onClick={!isScrolling ? onClick : undefined}
       >
         <IconWrapper>
-          <IconEllipsis />
+          {isScrolling ? (
+            <LoadingIndicator
+              mini
+              hideMessage
+              size={18}
+              style={{
+                height: 18,
+                width: 18,
+              }}
+            />
+          ) : (
+            <IconChevron size="xs" direction={hasBeenExpanded ? 'up' : 'down'} />
+          )}
         </IconWrapper>
         {renderDescription()}
       </Wrapper>

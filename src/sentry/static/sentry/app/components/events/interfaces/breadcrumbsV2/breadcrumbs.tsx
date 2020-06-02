@@ -228,28 +228,9 @@ class Breadcrumbs extends React.Component<Props, State> {
     };
   };
 
-  scrollTo = (to: 'top' | 'bottom') => {
-    if (!this.listBodyRef?.current) {
-      return;
-    }
-    if (to === 'top') {
-      this.scrollToTheTop(this.listBodyRef.current);
-      return;
-    }
-    this.scrollToTheBottom(this.listBodyRef.current);
-  };
-
   scrollToTheBottom = (element: HTMLDivElement) => {
     element.scrollTo({
       top: element.scrollHeight,
-      left: 0,
-      behavior: 'smooth',
-    });
-  };
-
-  scrollToTheTop = (element: HTMLDivElement) => {
-    element.scrollTo({
-      top: 0,
       left: 0,
       behavior: 'smooth',
     });
@@ -285,6 +266,16 @@ class Breadcrumbs extends React.Component<Props, State> {
   handleToggleCollapse = () => {
     const {isCollapsed, filteredBySearch} = this.state;
 
+    const element = this.listBodyRef?.current;
+
+    if (!element) {
+      return;
+    }
+
+    const scrollTop = element.scrollTop;
+    const scrollHeight = element.scrollHeight;
+    const atTheBottom = scrollHeight - scrollTop + 1 === element.offsetHeight;
+
     if (isCollapsed) {
       this.setState(
         {
@@ -293,18 +284,27 @@ class Breadcrumbs extends React.Component<Props, State> {
           filteredByCollapsed: filteredBySearch,
         },
         () => {
-          this.scrollTo('bottom');
+          this.scrollToTheBottom(element);
         }
       );
       return;
     }
 
+    if (atTheBottom) {
+      this.setState({
+        isCollapsed: true,
+        filteredByCollapsed: this.getCollapsedBreadcrumbs(true, filteredBySearch),
+      });
+      return;
+    }
+
     this.setState(
       {
+        isCollapsed: true,
         isScrolling: true,
       },
       () => {
-        this.scrollTo('top');
+        this.scrollToTheBottom(element);
       }
     );
   };
@@ -380,16 +380,12 @@ class Breadcrumbs extends React.Component<Props, State> {
 
   handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const element = event.target as HTMLDivElement;
-
     const scrollTop = element.scrollTop;
     const scrollHeight = element.scrollHeight;
-
     const atTheBottom = scrollHeight - scrollTop + 1 === element.offsetHeight;
-    const atTheTop = scrollTop === 0;
 
-    if (!this.state.isCollapsed && atTheTop) {
+    if (this.state.isCollapsed && this.state.isScrolling && atTheBottom) {
       this.setState(prevState => ({
-        isCollapsed: true,
         isScrolling: false,
         filteredByCollapsed: this.getCollapsedBreadcrumbs(
           true,
@@ -399,7 +395,7 @@ class Breadcrumbs extends React.Component<Props, State> {
       return;
     }
 
-    if (atTheBottom || atTheTop) {
+    if (atTheBottom && this.state.isScrolling) {
       this.setState({
         isScrolling: false,
       });
