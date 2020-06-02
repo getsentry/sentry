@@ -14,12 +14,9 @@ class MockReq:
 
 class MockHttp:
     def __init__(self):
-        self.calledArgs = []
         self.calledKwargs = {}
 
     def get(self, *args, **kwargs):
-        for arg in args:
-            self.calledArgs.append(arg)
         self.calledKwargs = kwargs
         return MockReq()
 
@@ -32,6 +29,4 @@ class GitHubClientTest(TestCase):
         client.http = mock
         client._request("/", "accessToken")
 
-        assert "auth" in mock.calledKwargs.keys()
-        assert "clientId" in mock.calledKwargs["auth"]
-        assert "clientSecret" in mock.calledKwargs["auth"]
+        assert mock.calledKwargs["headers"]["Authorization"] == "token accessToken"

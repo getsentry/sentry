@@ -22,11 +22,10 @@ class GitHubClient(object):
 
     def _request(self, path, access_token):
         headers = {"Authorization": "token {0}".format(access_token)}
-        auth = (self.client_id, self.client_secret)
 
         try:
             req = self.http.get(
-                "https://{0}/{1}".format(API_DOMAIN, path.lstrip("/")), auth=auth, headers=headers,
+                "https://{0}/{1}".format(API_DOMAIN, path.lstrip("/")), headers=headers,
             )
         except RequestException as e:
             raise GitHubApiError(six.text_type(e), status=getattr(e, "status_code", 0))
