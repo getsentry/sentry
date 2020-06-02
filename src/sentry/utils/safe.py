@@ -18,7 +18,6 @@ def safe_execute(func, *args, **kwargs):
     # side if we execute a query)
     _with_transaction = kwargs.pop("_with_transaction", True)
     expected_errors = kwargs.pop("expected_errors", None)
-    _passthrough_errors = kwargs.pop("_passthrough_errors", None)
     try:
         if _with_transaction:
             with transaction.atomic():
@@ -26,8 +25,6 @@ def safe_execute(func, *args, **kwargs):
         else:
             result = func(*args, **kwargs)
     except Exception as e:
-        if _passthrough_errors and isinstance(e, _passthrough_errors):
-            raise
         if hasattr(func, "im_class"):
             cls = func.im_class
         else:
