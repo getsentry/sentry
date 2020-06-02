@@ -19,7 +19,7 @@ type InjectedProps = {
   repositoriesError: Error | undefined;
 };
 
-const withRepositories = <P extends InjectedProps>(
+const withRepositories = <P extends DependentProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
   createReactClass<
