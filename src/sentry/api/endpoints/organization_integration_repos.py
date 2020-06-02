@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-from django.http import Http404
 
 from sentry.constants import ObjectStatus
 from sentry.api.bases.organization import OrganizationIntegrationsPermission

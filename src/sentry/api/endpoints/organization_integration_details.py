@@ -7,7 +7,7 @@ import six
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntryEvent, Integration, ObjectStatus, OrganizationIntegration
+from sentry.models import AuditLogEntryEvent, ObjectStatus, OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.deletion import delete_organization_integration
 from sentry.utils.audit import create_audit_entry

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.http import Http404
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration, Organization, OrganizationIntegration
+from sentry.models import Integration, OrganizationIntegration
 
 
 class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
@@ -25,8 +25,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
         """
         try:
             return OrganizationIntegration.objects.get(
-                integration_id=integration_id,
-                organization=organization,
+                integration_id=integration_id, organization=organization,
             )
         except OrganizationIntegration.DoesNotExist:
             raise Http404

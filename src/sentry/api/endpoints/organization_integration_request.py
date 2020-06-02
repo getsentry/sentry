@@ -21,16 +21,18 @@ class OrganizationIntegrationRequestPermission(OrganizationPermission):
 
 def get_url(organization, provider_type, provider_slug):
     return absolute_uri(
-        u"/".join([
-            u"/settings",
-            organization.slug,
-            {
-                "first_party": "integrations",
-                "plugin": "plugins",
-                "sentry_app": "sentry-apps",
-            }.get(provider_type),
-            provider_slug,
-        ])
+        u"/".join(
+            [
+                u"/settings",
+                organization.slug,
+                {
+                    "first_party": "integrations",
+                    "plugin": "plugins",
+                    "sentry_app": "sentry-apps",
+                }.get(provider_type),
+                provider_slug,
+            ]
+        )
     )
 
 
@@ -106,8 +108,7 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
                 "requester_name": requester.name or requester.username,
                 "requester_link": absolute_uri(
                     "/settings/{organization_slug}/members/{user_id}/".format(
-                        organization_slug=organization.slug,
-                        user_id=requester.id,
+                        organization_slug=organization.slug, user_id=requester.id,
                     )
                 ),
                 "settings_link": absolute_uri(
