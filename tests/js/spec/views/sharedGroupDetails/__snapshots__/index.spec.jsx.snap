@@ -635,7 +635,6 @@ exports[`SharedGroupDetails renders 1`] = `
                                               mini={true}
                                             >
                                               <AnnotatedText
-                                                meta={null}
                                                 value="Blocked script"
                                               >
                                                 <span>

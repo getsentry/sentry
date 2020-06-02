@@ -285,7 +285,6 @@ exports[`GpuSummary render() renders name and vendor 1`] = `
   />
   <h3>
     <AnnotatedText
-      meta={null}
       value="Mali-T880"
     />
   </h3>
@@ -294,7 +293,6 @@ exports[`GpuSummary render() renders name and vendor 1`] = `
       Vendor:
     </Subject>
     <AnnotatedText
-      meta={null}
       value="ARM"
     />
   </ParagraphOverflow>
@@ -310,7 +308,6 @@ exports[`GpuSummary render() renders unknown when no vendor 1`] = `
   />
   <h3>
     <AnnotatedText
-      meta={null}
       value="Apple A8 GPU"
     />
   </h3>
@@ -334,7 +331,6 @@ exports[`OsSummary render() renders the kernel version when no version 1`] = `
   />
   <h3>
     <AnnotatedText
-      meta={null}
       value="Mac OS X"
     />
   </h3>
@@ -343,7 +339,6 @@ exports[`OsSummary render() renders the kernel version when no version 1`] = `
       Kernel:
     </Subject>
     <AnnotatedText
-      meta={null}
       value="17.5.0"
     />
   </ParagraphOverflow>
@@ -359,7 +354,6 @@ exports[`OsSummary render() renders the version string 1`] = `
   />
   <h3>
     <AnnotatedText
-      meta={null}
       value="Mac OS X"
     />
   </h3>
@@ -368,7 +362,6 @@ exports[`OsSummary render() renders the version string 1`] = `
       Version:
     </Subject>
     <AnnotatedText
-      meta={null}
       value="10.13.4"
     />
   </ParagraphOverflow>
@@ -384,7 +377,6 @@ exports[`OsSummary render() renders unknown when no version 1`] = `
   />
   <h3>
     <AnnotatedText
-      meta={null}
       value="Mac OS X"
     />
   </h3>
