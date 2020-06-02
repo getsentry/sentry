@@ -101,6 +101,7 @@ from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
+from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
@@ -842,6 +843,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/members/$",
                     OrganizationMemberIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-member-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/integration-requests/$",
+                    OrganizationIntegrationRequestEndpoint.as_view(),
+                    name="sentry-api-0-organization-integration-request",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/invite-requests/$",

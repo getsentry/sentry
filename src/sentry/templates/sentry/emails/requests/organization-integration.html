@@ -1,0 +1,29 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+  <p>
+    Seems like your team could use some new tools. {{ requester_name }} from
+    {{ organization_name }} requested the installation of {{ integration_name }}.
+    {% if message %}
+        They’ve included some additional context:
+        <pre>{{ message }}</pre>
+    {% endif %}
+  </p>
+  <p>
+    <a href="{{ integration_link }}" class="btn">Install {{ integration_name }}</a>
+  </p>
+  <p>
+    If you’re not up for installation, you can
+    <a href="{{ requester_link }}">change {{ requester_name }}’s role</a>
+    to organization owner, manager, or admin. You can learn more about the
+    wonderful world of permissions in
+    <a href="https://docs.sentry.io/accounts/membership/">our docs</a>.
+  </p>
+  <p>Let’s get integrated.</p>
+  <p class="via">
+    You are receiving this email because you’re listed as an organization Owner or Manager.
+    Requests to join your organization can be disabled in <a href="{{ settings_link }}">Organization Settings</a>.
+  </p>
+{% endblock %}

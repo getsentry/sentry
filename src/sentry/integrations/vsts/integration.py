@@ -73,7 +73,7 @@ FEATURES = [
     FeatureDescription(
         """
         Never forget to close a resolved workitem! Resolving an issue in Sentry
-        will resolve your linked workitems and viceversa.
+        will resolve your linked workitems and vice versa.
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
