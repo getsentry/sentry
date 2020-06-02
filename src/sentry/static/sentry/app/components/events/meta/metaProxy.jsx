@@ -12,11 +12,8 @@ function isAnnotated(meta) {
 }
 
 export class MetaProxy {
-  constructor(root, local) {
-    // entire meta object
-    this._meta = root;
-
-    this.local = !local ? root : local;
+  constructor(local) {
+    this.local = local;
   }
 
   get(obj, prop, receiver) {
@@ -51,7 +48,7 @@ export class MetaProxy {
 
     // Make sure we apply proxy to all children (objects and arrays)
     // Do we need to check for annotated inside of objects?
-    return new Proxy(value, new MetaProxy(this._meta, this.local && this.local[prop]));
+    return new Proxy(value, new MetaProxy(this.local && this.local[prop]));
   }
 }
 
