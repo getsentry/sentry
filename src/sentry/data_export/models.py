@@ -8,6 +8,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -135,7 +136,7 @@ class ExportedDataBlob(Model):
 
     data_export = FlexibleForeignKey("sentry.ExportedData")
     blob = FlexibleForeignKey("sentry.FileBlob")
-    offset = BoundedPositiveIntegerField()
+    offset = BoundedBigIntegerField()
 
     class Meta:
         app_label = "sentry"
