@@ -104,10 +104,10 @@ class SAML2ACSViewTest(TestCase):
         instance = mock_auth.return_value
         instance.get_errors.return_value = None
         instance.get_attributes.return_value = {}
-        instance.get_session_expiration = 1591044492
+        instance.get_session_expiration.return_value = 1591044492
 
         test_view.dispatch(request, helper)
 
-        assert request.session.get_expiry_date() == datetime.fromtimestamp(1591047400).replace(
+        assert request.session.get_expiry_date() == datetime.fromtimestamp(1591044492).replace(
             tzinfo=timezone.utc
         )
