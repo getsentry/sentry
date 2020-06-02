@@ -70,12 +70,12 @@ export function withMeta<T>(event: T): T {
 }
 
 export function getMeta<T extends {}>(
-  obj: T,
+  obj: T | undefined,
   prop: Extract<keyof T, string>
 ): Meta | undefined {
-  if (typeof obj[GET_META] !== 'function') {
+  if (obj === undefined || typeof obj[GET_META] !== 'function') {
     return undefined;
   }
 
-  return obj[GET_META](prop) || undefined;
+  return obj[GET_META](prop);
 }
