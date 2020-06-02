@@ -13,7 +13,7 @@ import {
   getUtcDateString,
   intervalToMilliseconds,
 } from 'app/utils/dates';
-import EventsRequest from 'app/views/events/utils/eventsRequest';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import MarkLine from 'app/components/charts/components/markLine';
 import {Panel} from 'app/components/panels';

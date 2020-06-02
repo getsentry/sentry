@@ -17,8 +17,8 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withOrganization from 'app/utils/withOrganization';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 
-import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
+import Chart from './chart';
 
 const parseRowFromLinks = (links, numRows) => {
   links = parseLinkHeader(links);
@@ -193,7 +193,7 @@ class Events extends AsyncView {
             true
           )}
         <Panel>
-          <EventsChart
+          <Chart
             router={router}
             query={location.query.query}
             organization={organization}
