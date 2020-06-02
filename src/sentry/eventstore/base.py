@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from copy import deepcopy
 
+import sentry_sdk
+
 from sentry import nodestore
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
@@ -227,17 +229,18 @@ class EventStorage(Service):
         It's not necessary to bind a single Event object since data will be lazily
         fetched on any attempt to access a property.
         """
-        object_node_list = [
-            (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
-        ]
+        with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
+            object_node_list = [
+                (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
+            ]
 
-        # Remove duplicates from the list of nodes to be fetched
-        node_ids = list({n.id for _, n in object_node_list})
-        if not node_ids:
-            return
+            # Remove duplicates from the list of nodes to be fetched
+            node_ids = list({n.id for _, n in object_node_list})
+            if not node_ids:
+                return
 
-        node_results = nodestore.get_multi(node_ids)
+            node_results = nodestore.get_multi(node_ids)
 
-        for item, node in object_node_list:
-            data = node_results.get(node.id) or {}
-            node.bind_data(data, ref=node.get_ref(item))
+            for item, node in object_node_list:
+                data = node_results.get(node.id) or {}
+                node.bind_data(data, ref=node.get_ref(item))
