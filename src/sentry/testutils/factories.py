@@ -516,8 +516,6 @@ class Factories(object):
     def store_event(data, project_id, assert_no_errors=True, sent_at=None):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
-        if sent_at is None:
-            sent_at = timezone.now()
         manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
         if assert_no_errors:
