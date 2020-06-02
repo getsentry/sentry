@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import omit from 'lodash/omit';
-import isEqual from 'lodash/isEqual';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
