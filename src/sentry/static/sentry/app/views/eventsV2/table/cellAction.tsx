@@ -9,7 +9,6 @@ import {t} from 'app/locale';
 import {IconEllipsis} from 'app/icons';
 import EventView from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -194,11 +193,7 @@ export default class CellAction extends React.Component<Props, State> {
           <Reference>
             {({ref}) => (
               <MenuButton ref={ref} onClick={this.handleMenuToggle}>
-                <IconEllipsis
-                  size="sm"
-                  data-test-id="cell-action"
-                  color={theme.blue400}
-                />
+                <IconEllipsis size="sm" data-test-id="cell-action" color="blue400" />
               </MenuButton>
             )}
           </Reference>
