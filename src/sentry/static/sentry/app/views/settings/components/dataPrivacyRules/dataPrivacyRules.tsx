@@ -219,7 +219,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
         sourceSuggestions: sourceDefaultSuggestions,
         eventId: {
           ...prevState.eventId,
-          status: EventIdStatus.LOADED,
+          status: EventIdStatus.NOT_FOUND,
         },
       }));
     } catch {
