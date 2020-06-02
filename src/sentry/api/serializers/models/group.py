@@ -405,22 +405,11 @@ class GroupSerializerBase(Serializer):
                 request.auth, obj.organization
             )
 
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.check") as span:
-
-            def user_is_in_org():
-                exists = user.get_orgs().filter(id=obj.organization.id).exists()
-                span.set_data("user_is_in_org", exists)
-                return exists
-
-            permalink_is_visible = (
-                is_superuser or (user.is_authenticated() and user_is_in_org()) or is_valid_sentryapp
-            )
-
-            span.set_data("is_superuser", is_superuser)
-            span.set_data("is_valid_sentryapp", is_valid_sentryapp)
-            span.set_data("permalink_is_visible", permalink_is_visible)
-
-        if permalink_is_visible:
+        if (
+            is_superuser
+            or is_valid_sentryapp
+            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
+        ):
             with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
                 return obj.get_absolute_url()
         else:
@@ -440,12 +429,9 @@ class GroupSerializerBase(Serializer):
         return is_subscribed, subscription_details
 
     def serialize(self, obj, attrs, user):
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.status"):
-            status_details, status_label = self._get_status(attrs, obj)
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink"):
-            permalink = self._get_permalink(obj, user)
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.subscription"):
-            is_subscribed, subscription_details = self._get_subscription(attrs)
+        status_details, status_label = self._get_status(attrs, obj)
+        permalink = self._get_permalink(obj, user)
+        is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
 
         return {
