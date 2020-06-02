@@ -15,8 +15,8 @@ class GitHubClientTest(TestCase):
             responses.GET, "https://{0}/".format(API_DOMAIN), json={"status": "SUCCESS"}, status=200
         )
 
-        client = GitHubClient()
-        client._request("/", "accessToken")
+        client = GitHubClient("accessToken")
+        client._request("/")
 
         assert len(responses.calls) == 1
         assert responses.calls[0].request.headers["Authorization"] == "token accessToken"

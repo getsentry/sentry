@@ -28,20 +28,19 @@ def _get_name_from_email(email):
 class FetchUser(AuthView):
     def __init__(self, org=None, *args, **kwargs):
         self.org = org
-        self.client = GitHubClient()
         super(FetchUser, self).__init__(*args, **kwargs)
 
     def handle(self, request, helper):
-        access_token = helper.fetch_state("data")["access_token"]
+        client = GitHubClient(helper.fetch_state("data")["access_token"])
 
         if self.org is not None:
-            if not self.client.is_org_member(access_token, self.org["id"]):
+            if not client.is_org_member(self.org["id"]):
                 return helper.error(ERR_NO_ORG_ACCESS)
 
-        user = self.client.get_user(access_token)
+        user = client.get_user()
 
         if not user.get("email"):
-            emails = self.client.get_user_emails(access_token)
+            emails = client.get_user_emails()
             email = [
                 e["email"]
                 for e in emails
@@ -115,12 +114,11 @@ class SelectOrganizationForm(forms.Form):
 
 class SelectOrganization(AuthView):
     def __init__(self, *args, **kwargs):
-        self.client = GitHubClient()
         super(SelectOrganization, self).__init__(*args, **kwargs)
 
     def handle(self, request, helper):
-        access_token = helper.fetch_state("data")["access_token"]
-        org_list = self.client.get_org_list(access_token)
+        client = GitHubClient(helper.fetch_state("data")["access_token"])
+        org_list = client.get_org_list()
 
         form = SelectOrganizationForm(org_list, request.POST or None)
         if form.is_valid():

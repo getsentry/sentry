@@ -15,11 +15,12 @@ class GitHubApiError(Exception):
 
 
 class GitHubClient(object):
-    def __init__(self):
+    def __init__(self, access_token):
         self.http = http.build_session()
+        self.access_token = access_token
 
-    def _request(self, path, access_token):
-        headers = {"Authorization": "token {0}".format(access_token)}
+    def _request(self, path):
+        headers = {"Authorization": "token {0}".format(self.access_token)}
 
         try:
             req = self.http.get(
@@ -31,17 +32,17 @@ class GitHubClient(object):
             raise GitHubApiError(req.content, status=req.status_code)
         return json.loads(req.content)
 
-    def get_org_list(self, access_token):
-        return self._request("/user/orgs", access_token)
+    def get_org_list(self):
+        return self._request("/user/orgs", self.access_token)
 
-    def get_user(self, access_token):
-        return self._request("/user", access_token)
+    def get_user(self):
+        return self._request("/user", self.access_token)
 
-    def get_user_emails(self, access_token):
-        return self._request("/user/emails", access_token)
+    def get_user_emails(self):
+        return self._request("/user/emails", self.access_token)
 
-    def is_org_member(self, access_token, org_id):
-        org_list = self.get_org_list(access_token)
+    def is_org_member(self, org_id):
+        org_list = self.get_org_list(self.ccess_token)
         org_id = six.text_type(org_id)
         for o in org_list:
             if six.text_type((o["id"])) == org_id:
