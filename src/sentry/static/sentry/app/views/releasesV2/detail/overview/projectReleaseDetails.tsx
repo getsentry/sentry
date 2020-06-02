@@ -1,20 +1,26 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {ReleaseWithHealth} from 'app/types';
+import {ReleaseWithHealth, ReleaseMeta} from 'app/types';
 import Version from 'app/components/version';
 import TimeSince from 'app/components/timeSince';
 import DateTime from 'app/components/dateTime';
+import Link from 'app/components/links/link';
+import Count from 'app/components/count';
+import Feature from 'app/components/acl/feature';
 
 import {SectionHeading, Wrapper} from './styles';
 
 type Props = {
   release: ReleaseWithHealth;
+  releaseMeta: ReleaseMeta;
+  orgSlug: string;
+  projectSlug: string;
 };
 
-const ProjectReleaseDetails = ({release}: Props) => {
+const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Props) => {
   const {version, dateCreated, firstEvent, lastEvent} = release;
 
   return (
@@ -45,6 +51,18 @@ const ProjectReleaseDetails = ({release}: Props) => {
             <TagKey>{t('Last Event')}</TagKey>
             <TagValue>{lastEvent ? <TimeSince date={lastEvent} /> : '-'}</TagValue>
           </StyledTr>
+
+          <Feature features={['artifacts-in-settings']}>
+            <StyledTr>
+              <TagKey>{t('Source Maps')}</TagKey>
+              <TagValue>
+                <Link to={`/settings/${orgSlug}/projects/${projectSlug}/source-maps/`}>
+                  <Count value={releaseMeta.releaseFileCount} />{' '}
+                  {tn('file uploaded', 'files uploaded', releaseMeta.releaseFileCount)}
+                </Link>
+              </TagValue>
+            </StyledTr>
+          </Feature>
         </tbody>
       </StyledTable>
     </Wrapper>
