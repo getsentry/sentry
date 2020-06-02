@@ -4,8 +4,7 @@ import PropTypes from 'prop-types';
 import theme, {IconSize, Color} from 'app/utils/theme';
 
 type Props = React.SVGAttributes<SVGElement> & {
-  // TODO (Priscila): make color prop theme color only
-  color?: Color | string;
+  color?: Color;
   // TODO (Priscila): make size prop theme icon size only
   size?: IconSize | string;
   className?: string;
@@ -29,6 +28,7 @@ const SvgIcon = React.forwardRef<SVGSVGElement, Props>(function SvgIcon(
 });
 
 SvgIcon.propTypes = {
+  // @ts-ignore
   color: PropTypes.string,
   size: PropTypes.string,
   viewBox: PropTypes.string,

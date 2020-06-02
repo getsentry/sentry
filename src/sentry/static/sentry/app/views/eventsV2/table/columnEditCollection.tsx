@@ -285,7 +285,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-              icon={<IconGrabbable size="xs" color={theme.gray700} />}
+              icon={<IconGrabbable size="xs" color="gray700" />}
               borderless
             />
           ) : (
@@ -302,7 +302,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
-              icon={<IconDelete color={theme.gray500} />}
+              icon={<IconDelete color="gray500" />}
               borderless
             />
           ) : (
