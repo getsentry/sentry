@@ -17,7 +17,6 @@ import {
   MetricActionTemplate,
   ThresholdControlValue,
 } from '../types';
-import hasThresholdValue from '../utils/hasThresholdValue';
 
 type AlertRuleThresholdKey = {
   [AlertRuleThreshold.INCIDENT]: 'alertThreshold';
@@ -56,17 +55,14 @@ class TriggerForm extends React.PureComponent<Props> {
     const {onChange, trigger} = this.props;
 
     const thresholdKey = this.getThresholdKey(type);
-    const newValue = !hasThresholdValue(value.threshold)
-      ? value.threshold
-      : Math.round(value.threshold);
 
     onChange(
       {
         ...trigger,
-        [thresholdKey]: newValue,
+        [thresholdKey]: value.threshold,
         thresholdType: value.thresholdType,
       },
-      {[thresholdKey]: newValue}
+      {[thresholdKey]: value.threshold}
     );
   };
 
