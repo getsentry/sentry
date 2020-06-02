@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import json
-
 import pytest
 import requests
 import responses
@@ -60,26 +58,6 @@ def adjust_settings_for_relay_tests(settings):
         }
     }
     settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
-
-
-class SentryStoreHelper(object):
-    """
-    Unit tests that post to the store entry point should use this
-    helper class (together with RelayStoreHelper) to check the functionality
-    with both posting to the Sentry Store and the Relay Store.
-    """
-
-    def use_relay(self):
-        return False
-
-    def post_and_retrieve_event(self, data):
-        resp = self._postWithHeader(data)
-        assert resp.status_code == 200
-        event_id = json.loads(resp.content)["id"]
-
-        event = eventstore.get_event_by_id(self.project.id, event_id)
-        assert event is not None
-        return event
 
 
 class RelayStoreHelper(object):
