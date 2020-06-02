@@ -36,7 +36,7 @@ class TwoFactorAuthView(BaseView):
         return rv
 
     def fail_signin(self, request, user, form):
-        # Ladies and gentlemen: he world's shittiest bruteforce
+        # Ladies and gentlemen: the world's shittiest bruteforce
         # prevention.
         time.sleep(2.0)
         form.errors["__all__"] = [_("Invalid confirmation code. Try again.")]
