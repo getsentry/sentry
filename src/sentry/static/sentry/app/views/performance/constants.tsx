@@ -11,7 +11,7 @@ export const PERFORMANCE_TERMS: Record<string, string> = {
   ),
   p50: t('p50 indicates the duration that 50% of transactions are faster than.'),
   p95: t('p95 indicates the duration that 95% of transactions are faster than.'),
-  p99: t('p99 indicates the duration that 99% of transactions were faster than.'),
+  p99: t('p99 indicates the duration that 99% of transactions are faster than.'),
 };
 
 export const TOP_TRANSACTION_LIMIT = 5;
