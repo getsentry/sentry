@@ -120,7 +120,12 @@ class ReleaseOverview extends AsyncView<Props> {
                     />
                   </Main>
                   <Sidebar>
-                    <ProjectReleaseDetails release={release} />
+                    <ProjectReleaseDetails
+                      release={release}
+                      releaseMeta={releaseMeta}
+                      orgSlug={organization.slug}
+                      projectSlug={project.slug}
+                    />
                     {commitCount > 0 && (
                       <CommitAuthorBreakdown
                         version={version}

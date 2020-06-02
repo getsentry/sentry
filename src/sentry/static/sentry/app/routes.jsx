@@ -425,6 +425,16 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
+        path="source-maps/"
+        name={t('Source Maps')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectSourceMaps" */ 'app/views/settings/projectSourceMaps'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="processing-issues/"
         name="Processing Issues"
         componentPromise={() =>
