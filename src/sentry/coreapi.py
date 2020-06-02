@@ -51,15 +51,6 @@ class APIForbidden(APIError):
     http_status = 403
 
 
-class APIRateLimited(APIError):
-    http_status = 429
-    msg = "Creation of this event was denied due to rate limiting"
-    name = "rate_limit"
-
-    def __init__(self, retry_after=None):
-        self.retry_after = retry_after
-
-
 class Auth(object):
     def __init__(
         self, client=None, version=None, secret_key=None, public_key=None, is_public=False
