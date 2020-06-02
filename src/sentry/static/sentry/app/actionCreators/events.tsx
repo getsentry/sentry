@@ -5,7 +5,12 @@ import {Client} from 'app/api';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {canIncludePreviousPeriod} from 'app/components/charts/utils';
 import {getPeriod} from 'app/utils/getPeriod';
-import {EventsStats, OrganizationSummary, MultiSeriesEventsStats} from 'app/types';
+import {
+  EventsStats,
+  DateString,
+  OrganizationSummary,
+  MultiSeriesEventsStats,
+} from 'app/types';
 
 function getBaseUrl(org: OrganizationSummary, keyTransactions: boolean | undefined) {
   if (keyTransactions) {
@@ -20,8 +25,8 @@ type Options = {
   project?: number[];
   environment?: string[];
   period?: string;
-  start?: Date;
-  end?: Date;
+  start?: DateString;
+  end?: DateString;
   interval?: string;
   includePrevious?: boolean;
   limit?: number;
