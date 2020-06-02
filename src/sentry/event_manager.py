@@ -268,7 +268,7 @@ class EventManager(object):
         project_config=None,
         sent_at=None,
     ):
-        self._data = data
+        self._data = CanonicalKeyDict(data)
         self.version = version
         self._project = project
         # if not explicitly specified try to get the grouping from project_config
