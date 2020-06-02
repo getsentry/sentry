@@ -4,10 +4,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {
-  OrganizationSummary,
+  DateString,
   EventsStats,
-  MultiSeriesEventsStats,
   EventsStatsData,
+  OrganizationSummary,
+  MultiSeriesEventsStats,
 } from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import LoadingPanel from 'app/components/charts/loadingPanel';
@@ -51,15 +52,15 @@ type DefaultProps = {
    *
    * e.g. 24h, 7d, 30d
    */
-  period: any;
+  period?: string;
   /**
    * Absolute start date for query
    */
-  start: any;
+  start?: DateString;
   /**
    * Absolute end date for query
    */
-  end: any;
+  end?: DateString;
   /**
    * Interval to group results in
    *
@@ -201,7 +202,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   };
 
   static defaultProps: DefaultProps = {
-    period: null,
+    period: undefined,
     start: null,
     end: null,
     interval: '1d',
