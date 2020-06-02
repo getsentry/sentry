@@ -1,12 +1,10 @@
 import React from 'react';
 
 import {Event, Project} from 'app/types';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import withProjects from 'app/utils/withProjects';
 import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
 import Link from 'app/components/links/link';
 
-import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from '../types';
 import Summary from './summary';
 
@@ -18,18 +16,14 @@ type Props = {
 
 const Default = ({breadcrumb, event, orgId}: Props) => (
   <Summary kvData={breadcrumb.data}>
-    {breadcrumb?.message &&
-      getBreadcrumbCustomRendererValue({
-        value: (
-          <FormatMessage
-            event={event}
-            orgId={orgId}
-            breadcrumb={breadcrumb}
-            message={breadcrumb.message}
-          />
-        ),
-        meta: getMeta(breadcrumb, 'message'),
-      })}
+    {breadcrumb?.message && (
+      <FormatMessage
+        event={event}
+        orgId={orgId}
+        breadcrumb={breadcrumb}
+        message={breadcrumb.message}
+      />
+    )}
   </Summary>
 );
 

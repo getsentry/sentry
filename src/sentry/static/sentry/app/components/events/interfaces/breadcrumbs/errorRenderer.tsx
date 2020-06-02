@@ -3,10 +3,8 @@ import omit from 'lodash/omit';
 
 import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable';
 import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import {defined} from 'app/utils';
 
-import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeDefault} from './types';
 
 type Props = {
@@ -15,6 +13,14 @@ type Props = {
 
 const ErrorRenderer = ({breadcrumb}: Props) => {
   const {data} = breadcrumb;
+
+  const renderDataValue = (value: any) => {
+    if (breadcrumb?.message) {
+      return `${value}. `;
+    }
+    return value;
+  };
+
   return (
     <CrumbTable
       breadcrumb={breadcrumb}
@@ -22,22 +28,9 @@ const ErrorRenderer = ({breadcrumb}: Props) => {
         <SummaryLine>
           <pre>
             <code>
-              {data?.type &&
-                getBreadcrumbCustomRendererValue({
-                  value: <strong>{`${data.type}: `}</strong>,
-                  meta: getMeta(data, 'type'),
-                })}
-              {defined(data) &&
-                defined(data?.value) &&
-                getBreadcrumbCustomRendererValue({
-                  value: breadcrumb?.message ? `${data.value}. ` : data.value,
-                  meta: getMeta(data, 'value'),
-                })}
-              {breadcrumb?.message &&
-                getBreadcrumbCustomRendererValue({
-                  value: breadcrumb.message,
-                  meta: getMeta(breadcrumb, 'message'),
-                })}
+              {data?.type && <strong>{`${data.type}: `}</strong>}
+              {defined(data) && defined(data?.value) && renderDataValue(data.value)}
+              {breadcrumb.message}
             </code>
           </pre>
         </SummaryLine>

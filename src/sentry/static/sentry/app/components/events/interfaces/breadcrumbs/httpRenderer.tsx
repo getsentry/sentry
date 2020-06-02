@@ -4,11 +4,9 @@ import omit from 'lodash/omit';
 import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable';
 import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
 import ExternalLink from 'app/components/links/externalLink';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
-import getBreadcrumbCustomRendererValue from './getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeHTTP} from './types';
 
 type Props = {
@@ -43,24 +41,11 @@ const HttpRenderer = ({breadcrumb}: Props) => {
         <SummaryLine>
           <pre>
             <code>
-              {data?.method &&
-                getBreadcrumbCustomRendererValue({
-                  value: <strong>{`${data.method} `}</strong>,
-                  meta: getMeta(data, 'method'),
-                })}
-              {data?.url &&
-                getBreadcrumbCustomRendererValue({
-                  value: renderUrl(data.url),
-                  meta: getMeta(data, 'url'),
-                })}
-              {defined(data) &&
-                defined(data.status_code) &&
-                getBreadcrumbCustomRendererValue({
-                  value: (
-                    <span data-test-id="http-renderer-status-code">{` [${data.status_code}]`}</span>
-                  ),
-                  meta: getMeta(data, 'status_code'),
-                })}
+              {data?.method && <strong>{`${data.method} `}</strong>}
+              {data?.url && renderUrl(data.url)}
+              {defined(data) && defined(data.status_code) && (
+                <span data-test-id="http-renderer-status-code">{` [${data.status_code}]`}</span>
+              )}
             </code>
           </pre>
         </SummaryLine>

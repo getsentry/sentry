@@ -73,6 +73,5 @@ export function getMeta(obj, prop) {
   if (typeof obj[GET_META] !== 'function') {
     return null;
   }
-
   return obj[GET_META](prop);
 }

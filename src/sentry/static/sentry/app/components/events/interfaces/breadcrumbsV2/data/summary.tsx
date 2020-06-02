@@ -1,11 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {defined} from 'app/utils';
-
-import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 
 type Props = {
   kvData?: Record<string, any>;
@@ -46,10 +43,7 @@ class Summary extends React.Component<Props, State> {
           <Data key={key}>
             <StyledPre>
               <DataLabel>{`${key}: `}</DataLabel>
-              {getBreadcrumbCustomRendererValue({
-                value,
-                meta: getMeta(kvData, key),
-              })}
+              {value}
             </StyledPre>
           </Data>
         );

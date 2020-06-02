@@ -2,11 +2,9 @@ import React from 'react';
 import omit from 'lodash/omit';
 
 import ExternalLink from 'app/components/links/externalLink';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
-import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeHTTP} from '../types';
 import Summary from './summary';
 
@@ -39,23 +37,11 @@ const Http = ({breadcrumb}: Props) => {
 
   return (
     <Summary kvData={omit(data, ['method', 'url', 'status_code'])}>
-      {data?.method &&
-        getBreadcrumbCustomRendererValue({
-          value: <strong>{`${data.method} `}</strong>,
-          meta: getMeta(data, 'method'),
-        })}
-      {data?.url &&
-        getBreadcrumbCustomRendererValue({
-          value: renderUrl(data.url),
-          meta: getMeta(data, 'url'),
-        })}
-      {defined(statusCode) &&
-        getBreadcrumbCustomRendererValue({
-          value: (
-            <span data-test-id="http-renderer-status-code">{` [${statusCode}]`}</span>
-          ),
-          meta: getMeta(data, 'status_code'),
-        })}
+      {data?.method && <strong>{`${data.method} `}</strong>}
+      {data?.url && renderUrl(data.url)}
+      {defined(statusCode) && (
+        <span data-test-id="http-renderer-status-code">{` [${statusCode}]`}</span>
+      )}
     </Summary>
   );
 };
