@@ -27,11 +27,11 @@ const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
 ) {
   return (
     <StyledGrid ref={ref}>
-      {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
+      {breadcrumbs.map(({color, icon, id, ...crumb}, idx) => {
         const hasError = crumb.type === BreadcrumbType.ERROR;
         const isLastItem = breadcrumbs.length - 1 === idx;
         return (
-          <React.Fragment key={idx}>
+          <React.Fragment key={id}>
             <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
               <Tooltip title={crumb.description}>
                 <Icon icon={icon} color={color} />
@@ -56,7 +56,7 @@ const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
   );
 });
 
-export default ListBody;
+export default React.memo(ListBody) as typeof ListBody;
 
 ListBody.propTypes = {
   breadcrumbs: PropTypes.array.isRequired,
