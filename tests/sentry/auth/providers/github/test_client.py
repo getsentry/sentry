@@ -11,9 +11,6 @@ from sentry.auth.providers.github.constants import API_DOMAIN
 class GitHubClientTest(TestCase):
     @responses.activate
     def test_request_sends_client_id_and_secret(self):
-
-        # headers = {"Authorization": "token {0}".format(access_token)}
-
         responses.add(
             responses.GET, "https://{0}/".format(API_DOMAIN), json={"status": "SUCCESS"}, status=200
         )
