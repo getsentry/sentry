@@ -407,10 +407,11 @@ class GroupSerializerBase(Serializer):
 
         if (
             is_superuser
-            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
             or is_valid_sentryapp
+            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
         ):
-            return obj.get_absolute_url()
+            with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+                return obj.get_absolute_url()
         else:
             return None
 
@@ -428,12 +429,9 @@ class GroupSerializerBase(Serializer):
         return is_subscribed, subscription_details
 
     def serialize(self, obj, attrs, user):
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.status"):
-            status_details, status_label = self._get_status(attrs, obj)
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink"):
-            permalink = self._get_permalink(obj, user)
-        with sentry_sdk.start_span(op="GroupSerializerBase.serialize.subscription"):
-            is_subscribed, subscription_details = self._get_subscription(attrs)
+        status_details, status_label = self._get_status(attrs, obj)
+        permalink = self._get_permalink(obj, user)
+        is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
 
         return {
