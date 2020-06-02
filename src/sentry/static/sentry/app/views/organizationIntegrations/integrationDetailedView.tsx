@@ -203,7 +203,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     }
 
     // This should never happen but we can't return undefined without some refactoring.
-    return <span />;
+    return <React.Fragment />;
   }
 
   renderConfigurations() {
