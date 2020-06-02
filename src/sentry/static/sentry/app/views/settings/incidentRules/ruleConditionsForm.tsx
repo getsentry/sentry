@@ -227,7 +227,7 @@ const SearchEventTypeNote = styled('div')`
   font: ${p => p.theme.fontSizeExtraSmall} ${p => p.theme.text.familyMono};
   color: ${p => p.theme.gray600};
   background: ${p => p.theme.gray200};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: 2px;
   padding: ${space(0.5)} ${space(0.75)};
   margin: 0 ${space(0.5)} 0 ${space(1)};
   user-select: none;
