@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -14,11 +15,22 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import withProject from 'app/utils/withProject';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {Organization, Plugin, Project} from 'app/types';
 
-class DataForwardingStats extends AsyncComponent {
-  getEndpoints() {
+type RouteParams = {projectId: string; orgId: string};
+
+type StatProps = {
+  params: RouteParams;
+};
+
+type StatState = AsyncComponent['state'] & {
+  stats: Array<{x: number; y: [number]}>;
+};
+
+class DataForwardingStats extends AsyncComponent<StatProps, StatState> {
+  getEndpoints(): [[string, string, object]] {
     const {orgId, projectId} = this.props.params;
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 30;
@@ -69,8 +81,17 @@ class DataForwardingStats extends AsyncComponent {
   }
 }
 
-class ProjectDataForwarding extends AsyncComponent {
-  getEndpoints() {
+type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
+  project: Project;
+};
+
+type State = AsyncComponent['state'] & {
+  plugins: Plugin[];
+};
+
+class ProjectDataForwarding extends AsyncComponent<Props, State> {
+  getEndpoints(): [[string, string]] {
     const {orgId, projectId} = this.props.params;
 
     return [['plugins', `/projects/${orgId}/${projectId}/plugins/`]];
@@ -82,7 +103,7 @@ class ProjectDataForwarding extends AsyncComponent {
     );
   }
 
-  updatePlugin(plugin, enabled) {
+  updatePlugin(plugin: Plugin, enabled: boolean) {
     const plugins = this.state.plugins.map(p => ({
       ...p,
       enabled: p.id === plugin.id ? enabled : p.enabled,
@@ -91,8 +112,8 @@ class ProjectDataForwarding extends AsyncComponent {
     this.setState({plugins});
   }
 
-  onEnablePlugin = plugin => this.updatePlugin(plugin, true);
-  onDisablePlugin = plugin => this.updatePlugin(plugin, false);
+  onEnablePlugin = (plugin: Plugin) => this.updatePlugin(plugin, true);
+  onDisablePlugin = (plugin: Plugin) => this.updatePlugin(plugin, false);
 
   renderBody() {
     const {params, organization, project} = this.props;
@@ -168,4 +189,4 @@ class ProjectDataForwarding extends AsyncComponent {
   }
 }
 
-export default withProjects(withOrganization(ProjectDataForwarding));
+export default withProject(withOrganization(ProjectDataForwarding));
