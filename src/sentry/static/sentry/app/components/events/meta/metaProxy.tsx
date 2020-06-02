@@ -69,7 +69,10 @@ export function withMeta<T>(event: T): T {
   return new Proxy(event, new MetaProxy((event as any)._meta));
 }
 
-export function getMeta<T extends {}>(obj: T, prop: Extract<keyof T, string>): Meta | undefined {
+export function getMeta<T extends {}>(
+  obj: T,
+  prop: Extract<keyof T, string>
+): Meta | undefined {
   if (typeof obj[GET_META] !== 'function') {
     return undefined;
   }
