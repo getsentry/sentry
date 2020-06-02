@@ -563,6 +563,7 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
                 changed = True
 
     except Exception:
+        logger.exception("stacktraces.processing.crash")
         data.setdefault("_metrics", {})["flag.processing.fatal"] = True
         data.setdefault("_metrics", {})["flag.processing.error"] = True
         changed = True
