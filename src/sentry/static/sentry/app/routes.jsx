@@ -394,7 +394,6 @@ function routes() {
         }
         component={errorHandler(LazyLoad)}
       />
-
       <Route
         name={t('Data Privacy')}
         path="data-privacy/"
@@ -405,13 +404,32 @@ function routes() {
           )
         }
       />
-
       <Route
         path="debug-symbols/"
         name="Debug Information Files"
         componentPromise={() =>
           import(
             /* webpackChunkName: "ProjectDebugFiles" */ 'app/views/settings/projectDebugFiles'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
+        path="android-mappings/"
+        name={t('Android Mappings')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectAndroidMappings" */ 'app/views/settings/projectAndroidMappings'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
+        path="source-maps/"
+        name={t('Source Maps')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectSourceMaps" */ 'app/views/settings/projectSourceMaps'
           )
         }
         component={errorHandler(LazyLoad)}

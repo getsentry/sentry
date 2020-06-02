@@ -47,7 +47,7 @@ const colors = {
   green100: '#F5FFFB',
   green200: '#C0F3DD',
   green300: '#8FE7BF',
-  green400: '#8FE7BF',
+  green400: '#4DC771',
   green500: '#1C8952',
 
   pink100: '#FFF5F9',
@@ -58,20 +58,6 @@ const colors = {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Old Colors
-  offWhite: '#FAF9FB',
-  offWhiteLight: '#F2F0F5',
-  offWhite2: '#E7E1EC',
-
-  whiteDark: '#fbfbfc',
-  foreground: '#493E54',
-
-  gray1: '#BDB4C7',
-  gray2: '#9585A3',
-  gray3: '#645574',
-  gray4: '#4A3E56',
-  gray5: '#302839',
-  gray6: '#AFA3BB', // form disabled
-
   blue: '#3B6ECC',
   blueLight: '#628BD6',
   blueLightest: '#F5FAFE',
@@ -145,19 +131,19 @@ const alert = {
     border: colors.gray400,
   },
   info: {
-    backgroundLight: colors.blueLightest,
-    border: colors.blueLight,
-    iconColor: colors.blue,
-    background: colors.blue,
+    backgroundLight: colors.blue100,
+    border: colors.blue300,
+    iconColor: colors.blue400,
+    background: colors.blue400,
   },
   warning,
   //alias warn to warning
   warn: warning,
   success: {
-    backgroundLight: colors.greenLightest,
-    border: colors.green,
-    iconColor: colors.greenDark,
-    background: colors.green,
+    backgroundLight: colors.green100,
+    border: colors.green400,
+    iconColor: colors.green500,
+    background: colors.green400,
   },
   error: {
     backgroundLight: colors.redLightest,
@@ -178,14 +164,14 @@ const badge = {
     indicatorColor: colors.purple,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green}, ${colors.greenDark})`,
-    indicatorColor: colors.green,
+    background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
+    indicatorColor: colors.green400,
   },
 };
 
 const aliases = {
   textColor: colors.gray800,
-  success: colors.green,
+  success: colors.green400,
   error: colors.red,
   disabled: colors.gray400,
 } as const;
@@ -219,10 +205,10 @@ const button = {
     color: colors.white,
     colorActive: colors.white,
     background: '#3fa372',
-    backgroundActive: colors.green,
+    backgroundActive: colors.green400,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green)
+    focusShadow: color(colors.green400)
       .alpha(0.5)
       .string(),
   },
@@ -238,8 +224,8 @@ const button = {
       .string(),
   },
   link: {
-    color: colors.blue,
-    colorActive: colors.blue,
+    color: colors.blue400,
+    colorActive: colors.blue400,
     background: 'transparent',
     border: false,
     borderActive: false,

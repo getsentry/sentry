@@ -63,6 +63,16 @@ export default function getConfiguration({
           title: t('Debug Files'),
         },
         {
+          path: `${pathPrefix}/source-maps/`,
+          title: t('Source Maps'),
+          show: () => organization.features?.includes('artifacts-in-settings'),
+        },
+        {
+          path: `${pathPrefix}/android-mappings/`,
+          title: t('Android Mappings'),
+          show: () => organization.features?.includes('android-mappings'),
+        },
+        {
           path: `${pathPrefix}/data-privacy/`,
           title: t('Data Privacy'),
           description: t('Configure Datascrubbers for a project'),

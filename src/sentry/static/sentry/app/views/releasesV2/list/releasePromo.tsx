@@ -3,7 +3,6 @@ import React from 'react';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {Panel} from 'app/components/panels';
 import ReleaseLanding from 'app/views/releases/list/releaseLanding';
 
 type Props = {
@@ -25,11 +24,7 @@ class ReleasePromo extends AsyncView<Props> {
 
   renderBody() {
     if (this.state.releases.length === 0) {
-      return (
-        <Panel>
-          <ReleaseLanding />
-        </Panel>
-      );
+      return <ReleaseLanding />;
     }
 
     return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;

@@ -36,7 +36,7 @@ type Props = {
 type State = {
   loading: boolean;
   assignedTo: User;
-  memberList: User[];
+  memberList: User[] | undefined;
 };
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
@@ -71,7 +71,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
 
   getInitialState() {
     const group = GroupStore.get(this.props.id);
-    const memberList = MemberListStore.loaded ? MemberListStore.getAll() : null;
+    const memberList = MemberListStore.loaded ? MemberListStore.getAll() : undefined;
     const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
 
     return {
@@ -110,13 +110,13 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     // XXX(billyvg): this means that once `memberList` is not-null, this component will never update due to `memberList` changes
     // Note: this allows us to show a "loading" state for memberList, but only before `MemberListStore.loadInitialData`
     // is called
-    if (currentMembers === null && nextState.memberList !== currentMembers) {
+    if (currentMembers === undefined && nextState.memberList !== currentMembers) {
       return true;
     }
     return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
   },
 
-  memberList() {
+  memberList(): User[] | undefined {
     return this.props.memberList ? this.props.memberList : this.state.memberList;
   },
 
@@ -255,8 +255,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               }
               e.stopPropagation();
             }}
-            busy={memberList === null}
-            items={memberList !== null ? this.renderNewDropdownItems() : null}
+            busy={memberList === undefined}
+            items={memberList !== undefined ? this.renderNewDropdownItems() : null}
             alignMenu="right"
             onSelect={this.handleAssign}
             itemSize="small"
@@ -310,7 +310,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 });
 
-export function putSessionUserFirst(members: User[]): User[] {
+export function putSessionUserFirst(members: User[] | undefined): User[] {
   // If session user is in the filtered list of members, put them at the top
   if (!members) {
     return [];

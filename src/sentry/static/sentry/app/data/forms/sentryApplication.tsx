@@ -67,7 +67,14 @@ const getPublicFormFields = (): Field[] => [
     type: 'textarea',
     label: 'Schema',
     autosize: true,
-    help: 'Schema for your UI components',
+    help: tct(
+      'Schema for your UI components. Click [schema_docs:here] for documentation.',
+      {
+        schema_docs: (
+          <a href="https://docs.sentry.io/workflow/integrations/integration-platform/ui-components/" />
+        ),
+      }
+    ),
     getValue: (val: string) => (val === '' ? {} : JSON.parse(val)),
     setValue: (val: string) => {
       const schema = JSON.stringify(val, null, 2);

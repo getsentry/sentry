@@ -413,7 +413,7 @@ const MarkdownTab = styled(NoteInputNavTab)`
     display: flex;
     align-items: center;
     margin-right: 0;
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
 
     float: right;
   }

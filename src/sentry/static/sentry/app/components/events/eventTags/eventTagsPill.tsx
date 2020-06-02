@@ -56,21 +56,22 @@ const EventTagsPill = ({
         </a>
       )}
       {isRelease && (
-        <VersionHoverCard
-          containerClassName="pill-icon"
-          version={tag.value}
-          orgId={orgId}
-          projectId={projectId}
-        >
-          <Link
-            to={{
-              pathname: `${releasesPath}${tag.value}/`,
-              search: locationSearch,
-            }}
+        <div className="pill-icon">
+          <VersionHoverCard
+            orgSlug={orgId}
+            projectSlug={projectId}
+            releaseVersion={tag.value}
           >
-            <InlineSvg src="icon-circle-info" size="14px" />
-          </Link>
-        </VersionHoverCard>
+            <Link
+              to={{
+                pathname: `${releasesPath}${tag.value}/`,
+                search: locationSearch,
+              }}
+            >
+              <InlineSvg src="icon-circle-info" size="14px" />
+            </Link>
+          </VersionHoverCard>
+        </div>
       )}
     </Pill>
   );

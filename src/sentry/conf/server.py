@@ -798,8 +798,12 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
+    # Enable android mappings in processing section of settings.
+    "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
+    # Move release artifacts to settings.
+    "organizations:artifacts-in-settings": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -817,12 +821,10 @@ SENTRY_FEATURES = {
     "organizations:custom-symbol-sources": True,
     # Enable the events stream interface.
     "organizations:events": False,
-    # Enable events v2 instead of the events stream
-    "organizations:events-v2": False,
     # Enable discover 2 basic functions
-    "organizations:discover-basic": False,
+    "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
-    "organizations:discover-query": False,
+    "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
     # Enable multi project selection
@@ -960,6 +962,9 @@ SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
 
 # sample rate for the relay projectconfig endpoint
 SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
+
+# sample rate for ingest consumer processing functions
+SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
 # ----
 # end APM config
@@ -1513,7 +1518,6 @@ SENTRY_DEVSERVICES = {
         # started up, only pulled and made available for `devserver` which will start
         # it with `devservices attach --is-devserver reverse_proxy`.
         "with_devserver": True,
-        "devserver_alias": "proxy",
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",

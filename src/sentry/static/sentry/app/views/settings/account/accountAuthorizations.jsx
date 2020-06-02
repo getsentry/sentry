@@ -150,6 +150,6 @@ const Url = styled('div')`
 `;
 
 const Scopes = styled('div')`
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;

@@ -62,7 +62,7 @@ describe('withConfig HoC', function() {
     expect(logExperiment).toHaveBeenCalledWith({key: 'orgExperiment', organization});
   });
 
-  it('deffers logging when injectLogExperiment is true', function() {
+  it('defers logging when injectLogExperiment is true', function() {
     const Container = withExperiment(MyComponent, {
       experiment: 'orgExperiment',
       injectLogExperiment: true,

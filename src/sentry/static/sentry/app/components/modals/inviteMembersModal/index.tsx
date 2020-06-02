@@ -327,8 +327,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           {this.willInvite
             ? t('Invite new members by email to join your organization.')
             : t(
-                `You don't have permission to directly invite users, but we’ll
-                 send a request on your behalf!`
+                `You don’t have permission to directly invite users, but we’ll
+                 send a request on your behalf.`
               )}
         </Subtext>
 
@@ -498,7 +498,7 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   color: ${p => (p.status === 'error' ? p.theme.red : p.theme.gray600)};
 
   > :first-child {
-    ${p => p.status === 'success' && `color: ${p.theme.green}`};
+    ${p => p.status === 'success' && `color: ${p.theme.green400}`};
   }
 `;
 

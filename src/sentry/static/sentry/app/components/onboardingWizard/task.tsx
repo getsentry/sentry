@@ -210,7 +210,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 `;
 
 const CTA = styled('div')`
-  color: ${p => p.theme.blue};
+  color: ${p => p.theme.blue400};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
 `;
@@ -247,7 +247,7 @@ const completedItemPoses = {
 const CompleteIndicator = posed(IconCheckmark)(completedItemPoses);
 CompleteIndicator.defaultProps = {
   isCircled: true,
-  color: theme.green,
+  color: theme.green400,
 };
 
 const SkippedIndicator = posed(IconClose)(completedItemPoses);

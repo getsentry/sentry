@@ -216,9 +216,9 @@ def find_histogram_buckets(field, params, conditions):
 
     # Determine the first bucket that will show up in our results so that we can
     # zerofill correctly.
-    offset = floor(bucket_min / bucket_size) * bucket_size
+    offset = int(floor(bucket_min / bucket_size) * bucket_size)
 
-    return "histogram({}, {:g}, {:g}, {:g})".format(column, num_buckets, bucket_size, offset)
+    return "histogram({}, {:g}, {:.0f}, {:.0f})".format(column, num_buckets, bucket_size, offset)
 
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
@@ -525,7 +525,7 @@ def transform_deprecated_functions_in_query(query):
         if old_function + "()" in query:
             replacement = OLD_FUNCTIONS_TO_NEW[old_function]
             query = query.replace(old_function + "()", replacement)
-        elif old_function in query:
+        elif old_function + ":" in query:
             replacement = OLD_FUNCTIONS_TO_NEW[old_function]
             query = query.replace(old_function, replacement)
 
@@ -906,6 +906,7 @@ def top_events_timeseries(
             orderby=orderby,
             limit=limit,
             referrer=referrer,
+            use_aggregate_conditions=True,
         )
 
     with sentry_sdk.start_span(
