@@ -37,7 +37,6 @@ type State = {
   filteredByFilter: BreadcrumbsWithDetails;
   filteredBySearch: BreadcrumbsWithDetails;
   filterOptions: FilterOptions;
-  listBodyHeight?: React.CSSProperties['maxHeight'];
 };
 
 type Props = {
@@ -62,28 +61,31 @@ class Breadcrumbs extends React.Component<Props, State> {
     this.loadBreadcrumbs();
   }
 
-  componentDidUpdate() {
-    this.loadListBodyHeight();
+  componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (
+      prevState.breadcrumbs.length === 0 &&
+      this.state.breadcrumbs.length >= MAX_CRUMBS_WHEN_COLLAPSED
+    ) {
+      this.expandCollapsedCrumbs();
+    }
   }
 
   listBodyRef = React.createRef<HTMLDivElement>();
 
-  loadListBodyHeight = () => {
-    if (!this.state.listBodyHeight) {
-      const element = this.listBodyRef?.current;
-      this.setState(
-        prevState => ({
-          listBodyHeight: element?.offsetHeight ? `${element?.offsetHeight}px` : 'none',
-          filteredBySearch: prevState.breadcrumbs,
-        }),
-        () => {
-          this.scrollToTheBottom(element);
-        }
-      );
-    }
+  expandCollapsedCrumbs = () => {
+    this.setState(
+      prevState => ({
+        filteredBySearch: prevState.breadcrumbs,
+      }),
+      () => {
+        this.scrollToTheBottom();
+      }
+    );
   };
 
-  scrollToTheBottom = (element: HTMLDivElement | null) => {
+  scrollToTheBottom = () => {
+    const element = this.listBodyRef?.current;
+
     if (!element) {
       return;
     }
@@ -248,10 +250,7 @@ class Breadcrumbs extends React.Component<Props, State> {
   handleSearch = (value: string) => {
     this.setState(prevState => ({
       searchTerm: value,
-      filteredBySearch: this.filterBySearch(
-        prevState.searchTerm,
-        prevState.filteredByFilter
-      ),
+      filteredBySearch: this.filterBySearch(value, prevState.filteredByFilter),
     }));
   };
 
@@ -326,7 +325,7 @@ class Breadcrumbs extends React.Component<Props, State> {
 
   render() {
     const {type, event, orgId} = this.props;
-    const {filterOptions, searchTerm, listBodyHeight, filteredBySearch} = this.state;
+    const {filterOptions, searchTerm, filteredBySearch} = this.state;
 
     return (
       <EventDataSection
@@ -361,7 +360,6 @@ class Breadcrumbs extends React.Component<Props, State> {
                 event={event}
                 orgId={orgId}
                 breadcrumbs={filteredBySearch}
-                maxHeight={listBodyHeight}
                 ref={this.listBodyRef}
               />
             </React.Fragment>
