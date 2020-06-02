@@ -30,8 +30,12 @@ const getDimensionValue = dimension => {
 class BaseChart extends React.Component {
   static propTypes = {
     // TODO: Pull out props from generic `options` object
-    // so that we can better document them in prop types
-    // see: https://ecomfe.github.io/echarts-doc/public/en/option.html
+    //       so that we can better document them in prop types
+    //       see: https://ecomfe.github.io/echarts-doc/public/en/option.html
+    //
+    // NOTE: [!!] If you use an option that requires a specific echart module,
+    //       you WILL NEED to IMPORT that module to have it registered in
+    //       echarts. IT WILL FAIL SILENTLY IF YOU DONT.
     options: PropTypes.object,
 
     // Chart Series
