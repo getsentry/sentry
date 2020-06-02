@@ -23,8 +23,8 @@ jobs:
         PYTEST_ADDOPTS: "--reruns 5"
 
         # services configuration
-        SENTRY_KAFKA_HOSTS: kafka:9093
-        SENTRY_ZOOKEEPER_HOSTS: zookeeper:2182
+        SENTRY_KAFKA_HOSTS: 127.0.0.1:9093
+        SENTRY_ZOOKEEPER_HOSTS: 127.0.0.1:2182
         SENTRY_REDIS_HOST: redis
         # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
