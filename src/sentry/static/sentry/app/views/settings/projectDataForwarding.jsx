@@ -37,6 +37,7 @@ class DataForwardingStats extends AsyncComponent {
 
   renderBody() {
     const {projectId} = this.props.params;
+    //y is an array of size one which denotes how many events were forwarded in that period
     const stats = this.state.stats.map(p => ({x: p[0], y: [p[1]]}));
     const fowardedAny = stats.some(({y}) => y[0]);
 
