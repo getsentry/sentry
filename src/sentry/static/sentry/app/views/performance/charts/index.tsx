@@ -12,7 +12,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import EventView from 'app/utils/discover/eventView';
-import EventsRequest from 'app/views/events/utils/eventsRequest';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
