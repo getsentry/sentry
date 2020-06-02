@@ -24,7 +24,6 @@ import {
 import transformCrumbs from './transformCrumbs';
 import Filter from './filter/filter';
 import ListHeader from './listHeader';
-import ListCollapse from './listCollapse';
 import ListBody from './listBody';
 import Level from './level';
 import Icon from './icon';
@@ -34,14 +33,11 @@ const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
 type State = {
-  isCollapsed: boolean;
   searchTerm: string;
   breadcrumbs: BreadcrumbsWithDetails;
   filteredByFilter: BreadcrumbsWithDetails;
   filteredBySearch: BreadcrumbsWithDetails;
-  filteredByCollapsed: BreadcrumbsWithDetails;
   filterOptions: FilterOptions;
-  isScrolling: boolean;
   listBodyHeight?: React.CSSProperties['maxHeight'];
 };
 
@@ -56,13 +52,10 @@ type Props = {
 
 class Breadcrumbs extends React.Component<Props, State> {
   state: State = {
-    isScrolling: false,
-    isCollapsed: true,
     searchTerm: '',
     breadcrumbs: [],
     filteredByFilter: [],
     filteredBySearch: [],
-    filteredByCollapsed: [],
     filterOptions: [[], []],
   };
 
@@ -70,22 +63,37 @@ class Breadcrumbs extends React.Component<Props, State> {
     this.loadBreadcrumbs();
   }
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
+  componentDidUpdate() {
     this.loadListBodyHeight();
-    if (!isEqual(prevState.filteredByFilter, this.state.filteredByFilter)) {
-      this.handleSearch(this.state.searchTerm);
-    }
   }
 
   listBodyRef = React.createRef<HTMLDivElement>();
 
   loadListBodyHeight = () => {
     if (!this.state.listBodyHeight) {
-      const offsetHeight = this.listBodyRef?.current?.offsetHeight;
-      this.setState({
-        listBodyHeight: offsetHeight ? `${offsetHeight}px` : 'none',
-      });
+      const element = this.listBodyRef?.current;
+      this.setState(
+        prevState => ({
+          listBodyHeight: element?.offsetHeight ? `${element?.offsetHeight}px` : 'none',
+          filteredBySearch: prevState.breadcrumbs,
+        }),
+        () => {
+          this.scrollToTheBottom(element);
+        }
+      );
     }
+  };
+
+  scrollToTheBottom = (element: HTMLDivElement | null) => {
+    if (!element) {
+      return;
+    }
+
+    element.scrollTo({
+      top: element.scrollHeight,
+      left: 0,
+      behavior: 'smooth',
+    });
   };
 
   loadBreadcrumbs = () => {
@@ -101,23 +109,16 @@ class Breadcrumbs extends React.Component<Props, State> {
     const tranformedCrumbs = transformCrumbs(breadcrumbs);
     const filterOptions = this.getFilterOptions(tranformedCrumbs);
 
-    this.setState(prevState => ({
+    this.setState({
       breadcrumbs: tranformedCrumbs,
       filteredByFilter: tranformedCrumbs,
-      filteredBySearch: tranformedCrumbs,
-      filteredByCollapsed: this.getCollapsedBreadcrumbs(
-        prevState.isCollapsed,
-        tranformedCrumbs
-      ),
+      filteredBySearch: this.getCollapsedBreadcrumbs(tranformedCrumbs),
       filterOptions,
-    }));
+    });
   };
 
-  getCollapsedBreadcrumbs = (
-    isCollapsed: boolean,
-    breadcrumbs: BreadcrumbsWithDetails
-  ) => {
-    return isCollapsed && breadcrumbs.length > MAX_CRUMBS_WHEN_COLLAPSED
+  getCollapsedBreadcrumbs = (breadcrumbs: BreadcrumbsWithDetails) => {
+    return breadcrumbs.length > MAX_CRUMBS_WHEN_COLLAPSED
       ? breadcrumbs.slice(-MAX_CRUMBS_WHEN_COLLAPSED)
       : breadcrumbs;
   };
@@ -228,22 +229,10 @@ class Breadcrumbs extends React.Component<Props, State> {
     };
   };
 
-  scrollToTheBottom = (element: HTMLDivElement) => {
-    element.scrollTo({
-      top: element.scrollHeight,
-      left: 0,
-      behavior: 'smooth',
-    });
-  };
-
-  handleSearch = (value: string) => {
-    const {filteredByFilter, isCollapsed} = this.state;
-
-    const searchTerm = value.toLocaleLowerCase();
-
-    const filteredBySearch = !searchTerm.trim()
-      ? filteredByFilter
-      : filteredByFilter.filter(obj =>
+  filterBySearch = (searchTerm: string, breadcrumbs: BreadcrumbsWithDetails) => {
+    return !searchTerm.trim()
+      ? breadcrumbs
+      : breadcrumbs.filter(obj =>
           Object.keys(
             pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
           ).some(key => {
@@ -255,64 +244,21 @@ class Breadcrumbs extends React.Component<Props, State> {
               .includes(searchTerm);
           })
         );
-
-    this.setState({
-      searchTerm: value,
-      filteredBySearch,
-      filteredByCollapsed: this.getCollapsedBreadcrumbs(isCollapsed, filteredBySearch),
-    });
   };
 
-  handleToggleCollapse = () => {
-    const {isCollapsed, filteredBySearch} = this.state;
-
-    const element = this.listBodyRef?.current;
-
-    if (!element) {
-      return;
-    }
-
-    const scrollTop = element.scrollTop;
-    const scrollHeight = element.scrollHeight;
-    const atTheBottom = scrollHeight - scrollTop + 1 === element.offsetHeight;
-
-    if (isCollapsed) {
-      this.setState(
-        {
-          isCollapsed: false,
-          isScrolling: true,
-          filteredByCollapsed: filteredBySearch,
-        },
-        () => {
-          this.scrollToTheBottom(element);
-        }
-      );
-      return;
-    }
-
-    if (atTheBottom) {
-      this.setState({
-        isCollapsed: true,
-        filteredByCollapsed: this.getCollapsedBreadcrumbs(true, filteredBySearch),
-      });
-      return;
-    }
-
-    this.setState(
-      {
-        isCollapsed: true,
-        isScrolling: true,
-      },
-      () => {
-        this.scrollToTheBottom(element);
-      }
-    );
+  handleSearch = (value: string) => {
+    this.setState(prevState => ({
+      searchTerm: value,
+      filteredBySearch: this.filterBySearch(
+        prevState.searchTerm,
+        prevState.filteredByFilter
+      ),
+    }));
   };
 
   handleCleanSearch = () => {
     this.setState({
       searchTerm: '',
-      isCollapsed: true,
     });
   };
 
@@ -321,23 +267,23 @@ class Breadcrumbs extends React.Component<Props, State> {
   };
 
   handleClickFilterCheckAll = (checkAll: boolean) => {
-    const {filterOptions, breadcrumbs} = this.state;
-    const updatedFilterOptions: FilterOptions = [[], []];
+    const {breadcrumbs} = this.state;
 
-    for (const index in filterOptions) {
-      for (const option in filterOptions[index]) {
-        updatedFilterOptions[index][option] = {
-          ...filterOptions[index][option],
-          isChecked: checkAll,
-          isDisabled: false,
-        };
-      }
-    }
+    const filteredByFilter = checkAll ? breadcrumbs : [];
 
-    this.setState({
-      filteredByFilter: checkAll ? breadcrumbs : [],
-      filterOptions: updatedFilterOptions,
-    });
+    this.setState(prevState => ({
+      filteredByFilter,
+      filterOptions: prevState.filterOptions.map(filterOption =>
+        (filterOption as Array<FilterOptions[0][0] | FilterOptions[1][0]>).map(
+          option => ({
+            ...option,
+            isChecked: checkAll,
+            isDisabled: false,
+          })
+        )
+      ) as FilterOptions,
+      filteredBySearch: this.filterBySearch(prevState.searchTerm, filteredByFilter),
+    }));
   };
 
   filterCrumbsBy = (
@@ -372,47 +318,16 @@ class Breadcrumbs extends React.Component<Props, State> {
       filterOptions[1]
     );
 
-    this.setState({
+    this.setState(prevState => ({
       filterOptions,
       filteredByFilter: filteredCrumbsByLevel,
-    });
-  };
-
-  handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    const element = event.target as HTMLDivElement;
-    const scrollTop = element.scrollTop;
-    const scrollHeight = element.scrollHeight;
-    const atTheBottom = scrollHeight - scrollTop + 1 === element.offsetHeight;
-
-    if (this.state.isCollapsed && this.state.isScrolling && atTheBottom) {
-      this.setState(prevState => ({
-        isScrolling: false,
-        filteredByCollapsed: this.getCollapsedBreadcrumbs(
-          true,
-          prevState.filteredBySearch
-        ),
-      }));
-      return;
-    }
-
-    if (atTheBottom && this.state.isScrolling) {
-      this.setState({
-        isScrolling: false,
-      });
-    }
+      filteredBySearch: this.filterBySearch(prevState.searchTerm, filteredCrumbsByLevel),
+    }));
   };
 
   render() {
     const {type, event, orgId} = this.props;
-    const {
-      filterOptions,
-      searchTerm,
-      isScrolling,
-      listBodyHeight,
-      filteredBySearch,
-      filteredByCollapsed,
-      isCollapsed,
-    } = this.state;
+    const {filterOptions, searchTerm, listBodyHeight, filteredBySearch} = this.state;
 
     return (
       <EventDataSection
@@ -440,25 +355,14 @@ class Breadcrumbs extends React.Component<Props, State> {
         isCentered
       >
         <Content>
-          {filteredByCollapsed.length > 0 ? (
+          {filteredBySearch.length > 0 ? (
             <React.Fragment>
               <ListHeader />
-              <ListCollapse
-                isScrolling={isScrolling}
-                hasBeenExpanded={!isCollapsed}
-                onClick={this.handleToggleCollapse}
-                quantity={
-                  !isCollapsed
-                    ? filteredByCollapsed.length - MAX_CRUMBS_WHEN_COLLAPSED
-                    : filteredBySearch.length - filteredByCollapsed.length
-                }
-              />
               <ListBody
                 event={event}
                 orgId={orgId}
-                breadcrumbs={filteredByCollapsed}
+                breadcrumbs={filteredBySearch}
                 maxHeight={listBodyHeight}
-                onScroll={this.handleScroll}
                 ref={this.listBodyRef}
               />
             </React.Fragment>

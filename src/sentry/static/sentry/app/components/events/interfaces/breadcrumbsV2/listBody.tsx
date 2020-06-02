@@ -19,16 +19,15 @@ type Props = {
   breadcrumbs: BreadcrumbsWithDetails;
   event: Event;
   orgId: string | null;
-  onScroll: (event: React.UIEvent<HTMLDivElement>) => void;
   maxHeight?: React.CSSProperties['maxHeight'];
 };
 
 const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
-  {orgId, event, maxHeight, breadcrumbs, onScroll},
+  {orgId, event, maxHeight, breadcrumbs},
   ref
 ) {
   return (
-    <StyledGrid maxHeight={maxHeight} ref={ref} onScroll={onScroll}>
+    <StyledGrid maxHeight={maxHeight} ref={ref}>
       {breadcrumbs.map(({color, icon, ...crumb}, idx) => {
         const hasError = crumb.type === BreadcrumbType.ERROR;
         const isLastItem = breadcrumbs.length - 1 === idx;
@@ -64,7 +63,6 @@ ListBody.propTypes = {
   breadcrumbs: PropTypes.array.isRequired,
   event: SentryTypes.Event.isRequired,
   orgId: PropTypes.string.isRequired,
-  onScroll: PropTypes.func.isRequired,
   maxHeight: PropTypes.string,
 };
 
