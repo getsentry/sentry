@@ -326,11 +326,6 @@ class MailAdapter(object):
         project_plugins = plugins.for_project(project, version=1)
         organization_integrations = Integration.objects.filter(organizations=org).first()
         has_integrations = True if project_plugins or organization_integrations else False
-        integration_link = "/settings/%s/integrations/?%s=%s" % (
-            org.slug,
-            "referrer",
-            "alert_email",
-        )
 
         context = {
             "project_label": project.get_full_name(),
@@ -338,7 +333,6 @@ class MailAdapter(object):
             "event": event,
             "link": link,
             "rules": rules,
-            "integration_link": integration_link,
             "has_integrations": has_integrations,
             "enhanced_privacy": enhanced_privacy,
             "commits": sorted(commits.values(), key=lambda x: x["score"], reverse=True),
@@ -372,7 +366,6 @@ class MailAdapter(object):
             event=event,
         ):
             self.add_unsubscribe_link(context, user_id, project, "alert_email")
-
             self._send_mail(
                 subject=subject,
                 template=template,
