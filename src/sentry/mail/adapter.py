@@ -18,6 +18,7 @@ from sentry.models import (
     Group,
     GroupSubscription,
     GroupSubscriptionReason,
+    Integration,
     ProjectOption,
     ProjectOwnership,
     Release,
@@ -25,6 +26,7 @@ from sentry.models import (
     User,
 )
 from sentry.plugins.base.structs import Notification
+from sentry.plugins.base import plugins
 from sentry.tasks.digests import deliver_digest
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -321,12 +323,23 @@ class MailAdapter(object):
                         commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
                         commits[commit["id"]] = commit_data
 
+        project_plugins = plugins.for_project(project, version=1)
+        organization_integrations = Integration.objects.filter(organizations=org).first()
+        has_integrations = True if project_plugins or organization_integrations else False
+        integration_link = "/settings/%s/integrations/?%s=%s" % (
+            org.slug,
+            "referrer",
+            "alert_email",
+        )
+
         context = {
             "project_label": project.get_full_name(),
             "group": group,
             "event": event,
             "link": link,
             "rules": rules,
+            "integration_link": integration_link,
+            "has_integrations": has_integrations,
             "enhanced_privacy": enhanced_privacy,
             "commits": sorted(commits.values(), key=lambda x: x["score"], reverse=True),
             "environment": environment,

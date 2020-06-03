@@ -148,6 +148,12 @@
         </p>
     {% endif %}
 
+    {% if not has_integrations %}
+        <p>
+            <a href="{% absolute_uri integration_link %}">{{ "Get this alert wherever you work" }}</a>
+        </p>
+    {% endif %}
+
     {# support for gmail actions #}
     <div itemscope itemtype="http://schema.org/EmailMessage">
       <meta itemprop="description" content="View Issue Details in Sentry"/>
