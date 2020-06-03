@@ -130,7 +130,9 @@ class ContextChunk extends React.Component {
     return (
       <React.Fragment>
         {this.getTitle()}
-        {alias !== type && type !== 'default' && <small>({alias})</small>}
+        {defined(type) && type !== 'default' && alias !== type && (
+          <small>({alias})</small>
+        )}
       </React.Fragment>
     );
   };
