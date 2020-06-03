@@ -12,8 +12,8 @@ function getUserKnownData(
 ): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
-  const dataKeys = userKnownDataValues.filter(
-    userKnownDataValue => data[userKnownDataValue]
+  const dataKeys = userKnownDataValues.filter(userKnownDataValue =>
+    defined(data[userKnownDataValue])
   );
 
   for (const key of dataKeys) {
