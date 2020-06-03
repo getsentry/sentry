@@ -23,7 +23,7 @@ class Chart extends React.Component<Props> {
     if (!data || data.length <= 0) {
       return null;
     }
-    const colors = theme.charts.getColorPalette(1);
+    const colors = theme.charts.getColorPalette(4);
 
     const areaChartProps = {
       seriesOptions: {
@@ -70,7 +70,7 @@ class Chart extends React.Component<Props> {
       utc,
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      colors: [colors[0], colors[0]],
+      colors: [colors[0], colors[1]],
       tooltip: {
         nameFormatter(value) {
           return value === 'epm()' ? 'tpm()' : value;
