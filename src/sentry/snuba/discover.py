@@ -58,6 +58,8 @@ ReferenceEvent.__new__.__defaults__ = (None, None)
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
+discover_column_resolver = resolve_column(Dataset.Discover)
+
 
 def is_real_column(col):
     """
@@ -80,9 +82,7 @@ def find_reference_event(reference_event):
         raise InvalidSearchQuery("Invalid reference event")
 
     column_names = [
-        resolve_column(Dataset.Discover)(col)
-        for col in reference_event.fields
-        if is_real_column(col)
+        discover_column_resolver(col) for col in reference_event.fields if is_real_column(col)
     ]
     # We don't need to run a query if there are no columns
     if not column_names:
@@ -137,7 +137,7 @@ def create_reference_event_conditions(reference_event):
     if event_data is None:
         return conditions
 
-    field_names = [resolve_column(Dataset.Discover)(col) for col in reference_event.fields]
+    field_names = [discover_column_resolver(col) for col in reference_event.fields]
     for (i, field) in enumerate(reference_event.fields):
         value = event_data.get(field_names[i], None)
         # If the value is a sequence use the first element as snuba
@@ -284,7 +284,7 @@ def resolve_discover_aliases(snuba_filter, function_translations=None):
     be renamed in the result set.
     """
     return resolve_snuba_aliases(
-        snuba_filter, resolve_column(Dataset.Discover), function_translations=function_translations
+        snuba_filter, discover_column_resolver, function_translations=function_translations
     )
 
 
@@ -826,7 +826,6 @@ def top_events_timeseries(
         )
 
         user_fields = FIELD_ALIASES["user"]["fields"]
-
         for field in selected_columns:
             # project is handled by filter_keys already
             if field in ["project", "project.id"]:
@@ -849,22 +848,18 @@ def top_events_timeseries(
                 elif field == "user":
                     snuba_filter.conditions.append(
                         [
-                            [resolve_column(Dataset.Discover)(user_field), "IN", values]
+                            [discover_column_resolver(user_field), "IN", values]
                             for user_field in user_fields
                         ]
                     )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
-                    condition = [[["isNull", [resolve_column(Dataset.Discover)(field)]], "=", 1]]
+                    condition = [[["isNull", [discover_column_resolver(field)]], "=", 1]]
                     if non_none_values:
-                        condition.append(
-                            [resolve_column(Dataset.Discover)(field), "IN", non_none_values]
-                        )
+                        condition.append([discover_column_resolver(field), "IN", non_none_values])
                     snuba_filter.conditions.append(condition)
                 else:
-                    snuba_filter.conditions.append(
-                        [resolve_column(Dataset.Discover)(field), "IN", values]
-                    )
+                    snuba_filter.conditions.append([discover_column_resolver(field), "IN", values])
 
     with sentry_sdk.start_span(op="discover.discover", description="top_events.snuba_query"):
         result = raw_query(
