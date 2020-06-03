@@ -706,27 +706,6 @@ def nest_groups(data, groups, aggregate_cols):
         )
 
 
-# def resolve_column(col):
-#     """
-#     Used as a column resolver in discover queries.
-
-#     Resolve a public schema name to the discover dataset.
-#     unknown columns are converted into tags expressions.
-#     """
-#     if col is None:
-#         return col
-#     elif isinstance(col, (list, tuple)):
-#         return col
-#     # Whilst project_id is not part of the public schema we convert
-#     # the project.name field into project_id way before we get here.
-#     if col == "project_id":
-#         return col
-#     if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
-#         return col
-
-#     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
-
-
 def resolve_column(dataset):
     def _resolve_column(col):
         if col is None or col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
@@ -830,7 +809,7 @@ def aliased_query(
             if isinstance(col, (list, tuple)):
                 derived_columns.append(col[2])
             else:
-                selected_columns[i] = resolve_column(col, dataset)
+                selected_columns[i] = resolve_column(dataset)(col)
         selected_columns = [c for c in selected_columns if c]
 
     if aggregations:
@@ -851,7 +830,7 @@ def aliased_query(
         for (i, order) in enumerate(orderby):
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
-                order_field = resolve_column(order_field, dataset)
+                order_field = resolve_column(dataset)(order_field)
             updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 
@@ -874,17 +853,17 @@ def aliased_query(
 # TODO (evanh) Since we are assuming that all string values are columns,
 # this will get tricky if we ever have complex columns where there are
 # string arguments to the functions that aren't columns
-def resolve_complex_column(col, resolve_column):
+def resolve_complex_column(col, resolve_func):
     args = col[1]
 
     for i in range(len(args)):
         if isinstance(args[i], (list, tuple)):
-            resolve_complex_column(args[i], resolve_column)
+            resolve_complex_column(args[i], resolve_func)
         elif isinstance(args[i], six.string_types):
-            args[i] = resolve_column(args[i])
+            args[i] = resolve_func(args[i])
 
 
-def resolve_snuba_aliases(snuba_filter, resolve_column, function_translations=None):
+def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None):
     resolved = snuba_filter.clone()
     translated_columns = {}
     derived_columns = set()
@@ -897,9 +876,9 @@ def resolve_snuba_aliases(snuba_filter, resolve_column, function_translations=No
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
-                resolve_complex_column(col, resolve_column)
+                resolve_complex_column(col, resolve_func)
             else:
-                name = resolve_column(col)
+                name = resolve_func(col)
                 selected_columns[idx] = name
                 translated_columns[name] = col
 
@@ -913,7 +892,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_column, function_translations=No
                 if len(col) == 3:
                     name = col[2]
             elif col not in derived_columns:
-                name = resolve_column(col)
+                name = resolve_func(col)
 
             groupby[idx] = name
         resolved.groupby = groupby
@@ -922,15 +901,15 @@ def resolve_snuba_aliases(snuba_filter, resolve_column, function_translations=No
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
         if isinstance(aggregation[1], six.string_types):
-            aggregation[1] = resolve_column(aggregation[1])
+            aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
-            aggregation[1] = [resolve_column(col) for col in aggregation[1]]
+            aggregation[1] = [resolve_func(col) for col in aggregation[1]]
     resolved.aggregations = aggregations
 
     conditions = resolved.conditions
     if conditions:
         for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, resolve_column)
+            replacement = resolve_condition(condition, resolve_func)
             conditions[i] = replacement
         resolved.conditions = [c for c in conditions if c]
 
@@ -944,7 +923,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_column, function_translations=No
             resolved_orderby.append(
                 u"{}{}".format(
                     "-" if field_with_order.startswith("-") else "",
-                    field if field in derived_columns else resolve_column(field),
+                    field if field in derived_columns else resolve_func(field),
                 )
             )
         resolved.orderby = resolved_orderby
