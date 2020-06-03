@@ -13,7 +13,7 @@ function isAnnotated(meta) {
   return !isEmpty(meta.rem) || !isEmpty(meta.err);
 }
 
-type Local = Record<string, any> | undefined
+type Local = Record<string, any> | undefined;
 
 export class MetaProxy {
   private local: Local;
