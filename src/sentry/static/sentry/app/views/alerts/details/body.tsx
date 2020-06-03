@@ -226,29 +226,29 @@ export default class DetailsBody extends React.Component<Props> {
                   detected={incident.dateDetected}
                   closed={incident.dateClosed}
                   warningMarkLine={
-                    warningTrigger &&
+                    warningTriggerThreshold &&
                     MarkLine({
                       silent: true,
                       lineStyle: {color: theme.yellow400},
                       data: [
-                        warningTriggerThreshold && {
+                        {
                           yAxis: warningTriggerThreshold,
                           color: theme.yellowLight,
                         },
-                      ].filter(Boolean),
+                      ],
                     })
                   }
                   criticalMarkLine={
-                    criticalTrigger &&
+                    criticalTriggerThreshold &&
                     MarkLine({
                       silent: true,
                       lineStyle: {color: theme.red300},
                       data: [
-                        criticalTriggerThreshold && {
+                        {
                           yAxis: criticalTriggerThreshold,
                           color: '#4A4D7F',
                         },
-                      ].filter(Boolean),
+                      ],
                     })
                   }
                   options={{
