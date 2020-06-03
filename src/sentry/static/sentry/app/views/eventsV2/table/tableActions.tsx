@@ -7,7 +7,7 @@ import {OrganizationSummary} from 'app/types';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {IconDownload, IconEdit} from 'app/icons';
+import {IconDownload, IconEdit, IconTag} from 'app/icons';
 import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -90,6 +90,15 @@ renderAsyncExportButton.propTypes = {
   isLoading: PropTypes.bool,
 };
 
+function renderSummaryButton() {
+  return (
+    <HeaderButton>
+      <IconTag size="xs" />
+      {t('Show Tag Summary')}
+    </HeaderButton>
+  );
+}
+
 function renderEditButton(canEdit: boolean, props: Props) {
   const onClick = canEdit ? props.onEdit : undefined;
   return (
@@ -132,6 +141,7 @@ function HeaderActions(props: Props) {
         <React.Fragment>
           {renderEditButton(hasFeature, props)}
           {renderDownloadButton(hasFeature, props)}
+          {renderSummaryButton()}
         </React.Fragment>
       )}
     </Feature>

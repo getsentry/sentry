@@ -46,6 +46,7 @@ type State = {
   error: string;
   errorCode: number;
   totalValues: null | number;
+  showTags: boolean;
 };
 
 class Results extends React.Component<Props, State> {
@@ -59,6 +60,7 @@ class Results extends React.Component<Props, State> {
     error: '',
     errorCode: 200,
     totalValues: null,
+    showTags: false,
   };
 
   componentDidMount() {
@@ -190,13 +192,15 @@ class Results extends React.Component<Props, State> {
     const {eventView, totalValues} = this.state;
 
     return (
-      <Tags
-        generateUrl={this.generateTagUrl}
-        totalValues={totalValues}
-        eventView={eventView}
-        organization={organization}
-        location={location}
-      />
+      <Side>
+        <Tags
+          generateUrl={this.generateTagUrl}
+          totalValues={totalValues}
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
+      </Side>
     );
   }
 
@@ -229,7 +233,7 @@ class Results extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, api} = this.props;
-    const {eventView, error, errorCode, totalValues} = this.state;
+    const {eventView, error, errorCode, totalValues, showTags} = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
 
@@ -264,7 +268,7 @@ class Results extends React.Component<Props, State> {
                   total={totalValues}
                 />
               </Top>
-              <Main>
+              <StyledMain isCollapsed={showTags}>
                 <Table
                   organization={organization}
                   eventView={eventView}
@@ -272,8 +276,8 @@ class Results extends React.Component<Props, State> {
                   title={title}
                   setError={this.setError}
                 />
-              </Main>
-              <Side>{this.renderTagsTable()}</Side>
+              </StyledMain>
+              {showTags ? this.renderTagsTable() : null}
             </ContentBox>
           </LightWeightNoProjectMessage>
         </StyledPageContent>
@@ -296,6 +300,10 @@ export const StyledSearchBar = styled(SearchBar)`
 export const Top = styled('div')`
   grid-column: 1/3;
   flex-grow: 0;
+`;
+
+export const StyledMain = styled(Main)<{isCollapsed: boolean}>`
+  grid-column: ${p => (p.isCollapsed ? '1/2' : '1/3')};
 `;
 
 function ResultsContainer(props: Props) {
