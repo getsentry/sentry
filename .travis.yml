@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 language: python
 python: 2.7
 
