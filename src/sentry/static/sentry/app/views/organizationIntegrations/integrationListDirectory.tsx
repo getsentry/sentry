@@ -521,6 +521,16 @@ export class IntegrationListDirectory extends AsyncComponent<
                     searchTerm: searchInput,
                   })}
                 </EmptyResultsBody>
+                <EmptyResultsBodyBold>
+                  {t("Not seeing what you're looking for?")}
+                </EmptyResultsBodyBold>
+                <EmptyResultsBody>
+                  {tct('[link:Build it on the Sentry Integration Platform.]', {
+                    link: (
+                      <a href="https://docs.sentry.io/workflow/integrations/integration-platform/" />
+                    ),
+                  })}
+                </EmptyResultsBody>
               </EmptyResultsContainer>
             )}
           </PanelBody>
@@ -549,6 +559,10 @@ const EmptyResultsBody = styled('div')`
   line-height: 28px;
   color: ${p => p.theme.gray500};
   padding-bottom: ${space(2)};
+`;
+
+const EmptyResultsBodyBold = styled(EmptyResultsBody)`
+  font-weight: bold;
 `;
 
 export default withOrganization(IntegrationListDirectory);
