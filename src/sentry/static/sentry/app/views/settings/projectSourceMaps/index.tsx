@@ -1,14 +1,23 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
+import {Organization, Project} from 'app/types';
 
-import ProjectSourceMaps from './projectSourceMaps';
+type RouteParams = {
+  orgId: string;
+};
 
-class ProjectSourceMapsContainer extends React.Component<ProjectSourceMaps['props']> {
+type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
+  project: Project;
+};
+
+class ProjectSourceMapsContainer extends React.Component<Props> {
   renderNoAccess() {
     return (
       <PageContent>
@@ -18,7 +27,7 @@ class ProjectSourceMapsContainer extends React.Component<ProjectSourceMaps['prop
   }
 
   render() {
-    const {organization} = this.props;
+    const {children, project, organization} = this.props;
 
     return (
       <Feature
@@ -26,7 +35,8 @@ class ProjectSourceMapsContainer extends React.Component<ProjectSourceMaps['prop
         organization={organization}
         renderDisabled={this.renderNoAccess}
       >
-        <ProjectSourceMaps {...this.props} />
+        {React.isValidElement(children) &&
+          React.cloneElement(children, {organization, project})}
       </Feature>
     );
   }
