@@ -162,6 +162,13 @@ def build_action_text(group, identity, action):
     )
 
 
+def build_rule_url(rule, group, project):
+    org_slug = group.organization.slug
+    project_slug = project.slug
+    rule_url = u"/settings/{}/projects/{}/alerts/rules/{}/".format(org_slug, project_slug, rule.id)
+    return absolute_uri(rule_url)
+
+
 def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
@@ -265,7 +272,8 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     footer = u"{}".format(group.qualified_short_id)
 
     if rules:
-        footer += u" via {}".format(rules[0].label)
+        rule_url = build_rule_url(rules[0], group, project)
+        footer += u" via <{}|{}>".format(rule_url, rules[0].label)
 
         if len(rules) > 1:
             footer += u" (+{} other)".format(len(rules) - 1)

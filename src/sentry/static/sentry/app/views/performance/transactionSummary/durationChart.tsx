@@ -9,11 +9,11 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
-import EventsRequest from 'app/views/events/utils/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
@@ -130,7 +130,7 @@ class DurationChart extends React.Component<Props> {
                 if (errored) {
                   return (
                     <ErrorPanel>
-                      <IconWarning color={theme.gray500} size="lg" />
+                      <IconWarning color="gray500" size="lg" />
                     </ErrorPanel>
                   );
                 }

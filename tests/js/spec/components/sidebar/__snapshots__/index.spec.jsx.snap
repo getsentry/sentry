@@ -4140,11 +4140,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseLeave={[Function]}
                                                   >
                                                     <ForwardRef
-                                                      color="#FA5849"
+                                                      color="redLight"
                                                       size="xs"
                                                     >
                                                       <ForwardRef(SvgIcon)
-                                                        color="#FA5849"
+                                                        color="redLight"
                                                         size="xs"
                                                       >
                                                         <svg
@@ -4927,11 +4927,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseLeave={[Function]}
                                                   >
                                                     <ForwardRef
-                                                      color="#FA5849"
+                                                      color="redLight"
                                                       size="xs"
                                                     >
                                                       <ForwardRef(SvgIcon)
-                                                        color="#FA5849"
+                                                        color="redLight"
                                                         size="xs"
                                                       >
                                                         <svg
@@ -5720,11 +5720,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseLeave={[Function]}
                                                   >
                                                     <ForwardRef
-                                                      color="#FA5849"
+                                                      color="redLight"
                                                       size="xs"
                                                     >
                                                       <ForwardRef(SvgIcon)
-                                                        color="#FA5849"
+                                                        color="redLight"
                                                         size="xs"
                                                       >
                                                         <svg
@@ -6514,11 +6514,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseLeave={[Function]}
                                                   >
                                                     <ForwardRef
-                                                      color="#FA5849"
+                                                      color="redLight"
                                                       size="xs"
                                                     >
                                                       <ForwardRef(SvgIcon)
-                                                        color="#FA5849"
+                                                        color="redLight"
                                                         size="xs"
                                                       >
                                                         <svg
@@ -7206,11 +7206,11 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseLeave={[Function]}
                                                   >
                                                     <ForwardRef
-                                                      color="#FA5849"
+                                                      color="redLight"
                                                       size="xs"
                                                     >
                                                       <ForwardRef(SvgIcon)
-                                                        color="#FA5849"
+                                                        color="redLight"
                                                         size="xs"
                                                       >
                                                         <svg

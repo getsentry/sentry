@@ -5,7 +5,7 @@ import {Location} from 'history';
 import {GlobalSelection, Organization} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {Client} from 'app/api';
-import {EventsChart} from 'app/views/events/eventsChart';
+import EventsChart from 'app/components/charts/eventsChart';
 import {t} from 'app/locale';
 
 import ReleaseChartControls, {YAxis} from './releaseChartControls';

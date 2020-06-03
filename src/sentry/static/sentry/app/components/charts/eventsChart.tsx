@@ -1,7 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
+import {InjectedRouter} from 'react-router/lib/Router';
 
+import {Client} from 'app/api';
+import {DateString, OrganizationSummary} from 'app/types';
+import {Series} from 'app/types/echarts';
 import {t} from 'app/locale';
 import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -9,21 +13,32 @@ import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
-import SentryTypes from 'app/sentryTypes';
-import withApi from 'app/utils/withApi';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {getDuration, formatPercentage} from 'app/utils/formatters';
 
-import EventsRequest from './utils/eventsRequest';
+import EventsRequest from './eventsRequest';
 
 const DURATION_AGGREGATE_PATTERN = /^(p75|p95|p99|percentile)|transaction\.duration/;
 const PERCENTAGE_AGGREGATE_PATTERN = /^(error_rate)/;
 
-class Chart extends React.Component {
+type ChartProps = {
+  loading: boolean;
+  reloading: boolean;
+  // TODO(mark) Update this when components/charts/chartZoom is updated.
+  zoomRenderProps: any;
+  timeseriesData: Series[];
+  showLegend?: boolean;
+  currentSeriesName?: string;
+  releaseSeries?: Series | null;
+  previousTimeseriesData?: Series | null;
+  previousSeriesName?: string;
+  showDaily?: boolean;
+};
+
+class Chart extends React.Component<ChartProps> {
   static propTypes = {
     loading: PropTypes.bool,
     reloading: PropTypes.bool,
@@ -37,7 +52,7 @@ class Chart extends React.Component {
     showDaily: PropTypes.bool,
   };
 
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps: ChartProps) {
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;
     }
@@ -87,13 +102,16 @@ class Chart extends React.Component {
 
     const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
     const Component = showDaily ? BarChart : AreaChart;
+    const series = Array.isArray(releaseSeries)
+      ? [...timeseriesData, ...releaseSeries]
+      : timeseriesData;
 
     return (
       <Component
         {...props}
         {...zoomRenderProps}
         legend={legend}
-        series={[...timeseriesData, ...releaseSeries]}
+        series={series}
         seriesOptions={{
           showSymbol: false,
         }}
@@ -110,7 +128,82 @@ class Chart extends React.Component {
   }
 }
 
-class EventsChart extends React.Component {
+type Props = {
+  api: Client;
+  router: InjectedRouter;
+  organization: OrganizationSummary;
+  /**
+   * Project ids
+   */
+  projects: number[];
+  /**
+   * Environment condition.
+   */
+  environments: string[];
+  /**
+   * The discover query string to find events with.
+   */
+  query: string;
+  /**
+   * The aggregate/metric to plot.
+   */
+  yAxis: string;
+  /**
+   * Relative datetime expression. eg. 14d
+   */
+  period?: string;
+  /**
+   * Absolute start date.
+   */
+  start: DateString;
+  /**
+   * Absolute end date.
+   */
+  end: DateString;
+  /**
+   * Should datetimes be formatted in UTC?
+   */
+  utc?: boolean;
+  /**
+   * Don't show the previous period's data. Will automatically disable
+   * when start/end are used.
+   */
+  disablePrevious?: boolean;
+  /**
+   * Don't show the release marklines.
+   */
+  disableReleases?: boolean;
+  /**
+   * Fetch n top events as dictated by the field and orderby props.
+   */
+  topEvents?: number;
+  /**
+   * The fields that act as grouping conditions when generating a topEvents chart.
+   */
+  field?: string[];
+  /**
+   * Order condition when showing topEvents
+   */
+  orderby?: string;
+  /**
+   * Overide the interval calculation and show daily results.
+   */
+  showDaily?: boolean;
+} & Pick<ChartProps, 'currentSeriesName' | 'previousSeriesName' | 'showLegend'>;
+
+type ChartDataProps = {
+  // TODO(mark) Update this when components/charts/chartZoom is updated.
+  zoomRenderProps: any;
+  errored: boolean;
+  loading: boolean;
+  reloading: boolean;
+  results?: Series[];
+  timeseriesData?: Series[];
+  previousTimeseriesData?: Series | null;
+  releaseSeries?: Series;
+};
+
+class EventsChart extends React.Component<Props> {
   static propTypes = {
     api: PropTypes.object,
     projects: PropTypes.arrayOf(PropTypes.number),
@@ -165,7 +258,7 @@ class EventsChart extends React.Component {
 
     const tooltip = {
       truncate: 80,
-      valueFormatter(value) {
+      valueFormatter(value: number) {
         if (DURATION_AGGREGATE_PATTERN.test(yAxis)) {
           return getDuration(value / 1000, 2);
         }
@@ -192,11 +285,11 @@ class EventsChart extends React.Component {
       results,
       timeseriesData,
       previousTimeseriesData,
-    }) => {
+    }: ChartDataProps) => {
       if (errored) {
         return (
           <ErrorPanel>
-            <IconWarning color={theme.gray500} size="lg" />
+            <IconWarning color="gray500" size="lg" />
           </ErrorPanel>
         );
       }
@@ -261,7 +354,12 @@ class EventsChart extends React.Component {
             orderby={orderby}
             topEvents={topEvents}
           >
-            {eventData => chartImplementation({...eventData, zoomRenderProps})}
+            {eventData =>
+              chartImplementation({
+                ...eventData,
+                zoomRenderProps,
+              })
+            }
           </EventsRequest>
         )}
       </ChartZoom>
@@ -269,29 +367,4 @@ class EventsChart extends React.Component {
   }
 }
 
-const EventsChartContainer = withGlobalSelection(
-  withApi(
-    class EventsChartWithParams extends React.Component {
-      static propTypes = {
-        selection: SentryTypes.GlobalSelection,
-      };
-
-      render() {
-        const {selection, ...props} = this.props;
-        const {datetime, projects, environments} = selection;
-
-        return (
-          <EventsChart
-            {...datetime}
-            projects={projects || []}
-            environments={environments || []}
-            {...props}
-          />
-        );
-      }
-    }
-  )
-);
-
-export default EventsChartContainer;
-export {EventsChart};
+export default EventsChart;
