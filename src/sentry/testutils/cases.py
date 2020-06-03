@@ -43,7 +43,7 @@ from django.test import override_settings, TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from exam import before, fixture, Exam
-from multiprocessing.dummy import Pool as ThreadPool
+from concurrent.futures import ThreadPoolExecutor
 from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -784,16 +784,15 @@ class SnubaTestCase(BaseTestCase):
         self.init_snuba()
 
     def call_snuba(self, endpoint):
-        return requests.post(settings.SENTRY_SNUBA + endpoint).status_code
+        return requests.post(settings.SENTRY_SNUBA + endpoint)
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
-        executor = ThreadPool(4)
-        response_codes = executor.map_async(self.call_snuba, self.init_endpoints)
-        executor.close()
-        assert all(response_code == 200 for response_code in response_codes.get())
-        executor.join()
+        assert all(
+            response.status_code == 200
+            for response in ThreadPoolExecutor(4).map(self.call_snuba, self.init_endpoints)
+        )
 
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
