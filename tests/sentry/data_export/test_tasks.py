@@ -56,7 +56,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     def test_task_persistent_name(self):
         assert assemble_download.name == "sentry.data_export.tasks.assemble_download"
 
-    def test_issue_by_tag(self):
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_issue_by_tag(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
@@ -78,6 +79,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         raw1, raw2 = sorted([raw1, raw2])
         assert raw1.startswith("bar,1,")
         assert raw2.startswith("bar2,2,")
+
+        assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_key(self, emailer):
@@ -146,7 +149,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         header = de.file.getfile().read().strip()
         assert header == "value,times_seen,last_seen,first_seen"
 
-    def test_discover(self):
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
@@ -168,6 +172,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert raw1.startswith("<unlabeled event>")
         assert raw2.startswith("<unlabeled event>")
         assert raw3.startswith("<unlabeled event>")
+
+        assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_missing_project(self, emailer):
