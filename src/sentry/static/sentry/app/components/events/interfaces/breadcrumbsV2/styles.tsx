@@ -75,8 +75,7 @@ const GridCellLeft = styled(GridCell)`
 const Grid = styled('div')`
   border: 1px solid ${p => p.theme.borderDark};
   display: grid;
-  overflow-y: auto;
-  max-height: 450px;
+  overflow: hidden;
   > *:nth-last-child(5):before {
     bottom: calc(100% - ${space(1)});
   }

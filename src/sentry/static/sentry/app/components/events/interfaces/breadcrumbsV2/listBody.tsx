@@ -73,4 +73,6 @@ const GridCellCategory = styled(GridCell)`
 const StyledGrid = styled(Grid)`
   border-radius: ${p => p.theme.borderRadiusBottom};
   border-top: 0;
+  overflow-y: auto;
+  max-height: 450px;
 `;
