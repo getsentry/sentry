@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {objectIsEmpty, defined} from 'app/utils';
+import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
 import EventDataSection from 'app/components/events/eventDataSection';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
@@ -101,6 +101,10 @@ class ContextChunk extends React.Component {
       return value.title;
     }
 
+    if (!defined(type)) {
+      return t('Default');
+    }
+
     switch (type) {
       case 'app':
         return t('App');
@@ -114,8 +118,10 @@ class ContextChunk extends React.Component {
         return t('Graphics Processing Unit');
       case 'runtime':
         return t('Runtime');
-      default:
+      case 'default':
         return t('Default');
+      default:
+        return toTitleCase(type);
     }
   };
 
