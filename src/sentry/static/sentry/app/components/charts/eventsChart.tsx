@@ -91,6 +91,7 @@ class Chart extends React.Component<ChartProps> {
     const {
       loading: _loading,
       reloading: _reloading,
+      yAxis: _yaxis,
       releaseSeries,
       zoomRenderProps,
       timeseriesData,
