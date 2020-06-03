@@ -45,6 +45,4 @@ const User = ({data}: Props) => {
   );
 };
 
-User.getTitle = () => 'User';
-
 export default User;

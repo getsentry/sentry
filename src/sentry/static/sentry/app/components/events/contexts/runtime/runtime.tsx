@@ -15,6 +15,4 @@ const Runtime = ({data}: Props) => (
   <ContextBlock knownData={getRuntimeKnownData(data, runTimerKnownDataValues)} />
 );
 
-Runtime.getTitle = () => 'Runtime';
-
 export default Runtime;

@@ -25,6 +25,11 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
         subject: t('Family'),
         value: data.family,
       };
+    case DeviceKnownDataType.MODEL_ID:
+      return {
+        subject: t('Model Id'),
+        value: data.model_id,
+      };
     case DeviceKnownDataType.MODEL:
       return {
         subject: t('Model'),
@@ -36,6 +41,11 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
           ) : (
             undefined
           ),
+      };
+    case DeviceKnownDataType.RENDERED_MODEL:
+      return {
+        subject: t('Rendered Model'),
+        value: data.renderedModel,
       };
     case DeviceKnownDataType.CPU_DESCRIPTION:
       return {
@@ -90,6 +100,30 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
               )
             : undefined,
       };
+    case DeviceKnownDataType.FREE_STORAGE: {
+      return {
+        subject: t('Free Storage'),
+        value: data.free_storage,
+      };
+    }
+    case DeviceKnownDataType.STORAGE_SIZE: {
+      return {
+        subject: t('Storage Size'),
+        value: data.storage_size,
+      };
+    }
+    case DeviceKnownDataType.EXTERNAL_STORAGE_SIZE: {
+      return {
+        subject: t('External Storage Size'),
+        value: data.external_storage_size,
+      };
+    }
+    case DeviceKnownDataType.EXTERNAL_FREE_STORAGE: {
+      return {
+        subject: t('External Free Storage'),
+        value: data.external_free_storage,
+      };
+    }
     case DeviceKnownDataType.SIMULATOR:
       return {
         subject: t('Simulator'),
@@ -145,6 +179,21 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
         subject: t('Low Memory'),
         value: data.low_memory,
       };
+    case DeviceKnownDataType.FREE_MEMORY:
+      return {
+        subject: t('Free Memory'),
+        value: data.free_memory,
+      };
+    case DeviceKnownDataType.MEMORY_SIZE:
+      return {
+        subject: t('Memory Size'),
+        value: data.memory_size,
+      };
+    case DeviceKnownDataType.USABLE_MEMORY:
+      return {
+        subject: t('Usable Memory'),
+        value: data.usable_memory,
+      };
     case DeviceKnownDataType.MANUFACTURER:
       return {
         subject: t('Manufacturer'),
@@ -157,7 +206,7 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
       };
     case DeviceKnownDataType.SCREEN_DENSITY:
       return {
-        subject: t('Screen density'),
+        subject: t('Screen Density'),
         value: data.screen_density,
       };
     case DeviceKnownDataType.SCREEN_DPI:
@@ -167,17 +216,17 @@ function getDeviceKnownDataDetails(data: DeviceData, type: DeviceKnownDataType):
       };
     case DeviceKnownDataType.SCREEN_HEIGHT_PIXELS:
       return {
-        subject: t('Screen height pixels'),
+        subject: t('Screen Height Pixels'),
         value: data.screen_height_pixels,
       };
     case DeviceKnownDataType.SCREEN_RESOLUTION:
       return {
-        subject: t('Screen resolution'),
+        subject: t('Screen Resolution'),
         value: data.screen_resolution,
       };
     case DeviceKnownDataType.SCREEN_WIDTH_PIXELS:
       return {
-        subject: t('Screen width pixels'),
+        subject: t('Screen Width Pixels'),
         value: data.screen_width_pixels,
       };
     default:
