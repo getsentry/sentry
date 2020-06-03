@@ -125,8 +125,7 @@ export default class DetailsHeader extends React.Component<Props> {
                 {project && (
                   <Projects slugs={[project]} orgId={params.orgId}>
                     {({projects}) =>
-                      projects &&
-                      projects.length && (
+                      projects?.length && (
                         <ProjectBadge avatarSize={18} project={projects[0]} />
                       )
                     }
