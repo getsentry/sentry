@@ -153,7 +153,7 @@ export default class DetailsBody extends React.Component<Props> {
               })}
           </ChartParameters>
         </div>
-        <ChartActions>
+        <div>
           <Feature features={['discover-basic']}>
             <Projects slugs={incident?.projects} orgId={params.orgId}>
               {({initiallyLoaded, fetching, projects}) => {
@@ -182,7 +182,7 @@ export default class DetailsBody extends React.Component<Props> {
               }}
             </Projects>
           </Feature>
-        </ChartActions>
+        </div>
       </ChartHeader>
     );
   }
@@ -353,9 +353,12 @@ const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
   display: grid;
   grid-template-columns: 1fr max-content;
-`;
+  grid-gap: ${space(2)};
 
-const ChartActions = styled('div')``;
+  > div:first-of-type {
+    overflow: hidden;
+  }
+`;
 
 const ChartParameters = styled('div')`
   color: ${p => p.theme.gray600};
