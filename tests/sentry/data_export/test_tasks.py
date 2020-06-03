@@ -182,27 +182,6 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Requested project does not exist"
 
-    @patch("sentry.data_export.tasks.MAX_FILE_SIZE", 10)
-    @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_discover_export_body_too_large(self, emailer):
-        de = ExportedData.objects.create(
-            user=self.user,
-            organization=self.org,
-            query_type=ExportQueryType.DISCOVER,
-            query_info={"project": [self.project.id], "field": ["title"], "query": ""},
-        )
-        with self.tasks():
-            assemble_download(de.id)
-        de = ExportedData.objects.get(id=de.id)
-        assert de.date_finished is not None
-        assert de.date_expired is not None
-        assert de.file is not None
-        assert isinstance(de.file, File)
-        assert de.file.headers == {"Content-Type": "text/csv"}
-        # capping MAX_FILE_SIZE forces the body to be dropped, leaving only 2 rows
-        header = de.file.getfile().read().strip()
-        assert header == "title"
-
     @patch("sentry.data_export.tasks.MAX_FILE_SIZE", 55)
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_export_too_large(self, emailer):
