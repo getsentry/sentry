@@ -13,14 +13,16 @@ function isAnnotated(meta) {
   return !isEmpty(meta.rem) || !isEmpty(meta.err);
 }
 
-export class MetaProxy {
-  private local: any;
+type Local = Record<string, any> | undefined
 
-  constructor(local) {
+export class MetaProxy {
+  private local: Local;
+
+  constructor(local: Local) {
     this.local = local;
   }
 
-  get(obj, prop, receiver) {
+  get<T extends {}>(obj: T | Array<T>, prop: Extract<keyof T, string>, receiver: T) {
     // trap calls to `getMeta` to return meta object
     if (prop === GET_META) {
       return key => {
@@ -66,7 +68,12 @@ export function withMeta<T>(event: T): T {
     return event;
   }
 
-  return new Proxy(event, new MetaProxy((event as any)._meta));
+  // withMeta returns a type that is supposed to be 100% compatible with its
+  // input type. Proxy typing on typescript is not really functional enough to
+  // make this work without `any`.
+  //
+  // https://github.com/microsoft/TypeScript/issues/20846
+  return new Proxy(event, new MetaProxy((event as any)._meta)) as any;
 }
 
 export function getMeta<T extends {}>(
