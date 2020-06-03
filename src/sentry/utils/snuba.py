@@ -70,7 +70,11 @@ DISCOVER_COLUMN_MAP = {
 }
 
 
-DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Discover: DISCOVER_COLUMN_MAP}
+DATASETS = {
+    Dataset.Events: SENTRY_SNUBA_MAP,
+    Dataset.Discover: DISCOVER_COLUMN_MAP,
+    Dataset.Transactions: SENTRY_SNUBA_MAP,
+}
 
 # Store the internal field names to save work later on.
 # Add `group_id` to the events dataset list as we don't want to publically
@@ -78,6 +82,7 @@ DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Discover: DISCOVER_COLUMN_
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
+    Dataset.Transactions: list(SENTRY_SNUBA_MAP.values()),
 }
 
 
@@ -701,18 +706,46 @@ def nest_groups(data, groups, aggregate_cols):
         )
 
 
-def resolve_column(col, dataset):
-    if col.startswith("tags["):
-        return col
+# def resolve_column(col):
+#     """
+#     Used as a column resolver in discover queries.
 
-    if not col or QUOTED_LITERAL_RE.match(col):
-        return col
-    if col in DATASETS[dataset]:
-        return DATASETS[dataset][col]
-    if col in DATASET_FIELDS[dataset]:
-        return col
+#     Resolve a public schema name to the discover dataset.
+#     unknown columns are converted into tags expressions.
+#     """
+#     if col is None:
+#         return col
+#     elif isinstance(col, (list, tuple)):
+#         return col
+#     # Whilst project_id is not part of the public schema we convert
+#     # the project.name field into project_id way before we get here.
+#     if col == "project_id":
+#         return col
+#     if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
+#         return col
 
-    return u"tags[{}]".format(col)
+#     return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
+
+
+def resolve_column(dataset):
+    def _resolve_column(col):
+        if col is None or col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
+            return col
+
+        if dataset == Dataset.Discover:
+            if isinstance(col, (list, tuple)) or col == "project_id":
+                return col
+
+        if col in DATASETS[dataset]:
+            return DATASETS[dataset][col]
+
+        # TODO: I don't think Discover was running this(?):
+        if col in DATASET_FIELDS[dataset]:
+            return col
+
+        return u"tags[{}]".format(col)
+
+    return _resolve_column
 
 
 def resolve_condition(cond, column_resolver):

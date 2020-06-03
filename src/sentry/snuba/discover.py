@@ -27,12 +27,11 @@ from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
     SnubaTSResult,
-    DISCOVER_COLUMN_MAP,
-    QUOTED_LITERAL_RE,
     raw_query,
     to_naive_timestamp,
     naiveify_datetime,
     resolve_snuba_aliases,
+    resolve_column,
 )
 
 __all__ = (
@@ -80,7 +79,11 @@ def find_reference_event(reference_event):
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
+    column_names = [
+        resolve_column(Dataset.Discover)(col)
+        for col in reference_event.fields
+        if is_real_column(col)
+    ]
     # We don't need to run a query if there are no columns
     if not column_names:
         return None
@@ -134,7 +137,7 @@ def create_reference_event_conditions(reference_event):
     if event_data is None:
         return conditions
 
-    field_names = [resolve_column(col) for col in reference_event.fields]
+    field_names = [resolve_column(Dataset.Discover)(col) for col in reference_event.fields]
     for (i, field) in enumerate(reference_event.fields):
         value = event_data.get(field_names[i], None)
         # If the value is a sequence use the first element as snuba
@@ -272,27 +275,6 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
     return new_results
 
 
-def resolve_column(col):
-    """
-    Used as a column resolver in discover queries.
-
-    Resolve a public schema name to the discover dataset.
-    unknown columns are converted into tags expressions.
-    """
-    if col is None:
-        return col
-    elif isinstance(col, (list, tuple)):
-        return col
-    # Whilst project_id is not part of the public schema we convert
-    # the project.name field into project_id way before we get here.
-    if col == "project_id":
-        return col
-    if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
-        return col
-
-    return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
-
-
 def resolve_discover_aliases(snuba_filter, function_translations=None):
     """
     Resolve the public schema aliases to the discover dataset.
@@ -302,7 +284,7 @@ def resolve_discover_aliases(snuba_filter, function_translations=None):
     be renamed in the result set.
     """
     return resolve_snuba_aliases(
-        snuba_filter, resolve_column, function_translations=function_translations
+        snuba_filter, resolve_column(Dataset.Discover), function_translations=function_translations
     )
 
 
@@ -866,16 +848,23 @@ def top_events_timeseries(
                 # A user field can be any of its field aliases, do an OR across all the user fields
                 elif field == "user":
                     snuba_filter.conditions.append(
-                        [[resolve_column(user_field), "IN", values] for user_field in user_fields]
+                        [
+                            [resolve_column(Dataset.Discover)(user_field), "IN", values]
+                            for user_field in user_fields
+                        ]
                     )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
-                    condition = [[["isNull", [resolve_column(field)]], "=", 1]]
+                    condition = [[["isNull", [resolve_column(Dataset.Discover)(field)]], "=", 1]]
                     if non_none_values:
-                        condition.append([resolve_column(field), "IN", non_none_values])
+                        condition.append(
+                            [resolve_column(Dataset.Discover)(field), "IN", non_none_values]
+                        )
                     snuba_filter.conditions.append(condition)
                 else:
-                    snuba_filter.conditions.append([resolve_column(field), "IN", values])
+                    snuba_filter.conditions.append(
+                        [resolve_column(Dataset.Discover)(field), "IN", values]
+                    )
 
     with sentry_sdk.start_span(op="discover.discover", description="top_events.snuba_query"):
         result = raw_query(
