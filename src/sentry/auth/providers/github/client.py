@@ -33,18 +33,17 @@ class GitHubClient(object):
         return json.loads(req.content)
 
     def get_org_list(self):
-        return self._request("/user/orgs", self.access_token)
+        return self._request("/user/orgs")
 
     def get_user(self):
-        return self._request("/user", self.access_token)
+        return self._request("/user")
 
     def get_user_emails(self):
-        return self._request("/user/emails", self.access_token)
+        return self._request("/user/emails")
 
     def is_org_member(self, org_id):
-        org_list = self.get_org_list(self.ccess_token)
         org_id = six.text_type(org_id)
-        for o in org_list:
+        for o in self.get_org_list():
             if six.text_type((o["id"])) == org_id:
                 return True
         return False
