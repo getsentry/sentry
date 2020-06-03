@@ -189,8 +189,18 @@ export default class DetailsBody extends React.Component<Props> {
   render() {
     const {params, incident, stats} = this.props;
 
+    const warningTrigger =
+      incident && incident.alertRule.triggers.find(trig => trig.label === 'warning');
     const criticalTrigger =
       incident && incident.alertRule.triggers.find(trig => trig.label === 'critical');
+    const warningTriggerThreshold =
+      warningTrigger &&
+      typeof warningTrigger.alertThreshold === 'number' &&
+      warningTrigger.alertThreshold;
+    const criticalTriggerThreshold =
+      criticalTrigger &&
+      typeof criticalTrigger.alertThreshold === 'number' &&
+      criticalTrigger.alertThreshold;
 
     return (
       <StyledPageContent>
@@ -215,27 +225,46 @@ export default class DetailsBody extends React.Component<Props> {
                   data={stats.eventStats.data}
                   detected={incident.dateDetected}
                   closed={incident.dateClosed}
-                  seriesMarkLine={MarkLine({
-                    silent: true,
-                    lineStyle: {
-                      normal: {
-                        color: theme.red300,
-                      },
-                    },
-                    data: [
-                      criticalTrigger && {
-                        yAxis: criticalTrigger.alertThreshold,
-                      },
-                    ].filter(Boolean),
-                  })}
+                  warningMarkLine={
+                    warningTrigger &&
+                    MarkLine({
+                      silent: true,
+                      lineStyle: {color: theme.yellow400},
+                      data: [
+                        warningTriggerThreshold && {
+                          yAxis: warningTriggerThreshold,
+                          color: theme.yellowLight,
+                        },
+                      ].filter(Boolean),
+                    })
+                  }
+                  criticalMarkLine={
+                    criticalTrigger &&
+                    MarkLine({
+                      silent: true,
+                      lineStyle: {color: theme.red300},
+                      data: [
+                        criticalTriggerThreshold && {
+                          yAxis: criticalTriggerThreshold,
+                          color: '#4A4D7F',
+                        },
+                      ].filter(Boolean),
+                    })
+                  }
                   options={{
                     visualMap: VisualMap({
                       outOfRange: {
                         color: '#4A4D7F',
                       },
                       pieces: [
-                        criticalTrigger && {
-                          min: criticalTrigger.alertThreshold,
+                        warningTriggerThreshold &&
+                          criticalTriggerThreshold && {
+                            min: warningTriggerThreshold,
+                            max: criticalTriggerThreshold,
+                            color: theme.yellow400,
+                          },
+                        criticalTriggerThreshold && {
+                          min: criticalTriggerThreshold,
                           color: theme.red300,
                         },
                       ].filter(Boolean),
