@@ -904,6 +904,7 @@ type ReleaseData = {
   owner?: any; // TODO(ts)
   newGroups: number;
   versionInfo: VersionInfo;
+  fileCount: number | null;
 };
 
 type BaseRelease = {
@@ -1270,6 +1271,16 @@ export type EventGroupVariant = {
   values?: string;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
+};
+
+export type SourceMap = {
+  dateCreated: string;
+  dist: string | null;
+  id: string;
+  name: string;
+  sha1: string;
+  size: number;
+  headers: {'Content-Type': string};
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
