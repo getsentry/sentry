@@ -50,9 +50,9 @@ export const AXIS_OPTIONS: TooltipOption[] = [
     label: t('Transactions Per Minute'),
   },
   {
-    tooltip: PERFORMANCE_TERMS.errorRate,
-    value: 'error_rate()',
-    label: t('Error Rate'),
+    tooltip: PERFORMANCE_TERMS.failureRate,
+    value: 'failure_rate()',
+    label: t('Failure Rate'),
   },
   {
     tooltip: PERFORMANCE_TERMS.p50,
