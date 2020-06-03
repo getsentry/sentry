@@ -33,6 +33,10 @@ class Filter extends React.Component<Props, State> {
     checkedQuantity: this.props.options.length,
   };
 
+  componentDidMount() {
+    this.updateState();
+  }
+
   componentDidUpdate(prevProps: Props) {
     if (!isEqual(prevProps.options, this.props.options)) {
       this.updateState();
