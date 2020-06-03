@@ -233,12 +233,7 @@ export default class DetailsBody extends React.Component<Props> {
                     MarkLine({
                       silent: true,
                       lineStyle: {color: theme.yellow400},
-                      data: [
-                        {
-                          yAxis: warningTriggerThreshold,
-                          color: theme.yellowLight,
-                        },
-                      ],
+                      data: [{yAxis: warningTriggerThreshold}],
                     })
                   }
                   criticalMarkLine={
@@ -246,12 +241,7 @@ export default class DetailsBody extends React.Component<Props> {
                     MarkLine({
                       silent: true,
                       lineStyle: {color: theme.red300},
-                      data: [
-                        {
-                          yAxis: criticalTriggerThreshold,
-                          color: '#4A4D7F',
-                        },
-                      ],
+                      data: [{yAxis: criticalTriggerThreshold}],
                     })
                   }
                   options={{
