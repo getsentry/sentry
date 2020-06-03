@@ -108,7 +108,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             requireAll
             features={[
               'organizations:transaction-events',
-              'organizations:internal-catchall',
+              'organizations:incidents-performance',
             ]}
           >
             <RadioField
