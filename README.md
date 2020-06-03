@@ -31,6 +31,7 @@ sending events from any language, in any application.
   - [Go](https://github.com/getsentry/sentry-go)
   - [Rust](https://github.com/getsentry/sentry-rust)
   - [Java](https://github.com/getsentry/sentry-java)
+  - [Android](https://github.com/getsentry/sentry-android)
   - [Objective-C/Swift](https://github.com/getsentry/sentry-cocoa)
   - [C\#](https://github.com/getsentry/sentry-dotnet)
   - [Perl](https://github.com/getsentry/perl-raven)
