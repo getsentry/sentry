@@ -32,6 +32,4 @@ const GPU = ({data}: Props) => {
   );
 };
 
-GPU.getTitle = () => 'GPU';
-
 export default GPU;
