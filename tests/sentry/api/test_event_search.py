@@ -1205,7 +1205,7 @@ class GetSnubaQueryArgsTest(TestCase):
         _filter = get_filter(
             "!issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
         )
-        assert _filter.conditions == [["issue.id", "!=", 2]]
+        assert _filter.conditions == [["issue.id", "!=", group.id]]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
