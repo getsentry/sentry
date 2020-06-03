@@ -2,17 +2,12 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
-import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/constants';
-import {NewQuery, Project} from 'app/types';
+import {Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {defined} from 'app/utils';
-import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
 import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
@@ -26,7 +21,19 @@ import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Panel} from 'app/components/panels';
+import Button from 'app/components/button';
+import {
+  AlertRuleThresholdType,
+  Trigger,
+  Dataset,
+} from 'app/views/settings/incidentRules/types';
+import {
+  PRESET_AGGREGATES,
+  makeDefaultCta,
+} from 'app/views/settings/incidentRules/presets';
 
+import Activity from './activity';
+import Chart from './chart';
 import {
   Incident,
   IncidentStats,
@@ -34,8 +41,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import Activity from './activity';
-import Chart from './chart';
+import {getIncidentDiscoverUrl} from '../utils';
 
 type Props = {
   incident?: Incident;
@@ -43,41 +49,14 @@ type Props = {
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
-  getDiscoverUrl(projects: Project[]) {
-    const {incident, params, stats} = this.props;
-    const {orgId} = params;
+  get metricPreset() {
+    const alertRule = this.props.incident?.alertRule;
+    const aggregate = alertRule?.aggregate;
+    const dataset = alertRule?.dataset ?? Dataset.ERRORS;
 
-    if (!projects || !projects.length || !incident || !stats) {
-      return '';
-    }
-
-    const timeWindowString = `${incident.alertRule.timeWindow}m`;
-    const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
-    const end = getUtcDateString(
-      stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
+    return PRESET_AGGREGATES.find(
+      p => p.validDataset.includes(dataset) && p.match.test(aggregate ?? '')
     );
-
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: (incident && incident.title) || '',
-      fields: ['issue', 'count(id)', 'count_unique(user.id)'],
-      orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
-      query: incident?.discoverQuery ?? '',
-      projects: projects
-        .filter(({slug}) => incident.projects.includes(slug))
-        .map(({id}) => Number(id)),
-      version: 2 as const,
-      start,
-      end,
-    };
-
-    const discoverView = EventView.fromSavedQuery(discoverQuery);
-    const {query, ...toObject} = discoverView.getResultsViewUrlTarget(orgId);
-
-    return {
-      query: {...query, interval: timeWindowString},
-      ...toObject,
-    };
   }
 
   /**
@@ -96,13 +75,6 @@ export default class DetailsBody extends React.Component<Props> {
     const direction = isAbove === isAlert ? '>' : '<';
 
     return `${direction} ${trigger[key]}`;
-  }
-
-  get friendlyIncidentType() {
-    const aggregate = this.props?.incident?.alertRule?.aggregate;
-    const preset = PRESET_AGGREGATES.find(p => p.match.test(aggregate ?? ''));
-
-    return preset?.name ?? t('Custom metric');
   }
 
   renderRuleDetails() {
@@ -157,31 +129,62 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   renderChartHeader() {
-    const {incident} = this.props;
+    const {incident, stats, params} = this.props;
     const alertRule = incident?.alertRule;
 
     return (
       <ChartHeader>
-        {this.friendlyIncidentType}
-
-        <ChartParameters>
-          {tct('Metric: [metric] over [window]', {
-            metric: <code>{alertRule?.aggregate ?? '...'}</code>,
-            window: (
-              <code>
-                {incident ? (
-                  <Duration seconds={incident.alertRule.timeWindow * 60} />
-                ) : (
-                  '...'
-                )}
-              </code>
-            ),
-          })}
-          {alertRule?.query &&
-            tct('Filter: [filter]', {
-              filter: <code>{alertRule.query}</code>,
+        <div>
+          {this.metricPreset?.name ?? t('Custom metric')}
+          <ChartParameters>
+            {tct('Metric: [metric] over [window]', {
+              metric: <code>{alertRule?.aggregate ?? '\u2026'}</code>,
+              window: (
+                <code>
+                  {incident ? (
+                    <Duration seconds={incident.alertRule.timeWindow * 60} />
+                  ) : (
+                    '\u2026'
+                  )}
+                </code>
+              ),
             })}
-        </ChartParameters>
+            {alertRule?.query &&
+              tct('Filter: [filter]', {
+                filter: <code>{alertRule.query}</code>,
+              })}
+          </ChartParameters>
+        </div>
+        <ChartActions>
+          <Feature features={['discover-basic']}>
+            <Projects slugs={incident?.projects} orgId={params.orgId}>
+              {({initiallyLoaded, fetching, projects}) => {
+                const preset = this.metricPreset;
+                const ctaOpts = {
+                  orgSlug: params.orgId,
+                  projects: (initiallyLoaded ? projects : []) as Project[],
+                  incident,
+                  stats,
+                };
+
+                const {buttonText, ...props} = preset
+                  ? preset.makeCtaParams(ctaOpts)
+                  : makeDefaultCta(ctaOpts);
+
+                return (
+                  <Button
+                    size="small"
+                    priority="primary"
+                    disabled={!incident || fetching || !initiallyLoaded}
+                    {...props}
+                  >
+                    {buttonText}
+                  </Button>
+                );
+              }}
+            </Projects>
+          </Feature>
+        </ChartActions>
       </ChartHeader>
     );
   }
@@ -316,24 +319,27 @@ export default class DetailsBody extends React.Component<Props> {
               </SidebarHeading>
               {this.renderRuleDetails()}
 
-              <SidebarHeading>
-                <span>{t('Query')}</span>
-                <Feature features={['discover-basic']}>
+              <Feature features={['discover-basic']}>
+                <SidebarHeading>
+                  <span>{t('Query')}</span>
                   <Projects slugs={incident?.projects} orgId={params.orgId}>
                     {({initiallyLoaded, fetching, projects}) => (
                       <SideHeaderLink
                         disabled={!incident || fetching || !initiallyLoaded}
-                        to={this.getDiscoverUrl(
-                          ((initiallyLoaded && projects) as Project[]) || []
-                        )}
+                        to={getIncidentDiscoverUrl({
+                          orgSlug: params.orgId,
+                          projects: (initiallyLoaded ? projects : []) as Project[],
+                          incident,
+                          stats,
+                        })}
                       >
                         {t('View in Discover')}
                         <IconTelescope size="xs" />
                       </SideHeaderLink>
                     )}
                   </Projects>
-                </Feature>
-              </SidebarHeading>
+                </SidebarHeading>
+              </Feature>
               {incident ? (
                 <Query>{incident?.alertRule.query || '""'}</Query>
               ) : (
@@ -404,9 +410,13 @@ const ChartPanel = styled(Panel)`
   padding: ${space(2)};
 `;
 
-const ChartHeader = styled('div')`
+const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
+  display: grid;
+  grid-template-columns: 1fr max-content;
 `;
+
+const ChartActions = styled('div')``;
 
 const ChartParameters = styled('div')`
   color: ${p => p.theme.gray600};
