@@ -250,17 +250,20 @@ export default class DetailsBody extends React.Component<Props> {
                         color: '#4A4D7F',
                       },
                       pieces: [
-                        warningTriggerThreshold &&
-                          criticalTriggerThreshold && {
-                            min: warningTriggerThreshold,
-                            max: criticalTriggerThreshold,
-                            color: theme.yellow400,
-                          },
-                        criticalTriggerThreshold && {
-                          min: criticalTriggerThreshold,
-                          color: theme.red300,
-                        },
-                      ].filter(Boolean),
+                        warningTriggerThreshold && criticalTriggerThreshold
+                          ? {
+                              min: warningTriggerThreshold,
+                              max: criticalTriggerThreshold,
+                              color: theme.yellow400,
+                            }
+                          : {},
+                        criticalTriggerThreshold
+                          ? {
+                              min: criticalTriggerThreshold,
+                              color: theme.red300,
+                            }
+                          : {},
+                      ],
                       show: false,
                     }),
                   }}
