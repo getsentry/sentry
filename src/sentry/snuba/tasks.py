@@ -119,9 +119,7 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
 def build_snuba_filter(dataset, query, aggregate, environment, params=None):
     resolve_func = (
-        resolve_column(Dataset.Events)
-        if dataset == "events"
-        else resolve_column(Dataset.Transactions)
+        resolve_column(Dataset.Events) if dataset == "events" else resolve_column(Dataset.Discover)
     )
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))

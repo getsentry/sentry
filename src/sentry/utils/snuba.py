@@ -73,7 +73,6 @@ DISCOVER_COLUMN_MAP = {
 DATASETS = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
-    Dataset.Transactions: SENTRY_SNUBA_MAP,
 }
 
 # Store the internal field names to save work later on.
@@ -82,7 +81,6 @@ DATASETS = {
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
-    Dataset.Transactions: list(SENTRY_SNUBA_MAP.values()),
 }
 
 
@@ -711,16 +709,18 @@ def resolve_column(dataset):
         if col is None or col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
             return col
 
+        # Some dataset specific logic:
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col == "project_id":
+                return col
+        else:
+            if (
+                col in DATASET_FIELDS[dataset]
+            ):  # Discover does not allow internal aliases to be used by customers, so doesn't get this logic.
                 return col
 
         if col in DATASETS[dataset]:
             return DATASETS[dataset][col]
-
-        # TODO: I don't think Discover was running this(?):
-        if col in DATASET_FIELDS[dataset]:
-            return col
 
         return u"tags[{}]".format(col)
 
