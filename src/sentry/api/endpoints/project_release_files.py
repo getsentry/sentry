@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import re
 import logging
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from six import BytesIO
 from rest_framework.response import Response
 
@@ -67,8 +68,11 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to list the
                                      release files of.
         :pparam string version: the version identifier of the release.
+        :qparam string query: If set, this parameter is used to search files.
         :auth: required
         """
+        query = request.GET.get("query")
+
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
@@ -79,6 +83,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         file_list = (
             ReleaseFile.objects.filter(release=release).select_related("file").order_by("name")
         )
+
+        if query:
+            file_list = file_list.filter(Q(name__icontains=query))
 
         return self.paginate(
             request=request,
