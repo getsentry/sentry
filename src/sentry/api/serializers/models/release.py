@@ -20,6 +20,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     User,
     UserEmail,
+    ReleaseFile,
 )
 from sentry.utils.compat import zip
 
@@ -255,6 +256,7 @@ class ReleaseSerializer(Serializer):
         project = kwargs.get("project")
         environment = kwargs.get("environment")
         with_health_data = kwargs.get("with_health_data", False)
+        with_file_count = kwargs.get("with_file_count", False)
         health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
         summary_stats_period = kwargs.get("summary_stats_period")
@@ -343,6 +345,9 @@ class ReleaseSerializer(Serializer):
             p.update(release_metadata_attrs[item])
             p.update(deploy_metadata_attrs[item])
 
+            if with_file_count:
+                p["file_count"] = ReleaseFile.objects.filter(release=item).count()
+
             result[item] = p
         return result
 
@@ -398,5 +403,6 @@ class ReleaseSerializer(Serializer):
             "projects": [expose_project(p) for p in attrs.get("projects", [])],
             "firstEvent": attrs.get("first_seen"),
             "lastEvent": attrs.get("last_seen"),
+            "fileCount": attrs.get("file_count"),
         }
         return d
