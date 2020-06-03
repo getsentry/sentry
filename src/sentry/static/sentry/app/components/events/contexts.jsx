@@ -95,13 +95,13 @@ class ContextChunk extends React.Component {
   };
 
   getTitle = () => {
-    const {value, alias} = this.props;
+    const {value, type} = this.props;
 
     if (defined(value.title)) {
       return value.title;
     }
 
-    switch (alias) {
+    switch (type) {
       case 'app':
         return t('App');
       case 'device':
