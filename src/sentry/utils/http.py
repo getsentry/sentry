@@ -7,8 +7,6 @@ from django.conf import settings
 from six.moves.urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
 from functools import partial
 
-import sentry_sdk
-
 from sentry import options
 from sentry.utils import json
 from sentry.utils.compat import map
@@ -18,11 +16,9 @@ ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 
 
 def absolute_uri(url=None):
-    with sentry_sdk.start_span(op="http.absolute_uri.options"):
-        url_prefix = options.get("system.url-prefix")
     if not url:
-        return url_prefix
-    return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
+        return options.get("system.url-prefix")
+    return urljoin(options.get("system.url-prefix").rstrip("/") + "/", url.lstrip("/"))
 
 
 def origin_from_url(url):
