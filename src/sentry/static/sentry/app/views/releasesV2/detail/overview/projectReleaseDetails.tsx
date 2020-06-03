@@ -56,7 +56,11 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
             <StyledTr>
               <TagKey>{t('Source Maps')}</TagKey>
               <TagValue>
-                <Link to={`/settings/${orgSlug}/projects/${projectSlug}/source-maps/`}>
+                <Link
+                  to={`/settings/${orgSlug}/projects/${projectSlug}/source-maps/${encodeURIComponent(
+                    version
+                  )}/`}
+                >
                   <Count value={releaseMeta.releaseFileCount} />{' '}
                   {tn('file uploaded', 'files uploaded', releaseMeta.releaseFileCount)}
                 </Link>
