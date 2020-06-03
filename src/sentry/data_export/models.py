@@ -135,7 +135,7 @@ class ExportedDataBlob(Model):
     __core__ = False
 
     data_export = FlexibleForeignKey("sentry.ExportedData")
-    blob = FlexibleForeignKey("sentry.FileBlob")
+    blob = FlexibleForeignKey("sentry.FileBlob", db_constraint=False)
     offset = BoundedBigIntegerField()
 
     class Meta:

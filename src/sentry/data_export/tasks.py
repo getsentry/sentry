@@ -7,6 +7,8 @@ import tempfile
 
 from hashlib import sha1
 
+from celery.task import current
+from celery.exceptions import MaxRetriesExceededError
 from django.core.files.base import ContentFile
 from django.db import transaction, IntegrityError
 
@@ -32,7 +34,12 @@ from .processors.issues_by_tag import IssuesByTagProcessor
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(name="sentry.data_export.tasks.assemble_download", queue="data_export")
+@instrumented_task(
+    name="sentry.data_export.tasks.assemble_download",
+    queue="data_export",
+    default_retry_delay=30,
+    max_retries=3,
+)
 def assemble_download(
     data_export_id,
     export_limit=1000000,
@@ -54,11 +61,11 @@ def assemble_download(
         capture_exception(error)
         return
 
-    # if there is an export limit, the last batch should only return up to the export limit
-    if export_limit is not None:
-        batch_size = min(batch_size, max(export_limit - offset, 0))
-
     try:
+        # if there is an export limit, the last batch should only return up to the export limit
+        if export_limit is not None:
+            batch_size = min(batch_size, max(export_limit - offset, 0))
+
         # NOTE: the processors don't have an unified interface at the moment
         # so this function handles it for us
         headers, rows = get_processed(data_export, environment_id, batch_size, offset)
@@ -66,16 +73,10 @@ def assemble_download(
         # starting position for the next batch
         next_offset = offset + len(rows)
 
-        # store the headers separately to ensure at least the headers are written
-        if offset == 0:
-            with tempfile.TemporaryFile() as tf:
-                writer = csv.DictWriter(tf, headers, extrasaction="ignore")
-                writer.writeheader()
-                tf.seek(0)
-                bytes_written += store_export_chunk_as_blob(data_export, bytes_written, tf)
-
         with tempfile.TemporaryFile() as tf:
             writer = csv.DictWriter(tf, headers, extrasaction="ignore")
+            if offset == 0:
+                writer.writeheader()
             writer.writerows(rows)
             tf.seek(0)
 
@@ -83,7 +84,7 @@ def assemble_download(
             bytes_written += new_bytes_written
     except ExportError as error:
         return data_export.email_failure(message=six.text_type(error))
-    except BaseException as error:
+    except Exception as error:
         metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
         logger.error(
             "dataexport.error: %s",
@@ -91,24 +92,28 @@ def assemble_download(
             extra={"query": data_export.payload, "org": data_export.organization_id},
         )
         capture_exception(error)
-        return data_export.email_failure(message="Internal processing failure")
 
-    if (
-        rows
-        and new_bytes_written
-        and len(rows) >= batch_size
-        and (export_limit is None or next_offset < export_limit)
-    ):
-        assemble_download.delay(
-            data_export_id,
-            export_limit=export_limit,
-            batch_size=batch_size,
-            offset=next_offset,
-            bytes_written=bytes_written,
-            environment_id=environment_id,
-        )
+        try:
+            current.retry()
+        except MaxRetriesExceededError:
+            return data_export.email_failure(message="Internal processing failure")
     else:
-        merge_export_blobs.delay(data_export_id)
+        if (
+            rows
+            and new_bytes_written
+            and len(rows) >= batch_size
+            and (export_limit is None or next_offset < export_limit)
+        ):
+            assemble_download.delay(
+                data_export_id,
+                export_limit=export_limit,
+                batch_size=batch_size,
+                offset=next_offset,
+                bytes_written=bytes_written,
+                environment_id=environment_id,
+            )
+        else:
+            merge_export_blobs.delay(data_export_id)
 
 
 def get_processed(data_export, environment_id, batch_size, offset):
@@ -219,7 +224,7 @@ def merge_export_blobs(data_export_id, **kwargs):
 
             logger.info("dataexport.end", extra={"data_export_id": data_export_id})
             metrics.incr("dataexport.end", sample_rate=1.0)
-    except BaseException as error:
+    except Exception as error:
         metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
         logger.error(
             "dataexport.error: %s",
