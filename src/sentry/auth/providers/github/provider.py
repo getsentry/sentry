@@ -56,11 +56,10 @@ class GitHubOAuth2Provider(OAuth2Provider):
         }
 
     def refresh_identity(self, auth_identity):
-        client = GitHubClient()
-        access_token = auth_identity.data["access_token"]
+        client = GitHubClient(auth_identity.data["access_token"])
 
         try:
-            if not client.is_org_member(access_token, self.org["id"]):
+            if not client.is_org_member(self.org["id"]):
                 raise IdentityNotValid
         except GitHubApiError as e:
             raise IdentityNotValid(e)
