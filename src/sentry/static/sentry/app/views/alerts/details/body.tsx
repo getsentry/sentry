@@ -29,6 +29,7 @@ import {
   PRESET_AGGREGATES,
   makeDefaultCta,
 } from 'app/views/settings/incidentRules/presets';
+import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 
 import Activity from './activity';
 import Chart from './chart';
@@ -127,7 +128,7 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   renderChartHeader() {
-    const {incident, stats, params} = this.props;
+    const {incident} = this.props;
     const alertRule = incident?.alertRule;
 
     return (
@@ -147,42 +148,15 @@ export default class DetailsBody extends React.Component<Props> {
                 </code>
               ),
             })}
-            {alertRule?.query &&
-              tct('Filter: [filter]', {
-                filter: <code>{alertRule.query}</code>,
+            {(alertRule?.query || incident?.alertRule?.dataset) &&
+              tct('Filter: [datasetType] [filter]', {
+                datasetType: incident?.alertRule?.dataset && (
+                  <code>{DATASET_EVENT_TYPE_FILTERS[incident.alertRule.dataset]}</code>
+                ),
+                filter: alertRule?.query && <code>{alertRule.query}</code>,
               })}
           </ChartParameters>
         </div>
-        <ChartActions>
-          <Feature features={['discover-basic']}>
-            <Projects slugs={incident?.projects} orgId={params.orgId}>
-              {({initiallyLoaded, fetching, projects}) => {
-                const preset = this.metricPreset;
-                const ctaOpts = {
-                  orgSlug: params.orgId,
-                  projects: (initiallyLoaded ? projects : []) as Project[],
-                  incident,
-                  stats,
-                };
-
-                const {buttonText, ...props} = preset
-                  ? preset.makeCtaParams(ctaOpts)
-                  : makeDefaultCta(ctaOpts);
-
-                return (
-                  <Button
-                    size="small"
-                    priority="primary"
-                    disabled={!incident || fetching || !initiallyLoaded}
-                    {...props}
-                  >
-                    {buttonText}
-                  </Button>
-                );
-              }}
-            </Projects>
-          </Feature>
-        </ChartActions>
       </ChartHeader>
     );
   }
@@ -218,6 +192,36 @@ export default class DetailsBody extends React.Component<Props> {
                 <Placeholder height="200px" />
               )}
             </ChartPanel>
+            <ChartActions>
+              <Feature features={['discover-basic']}>
+                <Projects slugs={incident?.projects} orgId={params.orgId}>
+                  {({initiallyLoaded, fetching, projects}) => {
+                    const preset = this.metricPreset;
+                    const ctaOpts = {
+                      orgSlug: params.orgId,
+                      projects: (initiallyLoaded ? projects : []) as Project[],
+                      incident,
+                      stats,
+                    };
+
+                    const {buttonText, ...props} = preset
+                      ? preset.makeCtaParams(ctaOpts)
+                      : makeDefaultCta(ctaOpts);
+
+                    return (
+                      <Button
+                        size="small"
+                        priority="primary"
+                        disabled={!incident || fetching || !initiallyLoaded}
+                        {...props}
+                      >
+                        {buttonText}
+                      </Button>
+                    );
+                  }}
+                </Projects>
+              </Feature>
+            </ChartActions>
           </PageContent>
           <DetailWrapper>
             <ActivityPageContent>
@@ -347,15 +351,22 @@ const StyledPageContent = styled(PageContent)`
 
 const ChartPanel = styled(Panel)`
   padding: ${space(2)};
+  margin-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 `;
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
-  display: grid;
-  grid-template-columns: 1fr max-content;
 `;
 
-const ChartActions = styled('div')``;
+const ChartActions = styled(Panel)`
+  padding: ${space(2)};
+  border: 1px solid ${p => p.theme.borderDark};
+  border-top-width: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+`;
 
 const ChartParameters = styled('div')`
   color: ${p => p.theme.gray600};
@@ -365,6 +376,7 @@ const ChartParameters = styled('div')`
   grid-auto-columns: max-content;
   grid-gap: ${space(4)};
   align-items: center;
+  overflow-x: auto;
 
   > * {
     position: relative;
