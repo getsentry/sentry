@@ -321,7 +321,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     const canAdd = columns.length < MAX_COL_COUNT;
     const title = canAdd
       ? undefined
-      : `Sorry, you reached the maximum number of columns. Delete a few columns to add more.`;
+      : `Sorry, you reached the maximum number of columns. Delete columns to add more.`;
 
     // Get the longest number of columns so we can layout the rows.
     // We always want at least 2 columns.

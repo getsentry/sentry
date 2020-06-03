@@ -2593,7 +2593,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         self.create_project()
         with self.feature("organizations:discover-basic"):
-            for i in range(1, 40):
+            for i in range(1, 25):
                 response = self.client.get(self.url, {"field": ["id"] * i})
                 if i <= 20:
                     assert response.status_code == 200
