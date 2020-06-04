@@ -18,7 +18,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {Panel} from 'app/components/panels';
+import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Button from 'app/components/button';
 import {
   AlertRuleThresholdType,
@@ -180,48 +180,52 @@ export default class DetailsBody extends React.Component<Props> {
         <Main>
           <PageContent>
             <ChartPanel>
-              {this.renderChartHeader()}
-              {incident && stats ? (
-                <Chart
-                  aggregate={incident.alertRule.aggregate}
-                  data={stats.eventStats.data}
-                  detected={incident.dateDetected}
-                  closed={incident.dateClosed}
-                />
-              ) : (
-                <Placeholder height="200px" />
-              )}
+              <PanelBody withPadding>
+                {this.renderChartHeader()}
+                {incident && stats ? (
+                  <Chart
+                    aggregate={incident.alertRule.aggregate}
+                    data={stats.eventStats.data}
+                    detected={incident.dateDetected}
+                    closed={incident.dateClosed}
+                  />
+                ) : (
+                  <Placeholder height="200px" />
+                )}
+              </PanelBody>
+              <ChartActions>
+                <PanelBody withPadding>
+                  <Feature features={['discover-basic']}>
+                    <Projects slugs={incident?.projects} orgId={params.orgId}>
+                      {({initiallyLoaded, fetching, projects}) => {
+                        const preset = this.metricPreset;
+                        const ctaOpts = {
+                          orgSlug: params.orgId,
+                          projects: (initiallyLoaded ? projects : []) as Project[],
+                          incident,
+                          stats,
+                        };
+
+                        const {buttonText, ...props} = preset
+                          ? preset.makeCtaParams(ctaOpts)
+                          : makeDefaultCta(ctaOpts);
+
+                        return (
+                          <Button
+                            size="small"
+                            priority="primary"
+                            disabled={!incident || fetching || !initiallyLoaded}
+                            {...props}
+                          >
+                            {buttonText}
+                          </Button>
+                        );
+                      }}
+                    </Projects>
+                  </Feature>
+                </PanelBody>
+              </ChartActions>
             </ChartPanel>
-            <ChartActions>
-              <Feature features={['discover-basic']}>
-                <Projects slugs={incident?.projects} orgId={params.orgId}>
-                  {({initiallyLoaded, fetching, projects}) => {
-                    const preset = this.metricPreset;
-                    const ctaOpts = {
-                      orgSlug: params.orgId,
-                      projects: (initiallyLoaded ? projects : []) as Project[],
-                      incident,
-                      stats,
-                    };
-
-                    const {buttonText, ...props} = preset
-                      ? preset.makeCtaParams(ctaOpts)
-                      : makeDefaultCta(ctaOpts);
-
-                    return (
-                      <Button
-                        size="small"
-                        priority="primary"
-                        disabled={!incident || fetching || !initiallyLoaded}
-                        {...props}
-                      >
-                        {buttonText}
-                      </Button>
-                    );
-                  }}
-                </Projects>
-              </Feature>
-            </ChartActions>
           </PageContent>
           <DetailWrapper>
             <ActivityPageContent>
@@ -349,24 +353,13 @@ const StyledPageContent = styled(PageContent)`
   flex-direction: column;
 `;
 
-const ChartPanel = styled(Panel)`
-  padding: ${space(2)};
-  margin-bottom: 0;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-`;
+const ChartPanel = styled(Panel)``;
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
 `;
 
-const ChartActions = styled(Panel)`
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.borderDark};
-  border-top-width: 0;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-`;
+const ChartActions = styled(PanelFooter)``;
 
 const ChartParameters = styled('div')`
   color: ${p => p.theme.gray600};
