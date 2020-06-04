@@ -209,6 +209,7 @@ export default class DetailsBody extends React.Component<Props> {
               {this.renderChartHeader()}
               {incident && stats ? (
                 <Chart
+                  triggers={incident.alertRule.triggers}
                   aggregate={incident.alertRule.aggregate}
                   data={stats.eventStats.data}
                   detected={incident.dateDetected}
