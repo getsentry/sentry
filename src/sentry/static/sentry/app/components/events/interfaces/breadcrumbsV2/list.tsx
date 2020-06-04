@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
 import ListHeader from './listHeader';
@@ -8,47 +10,36 @@ import ListBody from './listBody';
 import {aroundContentStyle} from './styles';
 
 type Props = {
-  forwardRef: React.RefObject<HTMLDivElement>;
+  onSwitchTimeFormat: () => void;
 } & Omit<React.ComponentProps<typeof ListBody>, 'relativeTime'>;
 
-type State = {
-  displayRelativeTime: boolean;
-};
-
-class List extends React.PureComponent<Props, State> {
-  state: State = {
-    displayRelativeTime: false,
-  };
-
-  handleSwicthTimeFormat = () => {
-    this.setState(prevState => ({
-      displayRelativeTime: !prevState.displayRelativeTime,
-    }));
-  };
-
-  render() {
-    const {forwardRef, event, orgId, breadcrumbs} = this.props;
-    const {displayRelativeTime} = this.state;
-
-    return (
-      <Grid ref={forwardRef}>
-        <ListHeader
-          onSwitchTimeFormat={this.handleSwicthTimeFormat}
-          displayRelativeTime={!!displayRelativeTime}
-        />
-        <ListBody
-          event={event}
-          orgId={orgId}
-          breadcrumbs={breadcrumbs}
-          relativeTime={breadcrumbs[breadcrumbs.length - 1]?.timestamp}
-          displayRelativeTime={!!displayRelativeTime}
-        />
-      </Grid>
-    );
-  }
-}
+const List = React.forwardRef<HTMLDivElement, Props>(
+  ({displayRelativeTime, onSwitchTimeFormat, orgId, event, breadcrumbs}, ref) => (
+    <Grid ref={ref}>
+      <ListHeader
+        onSwitchTimeFormat={onSwitchTimeFormat}
+        displayRelativeTime={!!displayRelativeTime}
+      />
+      <ListBody
+        event={event}
+        orgId={orgId}
+        breadcrumbs={breadcrumbs}
+        relativeTime={breadcrumbs[breadcrumbs.length - 1]?.timestamp}
+        displayRelativeTime={!!displayRelativeTime}
+      />
+    </Grid>
+  )
+);
 
 export default List;
+
+List.propTypes = {
+  displayRelativeTime: PropTypes.bool.isRequired,
+  onSwitchTimeFormat: PropTypes.func.isRequired,
+  breadcrumbs: PropTypes.array.isRequired,
+  event: SentryTypes.Event.isRequired,
+  orgId: PropTypes.string.isRequired,
+};
 
 const Grid = styled('div')`
   max-height: 500px;

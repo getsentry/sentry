@@ -46,6 +46,7 @@ type State = {
   filteredByFilter: BreadcrumbsWithDetails;
   filteredBySearch: BreadcrumbsWithDetails;
   filterOptions: FilterOptions;
+  displayRelativeTime: boolean;
 };
 
 class Breadcrumbs extends React.Component<Props, State> {
@@ -55,6 +56,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     filteredByFilter: [],
     filteredBySearch: [],
     filterOptions: [[], []],
+    displayRelativeTime: false,
   };
 
   componentDidMount() {
@@ -326,9 +328,15 @@ class Breadcrumbs extends React.Component<Props, State> {
     }));
   };
 
+  handleSwicthTimeFormat = () => {
+    this.setState(prevState => ({
+      displayRelativeTime: !prevState.displayRelativeTime,
+    }));
+  };
+
   render() {
     const {type, event, orgId} = this.props;
-    const {filterOptions, searchTerm, filteredBySearch} = this.state;
+    const {filterOptions, searchTerm, filteredBySearch, displayRelativeTime} = this.state;
 
     return (
       <StyledEventDataSection
@@ -358,9 +366,11 @@ class Breadcrumbs extends React.Component<Props, State> {
         {filteredBySearch.length > 0 ? (
           <List
             breadcrumbs={filteredBySearch}
-            forwardRef={this.listRef}
+            ref={this.listRef}
             event={event}
             orgId={orgId}
+            onSwitchTimeFormat={this.handleSwicthTimeFormat}
+            displayRelativeTime={displayRelativeTime}
           />
         ) : (
           <StyledEmptyMessage
