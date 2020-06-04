@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import time
-import atexit
 import signal
 import os
 import click
@@ -90,7 +89,6 @@ def attach(project, fast, service):
         except KeyboardInterrupt:
             pass
 
-    atexit.register(exit_handler)
     signal.signal(signal.SIGINT, exit_handler)
     signal.signal(signal.SIGTERM, exit_handler)
 
