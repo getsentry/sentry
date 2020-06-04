@@ -140,18 +140,17 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 logger.info(
                     metrics_name,
                     extra={
-                        "test_number": 1,
                         "project_id": event.project.id,
                         "organization_id": event.project.organization_id,
                     },
                 )
                 logger.info(
-                    metrics_name,
-                    extra={"test_number": 2, "organization_id": event.project.organization_id},
+                    metrics_name, extra={"organization_id": event.project.organization_id},
                 )
                 logger.info(
-                    metrics_name, extra={"test_number": 3, "project_id": event.project.id},
+                    metrics_name, extra={"project_id": event.project.id},
                 )
+                logger.info(metrics_name)
                 metrics.incr(
                     metrics_name,
                     tags={
@@ -165,17 +164,9 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 logger.info(
                     metrics_name,
                     extra={
-                        "test_number": 1,
                         "project_id": event.project.id,
                         "organization_id": event.project.organization_id,
                     },
-                )
-                logger.info(
-                    metrics_name,
-                    extra={"test_number": 2, "organization_id": event.project.organization_id},
-                )
-                logger.info(
-                    metrics_name, extra={"test_number": 3, "project_id": event.project.id},
                 )
                 metrics.incr(
                     metrics_name,
