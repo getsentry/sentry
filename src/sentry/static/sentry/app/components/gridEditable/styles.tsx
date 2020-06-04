@@ -24,7 +24,7 @@ export const Header = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 ${space(1)} ${space(1)} 0;
+  margin-bottom: ${space(1)};
 `;
 
 export const HeaderTitle = styled('h4')`
@@ -35,7 +35,7 @@ export const HeaderTitle = styled('h4')`
 
 export const HeaderButtonContainer = styled('div')`
   display: grid;
-  grid-gap: ${space(2)};
+  grid-gap: ${space(1)};
   grid-auto-flow: column;
   grid-auto-columns: auto;
   justify-items: end;

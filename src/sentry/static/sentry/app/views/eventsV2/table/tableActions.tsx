@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {OrganizationSummary} from 'app/types';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
+import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import {IconDownload, IconEdit, IconTag} from 'app/icons';
@@ -12,7 +12,6 @@ import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import space from 'app/styles/space';
 
 import {TableData} from './types';
 import {downloadAsCsv} from '../utils';
@@ -59,10 +58,15 @@ function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Prop
     : () => handleDownloadAsCsv(props.title, {isLoading, ...props});
 
   return (
-    <HeaderButton disabled={disabled} onClick={onClick} data-test-id="grid-download-csv">
-      <IconDownload size="xs" />
-      {t('Export Page')}
-    </HeaderButton>
+    <Button
+      size="small"
+      disabled={disabled}
+      onClick={onClick}
+      data-test-id="grid-download-csv"
+      icon={<IconDownload size="xs" />}
+    >
+      {t('Export')}
+    </Button>
   );
 }
 renderBrowserExportButton.propTypes = {
@@ -73,16 +77,16 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
   const {isLoading, location} = props;
   const disabled = isLoading || canEdit === false;
   return (
-    <HeaderDownloadButton
+    <DataExport
       payload={{
         queryType: ExportQueryType.Discover,
         queryInfo: location.query,
       }}
       disabled={disabled}
+      icon={<IconDownload size="xs" />}
     >
-      <IconDownload size="xs" />
       {t('Export All')}
-    </HeaderDownloadButton>
+    </DataExport>
   );
 }
 // Placate eslint proptype checking
@@ -92,20 +96,24 @@ renderAsyncExportButton.propTypes = {
 
 function renderSummaryButton() {
   return (
-    <HeaderButton>
-      <IconTag size="xs" />
-      {t('Show Tag Summary')}
-    </HeaderButton>
+    <Button size="small" onClick={() => ({showTags: true})} icon={<IconTag size="xs" />}>
+      {t('Show Tags')}
+    </Button>
   );
 }
 
 function renderEditButton(canEdit: boolean, props: Props) {
   const onClick = canEdit ? props.onEdit : undefined;
   return (
-    <HeaderButton disabled={!canEdit} onClick={onClick} data-test-id="grid-edit-enable">
-      <IconEdit size="xs" />
+    <Button
+      size="small"
+      disabled={!canEdit}
+      onClick={onClick}
+      data-test-id="grid-edit-enable"
+      icon={<IconEdit size="xs" />}
+    >
       {t('Edit Columns')}
-    </HeaderButton>
+    </Button>
   );
 }
 // Placate eslint proptype checking
@@ -147,54 +155,5 @@ function HeaderActions(props: Props) {
     </Feature>
   );
 }
-
-const HeaderButton = styled('button')<{disabled?: boolean}>`
-  display: flex;
-  align-items: center;
-
-  background: none;
-  border: none;
-  color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray600)};
-  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  padding: 0;
-  margin: 0;
-  outline: 0;
-
-  > svg {
-    margin-right: ${space(0.5)};
-  }
-
-  &:hover,
-  &:active {
-    color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray700)};
-  }
-`;
-
-const HeaderDownloadButton = styled(DataExport)<{disabled: boolean}>`
-  background: none;
-  border: none;
-  font-weight: normal;
-  box-shadow: none;
-  color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray600)};
-
-  padding: 0;
-  margin: 0;
-  outline: 0;
-
-  svg {
-    margin-right: ${space(0.5)};
-  }
-  > span {
-    padding: 0;
-  }
-
-  &:hover,
-  &:active {
-    color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray700)};
-    box-shadow: none;
-  }
-`;
 
 export default HeaderActions;
