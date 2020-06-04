@@ -111,9 +111,13 @@ class Filter extends React.Component<Props, State> {
           checkedLevels.some(checkedLevel => checkedLevel.type === level)
         )
       ) {
+        const isAllLevelsWithTypeDisabled = levels
+          .filter(l => type.levels.includes(l.type))
+          .every(l => l.isDisabled);
+
         return {
           ...type,
-          isDisabled: true,
+          isDisabled: !isAllLevelsWithTypeDisabled,
         };
       }
       return {
@@ -135,9 +139,12 @@ class Filter extends React.Component<Props, State> {
     // Filter levels
     const levels = options[1].map(level => {
       if (!checkedTypes.some(type => type.levels.includes(level.type))) {
+        const isAllTypesWithLevelDisabled = types
+          .filter(t => t.levels.includes(level.type))
+          .every(t => t.isDisabled);
         return {
           ...level,
-          isDisabled: true,
+          isDisabled: !isAllTypesWithLevelDisabled,
         };
       }
       return {
