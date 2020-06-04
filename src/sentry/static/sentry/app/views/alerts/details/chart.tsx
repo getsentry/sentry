@@ -187,8 +187,9 @@ const Chart = (props: Props) => {
             ],
           }),
         },
-        warningTriggerThreshold &&
-          MarkLine({
+        warningTriggerThreshold && {
+          type: 'line',
+          markLine: MarkLine({
             silent: true,
             lineStyle: {color: theme.yellow400},
             data: [
@@ -196,9 +197,15 @@ const Chart = (props: Props) => {
                 yAxis: warningTriggerThreshold,
               },
             ],
+            label: {
+              show: false,
+            },
           }),
-        criticalTriggerThreshold &&
-          MarkLine({
+          data: [],
+        },
+        criticalTriggerThreshold && {
+          type: 'line',
+          markLine: MarkLine({
             silent: true,
             lineStyle: {color: theme.red300},
             data: [
@@ -206,7 +213,12 @@ const Chart = (props: Props) => {
                 yAxis: criticalTriggerThreshold,
               },
             ],
+            label: {
+              show: false,
+            },
           }),
+          data: [],
+        },
       ].filter(Boolean)}
       options={{
         visualMap: VisualMap({
