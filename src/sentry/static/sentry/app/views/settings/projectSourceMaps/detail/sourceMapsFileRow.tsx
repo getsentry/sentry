@@ -37,7 +37,7 @@ const SourceMapsFileRow = ({file, onDelete, downloadUrl}: Props) => {
             <IconClock size="xs" />
             <TimeSince date={dateCreated} />
           </TimeWrapper>
-          {dist ? <Tag inline>{dist}</Tag> : null}
+          {dist && <Tag inline>{dist}</Tag>}
         </TimeAndDistWrapper>
       </Column>
       <Column>
@@ -67,7 +67,7 @@ const SourceMapsFileRow = ({file, onDelete, downloadUrl}: Props) => {
             message={t('Are you sure you want to remove this file?')}
             onConfirm={handleDeleteClick}
           >
-            <Button size="xsmall" icon={<IconDelete size="xs" />} onClick={() => {}} />
+            <Button size="xsmall" icon={<IconDelete size="xs" />} />
           </LinkWithConfirmation>
         </ButtonBar>
       </RightColumn>

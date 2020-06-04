@@ -85,7 +85,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     const {params} = this.props;
     const {orgId, projectId} = params;
 
-    if (!groups?.length) {
+    if (!groups.length) {
       return null;
     }
 
@@ -134,7 +134,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
             <TextRight key="actions">{t('Actions')}</TextRight>,
           ]}
           emptyMessage={this.getEmptyMessage()}
-          isEmpty={groups?.length === 0}
+          isEmpty={groups.length === 0}
           isLoading={loading}
         >
           {this.renderMappings()}

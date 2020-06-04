@@ -113,7 +113,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     const {files} = this.state;
     const fileApiUrl = this.api.baseUrl + this.getFilesUrl();
 
-    if (!files?.length) {
+    if (!files.length) {
       return null;
     }
 
@@ -176,7 +176,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
             <TextRight key="actions">{t('Actions')}</TextRight>,
           ]}
           emptyMessage={this.getEmptyMessage()}
-          isEmpty={files?.length === 0}
+          isEmpty={files.length === 0}
           isLoading={loading}
         >
           {this.renderFiles()}
