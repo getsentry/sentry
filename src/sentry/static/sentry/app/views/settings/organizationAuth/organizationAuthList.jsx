@@ -26,13 +26,13 @@ const providerPopularity = {
 };
 
 class OrganizationAuthList extends React.Component {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   static propTypes = {
     providerList: PropTypes.arrayOf(SentryTypes.AuthProvider).isRequired,
     activeProvider: PropTypes.object,
+  };
+
+  static contextTypes = {
+    organization: SentryTypes.Organization,
   };
 
   render() {
@@ -40,67 +40,28 @@ class OrganizationAuthList extends React.Component {
     const {organization} = this.context;
     const features = organization.features;
 
-    // Sort twice:
-    // first, sort by popularity,
-    // and second, sort feature-flagged integrations last.
-
-    // arr.reduce(callback( accumulator, currentValue[, index[, array]] )[, initialValue])
-
-    const reducer = (acc, cur, i, arr) => {
-      console.log('currently on: ', cur);
-      const isEnabled = features.includes(descopeFeatureName(cur.requiredFeature));
-      if (isEnabled) {
-        acc.unavailable.push(cur);
-      } else {
-        acc.available.push(cur);
-      }
-      return acc;
-    };
-
-    const initialValue = {
-      available: [],
-      unavailable: [],
-      unrecognized: [],
-    };
-
-    const sortedProviders = (this.props.providerList || []).reduce(reducer, initialValue);
-
-    const compareByPopularity = (a, b) => {
-      if (!(a in providerPopularity)) {
+    // Sort provider list twice: first, by popularity,
+    // and then a second time, to sort unavailable providers for the current plan to the end of the list.
+    const sortedByPopularity = (this.props.providerList || []).sort((a, b) => {
+      if (!(a.key in providerPopularity)) {
         return -1;
       }
-      if (!(b in providerPopularity)) {
+      if (!(b.key in providerPopularity)) {
         return 1;
       }
-      return providerPopularity[a] < providerPopularity[b];
-    };
+      return providerPopularity[a.key] > providerPopularity[b.key];
+    });
 
-    sortedProviders.available.sort(compareByPopularity);
-    sortedProviders.unavailable.sort(compareByPopularity);
+    const providerList = sortedByPopularity.sort((a, b) => {
+      const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
+      const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
 
-    const providerList = sortedProviders.available.concat(sortedProviders.unavailable);
+      if (aEnabled !== bEnabled) {
+        return aEnabled ? -1 : 1;
+      }
 
-    //   (a, b) => {
-    //   const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
-    //   const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
-
-    //   if (aEnabled !== bEnabled) {
-    //     return aEnabled ? -1 : 1;
-    //   }
-
-    //   return a.requiredFeature.localeCompare(b.requiredFeature);
-    // });
-
-    // const providerList = (this.props.providerList || []).sort((a, b) => {
-    //   const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
-    //   const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
-
-    //   if (aEnabled !== bEnabled) {
-    //     return aEnabled ? -1 : 1;
-    //   }
-
-    //   return a.requiredFeature.localeCompare(b.requiredFeature);
-    // });
+      return a.requiredFeature.localeCompare(b.requiredFeature);
+    });
 
     const warn2FADisable =
       organization.require2FA &&
