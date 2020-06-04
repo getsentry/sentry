@@ -172,9 +172,6 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 
 // A map between aggregate function names and its un-aggregated form
 const TRANSFORM_AGGREGATES = {
-  p99: 'transaction.duration',
-  p95: 'transaction.duration',
-  p75: 'transaction.duration',
   last_seen: 'timestamp',
   latest_event: 'id',
   apdex: '',
@@ -182,6 +179,19 @@ const TRANSFORM_AGGREGATES = {
   user_misery: '',
   error_rate: '',
 } as const;
+
+function transformAggregate(fieldName: string): string {
+  // test if a field name is a percentile field name. for example: p50
+  if (/^p\d+$/.test(fieldName)) {
+    return 'transaction.duration';
+  }
+
+  return TRANSFORM_AGGREGATES[fieldName] || '';
+}
+
+function isTransformAggregate(fieldName: string): boolean {
+  return transformAggregate(fieldName) !== '';
+}
 
 /**
  * Convert an aggregated query into one that does not have aggregates.
@@ -213,20 +223,14 @@ export function getExpandedResults(
     const exploded = explodeFieldString(currentField.field);
 
     let fieldNameAlias: string = '';
-    if (
-      exploded.kind === 'function' &&
-      TRANSFORM_AGGREGATES.hasOwnProperty(exploded.function[0])
-    ) {
+    if (exploded.kind === 'function' && isTransformAggregate(exploded.function[0])) {
       fieldNameAlias = exploded.function[0];
     } else if (exploded.kind === 'field') {
       fieldNameAlias = exploded.field;
     }
 
-    if (
-      fieldNameAlias !== undefined &&
-      TRANSFORM_AGGREGATES.hasOwnProperty(fieldNameAlias)
-    ) {
-      const nextFieldName = TRANSFORM_AGGREGATES[fieldNameAlias];
+    if (fieldNameAlias !== undefined && isTransformAggregate(fieldNameAlias)) {
+      const nextFieldName = transformAggregate(fieldNameAlias);
       if (!nextFieldName || transformedFields.has(nextFieldName)) {
         // this field is either duplicated in another column, or nextFieldName is undefined.
         // in either case, we remove this column
@@ -259,6 +263,13 @@ export function getExpandedResults(
       if (exploded.function[0] === 'count') {
         field = 'id';
       }
+
+      if (!field) {
+        // This is a function with no field alias. We delete this column as it'll add a blank column in the drilldown.
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
       transformedFields.add(field);
 
       const updatedColumn: Column = {
