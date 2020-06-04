@@ -316,7 +316,12 @@ function ExpandAggregateRow(props: {
     );
   }
 
-  return <React.Fragment>{children}</React.Fragment>;
+  return (
+    <React.Fragment>
+      <div>{children}</div>
+      <div>per cell</div>
+    </React.Fragment>
+  );
 }
 
 const HeaderIcon = styled('span')`
