@@ -14,6 +14,17 @@ import getCookie from 'app/utils/getCookie';
 
 import ProviderItem from './providerItem';
 
+const providerPopularity = [
+  'Google',
+  'github',
+  'okta',
+  'active directory',
+  'saml2',
+  'onelogin',
+  'rippling',
+  'auth0',
+];
+
 class OrganizationAuthList extends React.Component {
   static contextTypes = {
     organization: SentryTypes.Organization,
@@ -29,17 +40,50 @@ class OrganizationAuthList extends React.Component {
     const {organization} = this.context;
     const features = organization.features;
 
-    // Sort feature-flagged integrations last
-    const providerList = (this.props.providerList || []).sort((a, b) => {
-      const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
-      const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
+    // Sort twice:
+    // first, sort by popularity,
+    // and second, sort feature-flagged integrations last.
 
-      if (aEnabled !== bEnabled) {
-        return aEnabled ? -1 : 1;
+    // arr.reduce(callback( accumulator, currentValue[, index[, array]] )[, initialValue])
+    const reducer = (acc, cur, i, arr) => {
+      const isEnabled = features.includes(descopeFeatureName(cur.requiredFeature));
+      if (isEnabled) {
+        acc.unavailable.push(cur);
+      } else {
+        acc.available.push(cur);
       }
+    };
 
-      return a.requiredFeature.localeCompare(b.requiredFeature);
-    });
+    const initialValue = {
+      available: [],
+      unavailable: [],
+    };
+
+    const sortedProviders = (this.props.providerList || []).reduce(reducer, initialValue);
+
+    const providerList = sortedProviders.available.concat(sortedProviders.unavailable);
+
+    //   (a, b) => {
+    //   const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
+    //   const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
+
+    //   if (aEnabled !== bEnabled) {
+    //     return aEnabled ? -1 : 1;
+    //   }
+
+    //   return a.requiredFeature.localeCompare(b.requiredFeature);
+    // });
+
+    // const providerList = (this.props.providerList || []).sort((a, b) => {
+    //   const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
+    //   const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
+
+    //   if (aEnabled !== bEnabled) {
+    //     return aEnabled ? -1 : 1;
+    //   }
+
+    //   return a.requiredFeature.localeCompare(b.requiredFeature);
+    // });
 
     const warn2FADisable =
       organization.require2FA &&
