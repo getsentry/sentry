@@ -19,10 +19,11 @@ type Props = {
   breadcrumbs: BreadcrumbsWithDetails;
   event: Event;
   orgId: string | null;
+  hasTimeRelativeFormat: boolean;
 };
 
 const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
-  {orgId, event, breadcrumbs},
+  {orgId, event, breadcrumbs, hasTimeRelativeFormat},
   ref
 ) {
   return (
@@ -47,7 +48,7 @@ const ListBody = React.forwardRef<HTMLDivElement, Props>(function ListBody(
               <Level level={crumb.level} />
             </GridCell>
             <GridCell hasError={hasError} isLastItem={isLastItem}>
-              <Time timestamp={crumb.timestamp} />
+              <Time timestamp={crumb.timestamp} isRelative={hasTimeRelativeFormat} />
             </GridCell>
           </React.Fragment>
         );
@@ -62,6 +63,7 @@ ListBody.propTypes = {
   breadcrumbs: PropTypes.array.isRequired,
   event: SentryTypes.Event.isRequired,
   orgId: PropTypes.string.isRequired,
+  hasTimeRelativeFormat: PropTypes.bool.isRequired,
 };
 
 const GridCellCategory = styled(GridCell)`

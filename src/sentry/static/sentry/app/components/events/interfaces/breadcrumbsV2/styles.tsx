@@ -81,7 +81,7 @@ const Grid = styled('div')`
   }
   grid-template-columns: 45px 55px 1fr 76px 65px;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 65px 132px 1fr 94px 84px;
+    grid-template-columns: 65px 132px 1fr 94px 140px;
   }
 `;
 

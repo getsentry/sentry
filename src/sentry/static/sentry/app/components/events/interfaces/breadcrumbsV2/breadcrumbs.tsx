@@ -375,6 +375,7 @@ class Breadcrumbs extends React.Component<Props, State> {
                 event={event}
                 orgId={orgId}
                 breadcrumbs={filteredBySearch}
+                hasTimeRelativeFormat={hasTimeRelativeFormat}
                 ref={this.listBodyRef}
               />
             </React.Fragment>
