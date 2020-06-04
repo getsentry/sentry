@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {SentryTransactionEvent} from 'app/types';
+import {SentryTransactionEvent, Organization} from 'app/types';
 import {t} from 'app/locale';
 import EventView from 'app/utils/discover/eventView';
 import {TableData} from 'app/views/eventsV2/table/types';
@@ -42,6 +42,7 @@ type RenderedSpanTree = {
 
 type PropType = {
   orgId: string;
+  organization: Organization;
   eventView: EventView;
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
@@ -141,7 +142,7 @@ class SpanTree extends React.Component<PropType> {
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, eventView, event, spansWithErrors} = this.props;
+    const {orgId, eventView, event, spansWithErrors, organization} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
@@ -250,6 +251,8 @@ class SpanTree extends React.Component<PropType> {
         <SpanGroup
           eventView={eventView}
           orgId={orgId}
+          organization={organization}
+          event={event}
           spanNumber={spanNumber}
           isLast={false}
           continuingTreeDepths={continuingTreeDepths}
@@ -277,6 +280,8 @@ class SpanTree extends React.Component<PropType> {
           <SpanGroup
             eventView={eventView}
             orgId={orgId}
+            organization={organization}
+            event={event}
             spanNumber={spanGroupNumber}
             isLast={isLast}
             continuingTreeDepths={continuingTreeDepths}

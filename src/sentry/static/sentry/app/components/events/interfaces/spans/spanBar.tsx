@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import 'intersection-observer'; // this is a polyfill
 
+import {Organization, SentryTransactionEvent} from 'app/types';
 import {t} from 'app/locale';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import space from 'app/styles/space';
@@ -170,7 +171,9 @@ const getDurationDisplay = ({
 };
 
 type SpanBarProps = {
+  event: Readonly<SentryTransactionEvent>;
   orgId: string;
+  organization: Organization;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<ProcessedSpanType>;
   spanBarColour?: string;
@@ -230,17 +233,21 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const {
       span,
       orgId,
+      organization,
       isRoot,
       eventView,
       trace,
       totalNumberOfErrors,
       spanErrors,
+      event,
     } = this.props;
 
     return (
       <SpanDetail
         span={span}
         orgId={orgId}
+        organization={organization}
+        event={event}
         isRoot={!!isRoot}
         eventView={eventView}
         trace={trace}

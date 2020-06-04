@@ -2,6 +2,7 @@ import React from 'react';
 import map from 'lodash/map';
 import styled from '@emotion/styled';
 
+import {Organization, SentryTransactionEvent} from 'app/types';
 import {Client} from 'app/api';
 import {IconWarning} from 'app/icons';
 import {TableDataRow} from 'app/views/eventsV2/table/types';
@@ -33,6 +34,8 @@ type TransactionResult = {
 type Props = {
   api: Client;
   orgId: string;
+  organization: Organization;
+  event: Readonly<SentryTransactionEvent>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
   eventView: EventView;
@@ -117,7 +120,7 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
-    const {span, orgId, trace, eventView} = this.props;
+    const {span, orgId, trace, eventView, organization, event} = this.props;
 
     assert(!isGapSpan(span));
 
@@ -139,6 +142,8 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
+    const orgFeatures = new Set(organization.features);
+
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
       end: trace.traceEndTimestamp,
@@ -156,7 +161,7 @@ class SpanDetail extends React.Component<Props, State> {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id} trace.parent_span:${span.span_id}`,
-      projects: eventView.project,
+      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
       version: 2,
       start,
       end,
@@ -174,7 +179,7 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraceButton() {
-    const {span, orgId, trace, eventView} = this.props;
+    const {span, orgId, organization, trace, event} = this.props;
 
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
@@ -184,6 +189,8 @@ class SpanDetail extends React.Component<Props, State> {
     if (isGapSpan(span)) {
       return null;
     }
+
+    const orgFeatures = new Set(organization.features);
 
     const traceEventView = EventView.fromSavedQuery({
       id: undefined,
@@ -197,7 +204,7 @@ class SpanDetail extends React.Component<Props, State> {
       ],
       orderby: '-timestamp',
       query: `event.type:transaction trace:${span.trace_id}`,
-      projects: eventView.project,
+      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
       version: 2,
       start,
       end,
@@ -227,7 +234,15 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderSpanErrorMessage() {
-    const {orgId, spanErrors, totalNumberOfErrors, span, trace, eventView} = this.props;
+    const {
+      orgId,
+      spanErrors,
+      totalNumberOfErrors,
+      span,
+      trace,
+      organization,
+      event,
+    } = this.props;
 
     if (spanErrors.length === 0 || totalNumberOfErrors === 0 || isGapSpan(span)) {
       return null;
@@ -242,13 +257,15 @@ class SpanDetail extends React.Component<Props, State> {
       end: trace.traceEndTimestamp,
     });
 
+    const orgFeatures = new Set(organization.features);
+
     const errorsEventView = EventView.fromSavedQuery({
       id: undefined,
       name: `Error events associated with span ${span.span_id}`,
       fields: ['title', 'project', 'issue', 'timestamp'],
       orderby: '-timestamp',
       query: `event.type:error trace:${span.trace_id} trace.span:${span.span_id}`,
-      projects: eventView.project,
+      projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
       version: 2,
       start,
       end,
