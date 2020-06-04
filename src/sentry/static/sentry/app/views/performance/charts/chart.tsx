@@ -19,6 +19,11 @@ type Props = {
   loading: boolean;
 };
 
+function roundAxis(x) {
+  const exp10 = 10 ** Math.floor(Math.log10(x));
+  return Math.ceil(x / exp10) * exp10;
+}
+
 class Chart extends React.Component<Props> {
   render() {
     const {data, router, statsPeriod, utc, projects, environments, loading} = this.props;
@@ -28,12 +33,9 @@ class Chart extends React.Component<Props> {
     }
     const colors = theme.charts.getColorPalette(4);
 
-    let dataMax: string | number = 'dataMax';
-
-    if (data.every(value => PERCENTILE_NAMES.has(value.seriesName))) {
-      dataMax =
-        max(data.map(value => max(value.data.map(point => point.value)))) || 'dataMax';
-    }
+    const dataMax = data.every(value => PERCENTILE_NAMES.has(value.seriesName))
+      ? roundAxis(max(data.map(value => max(value.data.map(point => point.value)))))
+      : undefined;
 
     const areaChartProps = {
       seriesOptions: {
