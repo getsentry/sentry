@@ -17,7 +17,7 @@ type Props = {
   timestamp?: string;
 };
 
-const Time = ({timestamp}: Props) =>
+const Time = React.memo(({timestamp}: Props) =>
   defined(timestamp) ? (
     <Wrapper>
       <Tooltip
@@ -32,7 +32,8 @@ const Time = ({timestamp}: Props) =>
         </TextOverflow>
       </Tooltip>
     </Wrapper>
-  ) : null;
+  ) : null
+);
 
 export default Time;
 

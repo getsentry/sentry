@@ -2,8 +2,8 @@ import convertCrumbType from './convertCrumbType';
 import getCrumbDetails from './getCrumbDetails';
 import {Breadcrumb} from './types';
 
-const transformCrumbs = (breadcrumbs: Array<Breadcrumb>) => {
-  return breadcrumbs.map((breadcrumb, index) => {
+const transformCrumbs = (breadcrumbs: Array<Breadcrumb>) =>
+  breadcrumbs.map((breadcrumb, index) => {
     const convertedCrumbType = convertCrumbType(breadcrumb);
     const crumbDetails = getCrumbDetails(convertedCrumbType.type);
     return {
@@ -12,6 +12,5 @@ const transformCrumbs = (breadcrumbs: Array<Breadcrumb>) => {
       ...crumbDetails,
     };
   });
-};
 
 export default transformCrumbs;
