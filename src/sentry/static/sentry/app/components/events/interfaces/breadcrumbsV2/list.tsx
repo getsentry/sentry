@@ -40,7 +40,7 @@ class List extends React.PureComponent<Props, State> {
           event={event}
           orgId={orgId}
           breadcrumbs={breadcrumbs}
-          relativeTime={breadcrumbs[0]?.timestamp}
+          relativeTime={breadcrumbs[breadcrumbs.length - 1]?.timestamp}
           displayRelativeTime={!!displayRelativeTime}
         />
       </Grid>

@@ -16,7 +16,10 @@ const getTooltipTitle = (
   const date = parsedTimestamp.format('ll');
 
   if (!displayRelativeTime) {
-    return {date, time: parsedTimestamp.from(relativeTime)};
+    const formattedTimestamp = moment(timestamp).format('ll H:mm');
+    const formattedRelativeTime = moment(relativeTime).format('ll H:mm');
+    // TODO(Priscila): check if it's possible to replace 'few seconds ago' with 'now'
+    return {date, time: moment(formattedTimestamp).from(formattedRelativeTime)};
   }
 
   return {

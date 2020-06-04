@@ -101,7 +101,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     let breadcrumbs = data.values;
 
     // Add the error event as the final (virtual) breadcrumb
-    const virtualCrumb = this.getVirtualCrumb();
+    const virtualCrumb = this.getVirtualCrumb(breadcrumbs[0]);
     if (virtualCrumb) {
       breadcrumbs = [...breadcrumbs, virtualCrumb];
     }
@@ -193,8 +193,12 @@ class Breadcrumbs extends React.Component<Props, State> {
     return match[1];
   };
 
-  getVirtualCrumb = (): Breadcrumb | undefined => {
+  getVirtualCrumb = (breadcrumb: Breadcrumb): Breadcrumb | undefined => {
     const {event} = this.props;
+
+    const timestamp = `${breadcrumb?.timestamp?.slice(0, 10)}${event.dateCreated?.slice(
+      10
+    )}`;
 
     const exception = event.entries.find(
       entry => entry.type === BreadcrumbType.EXCEPTION
@@ -214,7 +218,7 @@ class Breadcrumbs extends React.Component<Props, State> {
           type,
           value,
         },
-        timestamp: event.dateCreated,
+        timestamp,
       };
     }
 
@@ -225,7 +229,7 @@ class Breadcrumbs extends React.Component<Props, State> {
       level: levelTag?.value as BreadcrumbLevelType,
       category: 'message',
       message: event.message,
-      timestamp: event.dateCreated,
+      timestamp,
     };
   };
 
