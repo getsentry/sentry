@@ -120,7 +120,6 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             )
 
             message = {"QueueUrl": queue_url, "MessageBody": message}
-
             # need a MessageGroupId for FIFO queues
             # note that if MessageGroupId is specified for non-FIFO, this will fail
             if message_group_id:
@@ -132,19 +131,26 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 message["MessageDeduplicationId"] = uuid4().hex
             client.send_message(**message)
         except ClientError as e:
-            if six.text_type(e).startswith("An error occurred (AccessDenied)"):
+            if six.text_type(e).startswith(
+                "An error occurred (InvalidClientTokenId)"
+            ) or six.text_type(e).startswith("An error occurred (AccessDenied)"):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just log and continue.
                 metrics_name = "sentry_plugins.amazon_sqs.access_token_invalid"
                 logger.info(
                     metrics_name,
                     extra={
-                        "queue_url": queue_url,
-                        "access_key": access_key,
-                        "region": region,
+                        "test_number": 1,
                         "project_id": event.project.id,
                         "organization_id": event.project.organization_id,
                     },
+                )
+                logger.info(
+                    metrics_name,
+                    extra={"test_number": 2, "organization_id": event.project.organization_id},
+                )
+                logger.info(
+                    metrics_name, extra={"test_number": 3, "project_id": event.project.id},
                 )
                 metrics.incr(
                     metrics_name,
@@ -159,13 +165,17 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 logger.info(
                     metrics_name,
                     extra={
-                        "queue_url": queue_url,
-                        "access_key": access_key,
-                        "region": region,
+                        "test_number": 1,
                         "project_id": event.project.id,
                         "organization_id": event.project.organization_id,
-                        "message_group_id": message_group_id,
                     },
+                )
+                logger.info(
+                    metrics_name,
+                    extra={"test_number": 2, "organization_id": event.project.organization_id},
+                )
+                logger.info(
+                    metrics_name, extra={"test_number": 3, "project_id": event.project.id},
                 )
                 metrics.incr(
                     metrics_name,
