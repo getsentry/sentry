@@ -190,12 +190,7 @@ function transformAggregate(fieldName: string): string {
 }
 
 function isTransformAggregate(fieldName: string): boolean {
-  // test if a field name is a percentile field name. for example: p50
-  if (/^p\d+$/.test(fieldName)) {
-    return true;
-  }
-
-  return TRANSFORM_AGGREGATES.hasOwnProperty(fieldName);
+  return transformAggregate(fieldName) !== '';
 }
 
 /**
