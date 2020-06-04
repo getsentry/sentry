@@ -52,13 +52,14 @@ def assemble_download(
     try:
         if offset == 0:
             logger.info("dataexport.start", extra={"data_export_id": data_export_id})
+        data_export = ExportedData.objects.get(id=data_export_id)
+        if offset == 0:
             metrics.incr("dataexport.start", tags={"success": True}, sample_rate=1.0)
         logger.info("dataexport.run", extra={"data_export_id": data_export_id, "offset": offset})
-        data_export = ExportedData.objects.get(id=data_export_id)
     except ExportedData.DoesNotExist as error:
         if offset == 0:
             metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
-        capture_exception(error)
+        logger.exception(error)
         return
 
     try:
@@ -131,7 +132,7 @@ def get_processed(data_export, environment_id, batch_size, offset):
         metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
         logger.info("dataexport.error: {}".format(six.text_type(error)))
         capture_exception(error)
-        raise error
+        raise
 
 
 @handle_snuba_errors(logger)
@@ -191,7 +192,7 @@ def merge_export_blobs(data_export_id, **kwargs):
     try:
         data_export = ExportedData.objects.get(id=data_export_id)
     except ExportedData.DoesNotExist as error:
-        capture_exception(error)
+        logger.exception(error)
         return
 
     # adapted from `putfile` in  `src/sentry/models/file.py`
