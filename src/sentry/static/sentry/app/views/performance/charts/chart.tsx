@@ -1,10 +1,13 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import max from 'lodash/max';
 
 import {Series} from 'app/types/echarts';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import theme from 'app/utils/theme';
+
+import {PERCENTILE_NAMES} from '../constants';
 
 type Props = {
   data: Series[];
@@ -24,6 +27,13 @@ class Chart extends React.Component<Props> {
       return null;
     }
     const colors = theme.charts.getColorPalette(4);
+
+    let dataMax: string | number = 'dataMax';
+
+    if (data.every(value => PERCENTILE_NAMES.has(value.seriesName))) {
+      dataMax =
+        max(data.map(value => max(value.data.map(point => point.value)))) || 'dataMax';
+    }
 
     const areaChartProps = {
       seriesOptions: {
@@ -61,10 +71,12 @@ class Chart extends React.Component<Props> {
         {
           gridIndex: 0,
           scale: true,
+          max: dataMax,
         },
         {
           gridIndex: 1,
           scale: true,
+          max: dataMax,
         },
       ],
       utc,

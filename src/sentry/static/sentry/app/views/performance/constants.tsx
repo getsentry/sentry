@@ -70,3 +70,12 @@ export const AXIS_OPTIONS: TooltipOption[] = [
     label: t('p99 Duration'),
   },
 ];
+
+export const PERCENTILE_NAMES = new Set(
+  AXIS_OPTIONS.map(option => option.value).reduce((values: string[], value: string) => {
+    if (/^p[0-9]{2}\(\)$/.test(value)) {
+      values.push(value);
+    }
+    return values;
+  }, [])
+);
