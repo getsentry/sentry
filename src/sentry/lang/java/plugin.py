@@ -17,10 +17,12 @@ def is_valid_image(image):
 
 def map_frame(raw_frame, new_frame):
     frame = dict(raw_frame)
-    frame["module"] = new_frame["class"]
-    frame["function"] = new_frame["method"]
-    if new_frame["line"] > 0:
-        frame["lineno"] = new_frame["line"]
+    frame["module"] = new_frame.class_name
+    frame["function"] = new_frame.method
+    frame["lineno"] = new_frame.line
+    if new_frame.file is None:
+        frame.pop("filename", None)
+        frame.pop("abs_path", None)
 
     return frame
 
@@ -57,7 +59,10 @@ class JavaStacktraceProcessor(StacktraceProcessor):
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
                 view = ProguardMapper.open(dif_path)
-                self.mapping_views.append(view)
+                if not view.has_line_info:
+                    error_type = EventError.PROGUARD_MISSING_LINENO
+                else:
+                    self.mapping_views.append(view)
 
             if error_type is None:
                 continue
@@ -87,9 +92,9 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         key = "%s.%s" % (mod, ty)
 
         for view in self.mapping_views:
-            frame = view.remap(key)[0]
-            if frame["class"] != key:
-                new_module, new_cls = frame["class"].rsplit(".", 1)
+            mapped = view.remap_class(key)
+            if mapped:
+                new_module, new_cls = mapped.rsplit(".", 1)
                 exception["module"] = new_module
                 exception["type"] = new_cls
                 return True
@@ -101,10 +106,10 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         raw_frame = dict(frame)
 
         for view in self.mapping_views:
-            mapped = view.remap(frame["module"], frame["function"], frame.get("lineno") or 0)
+            mapped = view.remap_frame(frame["module"], frame["function"], frame.get("lineno") or 0)
             mapped = map(lambda f: map_frame(frame, f), mapped)
 
-            if len(mapped) > 1 or mapped[0] != raw_frame:
+            if len(mapped) > 0:
                 # sentry expects stack traces in reverse order
                 return reversed(mapped), [raw_frame], []
 

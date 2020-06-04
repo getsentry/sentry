@@ -124,9 +124,6 @@ class BasicResolvingIntegrationTest(object):
         )
 
     def test_error_on_resolving(self):
-        # TODO: Is this test still relevant? We silently ignore invalid proguard files now
-        return
-
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
