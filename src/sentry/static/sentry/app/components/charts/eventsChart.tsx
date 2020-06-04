@@ -11,6 +11,7 @@ import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
+import LineChart from 'app/components/charts/lineChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import {IconWarning} from 'app/icons';
@@ -18,11 +19,9 @@ import theme from 'app/utils/theme';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import {getDuration, formatPercentage} from 'app/utils/formatters';
+import {aggregateOutputType, aggregateMultiPlotType} from 'app/utils/discover/fields';
 
 import EventsRequest from './eventsRequest';
-
-const DURATION_AGGREGATE_PATTERN = /^(p75|p95|p99|percentile)|transaction\.duration/;
-const PERCENTAGE_AGGREGATE_PATTERN = /^(error_rate)/;
 
 type ChartProps = {
   loading: boolean;
@@ -36,6 +35,7 @@ type ChartProps = {
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
   showDaily?: boolean;
+  yAxis: string;
 };
 
 class Chart extends React.Component<ChartProps> {
@@ -50,6 +50,7 @@ class Chart extends React.Component<ChartProps> {
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
     showDaily: PropTypes.bool,
+    yAxis: PropTypes.string,
   };
 
   shouldComponentUpdate(nextProps: ChartProps) {
@@ -68,10 +69,29 @@ class Chart extends React.Component<ChartProps> {
     return true;
   }
 
+  getChartComponent() {
+    const {showDaily, timeseriesData, yAxis} = this.props;
+    if (showDaily) {
+      return BarChart;
+    }
+    if (timeseriesData.length > 1) {
+      switch (aggregateMultiPlotType(yAxis)) {
+        case 'line':
+          return LineChart;
+        case 'area':
+          return AreaChart;
+        default:
+          throw new Error(`Unknown multi plot type for ${yAxis}`);
+      }
+    }
+    return AreaChart;
+  }
+
   render() {
     const {
       loading: _loading,
       reloading: _reloading,
+      yAxis: _yaxis,
       releaseSeries,
       zoomRenderProps,
       timeseriesData,
@@ -79,7 +99,6 @@ class Chart extends React.Component<ChartProps> {
       showLegend,
       currentSeriesName,
       previousSeriesName,
-      showDaily,
       ...props
     } = this.props;
 
@@ -101,7 +120,7 @@ class Chart extends React.Component<ChartProps> {
     };
 
     const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
-    const Component = showDaily ? BarChart : AreaChart;
+    const Component = this.getChartComponent();
     const series = Array.isArray(releaseSeries)
       ? [...timeseriesData, ...releaseSeries]
       : timeseriesData;
@@ -259,17 +278,18 @@ class EventsChart extends React.Component<Props> {
     const tooltip = {
       truncate: 80,
       valueFormatter(value: number) {
-        if (DURATION_AGGREGATE_PATTERN.test(yAxis)) {
-          return getDuration(value / 1000, 2);
+        switch (aggregateOutputType(yAxis)) {
+          case 'integer':
+            return value.toLocaleString();
+          case 'number':
+            return value.toLocaleString();
+          case 'percentage':
+            return formatPercentage(value, 2);
+          case 'duration':
+            return getDuration(value / 1000, 2);
+          default:
+            return value;
         }
-        if (PERCENTAGE_AGGREGATE_PATTERN.test(yAxis)) {
-          return formatPercentage(value, 2);
-        }
-        if (typeof value === 'number') {
-          return value.toLocaleString();
-        }
-
-        return value;
       },
     };
     const interval = showDaily
@@ -311,6 +331,7 @@ class EventsChart extends React.Component<Props> {
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
             stacked={typeof topEvents === 'number' && topEvents > 0}
+            yAxis={yAxis}
             showDaily={showDaily}
           />
         </TransitionChart>
