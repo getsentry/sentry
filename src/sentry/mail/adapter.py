@@ -325,7 +325,7 @@ class MailAdapter(object):
 
         project_plugins = plugins.for_project(project, version=1)
         organization_integrations = Integration.objects.filter(organizations=org).first()
-        has_integrations = True if project_plugins or organization_integrations else False
+        has_integrations = bool(project_plugins or organization_integrations)
 
         context = {
             "project_label": project.get_full_name(),
