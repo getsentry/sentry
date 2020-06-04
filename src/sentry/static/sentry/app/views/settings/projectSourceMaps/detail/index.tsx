@@ -173,7 +173,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
           headers={[
             t('Name'),
             t('Size'),
-            <TextRight key="actions">{t('Actions')}</TextRight>,
+            <Actions key="actions">{t('Actions')}</Actions>,
           ]}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={files.length === 0}
@@ -191,7 +191,7 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 100px 100px;
 `;
 
-const TextRight = styled('div')`
+const Actions = styled('div')`
   text-align: right;
 `;
 
