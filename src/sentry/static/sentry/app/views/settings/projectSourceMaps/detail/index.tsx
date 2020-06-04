@@ -77,7 +77,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   };
 
   handleDelete = async (id: string) => {
-    addLoadingMessage(t('Removing file...'));
+    addLoadingMessage(t('Removing file\u2026'));
 
     try {
       await this.api.requestPromise(`${this.getFilesUrl()}${id}/`, {
@@ -137,7 +137,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     return (
       <React.Fragment>
         <SettingsPageHeader
-          title={`${t('Source Maps in')} ${formatVersion(version)}`}
+          title={t('Source Maps in %s', formatVersion(version))}
           action={
             <ButtonBar gap={1}>
               <Button

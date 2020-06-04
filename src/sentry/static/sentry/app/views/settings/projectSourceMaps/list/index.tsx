@@ -112,7 +112,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
         <TextBlock>
           {t(
-            `Source Maps lets you view source code context obtained from stack traces in their original untransformed form, which is particularly useful for debugging minified code, or transpiled code from a higher-level language.
+            `Source Maps lets you view source code context obtained from stack traces in their original un-transformed form, which is particularly useful for debugging minified code, or transpiled code from a higher-level language.
             `
           )}
         </TextBlock>
