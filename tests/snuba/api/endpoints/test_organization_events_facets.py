@@ -42,9 +42,9 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         with self.feature(
             {"organizations:discover-basic": False, "organizations:performance-view": True}
         ):
-            response = self.client.get(self.url, format="json")
+            response = self.client.get(self.url, data={"project": self.project.id}, format="json")
 
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
 
     def test_simple(self):
         self.store_event(
