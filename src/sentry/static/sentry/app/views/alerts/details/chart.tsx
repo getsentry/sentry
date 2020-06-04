@@ -129,12 +129,12 @@ const Chart = (props: Props) => {
     criticalTrigger.alertThreshold;
 
   const visualMapPieces: PiecesObject[] = [];
-  // Echarts throws an error if there is only 1 visualMapPiece and when it only has min
+  // Echarts throws an error if when the first element in pieces doesn't have both min/max
   if (warningTriggerThreshold ?? criticalTriggerThreshold)
     visualMapPieces.push({
-      min: 0,
+      min: -1, // if this is 0 the x axis goes halfway over the line
       max: (warningTriggerThreshold ?? criticalTriggerThreshold) || 0,
-      color: '#4A4D7F',
+      color: theme.purple500,
     });
   if (warningTriggerThreshold && criticalTriggerThreshold)
     visualMapPieces.push({
