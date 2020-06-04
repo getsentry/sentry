@@ -763,7 +763,8 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
     elif name == "issue.id":
         # Handle "has" queries
         if search_filter.value.raw_value == "":
-            return [["isNull", [name]], search_filter.operator, 1]
+            # Compare to 0 as group_id is not nullable.
+            return [name, search_filter.operator, 0]
 
         # Skip ifNull check as group_id is not nullable, and we want to
         # allow snuba's prewhere optimizer to find this condition.
@@ -870,8 +871,8 @@ def get_filter(query=None, params=None):
             elif name == ISSUE_ID_ALIAS and value != "":
                 # A blank term value means that this is a has filter
                 kwargs["group_ids"].extend(to_list(value))
-            elif name == ISSUE_ALIAS and value != "":
-                if params and "organization_id" in params:
+            elif name == ISSUE_ALIAS:
+                if value != "" and params and "organization_id" in params:
                     try:
                         group = Group.objects.by_qualified_short_id(
                             params["organization_id"], value
@@ -880,9 +881,11 @@ def get_filter(query=None, params=None):
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(value)
                         )
-                    term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(group.id))
-                    converted_filter = convert_search_filter_to_snuba_query(term)
-                    kwargs["conditions"].append(converted_filter)
+                    else:
+                        value = group.id
+                term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(value))
+                converted_filter = convert_search_filter_to_snuba_query(term)
+                kwargs["conditions"].append(converted_filter)
             elif name == USER_ALIAS:
                 # If the key is user, do an OR across all the different possible user fields
                 user_conditions = [

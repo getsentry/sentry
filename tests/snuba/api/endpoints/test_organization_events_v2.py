@@ -1638,11 +1638,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             },
             project_id=project1.id,
         )
-        self.store_event(
+        event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
                 "transaction": "/example",
-                "message": "how to make fast",
+                "message": "go really fast plz",
                 "timestamp": self.two_min_ago,
                 "fingerprint": ["group_2"],
             },
@@ -1656,7 +1656,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 self.url,
                 format="json",
                 data={
-                    "field": ["title"],
+                    "field": ["title", "issue.id"],
                     "query": "!issue:{}".format(event1.group.qualified_short_id),
                 },
             )
@@ -1664,7 +1664,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 1
-            assert data[0]["title"] == event1.title
+            assert data[0]["title"] == event2.title
+            assert data[0]["issue.id"] == event2.group_id
 
     def test_search_for_nonexistent_issue(self):
         self.login_as(user=self.user)
