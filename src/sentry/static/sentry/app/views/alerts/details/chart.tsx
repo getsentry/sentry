@@ -3,13 +3,24 @@ import moment from 'moment';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
+import {Trigger} from 'app/views/settings/incidentRules/types';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
+import MarkLine from 'app/components/charts/components/markLine';
+import VisualMap from 'app/components/charts/components/visualMap';
 
 import closedSymbol from './closedSymbol';
 import detectedSymbol from './detectedSymbol';
 
 type Data = [number, {count: number}[]];
+type PiecesObject = {
+  min?: number;
+  max?: number;
+  label?: string;
+  value?: number;
+  color?: string;
+};
 
 /**
  * So we'll have to see how this looks with real data, but echarts requires
@@ -68,10 +79,11 @@ type Props = {
   aggregate: string;
   detected: string;
   closed?: string;
+  triggers?: Trigger[];
 };
 
 const Chart = (props: Props) => {
-  const {aggregate, data, detected, closed} = props;
+  const {aggregate, data, detected, closed, triggers} = props;
   const detectedTs = detected && moment.utc(detected).unix();
   const closedTs = closed && moment.utc(closed).unix();
   const chartData = data.map(([ts, val]) => [
@@ -104,6 +116,37 @@ const Chart = (props: Props) => {
   }
 
   const seriesName = aggregate;
+
+  const warningTrigger = triggers?.find(trig => trig.label === 'warning');
+  const criticalTrigger = triggers?.find(trig => trig.label === 'critical');
+  const warningTriggerThreshold =
+    warningTrigger &&
+    typeof warningTrigger.alertThreshold === 'number' &&
+    warningTrigger.alertThreshold;
+  const criticalTriggerThreshold =
+    criticalTrigger &&
+    typeof criticalTrigger.alertThreshold === 'number' &&
+    criticalTrigger.alertThreshold;
+
+  const visualMapPieces: PiecesObject[] = [];
+  // Echarts throws an error if when the first element in pieces doesn't have both min/max
+  if (warningTriggerThreshold ?? criticalTriggerThreshold)
+    visualMapPieces.push({
+      min: -1, // if this is 0 the x axis goes halfway over the line
+      max: (warningTriggerThreshold ?? criticalTriggerThreshold) || 0,
+      color: theme.purple500,
+    });
+  if (warningTriggerThreshold && criticalTriggerThreshold)
+    visualMapPieces.push({
+      min: warningTriggerThreshold,
+      max: criticalTriggerThreshold,
+      color: theme.yellow400,
+    });
+  if (criticalTriggerThreshold)
+    visualMapPieces.push({
+      min: criticalTriggerThreshold,
+      color: theme.red300,
+    });
 
   return (
     <LineChart
@@ -144,7 +187,45 @@ const Chart = (props: Props) => {
             ],
           }),
         },
-      ]}
+        warningTriggerThreshold && {
+          type: 'line',
+          markLine: MarkLine({
+            silent: true,
+            lineStyle: {color: theme.yellow400},
+            data: [
+              {
+                yAxis: warningTriggerThreshold,
+              },
+            ],
+            label: {
+              show: false,
+            },
+          }),
+          data: [],
+        },
+        criticalTriggerThreshold && {
+          type: 'line',
+          markLine: MarkLine({
+            silent: true,
+            lineStyle: {color: theme.red300},
+            data: [
+              {
+                yAxis: criticalTriggerThreshold,
+              },
+            ],
+            label: {
+              show: false,
+            },
+          }),
+          data: [],
+        },
+      ].filter(Boolean)}
+      options={{
+        visualMap: VisualMap({
+          pieces: visualMapPieces,
+          show: false,
+        }),
+      }}
     />
   );
 };
