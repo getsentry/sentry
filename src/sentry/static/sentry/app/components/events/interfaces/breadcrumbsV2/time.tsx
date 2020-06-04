@@ -7,36 +7,62 @@ import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import TextOverflow from 'app/components/textOverflow';
 
-const getTooltipTitle = (timestamp: string, isRelative: boolean) => {
+const getTooltipTitle = (
+  timestamp: string,
+  relativeTime: string,
+  displayRelativeTime?: boolean
+) => {
   const parsedTimestamp = moment(timestamp);
-  const timestampFormat = parsedTimestamp.milliseconds() ? 'll H:mm:ss.SSS A' : 'lll';
-  return parsedTimestamp.format(timestampFormat);
+  const date = parsedTimestamp.format('ll');
+
+  if (!displayRelativeTime) {
+    return {date, time: parsedTimestamp.from(relativeTime)};
+  }
+
+  return {
+    date,
+    time: parsedTimestamp.format(
+      parsedTimestamp.milliseconds() ? 'H:mm:ss.SSS A' : 'lll'
+    ),
+  };
 };
 
 type Props = {
-  isRelative: boolean;
   timestamp?: string;
+  relativeTime?: string;
+  displayRelativeTime?: boolean;
 };
 
-const Time = React.memo(({timestamp, isRelative}: Props) =>
-  defined(timestamp) ? (
+const Time = React.memo(({timestamp, relativeTime, displayRelativeTime}: Props) => {
+  if (!(defined(timestamp) && defined(relativeTime))) {
+    return null;
+  }
+
+  const {date, time} = getTooltipTitle(timestamp, relativeTime, displayRelativeTime);
+
+  return (
     <Wrapper>
       <Tooltip
-        title={getTooltipTitle(timestamp, isRelative)}
+        title={
+          <div>
+            <div>{date}</div>
+            <div>{time}</div>
+          </div>
+        }
         containerDisplayMode="inline-flex"
       >
         <TextOverflow>
           {getDynamicText({
-            value: isRelative
-              ? moment(timestamp).fromNow()
+            value: displayRelativeTime
+              ? moment(timestamp).from(relativeTime)
               : moment(timestamp).format('HH:mm:ss'),
             fixed: '00:00:00',
           })}
         </TextOverflow>
       </Tooltip>
     </Wrapper>
-  ) : null
-);
+  );
+});
 
 export default Time;
 

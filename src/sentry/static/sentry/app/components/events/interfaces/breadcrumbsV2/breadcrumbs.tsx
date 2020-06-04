@@ -22,10 +22,10 @@ import {
 } from './types';
 import transformCrumbs from './transformCrumbs';
 import Filter from './filter/filter';
-import ListHeader from './listHeader';
-import ListBody from './listBody';
+import List from './list';
 import Level from './level';
 import Icon from './icon';
+import {aroundContentStyle} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
@@ -46,7 +46,6 @@ type State = {
   filteredByFilter: BreadcrumbsWithDetails;
   filteredBySearch: BreadcrumbsWithDetails;
   filterOptions: FilterOptions;
-  hasTimeRelativeFormat: boolean;
 };
 
 class Breadcrumbs extends React.Component<Props, State> {
@@ -56,7 +55,6 @@ class Breadcrumbs extends React.Component<Props, State> {
     filteredByFilter: [],
     filteredBySearch: [],
     filterOptions: [[], []],
-    hasTimeRelativeFormat: false,
   };
 
   componentDidMount() {
@@ -72,7 +70,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     }
   }
 
-  listBodyRef = React.createRef<HTMLDivElement>();
+  listRef = React.createRef<HTMLDivElement>();
 
   expandCollapsedCrumbs = () => {
     this.setState(
@@ -86,7 +84,7 @@ class Breadcrumbs extends React.Component<Props, State> {
   };
 
   scrollToTheBottom = () => {
-    const element = this.listBodyRef?.current;
+    const element = this.listRef?.current;
 
     if (!element) {
       return;
@@ -324,23 +322,12 @@ class Breadcrumbs extends React.Component<Props, State> {
     }));
   };
 
-  handleSwitchTimeFormat = () => {
-    this.setState(prevState => ({
-      hasTimeRelativeFormat: !prevState.hasTimeRelativeFormat,
-    }));
-  };
-
   render() {
     const {type, event, orgId} = this.props;
-    const {
-      filterOptions,
-      searchTerm,
-      filteredBySearch,
-      hasTimeRelativeFormat,
-    } = this.state;
+    const {filterOptions, searchTerm, filteredBySearch} = this.state;
 
     return (
-      <EventDataSection
+      <StyledEventDataSection
         type={type}
         title={
           <GuideAnchor target="breadcrumbs" position="bottom">
@@ -364,50 +351,38 @@ class Breadcrumbs extends React.Component<Props, State> {
         wrapTitle={false}
         isCentered
       >
-        <Content>
-          {filteredBySearch.length > 0 ? (
-            <React.Fragment>
-              <ListHeader
-                onSwitchTimeFormat={this.handleSwitchTimeFormat}
-                hasTimeRelativeFormat={hasTimeRelativeFormat}
-              />
-              <ListBody
-                event={event}
-                orgId={orgId}
-                breadcrumbs={filteredBySearch}
-                hasTimeRelativeFormat={hasTimeRelativeFormat}
-                ref={this.listBodyRef}
-              />
-            </React.Fragment>
-          ) : (
-            <StyledEmptyMessage
-              icon={<IconWarning size="xl" />}
-              action={
-                <Button onClick={this.handleResetFilter} priority="primary">
-                  {t('Reset Filter')}
-                </Button>
-              }
-            >
-              {t('Sorry, no breadcrumbs match your search query.')}
-            </StyledEmptyMessage>
-          )}
-        </Content>
-      </EventDataSection>
+        {filteredBySearch.length > 0 ? (
+          <List
+            breadcrumbs={filteredBySearch}
+            forwardRef={this.listRef}
+            event={event}
+            orgId={orgId}
+          />
+        ) : (
+          <StyledEmptyMessage
+            icon={<IconWarning size="xl" />}
+            action={
+              <Button onClick={this.handleResetFilter} priority="primary">
+                {t('Reset Filter')}
+              </Button>
+            }
+          >
+            {t('Sorry, no breadcrumbs match your search query.')}
+          </StyledEmptyMessage>
+        )}
+      </StyledEventDataSection>
     );
   }
 }
 
 export default Breadcrumbs;
 
-const Content = styled('div')`
-  box-shadow: ${p => p.theme.dropShadowLightest};
-  border-radius: ${p => p.theme.borderRadius};
+const StyledEventDataSection = styled(EventDataSection)`
   margin-bottom: ${space(3)};
 `;
 
 const StyledEmptyMessage = styled(EmptyMessage)`
-  border: 1px solid ${p => p.theme.borderDark};
-  border-radius: ${p => p.theme.borderRadius};
+  ${aroundContentStyle};
 `;
 
 const Search = styled('div')`

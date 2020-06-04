@@ -6,38 +6,41 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {IconSwitch} from 'app/icons';
 
-import {Grid, GridCell} from './styles';
+import {GridCell} from './styles';
 
-const getTimeTooltipTitle = (hasTimeRelativeFormat: boolean) => {
-  if (hasTimeRelativeFormat) {
-    return t('Switch to ISO 8601 format');
+const getTimeTooltipTitle = (displayRelativeTime: boolean) => {
+  if (displayRelativeTime) {
+    return t('Switch to ISO 8601');
   }
-  return t('Switch to relative format');
+  return t('Switch to relative');
 };
 
 type Props = {
   onSwitchTimeFormat: () => void;
-  hasTimeRelativeFormat: boolean;
+  displayRelativeTime: boolean;
 };
 
-const ListHeader = React.memo(({onSwitchTimeFormat, hasTimeRelativeFormat}: Props) => (
-  <StyledGrid>
+const ListHeader = React.memo(({onSwitchTimeFormat, displayRelativeTime}: Props) => (
+  <React.Fragment>
     <StyledGridCell>{t('Type')}</StyledGridCell>
     <Category>{t('Category')}</Category>
     <StyledGridCell>{t('Description')}</StyledGridCell>
     <StyledGridCell>{t('Level')}</StyledGridCell>
     <Time onClick={onSwitchTimeFormat}>
-      <Tooltip title={getTimeTooltipTitle(hasTimeRelativeFormat)}>
+      <Tooltip title={getTimeTooltipTitle(displayRelativeTime)}>
         <StyledIconSwitch size="xs" />
       </Tooltip>
       <span> {t('Time')}</span>
     </Time>
-  </StyledGrid>
+  </React.Fragment>
 ));
 
 export default ListHeader;
 
 const StyledGridCell = styled(GridCell)`
+  position: sticky;
+  z-index: 2;
+  top: 0;
   border-bottom: 1px solid ${p => p.theme.borderDark};
   background: ${p => p.theme.gray100};
   color: ${p => p.theme.gray600};
@@ -63,11 +66,6 @@ const Time = styled(StyledGridCell)`
   grid-template-columns: max-content 1fr;
   grid-gap: ${space(1)};
   cursor: pointer;
-`;
-
-const StyledGrid = styled(Grid)`
-  border-radius: ${p => p.theme.borderRadiusTop};
-  margin-bottom: 0;
 `;
 
 const StyledIconSwitch = styled(IconSwitch)`
