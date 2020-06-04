@@ -93,7 +93,6 @@ class Breadcrumbs extends React.Component<Props, State> {
     element.scrollTo({
       top: element.scrollHeight,
       left: 0,
-      behavior: 'smooth',
     });
   };
 
