@@ -161,8 +161,6 @@ exports[`ProjectCard renders 1`] = `
                             project-slug
                           </span>
                         }
-                        hideAvatar={false}
-                        hideOverflow={true}
                         project={
                           Object {
                             "environments": Array [],
