@@ -117,8 +117,8 @@ const Chart = (props: Props) => {
 
   const seriesName = aggregate;
 
-  const warningTrigger = triggers && triggers.find(trig => trig.label === 'warning');
-  const criticalTrigger = triggers && triggers.find(trig => trig.label === 'critical');
+  const warningTrigger = triggers?.find(trig => trig.label === 'warning');
+  const criticalTrigger = triggers?.find(trig => trig.label === 'critical');
   const warningTriggerThreshold =
     warningTrigger &&
     typeof warningTrigger.alertThreshold === 'number' &&
