@@ -161,6 +161,45 @@ export default class DetailsBody extends React.Component<Props> {
     );
   }
 
+  renderChartActions() {
+    const {incident, params, stats} = this.props;
+
+    return (
+      <ChartActions>
+        <PanelBody withPadding>
+          <Feature features={['discover-basic']}>
+            <Projects slugs={incident?.projects} orgId={params.orgId}>
+              {({initiallyLoaded, fetching, projects}) => {
+                const preset = this.metricPreset;
+                const ctaOpts = {
+                  orgSlug: params.orgId,
+                  projects: (initiallyLoaded ? projects : []) as Project[],
+                  incident,
+                  stats,
+                };
+
+                const {buttonText, ...props} = preset
+                  ? preset.makeCtaParams(ctaOpts)
+                  : makeDefaultCta(ctaOpts);
+
+                return (
+                  <Button
+                    size="small"
+                    priority="primary"
+                    disabled={!incident || fetching || !initiallyLoaded}
+                    {...props}
+                  >
+                    {buttonText}
+                  </Button>
+                );
+              }}
+            </Projects>
+          </Feature>
+        </PanelBody>
+      </ChartActions>
+    );
+  }
+
   render() {
     const {params, incident, stats} = this.props;
 
@@ -193,38 +232,7 @@ export default class DetailsBody extends React.Component<Props> {
                   <Placeholder height="200px" />
                 )}
               </PanelBody>
-              <ChartActions>
-                <PanelBody withPadding>
-                  <Feature features={['discover-basic']}>
-                    <Projects slugs={incident?.projects} orgId={params.orgId}>
-                      {({initiallyLoaded, fetching, projects}) => {
-                        const preset = this.metricPreset;
-                        const ctaOpts = {
-                          orgSlug: params.orgId,
-                          projects: (initiallyLoaded ? projects : []) as Project[],
-                          incident,
-                          stats,
-                        };
-
-                        const {buttonText, ...props} = preset
-                          ? preset.makeCtaParams(ctaOpts)
-                          : makeDefaultCta(ctaOpts);
-
-                        return (
-                          <Button
-                            size="small"
-                            priority="primary"
-                            disabled={!incident || fetching || !initiallyLoaded}
-                            {...props}
-                          >
-                            {buttonText}
-                          </Button>
-                        );
-                      }}
-                    </Projects>
-                  </Feature>
-                </PanelBody>
-              </ChartActions>
+              {this.renderChartActions()}
             </ChartPanel>
           </PageContent>
           <DetailWrapper>
