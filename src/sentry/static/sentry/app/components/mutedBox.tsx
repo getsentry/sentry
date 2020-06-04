@@ -11,7 +11,7 @@ type Props = {
   statusDetails: ResolutionStatusDetails;
 };
 
-export default class MutedBox extends React.PureComponent<Props> {
+class MutedBox extends React.PureComponent<Props> {
   renderReason = () => {
     const {
       ignoreUntil,
@@ -73,3 +73,5 @@ export default class MutedBox extends React.PureComponent<Props> {
     </BannerContainer>
   );
 }
+
+export default MutedBox;
