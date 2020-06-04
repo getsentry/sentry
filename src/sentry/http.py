@@ -44,8 +44,6 @@ except ImportError:
     class OpenSSLError(Exception):
         pass
 
-map(str, [1,2,3])
-
 
 class BadSource(Exception):
     error_type = EventError.UNKNOWN_ERROR
