@@ -14,6 +14,13 @@ import closedSymbol from './closedSymbol';
 import detectedSymbol from './detectedSymbol';
 
 type Data = [number, {count: number}[]];
+type PiecesObject = {
+  min?: number;
+  max?: number;
+  label?: string;
+  value?: number;
+  color?: string;
+};
 
 /**
  * So we'll have to see how this looks with real data, but echarts requires
@@ -121,6 +128,26 @@ const Chart = (props: Props) => {
     typeof criticalTrigger.alertThreshold === 'number' &&
     criticalTrigger.alertThreshold;
 
+  const visualMapPieces: PiecesObject[] = [];
+  // Echarts throws an error if there is only 1 visualMapPiece and when it only has min
+  if (warningTriggerThreshold ?? criticalTriggerThreshold)
+    visualMapPieces.push({
+      min: 0,
+      max: (warningTriggerThreshold ?? criticalTriggerThreshold) || 0,
+      color: '#4A4D7F',
+    });
+  if (warningTriggerThreshold && criticalTriggerThreshold)
+    visualMapPieces.push({
+      min: warningTriggerThreshold,
+      max: criticalTriggerThreshold,
+      color: theme.yellow400,
+    });
+  if (criticalTriggerThreshold)
+    visualMapPieces.push({
+      min: criticalTriggerThreshold,
+      color: theme.red300,
+    });
+
   return (
     <LineChart
       isGroupedByDate
@@ -183,24 +210,7 @@ const Chart = (props: Props) => {
       ].filter(Boolean)}
       options={{
         visualMap: VisualMap({
-          outOfRange: {
-            color: '#4A4D7F',
-          },
-          pieces: [
-            warningTriggerThreshold && criticalTriggerThreshold
-              ? {
-                  min: warningTriggerThreshold,
-                  max: criticalTriggerThreshold,
-                  color: theme.yellow400,
-                }
-              : {},
-            criticalTriggerThreshold
-              ? {
-                  min: criticalTriggerThreshold,
-                  color: theme.red300,
-                }
-              : {},
-          ],
+          pieces: visualMapPieces,
           show: false,
         }),
       }}
