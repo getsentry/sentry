@@ -178,7 +178,12 @@ class GitHubIssueBasicTest(TestCase):
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
-            json={"repositories": [{"full_name": "getsentry/sentry", "name": "sentry"}]},
+            json={
+                "repositories": [
+                    {"full_name": "getsentry/sentry", "name": "sentry"},
+                    {"full_name": "getsentry/other", "name": "other", "archived": True},
+                ]
+            },
         )
 
         resp = self.integration.get_create_issue_config(group=event.group)
