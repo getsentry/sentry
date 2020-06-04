@@ -22,7 +22,7 @@ const getTooltipTitle = (
   return {
     date,
     time: parsedTimestamp.format(
-      parsedTimestamp.milliseconds() ? 'H:mm:ss.SSS A' : 'lll'
+      parsedTimestamp.milliseconds() ? 'H:mm:ss.SSS A' : 'H:mm:ss A'
     ),
   };
 };
