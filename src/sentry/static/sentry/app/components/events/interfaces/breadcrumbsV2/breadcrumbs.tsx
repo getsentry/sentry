@@ -31,14 +31,6 @@ const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
-type State = {
-  searchTerm: string;
-  breadcrumbs: BreadcrumbsWithDetails;
-  filteredByFilter: BreadcrumbsWithDetails;
-  filteredBySearch: BreadcrumbsWithDetails;
-  filterOptions: FilterOptions;
-};
-
 type Props = {
   event: Event;
   orgId: string | null;
@@ -48,6 +40,15 @@ type Props = {
   };
 };
 
+type State = {
+  searchTerm: string;
+  breadcrumbs: BreadcrumbsWithDetails;
+  filteredByFilter: BreadcrumbsWithDetails;
+  filteredBySearch: BreadcrumbsWithDetails;
+  filterOptions: FilterOptions;
+  hasTimeRelativeFormat: boolean;
+};
+
 class Breadcrumbs extends React.Component<Props, State> {
   state: State = {
     searchTerm: '',
@@ -55,6 +56,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     filteredByFilter: [],
     filteredBySearch: [],
     filterOptions: [[], []],
+    hasTimeRelativeFormat: false,
   };
 
   componentDidMount() {
@@ -322,9 +324,20 @@ class Breadcrumbs extends React.Component<Props, State> {
     }));
   };
 
+  handleSwitchTimeFormat = () => {
+    this.setState(prevState => ({
+      hasTimeRelativeFormat: !prevState.hasTimeRelativeFormat,
+    }));
+  };
+
   render() {
     const {type, event, orgId} = this.props;
-    const {filterOptions, searchTerm, filteredBySearch} = this.state;
+    const {
+      filterOptions,
+      searchTerm,
+      filteredBySearch,
+      hasTimeRelativeFormat,
+    } = this.state;
 
     return (
       <EventDataSection
@@ -354,7 +367,10 @@ class Breadcrumbs extends React.Component<Props, State> {
         <Content>
           {filteredBySearch.length > 0 ? (
             <React.Fragment>
-              <ListHeader />
+              <ListHeader
+                onSwitchTimeFormat={this.handleSwitchTimeFormat}
+                hasTimeRelativeFormat={hasTimeRelativeFormat}
+              />
               <ListBody
                 event={event}
                 orgId={orgId}

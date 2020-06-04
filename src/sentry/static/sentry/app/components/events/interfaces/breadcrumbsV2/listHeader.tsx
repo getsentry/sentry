@@ -2,19 +2,38 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
+import {IconSwitch} from 'app/icons';
 
 import {Grid, GridCell} from './styles';
 
-const ListHeader = () => (
+const getTimeTooltipTitle = (hasTimeRelativeFormat: boolean) => {
+  if (hasTimeRelativeFormat) {
+    return t('Switch to ISO 8601 format');
+  }
+  return t('Switch to relative format');
+};
+
+type Props = {
+  onSwitchTimeFormat: () => void;
+  hasTimeRelativeFormat: boolean;
+};
+
+const ListHeader = React.memo(({onSwitchTimeFormat, hasTimeRelativeFormat}: Props) => (
   <StyledGrid>
     <StyledGridCell>{t('Type')}</StyledGridCell>
-    <StyledGridCellCategory>{t('Category')}</StyledGridCellCategory>
+    <Category>{t('Category')}</Category>
     <StyledGridCell>{t('Description')}</StyledGridCell>
     <StyledGridCell>{t('Level')}</StyledGridCell>
-    <StyledGridCell>{t('Time')}</StyledGridCell>
+    <Time onClick={onSwitchTimeFormat}>
+      <Tooltip title={getTimeTooltipTitle(hasTimeRelativeFormat)}>
+        <StyledIconSwitch size="xs" />
+      </Tooltip>
+      <span> {t('Time')}</span>
+    </Time>
   </StyledGrid>
-);
+));
 
 export default ListHeader;
 
@@ -33,13 +52,27 @@ const StyledGridCell = styled(GridCell)`
   }
 `;
 
-const StyledGridCellCategory = styled(StyledGridCell)`
+const Category = styled(StyledGridCell)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-left: ${space(1)};
   }
 `;
 
+const Time = styled(StyledGridCell)`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(1)};
+  cursor: pointer;
+`;
+
 const StyledGrid = styled(Grid)`
   border-radius: ${p => p.theme.borderRadiusTop};
   margin-bottom: 0;
+`;
+
+const StyledIconSwitch = styled(IconSwitch)`
+  transition: 0.15s color;
+  &:hover {
+    color: ${p => p.theme.gray500};
+  }
 `;
