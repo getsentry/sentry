@@ -82,9 +82,11 @@ def attach(project, fast, service):
     container = _start_service(client, service, containers, project, fast=fast, always_start=True)
 
     def exit_handler(*_):
-        click.echo("Shutting down {}".format(service))
         try:
+            click.echo("Stopping {}".format(service))
             container.stop()
+            click.echo("Removing {}".format(service))
+            container.remove()
         except KeyboardInterrupt:
             pass
 
