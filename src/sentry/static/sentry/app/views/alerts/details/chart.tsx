@@ -1,11 +1,14 @@
 import React from 'react';
 import moment from 'moment';
-import {EChartOption} from 'echarts';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
+import {Trigger} from 'app/views/settings/incidentRules/types';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
+import MarkLine from 'app/components/charts/components/markLine';
+import VisualMap from 'app/components/charts/components/visualMap';
 
 import closedSymbol from './closedSymbol';
 import detectedSymbol from './detectedSymbol';
@@ -69,13 +72,11 @@ type Props = {
   aggregate: string;
   detected: string;
   closed?: string;
-  warningMarkLine?: EChartOption.SeriesLine['markLine'];
-  criticalMarkLine?: EChartOption.SeriesLine['markLine'];
-  options?: Object;
+  triggers?: Trigger[];
 };
 
 const Chart = (props: Props) => {
-  const {aggregate, data, detected, closed} = props;
+  const {aggregate, data, detected, closed, triggers} = props;
   const detectedTs = detected && moment.utc(detected).unix();
   const closedTs = closed && moment.utc(closed).unix();
   const chartData = data.map(([ts, val]) => [
@@ -108,6 +109,17 @@ const Chart = (props: Props) => {
   }
 
   const seriesName = aggregate;
+
+  const warningTrigger = triggers && triggers.find(trig => trig.label === 'warning');
+  const criticalTrigger = triggers && triggers.find(trig => trig.label === 'critical');
+  const warningTriggerThreshold =
+    warningTrigger &&
+    typeof warningTrigger.alertThreshold === 'number' &&
+    warningTrigger.alertThreshold;
+  const criticalTriggerThreshold =
+    criticalTrigger &&
+    typeof criticalTrigger.alertThreshold === 'number' &&
+    criticalTrigger.alertThreshold;
 
   return (
     <LineChart
@@ -148,18 +160,50 @@ const Chart = (props: Props) => {
             ],
           }),
         },
-        props.warningMarkLine && {
-          type: 'line',
-          markLine: props.warningMarkLine,
-          data: [],
-        },
-        props.criticalMarkLine && {
-          type: 'line',
-          markLine: props.criticalMarkLine,
-          data: [],
-        },
+        warningTriggerThreshold &&
+          MarkLine({
+            silent: true,
+            lineStyle: {color: theme.yellow400},
+            data: [
+              {
+                yAxis: warningTriggerThreshold,
+              },
+            ],
+          }),
+        criticalTriggerThreshold &&
+          MarkLine({
+            silent: true,
+            lineStyle: {color: theme.red300},
+            data: [
+              {
+                yAxis: criticalTriggerThreshold,
+              },
+            ],
+          }),
       ].filter(Boolean)}
-      options={props.options}
+      options={{
+        visualMap: VisualMap({
+          outOfRange: {
+            color: '#4A4D7F',
+          },
+          pieces: [
+            warningTriggerThreshold && criticalTriggerThreshold
+              ? {
+                  min: warningTriggerThreshold,
+                  max: criticalTriggerThreshold,
+                  color: theme.yellow400,
+                }
+              : {},
+            criticalTriggerThreshold
+              ? {
+                  min: criticalTriggerThreshold,
+                  color: theme.red300,
+                }
+              : {},
+          ],
+          show: false,
+        }),
+      }}
     />
   );
 };

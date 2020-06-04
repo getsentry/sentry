@@ -15,8 +15,6 @@ import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
 import {IconTelescope, IconWarning, IconLink} from 'app/icons';
 import {SectionHeading} from 'app/components/charts/styles';
-import MarkLine from 'app/components/charts/components/markLine';
-import VisualMap from 'app/components/charts/components/visualMap';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -192,19 +190,6 @@ export default class DetailsBody extends React.Component<Props> {
   render() {
     const {params, incident, stats} = this.props;
 
-    const warningTrigger =
-      incident && incident.alertRule.triggers.find(trig => trig.label === 'warning');
-    const criticalTrigger =
-      incident && incident.alertRule.triggers.find(trig => trig.label === 'critical');
-    const warningTriggerThreshold =
-      warningTrigger &&
-      typeof warningTrigger.alertThreshold === 'number' &&
-      warningTrigger.alertThreshold;
-    const criticalTriggerThreshold =
-      criticalTrigger &&
-      typeof criticalTrigger.alertThreshold === 'number' &&
-      criticalTrigger.alertThreshold;
-
     return (
       <StyledPageContent>
         {incident &&
@@ -224,49 +209,11 @@ export default class DetailsBody extends React.Component<Props> {
               {this.renderChartHeader()}
               {incident && stats ? (
                 <Chart
+                  triggers={incident.alertRule.triggers}
                   aggregate={incident.alertRule.aggregate}
                   data={stats.eventStats.data}
                   detected={incident.dateDetected}
                   closed={incident.dateClosed}
-                  warningMarkLine={
-                    warningTriggerThreshold &&
-                    MarkLine({
-                      silent: true,
-                      lineStyle: {color: theme.yellow400},
-                      data: [{yAxis: warningTriggerThreshold}],
-                    })
-                  }
-                  criticalMarkLine={
-                    criticalTriggerThreshold &&
-                    MarkLine({
-                      silent: true,
-                      lineStyle: {color: theme.red300},
-                      data: [{yAxis: criticalTriggerThreshold}],
-                    })
-                  }
-                  options={{
-                    visualMap: VisualMap({
-                      outOfRange: {
-                        color: '#4A4D7F',
-                      },
-                      pieces: [
-                        warningTriggerThreshold && criticalTriggerThreshold
-                          ? {
-                              min: warningTriggerThreshold,
-                              max: criticalTriggerThreshold,
-                              color: theme.yellow400,
-                            }
-                          : {},
-                        criticalTriggerThreshold
-                          ? {
-                              min: criticalTriggerThreshold,
-                              color: theme.red300,
-                            }
-                          : {},
-                      ],
-                      show: false,
-                    }),
-                  }}
                 />
               ) : (
                 <Placeholder height="200px" />
