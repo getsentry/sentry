@@ -14,16 +14,16 @@ import getCookie from 'app/utils/getCookie';
 
 import ProviderItem from './providerItem';
 
-const providerPopularity = [
-  'Google',
-  'github',
-  'okta',
-  'active directory',
-  'saml2',
-  'onelogin',
-  'rippling',
-  'auth0',
-];
+const providerPopularity = {
+  google: 0,
+  github: 1,
+  okta: 2,
+  'active-directory': 3,
+  saml2: 4,
+  onelogin: 5,
+  rippling: 6,
+  auth0: 7,
+};
 
 class OrganizationAuthList extends React.Component {
   static contextTypes = {
@@ -45,21 +45,38 @@ class OrganizationAuthList extends React.Component {
     // and second, sort feature-flagged integrations last.
 
     // arr.reduce(callback( accumulator, currentValue[, index[, array]] )[, initialValue])
+
     const reducer = (acc, cur, i, arr) => {
+      console.log('currently on: ', cur);
       const isEnabled = features.includes(descopeFeatureName(cur.requiredFeature));
       if (isEnabled) {
         acc.unavailable.push(cur);
       } else {
         acc.available.push(cur);
       }
+      return acc;
     };
 
     const initialValue = {
       available: [],
       unavailable: [],
+      unrecognized: [],
     };
 
     const sortedProviders = (this.props.providerList || []).reduce(reducer, initialValue);
+
+    const compareByPopularity = (a, b) => {
+      if (!(a in providerPopularity)) {
+        return -1;
+      }
+      if (!(b in providerPopularity)) {
+        return 1;
+      }
+      return providerPopularity[a] < providerPopularity[b];
+    };
+
+    sortedProviders.available.sort(compareByPopularity);
+    sortedProviders.unavailable.sort(compareByPopularity);
 
     const providerList = sortedProviders.available.concat(sortedProviders.unavailable);
 
