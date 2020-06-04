@@ -1,11 +1,11 @@
 import React from 'react';
 import moment from 'moment';
+import {EChartOption} from 'echarts';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
-import {MarkLine} from 'app/components/charts/components/types';
 
 import closedSymbol from './closedSymbol';
 import detectedSymbol from './detectedSymbol';
@@ -69,8 +69,8 @@ type Props = {
   aggregate: string;
   detected: string;
   closed?: string;
-  warningMarkLine?: MarkLine;
-  criticalMarkLine?: MarkLine;
+  warningMarkLine?: EChartOption.SeriesLine['markLine'];
+  criticalMarkLine?: EChartOption.SeriesLine['markLine'];
   options?: Object;
 };
 
