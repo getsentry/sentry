@@ -49,7 +49,10 @@ class OrganizationAuthList extends React.Component {
       if (!(b.key in providerPopularity)) {
         return 1;
       }
-      return providerPopularity[a.key] > providerPopularity[b.key];
+      if (providerPopularity[a.key] === providerPopularity[b.key]) {
+        return 0;
+      }
+      return providerPopularity[a.key] > providerPopularity[b.key] ? 1 : -1;
     });
 
     const providerList = sortedByPopularity.sort((a, b) => {
