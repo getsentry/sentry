@@ -40,7 +40,8 @@ class GitHubClientMixin(ApiClient):
 
     def get_repositories(self):
         repositories = self.get("/installation/repositories", params={"per_page": 100})
-        return repositories["repositories"]
+        repos = repositories["repositories"]
+        return [repo for repo in repos if not repo.get("archived")]
 
     def search_repositories(self, query):
         return self.get("/search/repositories", params={"q": query})
