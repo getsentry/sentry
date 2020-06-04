@@ -4,7 +4,7 @@ import six
 
 from collections import defaultdict
 
-from django.db.models import Sum
+from django.db.models import Sum, Count
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -20,7 +20,6 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     User,
     UserEmail,
-    ReleaseFile,
 )
 from sentry.utils.compat import zip
 
@@ -297,6 +296,13 @@ class ReleaseSerializer(Serializer):
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 
+        if with_file_count:
+            file_counts_by_id = dict(
+                Release.objects.filter(id__in=[r.id for r in item_list])
+                .annotate(file_count=Count("releasefile"))
+                .values_list("id", "file_count")
+            )
+
         if with_health_data:
             health_data = get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
@@ -346,7 +352,7 @@ class ReleaseSerializer(Serializer):
             p.update(deploy_metadata_attrs[item])
 
             if with_file_count:
-                p["file_count"] = ReleaseFile.objects.filter(release=item).count()
+                p["file_count"] = file_counts_by_id[item.id]
 
             result[item] = p
         return result

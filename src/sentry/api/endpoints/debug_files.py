@@ -351,7 +351,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 
 class SourceMapsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
+    # doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project):
