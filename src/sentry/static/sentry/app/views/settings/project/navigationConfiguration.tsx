@@ -68,8 +68,8 @@ export default function getConfiguration({
           show: () => organization.features?.includes('artifacts-in-settings'),
         },
         {
-          path: `${pathPrefix}/android-mappings/`,
-          title: t('Android Mappings'),
+          path: `${pathPrefix}/proguard/`,
+          title: t('ProGuard'),
           show: () => organization.features?.includes('android-mappings'),
         },
         {
