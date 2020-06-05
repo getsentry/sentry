@@ -14,6 +14,8 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import Projects from 'app/utils/projects';
+import theme from 'app/utils/theme';
+import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -22,7 +24,7 @@ import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 import {use24Hours} from 'app/utils/dates';
 
-import {Incident, IncidentStats} from '../types';
+import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {TableLayout, TitleAndSparkLine} from './styles';
 import SparkLine from './sparkLine';
 
@@ -31,6 +33,7 @@ type Props = {
   projects: Parameters<React.ComponentProps<typeof Projects>['children']>[0]['projects'];
   projectsLoaded: boolean;
   orgId: string;
+  filteredStatus: 'open' | 'closed';
 } & AsyncComponent['props'];
 
 type State = {
@@ -50,9 +53,17 @@ class AlertListRow extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, incident} = this.props;
-    return [['stats', `/organizations/${orgId}/incidents/${incident.identifier}/stats/`]];
+    const {orgId, incident, filteredStatus} = this.props;
+
+    if (filteredStatus === 'open') {
+      return [
+        ['stats', `/organizations/${orgId}/incidents/${incident.identifier}/stats/`],
+      ];
+    }
+
+    return [];
   }
+
   /**
    * Memoized function to find a project from a list of projects
    */
@@ -68,64 +79,93 @@ class AlertListRow extends AsyncComponent<Props, State> {
     return this.renderBody();
   }
 
+  renderTimeSince(date: string) {
+    const dateFormat = use24Hours() ? 'MMM D, YYYY HH:mm' : 'lll';
+
+    return (
+      <CreatedResolvedTime>
+        <TimeSince date={date} />
+        <br />
+        <AlertStartedLight>{moment(new Date(date)).format(dateFormat)}</AlertStartedLight>
+      </CreatedResolvedTime>
+    );
+  }
+
+  renderStatusIndicator() {
+    const {status} = this.props.incident;
+    const isResolved = status === IncidentStatus.CLOSED;
+    const isWarning = status === IncidentStatus.WARNING;
+
+    const color = isResolved ? theme.gray400 : isWarning ? theme.orange300 : theme.red300;
+    const text = isResolved ? t('Resolved') : isWarning ? t('Warning') : t('Critical');
+
+    return (
+      <Tooltip title={`${t('Status: ')}${text}`}>
+        <StatusIndicator color={color} />
+      </Tooltip>
+    );
+  }
+
   renderBody() {
-    const {incident, orgId, projectsLoaded, projects} = this.props;
+    const {incident, orgId, projectsLoaded, projects, filteredStatus} = this.props;
     const {loading, error, stats} = this.state;
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
     const slug = incident.projects[0];
-    const dateFormat = use24Hours() ? 'MMM D, YYYY HH:mm' : 'lll';
+    const lastEventStatsValue =
+      stats?.eventStats.data[stats.eventStats.data.length - 1]?.[1]?.[0]?.count || 0;
 
     return (
       <ErrorBoundary>
         <IncidentPanelItem>
-          <TableLayout>
-            <TitleAndSparkLine>
+          <TableLayout status={filteredStatus}>
+            <TitleAndSparkLine status={filteredStatus}>
               <Title>
+                {this.renderStatusIndicator()}
                 <TitleLink to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
                   #{incident.id}
                 </TitleLink>
                 {incident.title}
               </Title>
 
-              <SparkLine
-                error={error && <ErrorLoadingStatsIcon />}
-                eventStats={stats?.eventStats}
-              />
+              {filteredStatus === 'open' && (
+                <SparkLine
+                  error={error && <ErrorLoadingStatsIcon />}
+                  eventStats={stats?.eventStats}
+                />
+              )}
             </TitleAndSparkLine>
 
-            <NumericColumn>
-              {!loading && !error ? (
-                <React.Fragment>
-                  <span>
-                    {this.metricPreset?.name ?? t('Custom metric')}
-                    {': '}
-                  </span>
-                  <Count
-                    value={
-                      stats?.eventStats.data[stats.eventStats.data.length - 1][1][0]
-                        ?.count || 0
-                    }
-                  />
-                </React.Fragment>
-              ) : (
-                <NumericPlaceholder error={error && <ErrorLoadingStatsIcon />} />
-              )}
-            </NumericColumn>
+            {filteredStatus === 'open' && (
+              <NumericColumn>
+                {!loading && !error ? (
+                  <React.Fragment>
+                    <MetricName>
+                      {this.metricPreset?.name ?? t('Custom metric')}
+                      {':'}
+                    </MetricName>
+                    <Count value={lastEventStatsValue} />
+                  </React.Fragment>
+                ) : (
+                  <NumericPlaceholder error={error && <ErrorLoadingStatsIcon />} />
+                )}
+              </NumericColumn>
+            )}
 
             <ProjectBadge
               avatarSize={18}
               project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
             />
 
-            <TriggeredTime>
-              <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />{' '}
-              {t('ago')}
-              <br />
-              <AlertStartedLight>{started.format(dateFormat)}</AlertStartedLight>
-            </TriggeredTime>
+            {this.renderTimeSince(incident.dateStarted)}
+
+            {filteredStatus === 'closed' && (
+              <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
+            )}
+
+            {filteredStatus === 'closed' && this.renderTimeSince(incident.dateClosed)}
           </TableLayout>
         </IncidentPanelItem>
       </ErrorBoundary>
@@ -141,7 +181,8 @@ function ErrorLoadingStatsIcon() {
   );
 }
 
-const TriggeredTime = styled('div')`
+const CreatedResolvedTime = styled('div')`
+  ${overflowEllipsis}
   line-height: 1.4;
 `;
 
@@ -153,17 +194,31 @@ const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
 
+const StatusIndicator = styled('div')<{color: string}>`
+  width: 10px;
+  height: 12px;
+  background: ${p => p.color};
+  display: inline-block;
+  border-top-right-radius: 40%;
+  border-bottom-right-radius: 40%;
+  margin-bottom: -1px;
+`;
+
 const Title = styled('span')`
   ${overflowEllipsis}
 `;
 
+const MetricName = styled('span')`
+  margin-right: ${space(0.5)};
+`;
+
 const TitleLink = styled(Link)`
-  margin-right: ${space(1)};
+  padding: 0 ${space(1)};
 `;
 
 const IncidentPanelItem = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(1.5)} ${space(2)} ${space(1.5)} 0;
 `;
 
 const NumericPlaceholder = styled(Placeholder)<{error?: React.ReactNode}>`
