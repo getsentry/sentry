@@ -24,7 +24,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import capture_exception
 
-from .base import ExportError, ExportQueryType, SNUBA_MAX_RESULTS
+from .base import ExportError, ExportQueryType, EXPORTED_ROWS_LIMIT, SNUBA_MAX_RESULTS
 from .models import ExportedData, ExportedDataBlob
 from .utils import convert_to_utf8, handle_snuba_errors
 from .processors.discover import DiscoverProcessor
@@ -42,27 +42,34 @@ logger = logging.getLogger(__name__)
 )
 def assemble_download(
     data_export_id,
-    export_limit=1000000,
+    export_limit=EXPORTED_ROWS_LIMIT,
     batch_size=SNUBA_MAX_RESULTS,
     offset=0,
     bytes_written=0,
     environment_id=None,
     **kwargs
 ):
+    first_page = offset == 0
+
     try:
-        if offset == 0:
+        if first_page:
             logger.info("dataexport.start", extra={"data_export_id": data_export_id})
         data_export = ExportedData.objects.get(id=data_export_id)
-        if offset == 0:
+        if first_page:
             metrics.incr("dataexport.start", tags={"success": True}, sample_rate=1.0)
         logger.info("dataexport.run", extra={"data_export_id": data_export_id, "offset": offset})
     except ExportedData.DoesNotExist as error:
-        if offset == 0:
+        if first_page:
             metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
         logger.exception(error)
         return
 
     try:
+        if export_limit is None:
+            export_limit = EXPORTED_ROWS_LIMIT
+        else:
+            export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
+
         # if there is an export limit, the last batch should only return up to the export limit
         if export_limit is not None:
             batch_size = min(batch_size, max(export_limit - offset, 0))
@@ -76,7 +83,7 @@ def assemble_download(
 
         with tempfile.TemporaryFile() as tf:
             writer = csv.DictWriter(tf, headers, extrasaction="ignore")
-            if offset == 0:
+            if first_page:
                 writer.writeheader()
             writer.writerows(rows)
             tf.seek(0)
