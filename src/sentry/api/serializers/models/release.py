@@ -4,7 +4,7 @@ import six
 
 from collections import defaultdict
 
-from django.db.models import Sum, Count
+from django.db.models import Sum
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -255,7 +255,6 @@ class ReleaseSerializer(Serializer):
         project = kwargs.get("project")
         environment = kwargs.get("environment")
         with_health_data = kwargs.get("with_health_data", False)
-        with_file_count = kwargs.get("with_file_count", False)
         health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
         summary_stats_period = kwargs.get("summary_stats_period")
@@ -295,13 +294,6 @@ class ReleaseSerializer(Serializer):
         platforms_by_project = defaultdict(list)
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
-
-        if with_file_count:
-            file_counts_by_id = dict(
-                Release.objects.filter(id__in=[r.id for r in item_list])
-                .annotate(file_count=Count("releasefile"))
-                .values_list("id", "file_count")
-            )
 
         if with_health_data:
             health_data = get_release_health_data_overview(
@@ -350,9 +342,6 @@ class ReleaseSerializer(Serializer):
 
             p.update(release_metadata_attrs[item])
             p.update(deploy_metadata_attrs[item])
-
-            if with_file_count:
-                p["file_count"] = file_counts_by_id[item.id]
 
             result[item] = p
         return result
@@ -409,6 +398,5 @@ class ReleaseSerializer(Serializer):
             "projects": [expose_project(p) for p in attrs.get("projects", [])],
             "firstEvent": attrs.get("first_seen"),
             "lastEvent": attrs.get("last_seen"),
-            "fileCount": attrs.get("file_count"),
         }
         return d

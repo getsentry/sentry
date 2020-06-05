@@ -356,16 +356,16 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         """
-        List a Project's Source Map Groups
+        List a Project's Source Map Archives
         ````````````````````````````````````
 
-        Retrieve a list of source map groups (releases, later bundles) for a given project.
+        Retrieve a list of source map archives (releases, later bundles) for a given project.
 
         :pparam string organization_slug: the slug of the organization the
                                           source map group belongs to.
         :pparam string project_slug: the slug of the project to list the
-                                     source map groups of.
-        :qparam string query: If set, this parameter is used to locate source map groups with.
+                                     source map archives of.
+        :qparam string query: If set, this parameter is used to locate source map archives with.
         :auth: required
         """
         query = request.GET.get("query")
@@ -374,6 +374,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
             queryset = (
                 Release.objects.filter(projects=project, organization_id=project.organization_id)
                 .annotate(file_count=Count("releasefile"))
+                .values("version", "date_added", "file_count")
                 .filter(file_count__gt=0)
             )
         except Release.DoesNotExist:
@@ -388,11 +389,21 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
             queryset = queryset.filter(query_q)
 
+        def expose_release(release):
+            return {
+                "type": "release",
+                "name": release["version"],
+                "date": release["date_added"],
+                "fileCount": release["file_count"],
+            }
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
             default_per_page=20,
-            on_results=lambda r: serialize(r, request.user, with_file_count=True),
+            on_results=lambda releases: serialize(
+                [expose_release(r) for r in releases], request.user
+            ),
         )
