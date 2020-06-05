@@ -90,8 +90,15 @@ class DetailedIncidentSerializer(IncidentSerializer):
 
     def _build_discover_query(self, incident):
         query = incident.alert_rule.snuba_query.query
-        if QueryDatasets(incident.alert_rule.snuba_query.dataset) == QueryDatasets.EVENTS:
+        dataset = QueryDatasets(incident.alert_rule.snuba_query.dataset)
+        condition = None
+
+        if dataset == QueryDatasets.EVENTS:
             condition = "event.type:error"
+        elif dataset == QueryDatasets.TRANSACTIONS:
+            condition = "event.type:transaction"
+
+        if condition:
             query = "{} {}".format(condition, query) if query else condition
 
         return query

@@ -415,11 +415,21 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
-        path="android-mappings/"
-        name={t('Android Mappings')}
+        path="proguard/"
+        name={t('ProGuard Mappings')}
         componentPromise={() =>
           import(
-            /* webpackChunkName: "ProjectAndroidMappings" */ 'app/views/settings/projectAndroidMappings'
+            /* webpackChunkName: "ProjectProguard" */ 'app/views/settings/projectProguard'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
+        path="source-maps/"
+        name={t('Source Maps')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectSourceMaps" */ 'app/views/settings/projectSourceMaps'
           )
         }
         component={errorHandler(LazyLoad)}

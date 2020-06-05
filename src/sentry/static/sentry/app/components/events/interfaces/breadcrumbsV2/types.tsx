@@ -99,8 +99,10 @@ export type Breadcrumb =
   | BreadcrumbTypeHTTP
   | BreadcrumbTypeDefault;
 
-export type BreadcrumbDetails = {
+type BreadcrumbDetails = {
   color?: Color | React.CSSProperties['color'];
   icon?: React.ComponentType<IconProps>;
   description: string;
 };
+
+export type BreadcrumbsWithDetails = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;

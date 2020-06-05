@@ -75,7 +75,7 @@ describe('MetricField', function() {
     selectByLabel(wrapper, 'error_rate()', {selector: 'QueryField'});
 
     expect(wrapper.find('FieldHelp Button[isSelected=true]').text()).toEqual(
-      'Error rate'
+      'Failure rate'
     );
 
     selectByLabel(wrapper, 'p95()', {selector: 'QueryField'});
@@ -90,7 +90,7 @@ describe('MetricField', function() {
       </Form>
     );
 
-    wrapper.find('FieldHelp button[aria-label="Error rate"]').simulate('click');
+    wrapper.find('FieldHelp button[aria-label="Failure rate"]').simulate('click');
 
     expect(wrapper.find('QueryField SingleValue SingleValue').text()).toEqual(
       'error_rate()'

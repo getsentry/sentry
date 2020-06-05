@@ -11,7 +11,7 @@ type Props = {
   level?: BreadcrumbLevelType;
 };
 
-const Level = ({level}: Props) => {
+const Level = React.memo(({level}: Props) => {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return <StyledTag color="red500">{level}</StyledTag>;
@@ -24,7 +24,7 @@ const Level = ({level}: Props) => {
     default:
       return <Tag>{level || t('undefined')}</Tag>;
   }
-};
+});
 
 export default Level;
 

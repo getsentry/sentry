@@ -2,20 +2,13 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
-import SentryTypes from 'app/sentryTypes';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 
-import ProjectAndroidMappings from './projectAndroidMappings';
+import ProjectSourceMaps from './projectSourceMaps';
 
-class ProjectAndroidMappingsContainer extends React.Component<
-  ProjectAndroidMappings['props']
-> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-  };
-
+class ProjectSourceMapsContainer extends React.Component<ProjectSourceMaps['props']> {
   renderNoAccess() {
     return (
       <PageContent>
@@ -29,14 +22,14 @@ class ProjectAndroidMappingsContainer extends React.Component<
 
     return (
       <Feature
-        features={['android-mappings']}
+        features={['artifacts-in-settings']}
         organization={organization}
         renderDisabled={this.renderNoAccess}
       >
-        <ProjectAndroidMappings {...this.props} />
+        <ProjectSourceMaps {...this.props} />
       </Feature>
     );
   }
 }
 
-export default withOrganization(ProjectAndroidMappingsContainer);
+export default withOrganization(ProjectSourceMapsContainer);

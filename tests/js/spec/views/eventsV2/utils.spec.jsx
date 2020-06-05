@@ -232,9 +232,13 @@ describe('getExpandedResults()', function() {
         {field: 'latest_event()'},
         {field: 'title'},
         {field: 'avg(transaction.duration)'}, // expect this to be dropped
+        {field: 'p50()'},
         {field: 'p75()'},
         {field: 'p95()'},
         {field: 'p99()'},
+        {field: 'p100()'},
+        {field: 'p9001()'}, // it's over 9000
+        {field: 'foobar()'}, // unknown function with no parameter
         {field: 'custom_tag'},
         {field: 'title'}, // not expected to be dropped
         {field: 'unique_count(id)'},
@@ -254,10 +258,16 @@ describe('getExpandedResults()', function() {
     ]);
   });
 
-  it('applies provided conditions', () => {
+  it('applies provided additional conditions', () => {
     const view = new EventView(state);
     let result = getExpandedResults(view, {extra: 'condition'}, {});
     expect(result.query).toEqual('event.type:error extra:condition');
+
+    // handles user tag values.
+    result = getExpandedResults(view, {user: 'id:12735'}, {});
+    expect(result.query).toEqual('event.type:error user.id:12735');
+    result = getExpandedResults(view, {user: 'name:uhoh'}, {});
+    expect(result.query).toEqual('event.type:error user.name:uhoh');
 
     // quotes value
     result = getExpandedResults(view, {extra: 'has space'}, {});
@@ -339,6 +349,44 @@ describe('getExpandedResults()', function() {
     );
     expect(result.project).toEqual([42]);
     expect(result.environment).toEqual(['staging']);
+  });
+
+  it('applies the normalized user tag', function() {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'user'}, {field: 'title'}],
+    });
+    let event = {
+      title: 'something bad',
+      // user context should be ignored.
+      user: {
+        id: 1234,
+        username: 'uhoh',
+      },
+      tags: [{key: 'user', value: 'id:1234'}],
+    };
+    let result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('event.type:error user.id:1234 title:"something bad"');
+
+    event = {
+      title: 'something bad',
+      tags: [{key: 'user', value: '1234'}],
+    };
+    result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('event.type:error user:1234 title:"something bad"');
+  });
+
+  it('applies the user field in a table row', function() {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'user'}, {field: 'title'}],
+    });
+    const event = {
+      title: 'something bad',
+      user: 'id:1234',
+    };
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('event.type:error user.id:1234 title:"something bad"');
   });
 
   it('normalizes the timestamp field', () => {

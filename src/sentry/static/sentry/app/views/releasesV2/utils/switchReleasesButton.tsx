@@ -2,6 +2,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import {IconReleases} from 'app/icons';
 
 import {switchReleasesVersion} from './index';
 
@@ -15,11 +16,23 @@ const SwitchReleasesButton = ({orgId, version}: Props) => {
     switchReleasesVersion(version, orgId);
   };
 
+  if (version === '2') {
+    return (
+      <Button
+        priority="primary"
+        size="small"
+        icon={<IconReleases size="sm" />}
+        onClick={switchReleases}
+      >
+        {t('Go to New Releases')}
+      </Button>
+    );
+  }
+
   return (
     <div>
       <Button priority="link" size="small" onClick={switchReleases}>
-        {version === '1' && t('Go to Legacy Releases')}
-        {version === '2' && t('Go to New Releases')}
+        {t('Go to Legacy Releases')}
       </Button>
     </div>
   );

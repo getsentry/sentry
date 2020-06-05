@@ -30,10 +30,13 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
 class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     feature_name = "organizations:discover"
 
+    def setUp(self):
+        super(DiscoverSavedQueriesTest, self).setUp()
+        self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+
     def test_get(self):
-        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
         with self.feature(self.feature_name):
-            response = self.client.get(url)
+            response = self.client.get(self.url)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -47,24 +50,22 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["createdBy"]["username"] == self.user.username
 
     def test_get_version_filter(self):
-        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
         with self.feature(self.feature_name):
-            response = self.client.get(url, format="json", data={"query": "version:1"})
+            response = self.client.get(self.url, format="json", data={"query": "version:1"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
         with self.feature(self.feature_name):
-            response = self.client.get(url, format="json", data={"query": "version:2"})
+            response = self.client.get(self.url, format="json", data={"query": "version:2"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
     def test_get_name_filter(self):
-        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
         with self.feature(self.feature_name):
-            response = self.client.get(url, format="json", data={"query": "Test"})
+            response = self.client.get(self.url, format="json", data={"query": "Test"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -72,14 +73,14 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
         with self.feature(self.feature_name):
             # Also available as the name: filter.
-            response = self.client.get(url, format="json", data={"query": "name:Test"})
+            response = self.client.get(self.url, format="json", data={"query": "name:Test"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
         with self.feature(self.feature_name):
-            response = self.client.get(url, format="json", data={"query": "name:Nope"})
+            response = self.client.get(self.url, format="json", data={"query": "name:Nope"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
@@ -96,16 +97,14 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             )
             model.set_projects(self.project_ids)
 
-        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
         with self.feature(self.feature_name):
-            response = self.client.get(url, data={"per_page": 1})
+            response = self.client.get(self.url, data={"per_page": 1})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
 
-        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
         with self.feature(self.feature_name):
             # The all parameter ignores pagination and returns all values.
-            response = self.client.get(url, data={"per_page": 1, "all": 1})
+            response = self.client.get(self.url, data={"per_page": 1, "all": 1})
         assert response.status_code == 200, response.content
         assert len(response.data) == 11
 
@@ -122,7 +121,6 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         )
         model.set_projects(self.project_ids)
 
-        url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
         sort_options = {
             "dateCreated": True,
             "-dateCreated": False,
@@ -133,7 +131,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         }
         for sorting, forward_sort in sort_options.items():
             with self.feature(self.feature_name):
-                response = self.client.get(url, data={"sortBy": sorting})
+                response = self.client.get(self.url, data={"sortBy": sorting})
             assert response.status_code == 200
 
             values = [row[sorting.strip("-")] for row in response.data]
@@ -141,11 +139,46 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
                 values = list(reversed(values))
             assert list(sorted(values)) == values
 
+    def test_get_sortby_myqueries(self):
+        uhoh_user = self.create_user(username="uhoh")
+        self.create_member(organization=self.org, user=uhoh_user)
+
+        whoops_user = self.create_user(username="whoops")
+        self.create_member(organization=self.org, user=whoops_user)
+
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=uhoh_user,
+            name="a query for uhoh",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+        model.set_projects(self.project_ids)
+
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=whoops_user,
+            name="a query for whoops",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"sortBy": "myqueries"})
+        assert response.status_code == 200, response.content
+        values = [int(item["createdBy"]["id"]) for item in response.data]
+        assert values == [self.user.id, uhoh_user.id, whoops_user.id]
+
     def test_post(self):
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
-                url,
+                self.url,
                 {
                     "name": "New query",
                     "projects": self.project_ids,
@@ -166,9 +199,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
     def test_post_invalid_projects(self):
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
-                url,
+                self.url,
                 {
                     "name": "New query",
                     "projects": self.project_ids_without_access,
@@ -184,9 +216,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
     def test_post_all_projects(self):
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
-                url,
+                self.url,
                 {
                     "name": "All projects",
                     "projects": [-1],
@@ -202,9 +233,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
     def test_post_cannot_use_version_two_fields(self):
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
-                url,
+                self.url,
                 {
                     "name": "New query",
                     "projects": self.project_ids,
@@ -224,11 +254,14 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
     feature_name = "organizations:discover-query"
 
+    def setUp(self):
+        super(DiscoverSavedQueriesVersion2Test, self).setUp()
+        self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+
     def test_post_invalid_conditions(self):
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
-                url,
+                self.url,
                 {
                     "name": "New query",
                     "projects": self.project_ids,
@@ -243,9 +276,8 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
 
     def test_post_require_selected_fields(self):
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
-                url,
+                self.url,
                 {
                     "name": "New query",
                     "projects": self.project_ids,
@@ -259,9 +291,8 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
 
     def test_post_success(self):
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
-                url,
+                self.url,
                 {
                     "name": "new query",
                     "projects": self.project_ids,
@@ -286,9 +317,8 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
 
     def test_post_all_projects(self):
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
-                url,
+                self.url,
                 {
                     "name": "New query",
                     "projects": [-1],
@@ -319,9 +349,8 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
 
     def test_save_invalid_query(self):
         with self.feature(self.feature_name):
-            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
             response = self.client.post(
-                url,
+                self.url,
                 {
                     "name": "Bad query",
                     "projects": [-1],

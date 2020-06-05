@@ -43,6 +43,7 @@ from django.test import override_settings, TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from exam import before, fixture, Exam
+from concurrent.futures import ThreadPoolExecutor
 from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -771,19 +772,27 @@ class SnubaTestCase(BaseTestCase):
     tests that require snuba.
     """
 
+    init_endpoints = (
+        "/tests/events/drop",
+        "/tests/groupedmessage/drop",
+        "/tests/transactions/drop",
+        "/tests/sessions/drop",
+    )
+
     def setUp(self):
         super(SnubaTestCase, self).setUp()
         self.init_snuba()
 
+    def call_snuba(self, endpoint):
+        return requests.post(settings.SENTRY_SNUBA + endpoint)
+
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/events/drop").status_code == 200
-        assert (
-            requests.post(settings.SENTRY_SNUBA + "/tests/groupedmessage/drop").status_code == 200
+        assert all(
+            response.status_code == 200
+            for response in ThreadPoolExecutor(4).map(self.call_snuba, self.init_endpoints)
         )
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/sessions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):

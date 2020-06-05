@@ -63,8 +63,13 @@ export default function getConfiguration({
           title: t('Debug Files'),
         },
         {
-          path: `${pathPrefix}/android-mappings/`,
-          title: t('Android Mappings'),
+          path: `${pathPrefix}/source-maps/`,
+          title: t('Source Maps'),
+          show: () => organization.features?.includes('artifacts-in-settings'),
+        },
+        {
+          path: `${pathPrefix}/proguard/`,
+          title: t('ProGuard'),
           show: () => organization.features?.includes('android-mappings'),
         },
         {
