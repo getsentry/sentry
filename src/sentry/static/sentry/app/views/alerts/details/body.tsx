@@ -20,15 +20,8 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Panel} from 'app/components/panels';
 import Button from 'app/components/button';
-import {
-  AlertRuleThresholdType,
-  Trigger,
-  Dataset,
-} from 'app/views/settings/incidentRules/types';
-import {
-  PRESET_AGGREGATES,
-  makeDefaultCta,
-} from 'app/views/settings/incidentRules/presets';
+import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
+import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
 
 import Activity from './activity';
 import Chart from './chart';
@@ -39,7 +32,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import {getIncidentDiscoverUrl} from '../utils';
+import {getIncidentDiscoverUrl, getIncidentMetricPreset} from '../utils';
 
 type Props = {
   incident?: Incident;
@@ -48,13 +41,12 @@ type Props = {
 
 export default class DetailsBody extends React.Component<Props> {
   get metricPreset() {
-    const alertRule = this.props.incident?.alertRule;
-    const aggregate = alertRule?.aggregate;
-    const dataset = alertRule?.dataset ?? Dataset.ERRORS;
+    const {incident} = this.props;
+    if (!incident) {
+      return undefined;
+    }
 
-    return PRESET_AGGREGATES.find(
-      p => p.validDataset.includes(dataset) && p.match.test(aggregate ?? '')
-    );
+    return getIncidentMetricPreset(incident);
   }
 
   /**

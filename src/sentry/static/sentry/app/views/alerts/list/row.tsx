@@ -20,11 +20,10 @@ import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
-import {Dataset} from 'app/views/settings/incidentRules/types';
 import {use24Hours} from 'app/utils/dates';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {getIncidentMetricPreset} from '../utils';
 import {TableLayout, TitleAndSparkLine} from './styles';
 import SparkLine from './sparkLine';
 
@@ -41,15 +40,13 @@ type State = {
 } & AsyncComponent['state'];
 
 class AlertListRow extends AsyncComponent<Props, State> {
-  // TODO: share with detail/body.tsx
   get metricPreset() {
-    const alertRule = this.props.incident?.alertRule;
-    const aggregate = alertRule?.aggregate;
-    const dataset = alertRule?.dataset ?? Dataset.ERRORS;
+    const {incident} = this.props;
+    if (!incident) {
+      return undefined;
+    }
 
-    return PRESET_AGGREGATES.find(
-      p => p.validDataset.includes(dataset) && p.match.test(aggregate ?? '')
-    );
+    return getIncidentMetricPreset(incident);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -86,7 +83,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
       <CreatedResolvedTime>
         <TimeSince date={date} />
         <br />
-        <AlertStartedLight>{moment(new Date(date)).format(dateFormat)}</AlertStartedLight>
+        <FullDateLight>{moment(new Date(date)).format(dateFormat)}</FullDateLight>
       </CreatedResolvedTime>
     );
   }
@@ -124,9 +121,11 @@ class AlertListRow extends AsyncComponent<Props, State> {
             <TitleAndSparkLine status={filteredStatus}>
               <Title>
                 {this.renderStatusIndicator()}
-                <TitleLink to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
+                <IncidentLink
+                  to={`/organizations/${orgId}/alerts/${incident.identifier}/`}
+                >
                   #{incident.id}
-                </TitleLink>
+                </IncidentLink>
                 {incident.title}
               </Title>
 
@@ -186,7 +185,7 @@ const CreatedResolvedTime = styled('div')`
   line-height: 1.4;
 `;
 
-const AlertStartedLight = styled('span')`
+const FullDateLight = styled('span')`
   color: ${p => p.theme.gray500};
 `;
 
@@ -212,7 +211,7 @@ const MetricName = styled('span')`
   margin-right: ${space(0.5)};
 `;
 
-const TitleLink = styled(Link)`
+const IncidentLink = styled(Link)`
   padding: 0 ${space(1)};
 `;
 

@@ -4,6 +4,7 @@ import {getAggregateAlias} from 'app/utils/discover/fields';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {Dataset} from 'app/views/settings/incidentRules/types';
+import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
 
 import {Incident, IncidentStats, IncidentStatus} from './types';
 
@@ -66,6 +67,16 @@ export function isOpen(incident: Incident): boolean {
     default:
       return true;
   }
+}
+
+export function getIncidentMetricPreset(incident: Incident) {
+  const alertRule = incident?.alertRule;
+  const aggregate = alertRule?.aggregate ?? '';
+  const dataset = alertRule?.dataset ?? Dataset.ERRORS;
+
+  return PRESET_AGGREGATES.find(
+    p => p.validDataset.includes(dataset) && p.match.test(aggregate)
+  );
 }
 
 /**
