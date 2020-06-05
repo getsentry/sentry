@@ -8,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 
 from .client import SlackClient
 from .utils import build_group_attachment, get_channel_id, strip_channel_name
@@ -44,7 +44,22 @@ class SlackNotifyServiceForm(forms.Form):
         workspace = cleaned_data.get("workspace")
         channel = cleaned_data.get("channel", "")
 
-        channel_prefix, channel_id, timed_out = self.channel_transformer(workspace, channel)
+        try:
+            channel_prefix, channel_id, timed_out = self.channel_transformer(workspace, channel)
+        except DuplicateDisplayNameError as e:
+            integration = Integration.objects.get(id=workspace)
+            domain = integration.metadata["domain_name"]
+
+            params = {"channel": e.message, "domain": domain}
+
+            raise forms.ValidationError(
+                _(
+                    'Multiple users were found with display name "%(channel)s". Please use your username, found at %(domain)s/account/settings.',
+                ),
+                code="invalid",
+                params=params,
+            )
+
         channel = strip_channel_name(channel)
 
         if channel_id is None and timed_out:
