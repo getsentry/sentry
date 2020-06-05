@@ -15,7 +15,6 @@ from .page_objects.transaction_summary import TransactionSummaryPage
 
 FEATURE_NAMES = (
     "organizations:discover-basic",
-    "organizations:transaction-events",
     "organizations:performance-view",
 )
 
