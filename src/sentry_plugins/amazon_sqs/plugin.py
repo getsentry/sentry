@@ -144,6 +144,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                         "organization_id": event.project.organization_id,
                     },
                 )
+
                 metrics.incr(
                     metrics_name,
                     tags={
