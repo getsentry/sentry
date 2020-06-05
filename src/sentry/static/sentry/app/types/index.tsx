@@ -1009,6 +1009,7 @@ export type NewQuery = {
   tags?: Readonly<string[]>;
   yAxis?: string;
   display?: string;
+  showTags?: boolean;
   createdBy?: User;
 };
 

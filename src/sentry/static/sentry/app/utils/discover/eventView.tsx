@@ -392,6 +392,7 @@ class EventView {
       'project',
       'environment',
       'yAxis',
+      'showTags',
       'display',
     ];
 
@@ -442,6 +443,7 @@ class EventView {
       range: this.statsPeriod,
       environment: this.environment,
       yAxis: this.yAxis,
+      showTags: this.showTags,
       display: this.display,
     };
 
@@ -483,6 +485,7 @@ class EventView {
       tag: undefined,
       query: undefined,
       yAxis: undefined,
+      showTags: undefined,
       display: undefined,
     };
 
