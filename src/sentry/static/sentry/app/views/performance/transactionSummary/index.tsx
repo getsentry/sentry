@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {isAggregateField} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -177,6 +178,10 @@ function generateSummaryEventView(
   const conditions = Object.assign(tokenizeSearch(query), {
     'event.type': ['transaction'],
     transaction: [transactionName],
+  });
+
+  Object.keys(conditions).forEach(field => {
+    if (isAggregateField(field)) delete conditions[field];
   });
 
   // Handle duration filters from the latency chart
