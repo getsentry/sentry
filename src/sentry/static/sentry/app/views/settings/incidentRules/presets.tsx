@@ -76,7 +76,7 @@ export const PRESET_AGGREGATES: Preset[] = [
   },
   {
     name: t('Latency'),
-    match: /^(p[0-9]{2,3}|percentile\(transaction\.duration,[^)]+\))/,
+    match: /^(p[0-9]{2,3}|percentile\(transaction\.duration,[^)]+\)|avg\([^)]+\))/,
     validDataset: [Dataset.TRANSACTIONS],
     default: 'percentile(transaction.duration, 0.95)',
     /**

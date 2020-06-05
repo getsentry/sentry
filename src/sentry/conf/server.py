@@ -841,6 +841,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable incidents performance feature
+    "organizations:incidents-performance": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -1509,7 +1511,7 @@ SENTRY_DEVSERVICES = {
         "command": ["run"],
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
     },
-    "reverse_proxy": {
+    "proxy": {
         "image": "nginx:1.16.1",
         "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
         "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},

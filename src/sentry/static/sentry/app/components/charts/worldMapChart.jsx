@@ -6,7 +6,7 @@ import theme from 'app/utils/theme';
 
 import BaseChart from './baseChart';
 import MapSeries from './series/mapSeries';
-import VisualMap from './visualMap';
+import VisualMap from './components/visualMap';
 
 export default class WorldMapChart extends React.Component {
   static propTypes = {

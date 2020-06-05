@@ -922,8 +922,8 @@ export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;
-  platform: string;
-  platforms: string[];
+  platform: PlatformKey;
+  platforms: PlatformKey[];
   newGroups: number;
   healthData?: Health;
 };
