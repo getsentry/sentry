@@ -133,10 +133,13 @@ class DebugFilesEndpoint(ProjectEndpoint):
         else:
             q = Q()
 
+        file_format_q = Q()
         for file_format in file_formats:
             known_file_format = DIF_MIMETYPES.get(file_format)
             if known_file_format:
-                q |= Q(file__headers__icontains=known_file_format)
+                file_format_q |= Q(file__headers__icontains=known_file_format)
+
+        q &= file_format_q
 
         queryset = ProjectDebugFile.objects.filter(q, project=project).select_related("file")
 

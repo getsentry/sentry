@@ -802,6 +802,8 @@ SENTRY_FEATURES = {
     "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
+    # Move release artifacts to settings.
+    "organizations:artifacts-in-settings": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -819,12 +821,10 @@ SENTRY_FEATURES = {
     "organizations:custom-symbol-sources": True,
     # Enable the events stream interface.
     "organizations:events": False,
-    # Enable events v2 instead of the events stream
-    "organizations:events-v2": False,
     # Enable discover 2 basic functions
-    "organizations:discover-basic": False,
+    "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
-    "organizations:discover-query": False,
+    "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
     # Enable multi project selection
@@ -841,6 +841,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable incidents performance feature
+    "organizations:incidents-performance": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -1509,7 +1511,7 @@ SENTRY_DEVSERVICES = {
         "command": ["run"],
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
     },
-    "reverse_proxy": {
+    "proxy": {
         "image": "nginx:1.16.1",
         "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
         "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},

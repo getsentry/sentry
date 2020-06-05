@@ -9,10 +9,9 @@ from enum import Enum
 from datetime import timedelta
 
 import six
-from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
-from django.utils.http import urlencode
+from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventstore, eventtypes, tagstore
@@ -318,9 +317,13 @@ class Group(Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
-        url = reverse("sentry-organization-issue", args=[self.organization.slug, self.id])
-        if params:
-            url = url + "?" + urlencode(params)
+        # Built manually in preference to django.core.urlresolvers.reverse,
+        # because reverse has a measured performance impact.
+        url = u"organizations/{org}/issues/{id}/{params}".format(
+            org=urlquote(self.organization.slug),
+            id=self.id,
+            params="?" + urlencode(params) if params else "",
+        )
         return absolute_uri(url)
 
     @property

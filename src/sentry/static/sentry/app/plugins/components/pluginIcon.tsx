@@ -41,6 +41,7 @@ import twilio from 'app/../images/logos/logo-twilio.svg';
 import visualstudio from 'app/../images/logos/logo-visualstudio.svg';
 import vsts from 'app/../images/logos/logo-azure.svg';
 import youtrack from 'app/../images/logos/logo-youtrack.svg';
+import victorops from 'app/../images/logos/logo-victorops.svg';
 import zulip from 'app/../images/logos/logo-zulip.svg';
 
 // Map of plugin id -> logo filename
@@ -59,6 +60,7 @@ export const ICON_PATHS = {
   asana,
   asayer,
   bitbucket,
+  bitbucket_release_pipe: bitbucket,
   bitbucket_server: bitbucketserver,
   campfire,
   clickup,
@@ -95,6 +97,7 @@ export const ICON_PATHS = {
   visualstudio,
   vsts,
   youtrack,
+  victorops,
   zulip,
 };
 

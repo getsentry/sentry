@@ -1,10 +1,11 @@
 import React from 'react';
 
-import {t} from 'app/locale';
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
-import {IntegrationProvider, Integration, Organization} from 'app/types';
+import {t} from 'app/locale';
+import {Integration, IntegrationProvider, Organization} from 'app/types';
+
+import AddIntegration from './addIntegration';
 
 type Props = {
   provider: IntegrationProvider;

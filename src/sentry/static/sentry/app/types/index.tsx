@@ -435,6 +435,8 @@ export type AppOrProviderOrPlugin =
   | PluginWithProjectList
   | DocumentIntegration;
 
+export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_app';
+
 export type DocumentIntegration = {
   slug: string;
   name: string;
@@ -445,12 +447,14 @@ export type DocumentIntegration = {
   resourceLinks: Array<{title: string; url: string}>;
 };
 
+export type DateString = Date | string | null;
+
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
   datetime: {
-    start: Date | string | null;
-    end: Date | string | null;
+    start: DateString;
+    end: DateString;
     period: string;
     utc: boolean;
   };
@@ -917,8 +921,8 @@ export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;
-  platform: string;
-  platforms: string[];
+  platform: PlatformKey;
+  platforms: PlatformKey[];
   newGroups: number;
   healthData?: Health;
 };

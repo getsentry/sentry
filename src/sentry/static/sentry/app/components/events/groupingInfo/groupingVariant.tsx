@@ -7,7 +7,6 @@ import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValue
 import {EventGroupVariant, EventGroupVariantType, EventGroupComponent} from 'app/types';
 import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
-import theme from 'app/utils/theme';
 import {IconCheckmark, IconClose} from 'app/icons';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
@@ -218,9 +217,9 @@ const VariantTitle = styled('h5')`
 
 const ContributionIcon = styled(({isContributing, ...p}) =>
   isContributing ? (
-    <IconCheckmark size="sm" isCircled color={theme.green400} {...p} />
+    <IconCheckmark size="sm" isCircled color="green400" {...p} />
   ) : (
-    <IconClose size="sm" isCircled color={theme.red} {...p} />
+    <IconClose size="sm" isCircled color="red" {...p} />
   )
 )`
   margin-right: ${space(1)};

@@ -219,9 +219,7 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             span.set_data("symbolicaton_function", symbolication_function.__name__)
 
             with metrics.timer("tasks.store.symbolicate_event.symbolication"):
-                symbolicated_data = safe_execute(
-                    symbolication_function, data, _passthrough_errors=(RetrySymbolication,)
-                )
+                symbolicated_data = symbolication_function(data)
 
             span.set_data("symbolicated_data", bool(symbolicated_data))
             if symbolicated_data:
@@ -241,6 +239,9 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                 "symbolicate.failed.infinite_retry",
                 extra={"project_id": project_id, "event_id": event_id},
             )
+            data.setdefault("_metrics", {})["flag.processing.error"] = True
+            data.setdefault("_metrics", {})["flag.processing.fatal"] = True
+            has_changed = True
         else:
             # Requeue the task in the "sleep" queue
             retry_symbolicate_event.apply_async(
@@ -256,6 +257,11 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                 countdown=e.retry_after,
             )
             return
+    except Exception:
+        error_logger.exception("tasks.store.symbolicate_event.symbolication")
+        data.setdefault("_metrics", {})["flag.processing.error"] = True
+        data.setdefault("_metrics", {})["flag.processing.fatal"] = True
+        has_changed = True
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
@@ -482,10 +488,16 @@ def _do_process_event(
                     plugin.get_event_preprocessors, data=data, _with_transaction=False
                 )
                 for processor in processors or ():
-                    result = safe_execute(processor, data)
-                    if result:
-                        data = result
+                    try:
+                        result = processor(data)
+                    except Exception:
+                        error_logger.exception("tasks.store.preprocessors.error")
+                        data.setdefault("_metrics", {})["flag.processing.error"] = True
                         has_changed = True
+                    else:
+                        if result:
+                            data = result
+                            has_changed = True
 
     assert data["project"] == project_id, "Project cannot be mutated by plugins"
 
