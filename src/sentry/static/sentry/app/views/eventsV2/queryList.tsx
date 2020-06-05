@@ -305,6 +305,7 @@ const ContextMenu = ({children}) => (
 
 const MoreOptions = styled('span')`
   display: flex;
+  color: ${p => p.theme.gray700};
 `;
 
 const DropdownTarget = styled('div')`

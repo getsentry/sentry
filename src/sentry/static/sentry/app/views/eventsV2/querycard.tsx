@@ -5,6 +5,7 @@ import {browserHistory} from 'react-router';
 import ActivityAvatar from 'app/components/activity/item/avatar';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Link from 'app/components/links/link';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {User} from 'app/types';
@@ -61,8 +62,12 @@ class QueryCard extends React.PureComponent<Props> {
           <QueryCardBody>{renderGraph()}</QueryCardBody>
           <QueryCardFooter>
             <DateSelected>
-              <span>{subtitle}</span>
-              {<DateStatus>{dateStatus}</DateStatus>}
+              {subtitle}
+              {dateStatus ? (
+                <DateStatus>
+                  {t('Edited')} {dateStatus}
+                </DateStatus>
+              ) : null}
             </DateSelected>
             {renderContextMenu && renderContextMenu()}
           </QueryCardFooter>
