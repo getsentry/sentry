@@ -6,9 +6,8 @@ import min from 'lodash/min';
 import {Series} from 'app/types/echarts';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import {aggregateOutputType} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
-
-import {PERCENTILE_NAMES} from '../constants';
 
 type Props = {
   data: Series[];
@@ -57,9 +56,10 @@ class Chart extends React.Component<Props> {
     }
     const colors = theme.charts.getColorPalette(4);
 
-    const dataMax = data.every(value => PERCENTILE_NAMES.has(value.seriesName))
-      ? computeAxisMax(data)
-      : undefined;
+    const durationOnly = data.every(
+      value => aggregateOutputType(value.seriesName) === 'duration'
+    );
+    const dataMax = durationOnly ? computeAxisMax(data) : undefined;
 
     const areaChartProps = {
       seriesOptions: {
