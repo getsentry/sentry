@@ -157,6 +157,9 @@ class IntegrationProvider(PipelineProvider):
     # can be any number of IntegrationFeatures
     features = frozenset()
 
+    # if this is hidden without the feature flag
+    requires_feature_flag = False
+
     @classmethod
     def get_installation(cls, model, organization_id, **kwargs):
         if cls.integration_cls is None:

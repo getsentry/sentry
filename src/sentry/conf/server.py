@@ -851,6 +851,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-issue-sync": True,
     # Enable interface functionality to receive event hooks.
     "organizations:integrations-event-hooks": False,
+    # Enable the Vercel integration
+    "organizations:integrations-vercel": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
