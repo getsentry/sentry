@@ -1015,10 +1015,6 @@ export type NewQuery = {
   // Graph
   yAxis?: string;
   display?: string;
-
-  // Tags
-  tags?: Readonly<string[]>;
-  showTags?: boolean;
 };
 
 export type SavedQuery = NewQuery & {

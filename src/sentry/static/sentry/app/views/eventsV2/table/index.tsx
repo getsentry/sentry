@@ -22,6 +22,7 @@ type TableProps = {
   tags: {[key: string]: Tag};
   setError: (msg: string, code: number) => void;
   title: string;
+  onChangeShowTags: () => void;
 };
 
 type TableState = {

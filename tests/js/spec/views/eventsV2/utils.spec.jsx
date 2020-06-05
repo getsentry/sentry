@@ -139,7 +139,6 @@ describe('pushEventViewToLocation', function() {
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
         environment: ['staging'],
-        showTags: false,
       },
     });
   });

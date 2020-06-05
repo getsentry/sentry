@@ -60,7 +60,6 @@ export function updateSavedQuery(
   orgId: string,
   query: NewQuery
 ): Promise<SavedQuery> {
-  console.log('updateSavedQuery', query);
   const promise: Promise<SavedQuery> = api.requestPromise(
     `/organizations/${orgId}/discover/saved/${query.id}/`,
     {

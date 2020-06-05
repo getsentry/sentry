@@ -76,9 +76,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     // For modifying a SavedQuery
     const isEqualQuery = nextEventView.isEqualTo(savedEventView);
-    console.log('getDerivedStateFromProps savedEventView', savedEventView);
-    console.log('getDerivedStateFromProps nextEventView', nextEventView);
-    console.log('getDerivedStateFromProps isEqualQuery', isEqualQuery);
     return {
       isNewQuery: false,
       isEditingQuery: !isEqualQuery,
@@ -162,13 +159,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.stopPropagation();
 
     const {api, organization, eventView} = this.props;
-    console.log('handleUpdateQuery before', eventView);
 
     handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
-      console.log('handleUpdateQuery after', savedQuery);
       const view = EventView.fromSavedQuery(savedQuery);
       this.setState({queryName: ''});
-      console.log('handleUpdateQuery afterview', view);
       browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
     });
   };

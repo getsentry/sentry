@@ -43,26 +43,13 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             model = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
-
-        print "\r\n"
-        print "DiscoverSavedQueryDetailEndpoint"
-        print "\r\n"
-        print request.data
-        print "\r\n"
-
         serializer = DiscoverSavedQuerySerializer(
             data=request.data, context={"organization": organization}
         )
-
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-
-        print "validated_data\n"
-        print data
-        print "\r\n"
-
         model.update(
             organization=organization,
             name=data["name"],

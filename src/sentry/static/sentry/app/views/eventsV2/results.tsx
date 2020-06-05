@@ -25,6 +25,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {ContentBox, Main, Side} from 'app/utils/discover/styles';
 import {generateQueryWithTag} from 'app/utils';
+import localStorage from 'app/utils/localStorage';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
@@ -46,7 +47,14 @@ type State = {
   error: string;
   errorCode: number;
   totalValues: null | number;
+  showTags: boolean;
 };
+const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
+
+function readShowTagsState() {
+  const value = localStorage.getItem(SHOW_TAGS_STORAGE_KEY);
+  return value === '1';
+}
 
 class Results extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
@@ -59,6 +67,7 @@ class Results extends React.Component<Props, State> {
     error: '',
     errorCode: 200,
     totalValues: null,
+    showTags: readShowTagsState(),
   };
 
   componentDidMount() {
@@ -124,6 +133,14 @@ class Results extends React.Component<Props, State> {
       nextEventView.getResultsViewUrlTarget(organization.slug)
     );
   }
+
+  handleChangeShowTags = () => {
+    this.setState(state => {
+      const newValue = !state.showTags;
+      localStorage.setItem(SHOW_TAGS_STORAGE_KEY, newValue ? '1' : '0');
+      return {...state, showTags: newValue};
+    });
+  };
 
   handleSearch = (query: string) => {
     const {router, location} = this.props;
@@ -231,7 +248,7 @@ class Results extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, api} = this.props;
-    const {eventView, error, errorCode, totalValues} = this.state;
+    const {eventView, error, errorCode, totalValues, showTags} = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
 
@@ -266,16 +283,17 @@ class Results extends React.Component<Props, State> {
                   total={totalValues}
                 />
               </Top>
-              <StyledMain isCollapsed={!!eventView.showTags}>
+              <StyledMain isCollapsed={!!showTags}>
                 <Table
                   organization={organization}
                   eventView={eventView}
                   location={location}
                   title={title}
                   setError={this.setError}
+                  onChangeShowTags={this.handleChangeShowTags}
                 />
               </StyledMain>
-              {eventView.showTags ? this.renderTagsTable() : null}
+              {showTags ? this.renderTagsTable() : null}
             </ContentBox>
           </LightWeightNoProjectMessage>
         </StyledPageContent>
