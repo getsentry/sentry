@@ -16,6 +16,7 @@ type Props = {
   queryDetail?: string;
   to: object;
   createdBy?: User | undefined;
+  dateStatus?: object;
   onEventClick?: () => void;
   renderGraph: () => React.ReactNode;
   renderContextMenu?: () => React.ReactNode;
@@ -38,6 +39,7 @@ class QueryCard extends React.PureComponent<Props> {
       renderContextMenu,
       renderGraph,
       createdBy,
+      dateStatus,
     } = this.props;
 
     return (
@@ -58,7 +60,10 @@ class QueryCard extends React.PureComponent<Props> {
           </QueryCardHeader>
           <QueryCardBody>{renderGraph()}</QueryCardBody>
           <QueryCardFooter>
-            <StyledCreator>{subtitle}</StyledCreator>
+            <DateSelected>
+              <span>{subtitle}</span>
+              {<DateStatus>{dateStatus}</DateStatus>}
+            </DateSelected>
             {renderContextMenu && renderContextMenu()}
           </QueryCardFooter>
         </StyledQueryCard>
@@ -118,14 +123,19 @@ const QueryCardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  color: ${p => p.theme.gray600};
 `;
 
-const StyledCreator = styled('div')`
+const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-column-gap: ${space(1)};
   ${overflowEllipsis};
+  color: ${p => p.theme.gray700};
+`;
+
+const DateStatus = styled('span')`
+  color: ${p => p.theme.purple400};
+  padding-left: ${space(1)};
 `;
 
 export default QueryCard;
