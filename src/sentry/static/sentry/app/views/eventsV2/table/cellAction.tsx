@@ -12,6 +12,7 @@ import space from 'app/styles/space';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 
 import {TableColumn, TableDataRow} from './types';
 
@@ -138,6 +139,8 @@ export default class CellAction extends React.Component<Props, State> {
     const {isOpen} = this.state;
 
     const value = dataRow[column.name];
+    const fieldAlias = getAggregateAlias(column.name);
+    const value = dataRow[fieldAlias];
     const modifiers: PopperJS.Modifiers = {
       hide: {
         enabled: false,
