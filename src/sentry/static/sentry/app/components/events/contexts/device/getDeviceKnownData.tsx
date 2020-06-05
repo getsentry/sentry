@@ -20,7 +20,7 @@ function getOperatingSystemKnownData(
     knownData.push({
       key,
       ...knownDataDetails,
-      meta: getMeta(data, key as any),
+      meta: getMeta(data, key as keyof DeviceData),
     });
   }
   return knownData;

@@ -73,7 +73,7 @@ export function withMeta<T>(event: T): T {
   // make this work without `any`.
   //
   // https://github.com/microsoft/TypeScript/issues/20846
-  return new Proxy(event, new MetaProxy((event as any)._meta)) as any;
+  return new Proxy(event, new MetaProxy((event as any)._meta)) as T;
 }
 
 export function getMeta<T extends {}>(
