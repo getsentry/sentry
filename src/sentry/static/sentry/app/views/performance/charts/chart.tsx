@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import max from 'lodash/max';
+import min from 'lodash/min';
 
 import {Series} from 'app/types/echarts';
 import AreaChart from 'app/components/charts/areaChart';
@@ -19,9 +20,32 @@ type Props = {
   loading: boolean;
 };
 
-function roundAxis(x) {
-  const exp10 = 10 ** Math.floor(Math.log10(x));
-  return Math.ceil(x / exp10) * exp10;
+// adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
+function computeAxisMax(data) {
+  // assumes min is 0
+  const valuesDict = data.map(value => value.data.map(point => point.value));
+  const maxValue = max(valuesDict.map(max)) as number;
+
+  if (maxValue <= 1) {
+    return 1;
+  }
+
+  const power = Math.log10(maxValue);
+  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
+
+  let scale;
+  if (magnitude <= 2.5) {
+    scale = 0.2;
+  } else if (magnitude <= 5) {
+    scale = 0.5;
+  } else if (magnitude <= 7.5) {
+    scale = 1.0;
+  } else {
+    scale = 2.0;
+  }
+
+  const step = 10 ** Math.floor(power) * scale;
+  return Math.round(Math.ceil(maxValue / step) * step);
 }
 
 class Chart extends React.Component<Props> {
@@ -34,7 +58,7 @@ class Chart extends React.Component<Props> {
     const colors = theme.charts.getColorPalette(4);
 
     const dataMax = data.every(value => PERCENTILE_NAMES.has(value.seriesName))
-      ? roundAxis(max(data.map(value => max(value.data.map(point => point.value)))))
+      ? computeAxisMax(data)
       : undefined;
 
     const areaChartProps = {
