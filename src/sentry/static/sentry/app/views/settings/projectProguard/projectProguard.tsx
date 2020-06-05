@@ -27,11 +27,11 @@ type State = AsyncView['state'] & {
   showDetails: boolean;
 };
 
-class ProjectAndroidMappings extends AsyncView<Props, State> {
+class ProjectProguard extends AsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
-    return routeTitleGen(t('Android Mappings'), projectId, false);
+    return routeTitleGen(t('ProGuard Mappings'), projectId, false);
   }
 
   getDefaultState(): State {
@@ -130,11 +130,11 @@ class ProjectAndroidMappings extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Android Mappings')} />
+        <SettingsPageHeader title={t('ProGuard Mappings')} />
 
         <TextBlock>
           {t(
-            `Android mapping files are used to convert minified classes, methods and field names into a human readable format.`
+            `ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format.`
           )}
         </TextBlock>
 
@@ -220,4 +220,4 @@ const Label = styled('label')`
   }
 `;
 
-export default ProjectAndroidMappings;
+export default ProjectProguard;

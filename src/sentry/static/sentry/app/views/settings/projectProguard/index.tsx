@@ -7,11 +7,9 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 
-import ProjectAndroidMappings from './projectAndroidMappings';
+import ProjectProguard from './projectProguard';
 
-class ProjectAndroidMappingsContainer extends React.Component<
-  ProjectAndroidMappings['props']
-> {
+class ProjectProguardContainer extends React.Component<ProjectProguard['props']> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
   };
@@ -33,10 +31,10 @@ class ProjectAndroidMappingsContainer extends React.Component<
         organization={organization}
         renderDisabled={this.renderNoAccess}
       >
-        <ProjectAndroidMappings {...this.props} />
+        <ProjectProguard {...this.props} />
       </Feature>
     );
   }
 }
 
-export default withOrganization(ProjectAndroidMappingsContainer);
+export default withOrganization(ProjectProguardContainer);
