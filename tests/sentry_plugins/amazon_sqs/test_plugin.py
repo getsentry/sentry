@@ -71,7 +71,7 @@ class AmazonSQSPluginTest(PluginTestCase):
             {"Error": {"Code": "AccessDenied", "Message": "Hello"}}, "SendMessage"
         )
         self.run_test()
-        assert len(logger.info.call_args_list) == 4
+        assert len(logger.info.call_args_list) == 1
         assert (
             logger.info.call_args_list[0][0][0] == "sentry_plugins.amazon_sqs.access_token_invalid"
         )
