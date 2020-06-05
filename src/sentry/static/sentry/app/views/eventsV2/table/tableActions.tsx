@@ -14,7 +14,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 
 import {TableData} from './types';
-import {downloadAsCsv} from '../utils';
+import {downloadAsCsv, pushEventViewToLocation} from '../utils';
 
 type Props = {
   isLoading: boolean;
@@ -24,6 +24,10 @@ type Props = {
   tableData: TableData | null | undefined;
   location: Location;
   onEdit: () => void;
+};
+
+type State = {
+  showTags: boolean;
 };
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
@@ -65,7 +69,7 @@ function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Prop
       data-test-id="grid-download-csv"
       icon={<IconDownload size="xs" />}
     >
-      {t('Export')}
+      {t('Export Results')}
     </Button>
   );
 }
@@ -94,9 +98,9 @@ renderAsyncExportButton.propTypes = {
   isLoading: PropTypes.bool,
 };
 
-function renderSummaryButton() {
+function renderSummaryButton(onClick: {(): void}) {
   return (
-    <Button size="small" onClick={() => ({showTags: true})} icon={<IconTag size="xs" />}>
+    <Button size="small" onClick={onClick} icon={<IconTag size="xs" />}>
       {t('Show Tags')}
     </Button>
   );
@@ -121,39 +125,49 @@ renderEditButton.propTypes = {
   onEdit: PropTypes.func,
 };
 
-function HeaderActions(props: Props) {
-  const noEditMessage = t('Requires discover query feature.');
-  const editFeatures = ['organizations:discover-query'];
+class HeaderActions extends React.Component<Props, State> {
+  state = {showTags: false};
 
-  const renderDisabled = p => (
-    <Hovercard
-      body={
-        <FeatureDisabled
-          features={p.features}
-          hideHelpToggle
-          message={noEditMessage}
-          featureName={noEditMessage}
-        />
-      }
-    >
-      {p.children(p)}
-    </Hovercard>
-  );
-  return (
-    <Feature
-      hookName="feature-disabled:grid-editable-actions"
-      renderDisabled={renderDisabled}
-      features={editFeatures}
-    >
-      {({hasFeature}) => (
-        <React.Fragment>
-          {renderEditButton(hasFeature, props)}
-          {renderDownloadButton(hasFeature, props)}
-          {renderSummaryButton()}
-        </React.Fragment>
-      )}
-    </Feature>
-  );
+  handleToggleTag = () => {
+    const {location, eventView} = this.props;
+    const nextEventView = eventView.withToggleTags();
+
+    pushEventViewToLocation({location, nextEventView});
+  };
+
+  render() {
+    const noEditMessage = t('Requires discover query feature.');
+    const editFeatures = ['organizations:discover-query'];
+    const renderDisabled = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={noEditMessage}
+            featureName={noEditMessage}
+          />
+        }
+      >
+        {p.children(p)}
+      </Hovercard>
+    );
+    return (
+      <Feature
+        hookName="feature-disabled:grid-editable-actions"
+        renderDisabled={renderDisabled}
+        features={editFeatures}
+      >
+        {({hasFeature}) => (
+          <React.Fragment>
+            {renderEditButton(hasFeature, this.props)}
+            {renderDownloadButton(hasFeature, this.props)}
+            {renderSummaryButton(this.handleToggleTag)}
+          </React.Fragment>
+        )}
+      </Feature>
+    );
+  }
 }
 
 export default HeaderActions;

@@ -61,7 +61,7 @@ class ColumnEditModal extends React.Component<Props, State> {
         <Body>
           <Instruction>
             {t(
-              'To group events, add functions that may take in additional parameters. Tag and field columns will help you view more details about the events.'
+              'To stack events, add functions that may take in additional parameters. Tag and field columns will help you view more details about the events.'
             )}
           </Instruction>
           <ColumnEditCollection

@@ -244,6 +244,7 @@ class EventView {
   environment: Readonly<string[]>;
   yAxis: string | undefined;
   display: string | undefined;
+  showTags: boolean;
   createdBy: User | undefined;
 
   constructor(props: {
@@ -259,6 +260,7 @@ class EventView {
     environment: Readonly<string[]>;
     yAxis: string | undefined;
     display: string | undefined;
+    showTags: boolean;
     createdBy: User | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -288,6 +290,7 @@ class EventView {
     this.environment = environment;
     this.yAxis = props.yAxis;
     this.display = props.display;
+    this.showTags = !!props.showTags;
     this.createdBy = props.createdBy;
   }
 
@@ -307,6 +310,7 @@ class EventView {
       environment: collectQueryStringByKey(location.query, 'environment'),
       yAxis: decodeScalar(location.query.yAxis),
       display: decodeScalar(location.query.display),
+      showTags: decodeScalar(location.query.showTags) === 'true',
       createdBy: undefined,
     });
   }
@@ -372,6 +376,7 @@ class EventView {
       ),
       yAxis: saved.yAxis,
       display: saved.display,
+      showTags: false,
       createdBy: saved.createdBy,
     });
   }
@@ -500,6 +505,7 @@ class EventView {
       query: this.query,
       yAxis: this.yAxis,
       display: this.display,
+      showTags: this.showTags,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {
@@ -557,6 +563,7 @@ class EventView {
       environment: this.environment,
       yAxis: this.yAxis,
       display: this.display,
+      showTags: this.showTags,
       createdBy: this.createdBy,
     });
   }
@@ -735,6 +742,12 @@ class EventView {
       }
     }
 
+    return newEventView;
+  }
+
+  withToggleTags() {
+    const newEventView = this.clone();
+    newEventView.showTags = !newEventView.showTags;
     return newEventView;
   }
 

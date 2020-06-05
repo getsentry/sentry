@@ -46,7 +46,6 @@ type State = {
   error: string;
   errorCode: number;
   totalValues: null | number;
-  showTags: boolean;
 };
 
 class Results extends React.Component<Props, State> {
@@ -60,7 +59,6 @@ class Results extends React.Component<Props, State> {
     error: '',
     errorCode: 200,
     totalValues: null,
-    showTags: false,
   };
 
   componentDidMount() {
@@ -233,8 +231,9 @@ class Results extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, api} = this.props;
-    const {eventView, error, errorCode, totalValues, showTags} = this.state;
+    const {eventView, error, errorCode, totalValues} = this.state;
     const query = location.query.query || '';
+    const showTags = eventView.showTags;
     const title = this.getDocumentTitle();
 
     return (
