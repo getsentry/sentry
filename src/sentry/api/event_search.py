@@ -763,10 +763,14 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
     elif name == "issue.id":
         # Handle "has" queries
         if search_filter.value.raw_value == "":
-            # Compare to 0 as group_id is not nullable.
-            return [name, search_filter.operator, 0]
+            if search_filter.operator == "=":
+                # Use isNull to get events with no issue (transactions)
+                return [["isNull", [name]], search_filter.operator, 1]
+            else:
+                # Compare to 0 as group_id is not nullable on issues.
+                return [name, search_filter.operator, 0]
 
-        # Skip ifNull check as group_id is not nullable, and we want to
+        # Skip isNull check on group_id value as we want to
         # allow snuba's prewhere optimizer to find this condition.
         return [name, search_filter.operator, value]
     else:
