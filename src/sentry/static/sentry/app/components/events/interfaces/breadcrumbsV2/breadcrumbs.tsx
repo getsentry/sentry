@@ -28,7 +28,7 @@ import Icon from './icon';
 import {aroundContentStyle} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
-const DIVISION_BETWEEN_DATE_AND_TIME_OF_ISO_STRING = 10;
+const ISO_STRING_DATE_AND_TIME_DIVISION = 10;
 
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 
@@ -201,8 +201,8 @@ class Breadcrumbs extends React.Component<Props, State> {
 
     const timestamp = `${breadcrumb?.timestamp?.slice(
       0,
-      DIVISION_BETWEEN_DATE_AND_TIME_OF_ISO_STRING
-    )}${event.dateCreated?.slice(DIVISION_BETWEEN_DATE_AND_TIME_OF_ISO_STRING)}`;
+      ISO_STRING_DATE_AND_TIME_DIVISION
+    )}${event.dateCreated?.slice(ISO_STRING_DATE_AND_TIME_DIVISION)}`;
 
     const exception = event.entries.find(
       entry => entry.type === BreadcrumbType.EXCEPTION
