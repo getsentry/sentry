@@ -1,9 +1,0 @@
-{
-    "type": "object",
-    "properties": {
-        "subscription_id": {"type": "string", "minLength": 1},
-        "values": {"type": "string", "minLength": 1},
-        "timestamp": {"type": "string", "minLength": 1}
-    },
-    "required": ["subscription_id", "values", "timestamp"]
-}
