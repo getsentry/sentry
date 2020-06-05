@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import {IconClock, IconDelete, IconDownload} from 'app/icons';
 import ButtonBar from 'app/components/buttonBar';
 import FileSize from 'app/components/fileSize';
-import {SourceMap} from 'app/types';
+import {Artifact} from 'app/types';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
@@ -16,13 +16,13 @@ import Tooltip from 'app/components/tooltip';
 import Tag from '../../components/tag';
 
 type Props = {
-  file: SourceMap;
+  artifact: Artifact;
   onDelete: (id: string) => void;
   downloadUrl: string;
 };
 
-const SourceMapsFileRow = ({file, onDelete, downloadUrl}: Props) => {
-  const {name, size, dateCreated, dist, id} = file;
+const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
+  const {name, size, dateCreated, dist, id} = artifact;
 
   const handleDeleteClick = () => {
     onDelete(id);
@@ -49,7 +49,7 @@ const SourceMapsFileRow = ({file, onDelete, downloadUrl}: Props) => {
             {({hasAccess}) => (
               <Tooltip
                 title={t(
-                  'You do not have the required permission to download this file.'
+                  'You do not have the required permission to download this artifact.'
                 )}
                 disabled={hasAccess}
               >
@@ -63,8 +63,8 @@ const SourceMapsFileRow = ({file, onDelete, downloadUrl}: Props) => {
             )}
           </Access>
           <LinkWithConfirmation
-            title={t('Delete file')}
-            message={t('Are you sure you want to remove this file?')}
+            title={t('Delete artifact')}
+            message={t('Are you sure you want to remove this artifact?')}
             onConfirm={handleDeleteClick}
           >
             <Button size="xsmall" icon={<IconDelete size="xs" />} />
@@ -110,4 +110,4 @@ const TimeWrapper = styled('div')`
   color: ${p => p.theme.gray600};
 `;
 
-export default SourceMapsFileRow;
+export default SourceMapsArtifactRow;

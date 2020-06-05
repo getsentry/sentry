@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import {Organization, Project, SourceMap} from 'app/types';
+import {Organization, Project, Artifact} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
@@ -22,7 +22,7 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 
-import SourceMapsFileRow from './sourceMapsFileRow';
+import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
 type RouteParams = {orgId: string; projectId: string; version: string};
 
@@ -32,7 +32,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = AsyncView['state'] & {
-  files: SourceMap[];
+  artifacts: Artifact[];
 };
 
 class ProjectSourceMaps extends AsyncView<Props, State> {
@@ -45,7 +45,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      files: [],
+      artifacts: [],
     };
   }
 
@@ -53,13 +53,13 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     const {location} = this.props;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
-      ['files', this.getFilesUrl(), {query: {query: location.query.query}}],
+      ['artifacts', this.getArtifactsUrl(), {query: {query: location.query.query}}],
     ];
 
     return endpoints;
   }
 
-  getFilesUrl() {
+  getArtifactsUrl() {
     const {orgId, projectId, version} = this.props.params;
 
     return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
@@ -77,17 +77,17 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   };
 
   handleDelete = async (id: string) => {
-    addLoadingMessage(t('Removing file\u2026'));
+    addLoadingMessage(t('Removing artifact\u2026'));
 
     try {
-      await this.api.requestPromise(`${this.getFilesUrl()}${id}/`, {
+      await this.api.requestPromise(`${this.getArtifactsUrl()}${id}/`, {
         method: 'DELETE',
       });
-      // We might want to refetch the files here to not mess up pagination
-      this.setState(state => ({files: state.files.filter(f => f.id !== id)}));
-      addSuccessMessage(t('File removed.'));
+      // We might want to refetch the artifacts here to not mess up pagination
+      this.setState(state => ({artifacts: state.artifacts.filter(a => a.id !== id)}));
+      addSuccessMessage(t('Artifact removed.'));
     } catch {
-      addErrorMessage(t('Unable to remove file. Please try again.'));
+      addErrorMessage(t('Unable to remove artifact. Please try again.'));
     }
   };
 
@@ -99,45 +99,45 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
   getEmptyMessage() {
     if (this.getQuery()) {
-      return t('There are no source maps that match your search.');
+      return t('There are no artifacts that match your search.');
     }
 
-    return t('There are no source maps for this release.');
+    return t('There are no artifacts for this release.');
   }
 
   renderLoading() {
     return this.renderBody();
   }
 
-  renderFiles() {
-    const {files} = this.state;
-    const fileApiUrl = this.api.baseUrl + this.getFilesUrl();
+  renderArtifacts() {
+    const {artifacts} = this.state;
+    const artifactApiUrl = this.api.baseUrl + this.getArtifactsUrl();
 
-    if (!files.length) {
+    if (!artifacts.length) {
       return null;
     }
 
-    return files.map(file => {
+    return artifacts.map(artifact => {
       return (
-        <SourceMapsFileRow
-          key={file.id}
-          file={file}
+        <SourceMapsArtifactRow
+          key={artifact.id}
+          artifact={artifact}
           onDelete={this.handleDelete}
-          downloadUrl={`${fileApiUrl}${file.id}/?download=1`}
+          downloadUrl={`${artifactApiUrl}${artifact.id}/?download=1`}
         />
       );
     });
   }
 
   renderBody() {
-    const {loading, files, filesPageLinks} = this.state;
+    const {loading, artifacts, artifactsPageLinks} = this.state;
     const {version, orgId, projectId} = this.props.params;
     const {project} = this.props;
 
     return (
       <React.Fragment>
         <SettingsPageHeader
-          title={t('Source Maps in %s', formatVersion(version))}
+          title={t('Source Maps Archive %s', formatVersion(version))}
           action={
             <ButtonBar gap={1}>
               <Button
@@ -145,7 +145,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
                 to={`/settings/${orgId}/projects/${projectId}/source-maps/`}
                 icon={<IconChevron size="xs" direction="left" />}
               >
-                {t('All Source Maps')}
+                {t('All Archives')}
               </Button>
               <Button
                 size="small"
@@ -161,9 +161,9 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
         />
 
         <Wrapper>
-          <TextBlock noMargin>{t('Uploaded source maps')}:</TextBlock>
+          <TextBlock noMargin>{t('Uploaded artifacts')}:</TextBlock>
           <SearchBar
-            placeholder={t('Search source maps')}
+            placeholder={t('Filter artifacts')}
             onSearch={this.handleSearch}
             query={this.getQuery()}
           />
@@ -171,17 +171,17 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
         <StyledPanelTable
           headers={[
-            t('Name'),
+            t('Artifact'),
             t('Size'),
             <Actions key="actions">{t('Actions')}</Actions>,
           ]}
           emptyMessage={this.getEmptyMessage()}
-          isEmpty={files.length === 0}
+          isEmpty={artifacts.length === 0}
           isLoading={loading}
         >
-          {this.renderFiles()}
+          {this.renderArtifacts()}
         </StyledPanelTable>
-        <Pagination pageLinks={filesPageLinks} />
+        <Pagination pageLinks={artifactsPageLinks} />
       </React.Fragment>
     );
   }

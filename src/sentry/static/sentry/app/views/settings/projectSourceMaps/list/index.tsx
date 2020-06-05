@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import {Organization, Project, Release} from 'app/types';
+import {Organization, Project, SourceMapsArchive} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import SearchBar from 'app/components/searchBar';
@@ -13,7 +13,7 @@ import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import space from 'app/styles/space';
 
-import SourceMapsGroupRow from './sourceMapsGroupRow';
+import SourceMapsArchiveRow from './sourceMapsArchiveRow';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -21,7 +21,7 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 };
 
 type State = AsyncView['state'] & {
-  groups: Release[];
+  archives: SourceMapsArchive[];
 };
 
 class ProjectSourceMaps extends AsyncView<Props, State> {
@@ -34,7 +34,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      groups: [],
+      archives: [],
     };
   }
 
@@ -44,7 +44,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       [
-        'groups',
+        'archives',
         `/projects/${orgId}/${projectId}/files/source-maps/`,
         {query: {query: location.query.query}},
       ],
@@ -70,10 +70,10 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
   getEmptyMessage() {
     if (this.getQuery()) {
-      return t('There are no source maps that match your search.');
+      return t('There are no archives that match your search.');
     }
 
-    return t('There are no source maps for this project.');
+    return t('There are no archives for this project.');
   }
 
   renderLoading() {
@@ -81,21 +81,21 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   }
 
   renderMappings() {
-    const {groups} = this.state;
+    const {archives} = this.state;
     const {params} = this.props;
     const {orgId, projectId} = params;
 
-    if (!groups.length) {
+    if (!archives.length) {
       return null;
     }
 
-    return groups.map(({version, dateCreated, fileCount}) => {
+    return archives.map(({name, date, fileCount}) => {
       return (
-        <SourceMapsGroupRow
-          key={version}
-          name={version}
-          date={dateCreated}
-          fileCount={fileCount!}
+        <SourceMapsArchiveRow
+          key={name}
+          name={name}
+          date={date}
+          fileCount={fileCount}
           orgId={orgId}
           projectId={projectId}
         />
@@ -104,7 +104,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {loading, groups, groupsPageLinks} = this.state;
+    const {loading, archives, archivesPageLinks} = this.state;
 
     return (
       <React.Fragment>
@@ -118,10 +118,10 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
         </TextBlock>
 
         <Wrapper>
-          <TextBlock noMargin>{t('Uploaded source maps')}:</TextBlock>
+          <TextBlock noMargin>{t('Uploaded archives')}:</TextBlock>
 
           <SearchBar
-            placeholder={t('Search source maps')}
+            placeholder={t('Filter archives')}
             onSearch={this.handleSearch}
             query={this.getQuery()}
           />
@@ -129,24 +129,24 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
         <StyledPanelTable
           headers={[
-            t('Release'),
-            t('Source Maps'),
+            t('Archive'),
+            t('Artifacts'),
             <Actions key="actions">{t('Actions')}</Actions>,
           ]}
           emptyMessage={this.getEmptyMessage()}
-          isEmpty={groups.length === 0}
+          isEmpty={archives.length === 0}
           isLoading={loading}
         >
           {this.renderMappings()}
         </StyledPanelTable>
-        <Pagination pageLinks={groupsPageLinks} />
+        <Pagination pageLinks={archivesPageLinks} />
       </React.Fragment>
     );
   }
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 37% 1fr auto;
+  grid-template-columns: 1fr 100px 200px;
 `;
 
 const Actions = styled('div')`

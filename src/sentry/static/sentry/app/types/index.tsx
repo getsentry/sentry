@@ -1275,7 +1275,14 @@ export type EventGroupVariant = {
   config?: EventGroupingConfig;
 };
 
-export type SourceMap = {
+export type SourceMapsArchive = {
+  type: 'release';
+  name: string;
+  date: string;
+  fileCount: number;
+};
+
+export type Artifact = {
   dateCreated: string;
   dist: string | null;
   id: string;

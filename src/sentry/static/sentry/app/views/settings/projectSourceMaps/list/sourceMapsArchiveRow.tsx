@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import TimeSince from 'app/components/timeSince';
 import Button from 'app/components/button';
@@ -18,7 +18,7 @@ type Props = {
   projectId: string;
 };
 
-const SourceMapsGroupRow = ({name, date, fileCount, orgId, projectId}: Props) => {
+const SourceMapsArchiveRow = ({name, date, fileCount, orgId, projectId}: Props) => {
   return (
     <React.Fragment>
       <Column>
@@ -31,9 +31,7 @@ const SourceMapsGroupRow = ({name, date, fileCount, orgId, projectId}: Props) =>
         </TimeWrapper>
       </Column>
       <Column>
-        <FilesCount>
-          <Count value={fileCount} /> {tn('file', 'files', fileCount)}
-        </FilesCount>
+        <Count value={fileCount} />
       </Column>
       <RightColumn>
         <ButtonBar gap={0.5}>
@@ -44,7 +42,7 @@ const SourceMapsGroupRow = ({name, date, fileCount, orgId, projectId}: Props) =>
               name
             )}`}
           >
-            {t('Browse')}
+            {t('Open')}
           </Button>
         </ButtonBar>
       </RightColumn>
@@ -57,6 +55,7 @@ const Column = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const RightColumn = styled('div')`
@@ -66,7 +65,6 @@ const RightColumn = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
   max-width: 100%;
 `;
 
@@ -79,8 +77,4 @@ const TimeWrapper = styled('div')`
   color: ${p => p.theme.gray600};
 `;
 
-const FilesCount = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-export default SourceMapsGroupRow;
+export default SourceMapsArchiveRow;

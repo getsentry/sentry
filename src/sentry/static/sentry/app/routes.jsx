@@ -444,7 +444,7 @@ function routes() {
         />
         <Route
           path=":version/"
-          name={t('Detail')}
+          name={t('Archive')}
           componentPromise={() =>
             import(
               /* webpackChunkName: "ProjectSourceMapsDetail" */ 'app/views/settings/projectSourceMaps/detail'
