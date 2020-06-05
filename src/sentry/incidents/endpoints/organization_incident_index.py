@@ -6,6 +6,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.models import Incident, IncidentStatus
 
 
@@ -47,6 +48,6 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             queryset=incidents,
             order_by="-date_started",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, DetailedIncidentSerializer()),
             default_per_page=25,
         )

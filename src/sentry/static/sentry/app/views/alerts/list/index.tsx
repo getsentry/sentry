@@ -160,13 +160,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             <TableLayout>
               <TitleAndSparkLine>
                 <div>{t('Alert')}</div>
-                <RightAlignedHeader>{t('Trend')}</RightAlignedHeader>
+                <div>{t('Graph')}</div>
               </TitleAndSparkLine>
+              <div>{t('Current Status')}</div>
               <div>{t('Project')}</div>
-              <div>{t('Status')}</div>
-              <div>{t('Start time (duration)')}</div>
-              <RightAlignedHeader>{t('Users affected')}</RightAlignedHeader>
-              <RightAlignedHeader>{t('Total events')}</RightAlignedHeader>
+              <div>{t('Alert Triggered')}</div>
             </TableLayout>
           </PanelHeader>
 
@@ -353,10 +351,6 @@ const Actions = styled('div')`
   align-items: center;
   grid-gap: ${space(1)};
   grid-auto-flow: column;
-`;
-
-const RightAlignedHeader = styled('div')`
-  text-align: right;
 `;
 
 export default withOrganization(IncidentsListContainer);
