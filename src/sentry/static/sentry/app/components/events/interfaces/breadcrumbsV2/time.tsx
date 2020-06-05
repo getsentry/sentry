@@ -2,10 +2,25 @@ import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
+import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import TextOverflow from 'app/components/textOverflow';
+
+const fromOrNow = (time: string, timeToCompareWith: string) => {
+  if (
+    !(
+      moment(time).format('HH:mm:ss') === moment(timeToCompareWith).format('HH:mm:ss') &&
+      // compares if it happened less than 1 m ago (60000 equals 1m)
+      Math.abs(moment(time).diff(timeToCompareWith)) < 60000
+    )
+  ) {
+    return moment(time).from(timeToCompareWith);
+  }
+
+  return t('Now');
+};
 
 const getTooltipTitle = (
   timestamp: string,
@@ -16,10 +31,11 @@ const getTooltipTitle = (
   const date = parsedTimestamp.format('ll');
 
   if (!displayRelativeTime) {
-    const formattedTimestamp = moment(timestamp).format('ll H:mm');
-    const formattedRelativeTime = moment(relativeTime).format('ll H:mm');
-    // TODO(Priscila): check if it's possible to replace 'few seconds ago' with 'now'
-    return {date, time: moment(formattedTimestamp).from(formattedRelativeTime)};
+    // ll is necessary here, otherwise moment(x).from will throw an error
+    const formattedTimestamp = parsedTimestamp.format('ll H:mm:ss');
+    const formattedRelativeTime = moment(relativeTime).format('ll H:mm:ss');
+    const time = fromOrNow(formattedTimestamp, formattedRelativeTime);
+    return {date, time};
   }
 
   return {

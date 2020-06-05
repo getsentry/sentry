@@ -27,6 +27,7 @@ const ListBody = React.memo(
       {breadcrumbs.map(({color, icon, id, ...crumb}, idx) => {
         const hasError = crumb.type === BreadcrumbType.ERROR;
         const isLastItem = breadcrumbs.length - 1 === idx;
+
         return (
           <React.Fragment key={id}>
             <GridCellLeft hasError={hasError} isLastItem={isLastItem}>
@@ -45,7 +46,7 @@ const ListBody = React.memo(
             </GridCell>
             <GridCell hasError={hasError} isLastItem={isLastItem}>
               <Time
-                timestamp={crumb.timestamp}
+                timestamp={crumb?.timestamp}
                 relativeTime={relativeTime}
                 displayRelativeTime={displayRelativeTime}
               />

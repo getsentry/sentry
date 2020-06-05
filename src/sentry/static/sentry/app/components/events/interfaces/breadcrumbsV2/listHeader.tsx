@@ -10,7 +10,7 @@ import {GridCell} from './styles';
 
 const getTimeTooltipTitle = (displayRelativeTime: boolean) => {
   if (displayRelativeTime) {
-    return t('Switch to ISO 8601');
+    return t('Switch to absolute');
   }
   return t('Switch to relative');
 };

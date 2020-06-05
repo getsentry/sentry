@@ -1,8 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
 import ListHeader from './listHeader';
@@ -13,8 +11,11 @@ type Props = {
   onSwitchTimeFormat: () => void;
 } & Omit<React.ComponentProps<typeof ListBody>, 'relativeTime'>;
 
-const List = React.forwardRef<HTMLDivElement, Props>(
-  ({displayRelativeTime, onSwitchTimeFormat, orgId, event, breadcrumbs}, ref) => (
+const List = React.forwardRef(
+  (
+    {displayRelativeTime, onSwitchTimeFormat, orgId, event, breadcrumbs}: Props,
+    ref: React.Ref<HTMLDivElement>
+  ) => (
     <Grid ref={ref}>
       <ListHeader
         onSwitchTimeFormat={onSwitchTimeFormat}
@@ -32,14 +33,6 @@ const List = React.forwardRef<HTMLDivElement, Props>(
 );
 
 export default List;
-
-List.propTypes = {
-  displayRelativeTime: PropTypes.bool.isRequired,
-  onSwitchTimeFormat: PropTypes.func.isRequired,
-  breadcrumbs: PropTypes.array.isRequired,
-  event: SentryTypes.Event.isRequired,
-  orgId: PropTypes.string.isRequired,
-};
 
 const Grid = styled('div')`
   max-height: 500px;
