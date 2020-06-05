@@ -44,13 +44,13 @@ class Source extends React.Component<Props, State> {
 
   componentDidMount() {
     this.loadFieldValues(this.props.value);
-    this.hideSuggestions();
+    this.toggleSuggestions(false);
   }
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.suggestions !== this.props.suggestions) {
       this.loadFieldValues(this.props.value);
-      this.hideSuggestions();
+      this.toggleSuggestions(false);
     }
 
     if (
@@ -100,14 +100,6 @@ class Source extends React.Component<Props, State> {
     const filteredSuggestions = valuesToBeFiltered.filter(
       s => s.value.toLowerCase().indexOf(value.toLowerCase()) > -1
     );
-
-    const showSuggestions = !(
-      filteredSuggestions.length === 1 && filteredSuggestions[0].value === value
-    );
-
-    this.setState({
-      showSuggestions,
-    });
 
     return filteredSuggestions;
   };
@@ -175,12 +167,6 @@ class Source extends React.Component<Props, State> {
     }
 
     return this.getFilteredSuggestions(lastFieldValue?.value, lastFieldValue?.type);
-  };
-
-  hideSuggestions = () => {
-    this.setState({
-      showSuggestions: false,
-    });
   };
 
   loadFieldValues = (newValue: string) => {
@@ -356,6 +342,11 @@ class Source extends React.Component<Props, State> {
     const {keyCode} = event;
     const {activeSuggestion, suggestions} = this.state;
 
+    if (keyCode === 8 || keyCode === 32) {
+      this.toggleSuggestions(true);
+      return;
+    }
+
     if (keyCode === 13) {
       this.handleClickSuggestionItem(suggestions[activeSuggestion])();
       return;
@@ -382,10 +373,14 @@ class Source extends React.Component<Props, State> {
     }
   };
 
-  handleFocus = () => {
+  toggleSuggestions = (showSuggestions: boolean) => {
     this.setState({
-      showSuggestions: true,
+      showSuggestions,
     });
+  };
+
+  handleFocus = () => {
+    this.toggleSuggestions(true);
   };
 
   render() {
