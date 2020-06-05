@@ -10,7 +10,6 @@ from sentry.discover.models import DiscoverSavedQuery
 @register(DiscoverSavedQuery)
 class DiscoverSavedQuerySerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
-
         query_keys = [
             "environment",
             "query",
@@ -25,8 +24,11 @@ class DiscoverSavedQuerySerializer(Serializer):
             "limit",
             "yAxis",
             "display",
+            "showTags",
         ]
-
+        print "\r\n\r\nserialize query\n"
+        print obj.query
+        print "\r\n"
         data = {
             "id": six.text_type(obj.id),
             "name": obj.name,
@@ -46,4 +48,7 @@ class DiscoverSavedQuerySerializer(Serializer):
         if obj.query.get("all_projects"):
             data["projects"] = list(ALL_ACCESS_PROJECTS)
 
+        print "serialize data\n"
+        print data
+        print "\r\n"
         return data

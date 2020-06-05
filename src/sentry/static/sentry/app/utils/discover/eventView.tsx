@@ -244,7 +244,7 @@ class EventView {
   environment: Readonly<string[]>;
   yAxis: string | undefined;
   display: string | undefined;
-  showTags: boolean;
+  showTags: boolean | undefined;
   createdBy: User | undefined;
 
   constructor(props: {
@@ -260,7 +260,7 @@ class EventView {
     environment: Readonly<string[]>;
     yAxis: string | undefined;
     display: string | undefined;
-    showTags: boolean;
+    showTags: boolean | undefined;
     createdBy: User | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -345,6 +345,7 @@ class EventView {
   }
 
   static fromSavedQuery(saved: NewQuery | SavedQuery): EventView {
+    console.log('fromSavedQuery BEFORE', saved);
     const fields = saved.fields.map((field, i) => {
       const width =
         saved.widths && saved.widths[i] ? Number(saved.widths[i]) : COL_WIDTH_UNDEFINED;
@@ -357,6 +358,30 @@ class EventView {
       end: saved.end,
       statsPeriod: saved.range,
     });
+    console.log(
+      'fromSavedQuery AFTER',
+      new EventView({
+        id: saved.id,
+        name: saved.name,
+        fields,
+        query: queryStringFromSavedQuery(saved),
+        project: saved.projects,
+        start: decodeScalar(start),
+        end: decodeScalar(end),
+        statsPeriod: decodeScalar(statsPeriod),
+        sorts: fromSorts(saved.orderby),
+        environment: collectQueryStringByKey(
+          {
+            environment: saved.environment as string[],
+          },
+          'environment'
+        ),
+        yAxis: saved.yAxis,
+        display: saved.display,
+        showTags: saved.showTags,
+        createdBy: saved.createdBy,
+      })
+    );
 
     return new EventView({
       id: saved.id,
@@ -376,7 +401,7 @@ class EventView {
       ),
       yAxis: saved.yAxis,
       display: saved.display,
-      showTags: false,
+      showTags: saved.showTags,
       createdBy: saved.createdBy,
     });
   }
@@ -429,6 +454,7 @@ class EventView {
   toNewQuery(): NewQuery {
     const orderby = this.sorts.length > 0 ? encodeSorts(this.sorts)[0] : undefined;
 
+    console.log('toNewQuery', this.showTags);
     const newQuery: NewQuery = {
       version: 2,
       id: this.id,
@@ -748,12 +774,6 @@ class EventView {
     return newEventView;
   }
 
-  withToggleTags() {
-    const newEventView = this.clone();
-    newEventView.showTags = !newEventView.showTags;
-    return newEventView;
-  }
-
   withDeletedColumn(columnIndex: number, tableMeta: MetaType | undefined): EventView {
     // Disallow removal of the orphan column, and check for out-of-bounds
     if (this.fields.length <= 1 || this.fields.length <= columnIndex || columnIndex < 0) {
@@ -816,6 +836,12 @@ class EventView {
       }
     }
 
+    return newEventView;
+  }
+
+  withToggleTags() {
+    const newEventView = this.clone();
+    newEventView.showTags = !newEventView.showTags;
     return newEventView;
   }
 
@@ -925,6 +951,7 @@ class EventView {
   }
 
   getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+    console.log('getResultsViewUrlTarget', this.generateQueryStringObject());
     return {
       pathname: `/organizations/${slug}/discover/results/`,
       query: this.generateQueryStringObject(),
