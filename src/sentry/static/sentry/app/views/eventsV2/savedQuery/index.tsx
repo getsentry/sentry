@@ -76,7 +76,9 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     // For modifying a SavedQuery
     const isEqualQuery = nextEventView.isEqualTo(savedEventView);
-
+    console.log('getDerivedStateFromProps savedEventView', savedEventView);
+    console.log('getDerivedStateFromProps nextEventView', nextEventView);
+    console.log('getDerivedStateFromProps isEqualQuery', isEqualQuery);
     return {
       isNewQuery: false,
       isEditingQuery: !isEqualQuery,

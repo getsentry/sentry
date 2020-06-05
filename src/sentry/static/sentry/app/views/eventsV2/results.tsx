@@ -233,7 +233,6 @@ class Results extends React.Component<Props, State> {
     const {organization, location, router, api} = this.props;
     const {eventView, error, errorCode, totalValues} = this.state;
     const query = location.query.query || '';
-    const showTags = eventView.showTags;
     const title = this.getDocumentTitle();
 
     return (
@@ -267,7 +266,7 @@ class Results extends React.Component<Props, State> {
                   total={totalValues}
                 />
               </Top>
-              <StyledMain isCollapsed={showTags}>
+              <StyledMain isCollapsed={!!eventView.showTags}>
                 <Table
                   organization={organization}
                   eventView={eventView}
@@ -276,7 +275,7 @@ class Results extends React.Component<Props, State> {
                   setError={this.setError}
                 />
               </StyledMain>
-              {showTags ? this.renderTagsTable() : null}
+              {eventView.showTags ? this.renderTagsTable() : null}
             </ContentBox>
           </LightWeightNoProjectMessage>
         </StyledPageContent>
