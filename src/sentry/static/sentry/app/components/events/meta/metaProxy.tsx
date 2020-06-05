@@ -80,7 +80,7 @@ export function getMeta<T extends {}>(
   obj: T | undefined,
   prop: Extract<keyof T, string>
 ): Meta | undefined {
-  if (obj === undefined || typeof obj[GET_META] !== 'function') {
+  if (!obj || typeof obj[GET_META] !== 'function') {
     return undefined;
   }
 
