@@ -123,13 +123,13 @@ class HeaderActions extends React.Component<Props, State> {
 
   handleToggle = () => {
     this.setState({showTags: !this.state.showTags});
-    this.props.onChangeShowTags;
+    this.props.onChangeShowTags();
   };
 
   renderSummaryButton() {
     return (
       <Button size="small" onClick={this.handleToggle} icon={<IconTag size="xs" />}>
-        {t(this.state.showTags ? 'Hide Tags' : 'Show Tags')}
+        {t(this.state.showTags ? 'Show Tags' : 'Hide Tags')}
       </Button>
     );
   }
