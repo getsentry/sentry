@@ -116,7 +116,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-row-gap: ${space(4)};
-  margin-bottom: 48px;
+  margin-bottom: 40px;
 `;
 
 const BarContainer = styled('div')`
