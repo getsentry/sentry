@@ -7,7 +7,7 @@ import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {IconDownload, IconEdit, IconTag} from 'app/icons';
+import {IconDownload, IconStack, IconTag} from 'app/icons';
 import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -25,6 +25,10 @@ type Props = {
   location: Location;
   onEdit: () => void;
   onChangeShowTags: () => void;
+};
+
+type State = {
+  showTags: boolean;
 };
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
@@ -66,7 +70,7 @@ function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Prop
       data-test-id="grid-download-csv"
       icon={<IconDownload size="xs" />}
     >
-      {t('Export Results')}
+      {t('Export')}
     </Button>
   );
 }
@@ -95,14 +99,6 @@ renderAsyncExportButton.propTypes = {
   isLoading: PropTypes.bool,
 };
 
-function renderSummaryButton(onClick: Props['onChangeShowTags']) {
-  return (
-    <Button size="small" onClick={onClick} icon={<IconTag size="xs" />}>
-      {t('Show Tags')}
-    </Button>
-  );
-}
-
 function renderEditButton(canEdit: boolean, props: Props) {
   const onClick = canEdit ? props.onEdit : undefined;
   return (
@@ -111,9 +107,9 @@ function renderEditButton(canEdit: boolean, props: Props) {
       disabled={!canEdit}
       onClick={onClick}
       data-test-id="grid-edit-enable"
-      icon={<IconEdit size="xs" />}
+      icon={<IconStack size="xs" />}
     >
-      {t('Edit Columns')}
+      {t('Columns')}
     </Button>
   );
 }
@@ -122,38 +118,55 @@ renderEditButton.propTypes = {
   onEdit: PropTypes.func,
 };
 
-function HeaderActions(props: Props) {
-  const noEditMessage = t('Requires discover query feature.');
-  const editFeatures = ['organizations:discover-query'];
-  const renderDisabled = p => (
-    <Hovercard
-      body={
-        <FeatureDisabled
-          features={p.features}
-          hideHelpToggle
-          message={noEditMessage}
-          featureName={noEditMessage}
-        />
-      }
-    >
-      {p.children(p)}
-    </Hovercard>
-  );
-  return (
-    <Feature
-      hookName="feature-disabled:grid-editable-actions"
-      renderDisabled={renderDisabled}
-      features={editFeatures}
-    >
-      {({hasFeature}) => (
-        <React.Fragment>
-          {renderEditButton(hasFeature, props)}
-          {renderDownloadButton(hasFeature, props)}
-          {renderSummaryButton(props.onChangeShowTags)}
-        </React.Fragment>
-      )}
-    </Feature>
-  );
+class HeaderActions extends React.Component<Props, State> {
+  state = {showTags: true};
+
+  handleToggle = () => {
+    this.setState({showTags: !this.state.showTags});
+    this.props.onChangeShowTags;
+  };
+
+  renderSummaryButton() {
+    return (
+      <Button size="small" onClick={this.handleToggle} icon={<IconTag size="xs" />}>
+        {t(this.state.showTags ? 'Hide Tags' : 'Show Tags')}
+      </Button>
+    );
+  }
+
+  render() {
+    const noEditMessage = t('Requires discover query feature.');
+    const editFeatures = ['organizations:discover-query'];
+    const renderDisabled = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={noEditMessage}
+            featureName={noEditMessage}
+          />
+        }
+      >
+        {p.children(p)}
+      </Hovercard>
+    );
+    return (
+      <Feature
+        hookName="feature-disabled:grid-editable-actions"
+        renderDisabled={renderDisabled}
+        features={editFeatures}
+      >
+        {({hasFeature}) => (
+          <React.Fragment>
+            {renderEditButton(hasFeature, this.props)}
+            {renderDownloadButton(hasFeature, this.props)}
+            {this.renderSummaryButton()}
+          </React.Fragment>
+        )}
+      </Feature>
+    );
+  }
 }
 
 export default HeaderActions;
