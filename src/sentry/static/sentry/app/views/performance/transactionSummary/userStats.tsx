@@ -8,6 +8,10 @@ import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import {SectionHeading} from 'app/components/charts/styles';
+import ScoreBar from 'app/components/scoreBar';
+import Tooltip from 'app/components/tooltip';
+import theme from 'app/utils/theme';
 
 type Props = {
   location: Location;
@@ -41,16 +45,25 @@ class UserStats extends React.Component<Props> {
   }
 
   renderContents(stats: Results) {
+    const palette = new Array(40).fill(theme.purpleDarkest);
+    const miseryScore = !stats ? '\u2014' : stats['user_misery(300)'];
+
     return (
       <Container>
         <div>
-          <StatTitle>{t('Apdex Score')}</StatTitle>
+          <SectionHeading>{t('Apdex Score')}</SectionHeading>
           <StatNumber>{!stats ? '\u2014' : stats['apdex()']}</StatNumber>
         </div>
         <div>
-          <StatTitle>{t('User Misery')}</StatTitle>
-          <StatNumber>{!stats ? '\u2014' : stats['user_misery(300)']}</StatNumber>
+          <SectionHeading>{t('Baseline Duration')}</SectionHeading>
+          <StatNumber>{'\u2014'}</StatNumber>
         </div>
+        <BarContainer>
+          <SectionHeading>{t('User Misery')}</SectionHeading>
+          <Tooltip title={miseryScore}>
+            <ScoreBar size={30} score={0} palette={palette} radius={0} />
+          </Tooltip>
+        </BarContainer>
       </Container>
     );
   }
@@ -100,22 +113,23 @@ class UserStats extends React.Component<Props> {
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(4)};
-  display: flex;
-  > * + * {
-    margin-left: ${space(4)};
-  }
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-row-gap: ${space(4)};
+  margin-bottom: 48px;
 `;
 
-const StatTitle = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray600};
-  margin: ${space(1)} 0 ${space(1.5)} 0;
+const BarContainer = styled('div')`
+  grid-column: 1/3;
 `;
 
 const StatNumber = styled('div')`
   font-size: 32px;
   color: ${p => p.theme.gray700};
+
+  > div {
+    text-align: left;
+  }
 `;
 
 export default UserStats;
