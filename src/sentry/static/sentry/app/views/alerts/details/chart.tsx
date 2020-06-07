@@ -120,33 +120,45 @@ const Chart = (props: Props) => {
   const warningTrigger = triggers?.find(trig => trig.label === 'warning');
   const criticalTrigger = triggers?.find(trig => trig.label === 'critical');
   const warningTriggerThreshold =
-    warningTrigger &&
-    typeof warningTrigger.alertThreshold === 'number' &&
-    warningTrigger.alertThreshold;
+    typeof warningTrigger?.alertThreshold === 'number'
+      ? warningTrigger?.alertThreshold
+      : undefined;
   const criticalTriggerThreshold =
-    criticalTrigger &&
-    typeof criticalTrigger.alertThreshold === 'number' &&
-    criticalTrigger.alertThreshold;
+    typeof criticalTrigger?.alertThreshold === 'number'
+      ? criticalTrigger?.alertThreshold
+      : undefined;
 
   const visualMapPieces: PiecesObject[] = [];
-  // Echarts throws an error if when the first element in pieces doesn't have both min/max
-  if (warningTriggerThreshold ?? criticalTriggerThreshold)
+  // Echarts throws an error if there isn't an element with both min/max values defined
+  if (criticalTrigger && (warningTriggerThreshold ?? criticalTriggerThreshold)) {
     visualMapPieces.push({
-      min: -1, // if this is 0 the x axis goes halfway over the line
-      max: (warningTriggerThreshold ?? criticalTriggerThreshold) || 0,
+      min:
+        criticalTrigger.thresholdType === 0
+          ? undefined
+          : warningTriggerThreshold ?? criticalTriggerThreshold,
+      max:
+        criticalTrigger.thresholdType === 0
+          ? warningTriggerThreshold ?? criticalTriggerThreshold
+          : undefined,
       color: theme.purple500,
     });
-  if (warningTriggerThreshold && criticalTriggerThreshold)
     visualMapPieces.push({
-      min: warningTriggerThreshold,
-      max: criticalTriggerThreshold,
+      min:
+        criticalTrigger.thresholdType === 0
+          ? warningTriggerThreshold ?? criticalTriggerThreshold
+          : criticalTriggerThreshold,
+      max:
+        criticalTrigger.thresholdType === 0
+          ? criticalTriggerThreshold
+          : warningTriggerThreshold ?? criticalTriggerThreshold,
       color: theme.yellow400,
     });
-  if (criticalTriggerThreshold)
     visualMapPieces.push({
-      min: criticalTriggerThreshold,
+      min: criticalTrigger.thresholdType === 0 ? criticalTriggerThreshold : undefined,
+      max: criticalTrigger.thresholdType === 0 ? undefined : criticalTriggerThreshold,
       color: theme.red300,
     });
+  }
 
   return (
     <LineChart
