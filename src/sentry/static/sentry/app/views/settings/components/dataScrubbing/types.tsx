@@ -70,9 +70,8 @@ export type PiiConfig = {
   };
 };
 
-export type PiiConfigRule = {
-  [key: string]: PiiConfig;
-};
+export type PiiConfigRule = Record<string, PiiConfig>;
 
 export type Applications = Record<string, Array<string>>;
+
 export type Errors = Partial<Record<keyof Omit<Rule, 'id'>, string>>;

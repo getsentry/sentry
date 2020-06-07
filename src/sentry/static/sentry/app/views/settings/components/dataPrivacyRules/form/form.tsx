@@ -36,10 +36,10 @@ type Props = {
   onChange: <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => void;
   onValidate: <T extends keyof Omit<Rule, 'id'>>(field: T) => () => void;
   onUpdateEventId?: (eventId: string) => void;
+  errors: Errors;
   sourceSuggestions?: Array<SourceSuggestion>;
   eventId?: EventId;
   disabled?: boolean;
-  errors?: Errors;
 };
 
 const Form = ({
@@ -100,7 +100,7 @@ const Form = ({
           }}
           value={customRegex}
           onBlur={onValidate('customRegex')}
-          error={errors?.customRegex}
+          error={errors.customRegex}
           disabled={disabled}
         />
       </FormField>
@@ -127,7 +127,7 @@ const Form = ({
         onBlur={onValidate('source')}
         isRegExMatchesSelected={type === RuleType.PATTERN}
         suggestions={sourceSuggestions}
-        error={errors?.source}
+        error={errors.source}
         disabled={disabled}
       />
     </FormField>
