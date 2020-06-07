@@ -36,6 +36,12 @@ export enum SourceSuggestionType {
   STRING = 'string',
 }
 
+export enum RequestError {
+  Unknown = 'unknown',
+  InvalidSelector = 'invalid-selector',
+  RegexParse = 'regex-parse',
+}
+
 export type SourceSuggestion = {
   type: SourceSuggestionType;
   value: string;
@@ -48,7 +54,12 @@ export type Rule = {
   type: RuleType;
   method: MethodType;
   source: string;
-  customRegularExpression?: string;
+  customRegex?: string;
+};
+
+export type EventId = {
+  value: string;
+  status?: EventIdStatus;
 };
 
 export type PiiConfig = {
@@ -64,3 +75,4 @@ export type PiiConfigRule = {
 };
 
 export type Applications = Record<string, Array<string>>;
+export type Errors = Partial<Record<keyof Omit<Rule, 'id'>, string>>;
