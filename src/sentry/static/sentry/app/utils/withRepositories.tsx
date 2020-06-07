@@ -11,8 +11,6 @@ import {getRepositories} from 'app/actionCreators/repositories';
 type DependentProps = {
   api: Client;
   orgSlug: string;
-  projectSlug: string;
-  releaseVersion: string;
 };
 
 type InjectedProps = {
@@ -44,10 +42,12 @@ const withRepositories = <P extends InjectedProps>(
     },
 
     componentDidMount() {
-      this.fetchRepos();
+      // XXX(leedongwei): Do not move this function call unless you modify the
+      // unit test named "prevents repeated calls"
+      this.fetchRepositories();
     },
 
-    fetchRepos() {
+    fetchRepositories() {
       const {api, orgSlug} = this.props as P & DependentProps;
       const repoData = RepositoryStore.get(orgSlug);
 

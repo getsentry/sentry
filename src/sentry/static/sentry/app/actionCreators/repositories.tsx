@@ -18,7 +18,6 @@ export function getRepositories(api: Client, params: ParamsGet) {
   // repo to be fired before the loading state is updated in store.
   // This hack short-circuits that and update the state immediately.
   RepositoryStore.state.repositoriesLoading = true;
-  RepositoryStore.state.orgSlug = orgSlug;
   RepositoryActions.loadRepositories(orgSlug);
 
   return api
@@ -26,10 +25,10 @@ export function getRepositories(api: Client, params: ParamsGet) {
       method: 'GET',
     })
     .then((res: Repository[]) => {
-      RepositoryActions.loadRepositoriesSuccess(orgSlug, res);
+      RepositoryActions.loadRepositoriesSuccess(res);
     })
     .catch(err => {
-      RepositoryActions.loadRepositoriesError(orgSlug, err);
+      RepositoryActions.loadRepositoriesError(err);
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
         scope.setFingerprint(['getRepositories-action-creator']);

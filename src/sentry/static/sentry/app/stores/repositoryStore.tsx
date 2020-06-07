@@ -38,30 +38,42 @@ const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInterface =
   },
 
   resetRepositories() {
-    this.state.orgSlug = undefined;
-    this.state.repositories = undefined;
-    this.state.repositoriesLoading = undefined;
-    this.state.repositoriesError = undefined;
+    this.state = {
+      orgSlug: undefined,
+      repositories: undefined,
+      repositoriesLoading: undefined,
+      repositoriesError: undefined,
+    };
     this.trigger(this.state);
   },
 
   loadRepositories(orgSlug: string) {
-    this.state.orgSlug = orgSlug;
-    this.state.repositoriesLoading = true;
-    this.state.repositoriesError = undefined;
+    this.state = {
+      orgSlug,
+      repositories: orgSlug === this.state.orgSlug ? this.state.repositories : undefined,
+      repositoriesLoading: true,
+      repositoriesError: undefined,
+    };
     this.trigger(this.state);
   },
 
   loadRepositoriesError(err: Error) {
-    this.state.repositoriesLoading = false;
-    this.state.repositoriesError = err;
+    this.state = {
+      ...this.state,
+      repositories: undefined,
+      repositoriesLoading: false,
+      repositoriesError: err,
+    };
     this.trigger(this.state);
   },
 
   loadRepositoriesSuccess(data: Repository[]) {
-    this.state.repositories = data;
-    this.state.repositoriesLoading = false;
-    this.state.repositoriesError = undefined;
+    this.state = {
+      ...this.state,
+      repositories: data,
+      repositoriesLoading: false,
+      repositoriesError: undefined,
+    };
     this.trigger(this.state);
   },
 
@@ -71,6 +83,7 @@ const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInterface =
    */
   get(orgSlug?: string) {
     const {orgSlug: stateOrgSlug, ...data} = this.state;
+
     if (orgSlug !== undefined && orgSlug !== stateOrgSlug) {
       return {
         repositories: undefined,
