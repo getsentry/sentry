@@ -19,6 +19,8 @@ import {TableColumn, TableDataRow} from './types';
 enum Actions {
   ADD = 'add',
   EXCLUDE = 'exclude',
+  SHOW_GREATER_THAN = 'show_greater_than',
+  SHOW_LESS_THAN = 'show_less_than',
 }
 
 type Props = {
@@ -114,6 +116,16 @@ export default class CellAction extends React.Component<Props, State> {
         }
         query[negation].push(`${value}`);
         break;
+      case Actions.SHOW_GREATER_THAN:
+        // Remove query token if it already exists
+        delete query[`${column.name}`];
+        query[column.name] = [`>${value}`];
+        break;
+      case Actions.SHOW_LESS_THAN:
+        // Remove query token if it already exists
+        delete query[`${column.name}`];
+        query[column.name] = [`<${value}`];
+        break;
       default:
         throw new Error(`Unknown action type. ${action}`);
     }
@@ -156,19 +168,37 @@ export default class CellAction extends React.Component<Props, State> {
         </ActionItem>
       );
 
-      if (column.column.kind !== 'function') {
-        // we cannot add negation filters on functions
+      actions.push(
+        <ActionItem
+          key="exclude-from-filter"
+          data-test-id="exclude-from-filter"
+          onClick={() => this.handleCellAction(Actions.EXCLUDE, value)}
+        >
+          {t('Exclude from filter')}
+        </ActionItem>
+      );
+    }
 
-        actions.push(
-          <ActionItem
-            key="exclude-from-filter"
-            data-test-id="exclude-from-filter"
-            onClick={() => this.handleCellAction(Actions.EXCLUDE, value)}
-          >
-            {t('Exclude from filter')}
-          </ActionItem>
-        );
-      }
+    if (column.type !== 'string' && column.type !== 'boolean') {
+      actions.push(
+        <ActionItem
+          key="show-values-greater-than"
+          data-test-id="show-values-greater-than"
+          onClick={() => this.handleCellAction(Actions.SHOW_GREATER_THAN, value)}
+        >
+          {t('Show values greater than')}
+        </ActionItem>
+      );
+
+      actions.push(
+        <ActionItem
+          key="show-values-less-than"
+          data-test-id="show-values-less-than"
+          onClick={() => this.handleCellAction(Actions.SHOW_LESS_THAN, value)}
+        >
+          {t('Show values less than')}
+        </ActionItem>
+      );
     }
 
     if (actions.length === 0) {
