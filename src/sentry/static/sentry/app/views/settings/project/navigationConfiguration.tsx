@@ -73,9 +73,9 @@ export default function getConfiguration({
           show: () => organization.features?.includes('android-mappings'),
         },
         {
-          path: `${pathPrefix}/data-privacy/`,
-          title: t('Data Privacy'),
-          description: t('Configure Datascrubbers for a project'),
+          path: `${pathPrefix}/security-and-privacy/`,
+          title: t('Security & Privacy'),
+          description: t('Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Anonymization)'),
           show: () => organization.features?.includes('datascrubbers-v2'),
           badge: () => 'new',
         },

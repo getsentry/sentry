@@ -17,7 +17,7 @@ const ProjectDataPrivacy = ({organization, ...props}: Props) => (
       <FeatureDisabled
         alert={PanelAlert}
         features={organization.features}
-        featureName={t('Data Privacy - new')}
+        featureName={t('Security and Privacy - new')}
       />
     )}
   >

@@ -40,7 +40,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Data Privacy')} />
+        <SettingsPageHeader title={t('Security & Privacy')} />
         <Form
           saveOnBlur
           allowUndo
@@ -50,7 +50,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
           onSubmitSuccess={this.handleUpdateProject}
         >
           <JsonForm
-            title={t('Data Privacy')}
+            title={t('Data Anonymization')}
             additionalFieldProps={{
               organization,
             }}
