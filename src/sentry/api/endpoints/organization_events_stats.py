@@ -6,7 +6,7 @@ import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry import features, eventstore
+from sentry import eventstore
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.api.event_search import resolve_field_list, InvalidSearchQuery
@@ -21,7 +21,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request, organization):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
-            if not features.has("organizations:discover-basic", organization, actor=request.user):
+            if not self.has_feature(organization, request):
                 span.set_data("using_v1_results", True)
                 return self.get_v1_results(request, organization)
 

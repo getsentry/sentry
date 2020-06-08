@@ -25,6 +25,11 @@ from sentry.utils import snuba
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
+    def has_feature(self, organization, request):
+        return features.has(
+            "organizations:discover-basic", organization, actor=request.user
+        ) or features.has("organizations:performance-view", organization, actor=request.user)
+
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
             params = self.get_filter_params(request, organization)

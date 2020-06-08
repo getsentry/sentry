@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {BannerContainer, BannerSummary} from 'app/components/events/styles';
@@ -6,48 +5,57 @@ import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import {t} from 'app/locale';
 import theme from 'app/utils/theme';
+import {ResolutionStatusDetails} from 'app/types';
 
-export default class MutedBox extends React.PureComponent {
-  static propTypes = {
-    statusDetails: PropTypes.object.isRequired,
-  };
+type Props = {
+  statusDetails: ResolutionStatusDetails;
+};
 
+class MutedBox extends React.PureComponent<Props> {
   renderReason = () => {
-    const details = this.props.statusDetails;
-    if (details.ignoreUntil) {
+    const {
+      ignoreUntil,
+      ignoreCount,
+      ignoreWindow,
+      ignoreUserCount,
+      ignoreUserWindow,
+    } = this.props.statusDetails;
+
+    if (ignoreUntil) {
       return t(
         'This issue has been ignored until %s',
         <strong>
-          <DateTime date={details.ignoreUntil} />
+          <DateTime date={ignoreUntil} />
         </strong>
       );
-    } else if (details.ignoreCount && details.ignoreWindow) {
+    } else if (ignoreCount && ignoreWindow) {
       return t(
         'This issue has been ignored until it occurs %s time(s) in %s',
-        <strong>{details.ignoreCount.toLocaleString()}</strong>,
+        <strong>{ignoreCount.toLocaleString()}</strong>,
         <strong>
-          <Duration seconds={details.ignoreWindow * 60} />
+          <Duration seconds={ignoreWindow * 60} />
         </strong>
       );
-    } else if (details.ignoreCount) {
+    } else if (ignoreCount) {
       return t(
         'This issue has been ignored until it occurs %s more time(s)',
-        <strong>{details.ignoreCount.toLocaleString()}</strong>
+        <strong>{ignoreCount.toLocaleString()}</strong>
       );
-    } else if (details.ignoreUserCount && details.ignoreUserWindow) {
+    } else if (ignoreUserCount && ignoreUserWindow) {
       return t(
         'This issue has been ignored until it affects %s user(s) in %s',
-        <strong>{details.ignoreUserCount.toLocaleString()}</strong>,
+        <strong>{ignoreUserCount.toLocaleString()}</strong>,
         <strong>
-          <Duration seconds={details.ignoreUserWindow * 60} />
+          <Duration seconds={ignoreUserWindow * 60} />
         </strong>
       );
-    } else if (details.ignoreUserCount) {
+    } else if (ignoreUserCount) {
       return t(
         'This issue has been ignored until it affects %s more user(s)',
-        <strong>{details.ignoreUserCount.toLocaleString()}</strong>
+        <strong>{ignoreUserCount.toLocaleString()}</strong>
       );
     }
+
     return t('This issue has been ignored');
   };
 
@@ -65,3 +73,5 @@ export default class MutedBox extends React.PureComponent {
     </BannerContainer>
   );
 }
+
+export default MutedBox;
