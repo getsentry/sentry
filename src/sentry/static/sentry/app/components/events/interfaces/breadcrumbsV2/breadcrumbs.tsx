@@ -374,7 +374,7 @@ class Breadcrumbs extends React.Component<Props, State> {
             ref={this.listRef}
             event={event}
             orgId={orgId}
-            onSwitchTimeFormat={this.handleSwicthTimeFormat}
+            onSwitchTimeFormat={this.handleSwitchTimeFormat}
             displayRelativeTime={displayRelativeTime}
           />
         ) : (
