@@ -133,7 +133,9 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         {IncompleteMarker}
         {task.title}
       </Title>
-      <Description>{`${task.description}. ${task.detailedDescription}`}</Description>
+      <Description>{`${task.description}. ${
+        task.detailedDescription ? task.detailedDescription : ''
+      }`}</Description>
       {task.requisiteTasks.length === 0 && (
         <ActionBar>
           {task.status === 'pending' ? (

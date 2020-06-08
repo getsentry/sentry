@@ -95,8 +95,9 @@ export function getOnboardingTasks(
     {
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Add a second platform'),
-      description: t('Add Sentry to a second platform'),
-      detailedDescription: t('Capture errors from both your front and back ends.'),
+      description: t(
+        `Add a new project to capture errors from both your front and back ends for your other platforms`
+      ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
