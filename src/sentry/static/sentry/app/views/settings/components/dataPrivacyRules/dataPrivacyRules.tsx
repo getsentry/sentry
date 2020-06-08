@@ -292,7 +292,9 @@ class DataPrivacyRules extends React.Component<Props, State> {
         const errorMessage = error.responseJSON?.relayPiiConfig?.[0];
 
         if (!errorMessage) {
-          addErrorMessage(t('Unknown error occurred while saving data anonymization rules'));
+          addErrorMessage(
+            t('Unknown error occurred while saving data anonymization rules')
+          );
           return undefined;
         }
 
@@ -322,7 +324,9 @@ class DataPrivacyRules extends React.Component<Props, State> {
           };
         }
 
-        addErrorMessage(t('Unknown error occurred while saving data anonymization rules'));
+        addErrorMessage(
+          t('Unknown error occurred while saving data anonymization rules')
+        );
         return undefined;
       });
   };
