@@ -1,7 +1,8 @@
 import Reflux from 'reflux';
 
 import ReleaseActions from 'app/actions/releaseActions';
-import {Deploy, Release} from 'app/types';
+import OrganizationActions from 'app/actions/organizationActions';
+import {Deploy, Organization, Release} from 'app/types';
 
 type StoreRelease = Map<string, Release>;
 type StoreDeploys = Map<string, Array<Deploy>>;
@@ -56,6 +57,7 @@ const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   listenables: ReleaseActions,
 
   init() {
+    this.listenTo(OrganizationActions.update, this.updateOrganization);
     this.reset();
   },
 
@@ -68,6 +70,14 @@ const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
       deploys: new Map() as StoreDeploys,
       deploysLoading: new Map() as StoreLoading,
       deploysError: new Map() as StoreError,
+    };
+    this.trigger(this.state);
+  },
+
+  updateOrganization(org: Organization) {
+    this.state = {
+      ...this.state,
+      orgSlug: org.slug,
     };
     this.trigger(this.state);
   },
