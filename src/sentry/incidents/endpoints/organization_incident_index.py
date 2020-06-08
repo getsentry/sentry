@@ -25,7 +25,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
         incidents = Incident.objects.fetch_for_organization(
             organization, self.get_projects(request, organization)
-        ).select_related("alert_rule")
+        )
 
         envs = self.get_environments(request, organization)
         if envs:

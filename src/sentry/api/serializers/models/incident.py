@@ -13,6 +13,7 @@ from sentry.utils.db import attach_foreignkey
 @register(Incident)
 class IncidentSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
+        attach_foreignkey(item_list, Incident.alert_rule, related=("snuba_query",))
         incident_projects = defaultdict(list)
         for incident_project in IncidentProject.objects.filter(
             incident__in=item_list
@@ -52,7 +53,6 @@ class IncidentSerializer(Serializer):
 class DetailedIncidentSerializer(IncidentSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         results = super(DetailedIncidentSerializer, self).get_attrs(item_list, user=user, **kwargs)
-        attach_foreignkey(item_list, Incident.alert_rule, related=("snuba_query",))
         subscribed_incidents = set()
         if user.is_authenticated():
             subscribed_incidents = set(
@@ -89,7 +89,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
         context["isSubscribed"] = attrs["is_subscribed"]
         context["seenBy"] = seen_list["seen_by"]
         context["hasSeen"] = seen_list["has_seen"]
-        context["alertRule"] = serialize(obj.alert_rule, user)
+        context["alertRule"] = attrs["alert_rule"]
         # The query we should use to get accurate results in Discover.
         context["discoverQuery"] = self._build_discover_query(obj)
 
