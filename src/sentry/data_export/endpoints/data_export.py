@@ -4,6 +4,7 @@ import six
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
@@ -52,7 +53,7 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
                 MAX_FIELDS
             )
-            return Response({"detail": detail}, status=400)
+            raise ParseError(detail=detail)
 
         # Validate the project field, if provided
         # A PermissionDenied error will be raised in `_get_projects_by_id` if the request is invalid
