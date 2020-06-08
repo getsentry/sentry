@@ -19,10 +19,15 @@ class IncidentSerializer(Serializer):
         ).select_related("project"):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
+        alert_rules = {
+            d["id"]: d
+            for d in serialize(set(i.alert_rule for i in item_list if i.alert_rule.id), user)
+        }
+
         results = {}
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
-            results[incident]["alert_rule"] = serialize(incident.alert_rule, user)
+            results[incident]["alert_rule"] = alert_rules.get(six.text_type(incident.alert_rule.id))
 
         return results
 
