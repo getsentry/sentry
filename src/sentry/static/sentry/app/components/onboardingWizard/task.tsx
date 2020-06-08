@@ -72,7 +72,19 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     }
 
     if (task.actionType === 'app') {
-      navigateTo(`${task.location}?onboardingTask`, router);
+      // For the "second platform" task, it's confusing to continue linking to the "create new project"
+      // page after the user has created the new project -- instead, link to the install
+      // instructions for the corresponding project to prompt the user to send an event
+      // to the new project.
+      let location = task.location;
+      if (task.task === OnboardingTaskKey.SECOND_PLATFORM && task.status === 'pending') {
+        // if there's no project id assiciated with the task, display project selector prompt.
+        const projectSlug = task.project
+          ? organization.projects.find(project => project.id === `${task.project}`)!.slug
+          : ':projectId';
+        location = `/settings/${organization.slug}/projects/${projectSlug}/install/`;
+      }
+      navigateTo(`${location}?onboardingTask`, router);
     }
   };
 
