@@ -2,11 +2,11 @@ import {Client} from 'app/api';
 
 import {RuleType, PiiConfig, Applications, Rule} from './types';
 
-function getCustomRule(rule: Rule): PiiConfig {
+function getCustomRule(rule: Required<Rule>): PiiConfig {
   if (rule.type === RuleType.PATTERN) {
     return {
       type: rule.type,
-      pattern: rule?.customRegex,
+      pattern: rule?.pattern,
       redaction: {
         method: rule.method,
       },
@@ -20,7 +20,7 @@ function getCustomRule(rule: Rule): PiiConfig {
   };
 }
 
-function submitRules(api: Client, endpoint: string, rules: Array<Rule>) {
+function submitRules(api: Client, endpoint: string, rules: Array<Required<Rule>>) {
   const applications: Applications = {};
   const customRules: Record<string, PiiConfig> = {};
 

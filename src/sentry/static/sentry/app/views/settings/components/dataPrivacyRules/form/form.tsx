@@ -44,7 +44,7 @@ type Props = {
 
 const Form = ({
   disabled,
-  rule: {source, customRegex, type, method},
+  rule: {source, pattern, type, method},
   errors,
   sourceSuggestions,
   onUpdateEventId,
@@ -93,14 +93,14 @@ const Form = ({
         isFullWidth
       >
         <RegularExpression
-          name="customRegex"
+          name="pattern"
           placeholder={t('[a-zA-Z0-9]+')}
           onChange={(value: string) => {
-            onChange('customRegex', value);
+            onChange('pattern', value);
           }}
-          value={customRegex}
-          onBlur={onValidate('customRegex')}
-          error={errors.customRegex}
+          value={pattern}
+          onBlur={onValidate('pattern')}
+          error={errors?.pattern}
           disabled={disabled}
         />
       </FormField>
@@ -127,7 +127,7 @@ const Form = ({
         onBlur={onValidate('source')}
         isRegExMatchesSelected={type === RuleType.PATTERN}
         suggestions={sourceSuggestions}
-        error={errors.source}
+        error={errors?.source}
         disabled={disabled}
       />
     </FormField>

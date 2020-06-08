@@ -44,7 +44,7 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
           method,
           type: RuleType.PATTERN,
           source: application,
-          customRegex: resolvedRule.pattern,
+          pattern: resolvedRule.pattern,
         });
         continue;
       }

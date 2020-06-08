@@ -101,11 +101,11 @@ class Dialog extends React.Component<Props, State> {
     const rule: Rule = {...this.state.rule, [stateProperty]: value};
 
     if (rule.type !== RuleType.PATTERN) {
-      delete rule?.customRegex;
-      this.clearError('customRegex');
+      delete rule?.pattern;
+      this.clearError('pattern');
     }
 
-    if (stateProperty === 'customRegex' || stateProperty === 'source') {
+    if (stateProperty === 'pattern' || stateProperty === 'source') {
       this.clearError(stateProperty as keyof Omit<Rule, 'id'>);
     }
 

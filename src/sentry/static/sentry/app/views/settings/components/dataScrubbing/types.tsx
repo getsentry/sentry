@@ -54,7 +54,7 @@ export type Rule = {
   type: RuleType;
   method: MethodType;
   source: string;
-  customRegex?: string;
+  pattern?: string;
 };
 
 export type EventId = {
@@ -62,15 +62,34 @@ export type EventId = {
   status?: EventIdStatus;
 };
 
-export type PiiConfig = {
-  type: RuleType;
-  pattern?: string;
-  redaction?: {
-    method?: MethodType;
+type PiiConfigBase = {
+  redaction: {
+    method: MethodType;
   };
 };
 
-export type PiiConfigRule = Record<string, PiiConfig>;
+type PiiConfigRegex = {
+  type: RuleType.PATTERN;
+  pattern: string;
+} & PiiConfigBase;
+
+type PiiConfigWithoutRegex = {
+  type:
+    | RuleType.CREDITCARD
+    | RuleType.PASSWORD
+    | RuleType.IP
+    | RuleType.IMEI
+    | RuleType.EMAIL
+    | RuleType.UUID
+    | RuleType.PEMKEY
+    | RuleType.URLAUTH
+    | RuleType.USSSN
+    | RuleType.USER_PATH
+    | RuleType.MAC
+    | RuleType.ANYTHING;
+} & PiiConfigBase;
+
+export type PiiConfig = PiiConfigWithoutRegex | PiiConfigRegex;
 
 export type Applications = Record<string, Array<string>>;
 
