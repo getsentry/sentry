@@ -4,6 +4,7 @@ import six
 from datetime import timedelta
 from enum import Enum
 
+EXPORTED_ROWS_LIMIT = 10000000
 SNUBA_MAX_RESULTS = 10000
 DEFAULT_EXPIRATION = timedelta(weeks=4)
 
