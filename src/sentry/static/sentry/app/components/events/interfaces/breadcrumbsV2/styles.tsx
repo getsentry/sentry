@@ -18,7 +18,7 @@ const IconWrapper = styled('div', {
   background: ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowLightest};
   border-radius: 32px;
-  z-index: 1;
+  z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
   border: 1px solid ${p => p.theme.gray400};
   color: ${p => p.theme.gray800};
@@ -49,7 +49,7 @@ const GridCell = styled('div')<{
       background: #fffcfb;
       border-top: 1px solid #fa4747;
       border-bottom: 1px solid #fa4747;
-      z-index: 1;
+      z-index: ${p.theme.zIndex.breadcrumbs.gridCellError};
     `}
   ${p => p.isLastItem && `border-bottom: none`};
 `;

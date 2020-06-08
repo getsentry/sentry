@@ -39,7 +39,7 @@ export default ListHeader;
 
 const StyledGridCell = styled(GridCell)`
   position: sticky;
-  z-index: 2;
+  z-index: ${p => p.theme.zIndex.breadcrumbs.header};
   top: 0;
   border-bottom: 1px solid ${p => p.theme.borderDark};
   background: ${p => p.theme.gray100};
