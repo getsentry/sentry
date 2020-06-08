@@ -6,7 +6,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.models import Incident, IncidentStatus
 
 
@@ -26,7 +25,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
         incidents = Incident.objects.fetch_for_organization(
             organization, self.get_projects(request, organization)
-        )
+        ).select_related("alert_rule")
 
         envs = self.get_environments(request, organization)
         if envs:
@@ -48,6 +47,6 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             queryset=incidents,
             order_by="-date_started",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, DetailedIncidentSerializer()),
+            on_results=lambda x: serialize(x, request.user),
             default_per_page=25,
         )

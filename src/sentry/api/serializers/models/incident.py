@@ -31,6 +31,7 @@ class IncidentSerializer(Serializer):
             "identifier": six.text_type(obj.identifier),
             "organizationId": six.text_type(obj.organization_id),
             "projects": attrs["projects"],
+            "alertRule": serialize(obj.alert_rule, user),
             "status": obj.status,
             "statusMethod": obj.status_method,
             "type": obj.type,
