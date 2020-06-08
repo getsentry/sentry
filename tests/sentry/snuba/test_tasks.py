@@ -194,3 +194,34 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter.aggregations == [
             [u"quantile(0.95)", "duration", u"percentile_transaction_duration__95"]
         ]
+
+    def test_user_query(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.EVENTS, "user:anengineer@work.io", "count()", None,
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [
+            [
+                ["email", "=", "anengineer@work.io"],
+                ["username", "=", "anengineer@work.io"],
+                ["ip_address", "=", "anengineer@work.io"],
+                ["user_id", "=", "anengineer@work.io"],
+            ],
+            ["type", "=", "error"],
+        ]
+        assert snuba_filter.aggregations == [[u"count", None, u"count"]]
+
+    def test_user_query_transactions(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.TRANSACTIONS, "user:anengineer@work.io", "p95()", None,
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [
+            [
+                ["email", "=", "anengineer@work.io"],
+                ["username", "=", "anengineer@work.io"],
+                ["ip_address", "=", "anengineer@work.io"],
+                ["user_id", "=", "anengineer@work.io"],
+            ],
+        ]
+        assert snuba_filter.aggregations == [[u"quantile(0.95)", "duration", u"p95"]]
