@@ -32,14 +32,12 @@ const fromOrNow = (
   return t('Now');
 };
 
-const getAbsoluteTimeFormat = (displayMilliSeconds: boolean) => {
-  const defaultFormat = displayMilliSeconds ? `${timeFormat}.SSS` : timeFormat;
-
+const getAbsoluteTimeFormat = (format: string) => {
   if (use24Hours()) {
-    return defaultFormat;
+    return format;
   }
 
-  return `${defaultFormat} A`;
+  return `${format} A`;
 };
 
 const gerFormattedTimestamp = (
@@ -55,7 +53,7 @@ const gerFormattedTimestamp = (
 
   if (!displayRelativeTime) {
     return {
-      date,
+      date: `${date} ${parsedTimestamp.format(getAbsoluteTimeFormat('HH:mm'))}`,
       time: relativeTime,
       displayTime: parsedTimestamp.format(timeFormat),
     };
@@ -63,7 +61,9 @@ const gerFormattedTimestamp = (
 
   return {
     date,
-    time: parsedTimestamp.format(getAbsoluteTimeFormat(displayMilliSeconds)),
+    time: parsedTimestamp.format(
+      getAbsoluteTimeFormat(displayMilliSeconds ? `${timeFormat}.SSS` : timeFormat)
+    ),
     displayTime: relativeTime,
   };
 };
