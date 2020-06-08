@@ -291,6 +291,7 @@ class Results extends React.Component<Props, State> {
                   title={title}
                   setError={this.setError}
                   onChangeShowTags={this.handleChangeShowTags}
+                  showTags={showTags}
                 />
               </StyledMain>
               {showTags ? this.renderTagsTable() : null}

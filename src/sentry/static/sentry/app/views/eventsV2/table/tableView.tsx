@@ -41,6 +41,7 @@ export type TableViewProps = {
   title: string;
 
   onChangeShowTags: () => void;
+  showTags: boolean;
 };
 
 /**
@@ -226,6 +227,7 @@ class TableView extends React.Component<TableViewProps> {
       tableData,
       location,
       onChangeShowTags,
+      showTags,
     } = this.props;
 
     return (
@@ -238,6 +240,7 @@ class TableView extends React.Component<TableViewProps> {
         tableData={tableData}
         location={location}
         onChangeShowTags={onChangeShowTags}
+        showTags={showTags}
       />
     );
   };

@@ -25,9 +25,6 @@ type Props = {
   location: Location;
   onEdit: () => void;
   onChangeShowTags: () => void;
-};
-
-type State = {
   showTags: boolean;
 };
 
@@ -118,55 +115,46 @@ renderEditButton.propTypes = {
   onEdit: PropTypes.func,
 };
 
-class HeaderActions extends React.Component<Props, State> {
-  state = {showTags: true};
+function renderSummaryButton({onChangeShowTags, showTags}: Props) {
+  return (
+    <Button size="small" onClick={onChangeShowTags} icon={<IconTag size="xs" />}>
+      {showTags ? t('Hide Tags') : t('Show Tags')}
+    </Button>
+  );
+}
 
-  handleToggle = () => {
-    this.setState({showTags: !this.state.showTags});
-    this.props.onChangeShowTags();
-  };
-
-  renderSummaryButton() {
-    return (
-      <Button size="small" onClick={this.handleToggle} icon={<IconTag size="xs" />}>
-        {t(this.state.showTags ? 'Show Tags' : 'Hide Tags')}
-      </Button>
-    );
-  }
-
-  render() {
-    const noEditMessage = t('Requires discover query feature.');
-    const editFeatures = ['organizations:discover-query'];
-    const renderDisabled = p => (
-      <Hovercard
-        body={
-          <FeatureDisabled
-            features={p.features}
-            hideHelpToggle
-            message={noEditMessage}
-            featureName={noEditMessage}
-          />
-        }
-      >
-        {p.children(p)}
-      </Hovercard>
-    );
-    return (
-      <Feature
-        hookName="feature-disabled:grid-editable-actions"
-        renderDisabled={renderDisabled}
-        features={editFeatures}
-      >
-        {({hasFeature}) => (
-          <React.Fragment>
-            {renderEditButton(hasFeature, this.props)}
-            {renderDownloadButton(hasFeature, this.props)}
-            {this.renderSummaryButton()}
-          </React.Fragment>
-        )}
-      </Feature>
-    );
-  }
+function HeaderActions(props: Props) {
+  const noEditMessage = t('Requires discover query feature.');
+  const editFeatures = ['organizations:discover-query'];
+  const renderDisabled = p => (
+    <Hovercard
+      body={
+        <FeatureDisabled
+          features={p.features}
+          hideHelpToggle
+          message={noEditMessage}
+          featureName={noEditMessage}
+        />
+      }
+    >
+      {p.children(p)}
+    </Hovercard>
+  );
+  return (
+    <Feature
+      hookName="feature-disabled:grid-editable-actions"
+      renderDisabled={renderDisabled}
+      features={editFeatures}
+    >
+      {({hasFeature}) => (
+        <React.Fragment>
+          {renderEditButton(hasFeature, props)}
+          {renderDownloadButton(hasFeature, props)}
+          {renderSummaryButton(props)}
+        </React.Fragment>
+      )}
+    </Feature>
+  );
 }
 
 export default HeaderActions;
