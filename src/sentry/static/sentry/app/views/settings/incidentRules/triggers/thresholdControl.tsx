@@ -6,10 +6,12 @@ import {
   AlertRuleThreshold,
   AlertRuleThresholdType,
 } from 'app/views/settings/incidentRules/types';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
+import NumberDragControl from 'app/components/numberDragControl';
+import Tooltip from 'app/components/tooltip';
 
 type Props = ThresholdControlValue & {
   type: AlertRuleThreshold;
@@ -83,6 +85,12 @@ class ThresholdControl extends React.Component<Props, State> {
     );
   };
 
+  handleDragChange = (delta: number, e: React.MouseEvent) => {
+    const {onChange, type, thresholdType, threshold} = this.props;
+    const currentValue = threshold || 0;
+    onChange(type, {thresholdType, threshold: currentValue + delta}, e);
+  };
+
   render() {
     const {currentValue} = this.state;
     const {thresholdType, threshold, type, onChange: _, disabled, ...props} = this.props;
@@ -108,12 +116,28 @@ class ThresholdControl extends React.Component<Props, State> {
           onChange={this.handleThresholdChange}
           onBlur={this.handleThresholdBlur}
         />
+        <DragContainer>
+          <Tooltip
+            title={tct('Drag to adjust threshold[break]You can hold shift to fine tune', {
+              break: <br />,
+            })}
+          >
+            <NumberDragControl step={5} axis="y" onChange={this.handleDragChange} />
+          </Tooltip>
+        </DragContainer>
       </div>
     );
   }
 }
 
+const DragContainer = styled('div')`
+  position: absolute;
+  top: 6px;
+  right: 12px;
+`;
+
 export default styled(ThresholdControl)`
+  position: relative;
   display: grid;
   align-items: center;
   grid-template-columns: 1fr 3fr;
