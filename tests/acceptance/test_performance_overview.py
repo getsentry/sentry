@@ -16,7 +16,6 @@ from .page_objects.base import BasePage
 
 FEATURE_NAMES = (
     "organizations:discover-basic",
-    "organizations:transaction-events",
     "organizations:performance-view",
 )
 

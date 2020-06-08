@@ -107,7 +107,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           <Feature
             requireAll
             features={[
-              'organizations:transaction-events',
+              'organizations:performance-view',
               'organizations:incidents-performance',
             ]}
           >
