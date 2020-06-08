@@ -49,12 +49,6 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        if len(data["query_info"].get("field", [])) > MAX_FIELDS:
-            detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
-                MAX_FIELDS
-            )
-            raise ParseError(detail=detail)
-
         # Validate the project field, if provided
         # A PermissionDenied error will be raised in `_get_projects_by_id` if the request is invalid
         project_query = data["query_info"].get("project")
@@ -72,6 +66,13 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if data["query_type"] == ExportQueryType.DISCOVER_STR:
             if not features.has("organizations:discover-basic", organization, actor=request.user):
                 return Response(status=403)
+
+            if len(data["query_info"].get("field", [])) > MAX_FIELDS:
+                detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
+                    MAX_FIELDS
+                )
+                raise ParseError(detail=detail)
+
             if "project" not in data["query_info"]:
                 projects = self.get_projects(request, organization)
                 data["query_info"]["project"] = [project.id for project in projects]

@@ -11,7 +11,7 @@ from sentry.testutils import APITestCase
 class DataExportTest(APITestCase):
     endpoint = "sentry-api-0-organization-data-export"
     method = "post"
-    payload = {"query_type": "Issues-by-Tag", "query_info": {"env": "test"}}
+    payload = {"query_type": ExportQueryType.ISSUES_BY_TAG_STR, "query_info": {"env": "test"}}
 
     def setUp(self):
         self.user = self.create_user("user1@example.com")
@@ -89,9 +89,13 @@ class DataExportTest(APITestCase):
         Ensures that if too many fields are requested, returns a 400 status code with the
         corresponding error message.
         """
-        payload = self.payload.copy()
-        payload["query_info"]["field"] = ["id"] * (MAX_FIELDS + 1)
-        with self.feature("organizations:data-export"):
+        payload = {
+            "query_type": ExportQueryType.DISCOVER_STR,
+            "query_info": {"env": "test", "field": ["id"] * (MAX_FIELDS + 1)},
+        }
+        with self.feature(
+            {"organizations:data-export": True, "organizations:discover-basic": True}
+        ):
             response = self.get_valid_response(self.organization.slug, status_code=400, **payload)
         assert response.data == {
             "detail": "You can export up to 20 fields at a time. Please delete some and try again."
