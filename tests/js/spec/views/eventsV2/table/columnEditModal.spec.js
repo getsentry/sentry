@@ -26,7 +26,7 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 
 describe('EventsV2 -> ColumnEditModal', function() {
   const initialData = initializeOrg({
-    organization: {features: ['transaction-events']},
+    organization: {features: ['performance-view']},
   });
   const tagKeys = ['browser.name', 'custom-field'];
   const columns = [

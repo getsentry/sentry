@@ -122,7 +122,7 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
 
 export function getPrebuiltQueries(organization: Organization) {
   let views = ALL_VIEWS;
-  if (organization.features.includes('transaction-events')) {
+  if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
     const cloned = [...ALL_VIEWS];
     cloned.splice(2, 0, ...TRANSACTION_VIEWS);
@@ -437,7 +437,7 @@ export function generateFieldOptions({
   let functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
-  if (!organization.features.includes('transaction-events')) {
+  if (!organization.features.includes('performance-view')) {
     fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
     functions = functions.filter(item => !TRACING_FIELDS.includes(item));
   }

@@ -121,7 +121,6 @@ default_manager.add("projects:plugins", ProjectPluginFeature)  # NOQA
 requires_snuba = (
     "organizations:discover",
     "organizations:events",
-    "organizations:transaction-events",
     "organizations:performance-view",
     "organizations:global-views",
     "organizations:incidents",

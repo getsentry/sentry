@@ -88,7 +88,7 @@ class SearchBar extends React.PureComponent {
         )
       : {};
 
-    const fieldTags = organization.features.includes('transaction-events')
+    const fieldTags = organization.features.includes('performance-view')
       ? assign(FIELD_TAGS, functionTags)
       : omit(FIELD_TAGS, TRACING_FIELDS);
 
