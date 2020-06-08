@@ -55,6 +55,21 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400
 
+    def test_performance_view_feature(self):
+        self.login_as(user=self.user)
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["id", "project.id"], "project": [self.project.id]}
+        with self.feature(
+            {"organizations:discover-basic": False, "organizations:performance-view": True}
+        ):
+            response = self.client.get(self.url, query, format="json")
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
     def test_multi_project_feature_gate_rejection(self):
         self.login_as(user=self.user)
         team = self.create_team(organization=self.organization, members=[self.user])

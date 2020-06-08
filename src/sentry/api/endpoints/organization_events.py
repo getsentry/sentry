@@ -116,7 +116,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         )
 
     def get(self, request, organization):
-        if not features.has("organizations:discover-basic", organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
