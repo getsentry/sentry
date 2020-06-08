@@ -10,29 +10,19 @@ import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
 import Form from './form/form';
-<<<<<<< HEAD:src/sentry/static/sentry/app/views/settings/components/dataScrubbing/dialog.tsx
-import {RuleType, MethodType} from './types';
-
-const DEFAULT_RULE_SOURCE_VALUE = '';
-
-type FormProps = React.ComponentProps<typeof Form>;
-type Rule = FormProps['rule'];
-type Errors = FormProps['errors'];
-type Error = keyof Errors;
-
-type Props = Pick<
-  FormProps,
-  'sourceSuggestions' | 'disabled' | 'eventId' | 'onUpdateEventId'
-> & {
-  rule?: Rule;
-  onSaveRule: (rule: Rule) => Promise<{errors: Errors} | undefined>;
-=======
-import {RuleType, MethodType, EventId, SourceSuggestion, Rule, Errors} from './types';
+import {
+  RuleType,
+  MethodType,
+  Rule,
+  Errors,
+  SourceSuggestion,
+  EventId,
+  KeysOfUnion,
+} from './types';
 
 const DEFAULT_RULE_SOURCE_VALUE = '';
 
 type Props = {
->>>>>>> ref(pii): Updated save logic:src/sentry/static/sentry/app/views/settings/components/dataPrivacyRules/dialog.tsx
   onClose: () => void;
   onSaveRule: (rule: Rule) => void;
   errors: Errors;
@@ -97,10 +87,14 @@ class Dialog extends React.Component<Props, State> {
     this.setState(prevState => ({errors: omit(prevState.errors, error)}));
   };
 
-  handleChange = <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => {
+  handleChange = <R extends Rule, K extends KeysOfUnion<R>>(
+    stateProperty: K,
+    value: R[K]
+  ) => {
     const rule: Rule = {...this.state.rule, [stateProperty]: value};
 
     if (rule.type !== RuleType.PATTERN) {
+      // @ts-ignore
       delete rule?.pattern;
       this.clearError('pattern');
     }
@@ -113,6 +107,7 @@ class Dialog extends React.Component<Props, State> {
   };
 
   handleValidation = <T extends keyof Errors>(field: T) => () => {
+    // @ts-ignore
     const isFieldValueEmpty = !this.state.rule[field];
     const fieldErrorAlreadyExist = this.state.errors[field];
 

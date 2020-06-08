@@ -224,7 +224,7 @@ class DataScrubbing extends React.Component<Props, State> {
   handleSave = async (rules: Array<Rule>, successMessage: string) => {
     const {endpoint, onSubmitSuccess} = this.props;
     try {
-      const data = await submitRules(this.api, endpoint, rules as Array<Required<Rule>>);
+      const data = await submitRules(this.api, endpoint, rules);
       if (data?.relayPiiConfig) {
         const convertedRules = convertRelayPiiConfig(data.relayPiiConfig);
         this.setState({rules: convertedRules});

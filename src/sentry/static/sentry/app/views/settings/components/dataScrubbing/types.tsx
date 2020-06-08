@@ -49,31 +49,18 @@ export type SourceSuggestion = {
   examples?: Array<string>;
 };
 
-export type Rule = {
+type RuleBase = {
   id: number;
-  type: RuleType;
   method: MethodType;
   source: string;
-  pattern?: string;
 };
 
-export type EventId = {
-  value: string;
-  status?: EventIdStatus;
-};
-
-type PiiConfigBase = {
-  redaction: {
-    method: MethodType;
-  };
-};
-
-type PiiConfigRegex = {
+export type RuleRegex = {
   type: RuleType.PATTERN;
   pattern: string;
-} & PiiConfigBase;
+} & RuleBase;
 
-type PiiConfigWithoutRegex = {
+export type RuleWithoutRegex = {
   type:
     | RuleType.CREDITCARD
     | RuleType.PASSWORD
@@ -87,10 +74,31 @@ type PiiConfigWithoutRegex = {
     | RuleType.USER_PATH
     | RuleType.MAC
     | RuleType.ANYTHING;
+} & RuleBase;
+
+export type Rule = RuleRegex | RuleWithoutRegex;
+
+export type KeysOfUnion<T> = T extends any ? keyof T : never;
+
+export type EventId = {
+  value: string;
+  status?: EventIdStatus;
+};
+
+type PiiConfigBase = {
+  redaction: {
+    method: MethodType;
+  };
+};
+
+type PiiConfigRegex = Pick<RuleRegex, 'type'> & {
+  pattern: string;
 } & PiiConfigBase;
+
+type PiiConfigWithoutRegex = Pick<RuleWithoutRegex, 'type'> & PiiConfigBase;
 
 export type PiiConfig = PiiConfigWithoutRegex | PiiConfigRegex;
 
 export type Applications = Record<string, Array<string>>;
 
-export type Errors = Partial<Record<keyof Omit<Rule, 'id'>, string>>;
+export type Errors = Partial<Record<KeysOfUnion<Rule>, string>>;

@@ -1,4 +1,11 @@
-import {RuleType, MethodType, Rule, PiiConfig, Applications} from './types';
+import {
+  RuleType,
+  MethodType,
+  Rule,
+  PiiConfig,
+  Applications,
+  RuleWithoutRegex,
+} from './types';
 
 // Remap PII config format to something that is more usable in React. Ideally
 // we would stop doing this at some point and make some updates to how we
@@ -30,7 +37,7 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
             method,
             type,
             source: application,
-          });
+          } as RuleWithoutRegex);
         }
         continue;
       }
