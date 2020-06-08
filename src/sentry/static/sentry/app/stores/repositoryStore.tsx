@@ -78,8 +78,8 @@ export const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInte
   },
 
   /**
-   * `organizationSlug` is optional. If present, method will run a check if data
-   * in the store originated from the same organization
+   * `orgSlug` is optional. If present, method will run a check if data in the
+   * store originated from the same organization
    */
   get(orgSlug?: string) {
     const {orgSlug: stateOrgSlug, ...data} = this.state;

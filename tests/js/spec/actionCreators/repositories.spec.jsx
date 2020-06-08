@@ -48,7 +48,6 @@ describe('RepositoryActionCreator', function() {
 
     expect(mockResponse).toHaveBeenCalledWith(repoUrl, expect.anything());
     expect(RepositoryActions.loadRepositoriesSuccess).toHaveBeenCalledWith(mockData);
-    // expect(RepositoryStore.loadRepositories).toHaveBeenCalled();
 
     expect(RepositoryStore.state.orgSlug).toEqual(orgSlug);
     expect(RepositoryStore.state.repositories).toEqual(mockData);
