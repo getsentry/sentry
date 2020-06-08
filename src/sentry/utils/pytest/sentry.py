@@ -120,6 +120,8 @@ def pytest_configure(config):
             "github-app.client-secret": "github-client-secret",
             "vsts.client-id": "vsts-client-id",
             "vsts.client-secret": "vsts-client-secret",
+            "vercel.client-id": "vercel-client-id",
+            "vercel.client-secret": "vercel-client-secret",
         }
     )
 
@@ -188,6 +190,7 @@ def register_extensions():
         AliasedIntegrationProvider,
         ExampleRepositoryProvider,
         ServerExampleProvider,
+        FeatureFlagIntegration,
     )
     from sentry.integrations.github import GitHubIntegrationProvider
     from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
@@ -204,6 +207,7 @@ def register_extensions():
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
     integrations.register(ServerExampleProvider)
+    integrations.register(FeatureFlagIntegration)
     integrations.register(GitHubIntegrationProvider)
     integrations.register(GitHubEnterpriseIntegrationProvider)
     integrations.register(GitlabIntegrationProvider)

@@ -68,11 +68,10 @@ class VercelIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state["identity"]["data"]
-        vercel = state["vercel"]
         access_token = data["access_token"]
         client = VercelClient(access_token)
 
-        if data["team_id"]:
+        if data.get("team_id"):
             external_id = data["team_id"]
             installation_target = "team"
             team = client.get_team(external_id)
@@ -88,7 +87,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             "external_id": external_id,
             "metadata": {
                 "access_token": access_token,
-                "configuration_id": vercel["configurationId"],
+                "installation_id": data["installation_id"],
                 "installation_target": installation_target,
             },
         }
