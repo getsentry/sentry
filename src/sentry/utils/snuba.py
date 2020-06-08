@@ -41,6 +41,10 @@ from sentry.utils.compat import map
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+# We limit the number of fields an user can ask for
+# in a single query to lessen the load on snuba
+MAX_FIELDS = 20
+
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
 

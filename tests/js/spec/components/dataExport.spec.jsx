@@ -2,8 +2,11 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import WrappedDataExport, {DataExport} from 'app/components/dataExport';
+
+jest.mock('app/actionCreators/indicator');
 
 describe('DataExport', function() {
   const mockUnauthorizedOrg = TestStubs.Organization({
@@ -118,5 +121,40 @@ describe('DataExport', function() {
     wrapper.setProps({payload: {...mockPayload, queryType: 'Discover'}});
     expect(wrapper.find(DataExport).state('inProgress')).toEqual(false);
     expect(wrapper.find(DataExport).state('dataExportId')).toBeUndefined();
+  });
+
+  it('should display default error message if non provided', async function() {
+    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      statusCode: 400,
+    });
+    const wrapper = mountWithTheme(
+      <WrappedDataExport payload={mockPayload} />,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    wrapper.find('button').simulate('click');
+    await tick();
+    expect(addErrorMessage).toHaveBeenCalledWith(
+      "We tried our hardest, but we couldn't export your data. Give it another go."
+    );
+  });
+
+  it('should display provided error message', async function() {
+    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'uh oh'},
+    });
+    const wrapper = mountWithTheme(
+      <WrappedDataExport payload={mockPayload} />,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    wrapper.find('button').simulate('click');
+    await tick();
+    expect(addErrorMessage).toHaveBeenCalledWith('uh oh');
   });
 });

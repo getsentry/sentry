@@ -80,10 +80,11 @@ class DataExport extends React.Component<Props, State> {
         );
         this.setState({inProgress: true, dataExportId});
       })
-      .catch(_err => {
-        addErrorMessage(
-          t("We tried our hardest, but we couldn't export your data. Give it another go.")
-        );
+      .catch(err => {
+        const message =
+          err?.responseJSON?.detail ??
+          "We tried our hardest, but we couldn't export your data. Give it another go.";
+        addErrorMessage(t(message));
       });
   };
 
