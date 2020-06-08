@@ -12,9 +12,11 @@ import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {IconDelete} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
+import TimeSince from 'app/components/timeSince';
 
 // TODO(Priscila): Update the png below to SVG
 import relayIcon from './relay-icon.png';
+import Time from './time';
 
 const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 
@@ -37,7 +39,7 @@ type State = AsyncComponent['state'] & {
 
 const relaysMock: Array<Relay> = [
   {
-    id: '1',
+    id: '1:bb:6e:af:66:b4:38:e0:62:83:62:15:22:7',
     name: 'First key',
     description: 'optional description for the key',
     last_used: '2020-02-07T15:17:00Z',
@@ -45,7 +47,7 @@ const relaysMock: Array<Relay> = [
     created: '2020-02-07T15:17:00Z',
   },
   {
-    id: '2',
+    id: '2:bb:6e:af:66:b4:38:e0:62:83:62:15:22:7',
     name: 'Second key',
     last_used: '2020-02-07T15:17:00Z',
     last_modified: '2020-02-07T15:17:00Z',
@@ -87,15 +89,19 @@ class Relays extends AsyncComponent<Props, State> {
             })}
           </PanelAlert>
           <PanelBody>
-            {relays.map(({id, name}) => (
+            {relays.map(({id, name, created, last_used, last_modified}) => (
               <Grid key={id}>
-                <GridCell>
-                  <img src={relayIcon} height="36px" />
-                </GridCell>
-                <GridCell>
+                <GridLeft>
+                  <img src={relayIcon} height="40px" />
+                </GridLeft>
+                <Content>
                   <Name>{name}</Name>
-                </GridCell>
-                <GridCell>
+                  <Id>{id}</Id>
+                  <Time label={t('Added on:')} date={created} />
+                  <Time label={t('Last modified:')} date={last_modified} />
+                  <Time label={t('Last used:')} date={last_used} />
+                </Content>
+                <GridRight>
                   <Tooltip title={t('Delete Rule')}>
                     <Button
                       label={t('Delete Rule')}
@@ -104,7 +110,7 @@ class Relays extends AsyncComponent<Props, State> {
                       icon={<IconDelete />}
                     />
                   </Tooltip>
-                </GridCell>
+                </GridRight>
               </Grid>
             ))}
           </PanelBody>
@@ -132,12 +138,27 @@ const Grid = styled('div')`
 `;
 
 const GridCell = styled('div')`
+  display: flex;
+  align-items: center;
   height: 100%;
   padding: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   > *:nth-last-child(-n + 3) {
     border-bottom: 0;
   }
+`;
+
+const GridLeft = styled(GridCell)`
+  padding-left: ${space(2)};
+`;
+
+const GridRight = styled(GridCell)`
+  padding-right: ${space(2)};
+`;
+
+const Content = styled(GridCell)`
+  grid-gap ${space(1)};
+  display: grid;
 `;
 
 const PanelAction = styled('div')`
@@ -149,7 +170,15 @@ const PanelAction = styled('div')`
   border-top: 1px solid ${p => p.theme.borderDark};
 `;
 
-const Name = styled('h5')`
+const Name = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge} !important;
   font-weight: 600;
+  margin-bottom: 0 !important;
+  color: ${p => p.theme.gray600};
+`;
+
+const Id = styled('h5')`
+  font-size: ${p => p.theme.fontSizeMedium} !important;
+  font-weight: 400;
+  margin-bottom: 0 !important;
 `;
