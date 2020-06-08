@@ -333,7 +333,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     }));
   };
 
-  handleSwicthTimeFormat = () => {
+  handleSwitchTimeFormat = () => {
     this.setState(prevState => ({
       displayRelativeTime: !prevState.displayRelativeTime,
     }));
