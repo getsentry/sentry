@@ -36,7 +36,7 @@ import backgroundSpace from '../../../images/spot/background-space.svg';
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
-  {label: t('Recently Updated'), value: '-dateUpdated'},
+  {label: t('Recently Edited'), value: '-dateUpdated'},
   {label: t('My Queries'), value: 'myqueries'},
   {label: t('Query Name (A-Z)'), value: 'name'},
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
