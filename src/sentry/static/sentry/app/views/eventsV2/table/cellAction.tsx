@@ -253,6 +253,15 @@ export default class CellAction extends React.Component<Props, State> {
     const {children} = this.props;
     const {isHovering} = this.state;
 
+    const {dataRow, column} = this.props;
+    const fieldAlias = getAggregateAlias(column.name);
+    const value = dataRow[fieldAlias];
+
+    if (value === null) {
+      // per cell actions do not apply to values that are null
+      return <React.Fragment>{children}</React.Fragment>;
+    }
+
     return (
       <Container
         onMouseEnter={this.handleMouseEnter}
