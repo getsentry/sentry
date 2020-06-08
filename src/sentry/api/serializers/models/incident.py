@@ -22,6 +22,7 @@ class IncidentSerializer(Serializer):
         results = {}
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
+            results[incident]["alert_rule"] = serialize(incident.alert_rule, user)
 
         return results
 
@@ -31,7 +32,7 @@ class IncidentSerializer(Serializer):
             "identifier": six.text_type(obj.identifier),
             "organizationId": six.text_type(obj.organization_id),
             "projects": attrs["projects"],
-            "alertRule": serialize(obj.alert_rule, user),
+            "alertRule": attrs["alert_rule"],
             "status": obj.status,
             "statusMethod": obj.status_method,
             "type": obj.type,
