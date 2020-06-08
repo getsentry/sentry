@@ -95,7 +95,7 @@ export default class CellAction extends React.Component<Props, State> {
     });
   };
 
-  handleUpdateSearch = (action: Actions, value: React.ReactText) => {
+  handleCellAction = (action: Actions, value: React.ReactText) => {
     const {eventView, column, organization} = this.props;
     const query = tokenizeSearch(eventView.query);
     switch (action) {
@@ -150,7 +150,7 @@ export default class CellAction extends React.Component<Props, State> {
         <ActionItem
           key="add-to-filter"
           data-test-id="add-to-filter"
-          onClick={() => this.handleUpdateSearch(Actions.ADD, value)}
+          onClick={() => this.handleCellAction(Actions.ADD, value)}
         >
           {t('Add to filter')}
         </ActionItem>
@@ -163,7 +163,7 @@ export default class CellAction extends React.Component<Props, State> {
           <ActionItem
             key="exclude-from-filter"
             data-test-id="exclude-from-filter"
-            onClick={() => this.handleUpdateSearch(Actions.EXCLUDE, value)}
+            onClick={() => this.handleCellAction(Actions.EXCLUDE, value)}
           >
             {t('Exclude from filter')}
           </ActionItem>
