@@ -12,10 +12,11 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
         super(DiscoverSavedQueryBase, self).setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
-        self.project_ids = [
-            self.create_project(organization=self.org).id,
-            self.create_project(organization=self.org).id,
+        self.projects = [
+            self.create_project(organization=self.org),
+            self.create_project(organization=self.org),
         ]
+        self.project_ids = [project.id for project in self.projects]
         self.project_ids_without_access = [self.create_project().id]
         query = {"fields": ["test"], "conditions": [], "limit": 10}
 
@@ -328,6 +329,23 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
             )
         assert response.status_code == 201, response.content
         assert response.data["projects"] == [-1]
+
+    def test_save_with_project(self):
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "project query",
+                    "projects": self.project_ids,
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "query": "project:{}".format(self.projects[0].slug),
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert DiscoverSavedQuery.objects.filter(name="project query").exists()
 
     def test_save_invalid_query(self):
         with self.feature(self.feature_name):
