@@ -2,24 +2,44 @@ import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import {defined} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import TextOverflow from 'app/components/textOverflow';
+import {use24Hours} from 'app/utils/dates';
 
-const fromOrNow = (time: string, timeToCompareWith: string) => {
-  if (
-    !(
-      moment(time).format('HH:mm:ss') === moment(timeToCompareWith).format('HH:mm:ss') &&
-      // compares if it happened less than 1 m ago (60000 equals 1m)
-      Math.abs(moment(time).diff(timeToCompareWith)) < 60000
-    )
-  ) {
-    return moment(time).from(timeToCompareWith);
+const timeFormat = 'HH:mm:ss';
+const timeDateFormat = `ll ${timeFormat}`;
+
+const fromOrNow = (
+  parsedTime: ReturnType<typeof moment>,
+  parsedTimeToCompareWith: ReturnType<typeof moment>
+) => {
+  // ll is necessary here, otherwise moment(x).from will throw an error
+  const formattedTime = moment(parsedTime.format(timeDateFormat));
+  const formattedTimeToCompareWith = parsedTimeToCompareWith.format(timeDateFormat);
+  const timeDiff = Math.abs(formattedTime.diff(formattedTimeToCompareWith));
+
+  if (timeDiff > 60000) {
+    return formattedTime.from(formattedTimeToCompareWith);
+  }
+
+  if (timeDiff > 0) {
+    return tn('%s second ago', '%s seconds ago', timeDiff / 1000);
   }
 
   return t('Now');
+};
+
+const getAbsoluteTimeFormat = (displayMilliSeconds: boolean) => {
+  const defaultFormat = displayMilliSeconds ? `${timeFormat}.SSS` : timeFormat;
+
+  if (use24Hours()) {
+    return defaultFormat;
+  }
+
+  return `${defaultFormat} A`;
 };
 
 const getTooltipTitle = (
@@ -31,18 +51,15 @@ const getTooltipTitle = (
   const date = parsedTimestamp.format('ll');
 
   if (!displayRelativeTime) {
-    // ll is necessary here, otherwise moment(x).from will throw an error
-    const formattedTimestamp = parsedTimestamp.format('ll H:mm:ss');
-    const formattedRelativeTime = moment(relativeTime).format('ll H:mm:ss');
-    const time = fromOrNow(formattedTimestamp, formattedRelativeTime);
+    const time = fromOrNow(parsedTimestamp, moment(relativeTime));
     return {date, time};
   }
 
+  const displayMilliSeconds = defined(parsedTimestamp.milliseconds());
+
   return {
     date,
-    time: parsedTimestamp.format(
-      parsedTimestamp.milliseconds() ? 'H:mm:ss.SSS A' : 'H:mm:ss A'
-    ),
+    time: parsedTimestamp.format(getAbsoluteTimeFormat(displayMilliSeconds)),
   };
 };
 

@@ -199,10 +199,13 @@ class Breadcrumbs extends React.Component<Props, State> {
   getVirtualCrumb = (breadcrumb: Breadcrumb): Breadcrumb | undefined => {
     const {event} = this.props;
 
-    const timestamp = `${breadcrumb?.timestamp?.slice(
-      0,
-      ISO_STRING_DATE_AND_TIME_DIVISION
-    )}${event.dateCreated?.slice(ISO_STRING_DATE_AND_TIME_DIVISION)}`;
+    const timestamp =
+      breadcrumb?.timestamp && event.dateCreated
+        ? `${breadcrumb.timestamp.slice(
+            0,
+            ISO_STRING_DATE_AND_TIME_DIVISION
+          )}${event.dateCreated.slice(ISO_STRING_DATE_AND_TIME_DIVISION)}`
+        : undefined;
 
     const exception = event.entries.find(
       entry => entry.type === BreadcrumbType.EXCEPTION
