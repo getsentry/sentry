@@ -139,6 +139,9 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     </SkipConfirm>
   );
 
+  const secondPlatformPendingText =
+    'Complete this task by sending an event to your new project.';
+
   return (
     <Item interactive ref={forwardedRef} onClick={handleClick} data-test-id={task.task}>
       <Title>
@@ -148,6 +151,9 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
       <Description>{`${task.description}. ${
         task.detailedDescription ? task.detailedDescription : ''
       }`}</Description>
+      {task.task === OnboardingTaskKey.SECOND_PLATFORM && task.status === 'pending' && (
+        <Description>{secondPlatformPendingText}</Description>
+      )}
       {task.requisiteTasks.length === 0 && (
         <ActionBar>
           {task.status === 'pending' ? (
