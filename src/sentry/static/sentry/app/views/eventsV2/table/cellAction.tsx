@@ -171,6 +171,10 @@ export default class CellAction extends React.Component<Props, State> {
       }
     }
 
+    if (actions.length === 0) {
+      return null;
+    }
+
     return (
       <MenuButtons
         onClick={event => {
@@ -185,6 +189,13 @@ export default class CellAction extends React.Component<Props, State> {
 
   renderMenu() {
     const {isOpen} = this.state;
+
+    const menuButtons = this.renderMenuButtons();
+
+    if (menuButtons === null) {
+      // do not render the menu if there are no per cell actions
+      return null;
+    }
 
     const modifiers: PopperJS.Modifiers = {
       hide: {
@@ -214,7 +225,7 @@ export default class CellAction extends React.Component<Props, State> {
                 data-placement={placement}
                 style={arrowProps.style}
               />
-              {this.renderMenuButtons()}
+              {menuButtons}
             </Menu>
           )}
         </Popper>,
