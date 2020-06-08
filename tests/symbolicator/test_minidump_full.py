@@ -11,7 +11,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
 from sentry import eventstore
-from sentry.testutils import TransactionTestCase
+from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models import EventAttachment
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 
@@ -24,7 +24,7 @@ from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 
 
 @override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
-class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
+class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
         self.project.update_option("sentry:builtin_symbol_sources", [])
@@ -73,13 +73,10 @@ class SymbolicatorMinidumpIntegrationTest(TransactionTestCase):
             attachment = BytesIO(b"Hello World!")
             attachment.name = "hello.txt"
             with open(get_fixture_path("windows.dmp"), "rb") as f:
-                resp = self._postMinidumpWithHeader(
+                event = self.post_and_retrieve_minidump(
                     f, {"sentry[logger]": "test-logger", "some_file": attachment}
                 )
-                assert resp.status_code == 200
-                event_id = resp.content
 
-        event = eventstore.get_event_by_id(self.project.id, event_id)
         insta_snapshot_stacktrace_data(self, event.data)
         assert event.data.get("logger") == "test-logger"
         # assert event.data.get("extra") == {"foo": "bar"}

@@ -139,7 +139,15 @@ def relay_server(relay_server_setup):
 
 @pytest.fixture
 def get_relay_store_url(relay_server):
-    def relay_store_url(project_id):
+    def inner(project_id):
         return "{}/api/{}/store/".format(relay_server["url"], project_id)
 
-    return relay_store_url
+    return inner
+
+
+@pytest.fixture
+def get_relay_minidump_url(relay_server):
+    def inner(project_id):
+        return "{}/api/{}/store/".format(relay_server["url"], project_id)
+
+    return inner

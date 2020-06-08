@@ -96,6 +96,29 @@ class RelayStoreHelper(object):
         except AssertionError:
             return None
 
+    def post_and_retrieve_minidump(self, f, data):
+        url = self.get_relay_minidump_url(self.project.id)
+        responses.add_passthru(url)
+
+        data = dict(data or ())
+        data["upload_file_minidump"] = f
+
+        requests.post(
+            url,
+            headers={"x-sentry-auth": self.auth_header, "content-type": "application/octet-stream"},
+            data=data,
+        )
+
+        assert resp.ok
+        event_id = resp.text.strip()
+
+        event = self.wait_for_ingest_consumer(
+            lambda: eventstore.get_event_by_id(self.project.id, event_id)
+        )
+        # check that we found it in Snuba
+        assert event is not None
+        return event
+
     def setUp(self):  # NOQA
         self.auth_header = get_auth_header(
             "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
@@ -103,7 +126,15 @@ class RelayStoreHelper(object):
         adjust_settings_for_relay_tests(self.settings)
 
     @pytest.fixture(autouse=True)
-    def setup_fixtures(self, settings, live_server, get_relay_store_url, wait_for_ingest_consumer):
+    def setup_fixtures(
+        self,
+        settings,
+        live_server,
+        get_relay_store_url,
+        get_relay_minidump_url,
+        wait_for_ingest_consumer,
+    ):
         self.settings = settings
         self.get_relay_store_url = get_relay_store_url  # noqa
+        self.get_relay_minidump_url = get_relay_minidump_url  # noqa
         self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)  # noqa
