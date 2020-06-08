@@ -736,6 +736,17 @@ function routes() {
       />
 
       <Route
+        name={t('Relays')}
+        path="relays/"
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "OrganizationRelays" */ 'app/views/settings/organizationRelays'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
         path="repos/"
         name="Repositories"
         componentPromise={() =>
