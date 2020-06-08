@@ -7,6 +7,7 @@ const FILE_EXTENSION_TO_ICON = {
   jsx: 'react',
   tsx: 'react',
   js: 'javascript',
+  ts: 'javascript',
   php: 'php',
   py: 'python',
   vue: 'vue',

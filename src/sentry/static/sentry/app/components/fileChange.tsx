@@ -48,6 +48,7 @@ const Filename = styled('div')`
 
 const StyledFileIcon = styled(FileIcon)`
   color: ${p => p.theme.gray400};
+  border-radius: 3px;
 `;
 
 export default FileChange;
