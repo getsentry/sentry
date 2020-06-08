@@ -6,10 +6,6 @@ import RepositoryStore from 'app/stores/repositoryStore';
 import withRepositories from 'app/utils/withRepositories';
 
 describe('withRepositories HoC', function() {
-  jest.mock('app/actionCreators/repositories', () => ({
-    ...jest.requireActual('app/actionCreators/repositories'),
-  }));
-
   const orgSlug = 'myOrg';
   const repoUrl = `/organizations/${orgSlug}/repos/`;
 
@@ -32,9 +28,9 @@ describe('withRepositories HoC', function() {
     const Container = withRepositories(Component);
     const wrapper = mount(<Container api={api} orgSlug={orgSlug} />);
 
-    await tick(); // Run loadRepositories
-    await tick(); // Run loadRepositoriesSuccess
-    wrapper.update(); // Re-render component
+    await tick(); // Run Store.loadRepositories
+    await tick(); // Run Store.loadRepositoriesSuccess
+    wrapper.update(); // Re-render component with Store data
 
     const mountedComponent = wrapper.find(Component);
     expect(mountedComponent.prop('repositories')).toEqual(mockData);
@@ -61,9 +57,7 @@ describe('withRepositories HoC', function() {
     // Mount and run duplicates
     mount(<Container api={api} orgSlug={orgSlug} />);
     await tick();
-    await tick();
     mount(<Container api={api} orgSlug={orgSlug} />);
-    await tick();
     await tick();
 
     expect(api.requestPromise).toHaveBeenCalledTimes(1);

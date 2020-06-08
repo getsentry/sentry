@@ -24,7 +24,7 @@ type RepositoryStoreInterface = {
   loadRepositoriesError(error: Error): void;
 };
 
-const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
+export const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInterface = {
   listenables: RepoActions,
   state: {
     orgSlug: undefined,
