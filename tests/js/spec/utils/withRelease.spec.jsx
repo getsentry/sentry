@@ -70,6 +70,7 @@ describe('withRelease HoC', function() {
     jest.spyOn(api, 'requestPromise');
     jest.spyOn(Container.prototype, 'componentDidMount');
     // jest.spyOn(Container.prototype, 'fetchRelease');
+    // jest.spyOn(Container.prototype, 'fetchDeploys');
 
     // Mount and run component
     mount(
@@ -106,5 +107,6 @@ describe('withRelease HoC', function() {
     expect(api.requestPromise).toHaveBeenCalledTimes(2); // 1 for fetchRelease, 1 for fetchDeploys
     expect(Container.prototype.componentDidMount).toHaveBeenCalledTimes(3);
     // expect(Container.prototype.fetchRelease).toHaveBeenCalledTimes(3);
+    // expect(Container.prototype.fetchDeploys).toHaveBeenCalledTimes(3);
   });
 });

@@ -30,8 +30,8 @@ describe('ReleaseActionCreator', function() {
       jest.spyOn(ReleaseActions, 'loadRelease');
       jest.spyOn(ReleaseActions, 'loadReleaseSuccess');
 
-      // XXX(leedongwei): See repositories.spec.jsx for the reason that we
-      // cannot spy on ReleaseStore at all
+      // XXX(leedongwei): We cannot spy on ReleaseStore at all
+      // See repositories.spec.jsx beforeEach method for the reason
     });
 
     it('fetches a Release and emits actions', async () => {
@@ -63,7 +63,7 @@ describe('ReleaseActionCreator', function() {
 
       getProjectRelease(api, {orgSlug, projectSlug, releaseVersion});
       expect(ReleaseActions.loadRelease).toHaveBeenCalled();
-      // expect(ReleaseStore.loadRelease).not.toHaveBeenCalled();
+      // expect(ReleaseStore.loadRelease).not.toHaveBeenCalled(); // See above for comment on ReleaseStore
       expect(ReleaseStore.state.releaseLoading[releaseKey]).toEqual(true);
     });
   });
@@ -116,7 +116,7 @@ describe('ReleaseActionCreator', function() {
 
       getReleaseDeploys(api, {orgSlug, projectSlug, releaseVersion});
       expect(ReleaseActions.loadDeploys).toHaveBeenCalled();
-      // expect(ReleaseStore.loadDeploys).not.toHaveBeenCalled(); // See comment for Release
+      // expect(ReleaseStore.loadDeploys).not.toHaveBeenCalled(); // See above for comment on ReleaseStore
       expect(ReleaseStore.state.deploysLoading[releaseKey]).toEqual(true);
     });
   });
