@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData
-from sentry.data_export.tasks import assemble_download
+from sentry.data_export.tasks import assemble_download, merge_export_blobs
 from sentry.models import File
 from sentry.snuba.discover import InvalidSearchQuery
 from sentry.testutils import TestCase, SnubaTestCase
@@ -55,7 +56,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     def test_task_persistent_name(self):
         assert assemble_download.name == "sentry.data_export.tasks.assemble_download"
 
-    def test_issue_by_tag(self):
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_issue_by_tag_batched(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
@@ -77,6 +79,21 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         raw1, raw2 = sorted([raw1, raw2])
         assert raw1.startswith("bar,1,")
         assert raw2.startswith("bar2,2,")
+
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_failure")
+    def test_issue_by_tag_missing_key(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.ISSUES_BY_TAG,
+            query_info={"project": [self.project.id], "group": self.event.group_id, "key": "bar"},
+        )
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Requested key does not exist"
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_issue_by_tag_missing_project(self, emailer):
@@ -132,8 +149,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         header = de.file.getfile().read().strip()
         assert header == "value,times_seen,last_seen,first_seen"
 
-    @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_discover(self, emailer):
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_batched(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
@@ -141,7 +158,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             query_info={"project": [self.project.id], "field": ["title"], "query": ""},
         )
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, batch_size=1)
         de = ExportedData.objects.get(id=de.id)
         assert de.date_finished is not None
         assert de.date_expired is not None
@@ -155,6 +172,74 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert raw1.startswith("<unlabeled event>")
         assert raw2.startswith("<unlabeled event>")
         assert raw3.startswith("<unlabeled event>")
+
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_failure")
+    def test_discover_missing_project(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={"project": [-1], "group": self.event.group_id, "key": "user"},
+        )
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Requested project does not exist"
+
+    @patch("sentry.data_export.tasks.MAX_FILE_SIZE", 55)
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_export_file_too_large(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={"project": [self.project.id], "field": ["title"], "query": ""},
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
+        # Convert raw csv to list of line-strings
+        # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
+        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
+        assert header == "title"
+
+        assert raw1.startswith("<unlabeled event>")
+        assert raw2.startswith("<unlabeled event>")
+
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_export_too_many_rows(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={"project": [self.project.id], "field": ["title"], "query": ""},
+        )
+        with self.tasks():
+            assemble_download(de.id, export_limit=2)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
+        # Convert raw csv to list of line-strings
+        # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
+        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
+        assert header == "title"
+
+        assert raw1.startswith("<unlabeled event>")
+        assert raw2.startswith("<unlabeled event>")
+
+        assert emailer.called
 
     @patch("sentry.snuba.discover.raw_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
@@ -286,3 +371,23 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
+
+    @patch("sentry.data_export.models.ExportedData.finalize_upload")
+    @patch("sentry.data_export.models.ExportedData.email_failure")
+    def test_discover_integrity_error(self, emailer, finalize_upload):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={"project": [self.project.id], "field": ["title"], "query": ""},
+        )
+        finalize_upload.side_effect = IntegrityError("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Failed to save the assembled file."
+
+
+class MergeExportBlobsTest(TestCase, SnubaTestCase):
+    def test_task_persistent_name(self):
+        assert merge_export_blobs.name == "sentry.data_export.tasks.merge_blobs"
