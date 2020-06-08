@@ -14,14 +14,25 @@ import getCookie from 'app/utils/getCookie';
 
 import ProviderItem from './providerItem';
 
-class OrganizationAuthList extends React.Component {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
+const providerPopularity = {
+  google: 0,
+  github: 1,
+  okta: 2,
+  'active-directory': 3,
+  saml2: 4,
+  onelogin: 5,
+  rippling: 6,
+  auth0: 7,
+};
 
+class OrganizationAuthList extends React.Component {
   static propTypes = {
     providerList: PropTypes.arrayOf(SentryTypes.AuthProvider).isRequired,
     activeProvider: PropTypes.object,
+  };
+
+  static contextTypes = {
+    organization: SentryTypes.Organization,
   };
 
   render() {
@@ -29,16 +40,28 @@ class OrganizationAuthList extends React.Component {
     const {organization} = this.context;
     const features = organization.features;
 
-    // Sort feature-flagged integrations last
-    const providerList = (this.props.providerList || []).sort((a, b) => {
+    // Sort provider list twice: first, by popularity,
+    // and then a second time, to sort unavailable providers for the current plan to the end of the list.
+    const sortedByPopularity = (this.props.providerList || []).sort((a, b) => {
+      if (!(a.key in providerPopularity)) {
+        return -1;
+      }
+      if (!(b.key in providerPopularity)) {
+        return 1;
+      }
+      if (providerPopularity[a.key] === providerPopularity[b.key]) {
+        return 0;
+      }
+      return providerPopularity[a.key] > providerPopularity[b.key] ? 1 : -1;
+    });
+
+    const providerList = sortedByPopularity.sort((a, b) => {
       const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
       const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
-
-      if (aEnabled !== bEnabled) {
-        return aEnabled ? -1 : 1;
+      if (aEnabled === bEnabled) {
+        return 0;
       }
-
-      return a.requiredFeature.localeCompare(b.requiredFeature);
+      return aEnabled ? -1 : 1;
     });
 
     const warn2FADisable =

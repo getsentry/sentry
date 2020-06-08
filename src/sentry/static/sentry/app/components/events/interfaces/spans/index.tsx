@@ -160,6 +160,7 @@ class SpansInterface extends React.Component<Props, State> {
                     event={event}
                     searchQuery={this.state.searchQuery}
                     orgId={orgId}
+                    organization={organization}
                     eventView={eventView}
                     parsedTrace={parsedTrace}
                     spansWithErrors={spansWithErrors}

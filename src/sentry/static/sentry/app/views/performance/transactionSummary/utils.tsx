@@ -12,7 +12,7 @@ export function transactionSummaryRouteWithQuery({
 }: {
   orgSlug: string;
   transaction: string;
-  projectID: string | string[] | undefined;
+  projectID?: string | string[];
   query: Query;
 }) {
   const pathname = generateTransactionSummaryRoute({

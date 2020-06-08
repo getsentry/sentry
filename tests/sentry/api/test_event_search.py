@@ -1146,7 +1146,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_has_issue_id(self):
         has_issue_filter = get_filter("has:issue.id")
         assert has_issue_filter.group_ids == []
-        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "!=", 1]]
+        assert has_issue_filter.conditions == [["issue.id", "!=", 0]]
 
     def test_not_has_issue_id(self):
         has_issue_filter = get_filter("!has:issue.id")
@@ -1185,11 +1185,29 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {"group_id": [1]}
         assert _filter.group_ids == [1]
 
-    def test_issue_filter(self):
+    def test_issue_filter_invalid(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("issue:1", {"organization_id": 1})
         assert "Invalid value '" in six.text_type(err)
         assert "' for 'issue:' filter" in six.text_type(err)
+
+    def test_issue_filter(self):
+        group = self.create_group(project=self.project)
+        _filter = get_filter(
+            "issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+        )
+        assert _filter.conditions == [["issue.id", "=", group.id]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_negated_issue_filter(self):
+        group = self.create_group(project=self.project)
+        _filter = get_filter(
+            "!issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+        )
+        assert _filter.conditions == [["issue.id", "!=", group.id]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
     def test_environment_param(self):
         params = {"environment": ["", "prod"]}

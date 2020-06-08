@@ -167,9 +167,13 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       size,
       priority,
       'data-test-id': 'install-button',
-      disabled: disabledFromFeatures || !userHasAccess,
+      disabled: disabledFromFeatures,
       organization,
     };
+
+    if (!userHasAccess) {
+      return this.renderRequestIntegrationButton();
+    }
 
     if (provider.canAdd) {
       return (
@@ -198,7 +202,8 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       );
     }
 
-    return this.renderRequestIntegrationButton();
+    // This should never happen but we can't return undefined without some refactoring.
+    return <React.Fragment />;
   }
 
   renderConfigurations() {
