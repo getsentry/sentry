@@ -17,7 +17,7 @@ type Props = {
   queryDetail?: string;
   to: object;
   createdBy?: User | undefined;
-  dateStatus?: object;
+  dateStatus?: React.ReactNode;
   onEventClick?: () => void;
   renderGraph: () => React.ReactNode;
   renderContextMenu?: () => React.ReactNode;
