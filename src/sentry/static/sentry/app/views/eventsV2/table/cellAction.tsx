@@ -134,13 +134,58 @@ export default class CellAction extends React.Component<Props, State> {
     this.setState({isOpen: !this.state.isOpen});
   };
 
-  renderMenu() {
+  renderMenuButtons() {
     const {dataRow, column} = this.props;
-    const {isOpen} = this.state;
 
-    const value = dataRow[column.name];
+    console.log('dataRow', dataRow);
+    console.log('column', column);
+
     const fieldAlias = getAggregateAlias(column.name);
     const value = dataRow[fieldAlias];
+
+    const actions: React.ReactNode[] = [];
+
+    if (column.type !== 'duration') {
+      actions.push(
+        <ActionItem
+          key="add-to-filter"
+          data-test-id="add-to-filter"
+          onClick={() => this.handleUpdateSearch(Actions.ADD, value)}
+        >
+          {t('Add to filter')}
+        </ActionItem>
+      );
+
+      if (column.column.kind !== 'function') {
+        // we cannot add negation filters on functions
+
+        actions.push(
+          <ActionItem
+            key="exclude-from-filter"
+            data-test-id="exclude-from-filter"
+            onClick={() => this.handleUpdateSearch(Actions.EXCLUDE, value)}
+          >
+            {t('Exclude from filter')}
+          </ActionItem>
+        );
+      }
+    }
+
+    return (
+      <MenuButtons
+        onClick={event => {
+          // prevent clicks from propagating further
+          event.stopPropagation();
+        }}
+      >
+        {actions}
+      </MenuButtons>
+    );
+  }
+
+  renderMenu() {
+    const {isOpen} = this.state;
+
     const modifiers: PopperJS.Modifiers = {
       hide: {
         enabled: false,
@@ -169,20 +214,7 @@ export default class CellAction extends React.Component<Props, State> {
                 data-placement={placement}
                 style={arrowProps.style}
               />
-              <MenuButtons>
-                <ActionItem
-                  data-test-id="add-to-filter"
-                  onClick={() => this.handleUpdateSearch(Actions.ADD, value)}
-                >
-                  {t('Add to filter')}
-                </ActionItem>
-                <ActionItem
-                  data-test-id="exclude-from-filter"
-                  onClick={() => this.handleUpdateSearch(Actions.EXCLUDE, value)}
-                >
-                  {t('Exclude from filter')}
-                </ActionItem>
-              </MenuButtons>
+              {this.renderMenuButtons()}
             </Menu>
           )}
         </Popper>,
