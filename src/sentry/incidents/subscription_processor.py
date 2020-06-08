@@ -178,6 +178,16 @@ class SubscriptionProcessor(object):
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
                 detected_at = self.last_update
+                # Subscriptions label buckets by the end of the bucket, whereas discover
+                # labels them by the front. This causes us an off-by-one error with
+                # alert start dates, so to prevent this we subtract a bucket off of the
+                # start date.
+                # We also multiply by threshold_period so that we can show when the
+                # alert actually started happening, rather than when we detected it.
+                detected_at -= timedelta(
+                    seconds=self.alert_rule.snuba_query.time_window
+                    * self.alert_rule.threshold_period
+                )
                 self.active_incident = create_incident(
                     self.alert_rule.organization,
                     IncidentType.ALERT_TRIGGERED,
