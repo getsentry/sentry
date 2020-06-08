@@ -53,6 +53,21 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
         )
         self.groups = list(Group.objects.all().order_by("id"))
 
+    def test_performance_flag(self):
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": "a" * 32,
+            },
+        )
+        with self.feature(
+            {"organizations:discover-basic": False, "organizations:performance-view": True}
+        ):
+            response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
     def test_simple(self):
         url = reverse(
             "sentry-api-0-organization-event-details",

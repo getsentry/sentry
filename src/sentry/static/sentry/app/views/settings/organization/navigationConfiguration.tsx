@@ -72,6 +72,15 @@ const organizationNavigation: NavigationSection[] = [
         id: 'rate-limits',
       },
       {
+        path: `${pathPrefix}/relays/`,
+        title: t('Relays'),
+        show: ({access, features}) =>
+          features!.has('relay-config') && access!.has('org:write'),
+        description: t('Manage relays connected to the organization'),
+        id: 'relays',
+        badge: () => 'new',
+      },
+      {
         path: `${pathPrefix}/repos/`,
         title: t('Repositories'),
         description: t('Manage repositories connected to the organization'),

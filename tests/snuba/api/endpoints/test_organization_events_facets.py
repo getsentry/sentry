@@ -38,6 +38,14 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert "topValues" in actual
         assert sorted(expected) == sorted(actual["topValues"])
 
+    def test_performance_view_feature(self):
+        with self.feature(
+            {"organizations:discover-basic": False, "organizations:performance-view": True}
+        ):
+            response = self.client.get(self.url, data={"project": self.project.id}, format="json")
+
+        assert response.status_code == 200, response.content
+
     def test_simple(self):
         self.store_event(
             data={

@@ -135,6 +135,7 @@ class Activity extends React.Component<Props> {
                             user={activity.user}
                             modelId={activity.id}
                             text={activity.comment}
+                            dateCreated={activity.dateCreated}
                             activity={activity}
                             authorName={authorName}
                             onDelete={this.handleDeleteNote}

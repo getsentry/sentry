@@ -105,7 +105,7 @@ class MiniGraph extends React.Component<Props> {
             ...series,
             areaStyle: {
               color: colors[0],
-              opacity: 0.5,
+              opacity: 1,
             },
             lineStyle: {
               opacity: 0,
