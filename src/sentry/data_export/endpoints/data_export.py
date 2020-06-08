@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.models import Environment
 from sentry.utils import metrics
 from sentry.utils.compat import map
+from sentry.utils.snuba import MAX_FIELDS
 
 from ..base import ExportQueryType
 from ..models import ExportedData
@@ -46,6 +47,12 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
+
+        if len(data["query_info"].get("field", [])) > MAX_FIELDS:
+            detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
+                MAX_FIELDS
+            )
+            return Response({"detail": detail}, status=400)
 
         # Validate the project field, if provided
         # A PermissionDenied error will be raised in `_get_projects_by_id` if the request is invalid

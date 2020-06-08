@@ -4,6 +4,7 @@ import six
 
 from sentry.data_export.base import ExportStatus, ExportQueryType
 from sentry.data_export.models import ExportedData
+from sentry.utils.snuba import MAX_FIELDS
 from sentry.testutils import APITestCase
 
 
@@ -81,4 +82,17 @@ class DataExportTest(APITestCase):
                 "info": data_export.query_info,
             },
             "status": data_export.status,
+        }
+
+    def test_export_too_many_fields(self):
+        """
+        Ensures that if too many fields are requested, returns a 400 status code with the
+        corresponding error message.
+        """
+        payload = self.payload.copy()
+        payload["query_info"]["field"] = ["id"] * (MAX_FIELDS + 1)
+        with self.feature("organizations:data-export"):
+            response = self.get_valid_response(self.organization.slug, status_code=400, **payload)
+        assert response.data == {
+            "detail": "You can export up to 20 fields at a time. Please delete some and try again."
         }
