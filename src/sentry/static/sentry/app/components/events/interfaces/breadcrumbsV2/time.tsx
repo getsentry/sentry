@@ -42,24 +42,29 @@ const getAbsoluteTimeFormat = (displayMilliSeconds: boolean) => {
   return `${defaultFormat} A`;
 };
 
-const getTooltipTitle = (
+const gerFormattedTimestamp = (
   timestamp: string,
-  relativeTime: string,
+  relativeTimestamp: string,
   displayRelativeTime?: boolean
 ) => {
   const parsedTimestamp = moment(timestamp);
   const date = parsedTimestamp.format('ll');
 
-  if (!displayRelativeTime) {
-    const time = fromOrNow(parsedTimestamp, moment(relativeTime));
-    return {date, time};
-  }
-
   const displayMilliSeconds = defined(parsedTimestamp.milliseconds());
+  const relativeTime = fromOrNow(parsedTimestamp, moment(relativeTimestamp));
+
+  if (!displayRelativeTime) {
+    return {
+      date,
+      time: relativeTime,
+      displayTime: parsedTimestamp.format(timeFormat),
+    };
+  }
 
   return {
     date,
     time: parsedTimestamp.format(getAbsoluteTimeFormat(displayMilliSeconds)),
+    displayTime: relativeTime,
   };
 };
 
@@ -74,7 +79,11 @@ const Time = React.memo(({timestamp, relativeTime, displayRelativeTime}: Props) 
     return null;
   }
 
-  const {date, time} = getTooltipTitle(timestamp, relativeTime, displayRelativeTime);
+  const {date, time, displayTime} = gerFormattedTimestamp(
+    timestamp,
+    relativeTime,
+    displayRelativeTime
+  );
 
   return (
     <Wrapper>
@@ -89,9 +98,7 @@ const Time = React.memo(({timestamp, relativeTime, displayRelativeTime}: Props) 
       >
         <TextOverflow>
           {getDynamicText({
-            value: displayRelativeTime
-              ? moment(timestamp).from(relativeTime)
-              : moment(timestamp).format('HH:mm:ss'),
+            value: displayTime,
             fixed: '00:00:00',
           })}
         </TextOverflow>
