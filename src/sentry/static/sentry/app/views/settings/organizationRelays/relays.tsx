@@ -12,20 +12,18 @@ import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {IconDelete} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
-import TimeSince from 'app/components/timeSince';
 
-// TODO(Priscila): Update the png below to SVG
-import relayIcon from './relay-icon.png';
 import Time from './time';
 
 const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 
 type Relay = {
-  id: string;
+  public_key: string;
   name: string;
-  last_used: string;
-  last_modified: string;
   created: string;
+  first_seen: string;
+  last_seen: string | null;
+  last_modified?: string;
   description?: string;
 };
 
@@ -39,17 +37,19 @@ type State = AsyncComponent['state'] & {
 
 const relaysMock: Array<Relay> = [
   {
-    id: '1:bb:6e:af:66:b4:38:e0:62:83:62:15:22:7',
+    public_key: '1:bb:6e:af:66:b4:38:e0:62:83:62:15:22:7',
     name: 'First key',
     description: 'optional description for the key',
-    last_used: '2020-02-07T15:17:00Z',
-    last_modified: '2020-02-07T15:17:00Z',
+    first_seen: '2020-02-07T15:17:00Z',
+    last_seen: '2020-02-07T15:17:00Z',
     created: '2020-02-07T15:17:00Z',
   },
   {
-    id: '2:bb:6e:af:66:b4:38:e0:62:83:62:15:22:7',
+    public_key: '2:bb:6e:af:66:b4:38:e0:62:83:62:15:22:7',
     name: 'Second key',
-    last_used: '2020-02-07T15:17:00Z',
+    description: 'optional description for the key',
+    first_seen: '2020-02-07T15:17:00Z',
+    last_seen: '2020-02-07T15:17:00Z',
     last_modified: '2020-02-07T15:17:00Z',
     created: '2020-02-07T15:17:00Z',
   },
@@ -68,7 +68,7 @@ class Relays extends AsyncComponent<Props, State> {
   //   return [['relays', `/organizations/${this.props.organization.slug}/relay-keys`]];
   // }
 
-  handleDelete = (id: Relay['id']) => () => {};
+  handleDelete = (id: Relay['public_key']) => () => {};
 
   handleAdd = () => {};
 
@@ -89,30 +89,40 @@ class Relays extends AsyncComponent<Props, State> {
             })}
           </PanelAlert>
           <PanelBody>
-            {relays.map(({id, name, created, last_used, last_modified}) => (
-              <Grid key={id}>
-                <GridLeft>
-                  <img src={relayIcon} height="40px" />
-                </GridLeft>
-                <Content>
-                  <Name>{name}</Name>
-                  <Id>{id}</Id>
-                  <Time label={t('Added on:')} date={created} />
-                  <Time label={t('Last modified:')} date={last_modified} />
-                  <Time label={t('Last used:')} date={last_used} />
-                </Content>
-                <GridRight>
+            {relays.map(
+              ({public_key, name, created, last_seen, first_seen, last_modified}) => (
+                <Content key={public_key}>
+                  <Info>
+                    <InfoItem>
+                      <Name>{name}</Name>
+                    </InfoItem>
+                    <InfoItem>
+                      <PublicKey>{public_key}</PublicKey>
+                    </InfoItem>
+                    <InfoItem>
+                      <Time label={t('Created:')} date={created} />
+                    </InfoItem>
+                    <InfoItem>
+                      <Time label={t('First Seen:')} date={first_seen} />
+                    </InfoItem>
+                    <InfoItem>
+                      <Time label={t('Last Seen:')} date={last_seen} />
+                    </InfoItem>
+                    <InfoItem>
+                      <Time label={t('Last modified:')} date={last_modified} />
+                    </InfoItem>
+                  </Info>
                   <Tooltip title={t('Delete Rule')}>
                     <Button
                       label={t('Delete Rule')}
                       size="small"
-                      onClick={this.handleDelete(id)}
+                      onClick={this.handleDelete(public_key)}
                       icon={<IconDelete />}
                     />
                   </Tooltip>
-                </GridRight>
-              </Grid>
-            ))}
+                </Content>
+              )
+            )}
           </PanelBody>
           <PanelAction>
             <Button href={RELAY_DOCS_LINK} target="_blank">
@@ -130,35 +140,31 @@ class Relays extends AsyncComponent<Props, State> {
 
 export default Relays;
 
-const Grid = styled('div')`
+const Content = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: 1fr max-content;
   align-items: center;
-  margin-bottom: -1px;
-`;
-
-const GridCell = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  padding: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  > *:nth-last-child(-n + 3) {
+  padding: ${space(1)} ${space(2)};
+  :last-child {
     border-bottom: 0;
   }
 `;
 
-const GridLeft = styled(GridCell)`
-  padding-left: ${space(2)};
-`;
-
-const GridRight = styled(GridCell)`
-  padding-right: ${space(2)};
-`;
-
-const Content = styled(GridCell)`
-  grid-gap ${space(1)};
+const Info = styled('div')`
   display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-gap: ${space(1)};
+  > *:nth-child(1),
+  > *:nth-child(2) {
+    grid-column: span 4;
+  }
+`;
+
+const InfoItem = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 100%;
 `;
 
 const PanelAction = styled('div')`
@@ -177,7 +183,7 @@ const Name = styled('h4')`
   color: ${p => p.theme.gray600};
 `;
 
-const Id = styled('h5')`
+const PublicKey = styled('h5')`
   font-size: ${p => p.theme.fontSizeMedium} !important;
   font-weight: 400;
   margin-bottom: 0 !important;

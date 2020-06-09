@@ -1,18 +1,20 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
+import {defined} from 'app/utils';
 
 type Props = {
   label: string;
-  date: string;
+  date?: string | null;
 };
 
 const Time = ({label, date}: Props) => (
   <Wrapper>
     <TimeLabel>{label}</TimeLabel>
-    <TimeSince date={date} />
+    {!defined(date) ? t('Unknown') : <TimeSince date={date} />}
   </Wrapper>
 );
 
