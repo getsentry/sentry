@@ -7,7 +7,7 @@ import {Manager, Reference, Popper} from 'react-popper';
 
 import {t} from 'app/locale';
 import {IconEllipsis} from 'app/icons';
-import EventView, {MetaType, fieldToSort} from 'app/utils/discover/eventView';
+import EventView, {MetaType} from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {OrganizationSummary, Project} from 'app/types';
@@ -140,7 +140,7 @@ class CellAction extends React.Component<Props, State> {
         const field = {field: column.name, width: column.width};
 
         // sort descending order
-        nextView = nextView.withSorts([fieldToSort(field, tableMeta, 'desc')!]);
+        nextView = nextView.sortOnField(field, tableMeta, 'desc');
 
         break;
       }
@@ -151,7 +151,7 @@ class CellAction extends React.Component<Props, State> {
         const field = {field: column.name, width: column.width};
 
         // sort ascending order
-        nextView = nextView.withSorts([fieldToSort(field, tableMeta, 'asc')!]);
+        nextView = nextView.sortOnField(field, tableMeta, 'asc');
 
         break;
       }
