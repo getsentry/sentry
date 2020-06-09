@@ -163,7 +163,7 @@ describe('ReleasesV2List', function() {
     });
   });
 
-  it('calls api with only whitelisted query params', function() {
+  it('calls api with only explicitly permitted query params', function() {
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({

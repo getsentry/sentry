@@ -65,7 +65,7 @@ setup_alert = {
     "text": "Your Jira instance must be able to communicate with Sentry."
     " Sentry makes outbound requests from a [static set of IP"
     " addresses](https://docs.sentry.io/ip-ranges/) that you may wish"
-    " to whitelist to support this integration.",
+    " to allow in your firewall to support this integration.",
 }
 
 

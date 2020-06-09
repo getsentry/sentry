@@ -1755,7 +1755,7 @@ SENTRY_BUILTIN_SOURCES = {
 }
 
 # Relay
-# List of PKs whitelisted by Sentry.  All relays here are always
+# List of PKs explicitly allowed by Sentry.  All relays here are always
 # registered as internal relays.
 SENTRY_RELAY_WHITELIST_PK = [
     # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
@@ -1765,7 +1765,7 @@ SENTRY_RELAY_WHITELIST_PK = [
 ]
 
 # When open registration is not permitted then only relays in the
-# whitelist can register.
+# list of explicitly allowed relays can register.
 SENTRY_RELAY_OPEN_REGISTRATION = False
 
 # GeoIP

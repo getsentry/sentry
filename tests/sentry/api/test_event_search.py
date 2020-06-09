@@ -589,7 +589,8 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_numeric_filter(self):
-        # Numeric format should still return a string if field isn't whitelisted
+        # Numeric format should still return a string if field isn't
+        # allowed
         assert parse_search_query("random_field:>500") == [
             SearchFilter(
                 key=SearchKey(name="random_field"),
