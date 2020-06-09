@@ -7,14 +7,18 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import CellAction from 'app/views/eventsV2/table/cellAction';
 import EventView from 'app/utils/discover/eventView';
 
-function makeWrapper(eventView, initial) {
-  const data = {transaction: 'best-transaction', count: 19};
+function makeWrapper(eventView, initial, columnIndex = 0) {
+  const data = {
+    transaction: 'best-transaction',
+    count: 19,
+    timestamp: '2020-06-09T01:46:25+00:00',
+  };
   return mountWithTheme(
     <CellAction
       organization={initial.organization}
       dataRow={data}
       eventView={eventView}
-      column={eventView.getColumns()[0]}
+      column={eventView.getColumns()[columnIndex]}
     >
       <strong>some content</strong>
     </CellAction>
@@ -25,8 +29,8 @@ describe('Discover -> CellAction', function() {
     query: {
       id: '42',
       name: 'best query',
-      field: ['transaction', 'count()'],
-      widths: ['123', '456'],
+      field: ['transaction', 'count()', 'timestamp'],
+      widths: ['123', '456', '789'],
       sort: ['title'],
       query: 'event.type:transaction',
       project: [123],
@@ -70,7 +74,7 @@ describe('Discover -> CellAction', function() {
     });
   });
 
-  describe('action buttons basics', function() {
+  describe('per cell actions', function() {
     let wrapper;
     beforeEach(function() {
       wrapper = makeWrapper(view, initial);
@@ -117,6 +121,40 @@ describe('Discover -> CellAction', function() {
         pathname: '/organizations/org-slug/discover/results/',
         query: expect.objectContaining({
           query: '!transaction:nope !transaction:best-transaction',
+        }),
+      });
+    });
+
+    it('greater than button adds condition', function() {
+      wrapper = makeWrapper(view, initial, 2);
+      // Show button and menu.
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+
+      wrapper.find('button[data-test-id="show-values-greater-than"]').simulate('click');
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/discover/results/',
+        query: expect.objectContaining({
+          query: 'event.type:transaction timestamp:>2020-06-09T01:46:25+00:00',
+          sort: ['-timestamp'],
+        }),
+      });
+    });
+
+    it('less than button adds condition', function() {
+      wrapper = makeWrapper(view, initial, 2);
+      // Show button and menu.
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+
+      wrapper.find('button[data-test-id="show-values-less-than"]').simulate('click');
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/discover/results/',
+        query: expect.objectContaining({
+          query: 'event.type:transaction timestamp:<2020-06-09T01:46:25+00:00',
+          sort: ['timestamp'],
         }),
       });
     });
