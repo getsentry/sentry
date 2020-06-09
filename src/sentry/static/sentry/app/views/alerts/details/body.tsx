@@ -243,6 +243,7 @@ export default class DetailsBody extends React.Component<Props> {
                   <Placeholder height="200px" />
                 )}
               </PanelBody>
+              {this.renderChartActions()}
             </ChartPanel>
           </PageContent>
           <DetailWrapper>

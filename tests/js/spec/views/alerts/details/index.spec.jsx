@@ -51,6 +51,10 @@ describe('IncidentDetails', function() {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/',
       statusCode: 404,
     });
@@ -103,6 +107,19 @@ describe('IncidentDetails', function() {
         .at(4)
         .text()
     ).toBe('2 weeks');
+  });
+
+  it('renders open in discover button', async function() {
+    const discoverOrg = {...organization, features: ['discover-basic', 'discover-query']};
+    const wrapper = createWrapper(
+      {},
+      {...routerContext, context: {...routerContext.context, organization: discoverOrg}}
+    );
+    await tick();
+    wrapper.update();
+
+    const chartActions = wrapper.find('ChartActions');
+    expect(chartActions.find('Button').text()).toBe('Open in Discover');
   });
 
   it('handles invalid incident', async function() {
