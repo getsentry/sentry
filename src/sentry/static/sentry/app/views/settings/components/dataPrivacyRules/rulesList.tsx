@@ -18,7 +18,7 @@ const DEFAULT_COLUMN_QUANTITY = 4;
 type Rule = React.ComponentProps<typeof DataPrivacyRulesForm>['rule'];
 
 type GridProps = {
-  columnQtd: number;
+  columnQuantity: number;
   isDisabled?: boolean;
   hoveredClassname?: string;
 };
@@ -32,33 +32,33 @@ type Props = {
 };
 
 type State = {
-  columnQtd: number;
+  columnQuantity: number;
   hoveredClassname?: string;
 };
 
 class RulesList extends React.PureComponent<Props, State> {
-  state: State = {columnQtd: DEFAULT_COLUMN_QUANTITY};
+  state: State = {columnQuantity: DEFAULT_COLUMN_QUANTITY};
 
   componentDidMount() {
-    this.loadColumnsQuantity();
+    this.calculateColumnQuantity();
   }
 
-  loadColumnsQuantity = () => {
-    let extraColumnQtd = 0;
+  calculateColumnQuantity = () => {
+    let extraColumnQuantity = 0;
 
     if (this.props.onDeleteRule) {
-      extraColumnQtd += 1;
+      extraColumnQuantity += 1;
     }
     if (this.props.onShowEditRuleModal) {
-      extraColumnQtd += 1;
+      extraColumnQuantity += 1;
     }
 
     this.setState(prevState => ({
-      columnQtd: prevState.columnQtd + extraColumnQtd,
+      columnQuantity: prevState.columnQuantity + extraColumnQuantity,
     }));
   };
 
-  handleMouseOver = (className: string) => () => {
+  handleMouseEnter = (className: string) => () => {
     this.setState({
       hoveredClassname: className,
     });
@@ -72,14 +72,14 @@ class RulesList extends React.PureComponent<Props, State> {
 
   render() {
     const {forwardRef, disabled, onDeleteRule, onShowEditRuleModal, rules} = this.props;
-    const {hoveredClassname, columnQtd} = this.state;
+    const {hoveredClassname, columnQuantity} = this.state;
 
     return (
       <Grid
         ref={forwardRef}
         isDisabled={disabled}
         hoveredClassname={hoveredClassname}
-        columnQtd={columnQtd}
+        columnQuantity={columnQuantity}
       >
         {rules.map(({id, method, type, source, customRegularExpression}) => {
           const className = `gridCell-${id}`;
@@ -90,7 +90,7 @@ class RulesList extends React.PureComponent<Props, State> {
 
           const gridCellProps = !disabled
             ? {
-                onMouseOver: this.handleMouseOver(className),
+                onMouseEnter: this.handleMouseEnter(className),
                 onMouseLeave: this.handleMouseLeave,
                 className,
               }
@@ -147,12 +147,12 @@ class RulesList extends React.PureComponent<Props, State> {
 export default RulesList;
 
 const columnStyle = (p: GridProps & {theme: Theme}) => {
-  if (p.columnQtd === DEFAULT_COLUMN_QUANTITY + 1) {
+  if (p.columnQuantity === DEFAULT_COLUMN_QUANTITY + 1) {
     return css`
       grid-template-columns: max-content auto max-content auto minmax(max-content, 1fr);
     `;
   }
-  if (p.columnQtd === DEFAULT_COLUMN_QUANTITY + 2) {
+  if (p.columnQuantity === DEFAULT_COLUMN_QUANTITY + 2) {
     return css`
       grid-template-columns:
         max-content auto max-content auto minmax(max-content, 1fr)
@@ -167,13 +167,13 @@ const columnStyle = (p: GridProps & {theme: Theme}) => {
 const Grid = styled('div')<GridProps>`
   display: grid;
   align-items: center;
-  > *:nth-last-child(-n + ${p => p.columnQtd}) {
+  > *:nth-last-child(-n + ${p => p.columnQuantity}) {
     border-bottom: 0;
   }
-  > *:nth-child(${p => p.columnQtd}n) {
+  > *:nth-child(${p => p.columnQuantity}n) {
     padding-right: ${space(2)};
   }
-  > *:nth-child(${p => p.columnQtd}n-${p => p.columnQtd - 1}) {
+  > *:nth-child(${p => p.columnQuantity}n-${p => p.columnQuantity - 1}) {
     padding-left: ${space(2)};
   }
   ${p =>
