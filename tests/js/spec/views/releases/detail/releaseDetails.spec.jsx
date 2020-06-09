@@ -36,7 +36,7 @@ describe('ReleaseDetails', function() {
   });
 
   it('shows release details', async function() {
-    const organization = TestStubs.Organization();
+    const organization = TestStubs.Organization({slug: 'acme'});
     const params = {
       orgId: 'acme',
       projectId: 'anvils',
@@ -51,7 +51,7 @@ describe('ReleaseDetails', function() {
     };
 
     const wrapper = mountWithTheme(
-      <ReleaseDetails location={location} params={params}>
+      <ReleaseDetails location={location} params={params} organization={organization}>
         <div>hi</div>
       </ReleaseDetails>,
       TestStubs.routerContext()
