@@ -2,7 +2,7 @@
  * Sanitizes a string so that it can be used as a query selector
  *
  * e.g. `feedback:branding` --> `feedback-branding` or
- * 'Data Privacy' --> 'Data-Privacy'
+ * 'Data Scrubbing' --> 'Data-Scrubbing'
  *
  * @param str The string to sanitize
  * @return Returns a sanitized string (replace
