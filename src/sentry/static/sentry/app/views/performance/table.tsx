@@ -55,16 +55,18 @@ class Table extends React.Component<Props, State> {
     widths: [],
   };
 
-  renderBodyCell = (tableMeta: TableData['meta']) => {
+  renderBodyCell = (tableData: TableData | null) => {
     const {eventView, organization, projects, location, summaryConditions} = this.props;
 
     return (
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
     ): React.ReactNode => {
-      if (!tableMeta) {
-        return null;
+      if (!tableData || !tableData.meta) {
+        return dataRow[column.key];
       }
+      const tableMeta = tableData.meta;
+
       const field = String(column.key);
       const fieldRenderer = getFieldRenderer(field, tableMeta);
       let rendered = fieldRenderer(dataRow, {organization, location});
@@ -180,7 +182,7 @@ class Table extends React.Component<Props, State> {
                 grid={{
                   onResizeColumn: this.handleResizeColumn,
                   renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
-                  renderBodyCell: this.renderBodyCell(tableData?.meta) as any,
+                  renderBodyCell: this.renderBodyCell(tableData) as any,
                 }}
                 location={location}
               />
