@@ -5,6 +5,12 @@
 import {t} from 'app/locale';
 import {Scope} from 'app/types';
 
+// This is considered the "default" route/view that users should be taken
+// to when the application does not have any further context
+//
+// e.g. loading app root or switching organization
+export const DEFAULT_APP_ROUTE = '/organizations/:orgSlug/issues/';
+
 export const API_ACCESS_SCOPES = [
   'project:read',
   'project:write',

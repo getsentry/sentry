@@ -971,6 +971,13 @@ function routes() {
       )}
 
       <Route path="/" component={errorHandler(App)}>
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "AppRoot" */ 'app/views/app/root')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+
         <Route
           path="/accept/:memberId/:token/"
           componentPromise={() =>
