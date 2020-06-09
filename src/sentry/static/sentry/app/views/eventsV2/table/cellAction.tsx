@@ -10,9 +10,11 @@ import {IconEllipsis} from 'app/icons';
 import EventView, {MetaType, fieldToSort} from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {OrganizationSummary} from 'app/types';
+import {OrganizationSummary, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import withProjects from 'app/utils/withProjects';
 
 import {TableColumn, TableDataRow} from './types';
 
@@ -21,11 +23,13 @@ enum Actions {
   EXCLUDE = 'exclude',
   SHOW_GREATER_THAN = 'show_greater_than',
   SHOW_LESS_THAN = 'show_less_than',
+  TRANSACTION = 'transaction',
 }
 
 type Props = {
   eventView: EventView;
   organization: OrganizationSummary;
+  projects: Project[];
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
   tableMeta: MetaType;
@@ -37,7 +41,7 @@ type State = {
   isOpen: boolean;
 };
 
-export default class CellAction extends React.Component<Props, State> {
+class CellAction extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     let portal = document.getElementById('cell-action-portal');
@@ -99,11 +103,18 @@ export default class CellAction extends React.Component<Props, State> {
   };
 
   handleCellAction = (action: Actions, value: React.ReactText) => {
-    const {eventView, column, organization, tableMeta} = this.props;
+    const {eventView, column, organization, tableMeta, projects, dataRow} = this.props;
 
     const query = tokenizeSearch(eventView.query);
 
     let nextView = eventView.clone();
+
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.results.cellaction',
+      eventName: 'Discoverv2: Cell Action Clicked',
+      organization_id: parseInt(organization.id, 10),
+      action,
+    });
 
     switch (action) {
       case Actions.ADD:
@@ -132,7 +143,7 @@ export default class CellAction extends React.Component<Props, State> {
 
         break;
       }
-      case Actions.SHOW_LESS_THAN:
+      case Actions.SHOW_LESS_THAN: {
         // Remove query token if it already exists
         delete query[`${column.name}`];
         query[column.name] = [`<${value}`];
@@ -142,16 +153,29 @@ export default class CellAction extends React.Component<Props, State> {
         nextView = nextView.withSorts([fieldToSort(field, tableMeta, 'asc')!]);
 
         break;
+      }
+      case Actions.TRANSACTION: {
+        const maybeProject = projects.find(project => {
+          return project.slug === dataRow.project;
+        });
+
+        const projectID = maybeProject
+          ? [maybeProject.id]
+          : eventView.project.map(id => String(id));
+
+        const next = transactionSummaryRouteWithQuery({
+          orgSlug: organization.slug,
+          transaction: String(value),
+          projectID,
+          query: eventView.generateQueryStringObject(),
+        });
+
+        browserHistory.push(next);
+        return;
+      }
       default:
         throw new Error(`Unknown action type. ${action}`);
     }
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.results.cellaction',
-      eventName: 'Discoverv2: Cell Action Clicked',
-      organization_id: parseInt(organization.id, 10),
-      action,
-    });
-
     nextView.query = stringifyQueryObject(query);
 
     browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
@@ -210,6 +234,18 @@ export default class CellAction extends React.Component<Props, State> {
           onClick={() => this.handleCellAction(Actions.SHOW_LESS_THAN, value)}
         >
           {t('Show values less than')}
+        </ActionItem>
+      );
+    }
+
+    if (column.column.kind === 'field' && column.column.field === 'transaction') {
+      actions.push(
+        <ActionItem
+          key="transaction-summary"
+          data-test-id="transaction-summary"
+          onClick={() => this.handleCellAction(Actions.TRANSACTION, value)}
+        >
+          {t('Go to summary')}
         </ActionItem>
       );
     }
@@ -322,6 +358,8 @@ export default class CellAction extends React.Component<Props, State> {
     );
   }
 }
+
+export default withProjects(CellAction);
 
 const Container = styled('div')`
   position: relative;
