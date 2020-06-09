@@ -9,6 +9,7 @@ import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/typ
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
+import CellAction from 'app/views/eventsV2/table/cellAction';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -84,13 +85,31 @@ class Table extends React.Component<Props, State> {
         });
 
         rendered = (
-          <Link to={target} onClick={this.handleSummaryClick}>
-            {rendered}
-          </Link>
+          <CellAction
+            organization={organization}
+            eventView={eventView}
+            column={column}
+            dataRow={dataRow}
+            tableMeta={tableData.meta}
+          >
+            <Link to={target} onClick={this.handleSummaryClick}>
+              {rendered}
+            </Link>
+          </CellAction>
         );
       }
 
-      return rendered;
+      return (
+        <CellAction
+          organization={organization}
+          eventView={eventView}
+          column={column}
+          dataRow={dataRow}
+          tableMeta={tableData.meta}
+        >
+          {rendered}
+        </CellAction>
+      );
     };
   };
 
