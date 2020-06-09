@@ -27,7 +27,7 @@ class OrganizationRules extends React.Component<Props, State> {
     this.loadContentHeight();
   }
 
-  rulesListRef = React.createRef<HTMLDivElement>();
+  rulesListRef = React.createRef<HTMLUListElement>();
 
   loadContentHeight = () => {
     if (!this.state.contentHeight) {
@@ -72,7 +72,7 @@ class OrganizationRules extends React.Component<Props, State> {
           />
         </Header>
         <Content>
-          <RulesList rules={rules} forwardRef={this.rulesListRef} />
+          <RulesList rules={rules} ref={this.rulesListRef} />
         </Content>
       </Wrapper>
     );
