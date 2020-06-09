@@ -11,6 +11,7 @@ from sentry.mediators import project_rules
 from sentry.models import Integration, Project, Rule
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.utils.redis import redis_clusters
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 
 class RedisRuleStatus(object):
@@ -90,7 +91,15 @@ def find_channel_id_for_rule(
     # we dont' know exactly how long it will take to paginate through all of the slack
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,
     # we can always update later
-    (prefix, item_id, _timed_out) = get_channel_id_with_timeout(integration, channel_name, 3 * 60)
+    try:
+        (prefix, item_id, _timed_out) = get_channel_id_with_timeout(
+            integration, channel_name, 3 * 60
+        )
+    except DuplicateDisplayNameError:
+        # if we find a duplicate display name and nothing else, we
+        # want to set the status to failed. This just lets us skip
+        # over the next block and hit the failed status at the end.
+        item_id = None
 
     if item_id:
         for action in actions:
