@@ -125,7 +125,7 @@ class CellAction extends React.Component<Props, State> {
         break;
       case Actions.EXCLUDE:
         // Remove positive if it exists.
-        delete query[`${column.name}`];
+        delete query[column.name];
         // Negations should stack up.
         const negation = `!${column.name}`;
         if (!query.hasOwnProperty(negation)) {
@@ -135,7 +135,7 @@ class CellAction extends React.Component<Props, State> {
         break;
       case Actions.SHOW_GREATER_THAN: {
         // Remove query token if it already exists
-        delete query[`${column.name}`];
+        delete query[column.name];
         query[column.name] = [`>${value}`];
         const field = {field: column.name, width: column.width};
 
@@ -146,7 +146,7 @@ class CellAction extends React.Component<Props, State> {
       }
       case Actions.SHOW_LESS_THAN: {
         // Remove query token if it already exists
-        delete query[`${column.name}`];
+        delete query[column.name];
         query[column.name] = [`<${value}`];
         const field = {field: column.name, width: column.width};
 
