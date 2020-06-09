@@ -10,7 +10,6 @@ import space from 'app/styles/space';
 /**
  * Styled components used to render discover result sets.
  */
-
 export const Container = styled('div')`
   ${overflowEllipsis};
 `;

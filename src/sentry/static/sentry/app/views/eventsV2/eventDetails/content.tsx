@@ -4,6 +4,7 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -22,8 +23,6 @@ import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import EventEntries from 'app/components/events/eventEntries';
-import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
@@ -114,7 +113,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventView} = this.props;
+    const {api, organization, location, eventView} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -167,7 +166,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               })}
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
-                <StyledEventEntries
+                <BorderlessEventEntries
+                  api={api}
                   organization={organization}
                   event={event}
                   project={projects[0]}
@@ -303,16 +303,6 @@ const StyledTitle = styled('span')`
   color: ${p => p.theme.gray700};
   margin-right: ${space(1)};
   align-self: center;
-`;
-
-const StyledEventEntries = styled(EventEntries)`
-  & ${/* sc-selector */ DataSection} {
-    padding: ${space(3)} 0 0 0;
-  }
-  & ${/* sc-selector */ DataSection}:first-child {
-    padding-top: 0;
-    border-top: none;
-  }
 `;
 
 export default withApi(EventDetailsContent);

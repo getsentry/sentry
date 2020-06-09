@@ -4,7 +4,6 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
@@ -12,14 +11,13 @@ import withApi from 'app/utils/withApi';
 import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import EventMetadata from 'app/components/events/eventMetadata';
+import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import Button from 'app/components/button';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import EventEntries from 'app/components/events/eventEntries';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
-import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
 import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -101,7 +99,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventSlug} = this.props;
+    const {api, organization, location, eventSlug} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -134,7 +132,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
-                <StyledEventEntries
+                <BorderlessEventEntries
+                  api={api}
                   organization={organization}
                   event={event}
                   project={projects[0]}
@@ -212,16 +211,6 @@ const StyledTitle = styled('span')`
   color: ${p => p.theme.gray700};
   font-size: ${p => p.theme.headerFontSize};
   grid-column: 1 / 2;
-`;
-
-const StyledEventEntries = styled(EventEntries)`
-  & ${/* sc-selector */ DataSection} {
-    padding: ${space(3)} 0 0 0;
-  }
-  & ${/* sc-selector */ DataSection}:first-child {
-    padding-top: 0;
-    border-top: none;
-  }
 `;
 
 export default withApi(EventDetailsContent);
