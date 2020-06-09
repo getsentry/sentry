@@ -9,6 +9,7 @@ import textStyles from 'app/styles/text';
 import BulletList from 'app/styles/bulletList';
 import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
+import Feature from 'app/components/acl/feature';
 
 type Props = {
   selected?: string | null;
@@ -38,17 +39,40 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
         <FeatureBadge type="beta" />
       </RadioLabel>
       <p>
-        {tct(
-          `Alert on performance metrics like latency, or total error count across multiple [note:Issues], in any part of your app.`,
-          {note: <IssuesTooltip />}
-        )}
+        <Feature
+          requireAll
+          features={[
+            'organizations:transaction-events',
+            'organizations:incidents-performance',
+          ]}
+        >
+          {({hasFeature}) =>
+            hasFeature
+              ? tct(
+                  `Alert on performance metrics like latency, or total error count across multiple [note:Issues], in any part of your app.`,
+                  {note: <IssuesTooltip />}
+                )
+              : tct(
+                  `Alert on metrics like total error count across multiple [note:Issues], in any part of your app.`,
+                  {note: <IssuesTooltip />}
+                )
+          }
+        </Feature>
       </p>
       {!selected && (
         <BulletList>
-          <li>
-            {t('Performance metrics')}
-            <Example>{t('Latency, transaction volume, apdex, error rate')}</Example>
-          </li>
+          <Feature
+            requireAll
+            features={[
+              'organizations:transaction-events',
+              'organizations:incidents-performance',
+            ]}
+          >
+            <li>
+              {t('Performance metrics')}
+              <Example>{t('Latency, transaction volume, apdex, error rate')}</Example>
+            </li>
+          </Feature>
           <li>
             {t('Errors across issues')}
             <Example>{t('100 or more errors with "database" in the title')}</Example>
