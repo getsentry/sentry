@@ -182,7 +182,11 @@ class CellAction extends React.Component<Props, State> {
           pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
             value
           )}/`,
-          query: {project: maybeProject ? maybeProject.id : undefined},
+          query: {
+            ...nextView.getGlobalSelection(),
+
+            project: maybeProject ? maybeProject.id : undefined,
+          },
         });
 
         return;
