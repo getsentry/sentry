@@ -53,7 +53,6 @@ class Columns(Enum):
     HTTP_METHOD = Column(
         "events.contexts[http.method]",
         "contexts[http.method]",
-        None,
         "contexts[http.method]",
         "contexts[http.method]",
         "http.method",
@@ -61,7 +60,6 @@ class Columns(Enum):
     HTTP_REFERER = Column(
         "events.contexts[http.referer]",
         "contexts[http.referer]",
-        None,
         "contexts[http.referer]",
         "contexts[http.referer]",
         "http.referer",
@@ -83,7 +81,6 @@ class Columns(Enum):
     OS_KERNEL_VERSION = Column(
         "events.contexts[os.kernel_version]",
         "contexts[os.kernel_version]",
-        None,
         "contexts[os.kernel_version]",
         "contexts[os.kernel_version]",
         "os.kernel_version",
@@ -91,7 +88,6 @@ class Columns(Enum):
     DEVICE_ARCH = Column(
         "events.contexts[device.arch]",
         "contexts[device.arch]",
-        None,
         "contexts[device.arch]",
         "contexts[device.arch]",
         "device.arch",
@@ -99,7 +95,6 @@ class Columns(Enum):
     DEVICE_BATTERY_LEVEL = Column(
         "events.contexts[device.battery_level]",
         "contexts[device.battery_level]",
-        None,
         "contexts[device.battery_level]",
         "contexts[device.battery_level]",
         "device.battery_level",
@@ -107,7 +102,6 @@ class Columns(Enum):
     DEVICE_BRAND = Column(
         "events.contexts[device.brand]",
         "contexts[device.brand]",
-        None,
         "contexts[device.brand]",
         "contexts[device.brand]",
         "device.brand",
@@ -115,7 +109,6 @@ class Columns(Enum):
     DEVICE_CHARGING = Column(
         "events.contexts[device.charging]",
         "contexts[device.charging]",
-        None,
         "contexts[device.charging]",
         "contexts[device.charging]",
         "device.charging",
@@ -131,7 +124,6 @@ class Columns(Enum):
     DEVICE_MODEL_ID = Column(
         "events.contexts[device.model_id]",
         "contexts[device.model_id]",
-        None,
         "contexts[device.model_id]",
         "contexts[device.model_id]",
         "device.model_id",
@@ -139,7 +131,6 @@ class Columns(Enum):
     DEVICE_NAME = Column(
         "events.contexts[device.name]",
         "contexts[device.name]",
-        None,
         "contexts[device.name]",
         "contexts[device.name]",
         "device.name",
@@ -147,7 +138,6 @@ class Columns(Enum):
     DEVICE_ONLINE = Column(
         "events.contexts[device.online]",
         "contexts[device.online]",
-        None,
         "contexts[device.online]",
         "contexts[device.online]",
         "device.online",
@@ -155,7 +145,6 @@ class Columns(Enum):
     DEVICE_ORIENTATION = Column(
         "events.contexts[device.orientation]",
         "contexts[device.orientation]",
-        None,
         "contexts[device.orientation]",
         "contexts[device.orientation]",
         "device.orientation",
@@ -163,7 +152,6 @@ class Columns(Enum):
     DEVICE_SIMULATOR = Column(
         "events.contexts[device.simulator]",
         "contexts[device.simulator]",
-        None,
         "contexts[device.simulator]",
         "contexts[device.simulator]",
         "device.simulator",
@@ -171,7 +159,6 @@ class Columns(Enum):
     DEVICE_UUID = Column(
         "events.contexts[device.uuid]",
         "contexts[device.uuid]",
-        None,
         "contexts[device.uuid]",
         "contexts[device.uuid]",
         "device.uuid",
