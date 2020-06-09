@@ -49,6 +49,11 @@ const EXTERNAL_QUERY_STRING_KEYS: Readonly<Array<keyof LocationQuery>> = [
   'cursor',
 ];
 
+const setSortOrder = (sort: Sort, kind: 'desc' | 'asc'): Sort => ({
+  kind,
+  field: sort.field,
+});
+
 const reverseSort = (sort: Sort): Sort => ({
   kind: sort.kind === 'desc' ? 'asc' : 'desc',
   field: sort.field,
@@ -63,7 +68,7 @@ const isSortEqualToField = (
   return sort.field === sortKey;
 };
 
-export const fieldToSort = (
+const fieldToSort = (
   field: Field,
   tableMeta: MetaType | undefined,
   kind?: 'desc' | 'asc'
@@ -926,7 +931,7 @@ class EventView {
     return this.sorts.find(sort => isSortEqualToField(sort, field, tableMeta));
   }
 
-  sortOnField(field: Field, tableMeta: MetaType): EventView {
+  sortOnField(field: Field, tableMeta: MetaType, kind?: 'desc' | 'asc'): EventView {
     // check if field can be sorted
     if (!isFieldSortable(field, tableMeta)) {
       return this;
@@ -942,7 +947,9 @@ class EventView {
       const currentSort = this.sorts[needleIndex];
 
       const sorts = [...newEventView.sorts];
-      sorts[needleIndex] = reverseSort(currentSort);
+      sorts[needleIndex] = kind
+        ? setSortOrder(currentSort, kind)
+        : reverseSort(currentSort);
 
       newEventView.sorts = sorts;
 
@@ -953,7 +960,7 @@ class EventView {
     const newEventView = this.clone();
 
     // invariant: this is not falsey, since sortKey exists
-    const sort = fieldToSort(field, tableMeta)!;
+    const sort = fieldToSort(field, tableMeta, kind)!;
 
     newEventView.sorts = [sort];
 

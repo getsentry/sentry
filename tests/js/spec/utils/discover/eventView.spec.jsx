@@ -1930,6 +1930,25 @@ describe('EventView.sortOnField()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
+  it('enforce sort order on sorted field', function() {
+    const eventView = new EventView(state);
+    expect(eventView).toMatchObject(state);
+
+    const field = state.fields[0];
+
+    const eventView2 = eventView.sortOnField(field, meta, 'asc');
+    expect(eventView2).toMatchObject({
+      ...state,
+      sorts: [{field: 'count', kind: 'asc'}],
+    });
+
+    const eventView3 = eventView.sortOnField(field, meta, 'desc');
+    expect(eventView3).toMatchObject({
+      ...state,
+      sorts: [{field: 'count', kind: 'desc'}],
+    });
+  });
+
   it('sort on new field', function() {
     const modifiedState = {
       ...state,
@@ -1951,6 +1970,24 @@ describe('EventView.sortOnField()', function() {
     };
 
     expect(eventView2).toMatchObject(nextState);
+
+    // enforce asc sort order
+
+    const eventView3 = eventView.sortOnField(field, meta, 'asc');
+
+    expect(eventView3).toMatchObject({
+      ...modifiedState,
+      sorts: [{field: 'title', kind: 'asc'}],
+    });
+
+    // enforce desc sort order
+
+    const eventView4 = eventView.sortOnField(field, meta, 'desc');
+
+    expect(eventView4).toMatchObject({
+      ...modifiedState,
+      sorts: [{field: 'title', kind: 'desc'}],
+    });
   });
 });
 
