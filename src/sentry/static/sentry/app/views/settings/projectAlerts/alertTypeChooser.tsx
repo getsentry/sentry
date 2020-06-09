@@ -47,7 +47,7 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
         <BulletList>
           <li>
             {t('Performance metrics')}
-            <Example>{t('Latency, transaction volume, apdex, error rate')}</Example>
+            <Example>{t('Latency, transaction volume, apdex, failure rate')}</Example>
           </li>
           <li>
             {t('Errors across issues')}
