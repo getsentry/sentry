@@ -165,9 +165,10 @@ export default class DetailsBody extends React.Component<Props> {
     const {incident, params, stats} = this.props;
 
     return (
-      <ChartActions>
-        <PanelBody withPadding>
-          <Feature features={['discover-basic']}>
+      // Currently only one button in pannel, hide panel if not available
+      <Feature features={['discover-basic']}>
+        <ChartActions>
+          <PanelBody withPadding>
             <Projects slugs={incident?.projects} orgId={params.orgId}>
               {({initiallyLoaded, fetching, projects}) => {
                 const preset = this.metricPreset;
@@ -194,9 +195,9 @@ export default class DetailsBody extends React.Component<Props> {
                 );
               }}
             </Projects>
-          </Feature>
-        </PanelBody>
-      </ChartActions>
+          </PanelBody>
+        </ChartActions>
+      </Feature>
     );
   }
 
