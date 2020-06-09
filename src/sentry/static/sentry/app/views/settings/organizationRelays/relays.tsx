@@ -68,7 +68,7 @@ class Relays extends AsyncComponent<Props, State> {
   //   return [['relays', `/organizations/${this.props.organization.slug}/relay-keys`]];
   // }
 
-  handleDelete = (id: Relay['public_key']) => () => {};
+  // handleDelete = (id: Relay['public_key']) => () => {};
 
   handleAdd = () => {};
 
@@ -112,14 +112,12 @@ class Relays extends AsyncComponent<Props, State> {
                       <Time label={t('Last modified:')} date={last_modified} />
                     </InfoItem>
                   </Info>
-                  <Tooltip title={t('Delete Rule')}>
-                    <Button
-                      label={t('Delete Rule')}
-                      size="small"
-                      onClick={this.handleDelete(public_key)}
-                      icon={<IconDelete />}
-                    />
-                  </Tooltip>
+                  <Button
+                    title={t('Delete Rule')}
+                    label={t('Delete Rule')}
+                    size="small"
+                    icon={<IconDelete />}
+                  />
                 </Content>
               )
             )}
