@@ -6,6 +6,7 @@ import * as PopperJS from 'popper.js';
 import {Manager, Reference, Popper} from 'react-popper';
 
 import {t} from 'app/locale';
+import {defined} from 'app/utils';
 import {IconEllipsis} from 'app/icons';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
@@ -367,7 +368,7 @@ class CellAction extends React.Component<Props, State> {
       (column.column.function[0] === 'count' ||
         column.column.function[0] === 'count_unique');
 
-    if (value === null || value === undefined || shouldIgnoreColumn) {
+    if (defined(value) || shouldIgnoreColumn) {
       // per cell actions do not apply to values that are null
       return <React.Fragment>{children}</React.Fragment>;
     }
