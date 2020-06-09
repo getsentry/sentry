@@ -27,7 +27,7 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
         """
         Generate a list of data scrubbing selectors from existing event data.
 
-        This list is used to auto-complete settings in "Data Privacy" /
+        This list is used to auto-complete settings in "Data Scrubbing" /
         "Security and Privacy" settings.
         """
 

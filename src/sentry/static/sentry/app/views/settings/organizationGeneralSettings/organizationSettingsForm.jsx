@@ -69,7 +69,7 @@ class OrganizationSettingsForm extends AsyncComponent {
               <Panel>
                 <PanelHeader>{t('Security & Privacy')}</PanelHeader>
                 <EmptyMessage
-                  title={t('Security & Privacy section now has its own tab')}
+                  title={t('Security & Privacy has moved')}
                   description={
                     <Link to={`/settings/${orgId}/security-and-privacy/`}>
                       {t('Go to Security & Privacy')}
