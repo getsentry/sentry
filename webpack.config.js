@@ -9,7 +9,7 @@ const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
-const CopyPlugin = require('copy-webpack-plugin');
+// const CopyPlugin = require('copy-webpack-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
@@ -28,6 +28,8 @@ const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 const IS_CI = !!env.CI || !!env.TRAVIS;
 const IS_PERCY = env.CI && !!env.PERCY_TOKEN && !!env.TRAVIS;
+const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
+const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE = IS_PRODUCTION ? 'production' : 'development';
 
@@ -52,7 +54,7 @@ const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 
 // Deploy previews are built using zeit. We can check if we're in zeit's
 // build process by checking the existence of the PULL_REQUEST env var.
-const DEPLOY_PREVIEW_CONFIG = env.NOW_GITHUB_DEPLOYMENT && {
+const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   branch: env.NOW_GITHUB_COMMIT_REF,
   commitSha: env.NOW_GITHUB_COMMIT_SHA,
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
@@ -62,9 +64,8 @@ const DEPLOY_PREVIEW_CONFIG = env.NOW_GITHUB_DEPLOYMENT && {
 // When deploy previews are enabled always enable experimental SPA mode --
 // deploy previews are served standalone. Otherwise fallback to the environment
 // configuration.
-const SENTRY_EXPERIMENTAL_SPA = !DEPLOY_PREVIEW_CONFIG
-  ? env.SENTRY_EXPERIMENTAL_SPA
-  : true;
+const SENTRY_EXPERIMENTAL_SPA =
+  !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? env.SENTRY_EXPERIMENTAL_SPA : true;
 
 // this is set by setup.py sdist
 const staticPrefix = path.join(__dirname, 'src/sentry/static/sentry');
@@ -379,15 +380,10 @@ let appConfig = {
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
-if (SENTRY_EXPERIMENTAL_SPA) {
-  /**
-   * Generate a index.html file used for running the app in pure client mode.
-   * This is currently used for PR deploy previews, where only the frontend
-   * is deployed.
-   */
-  appConfig.plugins.push(
-    new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}])
-  );
+if (IS_DEPLOY_PREVIEW) {
+  // appConfig.plugins.push(
+  // new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}])
+  // );
 }
 
 if (IS_TEST || IS_STORYBOOK) {
@@ -406,9 +402,11 @@ if (!IS_PRODUCTION) {
 }
 
 // Dev only! Hot module reloading
-if (FORCE_WEBPACK_DEV_SERVER || (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER)) {
-  const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
-
+if (
+  FORCE_WEBPACK_DEV_SERVER ||
+  (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER) ||
+  IS_UI_DEV_ONLY
+) {
   if (SHOULD_HOT_MODULE_RELOAD) {
     // Hot reload react components on save
     // We include the library here as to not break docker/google cloud builds
@@ -434,34 +432,84 @@ if (FORCE_WEBPACK_DEV_SERVER || (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER
     watchOptions: {
       ignored: ['node_modules'],
     },
-    publicPath: '/_webpack',
-    proxy: {'!/_webpack': backendAddress},
-    before: app =>
-      app.use((req, _res, next) => {
-        req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
-        next();
-      }),
   };
 
-  // XXX(epurkhiser): Sentry (development) can be run in an experimental
-  // pure-SPA mode, where ONLY /api* requests are proxied directly to the API
-  // backend, otherwise ALL requests are rewritten to a development index.html.
-  // Thus completely separating the frontend from serving any pages through the
-  // backend.
-  //
-  // THIS IS EXPERIMENTAL. Various sentry pages still rely on django to serve
-  // html views.
-  appConfig.devServer = !SENTRY_EXPERIMENTAL_SPA
-    ? appConfig.devServer
-    : {
-        ...appConfig.devServer,
-        before: () => undefined,
-        publicPath: '/_assets',
-        proxy: {'/api/': backendAddress},
-        historyApiFallback: {
-          rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
-        },
-      };
+  if (!IS_UI_DEV_ONLY) {
+    // This proxies to local backend server
+    const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
+
+    appConfig.devServer = {
+      ...appConfig.devServer,
+      publicPath: '/_webpack',
+      proxy: {'!/_webpack': backendAddress},
+      before: app =>
+        app.use((req, _res, next) => {
+          req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
+          next();
+        }),
+    };
+
+    // XXX(epurkhiser): Sentry (development) can be run in an experimental
+    // pure-SPA mode, where ONLY /api* requests are proxied directly to the API
+    // backend, otherwise ALL requests are rewritten to a development index.html.
+    // Thus completely separating the frontend from serving any pages through the
+    // backend.
+    //
+    // THIS IS EXPERIMENTAL. Various sentry pages still rely on django to serve
+    // html views.
+    if (SENTRY_EXPERIMENTAL_SPA) {
+      appConfig.devServer = !SENTRY_EXPERIMENTAL_SPA
+        ? appConfig.devServer
+        : {
+            ...appConfig.devServer,
+            before: () => undefined,
+            publicPath: '/_assets',
+            proxy: {'/api/': backendAddress},
+            historyApiFallback: {
+              rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
+            },
+          };
+    }
+  }
+}
+
+if (IS_UI_DEV_ONLY) {
+  appConfig.output.publicPath = '/_assets/';
+  // This proxies to production API
+  appConfig.devServer = {
+    ...appConfig.devServer,
+    compress: true, // XXX: do we need this
+    https: true,
+    publicPath: '/_assets/',
+    proxy: {
+      '/api': {
+        target: 'https://sentry.io',
+        secure: false,
+        changeOrigin: true,
+      },
+    },
+    historyApiFallback: {
+      rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
+    },
+  };
+}
+
+if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
+  /**
+   * Generate a index.html file used for running the app in pure client mode.
+   * This is currently used for PR deploy previews, where only the frontend
+   * is deployed.
+   */
+  const HtmlWebpackPlugin = require('html-webpack-plugin');
+  appConfig.plugins.push(
+    new HtmlWebpackPlugin({
+      devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`,
+      // inject: false,
+      template: path.resolve(staticPrefix, 'index.ejs'),
+      mobile: true,
+      title: 'Sentry',
+    })
+  );
 }
 
 const minificationPlugins = [
