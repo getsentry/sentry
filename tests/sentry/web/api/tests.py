@@ -667,7 +667,7 @@ class CrossDomainXmlTest(TestCase):
         assert b'<allow-access-from domain="*" secure="false" />' in resp.content
 
     @mock.patch("sentry.web.api.get_origins")
-    def test_output_with_whitelist(self, get_origins):
+    def test_output_with_allowed_origins(self, get_origins):
         get_origins.return_value = ["disqus.com", "www.disqus.com"]
         resp = self.client.get(self.path)
         get_origins.assert_called_once_with(self.project)
