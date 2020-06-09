@@ -131,7 +131,7 @@ def assemble_download(
         except MaxRetriesExceededError:
             return data_export.email_failure(message="Internal processing failure")
     else:
-        if rows and batch_offset >= batch_size and new_bytes_written and next_offset < export_limit:
+        if rows and len(rows) >= batch_size and new_bytes_written and next_offset < export_limit:
             assemble_download.delay(
                 data_export_id,
                 export_limit=export_limit,

@@ -9,6 +9,7 @@ from sentry.snuba.discover import InvalidSearchQuery
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat.mock import patch
+from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
     QueryIllegalTypeOfArgument,
@@ -397,6 +398,51 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
         assert error == "Failed to save the assembled file."
+
+
+class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super(AssembleDownloadLargeTest, self).setUp()
+        self.user = self.create_user()
+        self.org = self.create_organization()
+        self.project = self.create_project()
+        data = load_data("transaction")
+        for i in range(50):
+            event = data.copy()
+            event.update(
+                {
+                    "transaction": "/event/{0:03d}/".format(i),
+                    "timestamp": iso_format(before_now(minutes=1, seconds=i)),
+                    "start_timestamp": iso_format(before_now(minutes=1, seconds=i + 1)),
+                }
+            )
+            self.store_event(event, project_id=self.project.id)
+
+    @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 200)
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_large_batch(self, emailer):
+        """
+        Each row in this export requires exactly 13 bytes, with batch_size=3 and
+        MAX_BATCH_SIZE=200, this means that each batch can export 6 mini batches,
+        each containing 3 rows for a total of 3 * 6 * 13 = 234 bytes per batch before
+        it stops the current batch and starts another. This runs for 2 batches and
+        during the 3rd batch, it will finish exporting all 50 rows.
+        """
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={"project": [self.project.id], "field": ["title"], "query": ""},
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=3)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+
+        assert emailer.called
 
 
 class MergeExportBlobsTest(TestCase, SnubaTestCase):
