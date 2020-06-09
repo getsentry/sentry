@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.snuba import discover
 from sentry.models.project import Project, ProjectStatus
 from sentry.api.serializers import serialize
@@ -14,7 +14,7 @@ from sentry.api.serializers import serialize
 
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization, project_slug, event_id):
-        if not features.has("organizations:discover-basic", organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         try:

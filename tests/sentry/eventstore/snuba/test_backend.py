@@ -161,7 +161,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def test_transaction_get_next_prev_event_id(self):
         _filter = Filter(
             project_ids=[self.project1.id, self.project2.id],
-            conditions=[["type", "=", "transaction"]],
+            conditions=[["event.type", "=", "transaction"]],
         )
 
         event = self.eventstore.get_event_by_id(self.project2.id, "e" * 32)

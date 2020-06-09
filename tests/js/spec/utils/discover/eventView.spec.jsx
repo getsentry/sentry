@@ -1979,10 +1979,10 @@ describe('EventView.withSorts()', function() {
       fields: [{field: 'p50()'}],
     });
     const updated = eventView.withSorts([
-      {kind: 'desc', field: 'p50()'},
+      {kind: 'desc', field: 'p50'},
       {kind: 'asc', field: 'unknown'},
     ]);
-    expect(updated.sorts).toEqual([{kind: 'desc', field: 'p50()'}]);
+    expect(updated.sorts).toEqual([{kind: 'desc', field: 'p50'}]);
   });
 });
 
