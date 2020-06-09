@@ -12,6 +12,7 @@ from sentry.models import SentryApp
 from sentry.utils.safe import safe_execute
 from sentry.utils import metrics
 from sentry.tasks.sentry_apps import notify_sentry_app
+from sentry.constants import SentryAppInstallationStatus
 
 
 class NotifyEventServiceForm(forms.Form):
@@ -88,7 +89,9 @@ class NotifyEventServiceAction(EventAction):
 
     def get_sentry_app_services(self):
         apps = SentryApp.objects.filter(
-            installations__organization_id=self.project.organization_id, is_alertable=True
+            installations__organization_id=self.project.organization_id,
+            is_alertable=True,
+            installations__status=SentryAppInstallationStatus.INSTALLED,
         ).distinct()
         results = [SentryAppService(app) for app in apps]
         return results
