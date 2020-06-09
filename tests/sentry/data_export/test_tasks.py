@@ -126,7 +126,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
     @patch("sentry.tagstore.get_tag_key")
     @patch("sentry.utils.snuba.raw_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_issues_by_tag_outside_retention(self, emailer, mock_query, mock_get_tag_key):
+    def test_issue_by_tag_outside_retention(self, emailer, mock_query, mock_get_tag_key):
         """
         When an issues by tag query goes outside the retention range, it returns 0 results.
         This gives us an empty CSV with just the headers.
@@ -194,6 +194,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Requested project does not exist"
 
+    @patch("sentry.data_export.tasks.MAX_BATCH_SIZE", 35)
     @patch("sentry.data_export.tasks.MAX_FILE_SIZE", 55)
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_discover_export_file_too_large(self, emailer):

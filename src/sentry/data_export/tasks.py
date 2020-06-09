@@ -24,7 +24,13 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import capture_exception
 
-from .base import ExportError, ExportQueryType, EXPORTED_ROWS_LIMIT, SNUBA_MAX_RESULTS
+from .base import (
+    ExportError,
+    ExportQueryType,
+    EXPORTED_ROWS_LIMIT,
+    SNUBA_MAX_RESULTS,
+    MAX_BATCH_SIZE,
+)
 from .models import ExportedData, ExportedDataBlob
 from .utils import convert_to_utf8, handle_snuba_errors
 from .processors.discover import DiscoverProcessor
@@ -65,14 +71,11 @@ def assemble_download(
         return
 
     try:
+        # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
         if export_limit is None:
             export_limit = EXPORTED_ROWS_LIMIT
         else:
             export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
-
-        # if there is an export limit, the last batch should only return up to the export limit
-        if export_limit is not None:
-            batch_size = min(batch_size, max(export_limit - offset, 0))
 
         processor = get_processor(data_export, environment_id)
 
@@ -81,14 +84,35 @@ def assemble_download(
             if first_page:
                 writer.writeheader()
 
-            rows = process_rows(processor, data_export, batch_size, offset)
-            writer.writerows(rows)
+            # the position in the file at the end of the headers
+            starting_pos = tf.tell()
 
-            next_offset = offset + len(rows)
+            # the row offset relative to the start of the current task
+            # this offset tells you the number of rows written during this batch
+            batch_offset = 0
+
+            while True:
+                # the absolute row offset from the beginning of the export
+                next_offset = offset + batch_offset
+                # the number of rows to export in the next mini-batch
+                batch_row_count = min(batch_size, max(export_limit - next_offset, 0))
+
+                rows = process_rows(processor, data_export, batch_row_count, next_offset)
+                batch_offset += len(rows)
+                writer.writerows(rows)
+
+                if (
+                    not rows
+                    or len(rows) < batch_row_count
+                    or batch_offset >= batch_size
+                    or tf.tell() - starting_pos >= MAX_BATCH_SIZE
+                ):
+                    break
 
             tf.seek(0)
             new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
             bytes_written += new_bytes_written
+            next_offset = offset + batch_offset
     except ExportError as error:
         return data_export.email_failure(message=six.text_type(error))
     except Exception as error:
@@ -105,12 +129,7 @@ def assemble_download(
         except MaxRetriesExceededError:
             return data_export.email_failure(message="Internal processing failure")
     else:
-        if (
-            rows
-            and len(rows) >= batch_size
-            and new_bytes_written
-            and (export_limit is None or next_offset < export_limit)
-        ):
+        if batch_offset >= batch_size and new_bytes_written and next_offset < export_limit:
             assemble_download.delay(
                 data_export_id,
                 export_limit=export_limit,
