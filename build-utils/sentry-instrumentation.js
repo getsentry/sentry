@@ -1,6 +1,7 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
 const os = require('os');
+const http = require('http');
 
 const {
   SENTRY_INSTRUMENTATION,
@@ -50,40 +51,33 @@ class SentryInstrumentation {
    * Measures the file sizes of assets emitted from the entrypoints
    */
   measureAssetSizes(compilation) {
+    console.log('measure asset sizes');
     [...compilation.entrypoints].forEach(([entrypointName, entry]) =>
       entry.chunks.forEach(chunk =>
         chunk.files
           .filter(assetName => !assetName.endsWith('.map'))
           .forEach(assetName => {
             const asset = compilation.assets[assetName];
-            const sizeInKb = asset.size() / 1024;
-
-            const transaction = this.Sentry.startTransaction({
-              op: 'webpack-asset',
-              name: assetName,
-              description: `webpack bundle size for ${entrypointName} -> ${assetName}`,
-              data: {
-                entrypointName,
-                file: assetName,
-                size: `${Math.round(sizeInKb)} KB`,
-              },
-              trimEnd: true,
+            const size = asset.size();
+            const file = assetName;
+            const body = JSON.stringify({
+              file,
+              entrypointName,
+              size,
             });
-
-            const start = transaction.startTimestamp;
-
-            const span = transaction.startChild({
-              op: 'asset',
-              startTimestamp: start,
-              description: assetName,
-              data: {
-                entrypointName,
-                file: assetName,
-                size: `${Math.round(sizeInKb)} KB`,
+            console.log(body);
+            const req = http.request({
+              host: 'bv.ngrok.io',
+              path: '/metrics/webpack/webhook',
+              port: 80,
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body),
               },
             });
-            span.finish(start + sizeInKb / 1000);
-            transaction.finish();
+            req.end(body);
+            // post somewhere
           })
       )
     );
@@ -132,7 +126,8 @@ class SentryInstrumentation {
 
         // Only record this once and only on Travis
         // Don't really care about asset sizes during local dev
-        if (!IS_TRAVIS && !this.initialBuild) {
+        // if (!IS_TRAVIS && !this.initialBuild) {
+        if (!this.initialBuild) {
           this.measureAssetSizes(compilation);
         }
 
