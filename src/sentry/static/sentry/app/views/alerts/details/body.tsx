@@ -205,7 +205,7 @@ export default class DetailsBody extends React.Component<Props> {
                   aggregate={incident.alertRule.aggregate}
                   data={stats.eventStats.data}
                   detected={incident.dateDetected}
-                  closed={incident.dateClosed}
+                  closed={incident.dateClosed || undefined}
                 />
               ) : (
                 <Placeholder height="200px" />

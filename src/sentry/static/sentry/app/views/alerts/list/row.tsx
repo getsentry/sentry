@@ -164,7 +164,9 @@ class AlertListRow extends AsyncComponent<Props, State> {
               <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
             )}
 
-            {filteredStatus === 'closed' && this.renderTimeSince(incident.dateClosed)}
+            {filteredStatus === 'closed' &&
+              incident.dateClosed &&
+              this.renderTimeSince(incident.dateClosed)}
           </TableLayout>
         </IncidentPanelItem>
       </ErrorBoundary>
