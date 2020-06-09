@@ -133,7 +133,7 @@ describe('Discover -> CellAction', function() {
         pathname: '/organizations/org-slug/performance/summary/',
         query: expect.objectContaining({
           query: undefined,
-          project: ['123'],
+          project: undefined,
           transaction: 'best-transaction',
         }),
       });
