@@ -519,6 +519,19 @@ class DataCategory(IntEnum):
             return DataCategory.SECURITY
         return DataCategory.DEFAULT
 
+    @classmethod
+    def event_categories(cls):
+        return [
+            DataCategory.DEFAULT,
+            DataCategory.ERROR,
+            DataCategory.TRANSACTION,
+            DataCategory.SECURITY,
+        ]
+
+    @classmethod
+    def error_categories(cls):
+        return [DataCategory.DEFAULT, DataCategory.ERROR]
+
     def api_name(self):
         return self.name.lower()
 
