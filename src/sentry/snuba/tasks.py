@@ -121,7 +121,7 @@ def build_snuba_filter(dataset, query, aggregate, environment, params=None):
     resolve_func = (
         resolve_column(Dataset.Events)
         if dataset == QueryDatasets.EVENTS
-        else resolve_column(Dataset.Discover)
+        else resolve_column(Dataset.Transactions)
     )
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))

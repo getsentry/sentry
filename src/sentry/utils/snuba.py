@@ -59,6 +59,13 @@ SENTRY_SNUBA_MAP = {
 }
 
 
+TRANSACTIONS_SNUBA_MAP = {
+    col.value.alias: col.value.transaction_name
+    for col in Columns
+    if col.value.transaction_name is not None
+}
+
+
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
 # to end users and instead have all ad-hoc queries go through the discover
@@ -70,7 +77,11 @@ DISCOVER_COLUMN_MAP = {
 }
 
 
-DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Discover: DISCOVER_COLUMN_MAP}
+DATASETS = {
+    Dataset.Events: SENTRY_SNUBA_MAP,
+    Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
+    Dataset.Discover: DISCOVER_COLUMN_MAP,
+}
 
 # Store the internal field names to save work later on.
 # Add `group_id` to the events dataset list as we don't want to publically
@@ -78,6 +89,7 @@ DATASETS = {Dataset.Events: SENTRY_SNUBA_MAP, Dataset.Discover: DISCOVER_COLUMN_
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
+    Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
 }
 
 
