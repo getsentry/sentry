@@ -137,20 +137,21 @@ class SentryInstrumentation {
     compiler.hooks.done.tapAsync(
       PLUGIN_NAME,
       async ({compilation, startTime, endTime}, done) => {
-        if (!this.Sentry) {
-          done();
-          return;
-        }
-        this.measureBuildTime(startTime / 1000, endTime / 1000);
-
+        // eslint-disable-next-line
+        console.log('webpack hook', IS_CI, this.initialBuild, TRAVIS_COMMIT);
         // Only record this once and only on Travis
         // Don't really care about asset sizes during local dev
         if (IS_CI && !this.initialBuild) {
           this.measureAssetSizes(compilation);
         }
 
+        if (this.Sentry) {
+          this.measureBuildTime(startTime / 1000, endTime / 1000);
+          await this.Sentry.flush();
+        }
+
         this.initialBuild = true;
-        await this.Sentry.flush();
+
         done();
       }
     );
