@@ -41,17 +41,26 @@ export default class DetailsHeader extends React.Component<Props> {
     const {incident, onStatusChange} = this.props;
 
     const isIncidentOpen = incident && isOpen(incident);
-    const statusLabel = incident ? <Status incident={incident} /> : null;
+    const statusLabel = incident ? <StyledStatus incident={incident} /> : null;
 
     return (
       <DropdownControl
         data-test-id="status-dropdown"
         label={statusLabel}
-        buttonProps={{size: 'small', disabled: !incident || !isIncidentOpen}}
+        alignRight
+        blendWithActor={false}
+        buttonProps={{
+          size: 'small',
+          disabled: !incident || !isIncidentOpen,
+          hideBottomBorder: false,
+        }}
       >
+        <StatusMenuItem isActive>
+          {incident && <Status disableIconColor incident={incident} />}
+        </StatusMenuItem>
         <StatusMenuItem onSelect={onStatusChange}>
           <IconCheckmark color="green400" />
-          {t('Resolve')}
+          {t('Resolved')}
         </StatusMenuItem>
       </DropdownControl>
     );
@@ -247,13 +256,20 @@ const IncidentSubTitle = styled('div', {
   color: ${p => p.theme.gray500};
 `;
 
+const StyledStatus = styled(Status)`
+  margin-right: ${space(2)};
+`;
+
 const StatusMenuItem = styled(MenuItem)`
   > span {
-    font-size: ${p => p.theme.fontSizeMedium};
+    padding: ${space(1)} ${space(1.5)};
+    font-size: ${p => p.theme.fontSizeSmall};
+    font-weight: 600;
+    line-height: 1;
     text-align: left;
     display: grid;
     grid-template-columns: max-content 1fr;
-    grid-gap: ${space(0.5)};
+    grid-gap: ${space(0.75)};
     align-items: center;
   }
 `;

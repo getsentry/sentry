@@ -130,11 +130,16 @@ describe('IncidentDetails', function() {
 
     expect(activitiesList).toHaveBeenCalledTimes(1);
 
-    expect(wrapper.find('Status').text()).not.toBe('Resolved');
+    expect(
+      wrapper
+        .find('Status')
+        .at(0)
+        .text()
+    ).not.toBe('Resolved');
     wrapper.find('[data-test-id="status-dropdown"] DropdownButton').simulate('click');
     wrapper
       .find('[data-test-id="status-dropdown"] MenuItem span')
-      .at(0)
+      .at(2)
       .simulate('click');
 
     await tick();
@@ -148,7 +153,12 @@ describe('IncidentDetails', function() {
 
     // Refresh activities list since status changes also creates an activity
     expect(activitiesList).toHaveBeenCalledTimes(2);
-    expect(wrapper.find('Status').text()).toBe('Resolved');
+    expect(
+      wrapper
+        .find('Status')
+        .at(0)
+        .text()
+    ).toBe('Resolved');
   });
 
   it('allows members to change issuet status', async function() {
@@ -162,7 +172,12 @@ describe('IncidentDetails', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('Status').text()).not.toBe('Resolved');
+    expect(
+      wrapper
+        .find('Status')
+        .at(0)
+        .text()
+    ).not.toBe('Resolved');
     expect(wrapper.find('[data-test-id="status-dropdown"] DropdownButton').exists()).toBe(
       true
     );
