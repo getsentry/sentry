@@ -20,9 +20,6 @@ def map_frame(raw_frame, new_frame):
     frame["module"] = new_frame.class_name
     frame["function"] = new_frame.method
     frame["lineno"] = new_frame.line
-    if new_frame.file is None:
-        frame.pop("filename", None)
-        frame.pop("abs_path", None)
 
     return frame
 
@@ -105,13 +102,35 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         frame = processable_frame.frame
         raw_frame = dict(frame)
 
+        # first, try to remap complete frames
         for view in self.mapping_views:
             mapped = view.remap_frame(frame["module"], frame["function"], frame.get("lineno") or 0)
             mapped = map(lambda f: map_frame(frame, f), mapped)
 
             if len(mapped) > 0:
                 # sentry expects stack traces in reverse order
-                return reversed(mapped), [raw_frame], []
+                mapped = list(reversed(mapped))
+                # clear the filename for all *foreign* classes
+                bottom_class = mapped[0]["module"]
+
+                def rm_filename(frame):
+                    if frame["module"] != bottom_class:
+                        frame.pop("filename", None)
+                        frame.pop("abs_path", None)
+                    return frame
+
+                mapped = map(rm_filename, mapped)
+
+                return mapped, [raw_frame], []
+
+        # second, if that is not possible, try to re-map only the class-name
+        for view in self.mapping_views:
+            mapped = view.remap_class(frame["module"])
+
+            if mapped:
+                new_frame = dict(raw_frame)
+                new_frame["module"] = mapped
+                return [new_frame], [raw_frame], []
 
         return
 

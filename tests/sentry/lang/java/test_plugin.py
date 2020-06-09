@@ -18,8 +18,6 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
     69:69:java.lang.Class[] getExtraClassContext() -> a
     65:65:void <init>(org.slf4j.helpers.Util$1) -> <init>
 """
-PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
-PROGUARD_BUG_SOURCE = b"x"
 PROGUARD_INLINE_UUID = "d748e578-b3d1-5be5-b0e5-a42e8c9bf8e0"
 PROGUARD_INLINE_SOURCE = b"""\
 # compiler: R8
@@ -44,6 +42,8 @@ io.sentry.sample.MainActivity -> io.sentry.sample.MainActivity:
     1:1:void foo():44 -> t
     1:1:void onClickHandler(android.view.View):40 -> t
 """
+PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
+PROGUARD_BUG_SOURCE = b"x"
 
 
 class BasicResolvingIntegrationTest(object):
@@ -188,18 +188,18 @@ class BasicResolvingIntegrationTest(object):
                         "stacktrace": {
                             "frames": [
                                 {
-                                    "function": "t",
-                                    "abs_path": None,
-                                    "module": "io.sentry.sample.MainActivity",
-                                    "filename": None,
-                                    "lineno": 1,
-                                },
-                                {
                                     "function": "onClick",
                                     "abs_path": None,
                                     "module": "e.a.c.a",
                                     "filename": None,
                                     "lineno": 2,
+                                },
+                                {
+                                    "function": "t",
+                                    "abs_path": None,
+                                    "module": "io.sentry.sample.MainActivity",
+                                    "filename": "MainActivity.java",
+                                    "lineno": 1,
                                 },
                             ]
                         },
@@ -227,19 +227,25 @@ class BasicResolvingIntegrationTest(object):
             ):
                 self.post_and_retrieve_event(event_data)
 
-        print(event.data["errors"])
-        assert len(event.data["errors"]) == 0
-
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
         frames = bt.frames
 
         assert len(frames) == 4
 
-        assert frames[0].function == "getClassContext"
-        assert frames[0].module == "io.sentry.sample.MainActivity"
-        assert frames[3].function == "getExtraClassContext"
-        assert frames[3].module == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
+        assert frames[0].function == "onClick"
+        assert frames[0].module == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
+
+        assert frames[1].filename == "MainActivity.java"
+        assert frames[1].module == "io.sentry.sample.MainActivity"
+        assert frames[1].function == "onClickHandler"
+        assert frames[1].lineno == 40
+        assert frames[2].function == "foo"
+        assert frames[2].lineno == 44
+        assert frames[3].function == "bar"
+        assert frames[3].lineno == 54
+        assert frames[3].filename == "MainActivity.java"
+        assert frames[3].module == "io.sentry.sample.MainActivity"
 
     def test_error_on_resolving(self):
         url = reverse(
