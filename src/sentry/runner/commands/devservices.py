@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import time
-import atexit
 import signal
 import os
 import click
@@ -82,13 +81,14 @@ def attach(project, fast, service):
     container = _start_service(client, service, containers, project, fast=fast, always_start=True)
 
     def exit_handler(*_):
-        click.echo("Shutting down {}".format(service))
         try:
+            click.echo("Stopping {}".format(service))
             container.stop()
+            click.echo("Removing {}".format(service))
+            container.remove()
         except KeyboardInterrupt:
             pass
 
-    atexit.register(exit_handler)
     signal.signal(signal.SIGINT, exit_handler)
     signal.signal(signal.SIGTERM, exit_handler)
 
