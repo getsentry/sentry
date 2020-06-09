@@ -32,6 +32,7 @@ type ReleaseStoreInterface = {
     deploysError: StoreError;
   };
 
+  updateOrganization(org: Organization): void;
   loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string): void;
   loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
   loadReleaseError(projectSlug: string, releaseVersion: string, error: Error): void;
@@ -75,10 +76,8 @@ const ReleaseStoreConfig: Reflux.StoreDefinition & ReleaseStoreInterface = {
   },
 
   updateOrganization(org: Organization) {
-    this.state = {
-      ...this.state,
-      orgSlug: org.slug,
-    };
+    this.reset();
+    this.state.orgSlug = org.slug;
     this.trigger(this.state);
   },
 
