@@ -109,10 +109,7 @@ class OrganizationReleaseDetails extends AsyncView {
   }
 
   renderBody() {
-    const {
-      location,
-      params: {orgId},
-    } = this.props;
+    const {location, organization} = this.props;
     const {release} = this.state;
 
     const query = pick(location.query, Object.values(URL_PARAM));
@@ -126,7 +123,7 @@ class OrganizationReleaseDetails extends AsyncView {
 
     return (
       <PageContent>
-        <ReleaseHeader release={release} orgId={orgId} />
+        <ReleaseHeader release={release} organization={organization} />
         {React.cloneElement(this.props.children, {
           release,
           query,

@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
@@ -18,16 +17,16 @@ import {deleteRelease} from './utils';
 
 export default class ReleaseDetailsActions extends React.Component {
   static propTypes = {
-    orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
     release: SentryTypes.Release.isRequired,
   };
 
   handleDelete = () => {
-    const {orgId, release} = this.props;
-    const redirectPath = `/organizations/${orgId}/releases/`;
+    const {organization, release} = this.props;
+    const redirectPath = `/organizations/${organization.slug}/releases/`;
     addLoadingMessage(t('Deleting Release...'));
 
-    deleteRelease(orgId, release.version)
+    deleteRelease(organization.slug, release.version)
       .then(() => {
         browserHistory.push(redirectPath);
       })
@@ -39,7 +38,7 @@ export default class ReleaseDetailsActions extends React.Component {
   };
 
   render() {
-    const {orgId} = this.props;
+    const {organization} = this.props;
 
     return (
       <Wrapper>
@@ -56,7 +55,7 @@ export default class ReleaseDetailsActions extends React.Component {
           </Confirm>
 
           <Feature features={['releases-v2']}>
-            <SwitchReleasesButton version="2" orgId={orgId} />
+            <SwitchReleasesButton version="2" orgId={organization.id} />
           </Feature>
         </ButtonBar>
       </Wrapper>

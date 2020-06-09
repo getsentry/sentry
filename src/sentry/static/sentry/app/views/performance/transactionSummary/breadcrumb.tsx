@@ -24,8 +24,8 @@ class Breadcrumb extends React.Component<Props> {
     const performanceTarget = {
       pathname: getPerformanceLandingUrl(organization),
       query: {
-        ...location.query,
         ...eventView.generateBlankQueryStringObject(),
+        ...location.query,
         ...eventView.getGlobalSelection(),
         // clear out the transaction name
         transaction: undefined,

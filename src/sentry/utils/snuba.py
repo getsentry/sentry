@@ -41,6 +41,10 @@ from sentry.utils.compat import map
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+# We limit the number of fields an user can ask for
+# in a single query to lessen the load on snuba
+MAX_FIELDS = 20
+
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
 
@@ -58,6 +62,11 @@ SENTRY_SNUBA_MAP = {
     col.value.alias: col.value.event_name for col in Columns if col.value.event_name is not None
 }
 
+TRANSACTIONS_SNUBA_MAP = {
+    col.value.alias: col.value.transaction_name
+    for col in Columns
+    if col.value.transaction_name is not None
+}
 
 TRANSACTIONS_SNUBA_MAP = {
     col.value.alias: col.value.transaction_name
@@ -88,6 +97,7 @@ DATASETS = {
 # expose that field, but it is used by eventstore and other internals.
 DATASET_FIELDS = {
     Dataset.Events: list(SENTRY_SNUBA_MAP.values()),
+    Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
 }
