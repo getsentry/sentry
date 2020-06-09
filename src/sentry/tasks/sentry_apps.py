@@ -1,10 +1,14 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import six
 
 from celery.task import current
 from django.core.urlresolvers import reverse
-from requests.exceptions import RequestException, Timeout
+from requests.exceptions import (
+    ConnectionError,
+    Timeout,
+)  # RequestException, flake complaining I'm not using it
 
 from sentry.eventstore.models import Event
 from sentry.http import safe_urlopen
@@ -23,6 +27,11 @@ from sentry.models import (
     ServiceHookProject,
     SentryApp,
 )
+from sentry.shared_integrations.exceptions import (
+    IgnorableSentryAppError,
+    ServiceUnavailable,
+    GatewayTimeout,
+)
 from sentry.models.sentryapp import VALID_EVENTS, track_response_code
 from sentry.utils.compat import filter
 from sentry.constants import SentryAppInstallationStatus
@@ -33,6 +42,11 @@ TASK_OPTIONS = {
     "queue": "app_platform",
     "default_retry_delay": (60 * 5),  # Five minutes.
     "max_retries": 3,
+}
+
+RETRY_OPTIONS = {
+    "on": "RequestException, ServiceUnavailable, GatewayTimeout",
+    "exclude": "IgnorableSentryAppError",
 }
 
 # We call some models by a different name, publicly, than their class name.
@@ -70,7 +84,7 @@ def _webhook_event_data(event, group_id, project_id):
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
-@retry(on=(RequestException,))
+@retry(**RETRY_OPTIONS)
 def send_alert_event(event, rule, sentry_app_id):
     group = event.group
     project = Project.objects.get_from_cache(id=group.project_id)
@@ -189,12 +203,11 @@ def process_resource_change_bound(self, action, sender, instance_id, *args, **kw
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **TASK_OPTIONS)
-@retry(on=(RequestException,))
+@retry(**RETRY_OPTIONS)
 def installation_webhook(installation_id, user_id, *args, **kwargs):
     from sentry.mediators.sentry_app_installations import InstallationNotifier
 
     extra = {"installation_id": installation_id, "user_id": user_id}
-
     try:
         # we should send the webhook for pending installations on the install event in case that's part of the workflow
         install = SentryAppInstallation.objects.get(id=installation_id)
@@ -212,7 +225,7 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
-@retry(on=(RequestException,))
+@retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
     extra = {"installation_id": installation_id, "issue_id": issue_id}
 
@@ -292,7 +305,6 @@ def send_webhooks(installation, event, **kwargs):
         kwargs["install"] = installation
 
         request_data = AppPlatformEvent(**kwargs)
-
         send_and_save_webhook_request(
             servicehook.sentry_app.webhook_url, installation.sentry_app, request_data
         )
@@ -310,11 +322,13 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
             url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
         )
 
-    except Timeout:
-        track_response_code("timeout", slug, event)
+    except (Timeout, ConnectionError) as e:
+        track_response_code(e.__class__.__name__, slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         # Re-raise the exception because some of these tasks might retry on the exception
+        if not sentry_app.is_published:
+            raise IgnorableSentryAppError("unpublished internal")  # get this NOT to send to sentry
         raise
 
     else:
@@ -327,5 +341,15 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
             error_id=resp.headers.get("Sentry-Hook-Error"),
             project_id=resp.headers.get("Sentry-Hook-Project"),
         )
+        if not sentry_app.is_published:
+            raise IgnorableSentryAppError("unpublished internal")  # get this NOT to send to sentry
+
+        if resp.status_code == 503:
+            raise ServiceUnavailable(six.binary_type(resp.status_code))
+
+        elif resp.status_code == 504:
+            raise GatewayTimeout(six.binary_type(resp.status_code))
+
         resp.raise_for_status()
+
         return resp

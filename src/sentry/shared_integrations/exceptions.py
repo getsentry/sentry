@@ -73,6 +73,14 @@ class ApiUnauthorized(ApiError):
     code = 401
 
 
+class ServiceUnavailable(ApiError):
+    code = 503
+
+
+class GatewayTimeout(ApiError):
+    code = 504
+
+
 class UnsupportedResponseType(ApiError):
     @property
     def content_type(self):
@@ -91,3 +99,7 @@ class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors):
         super(IntegrationFormError, self).__init__("Invalid integration action")
         self.field_errors = field_errors
+
+
+class IgnorableSentryAppError(IntegrationError):
+    pass
