@@ -10,7 +10,7 @@ import {Dataset} from 'app/views/settings/incidentRules/types';
 
 describe('MetricField', function() {
   const {organization} = initializeOrg({
-    organization: {features: ['transaction-events']},
+    organization: {features: ['performance-view']},
   });
 
   it('renders', function() {

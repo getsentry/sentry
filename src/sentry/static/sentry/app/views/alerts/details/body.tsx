@@ -192,23 +192,24 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <StyledPageContent>
-        {incident &&
-          incident.status === IncidentStatus.CLOSED &&
-          incident.statusMethod === IncidentStatusMethod.RULE_UPDATED && (
-            <AlertWrapper>
-              <Alert type="warning" icon={<IconWarning size="sm" />}>
-                {t(
-                  'This alert has been auto-resolved because the rule that triggered it has been modified or deleted'
-                )}
-              </Alert>
-            </AlertWrapper>
-          )}
         <Main>
+          {incident &&
+            incident.status === IncidentStatus.CLOSED &&
+            incident.statusMethod === IncidentStatusMethod.RULE_UPDATED && (
+              <AlertWrapper>
+                <Alert type="warning" icon={<IconWarning size="sm" />}>
+                  {t(
+                    'This alert has been auto-resolved because the rule that triggered it has been modified or deleted'
+                  )}
+                </Alert>
+              </AlertWrapper>
+            )}
           <PageContent>
             <ChartPanel>
               {this.renderChartHeader()}
               {incident && stats ? (
                 <Chart
+                  triggers={incident.alertRule.triggers}
                   aggregate={incident.alertRule.aggregate}
                   data={stats.eventStats.data}
                   detected={incident.dateDetected}

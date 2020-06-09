@@ -3,14 +3,18 @@ import memoize from 'lodash/memoize';
 import moment from 'moment';
 import styled from '@emotion/styled';
 
+import {IconWarning} from 'app/icons';
 import {PanelItem} from 'app/components/panels';
+import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
+import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import Projects from 'app/utils/projects';
+import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -47,9 +51,13 @@ class AlertListRow extends AsyncComponent<Props, State> {
     return this.renderBody();
   }
 
+  renderError() {
+    return this.renderBody();
+  }
+
   renderBody() {
     const {incident, orgId, projectsLoaded, projects} = this.props;
-    const {loading, stats} = this.state;
+    const {loading, error, stats} = this.state;
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
@@ -57,39 +65,60 @@ class AlertListRow extends AsyncComponent<Props, State> {
     const slug = incident.projects[0];
 
     return (
-      <IncidentPanelItem>
-        <TableLayout>
-          <TitleAndSparkLine>
-            <TitleLink to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
-              {incident.title}
-            </TitleLink>
+      <ErrorBoundary>
+        <IncidentPanelItem>
+          <TableLayout>
+            <TitleAndSparkLine>
+              <TitleLink to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
+                {incident.title}
+              </TitleLink>
 
-            <SparkLine eventStats={stats?.eventStats} />
-          </TitleAndSparkLine>
+              <SparkLine
+                error={error && <ErrorLoadingStatsIcon />}
+                eventStats={stats?.eventStats}
+              />
+            </TitleAndSparkLine>
 
-          <ProjectBadge
-            avatarSize={18}
-            project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-          />
+            <ProjectBadge
+              avatarSize={18}
+              project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+            />
 
-          <Status incident={incident} />
+            <Status incident={incident} />
 
-          <div>
-            {started.format('L')}
-            <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />
-          </div>
+            <div>
+              {started.format('L')}
+              <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />
+            </div>
 
-          <NumericColumn>
-            {!loading ? <Count value={stats.uniqueUsers} /> : <NumericPlaceholder />}
-          </NumericColumn>
+            <NumericColumn>
+              {!loading && !error ? (
+                <Count value={stats?.uniqueUsers} />
+              ) : (
+                <NumericPlaceholder error={error && <ErrorLoadingStatsIcon />} />
+              )}
+            </NumericColumn>
 
-          <NumericColumn>
-            {!loading ? <Count value={stats.totalEvents} /> : <NumericPlaceholder />}
-          </NumericColumn>
-        </TableLayout>
-      </IncidentPanelItem>
+            <NumericColumn>
+              {!loading && !error ? (
+                <Count value={stats?.totalEvents} />
+              ) : (
+                <NumericPlaceholder error={error && <ErrorLoadingStatsIcon />} />
+              )}
+            </NumericColumn>
+          </TableLayout>
+        </IncidentPanelItem>
+      </ErrorBoundary>
     );
   }
+}
+
+function ErrorLoadingStatsIcon() {
+  return (
+    <Tooltip title={t('Error loading alert stats')}>
+      <IconWarning />
+    </Tooltip>
+  );
 }
 
 const LightDuration = styled(Duration)`
@@ -110,7 +139,13 @@ const IncidentPanelItem = styled(PanelItem)`
   padding: ${space(1)} ${space(2)};
 `;
 
-const NumericPlaceholder = styled(Placeholder)`
+const NumericPlaceholder = styled(Placeholder)<{error?: React.ReactNode}>`
+  ${p =>
+    p.error &&
+    `
+    align-items: center;
+    line-height: 1;
+    `}
   height: 100%;
 `;
 
