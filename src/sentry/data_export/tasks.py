@@ -228,6 +228,7 @@ def merge_export_blobs(data_export_id, **kwargs):
 
             file.size = size
             file.checksum = file_checksum.hexdigest()
+            file.save()
             data_export.finalize_upload(file=file)
 
             logger.info("dataexport.end", extra={"data_export_id": data_export_id})
