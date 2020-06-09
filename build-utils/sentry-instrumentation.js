@@ -142,8 +142,7 @@ class SentryInstrumentation {
 
         // Only record this once and only on Travis
         // Don't really care about asset sizes during local dev
-        // if (!IS_TRAVIS && !this.initialBuild) {
-        if (!this.initialBuild) {
+        if (!IS_TRAVIS && !this.initialBuild) {
           this.measureAssetSizes(compilation);
         }
 
