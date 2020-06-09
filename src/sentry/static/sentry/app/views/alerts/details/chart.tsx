@@ -158,44 +158,48 @@ const Chart = (props: Props) => {
             ],
           }),
         },
-        warningTriggerThreshold && {
-          type: 'line',
-          markLine: MarkLine({
-            silent: true,
-            lineStyle: {color: theme.yellow500},
-            data: [
-              {
-                yAxis: warningTriggerThreshold,
+        warningTrigger &&
+          warningTriggerThreshold && {
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.yellow500},
+              data: [
+                {
+                  yAxis: warningTriggerThreshold,
+                },
+              ],
+              label: {
+                show: true,
+                position:
+                  warningTrigger.thresholdType === 0 ? 'insideEndBottom' : 'insideEndTop',
+                formatter: 'Warning',
               },
-            ],
-            label: {
-              show: true,
-              position:
-                criticalTrigger?.thresholdType === 0 ? 'insideEndBottom' : 'insideEndTop',
-              formatter: 'Warning',
-            },
-          }),
-          data: [],
-        },
-        criticalTriggerThreshold && {
-          type: 'line',
-          markLine: MarkLine({
-            silent: true,
-            lineStyle: {color: theme.red300},
-            data: [
-              {
-                yAxis: criticalTriggerThreshold,
+            }),
+            data: [],
+          },
+        criticalTrigger &&
+          criticalTriggerThreshold && {
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.red300},
+              data: [
+                {
+                  yAxis: criticalTriggerThreshold,
+                },
+              ],
+              label: {
+                show: true,
+                position:
+                  criticalTrigger.thresholdType === 0
+                    ? 'insideEndTop'
+                    : 'insideEndBottom',
+                formatter: 'Critical',
               },
-            ],
-            label: {
-              show: true,
-              position:
-                criticalTrigger?.thresholdType === 0 ? 'insideEndTop' : 'insideEndBottom',
-              formatter: 'Critical',
-            },
-          }),
-          data: [],
-        },
+            }),
+            data: [],
+          },
       ].filter(Boolean)}
     />
   );
