@@ -28,7 +28,7 @@ class Columns(Enum):
     RELEASE = Column(
         "events.tags[sentry:release]", "tags[sentry:release]", "release", "release", "release"
     )
-    DIST = Column("events.tags[sentry:dist]", "tags[sentry:dist]", "dist" "dist", "dist")
+    DIST = Column("events.tags[sentry:dist]", "tags[sentry:dist]", "dist", "dist", "dist")
     TITLE = Column("events.title", "title", "transaction_name", "title", "title")
     TYPE = Column("events.type", "type", None, "type", "event.type")
     TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key", "tags.key")
