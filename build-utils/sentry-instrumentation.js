@@ -59,8 +59,12 @@ class SentryInstrumentation {
    */
   measureAssetSizes(compilation) {
     if (!SENTRY_WEBPACK_WEBHOOK_SECRET) {
+      // eslint-disable-next-line
+      console.log('no webhook secret');
       return;
     }
+    // eslint-disable-next-line
+    console.log('measureAssetSizes');
 
     [...compilation.entrypoints].forEach(([entrypointName, entry]) =>
       entry.chunks.forEach(chunk =>
