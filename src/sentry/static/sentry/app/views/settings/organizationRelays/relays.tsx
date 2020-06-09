@@ -11,7 +11,6 @@ import ExternalLink from 'app/components/links/externalLink';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {IconDelete} from 'app/icons';
-import Tooltip from 'app/components/tooltip';
 
 import Time from './time';
 
