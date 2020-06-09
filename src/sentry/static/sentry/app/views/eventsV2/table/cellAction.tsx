@@ -168,7 +168,7 @@ class CellAction extends React.Component<Props, State> {
           orgSlug: organization.slug,
           transaction: String(value),
           projectID,
-          query: eventView.generateQueryStringObject(),
+          query: {},
         });
 
         browserHistory.push(next);
