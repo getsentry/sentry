@@ -741,6 +741,7 @@ LOGGING = {
     "loggers": {
         "celery": {"level": "WARNING"},
         "sentry": {"level": "INFO"},
+        "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
         "sentry.interfaces": {"handlers": ["internal"], "propagate": False},
@@ -869,6 +870,8 @@ SENTRY_FEATURES = {
     "organizations:datascrubbers-v2": False,
     # Enable the new version of interface/breadcrumbs
     "organizations:breadcrumbs-v2": False,
+    # Enable Relay config feature
+    "organizations:relay-config": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,

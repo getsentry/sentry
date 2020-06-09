@@ -27,6 +27,7 @@ type Props = {
   disabled?: boolean;
   organization: Organization;
   payload: DataExportPayload;
+  icon?: React.ReactNode;
 };
 
 type State = {
@@ -80,16 +81,17 @@ class DataExport extends React.Component<Props, State> {
         );
         this.setState({inProgress: true, dataExportId});
       })
-      .catch(_err => {
-        addErrorMessage(
-          t("We tried our hardest, but we couldn't export your data. Give it another go.")
-        );
+      .catch(err => {
+        const message =
+          err?.responseJSON?.detail ??
+          "We tried our hardest, but we couldn't export your data. Give it another go.";
+        addErrorMessage(t(message));
       });
   };
 
   render() {
     const {inProgress, dataExportId} = this.state;
-    const {children, disabled} = this.props;
+    const {children, disabled, icon} = this.props;
     return (
       <Feature features={['organizations:data-export']}>
         {inProgress && dataExportId ? (
@@ -99,6 +101,7 @@ class DataExport extends React.Component<Props, State> {
             title="You can get on with your life. We'll email you when your data's ready."
             {...this.props}
             disabled
+            icon={icon}
           >
             {t("We're working on it...")}
           </NewButton>
@@ -109,6 +112,7 @@ class DataExport extends React.Component<Props, State> {
             size="small"
             priority="default"
             title="Put your data to work. Start your export and we'll email you when it's finished."
+            icon={icon}
             {...this.props}
           >
             {children ? children : t('Export All to CSV')}

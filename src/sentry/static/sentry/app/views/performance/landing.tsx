@@ -48,6 +48,7 @@ type Props = {
   router: ReactRouter.InjectedRouter;
   projects: Project[];
   loadingProjects: boolean;
+  demoMode?: boolean;
 };
 
 type State = {
@@ -178,8 +179,13 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   shouldShowOnboarding() {
-    const {projects} = this.props;
+    const {projects, demoMode} = this.props;
     const {eventView} = this.state;
+
+    // XXX used by getsentry to bypass onboarding for the upsell demo state.
+    if (demoMode) {
+      return false;
+    }
 
     if (projects.length === 0) {
       return false;

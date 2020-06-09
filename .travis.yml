@@ -185,10 +185,10 @@ matrix:
         - pip install 'sentry-flake8==0.3.0'
         - SENTRY_NO_VIRTUALENV_CREATION=1 make setup-git
       script:
-        # black is going to rewrite the files in-place.
-        # i need to either define a second hook that only runs --check --diff and conditionally run that,
-        # or i need to figure out how to pass additional args to a hook from the pre-commit invocation.
-        - pre-commit run --all-files
+        # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
+        # XXX: there is a very small chance that it'll expand to exceed Linux's limits
+        #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
+        - pre-commit run --files $(git diff --diff-filter=d --name-only master)
         # If pre-commit was good, then we scan dependencies.
         # Note that this isn't moved to an after_script since that would override what we already have.
         # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...

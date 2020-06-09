@@ -18,10 +18,11 @@ import {SectionHeading} from 'app/components/charts/styles';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {Panel} from 'app/components/panels';
+import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Button from 'app/components/button';
 import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
+import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 
 import Activity from './activity';
 import Chart from './chart';
@@ -115,7 +116,7 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   renderChartHeader() {
-    const {incident, stats, params} = this.props;
+    const {incident} = this.props;
     const alertRule = incident?.alertRule;
 
     return (
@@ -135,14 +136,27 @@ export default class DetailsBody extends React.Component<Props> {
                 </code>
               ),
             })}
-            {alertRule?.query &&
-              tct('Filter: [filter]', {
-                filter: <code>{alertRule.query}</code>,
+            {(alertRule?.query || incident?.alertRule?.dataset) &&
+              tct('Filter: [datasetType] [filter]', {
+                datasetType: incident?.alertRule?.dataset && (
+                  <code>{DATASET_EVENT_TYPE_FILTERS[incident.alertRule.dataset]}</code>
+                ),
+                filter: alertRule?.query && <code>{alertRule.query}</code>,
               })}
           </ChartParameters>
         </div>
+      </ChartHeader>
+    );
+  }
+
+  renderChartActions() {
+    const {incident, params, stats} = this.props;
+
+    return (
+      // Currently only one button in pannel, hide panel if not available
+      <Feature features={['discover-basic']}>
         <ChartActions>
-          <Feature features={['discover-basic']}>
+          <PanelBody withPadding>
             <Projects slugs={incident?.projects} orgId={params.orgId}>
               {({initiallyLoaded, fetching, projects}) => {
                 const preset = this.metricPreset;
@@ -169,9 +183,9 @@ export default class DetailsBody extends React.Component<Props> {
                 );
               }}
             </Projects>
-          </Feature>
+          </PanelBody>
         </ChartActions>
-      </ChartHeader>
+      </Feature>
     );
   }
 
@@ -194,18 +208,20 @@ export default class DetailsBody extends React.Component<Props> {
             )}
           <PageContent>
             <ChartPanel>
-              {this.renderChartHeader()}
-              {incident && stats ? (
-                <Chart
-                  triggers={incident.alertRule.triggers}
-                  aggregate={incident.alertRule.aggregate}
-                  data={stats.eventStats.data}
-                  detected={incident.dateDetected}
-                  closed={incident.dateClosed || undefined}
-                />
-              ) : (
-                <Placeholder height="200px" />
-              )}
+              <PanelBody withPadding>
+                {this.renderChartHeader()}
+                {incident && stats ? (
+                  <Chart
+                    triggers={incident.alertRule.triggers}
+                    aggregate={incident.alertRule.aggregate}
+                    data={stats.eventStats.data}
+                    detected={incident.dateDetected}
+                    closed={incident.dateClosed || undefined}
+                  />
+                ) : (
+                  <Placeholder height="200px" />
+                )}
+              </PanelBody>
             </ChartPanel>
           </PageContent>
           <DetailWrapper>
@@ -334,17 +350,13 @@ const StyledPageContent = styled(PageContent)`
   flex-direction: column;
 `;
 
-const ChartPanel = styled(Panel)`
-  padding: ${space(2)};
-`;
+const ChartPanel = styled(Panel)``;
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
-  display: grid;
-  grid-template-columns: 1fr max-content;
 `;
 
-const ChartActions = styled('div')``;
+const ChartActions = styled(PanelFooter)``;
 
 const ChartParameters = styled('div')`
   color: ${p => p.theme.gray600};
@@ -354,6 +366,7 @@ const ChartParameters = styled('div')`
   grid-auto-columns: max-content;
   grid-gap: ${space(4)};
   align-items: center;
+  overflow-x: auto;
 
   > * {
     position: relative;

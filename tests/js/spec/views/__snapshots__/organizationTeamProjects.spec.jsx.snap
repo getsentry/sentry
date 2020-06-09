@@ -188,12 +188,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     size="xsmall"
                                   >
                                     <StyledButton
+                                      hideBottomBorder={true}
                                       isOpen={false}
                                       size="xsmall"
                                       type="button"
                                     >
                                       <forwardRef<Button>
                                         className="css-1k1xa0j-StyledButton eenpoef1"
+                                        hideBottomBorder={true}
                                         isOpen={false}
                                         size="xsmall"
                                         type="button"
@@ -203,6 +205,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           className="css-1k1xa0j-StyledButton eenpoef1"
                                           disabled={false}
                                           forwardRef={null}
+                                          hideBottomBorder={true}
                                           isOpen={false}
                                           size="xsmall"
                                           type="button"
@@ -212,6 +215,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             className="css-1k1xa0j-StyledButton eenpoef1"
                                             disabled={false}
                                             forwardRef={null}
+                                            hideBottomBorder={true}
                                             isOpen={false}
                                             onClick={[Function]}
                                             role="button"
