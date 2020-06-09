@@ -166,7 +166,6 @@ const columnStyle = (p: GridProps & {theme: Theme}) => {
 
 const Grid = styled('div')<GridProps>`
   display: grid;
-  grid-template-columns: auto auto max-content auto 1fr max-content;
   align-items: center;
   > *:nth-last-child(-n + ${p => p.columnQtd}) {
     border-bottom: 0;
