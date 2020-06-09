@@ -159,9 +159,7 @@ class CellAction extends React.Component<Props, State> {
       case Actions.TRANSACTION: {
         const maybeProject = projects.find(project => project.slug === dataRow.project);
 
-        const projectID = maybeProject
-          ? [maybeProject.id]
-          : eventView.project.map(id => String(id));
+        const projectID = maybeProject ? [maybeProject.id] : undefined;
 
         const next = transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
