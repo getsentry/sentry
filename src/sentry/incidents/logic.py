@@ -41,6 +41,7 @@ from sentry.snuba.subscriptions import (
 )
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -998,7 +999,17 @@ def update_alert_rule_trigger_action(
 def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id, name):
     from sentry.integrations.slack.utils import get_channel_id
 
-    _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name,)
+    try:
+        _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name,)
+    except DuplicateDisplayNameError as e:
+        integration = Integration.objects.get(id=integration_id)
+        domain = integration.metadata["domain_name"]
+
+        raise InvalidTriggerActionError(
+            'Multiple users were found with display name "%s". Please use your username, found at %s/account/settings.'
+            % (e.message, domain)
+        )
+
     if timed_out:
         raise InvalidTriggerActionError(
             "Could not find channel %s. We have timed out trying to look for it. " % name
