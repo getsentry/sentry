@@ -56,9 +56,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
             }}
             features={features}
             disabled={!access.has('project:write')}
-            fields={[
-              fields.storeCrashReports,
-            ]}
+            fields={[fields.storeCrashReports]}
           />
           <JsonForm
             title={t('Data Scrubbing')}

@@ -75,7 +75,9 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
-          description: t('Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'),
+          description: t(
+            'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
+          ),
           show: () => organization.features?.includes('datascrubbers-v2'),
           badge: () => 'new',
         },
