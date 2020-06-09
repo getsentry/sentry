@@ -12,6 +12,7 @@ function makeWrapper(eventView, initial, columnIndex = 0) {
     transaction: 'best-transaction',
     count: 19,
     timestamp: '2020-06-09T01:46:25+00:00',
+    release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
   };
   return mountWithTheme(
     <CellAction
@@ -29,8 +30,8 @@ describe('Discover -> CellAction', function() {
     query: {
       id: '42',
       name: 'best query',
-      field: ['transaction', 'count()', 'timestamp'],
-      widths: ['123', '456', '789'],
+      field: ['transaction', 'count()', 'timestamp', 'release'],
+      widths: ['437', '647', '416', '905'],
       sort: ['title'],
       query: 'event.type:transaction',
       project: [123],
@@ -134,6 +135,23 @@ describe('Discover -> CellAction', function() {
           query: undefined,
           project: ['123'],
           transaction: 'best-transaction',
+        }),
+      });
+    });
+
+    it('go to release button goes to release health page', function() {
+      wrapper = makeWrapper(view, initial, 3);
+      // Show button and menu.
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+
+      wrapper.find('button[data-test-id="release"]').simulate('click');
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname:
+          '/organizations/org-slug/releases/F2520C43515BD1F0E8A6BD46233324641A370BF6/',
+        query: expect.objectContaining({
+          project: undefined,
         }),
       });
     });
