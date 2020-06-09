@@ -9,7 +9,6 @@ const ExtractTextPlugin = require('mini-css-extract-plugin');
 const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
-// const CopyPlugin = require('copy-webpack-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
@@ -380,12 +379,6 @@ let appConfig = {
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
-if (IS_DEPLOY_PREVIEW) {
-  // appConfig.plugins.push(
-  // new CopyPlugin([{from: path.join(staticPrefix, 'app', 'index.html')}])
-  // );
-}
-
 if (IS_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = path.join(
     __dirname,
@@ -448,37 +441,24 @@ if (
           next();
         }),
     };
-
-    // XXX(epurkhiser): Sentry (development) can be run in an experimental
-    // pure-SPA mode, where ONLY /api* requests are proxied directly to the API
-    // backend, otherwise ALL requests are rewritten to a development index.html.
-    // Thus completely separating the frontend from serving any pages through the
-    // backend.
-    //
-    // THIS IS EXPERIMENTAL. Various sentry pages still rely on django to serve
-    // html views.
-    if (SENTRY_EXPERIMENTAL_SPA) {
-      appConfig.devServer = !SENTRY_EXPERIMENTAL_SPA
-        ? appConfig.devServer
-        : {
-            ...appConfig.devServer,
-            before: () => undefined,
-            publicPath: '/_assets',
-            proxy: {'/api/': backendAddress},
-            historyApiFallback: {
-              rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
-            },
-          };
-    }
   }
 }
 
+// XXX(epurkhiser): Sentry (development) can be run in an experimental
+// pure-SPA mode, where ONLY /api* requests are proxied directly to the API
+// backend (in this case, sentry.io), otherwise ALL requests are rewritten
+// to a development index.html -- thus, completely separating the frontend
+// from serving any pages through the backend.
+//
+// THIS IS EXPERIMENTAL and has limitations (e.g. CSRF issues will stop you
+// from writing to the API).
+//
+// Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
   appConfig.output.publicPath = '/_assets/';
-  // This proxies to production API
   appConfig.devServer = {
     ...appConfig.devServer,
-    compress: true, // XXX: do we need this
+    compress: true,
     https: true,
     publicPath: '/_assets/',
     proxy: {
