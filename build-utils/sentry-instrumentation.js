@@ -1,7 +1,7 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
 const crypto = require('crypto');
-const http = require('http');
+const https = require('https');
 const os = require('os');
 
 const {
@@ -79,10 +79,9 @@ class SentryInstrumentation {
               environment: IS_CI ? 'ci' : '',
             });
 
-            const req = http.request({
+            const req = https.request({
               host: 'product-eng-webhooks-vmrqv3f7nq-uw.a.run.app',
               path: '/metrics/webpack/webhook',
-              port: 80,
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
