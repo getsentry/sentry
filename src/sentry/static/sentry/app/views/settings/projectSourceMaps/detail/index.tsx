@@ -21,6 +21,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import {decodeScalar} from 'app/utils/queryString';
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
@@ -49,14 +50,8 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
-    const {location} = this.props;
-
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
-      ['artifacts', this.getArtifactsUrl(), {query: {query: location.query.query}}],
-    ];
-
-    return endpoints;
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    return [['artifacts', this.getArtifactsUrl(), {query: {query: this.getQuery()}}]];
   }
 
   getArtifactsUrl() {
@@ -83,8 +78,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
       await this.api.requestPromise(`${this.getArtifactsUrl()}${id}/`, {
         method: 'DELETE',
       });
-      // We might want to refetch the artifacts here to not mess up pagination
-      this.setState(state => ({artifacts: state.artifacts.filter(a => a.id !== id)}));
+      this.fetchData();
       addSuccessMessage(t('Artifact removed.'));
     } catch {
       addErrorMessage(t('Unable to remove artifact. Please try again.'));
@@ -94,7 +88,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   getQuery() {
     const {query} = this.props.location.query;
 
-    return typeof query === 'string' ? query : undefined;
+    return decodeScalar(query);
   }
 
   getEmptyMessage() {

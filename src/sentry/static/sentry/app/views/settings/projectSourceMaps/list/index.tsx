@@ -12,6 +12,7 @@ import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import space from 'app/styles/space';
+import {decodeScalar} from 'app/utils/queryString';
 
 import SourceMapsArchiveRow from './sourceMapsArchiveRow';
 
@@ -39,14 +40,14 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   }
 
   getEndpoints() {
-    const {params, location} = this.props;
+    const {params} = this.props;
     const {orgId, projectId} = params;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       [
         'archives',
         `/projects/${orgId}/${projectId}/files/source-maps/`,
-        {query: {query: location.query.query}},
+        {query: {query: this.getQuery()}},
       ],
     ];
 
@@ -65,7 +66,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   getQuery() {
     const {query} = this.props.location.query;
 
-    return typeof query === 'string' ? query : undefined;
+    return decodeScalar(query);
   }
 
   getEmptyMessage() {
