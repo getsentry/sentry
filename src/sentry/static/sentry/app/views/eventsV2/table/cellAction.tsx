@@ -369,7 +369,7 @@ class CellAction extends React.Component<Props, State> {
       (column.column.function[0] === 'count' ||
         column.column.function[0] === 'count_unique');
 
-    if (value === null || shouldIgnoreColumn) {
+    if (value === null || value === undefined || shouldIgnoreColumn) {
       // per cell actions do not apply to values that are null
       return <React.Fragment>{children}</React.Fragment>;
     }
