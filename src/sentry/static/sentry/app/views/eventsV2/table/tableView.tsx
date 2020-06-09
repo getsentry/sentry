@@ -174,11 +174,8 @@ class TableView extends React.Component<TableViewProps> {
           tableMeta={tableData.meta}
         >
           <CellAction
-            organization={organization}
-            eventView={eventView}
             column={column}
             dataRow={dataRow}
-            tableMeta={tableData.meta}
             handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
           >
             {fieldRenderer(dataRow, {organization, location})}
@@ -190,11 +187,8 @@ class TableView extends React.Component<TableViewProps> {
     // Scalar fields offer cell actions to build queries.
     return (
       <CellAction
-        organization={organization}
-        eventView={eventView}
         column={column}
         dataRow={dataRow}
-        tableMeta={tableData.meta}
         handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
       >
         {fieldRenderer(dataRow, {organization, location})}

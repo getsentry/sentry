@@ -1,21 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
-import {browserHistory} from 'react-router';
 import * as PopperJS from 'popper.js';
 import {Manager, Reference, Popper} from 'react-popper';
 
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import {IconEllipsis} from 'app/icons';
-import EventView, {MetaType} from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {OrganizationSummary, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
-import withProjects from 'app/utils/withProjects';
 
 import {TableColumn, TableDataRow} from './types';
 
@@ -29,12 +22,8 @@ export enum Actions {
 }
 
 type Props = {
-  eventView: EventView;
-  organization: OrganizationSummary;
-  projects: Project[];
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
-  tableMeta: MetaType;
   children: React.ReactNode;
   handleCellAction: (action: Actions, value: React.ReactText) => void;
 };
@@ -103,99 +92,6 @@ class CellAction extends React.Component<Props, State> {
       }
       return {...state, isHovering: false};
     });
-  };
-
-  handleCellAction = (action: Actions, value: React.ReactText) => {
-    const {eventView, column, organization, tableMeta, projects, dataRow} = this.props;
-
-    const query = tokenizeSearch(eventView.query);
-
-    let nextView = eventView.clone();
-
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.results.cellaction',
-      eventName: 'Discoverv2: Cell Action Clicked',
-      organization_id: parseInt(organization.id, 10),
-      action,
-    });
-
-    switch (action) {
-      case Actions.ADD:
-        // Remove exclusion if it exists.
-        delete query[`!${column.name}`];
-        query[column.name] = [`${value}`];
-        break;
-      case Actions.EXCLUDE:
-        // Remove positive if it exists.
-        delete query[column.name];
-        // Negations should stack up.
-        const negation = `!${column.name}`;
-        if (!query.hasOwnProperty(negation)) {
-          query[negation] = [];
-        }
-        query[negation].push(`${value}`);
-        break;
-      case Actions.SHOW_GREATER_THAN: {
-        // Remove query token if it already exists
-        delete query[column.name];
-        query[column.name] = [`>${value}`];
-        const field = {field: column.name, width: column.width};
-
-        // sort descending order
-        nextView = nextView.sortOnField(field, tableMeta, 'desc');
-
-        break;
-      }
-      case Actions.SHOW_LESS_THAN: {
-        // Remove query token if it already exists
-        delete query[column.name];
-        query[column.name] = [`<${value}`];
-        const field = {field: column.name, width: column.width};
-
-        // sort ascending order
-        nextView = nextView.sortOnField(field, tableMeta, 'asc');
-
-        break;
-      }
-      case Actions.TRANSACTION: {
-        const maybeProject = projects.find(project => project.slug === dataRow.project);
-
-        const projectID = maybeProject ? [maybeProject.id] : undefined;
-
-        const next = transactionSummaryRouteWithQuery({
-          orgSlug: organization.slug,
-          transaction: String(value),
-          projectID,
-          query: {},
-        });
-
-        browserHistory.push(next);
-        return;
-      }
-      case Actions.RELEASE: {
-        const maybeProject = projects.find(project => {
-          return project.slug === dataRow.project;
-        });
-
-        browserHistory.push({
-          pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
-            value
-          )}/`,
-          query: {
-            ...nextView.getGlobalSelection(),
-
-            project: maybeProject ? maybeProject.id : undefined,
-          },
-        });
-
-        return;
-      }
-      default:
-        throw new Error(`Unknown action type. ${action}`);
-    }
-    nextView.query = stringifyQueryObject(query);
-
-    browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
   };
 
   handleMenuToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -388,7 +284,7 @@ class CellAction extends React.Component<Props, State> {
   }
 }
 
-export default withProjects(CellAction);
+export default CellAction;
 
 const Container = styled('div')`
   position: relative;
