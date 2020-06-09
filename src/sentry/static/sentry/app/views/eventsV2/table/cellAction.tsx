@@ -204,7 +204,7 @@ class CellAction extends React.Component<Props, State> {
   };
 
   renderMenuButtons() {
-    const {dataRow, column} = this.props;
+    const {dataRow, column, handleCellAction} = this.props;
 
     const fieldAlias = getAggregateAlias(column.name);
     const value = dataRow[fieldAlias];
@@ -216,7 +216,7 @@ class CellAction extends React.Component<Props, State> {
         <ActionItem
           key="add-to-filter"
           data-test-id="add-to-filter"
-          onClick={() => this.handleCellAction(Actions.ADD, value)}
+          onClick={() => handleCellAction(Actions.ADD, value)}
         >
           {t('Add to filter')}
         </ActionItem>
@@ -226,7 +226,7 @@ class CellAction extends React.Component<Props, State> {
         <ActionItem
           key="exclude-from-filter"
           data-test-id="exclude-from-filter"
-          onClick={() => this.handleCellAction(Actions.EXCLUDE, value)}
+          onClick={() => handleCellAction(Actions.EXCLUDE, value)}
         >
           {t('Exclude from filter')}
         </ActionItem>
@@ -238,7 +238,7 @@ class CellAction extends React.Component<Props, State> {
         <ActionItem
           key="show-values-greater-than"
           data-test-id="show-values-greater-than"
-          onClick={() => this.handleCellAction(Actions.SHOW_GREATER_THAN, value)}
+          onClick={() => handleCellAction(Actions.SHOW_GREATER_THAN, value)}
         >
           {t('Show values greater than')}
         </ActionItem>
@@ -248,7 +248,7 @@ class CellAction extends React.Component<Props, State> {
         <ActionItem
           key="show-values-less-than"
           data-test-id="show-values-less-than"
-          onClick={() => this.handleCellAction(Actions.SHOW_LESS_THAN, value)}
+          onClick={() => handleCellAction(Actions.SHOW_LESS_THAN, value)}
         >
           {t('Show values less than')}
         </ActionItem>
@@ -260,7 +260,7 @@ class CellAction extends React.Component<Props, State> {
         <ActionItem
           key="transaction-summary"
           data-test-id="transaction-summary"
-          onClick={() => this.handleCellAction(Actions.TRANSACTION, value)}
+          onClick={() => handleCellAction(Actions.TRANSACTION, value)}
         >
           {t('Go to summary')}
         </ActionItem>
@@ -272,7 +272,7 @@ class CellAction extends React.Component<Props, State> {
         <ActionItem
           key="release"
           data-test-id="release"
-          onClick={() => this.handleCellAction(Actions.RELEASE, value)}
+          onClick={() => handleCellAction(Actions.RELEASE, value)}
         >
           {t('Go to release')}
         </ActionItem>
