@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {Organization, OrganizationSummary} from 'app/types';
+import {Organization, OrganizationSummary, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
@@ -20,6 +20,9 @@ import EventView, {
 import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
+import withProjects from 'app/utils/withProjects';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 import ColumnEditModal, {modalCss} from './columnEditModal';
@@ -31,6 +34,7 @@ import TableActions from './tableActions';
 export type TableViewProps = {
   location: Location;
   organization: Organization;
+  projects: Project[];
 
   isLoading: boolean;
   error: string | null;
@@ -175,7 +179,7 @@ class TableView extends React.Component<TableViewProps> {
             column={column}
             dataRow={dataRow}
             tableMeta={tableData.meta}
-            handleCellAction={this.handleCellAction(column)}
+            handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
           >
             {fieldRenderer(dataRow, {organization, location})}
           </CellAction>
@@ -191,7 +195,7 @@ class TableView extends React.Component<TableViewProps> {
         column={column}
         dataRow={dataRow}
         tableMeta={tableData.meta}
-        handleCellAction={this.handleCellAction(column)}
+        handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
       >
         {fieldRenderer(dataRow, {organization, location})}
       </CellAction>
@@ -215,10 +219,102 @@ class TableView extends React.Component<TableViewProps> {
     );
   };
 
-  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
+  handleCellAction = (
+    dataRow: TableDataRow,
+    column: TableColumn<keyof TableDataRow>,
+    tableMeta: MetaType
+  ) => {
     return (action: Actions, value: React.ReactText) => {
-      console.log(action, value, column);
-      // const {eventView, organization, tableMeta, projects, dataRow} = this.props;
+      const {eventView, organization, projects} = this.props;
+
+      const query = tokenizeSearch(eventView.query);
+
+      let nextView = eventView.clone();
+
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.results.cellaction',
+        eventName: 'Discoverv2: Cell Action Clicked',
+        organization_id: parseInt(organization.id, 10),
+        action,
+      });
+
+      switch (action) {
+        case Actions.ADD:
+          // Remove exclusion if it exists.
+          delete query[`!${column.name}`];
+          query[column.name] = [`${value}`];
+          break;
+        case Actions.EXCLUDE:
+          // Remove positive if it exists.
+          delete query[column.name];
+          // Negations should stack up.
+          const negation = `!${column.name}`;
+          if (!query.hasOwnProperty(negation)) {
+            query[negation] = [];
+          }
+          query[negation].push(`${value}`);
+          break;
+        case Actions.SHOW_GREATER_THAN: {
+          // Remove query token if it already exists
+          delete query[column.name];
+          query[column.name] = [`>${value}`];
+          const field = {field: column.name, width: column.width};
+
+          // sort descending order
+          nextView = nextView.sortOnField(field, tableMeta, 'desc');
+
+          break;
+        }
+        case Actions.SHOW_LESS_THAN: {
+          // Remove query token if it already exists
+          delete query[column.name];
+          query[column.name] = [`<${value}`];
+          const field = {field: column.name, width: column.width};
+
+          // sort ascending order
+          nextView = nextView.sortOnField(field, tableMeta, 'asc');
+
+          break;
+        }
+        case Actions.TRANSACTION: {
+          const maybeProject = projects.find(project => project.slug === dataRow.project);
+
+          const projectID = maybeProject ? [maybeProject.id] : undefined;
+
+          const next = transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: String(value),
+            projectID,
+            query: {},
+          });
+
+          browserHistory.push(next);
+          return;
+        }
+        case Actions.RELEASE: {
+          const maybeProject = projects.find(project => {
+            return project.slug === dataRow.project;
+          });
+
+          browserHistory.push({
+            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+              value
+            )}/`,
+            query: {
+              ...nextView.getGlobalSelection(),
+
+              project: maybeProject ? maybeProject.id : undefined,
+            },
+          });
+
+          return;
+        }
+        default:
+          throw new Error(`Unknown action type. ${action}`);
+      }
+      nextView.query = stringifyQueryObject(query);
+
+      browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
     };
   };
 
@@ -365,4 +461,4 @@ const IconLink = styled(Link)`
   top: 3px;
 `;
 
-export default TableView;
+export default withProjects(TableView);
