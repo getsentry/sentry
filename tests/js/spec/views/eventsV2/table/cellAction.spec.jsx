@@ -125,6 +125,19 @@ describe('Discover -> CellAction', function() {
       });
     });
 
+    it('go to summary button goes to transaction summary page', function() {
+      wrapper.find('button[data-test-id="transaction-summary"]').simulate('click');
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/performance/summary/',
+        query: expect.objectContaining({
+          query: undefined,
+          project: ['123'],
+          transaction: 'best-transaction',
+        }),
+      });
+    });
+
     it('greater than button adds condition', function() {
       wrapper = makeWrapper(view, initial, 2);
       // Show button and menu.
