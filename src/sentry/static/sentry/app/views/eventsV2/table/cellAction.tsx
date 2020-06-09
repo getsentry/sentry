@@ -7,7 +7,7 @@ import {Manager, Reference, Popper} from 'react-popper';
 
 import {t} from 'app/locale';
 import {IconEllipsis} from 'app/icons';
-import EventView from 'app/utils/discover/eventView';
+import EventView, {MetaType, fieldToSort} from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {OrganizationSummary} from 'app/types';
@@ -28,6 +28,7 @@ type Props = {
   organization: OrganizationSummary;
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
+  tableMeta: MetaType;
   children: React.ReactNode;
 };
 

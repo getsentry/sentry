@@ -171,6 +171,7 @@ class TableView extends React.Component<TableViewProps> {
             eventView={eventView}
             column={column}
             dataRow={dataRow}
+            tableMeta={tableData.meta}
           >
             {fieldRenderer(dataRow, {organization, location})}
           </CellAction>
@@ -185,6 +186,7 @@ class TableView extends React.Component<TableViewProps> {
         eventView={eventView}
         column={column}
         dataRow={dataRow}
+        tableMeta={tableData.meta}
       >
         {fieldRenderer(dataRow, {organization, location})}
       </CellAction>
