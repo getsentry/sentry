@@ -1,18 +1,27 @@
-import React, {createRef} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
+import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import TextOverflow from 'app/components/textOverflow';
 import {IconDelete, IconEdit} from 'app/icons';
 import Button from 'app/components/button';
+import {Theme} from 'app/utils/theme';
 
 import DataPrivacyRulesForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
 import {getRuleTypeLabel, getMethodTypeLabel} from './dataPrivacyRulesForm/utils';
 import {RuleType} from './types';
 
+const DEFAULT_COLUMN_QUANTITY = 4;
+
 type Rule = React.ComponentProps<typeof DataPrivacyRulesForm>['rule'];
+
+type GridProps = {
+  columnQtd: number;
+  isDisabled?: boolean;
+  hoveredClassname?: string;
+};
 
 type Props = {
   rules: Array<Rule>;
@@ -22,24 +31,56 @@ type Props = {
   forwardRef?: React.Ref<HTMLDivElement>;
 };
 
-class RulesList extends React.PureComponent<Props> {
-  gridRef = createRef<HTMLDivElement>();
+type State = {
+  columnQtd: number;
+  hoveredClassname?: string;
+};
 
-  handleMouseOver = (className: string) => () => {
-    if (!this.gridRef?.current) {
-      return;
+class RulesList extends React.PureComponent<Props, State> {
+  state: State = {columnQtd: DEFAULT_COLUMN_QUANTITY};
+
+  componentDidMount() {
+    this.loadColumnsQuantity();
+  }
+
+  loadColumnsQuantity = () => {
+    let extraColumnQtd = 0;
+
+    if (this.props.onDeleteRule) {
+      extraColumnQtd += 1;
+    }
+    if (this.props.onShowEditRuleModal) {
+      extraColumnQtd += 1;
     }
 
-    console.log('classname', className);
+    this.setState(prevState => ({
+      columnQtd: prevState.columnQtd + extraColumnQtd,
+    }));
   };
 
-  handleMouseLeave = () => {};
+  handleMouseOver = (className: string) => () => {
+    this.setState({
+      hoveredClassname: className,
+    });
+  };
+
+  handleMouseLeave = () => {
+    this.setState({
+      hoveredClassname: undefined,
+    });
+  };
 
   render() {
     const {forwardRef, disabled, onDeleteRule, onShowEditRuleModal, rules} = this.props;
+    const {hoveredClassname, columnQtd} = this.state;
 
     return (
-      <Grid ref={this.gridRef} isDisabled={disabled}>
+      <Grid
+        ref={forwardRef}
+        isDisabled={disabled}
+        hoveredClassname={hoveredClassname}
+        columnQtd={columnQtd}
+      >
         {rules.map(({id, method, type, source, customRegularExpression}) => {
           const className = `gridCell-${id}`;
           const methodLabel = getMethodTypeLabel(method);
@@ -47,45 +88,34 @@ class RulesList extends React.PureComponent<Props> {
           const methodDescription =
             type === RuleType.PATTERN ? customRegularExpression : typeLabel;
 
+          const gridCellProps = !disabled
+            ? {
+                onMouseOver: this.handleMouseOver(className),
+                onMouseLeave: this.handleMouseLeave,
+                className,
+              }
+            : {};
+
           return (
             <React.Fragment key={id}>
-              <GridCell
-                onMouseOver={this.handleMouseOver(className)}
-                onMouseLeave={this.handleMouseLeave}
-                className={className}
-              >
+              <GridCell {...gridCellProps}>
                 <InnerCell>
                   <TextOverflow>{`[${methodLabel.label}]`}</TextOverflow>
                 </InnerCell>
               </GridCell>
-              <GridCell
-                onMouseOver={this.handleMouseOver(className)}
-                onMouseLeave={this.handleMouseLeave}
-                className={className}
-              >
+              <GridCell {...gridCellProps}>
                 <InnerCell>
                   <TextOverflow>{`[${methodDescription}]`}</TextOverflow>
                 </InnerCell>
               </GridCell>
-              <GridCell
-                onMouseOver={this.handleMouseOver(className)}
-                onMouseLeave={this.handleMouseLeave}
-              >
-                {t('from')}
-              </GridCell>
-              <GridCell
-                onMouseOver={this.handleMouseOver(className)}
-                onMouseLeave={this.handleMouseLeave}
-              >
+              <GridCell {...gridCellProps}>{t('from')}</GridCell>
+              <GridCell {...gridCellProps}>
                 <InnerCell>
                   <TextOverflow>{`[${source}]`}</TextOverflow>
                 </InnerCell>
               </GridCell>
               {onShowEditRuleModal && (
-                <Action
-                  onMouseOver={this.handleMouseOver(className)}
-                  onMouseLeave={this.handleMouseLeave}
-                >
+                <StyledGridCell {...gridCellProps}>
                   <Button
                     label={t('Edit Rule')}
                     size="small"
@@ -93,13 +123,10 @@ class RulesList extends React.PureComponent<Props> {
                     icon={<IconEdit />}
                     disabled={disabled}
                   />
-                </Action>
+                </StyledGridCell>
               )}
               {onDeleteRule && (
-                <Action
-                  onMouseOver={this.handleMouseOver(className)}
-                  onMouseLeave={this.handleMouseLeave}
-                >
+                <StyledGridCell {...gridCellProps}>
                   <Button
                     label={t('Delete Rule')}
                     size="small"
@@ -107,7 +134,7 @@ class RulesList extends React.PureComponent<Props> {
                     icon={<IconDelete />}
                     disabled={disabled}
                   />
-                </Action>
+                </StyledGridCell>
               )}
             </React.Fragment>
           );
@@ -117,26 +144,37 @@ class RulesList extends React.PureComponent<Props> {
   }
 }
 
-RulesList.propTypes = {
-  rules: PropTypes.array.isRequired,
-  onShowEditRuleModal: PropTypes.func,
-  onDeleteRule: PropTypes.func,
-  disabled: PropTypes.bool,
-};
-
 export default RulesList;
 
-const Grid = styled('div')<{isDisabled?: boolean}>`
+const columnStyle = (p: GridProps & {theme: Theme}) => {
+  if (p.columnQtd === DEFAULT_COLUMN_QUANTITY + 1) {
+    return css`
+      grid-template-columns: max-content auto max-content auto minmax(max-content, 1fr);
+    `;
+  }
+  if (p.columnQtd === DEFAULT_COLUMN_QUANTITY + 2) {
+    return css`
+      grid-template-columns:
+        max-content auto max-content auto minmax(max-content, 1fr)
+        max-content;
+    `;
+  }
+  return css`
+    grid-template-columns: auto minmax(50px, auto) max-content minmax(100px, 1fr);
+  `;
+};
+
+const Grid = styled('div')<GridProps>`
   display: grid;
   grid-template-columns: auto auto max-content auto 1fr max-content;
   align-items: center;
-  > *:nth-last-child(-n + 6) {
+  > *:nth-last-child(-n + ${p => p.columnQtd}) {
     border-bottom: 0;
   }
-  > *:nth-child(6n) {
+  > *:nth-child(${p => p.columnQtd}n) {
     padding-right: ${space(2)};
   }
-  > *:nth-child(6n-5) {
+  > *:nth-child(${p => p.columnQtd}n-${p => p.columnQtd - 1}) {
     padding-left: ${space(2)};
   }
   ${p =>
@@ -145,6 +183,14 @@ const Grid = styled('div')<{isDisabled?: boolean}>`
       color: ${p.theme.gray400};
       background: ${p.theme.gray100};
   `}
+  ${p =>
+    p.hoveredClassname &&
+    `
+    .${p.hoveredClassname} {
+      background-color: ${p.theme.gray100};
+    }
+  `}
+  ${columnStyle}
 `;
 
 const GridCell = styled('div')`
@@ -153,15 +199,12 @@ const GridCell = styled('div')`
   align-items: center;
   padding: ${space(1)} ${space(0.5)};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  &:hover {
-    background-color: ${p => p.theme.gray100};
-  }
   &:last-child {
     border-bottom: 0;
   }
 `;
 
-const Action = styled(GridCell)`
+const StyledGridCell = styled(GridCell)`
   justify-content: flex-end;
 `;
 
