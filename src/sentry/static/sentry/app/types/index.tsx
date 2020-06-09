@@ -154,6 +154,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
+  builtinSymbolSources?: string[];
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
