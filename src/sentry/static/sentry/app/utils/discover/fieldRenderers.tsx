@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import partial from 'lodash/partial';
+import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
 import {t, tct} from 'app/locale';
@@ -246,9 +247,16 @@ const SPECIAL_FIELDS: SpecialFields = {
         ip_address: '',
       };
 
-      const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
+      if (data.user) {
+        const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
+        return <Container>{badge}</Container>;
+      }
 
-      return <Container>{badge}</Container>;
+      const StyledContainer = styled('div')`
+        color: ${p => p.theme.gray500};
+      `;
+
+      return <StyledContainer>{t('n/a')}</StyledContainer>;
     },
   },
   release: {

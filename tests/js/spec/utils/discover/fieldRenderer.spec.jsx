@@ -4,13 +4,15 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
 describe('getFieldRenderer', function() {
-  let location, context, project, organization, data;
+  let location, context, project, organization, data, user, userAlias;
   beforeEach(function() {
     context = initializeOrg({
       project: TestStubs.Project(),
     });
     organization = context.organization;
     project = context.project;
+    user = TestStubs.User();
+    userAlias = user.email || user.username || user.ip || user.id;
 
     location = {
       pathname: '/events',
@@ -25,6 +27,7 @@ describe('getFieldRenderer', function() {
       url: '/example',
       latest_event: 'deadbeef',
       project: project.slug,
+      user: userAlias,
     };
 
     MockApiClient.addMockResponse({
@@ -77,6 +80,35 @@ describe('getFieldRenderer', function() {
     const value = wrapper.find('StyledDateTime');
     expect(value).toHaveLength(0);
     expect(wrapper.text()).toEqual('n/a');
+  });
+
+  it('can render user fields with aliased user', function() {
+    const renderer = getFieldRenderer('user', {user: 'string'});
+    expect(renderer).toBeInstanceOf(Function);
+
+    const wrapper = mount(renderer(data, {location, organization}));
+
+    const badge = wrapper.find('UserBadge');
+    expect(badge).toHaveLength(1);
+
+    const value = wrapper.find('StyledNameAndEmail');
+    expect(value).toHaveLength(1);
+    expect(value.text()).toEqual(userAlias);
+  });
+
+  it('can render null user fields', function() {
+    const renderer = getFieldRenderer('user', {user: 'string'});
+    expect(renderer).toBeInstanceOf(Function);
+
+    delete data.user;
+    const wrapper = mount(renderer(data, {location, organization}));
+
+    const badge = wrapper.find('UserBadge');
+    expect(badge).toHaveLength(0);
+
+    const value = wrapper.find('StyledContainer');
+    expect(value).toHaveLength(1);
+    expect(value.text()).toEqual('n/a');
   });
 
   it('can render project as an avatar', function() {
