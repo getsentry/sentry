@@ -13,7 +13,7 @@ const {
   TRAVIS_PULL_REQUEST,
   TRAVIS_PULL_REQUEST_BRANCH,
 } = process.env;
-const IS_TRAVIS = !!TRAVIS_COMMIT;
+const IS_CI = !!TRAVIS_COMMIT;
 
 const PLUGIN_NAME = 'SentryInstrumentation';
 const GB_BYTE = 1073741824;
@@ -36,11 +36,11 @@ class SentryInstrumentation {
 
     this.Sentry.init({
       dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
-      environment: IS_TRAVIS ? 'travis' : 'local',
+      environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
     });
 
-    if (IS_TRAVIS) {
+    if (IS_CI) {
       this.Sentry.setTag('branch', TRAVIS_PULL_REQUEST_BRANCH || TRAVIS_BRANCH);
       this.Sentry.setTag('pull_request', TRAVIS_PULL_REQUEST);
     }
@@ -76,7 +76,7 @@ class SentryInstrumentation {
               size,
               commit: TRAVIS_COMMIT,
               pull_request_number: TRAVIS_PULL_REQUEST,
-              environment: IS_TRAVIS ? 'ci' : '',
+              environment: IS_CI ? 'ci' : '',
             });
 
             const req = http.request({
@@ -142,7 +142,7 @@ class SentryInstrumentation {
 
         // Only record this once and only on Travis
         // Don't really care about asset sizes during local dev
-        if (!IS_TRAVIS && !this.initialBuild) {
+        if (!IS_CI && !this.initialBuild) {
           this.measureAssetSizes(compilation);
         }
 
