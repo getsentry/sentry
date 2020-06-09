@@ -54,11 +54,13 @@ export const ContentBox = styled('div')`
     grid-template-columns: minmax(100px, auto) 325px;
   }
 `;
+
 export const Main = styled('div')`
   grid-column: 1/2;
   max-width: 100%;
   overflow: hidden;
 `;
+
 export const Side = styled('div')`
   grid-column: 2/3;
 `;

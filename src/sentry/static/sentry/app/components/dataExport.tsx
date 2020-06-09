@@ -27,6 +27,7 @@ type Props = {
   disabled?: boolean;
   organization: Organization;
   payload: DataExportPayload;
+  icon?: React.ReactNode;
 };
 
 type State = {
@@ -90,7 +91,7 @@ class DataExport extends React.Component<Props, State> {
 
   render() {
     const {inProgress, dataExportId} = this.state;
-    const {children, disabled} = this.props;
+    const {children, disabled, icon} = this.props;
     return (
       <Feature features={['organizations:data-export']}>
         {inProgress && dataExportId ? (
@@ -100,6 +101,7 @@ class DataExport extends React.Component<Props, State> {
             title="You can get on with your life. We'll email you when your data's ready."
             {...this.props}
             disabled
+            icon={icon}
           >
             {t("We're working on it...")}
           </NewButton>
@@ -110,6 +112,7 @@ class DataExport extends React.Component<Props, State> {
             size="small"
             priority="default"
             title="Put your data to work. Start your export and we'll email you when it's finished."
+            icon={icon}
             {...this.props}
           >
             {children ? children : t('Export All to CSV')}
