@@ -139,7 +139,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     </SkipConfirm>
   );
 
-  const secondPlatformPendingText =
+  const sendEventPromptText =
     'Complete this task by sending an event to your new project.';
 
   return (
@@ -152,7 +152,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         task.detailedDescription ? task.detailedDescription : ''
       }`}</Description>
       {task.task === OnboardingTaskKey.SECOND_PLATFORM && task.status === 'pending' && (
-        <Description>{secondPlatformPendingText}</Description>
+        <Description data-test-id="send-event-prompt">{sendEventPromptText}</Description>
       )}
       {task.requisiteTasks.length === 0 && (
         <ActionBar>
