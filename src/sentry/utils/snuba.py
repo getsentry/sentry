@@ -68,7 +68,6 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
-
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
 # to end users and instead have all ad-hoc queries go through the discover

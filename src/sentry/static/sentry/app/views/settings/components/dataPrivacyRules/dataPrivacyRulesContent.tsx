@@ -66,7 +66,7 @@ class DataPrivacyRulesContent extends React.Component<Props, State> {
       return (
         <EmptyMessage
           icon={<IconWarning size="xl" />}
-          description={t('You have no data privacy rules')}
+          description={t('You have no data scrubbing rules')}
         />
       );
     }

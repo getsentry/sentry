@@ -6,25 +6,35 @@ import * as PopperJS from 'popper.js';
 import {Manager, Reference, Popper} from 'react-popper';
 
 import {t} from 'app/locale';
+import {defined} from 'app/utils';
 import {IconEllipsis} from 'app/icons';
-import EventView from 'app/utils/discover/eventView';
+import EventView, {MetaType} from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {OrganizationSummary} from 'app/types';
+import {OrganizationSummary, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getAggregateAlias} from 'app/utils/discover/fields';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import withProjects from 'app/utils/withProjects';
 
 import {TableColumn, TableDataRow} from './types';
 
 enum Actions {
   ADD = 'add',
   EXCLUDE = 'exclude',
+  SHOW_GREATER_THAN = 'show_greater_than',
+  SHOW_LESS_THAN = 'show_less_than',
+  TRANSACTION = 'transaction',
+  RELEASE = 'release',
 }
 
 type Props = {
   eventView: EventView;
   organization: OrganizationSummary;
+  projects: Project[];
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
+  tableMeta: MetaType;
   children: React.ReactNode;
 };
 
@@ -33,7 +43,7 @@ type State = {
   isOpen: boolean;
 };
 
-export default class CellAction extends React.Component<Props, State> {
+class CellAction extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     let portal = document.getElementById('cell-action-portal');
@@ -94,9 +104,20 @@ export default class CellAction extends React.Component<Props, State> {
     });
   };
 
-  handleUpdateSearch = (action: Actions, value: React.ReactText) => {
-    const {eventView, column, organization} = this.props;
+  handleCellAction = (action: Actions, value: React.ReactText) => {
+    const {eventView, column, organization, tableMeta, projects, dataRow} = this.props;
+
     const query = tokenizeSearch(eventView.query);
+
+    let nextView = eventView.clone();
+
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.results.cellaction',
+      eventName: 'Discoverv2: Cell Action Clicked',
+      organization_id: parseInt(organization.id, 10),
+      action,
+    });
+
     switch (action) {
       case Actions.ADD:
         // Remove exclusion if it exists.
@@ -105,7 +126,7 @@ export default class CellAction extends React.Component<Props, State> {
         break;
       case Actions.EXCLUDE:
         // Remove positive if it exists.
-        delete query[`${column.name}`];
+        delete query[column.name];
         // Negations should stack up.
         const negation = `!${column.name}`;
         if (!query.hasOwnProperty(negation)) {
@@ -113,16 +134,64 @@ export default class CellAction extends React.Component<Props, State> {
         }
         query[negation].push(`${value}`);
         break;
+      case Actions.SHOW_GREATER_THAN: {
+        // Remove query token if it already exists
+        delete query[column.name];
+        query[column.name] = [`>${value}`];
+        const field = {field: column.name, width: column.width};
+
+        // sort descending order
+        nextView = nextView.sortOnField(field, tableMeta, 'desc');
+
+        break;
+      }
+      case Actions.SHOW_LESS_THAN: {
+        // Remove query token if it already exists
+        delete query[column.name];
+        query[column.name] = [`<${value}`];
+        const field = {field: column.name, width: column.width};
+
+        // sort ascending order
+        nextView = nextView.sortOnField(field, tableMeta, 'asc');
+
+        break;
+      }
+      case Actions.TRANSACTION: {
+        const maybeProject = projects.find(project => project.slug === dataRow.project);
+
+        const projectID = maybeProject ? [maybeProject.id] : undefined;
+
+        const next = transactionSummaryRouteWithQuery({
+          orgSlug: organization.slug,
+          transaction: String(value),
+          projectID,
+          query: {},
+        });
+
+        browserHistory.push(next);
+        return;
+      }
+      case Actions.RELEASE: {
+        const maybeProject = projects.find(project => {
+          return project.slug === dataRow.project;
+        });
+
+        browserHistory.push({
+          pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+            value
+          )}/`,
+          query: {
+            ...nextView.getGlobalSelection(),
+
+            project: maybeProject ? maybeProject.id : undefined,
+          },
+        });
+
+        return;
+      }
       default:
         throw new Error(`Unknown action type. ${action}`);
     }
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.results.cellaction',
-      eventName: 'Discoverv2: Cell Action Clicked',
-      organization_id: parseInt(organization.id, 10),
-      action,
-    });
-    const nextView = eventView.clone();
     nextView.query = stringifyQueryObject(query);
 
     browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
@@ -133,11 +202,108 @@ export default class CellAction extends React.Component<Props, State> {
     this.setState({isOpen: !this.state.isOpen});
   };
 
-  renderMenu() {
+  renderMenuButtons() {
     const {dataRow, column} = this.props;
+
+    const fieldAlias = getAggregateAlias(column.name);
+    const value = dataRow[fieldAlias];
+
+    const actions: React.ReactNode[] = [];
+
+    if (column.type !== 'duration') {
+      actions.push(
+        <ActionItem
+          key="add-to-filter"
+          data-test-id="add-to-filter"
+          onClick={() => this.handleCellAction(Actions.ADD, value)}
+        >
+          {t('Add to filter')}
+        </ActionItem>
+      );
+
+      actions.push(
+        <ActionItem
+          key="exclude-from-filter"
+          data-test-id="exclude-from-filter"
+          onClick={() => this.handleCellAction(Actions.EXCLUDE, value)}
+        >
+          {t('Exclude from filter')}
+        </ActionItem>
+      );
+    }
+
+    if (column.type !== 'string' && column.type !== 'boolean') {
+      actions.push(
+        <ActionItem
+          key="show-values-greater-than"
+          data-test-id="show-values-greater-than"
+          onClick={() => this.handleCellAction(Actions.SHOW_GREATER_THAN, value)}
+        >
+          {t('Show values greater than')}
+        </ActionItem>
+      );
+
+      actions.push(
+        <ActionItem
+          key="show-values-less-than"
+          data-test-id="show-values-less-than"
+          onClick={() => this.handleCellAction(Actions.SHOW_LESS_THAN, value)}
+        >
+          {t('Show values less than')}
+        </ActionItem>
+      );
+    }
+
+    if (column.column.kind === 'field' && column.column.field === 'transaction') {
+      actions.push(
+        <ActionItem
+          key="transaction-summary"
+          data-test-id="transaction-summary"
+          onClick={() => this.handleCellAction(Actions.TRANSACTION, value)}
+        >
+          {t('Go to summary')}
+        </ActionItem>
+      );
+    }
+
+    if (column.column.kind === 'field' && column.column.field === 'release') {
+      actions.push(
+        <ActionItem
+          key="release"
+          data-test-id="release"
+          onClick={() => this.handleCellAction(Actions.RELEASE, value)}
+        >
+          {t('Go to release')}
+        </ActionItem>
+      );
+    }
+
+    if (actions.length === 0) {
+      return null;
+    }
+
+    return (
+      <MenuButtons
+        onClick={event => {
+          // prevent clicks from propagating further
+          event.stopPropagation();
+        }}
+      >
+        {actions}
+      </MenuButtons>
+    );
+  }
+
+  renderMenu() {
     const {isOpen} = this.state;
 
-    const value = dataRow[column.name];
+    const menuButtons = this.renderMenuButtons();
+
+    if (menuButtons === null) {
+      // do not render the menu if there are no per cell actions
+      return null;
+    }
+
     const modifiers: PopperJS.Modifiers = {
       hide: {
         enabled: false,
@@ -166,20 +332,7 @@ export default class CellAction extends React.Component<Props, State> {
                 data-placement={placement}
                 style={arrowProps.style}
               />
-              <MenuButtons>
-                <ActionItem
-                  data-test-id="add-to-filter"
-                  onClick={() => this.handleUpdateSearch(Actions.ADD, value)}
-                >
-                  {t('Add to filter')}
-                </ActionItem>
-                <ActionItem
-                  data-test-id="exclude-from-filter"
-                  onClick={() => this.handleUpdateSearch(Actions.EXCLUDE, value)}
-                >
-                  {t('Exclude from filter')}
-                </ActionItem>
-              </MenuButtons>
+              {menuButtons}
             </Menu>
           )}
         </Popper>,
@@ -207,6 +360,21 @@ export default class CellAction extends React.Component<Props, State> {
     const {children} = this.props;
     const {isHovering} = this.state;
 
+    const {dataRow, column} = this.props;
+    const fieldAlias = getAggregateAlias(column.name);
+    const value = dataRow[fieldAlias];
+
+    // do not display per cell actions for count() and count_unique()
+    const shouldIgnoreColumn =
+      column.column.kind === 'function' &&
+      (column.column.function[0] === 'count' ||
+        column.column.function[0] === 'count_unique');
+
+    if (!defined(value) || shouldIgnoreColumn) {
+      // per cell actions do not apply to values that are null
+      return <React.Fragment>{children}</React.Fragment>;
+    }
+
     return (
       <Container
         onMouseEnter={this.handleMouseEnter}
@@ -218,6 +386,8 @@ export default class CellAction extends React.Component<Props, State> {
     );
   }
 }
+
+export default withProjects(CellAction);
 
 const Container = styled('div')`
   position: relative;

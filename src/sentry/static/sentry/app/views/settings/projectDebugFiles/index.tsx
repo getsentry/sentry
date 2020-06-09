@@ -17,6 +17,7 @@ import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import Checkbox from 'app/components/checkbox';
 import SearchBar from 'app/components/searchBar';
+import ProjectActions from 'app/actions/projectActions';
 
 import {DebugFile, BuiltinSymbolSource} from './types';
 import DebugFileRow from './debugFileRow';
@@ -175,6 +176,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               initialData={project}
               apiMethod="PUT"
               apiEndpoint={`/projects/${orgId}/${projectId}/`}
+              onSubmitSuccess={ProjectActions.updateSuccess}
+              key={project.builtinSymbolSources?.join() || project.id}
             >
               <JsonForm
                 features={new Set(features)}

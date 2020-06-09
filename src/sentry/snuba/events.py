@@ -28,7 +28,7 @@ class Columns(Enum):
     RELEASE = Column(
         "events.tags[sentry:release]", "tags[sentry:release]", "release", "release", "release"
     )
-    DIST = Column("events.tags[sentry:dist]", "tags[sentry:dist]", "dist" "dist", "dist")
+    DIST = Column("events.tags[sentry:dist]", "tags[sentry:dist]", "dist", "dist", "dist")
     TITLE = Column("events.title", "title", "transaction_name", "title", "title")
     TYPE = Column("events.type", "type", None, "type", "event.type")
     TAGS_KEY = Column("events.tags.key", "tags.key", "tags.key", "tags.key", "tags.key")
@@ -43,15 +43,18 @@ class Columns(Enum):
     USER_EMAIL = Column("events.email", "email", "user_email", "email", "user.email")
     USER_USERNAME = Column("events.username", "username", "user_name", "username", "user.username")
     USER_IP_ADDRESS = Column(
-        "events.ip_address", "ip_address", "ip_address_v4", "ip_address", "user.ip"
+        "events.ip_address", "ip_address", "ip_address", "ip_address", "user.ip"
     )
-    SDK_NAME = Column("events.sdk_name", "sdk_name", None, "sdk_name", "sdk.name")
-    SDK_VERSION = Column("events.sdk_version", "sdk_version", None, "sdk_version", "sdk.version")
+    SDK_NAME = Column("events.sdk_name", "sdk_name", "sdk_name", "sdk_name", "sdk.name")
+    SDK_VERSION = Column(
+        "events.sdk_version", "sdk_version", "sdk_version", "sdk_version", "sdk.version"
+    )
 
     HTTP_METHOD = Column(
         "events.contexts[http.method]",
         "contexts[http.method]",
         None,
+        "contexts[http.method]",
         "contexts[http.method]",
         "http.method",
     )
@@ -60,18 +63,28 @@ class Columns(Enum):
         "contexts[http.referer]",
         None,
         "contexts[http.referer]",
+        "contexts[http.referer]",
         "http.referer",
     )
     HTTP_URL = Column(
-        "events.contexts[http.url]", "contexts[http.url]", None, "contexts[http.url]", "http.url"
+        "events.contexts[http.url]",
+        "contexts[http.url]",
+        "contexts[http.url]",
+        "contexts[http.url]",
+        "http.url",
     )
     OS_BUILD = Column(
-        "events.contexts[os.build]", "contexts[os.build]", None, "contexts[os.build]", "os.build"
+        "events.contexts[os.build]",
+        "contexts[os.build]",
+        "contexts[os.build]",
+        "contexts[os.build]",
+        "os.build",
     )
     OS_KERNEL_VERSION = Column(
         "events.contexts[os.kernel_version]",
         "contexts[os.kernel_version]",
         None,
+        "contexts[os.kernel_version]",
         "contexts[os.kernel_version]",
         "os.kernel_version",
     )
@@ -80,12 +93,14 @@ class Columns(Enum):
         "contexts[device.arch]",
         None,
         "contexts[device.arch]",
+        "contexts[device.arch]",
         "device.arch",
     )
     DEVICE_BATTERY_LEVEL = Column(
         "events.contexts[device.battery_level]",
         "contexts[device.battery_level]",
         None,
+        "contexts[device.battery_level]",
         "contexts[device.battery_level]",
         "device.battery_level",
     )
@@ -94,12 +109,14 @@ class Columns(Enum):
         "contexts[device.brand]",
         None,
         "contexts[device.brand]",
+        "contexts[device.brand]",
         "device.brand",
     )
     DEVICE_CHARGING = Column(
         "events.contexts[device.charging]",
         "contexts[device.charging]",
         None,
+        "contexts[device.charging]",
         "contexts[device.charging]",
         "device.charging",
     )
@@ -108,12 +125,14 @@ class Columns(Enum):
         "contexts[device.locale]",
         None,
         "contexts[device.locale]",
+        "contexts[device.locale]",
         "device.locale",
     )
     DEVICE_MODEL_ID = Column(
         "events.contexts[device.model_id]",
         "contexts[device.model_id]",
         None,
+        "contexts[device.model_id]",
         "contexts[device.model_id]",
         "device.model_id",
     )
@@ -122,12 +141,14 @@ class Columns(Enum):
         "contexts[device.name]",
         None,
         "contexts[device.name]",
+        "contexts[device.name]",
         "device.name",
     )
     DEVICE_ONLINE = Column(
         "events.contexts[device.online]",
         "contexts[device.online]",
         None,
+        "contexts[device.online]",
         "contexts[device.online]",
         "device.online",
     )
@@ -136,6 +157,7 @@ class Columns(Enum):
         "contexts[device.orientation]",
         None,
         "contexts[device.orientation]",
+        "contexts[device.orientation]",
         "device.orientation",
     )
     DEVICE_SIMULATOR = Column(
@@ -143,12 +165,14 @@ class Columns(Enum):
         "contexts[device.simulator]",
         None,
         "contexts[device.simulator]",
+        "contexts[device.simulator]",
         "device.simulator",
     )
     DEVICE_UUID = Column(
         "events.contexts[device.uuid]",
         "contexts[device.uuid]",
         None,
+        "contexts[device.uuid]",
         "contexts[device.uuid]",
         "device.uuid",
     )

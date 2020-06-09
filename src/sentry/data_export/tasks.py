@@ -74,20 +74,19 @@ def assemble_download(
         if export_limit is not None:
             batch_size = min(batch_size, max(export_limit - offset, 0))
 
-        # NOTE: the processors don't have an unified interface at the moment
-        # so this function handles it for us
-        headers, rows = get_processed(data_export, environment_id, batch_size, offset)
-
-        # starting position for the next batch
-        next_offset = offset + len(rows)
+        processor = get_processor(data_export, environment_id)
 
         with tempfile.TemporaryFile() as tf:
-            writer = csv.DictWriter(tf, headers, extrasaction="ignore")
+            writer = csv.DictWriter(tf, processor.header_fields, extrasaction="ignore")
             if first_page:
                 writer.writeheader()
-            writer.writerows(rows)
-            tf.seek(0)
 
+            rows = process_rows(processor, data_export, batch_size, offset)
+            writer.writerows(rows)
+
+            next_offset = offset + len(rows)
+
+            tf.seek(0)
             new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
             bytes_written += new_bytes_written
     except ExportError as error:
@@ -108,8 +107,8 @@ def assemble_download(
     else:
         if (
             rows
-            and new_bytes_written
             and len(rows) >= batch_size
+            and new_bytes_written
             and (export_limit is None or next_offset < export_limit)
         ):
             assemble_download.delay(
@@ -124,17 +123,35 @@ def assemble_download(
             merge_export_blobs.delay(data_export_id)
 
 
-def get_processed(data_export, environment_id, batch_size, offset):
+def get_processor(data_export, environment_id):
     try:
         if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
-            processor, processed = process_issues_by_tag(
-                data_export, environment_id, batch_size, offset
+            payload = data_export.query_info
+            processor = IssuesByTagProcessor(
+                project_id=payload["project"][0],
+                group_id=payload["group"],
+                key=payload["key"],
+                environment_id=environment_id,
             )
-
         elif data_export.query_type == ExportQueryType.DISCOVER:
-            processor, processed = process_discover(data_export, environment_id, batch_size, offset)
+            processor = DiscoverProcessor(
+                discover_query=data_export.query_info, organization_id=data_export.organization_id,
+            )
+        return processor
+    except ExportError as error:
+        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
+        logger.info("dataexport.error: {}".format(six.text_type(error)))
+        capture_exception(error)
+        raise
 
-        return processor.header_fields, processed
+
+def process_rows(processor, data_export, batch_size, offset):
+    try:
+        if data_export.query_type == ExportQueryType.ISSUES_BY_TAG:
+            rows = process_issues_by_tag(processor, batch_size, offset)
+        elif data_export.query_type == ExportQueryType.DISCOVER:
+            rows = process_discover(processor, batch_size, offset)
+        return rows
     except ExportError as error:
         metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
         logger.info("dataexport.error: {}".format(six.text_type(error)))
@@ -143,32 +160,22 @@ def get_processed(data_export, environment_id, batch_size, offset):
 
 
 @handle_snuba_errors(logger)
-def process_issues_by_tag(data_export, environment_id, limit, offset):
-    payload = data_export.query_info
-    processor = IssuesByTagProcessor(
-        project_id=payload["project"][0],
-        group_id=payload["group"],
-        key=payload["key"],
-        environment_id=environment_id,
-    )
+def process_issues_by_tag(processor, limit, offset):
     gtv_list_unicode = processor.get_serialized_data(limit=limit, offset=offset)
     # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
     # See associated comment in './utils.py'
     gtv_list = convert_to_utf8(gtv_list_unicode)
-    return processor, gtv_list
+    return gtv_list
 
 
 @handle_snuba_errors(logger)
-def process_discover(data_export, environment_id, limit, offset):
-    processor = DiscoverProcessor(
-        discover_query=data_export.query_info, organization_id=data_export.organization_id,
-    )
+def process_discover(processor, limit, offset):
     raw_data_unicode = processor.data_fn(limit=limit, offset=offset)["data"]
     # TODO(python3): Remove next line once the 'csv' module has been updated to Python 3
     # See associated comment in './utils.py'
     raw_data = convert_to_utf8(raw_data_unicode)
     raw_data = processor.handle_fields(raw_data)
-    return processor, raw_data
+    return raw_data
 
 
 @transaction.atomic()
@@ -228,6 +235,7 @@ def merge_export_blobs(data_export_id, **kwargs):
 
             file.size = size
             file.checksum = file_checksum.hexdigest()
+            file.save()
             data_export.finalize_upload(file=file)
 
             logger.info("dataexport.end", extra={"data_export_id": data_export_id})
