@@ -115,6 +115,7 @@ class GroupEventDetails extends React.Component<Props, State> {
             .includes('enterprise-orgs-outliers')
             .toString(),
         },
+        maxLength: 30000, // 99% of events are below 15,000ms
       });
     }
   }

@@ -111,6 +111,11 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Do not clean up marks and measurements when completed
      */
     noCleanup?: boolean;
+    /**
+     * Max duration between start/end in milliseconds. If event is longer than
+     * maxLength, it will not be sent. Defaults to 0 to ignore maxLength.
+     */
+    maxLength?: number;
   }) => void;
 };
 
@@ -151,7 +156,14 @@ metric.mark = function metricMark({name, data = {}}) {
  * Performs a measurement between `start` and `end` (or now if `end` is not
  * specified) Calls `metric` with `name` and the measured time difference.
  */
-metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup} = {}) {
+metric.measure = function metricMeasure({
+  name,
+  start,
+  end,
+  data = {},
+  noCleanup = false,
+  maxLength = 0,
+} = {}) {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;
@@ -182,11 +194,11 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
   const startData = metricDataStore.get(start) || {};
 
   // Retrieve measurement entries
-  performance
-    .getEntriesByName(name, 'measure')
-    .forEach(measurement =>
-      metric(measurement.name, measurement.duration, {...startData, ...data})
-    );
+  performance.getEntriesByName(name, 'measure').forEach(measurement => {
+    if (maxLength === 0 || measurement.duration <= maxLength) {
+      metric(measurement.name, measurement.duration, {...startData, ...data});
+    }
+  });
 
   // By default, clean up measurements
   if (!noCleanup) {

@@ -135,6 +135,7 @@ const IssueListOverview = createReactClass({
               .includes('enterprise-orgs-outliers')
               .toString(),
           },
+          maxLength: 20000, // 99% of events are below 10,000ms
         });
       }
     }
