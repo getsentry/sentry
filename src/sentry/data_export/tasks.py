@@ -91,20 +91,23 @@ def assemble_download(
             # this offset tells you the number of rows written during this batch
             batch_offset = 0
 
+            # the absolute row offset from the beginning of the export
+            next_offset = offset + batch_offset
+
             while True:
-                # the absolute row offset from the beginning of the export
-                next_offset = offset + batch_offset
                 # the number of rows to export in the next mini-batch
-                batch_row_count = min(batch_size, max(export_limit - next_offset, 0))
+                batch_row_count = min(batch_size, max(export_limit - next_offset, 1))
 
                 rows = process_rows(processor, data_export, batch_row_count, next_offset)
-                batch_offset += len(rows)
                 writer.writerows(rows)
+
+                batch_offset += len(rows)
+                next_offset = offset + batch_offset
 
                 if (
                     not rows
-                    or len(rows) < batch_row_count
-                    or batch_offset >= batch_size
+                    or len(rows) < batch_size
+                    # the batch may exceed MAX_BATCH_SIZE but immediately stops
                     or tf.tell() - starting_pos >= MAX_BATCH_SIZE
                 ):
                     break
@@ -112,7 +115,6 @@ def assemble_download(
             tf.seek(0)
             new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
             bytes_written += new_bytes_written
-            next_offset = offset + batch_offset
     except ExportError as error:
         return data_export.email_failure(message=six.text_type(error))
     except Exception as error:
@@ -129,7 +131,7 @@ def assemble_download(
         except MaxRetriesExceededError:
             return data_export.email_failure(message="Internal processing failure")
     else:
-        if batch_offset >= batch_size and new_bytes_written and next_offset < export_limit:
+        if rows and batch_offset >= batch_size and new_bytes_written and next_offset < export_limit:
             assemble_download.delay(
                 data_export_id,
                 export_limit=export_limit,
