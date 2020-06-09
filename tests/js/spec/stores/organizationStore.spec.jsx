@@ -59,7 +59,7 @@ describe('OrganizationStore', function() {
 
   it('errors correctly', async function() {
     const error = new Error('uh-oh');
-    error.status = 404;
+    error.statusText = 'NOT FOUND';
     OrganizationActions.fetchOrgError(error);
     await tick();
     expect(OrganizationStore.get()).toMatchObject({
