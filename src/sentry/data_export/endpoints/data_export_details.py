@@ -50,5 +50,6 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         response = StreamingHttpResponse(
             iter(lambda: raw_file.read(4096), b""), content_type="text/csv"
         )
+        response["Content-Length"] = file.size
         response["Content-Disposition"] = u'attachment; filename="{}"'.format(file.name)
         return response
