@@ -228,7 +228,7 @@ matrix:
 
     - python: 2.7
       name: 'Frontend [build]'
-      env: TEST_SUITE=js-build NODE_ENV=production
+      env: TEST_SUITE=js-build
       before_install:
         - *install_volta
       install:
