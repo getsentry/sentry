@@ -9,7 +9,7 @@ import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/typ
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import CellAction from 'app/views/eventsV2/table/cellAction';
+import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -56,6 +56,13 @@ class Table extends React.Component<Props, State> {
     widths: [],
   };
 
+  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
+    return (action: Actions, value: React.ReactText) => {
+      console.log(action, value, column);
+      // const {eventView, organization, tableMeta, projects, dataRow} = this.props;
+    };
+  };
+
   renderBodyCell = (tableData: TableData | null) => {
     const {eventView, organization, projects, location, summaryConditions} = this.props;
 
@@ -91,6 +98,7 @@ class Table extends React.Component<Props, State> {
             column={column}
             dataRow={dataRow}
             tableMeta={tableData.meta}
+            handleCellAction={this.handleCellAction(column)}
           >
             <Link to={target} onClick={this.handleSummaryClick}>
               {rendered}
@@ -106,6 +114,7 @@ class Table extends React.Component<Props, State> {
           column={column}
           dataRow={dataRow}
           tableMeta={tableData.meta}
+          handleCellAction={this.handleCellAction(column)}
         >
           {rendered}
         </CellAction>

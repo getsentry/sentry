@@ -36,6 +36,7 @@ type Props = {
   dataRow: TableDataRow;
   tableMeta: MetaType;
   children: React.ReactNode;
+  handleCellAction: (action: Actions, value: React.ReactText) => void;
 };
 
 type State = {

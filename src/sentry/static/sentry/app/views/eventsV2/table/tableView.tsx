@@ -25,7 +25,7 @@ import {getExpandedResults, pushEventViewToLocation} from '../utils';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
-import CellAction from './cellAction';
+import CellAction, {Actions} from './cellAction';
 import TableActions from './tableActions';
 
 export type TableViewProps = {
@@ -175,6 +175,7 @@ class TableView extends React.Component<TableViewProps> {
             column={column}
             dataRow={dataRow}
             tableMeta={tableData.meta}
+            handleCellAction={this.handleCellAction(column)}
           >
             {fieldRenderer(dataRow, {organization, location})}
           </CellAction>
@@ -190,6 +191,7 @@ class TableView extends React.Component<TableViewProps> {
         column={column}
         dataRow={dataRow}
         tableMeta={tableData.meta}
+        handleCellAction={this.handleCellAction(column)}
       >
         {fieldRenderer(dataRow, {organization, location})}
       </CellAction>
@@ -211,6 +213,13 @@ class TableView extends React.Component<TableViewProps> {
       ),
       {modalCss}
     );
+  };
+
+  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
+    return (action: Actions, value: React.ReactText) => {
+      console.log(action, value, column);
+      // const {eventView, organization, tableMeta, projects, dataRow} = this.props;
+    };
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
