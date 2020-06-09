@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {IconWarning} from 'app/icons';
 import {PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Count from 'app/components/count';
 import DateTime from 'app/components/dateTime';
@@ -91,7 +91,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
     const text = isResolved ? t('Resolved') : isWarning ? t('Warning') : t('Critical');
 
     return (
-      <Tooltip title={`${t('Status: ')}${text}`}>
+      <Tooltip title={tct('Status: [text]', {text})}>
         <StatusIndicator color={color} />
       </Tooltip>
     );
