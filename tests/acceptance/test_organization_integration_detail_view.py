@@ -8,6 +8,8 @@ from tests.acceptance.page_objects.organization_integration_settings import (
     ExampleIntegrationSetupWindowElement,
     OrganizationIntegrationDetailViewPage,
 )
+from sentry.features import OrganizationFeature
+from sentry import features
 
 
 class OrganizationIntegrationDetailView(AcceptanceTestCase):
@@ -17,6 +19,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
     def setUp(self):
         super(OrganizationIntegrationDetailView, self).setUp()
+        features.add("organizations:integrations-feature_flag_integration", OrganizationFeature)
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
