@@ -63,7 +63,11 @@ const isSortEqualToField = (
   return sort.field === sortKey;
 };
 
-const fieldToSort = (field: Field, tableMeta: MetaType | undefined): Sort | undefined => {
+export const fieldToSort = (
+  field: Field,
+  tableMeta: MetaType | undefined,
+  kind?: 'desc' | 'asc'
+): Sort | undefined => {
   const sortKey = getSortKeyFromField(field, tableMeta);
 
   if (!sortKey) {
@@ -71,7 +75,7 @@ const fieldToSort = (field: Field, tableMeta: MetaType | undefined): Sort | unde
   }
 
   return {
-    kind: 'desc',
+    kind: kind || 'desc',
     field: sortKey,
   };
 };
