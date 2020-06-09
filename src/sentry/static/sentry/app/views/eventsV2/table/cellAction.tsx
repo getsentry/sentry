@@ -156,9 +156,7 @@ class CellAction extends React.Component<Props, State> {
         break;
       }
       case Actions.TRANSACTION: {
-        const maybeProject = projects.find(project => {
-          return project.slug === dataRow.project;
-        });
+        const maybeProject = projects.find(project => project.slug === dataRow.project);
 
         const projectID = maybeProject
           ? [maybeProject.id]
