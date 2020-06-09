@@ -29,7 +29,7 @@ function getRuleTypeLabel(type: RuleType) {
     case RuleType.IP:
       return t('IP addresses');
     case RuleType.PATTERN:
-      return t('Regex match');
+      return t('Regex matches');
     default:
       return '';
   }
