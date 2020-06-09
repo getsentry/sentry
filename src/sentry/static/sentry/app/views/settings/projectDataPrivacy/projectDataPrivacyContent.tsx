@@ -61,7 +61,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
             ]}
           />
           <JsonForm
-            title={t('Data Anonymization')}
+            title={t('Data Scrubbing')}
             additionalFieldProps={{
               organization,
             }}

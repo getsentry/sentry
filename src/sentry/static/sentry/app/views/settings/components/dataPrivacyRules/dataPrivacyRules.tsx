@@ -285,7 +285,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
         });
       })
       .then(() => {
-        addSuccessMessage(t('Successfully saved data anonymization rules'));
+        addSuccessMessage(t('Successfully saved data scrubbing rules'));
         return undefined;
       })
       .catch(error => {
@@ -293,7 +293,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
 
         if (!errorMessage) {
           addErrorMessage(
-            t('Unknown error occurred while saving data anonymization rules')
+            t('Unknown error occurred while saving data scrubbing rules')
           );
           return undefined;
         }
@@ -325,7 +325,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
         }
 
         addErrorMessage(
-          t('Unknown error occurred while saving data anonymization rules')
+          t('Unknown error occurred while saving data scrubbing rules')
         );
         return undefined;
       });
@@ -412,7 +412,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
       <React.Fragment>
         <Panel>
           <PanelHeader>
-            <div>{t('Advanced Data Anonymization')}</div>
+            <div>{t('Advanced Data Scrubbing')}</div>
           </PanelHeader>
           <PanelAlert type="info">
             {additionalContext}{' '}
@@ -420,7 +420,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
             {tct('For more details, see [linkToDocs].', {
               linkToDocs: (
                 <ExternalLink href={ADVANCED_DATASCRUBBING_LINK}>
-                  {t('full documentation on data anonymization')}
+                  {t('full documentation on data scrubbing')}
                 </ExternalLink>
               ),
             })}

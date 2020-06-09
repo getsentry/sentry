@@ -103,7 +103,7 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
     ],
   },
   {
-    title: t('Data Anonymization'),
+    title: t('Data Scrubbing'),
     fields: [
       {
         name: 'dataScrubber',

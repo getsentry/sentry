@@ -133,8 +133,8 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
       <StyledModal show animation={false} onHide={onClose}>
         <Modal.Header closeButton>
           {rule?.id !== -1
-            ? t('Edit a data anonymization rule')
-            : t('Add a data anonymization rule')}
+            ? t('Edit a data scrubbing rule')
+            : t('Add a data scrubbing rule')}
         </Modal.Header>
         <Modal.Body>
           <DataPrivacyRulesPanelForm
