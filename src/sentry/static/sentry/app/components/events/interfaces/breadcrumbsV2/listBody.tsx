@@ -5,7 +5,7 @@ import {Event} from 'app/types';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
-import Time from './time';
+import Time from './time/time';
 import Data from './data/data';
 import Category from './category';
 import Icon from './icon';
