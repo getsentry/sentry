@@ -19,9 +19,11 @@ type TableProps = {
   location: Location;
   eventView: EventView;
   organization: Organization;
+  showTags: boolean;
   tags: {[key: string]: Tag};
   setError: (msg: string, code: number) => void;
   title: string;
+  onChangeShowTags: () => void;
 };
 
 type TableState = {
