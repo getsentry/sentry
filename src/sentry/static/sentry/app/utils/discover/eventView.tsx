@@ -563,7 +563,7 @@ class EventView {
 
   withSorts(sorts: Sort[]): EventView {
     const newEventView = this.clone();
-    const fields = newEventView.fields.map(field => field.field);
+    const fields = newEventView.fields.map(field => getAggregateAlias(field.field));
     newEventView.sorts = sorts.filter(sort => fields.includes(sort.field));
 
     return newEventView;
