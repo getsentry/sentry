@@ -198,7 +198,7 @@ const Details = styled(PageHeader)`
   grid-gap: ${space(3)};
   grid-auto-flow: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: auto;
     grid-auto-flow: row;
   }
@@ -221,7 +221,7 @@ const GroupedHeaderItems = styled('div', {
   text-align: right;
   margin-top: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
     text-align: left;
   }
 `;
