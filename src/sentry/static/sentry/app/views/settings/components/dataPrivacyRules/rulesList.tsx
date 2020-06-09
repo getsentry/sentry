@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {createRef} from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -13,70 +13,109 @@ import {getRuleTypeLabel, getMethodTypeLabel} from './dataPrivacyRulesForm/utils
 import {RuleType} from './types';
 
 type Rule = React.ComponentProps<typeof DataPrivacyRulesForm>['rule'];
+
 type Props = {
   rules: Array<Rule>;
   onShowEditRuleModal?: (id: Rule['id']) => () => void;
   onDeleteRule?: (id: Rule['id']) => () => void;
   disabled?: boolean;
+  forwardRef?: React.Ref<HTMLDivElement>;
 };
 
-const RulesList = React.forwardRef<HTMLDivElement, Props>(function RulesList(
-  {rules, onShowEditRuleModal, onDeleteRule, disabled},
-  ref
-) {
-  return (
-    <Grid ref={ref} isDisabled={disabled}>
-      {rules.map(({id, method, type, source, customRegularExpression}) => {
-        const methodLabel = getMethodTypeLabel(method);
-        const typeLabel = getRuleTypeLabel(type);
-        const methodDescription =
-          type === RuleType.PATTERN ? customRegularExpression : typeLabel;
-        return (
-          <React.Fragment key={id}>
-            <GridCell>
-              <InnerCell>
-                <TextOverflow>{`[${methodLabel.label}]`}</TextOverflow>
-              </InnerCell>
-            </GridCell>
-            <GridCell>
-              <InnerCell>
-                <TextOverflow>{`[${methodDescription}]`}</TextOverflow>
-              </InnerCell>
-            </GridCell>
-            <GridCell>{t('from')}</GridCell>
-            <GridCell>
-              <InnerCell>
-                <TextOverflow>{`[${source}]`}</TextOverflow>
-              </InnerCell>
-            </GridCell>
-            {onShowEditRuleModal && (
-              <Action>
-                <Button
-                  label={t('Edit Rule')}
-                  size="small"
-                  onClick={onShowEditRuleModal(id)}
-                  icon={<IconEdit />}
-                  disabled={disabled}
-                />
-              </Action>
-            )}
-            {onDeleteRule && (
-              <Action>
-                <Button
-                  label={t('Delete Rule')}
-                  size="small"
-                  onClick={onDeleteRule(id)}
-                  icon={<IconDelete />}
-                  disabled={disabled}
-                />
-              </Action>
-            )}
-          </React.Fragment>
-        );
-      })}
-    </Grid>
-  );
-});
+class RulesList extends React.PureComponent<Props> {
+  gridRef = createRef<HTMLDivElement>();
+
+  handleMouseOver = (className: string) => () => {
+    if (!this.gridRef?.current) {
+      return;
+    }
+
+    console.log('classname', className);
+  };
+
+  handleMouseLeave = () => {};
+
+  render() {
+    const {forwardRef, disabled, onDeleteRule, onShowEditRuleModal, rules} = this.props;
+
+    return (
+      <Grid ref={this.gridRef} isDisabled={disabled}>
+        {rules.map(({id, method, type, source, customRegularExpression}) => {
+          const className = `gridCell-${id}`;
+          const methodLabel = getMethodTypeLabel(method);
+          const typeLabel = getRuleTypeLabel(type);
+          const methodDescription =
+            type === RuleType.PATTERN ? customRegularExpression : typeLabel;
+
+          return (
+            <React.Fragment key={id}>
+              <GridCell
+                onMouseOver={this.handleMouseOver(className)}
+                onMouseLeave={this.handleMouseLeave}
+                className={className}
+              >
+                <InnerCell>
+                  <TextOverflow>{`[${methodLabel.label}]`}</TextOverflow>
+                </InnerCell>
+              </GridCell>
+              <GridCell
+                onMouseOver={this.handleMouseOver(className)}
+                onMouseLeave={this.handleMouseLeave}
+                className={className}
+              >
+                <InnerCell>
+                  <TextOverflow>{`[${methodDescription}]`}</TextOverflow>
+                </InnerCell>
+              </GridCell>
+              <GridCell
+                onMouseOver={this.handleMouseOver(className)}
+                onMouseLeave={this.handleMouseLeave}
+              >
+                {t('from')}
+              </GridCell>
+              <GridCell
+                onMouseOver={this.handleMouseOver(className)}
+                onMouseLeave={this.handleMouseLeave}
+              >
+                <InnerCell>
+                  <TextOverflow>{`[${source}]`}</TextOverflow>
+                </InnerCell>
+              </GridCell>
+              {onShowEditRuleModal && (
+                <Action
+                  onMouseOver={this.handleMouseOver(className)}
+                  onMouseLeave={this.handleMouseLeave}
+                >
+                  <Button
+                    label={t('Edit Rule')}
+                    size="small"
+                    onClick={onShowEditRuleModal(id)}
+                    icon={<IconEdit />}
+                    disabled={disabled}
+                  />
+                </Action>
+              )}
+              {onDeleteRule && (
+                <Action
+                  onMouseOver={this.handleMouseOver(className)}
+                  onMouseLeave={this.handleMouseLeave}
+                >
+                  <Button
+                    label={t('Delete Rule')}
+                    size="small"
+                    onClick={onDeleteRule(id)}
+                    icon={<IconDelete />}
+                    disabled={disabled}
+                  />
+                </Action>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </Grid>
+    );
+  }
+}
 
 RulesList.propTypes = {
   rules: PropTypes.array.isRequired,
