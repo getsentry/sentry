@@ -160,10 +160,11 @@ const Chart = (props: Props) => {
         },
         warningTrigger &&
           warningTriggerThreshold && {
+            name: 'Warning',
             type: 'line',
             markLine: MarkLine({
               silent: true,
-              lineStyle: {color: theme.yellow500},
+              lineStyle: {color: theme.yellow400},
               data: [
                 {
                   yAxis: warningTriggerThreshold,
@@ -171,15 +172,17 @@ const Chart = (props: Props) => {
               ],
               label: {
                 show: true,
-                position:
-                  warningTrigger.thresholdType === 0 ? 'insideEndBottom' : 'insideEndTop',
-                formatter: 'Warning',
+                position: 'insideEndTop',
+                formatter: 'WARNING',
+                color: theme.yellow400,
+                fontSize: 10,
               },
             }),
             data: [],
           },
         criticalTrigger &&
           criticalTriggerThreshold && {
+            name: 'Critical',
             type: 'line',
             markLine: MarkLine({
               silent: true,
@@ -191,11 +194,10 @@ const Chart = (props: Props) => {
               ],
               label: {
                 show: true,
-                position:
-                  criticalTrigger.thresholdType === 0
-                    ? 'insideEndTop'
-                    : 'insideEndBottom',
-                formatter: 'Critical',
+                position: 'insideEndTop',
+                formatter: 'CRITICAL',
+                color: theme.red400,
+                fontSize: 10,
               },
             }),
             data: [],
