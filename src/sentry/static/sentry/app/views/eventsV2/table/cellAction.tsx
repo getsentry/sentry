@@ -24,6 +24,7 @@ enum Actions {
   SHOW_GREATER_THAN = 'show_greater_than',
   SHOW_LESS_THAN = 'show_less_than',
   TRANSACTION = 'transaction',
+  RELEASE = 'release',
 }
 
 type Props = {
@@ -173,6 +174,20 @@ class CellAction extends React.Component<Props, State> {
         browserHistory.push(next);
         return;
       }
+      case Actions.RELEASE: {
+        const maybeProject = projects.find(project => {
+          return project.slug === dataRow.project;
+        });
+
+        browserHistory.push({
+          pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+            value
+          )}/`,
+          query: {project: maybeProject ? maybeProject.id : undefined},
+        });
+
+        return;
+      }
       default:
         throw new Error(`Unknown action type. ${action}`);
     }
@@ -246,6 +261,18 @@ class CellAction extends React.Component<Props, State> {
           onClick={() => this.handleCellAction(Actions.TRANSACTION, value)}
         >
           {t('Go to summary')}
+        </ActionItem>
+      );
+    }
+
+    if (column.column.kind === 'field' && column.column.field === 'release') {
+      actions.push(
+        <ActionItem
+          key="release"
+          data-test-id="release"
+          onClick={() => this.handleCellAction(Actions.RELEASE, value)}
+        >
+          {t('Go to release')}
         </ActionItem>
       );
     }
