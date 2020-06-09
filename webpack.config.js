@@ -311,6 +311,7 @@ let appConfig = {
         IS_PERCY: JSON.stringify(IS_PERCY),
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
+        SPA_DSN: JSON.stringify(env.SENTRY_SPA_DSN),
       },
     }),
 

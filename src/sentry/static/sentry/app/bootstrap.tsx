@@ -84,6 +84,10 @@ const appRoutes = Router.createRoutes(routes());
 
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
+  /**
+   * For SPA mode, we need a way to overwrite the default DSN from backend
+   */
+  dsn: process.env.SPA_DSN || window.__SENTRY__OPTIONS.dsn,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
 });
