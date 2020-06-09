@@ -99,8 +99,12 @@ export default class CellAction extends React.Component<Props, State> {
   };
 
   handleCellAction = (action: Actions, value: React.ReactText) => {
-    const {eventView, column, organization} = this.props;
+    const {eventView, column, organization, tableMeta} = this.props;
+
     const query = tokenizeSearch(eventView.query);
+
+    let nextView = eventView.clone();
+
     switch (action) {
       case Actions.ADD:
         // Remove exclusion if it exists.
@@ -117,15 +121,26 @@ export default class CellAction extends React.Component<Props, State> {
         }
         query[negation].push(`${value}`);
         break;
-      case Actions.SHOW_GREATER_THAN:
+      case Actions.SHOW_GREATER_THAN: {
         // Remove query token if it already exists
         delete query[`${column.name}`];
         query[column.name] = [`>${value}`];
+        const field = {field: column.name, width: column.width};
+
+        // sort descending order
+        nextView = nextView.withSorts([fieldToSort(field, tableMeta, 'desc')!]);
+
         break;
+      }
       case Actions.SHOW_LESS_THAN:
         // Remove query token if it already exists
         delete query[`${column.name}`];
         query[column.name] = [`<${value}`];
+        const field = {field: column.name, width: column.width};
+
+        // sort ascending order
+        nextView = nextView.withSorts([fieldToSort(field, tableMeta, 'asc')!]);
+
         break;
       default:
         throw new Error(`Unknown action type. ${action}`);
@@ -136,7 +151,7 @@ export default class CellAction extends React.Component<Props, State> {
       organization_id: parseInt(organization.id, 10),
       action,
     });
-    const nextView = eventView.clone();
+
     nextView.query = stringifyQueryObject(query);
 
     browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
@@ -149,9 +164,6 @@ export default class CellAction extends React.Component<Props, State> {
 
   renderMenuButtons() {
     const {dataRow, column} = this.props;
-
-    console.log('dataRow', dataRow);
-    console.log('column', column);
 
     const fieldAlias = getAggregateAlias(column.name);
     const value = dataRow[fieldAlias];
