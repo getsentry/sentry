@@ -282,9 +282,9 @@ describe('EventsV2 > Results', function() {
     // Open the selector
     selector.find('StyledDropdownButton button').simulate('click');
 
-    // Click the 'none' option.
+    // Click the 'default' option.
     selector
-      .find('DropdownMenu MenuItem span')
+      .find('DropdownMenu MenuItem [data-test-id="option-default"]')
       .first()
       .simulate('click');
     wrapper.update();
@@ -292,5 +292,41 @@ describe('EventsV2 > Results', function() {
     const eventsRequest = wrapper.find('EventsChart').props();
     expect(eventsRequest.disableReleases).toEqual(true);
     expect(eventsRequest.disablePrevious).toEqual(true);
+  });
+
+  it('excludes top5 options when plan does not include discover-query', function() {
+    const organization = TestStubs.Organization({
+      features: ['discover-basic'],
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), display: 'previoux'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+    // display selector is first.
+    const selector = wrapper.find('OptionSelector').first();
+
+    // Open the selector
+    selector.find('StyledDropdownButton button').simulate('click');
+
+    // Make sure the top5 option isn't present
+    const options = selector
+      .find('DropdownMenu MenuItem')
+      .map(item => item.prop('data-test-id'));
+    expect(options).not.toContain('option-top5');
+    expect(options).not.toContain('option-dailytop5');
+    expect(options).toContain('option-default');
   });
 });
