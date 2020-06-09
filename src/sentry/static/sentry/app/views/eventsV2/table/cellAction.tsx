@@ -19,7 +19,7 @@ import withProjects from 'app/utils/withProjects';
 
 import {TableColumn, TableDataRow} from './types';
 
-enum Actions {
+export enum Actions {
   ADD = 'add',
   EXCLUDE = 'exclude',
   SHOW_GREATER_THAN = 'show_greater_than',
