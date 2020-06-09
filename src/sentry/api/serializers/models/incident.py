@@ -89,7 +89,6 @@ class DetailedIncidentSerializer(IncidentSerializer):
         context["isSubscribed"] = attrs["is_subscribed"]
         context["seenBy"] = seen_list["seen_by"]
         context["hasSeen"] = seen_list["has_seen"]
-        context["alertRule"] = attrs["alert_rule"]
         # The query we should use to get accurate results in Discover.
         context["discoverQuery"] = self._build_discover_query(obj)
 
