@@ -482,7 +482,9 @@ class ProjectGeneralSettings extends AsyncView {
                   <EmptyMessage
                     title={t('Data Privacy has moved')}
                     description={
-                      <Link to={`/settings/${orgId}/projects/${projectId}/security-and-privacy/`}>
+                      <Link
+                        to={`/settings/${orgId}/projects/${projectId}/security-and-privacy/`}
+                      >
                         {t('Go to Security & Privacy')}
                       </Link>
                     }
