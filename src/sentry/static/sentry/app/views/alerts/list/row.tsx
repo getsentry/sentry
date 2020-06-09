@@ -8,6 +8,7 @@ import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Count from 'app/components/count';
+import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
@@ -20,7 +21,6 @@ import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {use24Hours} from 'app/utils/dates';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {getIncidentMetricPreset} from '../utils';
@@ -73,13 +73,11 @@ class AlertListRow extends AsyncComponent<Props, State> {
   }
 
   renderTimeSince(date: string) {
-    const dateFormat = use24Hours() ? 'MMM D, YYYY HH:mm' : 'lll';
-
     return (
       <CreatedResolvedTime>
         <TimeSince date={date} />
         <br />
-        <FullDateLight>{moment(new Date(date)).format(dateFormat)}</FullDateLight>
+        <StyledDateTime date={date} utc={false} />
       </CreatedResolvedTime>
     );
   }
@@ -183,7 +181,8 @@ const CreatedResolvedTime = styled('div')`
   line-height: 1.4;
 `;
 
-const FullDateLight = styled('span')`
+const StyledDateTime = styled(DateTime)`
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray500};
 `;
 
