@@ -72,10 +72,18 @@ export const HeaderBox = styled(ContentBox)`
   flex-grow: 0;
 `;
 
-export const HeaderControls = styled('div')`
+export const HeaderTopControls = styled('div')`
   display: flex;
   justify-self: end;
   grid-row: 1/2;
+  grid-column: 2/3;
+`;
+
+export const HeaderBottomControls = styled('div')`
+  display: flex;
+  justify-self: end;
+  justify-content: flex-end;
+  grid-row: 2/3;
   grid-column: 2/3;
 `;
 

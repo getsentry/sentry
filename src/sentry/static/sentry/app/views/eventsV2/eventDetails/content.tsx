@@ -15,12 +15,9 @@ import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
-import {SectionHeading} from 'app/components/charts/styles';
-import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
-import FileSize from 'app/components/fileSize';
+import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -29,8 +26,7 @@ import EventEntries from 'app/components/events/eventEntries';
 import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
-import {ContentBox, HeaderBox} from 'app/utils/discover/styles';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
+import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 
 import {generateTitle} from '../utils';
 import Pagination from './pagination';
@@ -142,7 +138,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             location={location}
           />
           <EventHeader event={event} />
-          <Controller>
+          <HeaderBottomControls>
             <StyledButton size="small" onClick={this.toggleSidebar}>
               {isSidebarVisible ? 'Hide Details' : 'Show Details'}
             </StyledButton>
@@ -153,7 +149,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 eventView={eventView}
               />
             )}
-          </Controller>
+          </HeaderBottomControls>
         </HeaderBox>
         <ContentBox>
           <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
@@ -286,55 +282,6 @@ const EventHeader = (props: {event: Event}) => {
   );
 };
 
-/**
- * Render metadata about the event and provide a link to the JSON blob
- */
-const EventMetadata = (props: {
-  event: Event;
-  organization: Organization;
-  projectId: string;
-}) => {
-  const {event, organization, projectId} = props;
-
-  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${event.eventID}/json/`;
-
-  return (
-    <MetaDataID>
-      <SectionHeading>{t('Event ID')}</SectionHeading>
-      <MetadataContainer data-test-id="event-id">{event.eventID}</MetadataContainer>
-      <MetadataContainer>
-        <DateTime
-          date={getDynamicText({
-            value: event.dateCreated || (event.endTimestamp || 0) * 1000,
-            fixed: 'Dummy timestamp',
-          })}
-        />
-      </MetadataContainer>
-      <Projects orgId={organization.slug} slugs={[projectId]}>
-        {({projects}) => {
-          const project = projects.find(p => p.slug === projectId);
-          return (
-            <StyledProjectBadge
-              project={project ? project : {slug: projectId}}
-              avatarSize={16}
-            />
-          );
-        }}
-      </Projects>
-      <MetadataJSON href={eventJsonUrl} className="json-link">
-        {t('Preview JSON')} (<FileSize bytes={event.size} />)
-      </MetadataJSON>
-    </MetaDataID>
-  );
-};
-
-const Controller = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  grid-row: 2/3;
-  grid-column: 2/3;
-`;
-
 const StyledButton = styled(Button)`
   display: none;
 
@@ -355,21 +302,7 @@ const StyledEventHeader = styled('div')`
 const StyledTitle = styled('span')`
   color: ${p => p.theme.gray700};
   margin-right: ${space(1)};
-`;
-
-const MetaDataID = styled('div')`
-  margin-bottom: ${space(4)};
-`;
-
-const MetadataContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  color: ${p => p.theme.gray600};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const MetadataJSON = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  align-self: center;
 `;
 
 const StyledEventEntries = styled(EventEntries)`
@@ -380,10 +313,6 @@ const StyledEventEntries = styled(EventEntries)`
     padding-top: 0;
     border-top: none;
   }
-`;
-
-const StyledProjectBadge = styled(ProjectBadge)`
-  margin-bottom: ${space(2)};
 `;
 
 export default withApi(EventDetailsContent);
