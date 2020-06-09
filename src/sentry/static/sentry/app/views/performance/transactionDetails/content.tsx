@@ -4,14 +4,11 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -19,25 +16,21 @@ import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
-import OpsBreakdown from 'app/components/events/opsBreakdown';
 import FileSize from 'app/components/fileSize';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import EventEntries from 'app/components/events/eventEntries';
+import OpsBreakdown from 'app/components/events/opsBreakdown';
 import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
-import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox} from 'app/utils/discover/styles';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Breadcrumb from 'app/views/performance/breadcrumb';
+import {decodeScalar} from 'app/utils/queryString';
 
-import {generateTitle} from '../utils';
-import Pagination from './pagination';
-import LineGraph from './lineGraph';
-import TagsTable from '../tagsTable';
-import LinkedIssue from './linkedIssue';
-import DiscoverBreadcrumb from '../breadcrumb';
+//import TagsTable from '../tagsTable';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -59,7 +52,6 @@ type Props = {
   params: Params;
   api: Client;
   eventSlug: string;
-  eventView: EventView;
 };
 
 type State = {
@@ -90,17 +82,13 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     this.setState({isSidebarVisible: !this.state.isSidebarVisible});
   };
 
-  getEndpoints(): Array<[string, string, {query: EventQuery}]> {
-    const {organization, params, location, eventView} = this.props;
+  getEndpoints(): Array<[string, string]> {
+    const {organization, params} = this.props;
     const {eventSlug} = params;
-
-    const query = eventView.getEventsAPIPayload(location);
 
     const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
 
-    // Get a specific event. This could be coming from
-    // a paginated group or standalone event.
-    return [['event', url, {query}]];
+    return [['event', url]];
   }
 
   get projectId() {
@@ -118,57 +106,37 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventView} = this.props;
+    const {organization, location, eventSlug} = this.props;
 
     // metrics
     trackAnalyticsEvent({
-      eventKey: 'discover_v2.event_details',
-      eventName: 'Discoverv2: Opened Event Details',
+      eventKey: 'performance.event_details',
+      eventName: 'Performance: Opened Event Details',
       event_type: event.type,
       organization_id: parseInt(organization.id, 10),
     });
 
-    // Having an aggregate field means we want to show pagination/graphs
-    const isGroupedView = eventView.hasAggregateField();
     const {isSidebarVisible} = this.state;
+    const transactionName = decodeScalar(location.query.transaction);
 
     return (
       <React.Fragment>
         <HeaderBox>
-          <DiscoverBreadcrumb
-            eventView={eventView}
-            event={event}
+          <Breadcrumb
             organization={organization}
             location={location}
+            transactionName={transactionName}
+            eventSlug={eventSlug}
           />
-          <EventHeader event={event} />
           <Controller>
             <StyledButton size="small" onClick={this.toggleSidebar}>
               {isSidebarVisible ? 'Hide Details' : 'Show Details'}
             </StyledButton>
-            {isGroupedView && (
-              <Pagination
-                event={event}
-                organization={organization}
-                eventView={eventView}
-              />
-            )}
           </Controller>
+          <StyledTitle data-test-id="event-header">{event.title}</StyledTitle>
         </HeaderBox>
         <ContentBox>
           <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
-            {isGroupedView &&
-              getDynamicText({
-                value: (
-                  <LineGraph
-                    organization={organization}
-                    currentEvent={event}
-                    location={location}
-                    eventView={eventView}
-                  />
-                ),
-                fixed: 'events chart',
-              })}
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
                 <StyledEventEntries
@@ -178,7 +146,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   location={location}
                   showExampleCommit={false}
                   showTagSummary={false}
-                  eventView={eventView}
                 />
               )}
             </Projects>
@@ -190,10 +157,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               projectId={this.projectId}
             />
             <OpsBreakdown event={event} />
-            {event.groupID && (
-              <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
-            )}
+            {/* TODO show tagstable again.
             <TagsTable eventView={eventView} event={event} organization={organization} />
+              */}
           </div>
         </ContentBox>
       </React.Fragment>
@@ -225,66 +191,18 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderWrapper(children: React.ReactNode) {
-    const {organization, location, eventView} = this.props;
-    const {event} = this.state;
+    const {organization} = this.props;
 
     return (
-      <EventDetailsWrapper
-        organization={organization}
-        location={location}
-        eventView={eventView}
-        event={event}
+      <SentryDocumentTitle
+        title={t('Performance - Event Details')}
+        objSlug={organization.slug}
       >
-        {children}
-      </EventDetailsWrapper>
-    );
-  }
-}
-
-type EventDetailsWrapperProps = {
-  organization: Organization;
-  location: Location;
-  eventView: EventView;
-  event: Event | undefined;
-  children: React.ReactNode;
-};
-
-class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
-  getDocumentTitle = (): string => {
-    const {event, eventView} = this.props;
-
-    return generateTitle({
-      eventView,
-      event,
-    });
-  };
-
-  render() {
-    const {organization, children} = this.props;
-
-    return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
         <React.Fragment>{children}</React.Fragment>
       </SentryDocumentTitle>
     );
   }
 }
-
-const EventHeader = (props: {event: Event}) => {
-  const {title} = getTitle(props.event);
-
-  const message = getMessage(props.event);
-
-  return (
-    <StyledEventHeader data-test-id="event-header">
-      <StyledTitle>
-        {title}
-        {message && message.length > 0 ? ':' : null}
-      </StyledTitle>
-      <span>{getMessage(props.event)}</span>
-    </StyledEventHeader>
-  );
-};
 
 /**
  * Render metadata about the event and provide a link to the JSON blob
@@ -344,17 +262,10 @@ const StyledButton = styled(Button)`
   }
 `;
 
-const StyledEventHeader = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray500};
-  grid-column: 1/2;
-  align-self: center;
-  ${overflowEllipsis};
-`;
-
 const StyledTitle = styled('span')`
   color: ${p => p.theme.gray700};
-  margin-right: ${space(1)};
+  font-size: ${p => p.theme.headerFontSize};
+  grid-column: 1 / 2;
 `;
 
 const MetaDataID = styled('div')`
