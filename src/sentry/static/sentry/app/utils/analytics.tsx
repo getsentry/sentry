@@ -195,9 +195,10 @@ metric.measure = function metricMeasure({
 
   // Retrieve measurement entries
   performance.getEntriesByName(name, 'measure').forEach(measurement => {
-    if (maxLength === 0 || measurement.duration <= maxLength) {
-      metric(measurement.name, measurement.duration, {...startData, ...data});
+    if (measurement.duration > maxLength) {
+      return;
     }
+    metric(measurement.name, measurement.duration, {...startData, ...data});
   });
 
   // By default, clean up measurements
