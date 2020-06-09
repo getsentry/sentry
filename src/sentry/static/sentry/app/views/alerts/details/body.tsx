@@ -42,11 +42,7 @@ type Props = {
 export default class DetailsBody extends React.Component<Props> {
   get metricPreset() {
     const {incident} = this.props;
-    if (!incident) {
-      return undefined;
-    }
-
-    return getIncidentMetricPreset(incident);
+    return incident ? getIncidentMetricPreset(incident) : undefined;
   }
 
   /**

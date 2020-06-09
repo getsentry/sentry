@@ -42,11 +42,7 @@ type State = {
 class AlertListRow extends AsyncComponent<Props, State> {
   get metricPreset() {
     const {incident} = this.props;
-    if (!incident) {
-      return undefined;
-    }
-
-    return getIncidentMetricPreset(incident);
+    return incident ? getIncidentMetricPreset(incident) : undefined;
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
