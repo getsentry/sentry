@@ -21,7 +21,7 @@ class RelayRegisterTest(APITestCase):
         self.key_pair = generate_key_pair()
 
         self.public_key = self.key_pair[1]
-        settings.SENTRY_RELAY_WHITELIST_PK.append(six.binary_type(self.public_key))
+        settings.SENTRY_TRUSTED_RELAY_PKS.append(six.binary_type(self.public_key))
 
         self.private_key = self.key_pair[0]
         self.relay_id = six.binary_type(six.text_type(uuid4()).encode("ascii"))
@@ -185,7 +185,7 @@ class RelayRegisterTest(APITestCase):
 
         keys = generate_key_pair()
 
-        settings.SENTRY_RELAY_WHITELIST_PK.append(six.binary_type(keys[1]))
+        settings.SENTRY_TRUSTED_RELAY_PKS.append(six.binary_type(keys[1]))
 
         data = {"public_key": six.binary_type(keys[1]), "relay_id": self.relay_id}
 

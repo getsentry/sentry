@@ -45,7 +45,7 @@ def is_internal_relay(request, public_key):
     if (
         settings.DEBUG
         or request.META.get("REMOTE_ADDR", None) in settings.INTERNAL_IPS
-        or public_key in settings.SENTRY_RELAY_WHITELIST_PK
+        or public_key in settings.SENTRY_TRUSTED_RELAY_PKS
     ):
         return True
     return False

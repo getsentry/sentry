@@ -22,7 +22,7 @@ class RelayIndexEndpoint(Endpoint):
 
         :auth: required
         """
-        queryset = Relay.objects.filter(public_key__in=settings.SENTRY_RELAY_WHITELIST_PK)
+        queryset = Relay.objects.filter(public_key__in=settings.SENTRY_TRUSTED_RELAY_PKS)
 
         return self.paginate(
             request=request,

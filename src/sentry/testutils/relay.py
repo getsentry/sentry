@@ -59,7 +59,7 @@ def adjust_settings_for_relay_tests(settings):
             "message.max.bytes": 50000000,  # 50MB, default is 1MB
         }
     }
-    settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
+    settings.SENTRY_TRUSTED_RELAY_PKS = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
 
 
 class SentryStoreHelper(object):
