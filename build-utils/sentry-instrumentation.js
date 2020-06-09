@@ -1,10 +1,12 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
-const os = require('os');
+const crypto = require('crypto');
 const http = require('http');
+const os = require('os');
 
 const {
   SENTRY_INSTRUMENTATION,
+  SENTRY_WEBPACK_WEBHOOK_SECRET,
   TEST_SUITE,
   TRAVIS_COMMIT,
   TRAVIS_BRANCH,
@@ -15,6 +17,11 @@ const IS_TRAVIS = !!TRAVIS_COMMIT;
 
 const PLUGIN_NAME = 'SentryInstrumentation';
 const GB_BYTE = 1073741824;
+
+const createSignature = function(secret, payload) {
+  const hmac = crypto.createHmac('sha1', secret);
+  return `sha1=${hmac.update(payload).digest('hex')}`;
+};
 
 class SentryInstrumentation {
   constructor() {
@@ -51,7 +58,10 @@ class SentryInstrumentation {
    * Measures the file sizes of assets emitted from the entrypoints
    */
   measureAssetSizes(compilation) {
-    console.log('measure asset sizes');
+    if (!SENTRY_WEBPACK_WEBHOOK_SECRET) {
+      return;
+    }
+
     [...compilation.entrypoints].forEach(([entrypointName, entry]) =>
       entry.chunks.forEach(chunk =>
         chunk.files
@@ -64,20 +74,26 @@ class SentryInstrumentation {
               file,
               entrypointName,
               size,
+              commit: TRAVIS_COMMIT,
+              pull_request_number: TRAVIS_PULL_REQUEST,
+              environment: IS_TRAVIS ? 'ci' : '',
             });
-            console.log(body);
+
             const req = http.request({
-              host: 'bv.ngrok.io',
+              host: 'product-eng-webhooks-vmrqv3f7nq-uw.a.run.app',
               path: '/metrics/webpack/webhook',
               port: 80,
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(body),
+                'x-webpack-signature': createSignature(
+                  SENTRY_WEBPACK_WEBHOOK_SECRET,
+                  body
+                ),
               },
             });
             req.end(body);
-            // post somewhere
           })
       )
     );
