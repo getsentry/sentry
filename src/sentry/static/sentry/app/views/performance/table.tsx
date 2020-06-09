@@ -1,10 +1,15 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
+import * as ReactRouter from 'react-router';
 
 import {Organization, Project} from 'app/types';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
-import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
+import EventView, {
+  EventData,
+  isFieldSortable,
+  MetaType,
+} from 'app/utils/discover/eventView';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
@@ -13,6 +18,7 @@ import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
@@ -56,10 +62,127 @@ class Table extends React.Component<Props, State> {
     widths: [],
   };
 
-  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
+  handleCellAction = (
+    dataRow: TableDataRow,
+    column: TableColumn<keyof TableDataRow>,
+    tableMeta: MetaType
+  ) => {
     return (action: Actions, value: React.ReactText) => {
-      console.log(action, value, column);
-      // const {eventView, organization, tableMeta, projects, dataRow} = this.props;
+      const {eventView, organization, projects, location} = this.props;
+
+      let nextLocationQuery: Location['query'] = {};
+      const searchConditions = tokenizeSearch(eventView.query);
+
+      // remove any event.type queries since it is implied to apply to only transactions
+      delete searchConditions['event.type'];
+
+      switch (action) {
+        case Actions.ADD: {
+          // Remove exclusion if it exists.
+          delete searchConditions[`!${column.name}`];
+          searchConditions[column.name] = [`${value}`];
+
+          nextLocationQuery = {
+            query: stringifyQueryObject(searchConditions),
+          };
+
+          break;
+        }
+        case Actions.EXCLUDE: {
+          // Remove positive if it exists.
+          delete searchConditions[column.name];
+          // Negations should stack up.
+          const negation = `!${column.name}`;
+          if (!searchConditions.hasOwnProperty(negation)) {
+            searchConditions[negation] = [];
+          }
+          searchConditions[negation].push(`${value}`);
+
+          nextLocationQuery = {
+            query: stringifyQueryObject(searchConditions),
+          };
+
+          break;
+        }
+        case Actions.SHOW_GREATER_THAN: {
+          // Remove query token if it already exists
+          delete searchConditions[column.name];
+          searchConditions[column.name] = [`>${value}`];
+          const field = {field: column.name, width: column.width};
+
+          // sort descending order
+          const nextEventView = eventView.sortOnField(field, tableMeta, 'desc');
+          const queryStringObject = nextEventView.generateQueryStringObject();
+
+          nextLocationQuery = {
+            query: stringifyQueryObject(searchConditions),
+            sort: queryStringObject.sort,
+          };
+
+          break;
+        }
+        case Actions.SHOW_LESS_THAN: {
+          // Remove query token if it already exists
+          delete searchConditions[column.name];
+          searchConditions[column.name] = [`<${value}`];
+          const field = {field: column.name, width: column.width};
+
+          // sort ascending order
+          const nextEventView = eventView.sortOnField(field, tableMeta, 'asc');
+          const queryStringObject = nextEventView.generateQueryStringObject();
+
+          nextLocationQuery = {
+            query: stringifyQueryObject(searchConditions),
+            sort: queryStringObject.sort,
+          };
+
+          break;
+        }
+        case Actions.TRANSACTION: {
+          const maybeProject = projects.find(project => project.slug === dataRow.project);
+
+          const projectID = maybeProject ? [maybeProject.id] : undefined;
+
+          const next = transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: String(value),
+            projectID,
+            query: {},
+          });
+
+          ReactRouter.browserHistory.push(next);
+          return;
+        }
+        case Actions.RELEASE: {
+          const maybeProject = projects.find(project => {
+            return project.slug === dataRow.project;
+          });
+
+          ReactRouter.browserHistory.push({
+            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+              value
+            )}/`,
+            query: {
+              ...eventView.getGlobalSelection(),
+
+              project: maybeProject ? maybeProject.id : undefined,
+            },
+          });
+
+          return;
+        }
+        default:
+          throw new Error(`Unknown action type. ${action}`);
+      }
+
+      ReactRouter.browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          ...nextLocationQuery,
+        },
+      });
     };
   };
 
@@ -93,12 +216,9 @@ class Table extends React.Component<Props, State> {
 
         rendered = (
           <CellAction
-            organization={organization}
-            eventView={eventView}
             column={column}
             dataRow={dataRow}
-            tableMeta={tableData.meta}
-            handleCellAction={this.handleCellAction(column)}
+            handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
           >
             <Link to={target} onClick={this.handleSummaryClick}>
               {rendered}
@@ -109,12 +229,9 @@ class Table extends React.Component<Props, State> {
 
       return (
         <CellAction
-          organization={organization}
-          eventView={eventView}
           column={column}
           dataRow={dataRow}
-          tableMeta={tableData.meta}
-          handleCellAction={this.handleCellAction(column)}
+          handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
         >
           {rendered}
         </CellAction>
