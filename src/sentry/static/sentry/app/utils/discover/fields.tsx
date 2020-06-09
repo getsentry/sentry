@@ -104,7 +104,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration'],
+        columnTypes: ['duration'],
         required: true,
       },
     ],
@@ -116,7 +116,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration'],
+        columnTypes: ['duration'],
         required: true,
       },
     ],
