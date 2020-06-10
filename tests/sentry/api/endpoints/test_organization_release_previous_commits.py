@@ -10,15 +10,9 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 
 
-class ReleasePreviousCommitsTest(APITestCase):
+class OrganizationReleasePreviousCommitsTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(is_staff=False, is_superuser=False)
-        # org = self.organization
-        # org.flags.allow_joinleave = False
-        # org.save()
-
-        # team1 = self.create_team(organization=org)
-        # team2 = self.create_team(organization=org)
 
         project = self.create_project(organization=self.organization)
         self.project2 = self.create_project(organization=self.organization)
