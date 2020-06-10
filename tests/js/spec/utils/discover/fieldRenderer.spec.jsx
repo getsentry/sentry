@@ -38,7 +38,6 @@ describe('getFieldRenderer', function() {
 
   it('can render string fields', function() {
     const renderer = getFieldRenderer('url', {url: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
     expect(text.text()).toEqual(data.url);
@@ -46,7 +45,6 @@ describe('getFieldRenderer', function() {
 
   it('can render boolean fields', function() {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
-    expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
     expect(text.text()).toEqual('yes');
@@ -54,7 +52,6 @@ describe('getFieldRenderer', function() {
 
   it('can render integer fields', function() {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
-    expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
 
     const value = wrapper.find('Count');
@@ -74,7 +71,6 @@ describe('getFieldRenderer', function() {
 
   it('can render null date fields', function() {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
-    expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
 
     const value = wrapper.find('StyledDateTime');
@@ -84,7 +80,6 @@ describe('getFieldRenderer', function() {
 
   it('can render user fields with aliased user', function() {
     const renderer = getFieldRenderer('user', {user: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
 
     const wrapper = mount(renderer(data, {location, organization}));
 
@@ -98,7 +93,6 @@ describe('getFieldRenderer', function() {
 
   it('can render null user fields', function() {
     const renderer = getFieldRenderer('user', {user: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
 
     delete data.user;
     const wrapper = mount(renderer(data, {location, organization}));
@@ -113,7 +107,7 @@ describe('getFieldRenderer', function() {
 
   it('can render project as an avatar', function() {
     const renderer = getFieldRenderer('project', {project: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
+
     const wrapper = mountWithTheme(
       renderer(data, {location, organization}),
       context.routerContext
