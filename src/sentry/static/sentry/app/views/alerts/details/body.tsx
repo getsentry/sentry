@@ -155,36 +155,34 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       // Currently only one button in pannel, hide panel if not available
       <Feature features={['discover-basic']}>
-        <PanelFooter>
-          <ChartActionsBody withPadding>
-            <Projects slugs={incident?.projects} orgId={params.orgId}>
-              {({initiallyLoaded, fetching, projects}) => {
-                const preset = this.metricPreset;
-                const ctaOpts = {
-                  orgSlug: params.orgId,
-                  projects: (initiallyLoaded ? projects : []) as Project[],
-                  incident,
-                  stats,
-                };
+        <ChartActions>
+          <Projects slugs={incident?.projects} orgId={params.orgId}>
+            {({initiallyLoaded, fetching, projects}) => {
+              const preset = this.metricPreset;
+              const ctaOpts = {
+                orgSlug: params.orgId,
+                projects: (initiallyLoaded ? projects : []) as Project[],
+                incident,
+                stats,
+              };
 
-                const {buttonText, ...props} = preset
-                  ? preset.makeCtaParams(ctaOpts)
-                  : makeDefaultCta(ctaOpts);
+              const {buttonText, ...props} = preset
+                ? preset.makeCtaParams(ctaOpts)
+                : makeDefaultCta(ctaOpts);
 
-                return (
-                  <Button
-                    size="small"
-                    priority="primary"
-                    disabled={!incident || fetching || !initiallyLoaded}
-                    {...props}
-                  >
-                    {buttonText}
-                  </Button>
-                );
-              }}
-            </Projects>
-          </ChartActionsBody>
-        </PanelFooter>
+              return (
+                <Button
+                  size="small"
+                  priority="primary"
+                  disabled={!incident || fetching || !initiallyLoaded}
+                  {...props}
+                >
+                  {buttonText}
+                </Button>
+              );
+            }}
+          </Projects>
+        </ChartActions>
       </Feature>
     );
   }
@@ -357,9 +355,10 @@ const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
 `;
 
-const ChartActionsBody = styled(PanelBody)`
+const ChartActions = styled(PanelFooter)`
   display: flex;
   justify-content: flex-end;
+  padding: ${space(2)};
 `;
 
 const ChartParameters = styled('div')`

@@ -118,7 +118,7 @@ describe('IncidentDetails', function() {
     await tick();
     wrapper.update();
 
-    const chartActions = wrapper.find('ChartActionsBody');
+    const chartActions = wrapper.find('ChartActions');
     expect(chartActions.find('Button').text()).toBe('Open in Discover');
   });
 
