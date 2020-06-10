@@ -116,7 +116,6 @@ class Columns(Enum):
     DEVICE_LOCALE = Column(
         "events.contexts[device.locale]",
         "contexts[device.locale]",
-        None,
         "contexts[device.locale]",
         "contexts[device.locale]",
         "device.locale",
