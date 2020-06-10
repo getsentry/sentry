@@ -196,9 +196,8 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
     extra = {"installation_id": installation_id, "user_id": user_id}
 
     try:
-        install = SentryAppInstallation.objects.get(
-            id=installation_id, status=SentryAppInstallationStatus.INSTALLED
-        )
+        # we should send the webhook for pending installations on the install event in case that's part of the workflow
+        install = SentryAppInstallation.objects.get(id=installation_id)
     except SentryAppInstallation.DoesNotExist:
         logger.info("installation_webhook.missing_installation", extra=extra)
         return
