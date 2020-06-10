@@ -46,11 +46,11 @@ function roundWithFixed(
 }
 
 // in milliseconds
-const WEEK = 604800000;
-const DAY = 86400000;
-const HOUR = 3600000;
-const MINUTE = 60000;
-const SECOND = 1000;
+const MS_WEEK = 604800000;
+const MS_DAY = 86400000;
+const MS_HOUR = 3600000;
+const MS_MINUTE = 60000;
+const MS_SECOND = 1000;
 
 export function getDuration(
   seconds: number,
@@ -59,24 +59,24 @@ export function getDuration(
 ): string {
   const value = Math.abs(seconds * 1000);
 
-  if (value >= WEEK) {
-    const {label, result} = roundWithFixed(value / WEEK, fixedDigits);
+  if (value >= MS_WEEK) {
+    const {label, result} = roundWithFixed(value / MS_WEEK, fixedDigits);
     return `${label} ${abbreviation ? t('wk') : tn('week', 'weeks', result)}`;
   }
   if (value >= 172800000) {
-    const {label, result} = roundWithFixed(value / DAY, fixedDigits);
+    const {label, result} = roundWithFixed(value / MS_DAY, fixedDigits);
     return `${label} ${abbreviation ? t('d') : tn('day', 'days', result)}`;
   }
   if (value >= 7200000) {
-    const {label, result} = roundWithFixed(value / HOUR, fixedDigits);
+    const {label, result} = roundWithFixed(value / MS_HOUR, fixedDigits);
     return `${label} ${abbreviation ? t('hr') : tn('hour', 'hours', result)}`;
   }
   if (value >= 120000) {
-    const {label, result} = roundWithFixed(value / MINUTE, fixedDigits);
+    const {label, result} = roundWithFixed(value / MS_MINUTE, fixedDigits);
     return `${label} ${abbreviation ? t('min') : tn('minute', 'minutes', result)}`;
   }
-  if (value >= SECOND) {
-    const {label, result} = roundWithFixed(value / SECOND, fixedDigits);
+  if (value >= MS_SECOND) {
+    const {label, result} = roundWithFixed(value / MS_SECOND, fixedDigits);
     return `${label} ${abbreviation ? t('s') : tn('second', 'seconds', result)}`;
   }
 
@@ -187,4 +187,49 @@ export function formatAbbreviatedNumber(number: number | string) {
   }
 
   return number.toLocaleString();
+}
+
+export enum Time {
+  SECOND = 'second',
+  MINUTE = 'minute',
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  YEAR = 'year',
+}
+
+export const getAbbreviatedTime = (type: Time, time: number) => {
+  switch (type) {
+    case Time.SECOND:
+      return t('%s sec', time);
+    case Time.MINUTE:
+      return t('%s min', time);
+    case Time.HOUR:
+      return t('%s hr', time);
+    case Time.DAY:
+      return t('%s d', time);
+    case Time.WEEK:
+      return t('%s wk', time);
+    case Time.YEAR:
+      return t('%s y', time);
+    default:
+      return '';
+  }
+};
+
+export function getAbbreviateRelativeTime(milliseconds: number) {
+  const seconds = Math.round(milliseconds / 1000);
+  const minutes = Math.round(seconds / 60);
+  const hours = Math.round(minutes / 60);
+  const days = Math.round(hours / 24);
+  const weeks = Math.round(days / 7);
+  const years = Math.round(weeks / 52);
+
+  const args = ((seconds < 45 && [Time.SECOND, seconds]) ||
+    (minutes < 45 && [Time.MINUTE, minutes]) ||
+    (hours < 22 && [Time.HOUR, hours]) ||
+    (days <= 300 && [Time.DAY, days]) ||
+    (weeks <= 52 && [Time.WEEK, weeks]) || [Time.YEAR, years]) as [Time, number];
+
+  return getAbbreviatedTime(args[0], args[1]);
 }

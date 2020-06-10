@@ -3,52 +3,10 @@ import moment from 'moment';
 import {use24Hours} from 'app/utils/dates';
 import {defined} from 'app/utils';
 import {t} from 'app/locale';
-
-enum TimeAbbreviation {
-  SECOND = 'second',
-  MINUTE = 'minute',
-  HOUR = 'hour',
-  DAY = 'day',
-  YEAR = 'year',
-}
+import {getAbbreviateRelativeTime} from 'app/utils/formatters';
 
 const timeFormat = 'HH:mm:ss';
 const timeDateFormat = `ll ${timeFormat}`;
-
-const getTimeShortString = (type: TimeAbbreviation, time: number) => {
-  switch (type) {
-    case TimeAbbreviation.SECOND:
-      return t('%s sec', time);
-    case TimeAbbreviation.MINUTE:
-      return t('%s min', time);
-    case TimeAbbreviation.HOUR:
-      return t('%s hr', time);
-    case TimeAbbreviation.DAY:
-      return t('%s d', time);
-    case TimeAbbreviation.YEAR:
-      return t('%s y', time);
-    default:
-      return '';
-  }
-};
-
-const getShortRelativeTime = (milliseconds: number) => {
-  const seconds = Math.round(milliseconds / 1000);
-  const minutes = Math.round(seconds / 60);
-  const hours = Math.round(minutes / 60);
-  const days = Math.round(hours / 24);
-  const years = Math.round(days / 365);
-
-  const args = ((seconds < 45 && [TimeAbbreviation.SECOND, seconds]) ||
-    (minutes < 45 && [TimeAbbreviation.MINUTE, minutes]) ||
-    (hours < 22 && [TimeAbbreviation.HOUR, hours]) ||
-    (days <= 300 && [TimeAbbreviation.DAY, days]) || [TimeAbbreviation.YEAR, years]) as [
-    TimeAbbreviation,
-    number
-  ];
-
-  return getTimeShortString(args[0], args[1]);
-};
 
 const getRelativeTime = (
   parsedTime: ReturnType<typeof moment>,
@@ -59,7 +17,7 @@ const getRelativeTime = (
   const formattedTime = moment(parsedTime.format(timeDateFormat));
   const formattedTimeToCompareWith = parsedTimeToCompareWith.format(timeDateFormat);
   const timeDiff = Math.abs(formattedTime.diff(formattedTimeToCompareWith));
-  const shortRelativeTime = getShortRelativeTime(timeDiff);
+  const shortRelativeTime = getAbbreviateRelativeTime(timeDiff);
 
   if (timeDiff !== 0) {
     return displayRelativeTime
