@@ -200,7 +200,7 @@ class Table extends React.Component<Props, State> {
 
       const field = String(column.key);
       const fieldRenderer = getFieldRenderer(field, tableMeta);
-      let rendered = fieldRenderer(dataRow, {organization, location});
+      const rendered = fieldRenderer(dataRow, {organization, location});
 
       const allowActions = [
         Actions.ADD,
@@ -221,7 +221,7 @@ class Table extends React.Component<Props, State> {
           projectID,
         });
 
-        rendered = (
+        return (
           <CellAction
             column={column}
             dataRow={dataRow}
