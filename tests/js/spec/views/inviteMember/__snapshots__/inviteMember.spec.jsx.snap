@@ -611,6 +611,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                         >
                                           <StyledButton
                                             aria-label="Add Team"
+                                            hideBottomBorder={true}
                                             isOpen={false}
                                             size="xsmall"
                                             type="button"
@@ -618,6 +619,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                             <forwardRef<Button>
                                               aria-label="Add Team"
                                               className="css-1k1xa0j-StyledButton eenpoef1"
+                                              hideBottomBorder={true}
                                               isOpen={false}
                                               size="xsmall"
                                               type="button"
@@ -628,6 +630,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                 className="css-1k1xa0j-StyledButton eenpoef1"
                                                 disabled={false}
                                                 forwardRef={null}
+                                                hideBottomBorder={true}
                                                 isOpen={false}
                                                 size="xsmall"
                                                 type="button"
@@ -638,6 +641,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                   className="css-1k1xa0j-StyledButton eenpoef1"
                                                   disabled={false}
                                                   forwardRef={null}
+                                                  hideBottomBorder={true}
                                                   isOpen={false}
                                                   onClick={[Function]}
                                                   role="button"

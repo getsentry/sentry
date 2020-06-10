@@ -22,22 +22,15 @@ import {
 } from './types';
 import transformCrumbs from './transformCrumbs';
 import Filter from './filter/filter';
-import ListHeader from './listHeader';
-import ListBody from './listBody';
+import List from './list';
 import Level from './level';
 import Icon from './icon';
+import {aroundContentStyle} from './styles';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
+const ISO_STRING_DATE_AND_TIME_DIVISION = 10;
 
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
-
-type State = {
-  searchTerm: string;
-  breadcrumbs: BreadcrumbsWithDetails;
-  filteredByFilter: BreadcrumbsWithDetails;
-  filteredBySearch: BreadcrumbsWithDetails;
-  filterOptions: FilterOptions;
-};
 
 type Props = {
   event: Event;
@@ -48,6 +41,15 @@ type Props = {
   };
 };
 
+type State = {
+  searchTerm: string;
+  breadcrumbs: BreadcrumbsWithDetails;
+  filteredByFilter: BreadcrumbsWithDetails;
+  filteredBySearch: BreadcrumbsWithDetails;
+  filterOptions: FilterOptions;
+  displayRelativeTime: boolean;
+};
+
 class Breadcrumbs extends React.Component<Props, State> {
   state: State = {
     searchTerm: '',
@@ -55,6 +57,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     filteredByFilter: [],
     filteredBySearch: [],
     filterOptions: [[], []],
+    displayRelativeTime: false,
   };
 
   componentDidMount() {
@@ -70,7 +73,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     }
   }
 
-  listBodyRef = React.createRef<HTMLDivElement>();
+  listRef = React.createRef<HTMLDivElement>();
 
   expandCollapsedCrumbs = () => {
     this.setState(
@@ -84,7 +87,7 @@ class Breadcrumbs extends React.Component<Props, State> {
   };
 
   scrollToTheBottom = () => {
-    const element = this.listBodyRef?.current;
+    const element = this.listRef?.current;
 
     if (!element) {
       return;
@@ -101,7 +104,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     let breadcrumbs = data.values;
 
     // Add the error event as the final (virtual) breadcrumb
-    const virtualCrumb = this.getVirtualCrumb();
+    const virtualCrumb = this.getVirtualCrumb(breadcrumbs[0]);
     if (virtualCrumb) {
       breadcrumbs = [...breadcrumbs, virtualCrumb];
     }
@@ -193,8 +196,16 @@ class Breadcrumbs extends React.Component<Props, State> {
     return match[1];
   };
 
-  getVirtualCrumb = (): Breadcrumb | undefined => {
+  getVirtualCrumb = (breadcrumb: Breadcrumb): Breadcrumb | undefined => {
     const {event} = this.props;
+
+    const timestamp =
+      breadcrumb?.timestamp && event.dateCreated
+        ? `${breadcrumb.timestamp.slice(
+            0,
+            ISO_STRING_DATE_AND_TIME_DIVISION
+          )}${event.dateCreated.slice(ISO_STRING_DATE_AND_TIME_DIVISION)}`
+        : undefined;
 
     const exception = event.entries.find(
       entry => entry.type === BreadcrumbType.EXCEPTION
@@ -214,7 +225,7 @@ class Breadcrumbs extends React.Component<Props, State> {
           type,
           value,
         },
-        timestamp: event.dateCreated,
+        timestamp,
       };
     }
 
@@ -225,7 +236,7 @@ class Breadcrumbs extends React.Component<Props, State> {
       level: levelTag?.value as BreadcrumbLevelType,
       category: 'message',
       message: event.message,
-      timestamp: event.dateCreated,
+      timestamp,
     };
   };
 
@@ -322,12 +333,18 @@ class Breadcrumbs extends React.Component<Props, State> {
     }));
   };
 
+  handleSwitchTimeFormat = () => {
+    this.setState(prevState => ({
+      displayRelativeTime: !prevState.displayRelativeTime,
+    }));
+  };
+
   render() {
     const {type, event, orgId} = this.props;
-    const {filterOptions, searchTerm, filteredBySearch} = this.state;
+    const {filterOptions, searchTerm, filteredBySearch, displayRelativeTime} = this.state;
 
     return (
-      <EventDataSection
+      <StyledEventDataSection
         type={type}
         title={
           <GuideAnchor target="breadcrumbs" position="bottom">
@@ -351,46 +368,40 @@ class Breadcrumbs extends React.Component<Props, State> {
         wrapTitle={false}
         isCentered
       >
-        <Content>
-          {filteredBySearch.length > 0 ? (
-            <React.Fragment>
-              <ListHeader />
-              <ListBody
-                event={event}
-                orgId={orgId}
-                breadcrumbs={filteredBySearch}
-                ref={this.listBodyRef}
-              />
-            </React.Fragment>
-          ) : (
-            <StyledEmptyMessage
-              icon={<IconWarning size="xl" />}
-              action={
-                <Button onClick={this.handleResetFilter} priority="primary">
-                  {t('Reset Filter')}
-                </Button>
-              }
-            >
-              {t('Sorry, no breadcrumbs match your search query.')}
-            </StyledEmptyMessage>
-          )}
-        </Content>
-      </EventDataSection>
+        {filteredBySearch.length > 0 ? (
+          <List
+            breadcrumbs={filteredBySearch}
+            ref={this.listRef}
+            event={event}
+            orgId={orgId}
+            onSwitchTimeFormat={this.handleSwitchTimeFormat}
+            displayRelativeTime={displayRelativeTime}
+          />
+        ) : (
+          <StyledEmptyMessage
+            icon={<IconWarning size="xl" />}
+            action={
+              <Button onClick={this.handleResetFilter} priority="primary">
+                {t('Reset Filter')}
+              </Button>
+            }
+          >
+            {t('Sorry, no breadcrumbs match your search query.')}
+          </StyledEmptyMessage>
+        )}
+      </StyledEventDataSection>
     );
   }
 }
 
 export default Breadcrumbs;
 
-const Content = styled('div')`
-  box-shadow: ${p => p.theme.dropShadowLightest};
-  border-radius: ${p => p.theme.borderRadius};
+const StyledEventDataSection = styled(EventDataSection)`
   margin-bottom: ${space(3)};
 `;
 
 const StyledEmptyMessage = styled(EmptyMessage)`
-  border: 1px solid ${p => p.theme.borderDark};
-  border-radius: ${p => p.theme.borderRadius};
+  ${aroundContentStyle};
 `;
 
 const Search = styled('div')`

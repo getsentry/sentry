@@ -57,6 +57,7 @@ export {IconNext} from './iconNext';
 export {IconNot} from './iconNot';
 export {IconOpen} from './iconOpen';
 export {IconPause} from './iconPause';
+export {IconPlay} from './iconPlay';
 export {IconPin} from './iconPin';
 export {IconPrevious} from './iconPrevious';
 export {IconPrint} from './iconPrint';

@@ -106,7 +106,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         ...axisLineConfig,
       },
       {
-        // error rate
+        // failure rate
         gridIndex: 2,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 2),
@@ -125,7 +125,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         if (seriesName.includes('apdex')) {
           return formatFloat(value, 2);
         }
-        if (seriesName.includes('error_rate')) {
+        if (seriesName.includes('failure_rate')) {
           return formatPercentage(value, 2);
         }
         if (typeof value === 'number') {
@@ -159,9 +159,9 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         <QuestionTooltip position="top" title={PERFORMANCE_TERMS.tpm} size="sm" />
       </ChartTitle>
 
-      <ChartTitle top="410px" key="error-rate">
-        {t('Error Rate')}
-        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.errorRate} size="sm" />
+      <ChartTitle top="410px" key="failure-rate">
+        {t('Failure Rate')}
+        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.failureRate} size="sm" />
       </ChartTitle>
 
       <ChartZoom
@@ -184,7 +184,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={['apdex(300)', 'epm()', 'error_rate()']}
+            yAxis={['apdex(300)', 'epm()', 'failure_rate()']}
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {

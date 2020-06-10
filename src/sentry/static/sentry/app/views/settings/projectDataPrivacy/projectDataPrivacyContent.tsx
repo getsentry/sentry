@@ -40,7 +40,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Data Privacy')} />
+        <SettingsPageHeader title={t('Security & Privacy')} />
         <Form
           saveOnBlur
           allowUndo
@@ -50,7 +50,16 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
           onSubmitSuccess={this.handleUpdateProject}
         >
           <JsonForm
-            title={t('Data Privacy')}
+            title={t('Security & Privacy')}
+            additionalFieldProps={{
+              organization,
+            }}
+            features={features}
+            disabled={!access.has('project:write')}
+            fields={[fields.storeCrashReports]}
+          />
+          <JsonForm
+            title={t('Data Scrubbing')}
             additionalFieldProps={{
               organization,
             }}
@@ -62,7 +71,6 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
               fields.scrubIPAddresses,
               fields.sensitiveFields,
               fields.safeFields,
-              fields.storeCrashReports,
             ]}
           />
         </Form>

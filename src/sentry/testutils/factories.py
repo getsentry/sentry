@@ -828,7 +828,7 @@ class Factories(object):
             alert_rule=alert_rule,
             date_started=date_started or timezone.now(),
             date_detected=date_detected or timezone.now(),
-            date_closed=date_closed or timezone.now(),
+            date_closed=timezone.now() if date_closed is not None else date_closed,
             type=IncidentType.ALERT_TRIGGERED.value,
         )
         for project in projects:

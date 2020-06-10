@@ -10,7 +10,10 @@ import keydown from 'react-keydown';
 import {Client} from 'app/api';
 import {Config} from 'app/types';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
-import {displayDeployPreviewAlert} from 'app/actionCreators/deployPreview';
+import {
+  displayDeployPreviewAlert,
+  displayExperimentalSpaAlert,
+} from 'app/actionCreators/deployPreview';
 import {fetchGuides} from 'app/actionCreators/guides';
 import {openCommandPalette} from 'app/actionCreators/modal';
 import {setTransactionName} from 'app/utils/apm';
@@ -125,6 +128,8 @@ class App extends React.Component<Props, State> {
 
     if (DEPLOY_PREVIEW_CONFIG) {
       displayDeployPreviewAlert();
+    } else if (EXPERIMENTAL_SPA) {
+      displayExperimentalSpaAlert();
     }
 
     $(document).ajaxError(function(_evt, jqXHR) {

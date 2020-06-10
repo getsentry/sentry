@@ -26,6 +26,7 @@ type ThreadInfo = {
 const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
   const {label = `<${t('unknown')}>`, filename = `<${t('unknown')}>`} = details;
   const optionName = name || `<${t('unknown')}>`;
+
   return (
     <Grid>
       <GridCell>
@@ -61,9 +62,9 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
           {crashed ? (
             crashedInfo ? (
               <Tooltip
-                title={`${tct('errored with [crashedInfo]', {
+                title={tct('Errored with [crashedInfo]', {
                   crashedInfo: crashedInfo.values[0].type,
-                })}`}
+                })}
                 position="top"
               >
                 <IconFire color="red" />

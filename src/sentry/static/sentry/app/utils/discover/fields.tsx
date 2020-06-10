@@ -104,7 +104,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration'],
+        columnTypes: ['duration'],
         required: true,
       },
     ],
@@ -116,7 +116,7 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration'],
+        columnTypes: ['duration'],
         required: true,
       },
     ],
@@ -182,7 +182,7 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  error_rate: {
+  failure_rate: {
     parameters: [],
     outputType: 'percentage',
     isSortable: true,
@@ -351,7 +351,7 @@ export const TRACING_FIELDS = [
   'p99',
   'p100',
   'percentile',
-  'error_rate',
+  'failure_rate',
   'apdex',
   'impact',
   'user_misery',
