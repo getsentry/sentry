@@ -10,6 +10,7 @@ import Button from 'app/components/button';
 
 import DataPrivacyRulesForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
 import {getRuleTypeLabel, getMethodTypeLabel} from './dataPrivacyRulesForm/utils';
+import {RuleType} from './types';
 
 type Rule = React.ComponentProps<typeof DataPrivacyRulesForm>['rule'];
 type Props = {
@@ -25,13 +26,15 @@ const RulesList = React.forwardRef<HTMLUListElement, Props>(function RulesList(
 ) {
   return (
     <List ref={ref} isDisabled={disabled}>
-      {rules.map(({id, method, type, source}) => {
+      {rules.map(({id, method, type, source, customRegularExpression}) => {
         const methodLabel = getMethodTypeLabel(method);
-        const typelabel = getRuleTypeLabel(type);
+        const typeLabel = getRuleTypeLabel(type);
+        const typeDescription =
+          type === RuleType.PATTERN ? customRegularExpression : typeLabel;
         return (
           <ListItem key={id}>
             <TextOverflow>
-              {`[${methodLabel.label}] [${typelabel}] ${t('from')} [${source}]`}
+              {`[${methodLabel.label}] [${typeDescription}] ${t('from')} [${source}]`}
             </TextOverflow>
             {onShowEditRuleModal && (
               <Button
