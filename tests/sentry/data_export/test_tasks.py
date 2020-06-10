@@ -72,6 +72,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file is not None
         assert isinstance(de.file, File)
         assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
         assert header == "value,times_seen,last_seen,first_seen"
@@ -145,6 +147,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file is not None
         assert isinstance(de.file, File)
         assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         header = de.file.getfile().read().strip()
         assert header == "value,times_seen,last_seen,first_seen"
@@ -165,6 +169,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file is not None
         assert isinstance(de.file, File)
         assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         header, raw1, raw2, raw3 = de.file.getfile().read().strip().split("\r\n")
         assert header == "title"
@@ -205,6 +211,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file is not None
         assert isinstance(de.file, File)
         assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
         header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
@@ -231,6 +239,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file is not None
         assert isinstance(de.file, File)
         assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
         header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
