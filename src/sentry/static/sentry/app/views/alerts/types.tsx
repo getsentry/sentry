@@ -4,7 +4,7 @@ import {User, Repository} from 'app/types';
 type Data = [number, {count: number}[]][];
 
 export type Incident = {
-  dateClosed: string;
+  dateClosed: string | null;
   dateStarted: string;
   dateDetected: string;
   dateCreated: string;
