@@ -334,12 +334,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       let errors: string[] = [];
       if (Array.isArray(err?.responseJSON)) {
         errors = err.responseJSON;
-      } else if (err?.responseJSON && Object.entries(err?.responseJSON)) {
-        for (const [, value] of Object.entries(err?.responseJSON)) {
-          if (typeof value === 'string') {
-            errors.push(value as string);
+      } else if (err?.responseJSON) {
+        const reducer = (acc, value) => {
+          if (typeof value[0] === 'string') {
+            acc.push(value[0] as string);
           }
-        }
+          return acc;
+        };
+        errors = Object.values(err?.responseJSON).reduce(reducer, []);
       }
       const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
       addErrorMessage(t('Unable to save alert%s', apiErrors));
