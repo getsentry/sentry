@@ -86,8 +86,12 @@ Sentry.init({
   ...window.__SENTRY__OPTIONS,
   /**
    * For SPA mode, we need a way to overwrite the default DSN from backend
+   * as well as `whitelistUrls`
    */
   dsn: process.env.SPA_DSN || window.__SENTRY__OPTIONS.dsn,
+  whitelistUrls: process.env.SPA_DSN
+    ? ['localhost', 'dev.getsentry.net', 'webpack-internal://']
+    : window.__SENTRY__OPTIONS.whitelistUrls,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
 });
