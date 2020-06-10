@@ -4,13 +4,15 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
 describe('getFieldRenderer', function() {
-  let location, context, project, organization, data;
+  let location, context, project, organization, data, user, userAlias;
   beforeEach(function() {
     context = initializeOrg({
       project: TestStubs.Project(),
     });
     organization = context.organization;
     project = context.project;
+    user = TestStubs.User();
+    userAlias = user.email || user.username || user.ip || user.id;
 
     location = {
       pathname: '/events',
@@ -25,6 +27,7 @@ describe('getFieldRenderer', function() {
       url: '/example',
       latest_event: 'deadbeef',
       project: project.slug,
+      user: userAlias,
     };
 
     MockApiClient.addMockResponse({
@@ -35,7 +38,6 @@ describe('getFieldRenderer', function() {
 
   it('can render string fields', function() {
     const renderer = getFieldRenderer('url', {url: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
     expect(text.text()).toEqual(data.url);
@@ -43,7 +45,6 @@ describe('getFieldRenderer', function() {
 
   it('can render boolean fields', function() {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
-    expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
     const text = wrapper.find('Container');
     expect(text.text()).toEqual('yes');
@@ -51,7 +52,6 @@ describe('getFieldRenderer', function() {
 
   it('can render integer fields', function() {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
-    expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
 
     const value = wrapper.find('Count');
@@ -71,7 +71,6 @@ describe('getFieldRenderer', function() {
 
   it('can render null date fields', function() {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
-    expect(renderer).toBeInstanceOf(Function);
     const wrapper = mount(renderer(data, {location, organization}));
 
     const value = wrapper.find('StyledDateTime');
@@ -79,9 +78,36 @@ describe('getFieldRenderer', function() {
     expect(wrapper.text()).toEqual('n/a');
   });
 
+  it('can render user fields with aliased user', function() {
+    const renderer = getFieldRenderer('user', {user: 'string'});
+
+    const wrapper = mount(renderer(data, {location, organization}));
+
+    const badge = wrapper.find('UserBadge');
+    expect(badge).toHaveLength(1);
+
+    const value = wrapper.find('StyledNameAndEmail');
+    expect(value).toHaveLength(1);
+    expect(value.text()).toEqual(userAlias);
+  });
+
+  it('can render null user fields', function() {
+    const renderer = getFieldRenderer('user', {user: 'string'});
+
+    delete data.user;
+    const wrapper = mount(renderer(data, {location, organization}));
+
+    const badge = wrapper.find('UserBadge');
+    expect(badge).toHaveLength(0);
+
+    const value = wrapper.find('EmptyValueContainer');
+    expect(value).toHaveLength(1);
+    expect(value.text()).toEqual('n/a');
+  });
+
   it('can render project as an avatar', function() {
     const renderer = getFieldRenderer('project', {project: 'string'});
-    expect(renderer).toBeInstanceOf(Function);
+
     const wrapper = mountWithTheme(
       renderer(data, {location, organization}),
       context.routerContext
