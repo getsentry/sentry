@@ -62,13 +62,9 @@ class Table extends React.Component<Props, State> {
     widths: [],
   };
 
-  handleCellAction = (
-    dataRow: TableDataRow,
-    column: TableColumn<keyof TableDataRow>,
-    tableMeta: MetaType
-  ) => {
+  handleCellAction = (column: TableColumn<keyof TableDataRow>, tableMeta: MetaType) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects, location} = this.props;
+      const {eventView, location} = this.props;
 
       let nextLocationQuery: Location['query'] = {};
       const searchConditions = tokenizeSearch(eventView.query);
@@ -138,39 +134,6 @@ class Table extends React.Component<Props, State> {
 
           break;
         }
-        case Actions.TRANSACTION: {
-          const maybeProject = projects.find(project => project.slug === dataRow.project);
-
-          const projectID = maybeProject ? [maybeProject.id] : undefined;
-
-          const next = transactionSummaryRouteWithQuery({
-            orgSlug: organization.slug,
-            transaction: String(value),
-            projectID,
-            query: {},
-          });
-
-          ReactRouter.browserHistory.push(next);
-          return;
-        }
-        case Actions.RELEASE: {
-          const maybeProject = projects.find(project => {
-            return project.slug === dataRow.project;
-          });
-
-          ReactRouter.browserHistory.push({
-            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
-              value
-            )}/`,
-            query: {
-              ...eventView.getGlobalSelection(),
-
-              project: maybeProject ? maybeProject.id : undefined,
-            },
-          });
-
-          return;
-        }
         default:
           throw new Error(`Unknown action type. ${action}`);
       }
@@ -225,7 +188,7 @@ class Table extends React.Component<Props, State> {
           <CellAction
             column={column}
             dataRow={dataRow}
-            handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
+            handleCellAction={this.handleCellAction(column, tableData.meta)}
             allowActions={allowActions}
           >
             <Link to={target} onClick={this.handleSummaryClick}>
@@ -244,7 +207,7 @@ class Table extends React.Component<Props, State> {
         <CellAction
           column={column}
           dataRow={dataRow}
-          handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
+          handleCellAction={this.handleCellAction(column, tableData.meta)}
           allowActions={allowActions}
         >
           {rendered}
