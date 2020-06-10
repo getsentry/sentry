@@ -59,14 +59,14 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         external_id = "my_team_id" if is_team else "my_user_id"
         name = "my_team_name" if is_team else "my_user_name"
-        installation_target = "team" if is_team else "user"
+        installation_type = "team" if is_team else "user"
 
         assert integration.external_id == external_id
         assert integration.name == name
         assert integration.metadata == {
             "access_token": "my_access_token",
             "installation_id": "my_config_id",
-            "installation_target": installation_target,
+            "installation_type": installation_type,
         }
         assert OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization

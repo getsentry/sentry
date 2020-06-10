@@ -73,12 +73,12 @@ class VercelIntegrationProvider(IntegrationProvider):
 
         if data.get("team_id"):
             external_id = data["team_id"]
-            installation_target = "team"
+            installation_type = "team"
             team = client.get_team(external_id)
             name = team["name"]
         else:
             external_id = data["user_id"]
-            installation_target = "user"
+            installation_type = "user"
             user = client.get_user()
             name = user["name"]
 
@@ -88,7 +88,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             "metadata": {
                 "access_token": access_token,
                 "installation_id": data["installation_id"],
-                "installation_target": installation_target,
+                "installation_type": installation_type,
             },
         }
 
