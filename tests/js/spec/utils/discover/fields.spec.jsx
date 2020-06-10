@@ -111,7 +111,7 @@ describe('aggregateOutputType', function() {
   });
 
   it('handles percentage functions', function() {
-    expect(aggregateOutputType('error_rate()')).toEqual('percentage');
+    expect(aggregateOutputType('failure_rate()')).toEqual('percentage');
     expect(aggregateOutputType('apdex()')).toEqual('percentage');
     expect(aggregateOutputType('apdex(500)')).toEqual('percentage');
   });

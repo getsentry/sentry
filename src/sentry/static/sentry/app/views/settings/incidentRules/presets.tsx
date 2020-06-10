@@ -114,9 +114,9 @@ export const PRESET_AGGREGATES: Preset[] = [
   },
   {
     name: t('Failure rate'),
-    match: /^error_rate\(\)/,
+    match: /^failure_rate\(\)/,
     validDataset: [Dataset.TRANSACTIONS],
-    default: 'error_rate()',
+    default: 'failure_rate()',
     /**
      * See makeFailureRateCta
      */
