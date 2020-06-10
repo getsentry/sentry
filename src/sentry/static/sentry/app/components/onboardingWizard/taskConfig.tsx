@@ -197,6 +197,10 @@ export function getOnboardingTasks(
   ];
 }
 
+export const sendEventPromptText = t(
+  'Complete this task by sending an event to your new project.'
+);
+
 // Enable custom functionality for the "second platform" task when the task status
 // is pending.
 export const isSecondPlatformPending = (task: OnboardingTask) =>
@@ -219,6 +223,10 @@ export function getMergedTasks(organization: Organization) {
   // Change task.location for the "second platform" task when task status is pending.
   allTasks.map(task => {
     if (!isSecondPlatformPending(task)) return task;
+    if (
+      !('location' in task && 'getPendingLocation' in task && !!task.getPendingLocation)
+    )
+      return task;
     task.location = task.getPendingLocation(organization, task.project);
     return task;
   });

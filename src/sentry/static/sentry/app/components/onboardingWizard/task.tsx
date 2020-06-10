@@ -18,7 +18,7 @@ import Avatar from 'app/components/avatar';
 import LetterAvatar from 'app/components/letterAvatar';
 
 import SkipConfirm from './skipConfirm';
-import {isSecondPlatformPending} from './taskConfig';
+import {isSecondPlatformPending, sendEventPromptText} from './taskConfig';
 import {taskIsDone} from './utils';
 
 const recordAnalytics = (
@@ -128,18 +128,14 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     </SkipConfirm>
   );
 
-  const sendEventPromptText =
-    'Complete this task by sending an event to your new project.';
-
   return (
     <Item interactive ref={forwardedRef} onClick={handleClick} data-test-id={task.task}>
       <Title>
         {IncompleteMarker}
         {task.title}
       </Title>
-      <Description>{`${task.description}. ${
-        task.detailedDescription ? task.detailedDescription : ''
-      }`}</Description>
+      <Description>{`${task.description}. ${task.detailedDescription ??
+        ''}`}</Description>
       {isSecondPlatformPending(task) && (
         <Description data-test-id="send-event-prompt">{sendEventPromptText}</Description>
       )}
