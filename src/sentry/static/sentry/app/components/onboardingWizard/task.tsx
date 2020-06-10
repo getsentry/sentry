@@ -17,8 +17,9 @@ import {IconLock, IconCheckmark, IconClose, IconEvent} from 'app/icons';
 import Avatar from 'app/components/avatar';
 import LetterAvatar from 'app/components/letterAvatar';
 
-import {taskIsDone} from './utils';
 import SkipConfirm from './skipConfirm';
+import {isSecondPlatformPending} from './taskConfig';
+import {taskIsDone} from './utils';
 
 const recordAnalytics = (
   task: OnboardingTask,
@@ -72,19 +73,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     }
 
     if (task.actionType === 'app') {
-      // For the "second platform" task, it's confusing to continue linking to the "create new project"
-      // page after the user has created the new project -- instead, link to the install
-      // instructions for the corresponding project to prompt the user to send an event
-      // to the new project.
-      let location = task.location;
-      if (task.task === OnboardingTaskKey.SECOND_PLATFORM && task.status === 'pending') {
-        // if there's no project id associated with the task, display project selector prompt.
-        const projectSlug = task.project
-          ? organization.projects.find(project => project.id === `${task.project}`)!.slug
-          : ':projectId';
-        location = `/settings/${organization.slug}/projects/${projectSlug}/install/`;
-      }
-      navigateTo(`${location}?onboardingTask`, router);
+      navigateTo(`${task.location}?onboardingTask`, router);
     }
   };
 
@@ -151,7 +140,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
       <Description>{`${task.description}. ${
         task.detailedDescription ? task.detailedDescription : ''
       }`}</Description>
-      {task.task === OnboardingTaskKey.SECOND_PLATFORM && task.status === 'pending' && (
+      {isSecondPlatformPending(task) && (
         <Description data-test-id="send-event-prompt">{sendEventPromptText}</Description>
       )}
       {task.requisiteTasks.length === 0 && (

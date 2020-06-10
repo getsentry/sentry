@@ -1708,6 +1708,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                     "actionType": "app",
                     "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                     "display": true,
+                    "getPendingLocation": [Function],
                     "location": "/organizations/org-slug/projects/new/",
                     "requisiteTasks": Array [
                       Object {
@@ -4198,6 +4199,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           "actionType": "app",
                           "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                           "display": true,
+                          "getPendingLocation": [Function],
                           "location": "/organizations/org-slug/projects/new/",
                           "requisiteTasks": Array [
                             Object {
@@ -4278,6 +4280,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             "actionType": "app",
                             "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                             "display": true,
+                            "getPendingLocation": [Function],
                             "location": "/organizations/org-slug/projects/new/",
                             "requisiteTasks": Array [
                               Object {
@@ -4326,6 +4329,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               "actionType": "app",
                               "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                               "display": true,
+                              "getPendingLocation": [Function],
                               "location": "/organizations/org-slug/projects/new/",
                               "requisiteTasks": Array [
                                 Object {
@@ -4375,6 +4379,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 "actionType": "app",
                                 "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                                 "display": true,
+                                "getPendingLocation": [Function],
                                 "location": "/organizations/org-slug/projects/new/",
                                 "requisiteTasks": Array [
                                   Object {
@@ -4453,6 +4458,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   "actionType": "app",
                                   "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                                   "display": true,
+                                  "getPendingLocation": [Function],
                                   "location": "/organizations/org-slug/projects/new/",
                                   "requisiteTasks": Array [
                                     Object {
@@ -4830,6 +4836,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                     "actionType": "app",
                                     "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                                     "display": true,
+                                    "getPendingLocation": [Function],
                                     "location": "/organizations/org-slug/projects/new/",
                                     "requisiteTasks": Array [
                                       Object {

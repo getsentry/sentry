@@ -1096,6 +1096,7 @@ export type OnboardingTaskDescriptor = {
   | {
       actionType: 'app' | 'external';
       location: string;
+      getPendingLocation?: (Organization, number?) => string;
     }
   | {
       actionType: 'action';
