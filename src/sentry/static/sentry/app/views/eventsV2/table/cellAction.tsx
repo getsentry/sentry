@@ -26,6 +26,9 @@ type Props = {
   dataRow: TableDataRow;
   children: React.ReactNode;
   handleCellAction: (action: Actions, value: React.ReactText) => void;
+
+  // allow list of actions to display on the context menu
+  allowActions?: Actions[];
 };
 
 type State = {
@@ -100,15 +103,25 @@ class CellAction extends React.Component<Props, State> {
   };
 
   renderMenuButtons() {
-    const {dataRow, column, handleCellAction} = this.props;
+    const {dataRow, column, handleCellAction, allowActions} = this.props;
 
     const fieldAlias = getAggregateAlias(column.name);
     const value = dataRow[fieldAlias];
 
     const actions: React.ReactNode[] = [];
 
+    function addMenuItem(action: Actions, menuItem: React.ReactNode) {
+      if (
+        (Array.isArray(allowActions) && allowActions.includes(action)) ||
+        !allowActions
+      ) {
+        actions.push(menuItem);
+      }
+    }
+
     if (column.type !== 'duration') {
-      actions.push(
+      addMenuItem(
+        Actions.ADD,
         <ActionItem
           key="add-to-filter"
           data-test-id="add-to-filter"
@@ -118,7 +131,8 @@ class CellAction extends React.Component<Props, State> {
         </ActionItem>
       );
 
-      actions.push(
+      addMenuItem(
+        Actions.EXCLUDE,
         <ActionItem
           key="exclude-from-filter"
           data-test-id="exclude-from-filter"
@@ -130,7 +144,8 @@ class CellAction extends React.Component<Props, State> {
     }
 
     if (column.type !== 'string' && column.type !== 'boolean') {
-      actions.push(
+      addMenuItem(
+        Actions.SHOW_GREATER_THAN,
         <ActionItem
           key="show-values-greater-than"
           data-test-id="show-values-greater-than"
@@ -140,7 +155,8 @@ class CellAction extends React.Component<Props, State> {
         </ActionItem>
       );
 
-      actions.push(
+      addMenuItem(
+        Actions.SHOW_LESS_THAN,
         <ActionItem
           key="show-values-less-than"
           data-test-id="show-values-less-than"
@@ -152,7 +168,8 @@ class CellAction extends React.Component<Props, State> {
     }
 
     if (column.column.kind === 'field' && column.column.field === 'transaction') {
-      actions.push(
+      addMenuItem(
+        Actions.TRANSACTION,
         <ActionItem
           key="transaction-summary"
           data-test-id="transaction-summary"
@@ -164,7 +181,8 @@ class CellAction extends React.Component<Props, State> {
     }
 
     if (column.column.kind === 'field' && column.column.field === 'release') {
-      actions.push(
+      addMenuItem(
+        Actions.RELEASE,
         <ActionItem
           key="release"
           data-test-id="release"

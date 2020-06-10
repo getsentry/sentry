@@ -202,6 +202,13 @@ class Table extends React.Component<Props, State> {
       const fieldRenderer = getFieldRenderer(field, tableMeta);
       let rendered = fieldRenderer(dataRow, {organization, location});
 
+      const allowActions = [
+        Actions.ADD,
+        Actions.EXCLUDE,
+        Actions.SHOW_GREATER_THAN,
+        Actions.SHOW_LESS_THAN,
+      ];
+
       if (field === 'transaction') {
         const projectID = getProjectID(dataRow, projects);
         const summaryView = eventView.clone();
@@ -219,6 +226,7 @@ class Table extends React.Component<Props, State> {
             column={column}
             dataRow={dataRow}
             handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
+            allowActions={allowActions}
           >
             <Link to={target} onClick={this.handleSummaryClick}>
               {rendered}
@@ -232,6 +240,7 @@ class Table extends React.Component<Props, State> {
           column={column}
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
+          allowActions={allowActions}
         >
           {rendered}
         </CellAction>
