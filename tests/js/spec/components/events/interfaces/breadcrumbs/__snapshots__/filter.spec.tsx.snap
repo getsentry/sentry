@@ -14,7 +14,7 @@ exports[`Filter default render 1`] = `
           "levels": Array [
             "info",
           ],
-          "symbol": <Icon
+          "symbol": <UNDEFINED
             color="green400"
             icon={
               Object {
@@ -33,7 +33,7 @@ exports[`Filter default render 1`] = `
           "levels": Array [
             "error",
           ],
-          "symbol": <Icon
+          "symbol": <UNDEFINED
             color="pink400"
             icon={
               Object {
@@ -52,7 +52,7 @@ exports[`Filter default render 1`] = `
           "levels": Array [
             "info",
           ],
-          "symbol": <Icon
+          "symbol": <UNDEFINED
             color="purple400"
             icon={
               Object {
@@ -71,7 +71,7 @@ exports[`Filter default render 1`] = `
           "levels": Array [
             "info",
           ],
-          "symbol": <Icon
+          "symbol": <UNDEFINED
             color="green500"
             icon={
               Object {
@@ -90,7 +90,7 @@ exports[`Filter default render 1`] = `
           "levels": Array [
             "info",
           ],
-          "symbol": <Icon
+          "symbol": <UNDEFINED
             color="purple500"
             icon={
               Object {
@@ -109,7 +109,7 @@ exports[`Filter default render 1`] = `
           "levels": Array [
             "error",
           ],
-          "symbol": <Icon
+          "symbol": <UNDEFINED
             color="red400"
             icon={
               Object {
@@ -126,7 +126,7 @@ exports[`Filter default render 1`] = `
         Object {
           "isChecked": true,
           "isDisabled": false,
-          "symbol": <Level
+          "symbol": <UNDEFINED
             level="info"
           />,
           "type": "info",
@@ -134,7 +134,7 @@ exports[`Filter default render 1`] = `
         Object {
           "isChecked": true,
           "isDisabled": false,
-          "symbol": <Level
+          "symbol": <UNDEFINED
             level="error"
           />,
           "type": "error",
@@ -219,6 +219,7 @@ exports[`Filter default render 1`] = `
                       <StyledButton
                         className="css-3q3sgn-StyledDropdownButton e1sx99c0"
                         hasDarkBorderBottomColor={true}
+                        hideBottomBorder={true}
                         isOpen={false}
                         onClick={[Function]}
                         onKeyDown={[Function]}
@@ -236,6 +237,7 @@ exports[`Filter default render 1`] = `
                         <forwardRef<Button>
                           className="e1sx99c0 css-1qtgjoa-StyledButton-StyledDropdownButton eenpoef1"
                           hasDarkBorderBottomColor={true}
+                          hideBottomBorder={true}
                           isOpen={false}
                           onClick={[Function]}
                           onKeyDown={[Function]}
@@ -256,6 +258,7 @@ exports[`Filter default render 1`] = `
                             disabled={false}
                             forwardRef={[Function]}
                             hasDarkBorderBottomColor={true}
+                            hideBottomBorder={true}
                             isOpen={false}
                             onClick={[Function]}
                             onKeyDown={[Function]}
@@ -276,6 +279,7 @@ exports[`Filter default render 1`] = `
                               disabled={false}
                               forwardRef={[Function]}
                               hasDarkBorderBottomColor={true}
+                              hideBottomBorder={true}
                               isOpen={false}
                               onClick={[Function]}
                               onKeyDown={[Function]}
@@ -711,6 +715,11 @@ exports[`Filter default render 1`] = `
                     "yellowOrangeDark": "#E08D54",
                     "yellowOrangeLight": "#FFC087",
                     "zIndex": Object {
+                      "breadcrumbs": Object {
+                        "gridCellError": 1,
+                        "header": 2,
+                        "iconWrapper": 1,
+                      },
                       "dropdown": 1001,
                       "dropdownAutocomplete": Object {
                         "actor": 1008,
@@ -839,7 +848,7 @@ exports[`Filter default render 1`] = `
                           "levels": Array [
                             "info",
                           ],
-                          "symbol": <Icon
+                          "symbol": <UNDEFINED
                             color="green400"
                             icon={
                               Object {
@@ -858,7 +867,7 @@ exports[`Filter default render 1`] = `
                           "levels": Array [
                             "error",
                           ],
-                          "symbol": <Icon
+                          "symbol": <UNDEFINED
                             color="pink400"
                             icon={
                               Object {
@@ -877,7 +886,7 @@ exports[`Filter default render 1`] = `
                           "levels": Array [
                             "info",
                           ],
-                          "symbol": <Icon
+                          "symbol": <UNDEFINED
                             color="purple400"
                             icon={
                               Object {
@@ -896,7 +905,7 @@ exports[`Filter default render 1`] = `
                           "levels": Array [
                             "info",
                           ],
-                          "symbol": <Icon
+                          "symbol": <UNDEFINED
                             color="green500"
                             icon={
                               Object {
@@ -915,7 +924,7 @@ exports[`Filter default render 1`] = `
                           "levels": Array [
                             "info",
                           ],
-                          "symbol": <Icon
+                          "symbol": <UNDEFINED
                             color="purple500"
                             icon={
                               Object {
@@ -934,7 +943,7 @@ exports[`Filter default render 1`] = `
                           "levels": Array [
                             "error",
                           ],
-                          "symbol": <Icon
+                          "symbol": <UNDEFINED
                             color="red400"
                             icon={
                               Object {
@@ -972,7 +981,7 @@ exports[`Filter default render 1`] = `
                               className="css-5ewcs4-ListItem e1cujor52"
                               onClick={[Function]}
                             >
-                              <Icon
+                              <Memo()
                                 color="green400"
                                 icon={
                                   Object {
@@ -986,7 +995,7 @@ exports[`Filter default render 1`] = `
                                   color="green400"
                                 >
                                   <div
-                                    className="css-1r7qc7g-IconWrapper e1oljvyu0"
+                                    className="css-m7rno3-IconWrapper e1oljvyu0"
                                   >
                                     <ForwardRef
                                       size="xs"
@@ -1017,7 +1026,7 @@ exports[`Filter default render 1`] = `
                                     </ForwardRef>
                                   </div>
                                 </IconWrapper>
-                              </Icon>
+                              </Memo()>
                               <ListItemDescription>
                                 <div
                                   className="css-1xx8l1w-ListItemDescription e1cujor53"
@@ -1087,7 +1096,7 @@ exports[`Filter default render 1`] = `
                               className="css-5ewcs4-ListItem e1cujor52"
                               onClick={[Function]}
                             >
-                              <Icon
+                              <Memo()
                                 color="pink400"
                                 icon={
                                   Object {
@@ -1101,7 +1110,7 @@ exports[`Filter default render 1`] = `
                                   color="pink400"
                                 >
                                   <div
-                                    className="css-fj4khb-IconWrapper e1oljvyu0"
+                                    className="css-efjb4a-IconWrapper e1oljvyu0"
                                   >
                                     <ForwardRef
                                       size="xs"
@@ -1123,7 +1132,7 @@ exports[`Filter default render 1`] = `
                                     </ForwardRef>
                                   </div>
                                 </IconWrapper>
-                              </Icon>
+                              </Memo()>
                               <ListItemDescription>
                                 <div
                                   className="css-1xx8l1w-ListItemDescription e1cujor53"
@@ -1193,7 +1202,7 @@ exports[`Filter default render 1`] = `
                               className="css-5ewcs4-ListItem e1cujor52"
                               onClick={[Function]}
                             >
-                              <Icon
+                              <Memo()
                                 color="purple400"
                                 icon={
                                   Object {
@@ -1207,7 +1216,7 @@ exports[`Filter default render 1`] = `
                                   color="purple400"
                                 >
                                   <div
-                                    className="css-lmp22n-IconWrapper e1oljvyu0"
+                                    className="css-12w2aso-IconWrapper e1oljvyu0"
                                   >
                                     <ForwardRef
                                       size="xs"
@@ -1232,7 +1241,7 @@ exports[`Filter default render 1`] = `
                                     </ForwardRef>
                                   </div>
                                 </IconWrapper>
-                              </Icon>
+                              </Memo()>
                               <ListItemDescription>
                                 <div
                                   className="css-1xx8l1w-ListItemDescription e1cujor53"
@@ -1302,7 +1311,7 @@ exports[`Filter default render 1`] = `
                               className="css-5ewcs4-ListItem e1cujor52"
                               onClick={[Function]}
                             >
-                              <Icon
+                              <Memo()
                                 color="green500"
                                 icon={
                                   Object {
@@ -1316,7 +1325,7 @@ exports[`Filter default render 1`] = `
                                   color="green500"
                                 >
                                   <div
-                                    className="css-9dr8gi-IconWrapper e1oljvyu0"
+                                    className="css-1o5bgxp-IconWrapper e1oljvyu0"
                                   >
                                     <ForwardRef
                                       size="xs"
@@ -1341,7 +1350,7 @@ exports[`Filter default render 1`] = `
                                     </ForwardRef>
                                   </div>
                                 </IconWrapper>
-                              </Icon>
+                              </Memo()>
                               <ListItemDescription>
                                 <div
                                   className="css-1xx8l1w-ListItemDescription e1cujor53"
@@ -1411,7 +1420,7 @@ exports[`Filter default render 1`] = `
                               className="css-5ewcs4-ListItem e1cujor52"
                               onClick={[Function]}
                             >
-                              <Icon
+                              <Memo()
                                 color="purple500"
                                 icon={
                                   Object {
@@ -1425,7 +1434,7 @@ exports[`Filter default render 1`] = `
                                   color="purple500"
                                 >
                                   <div
-                                    className="css-dkqp3s-IconWrapper e1oljvyu0"
+                                    className="css-11o98lp-IconWrapper e1oljvyu0"
                                   >
                                     <ForwardRef
                                       size="xs"
@@ -1447,7 +1456,7 @@ exports[`Filter default render 1`] = `
                                     </ForwardRef>
                                   </div>
                                 </IconWrapper>
-                              </Icon>
+                              </Memo()>
                               <ListItemDescription>
                                 <div
                                   className="css-1xx8l1w-ListItemDescription e1cujor53"
@@ -1517,7 +1526,7 @@ exports[`Filter default render 1`] = `
                               className="css-5ewcs4-ListItem e1cujor52"
                               onClick={[Function]}
                             >
-                              <Icon
+                              <Memo()
                                 color="red400"
                                 icon={
                                   Object {
@@ -1531,7 +1540,7 @@ exports[`Filter default render 1`] = `
                                   color="red400"
                                 >
                                   <div
-                                    className="css-11m7bo8-IconWrapper e1oljvyu0"
+                                    className="css-1hei10e-IconWrapper e1oljvyu0"
                                   >
                                     <ForwardRef
                                       size="xs"
@@ -1553,7 +1562,7 @@ exports[`Filter default render 1`] = `
                                     </ForwardRef>
                                   </div>
                                 </IconWrapper>
-                              </Icon>
+                              </Memo()>
                               <ListItemDescription>
                                 <div
                                   className="css-1xx8l1w-ListItemDescription e1cujor53"
@@ -1624,7 +1633,7 @@ exports[`Filter default render 1`] = `
                         Object {
                           "isChecked": true,
                           "isDisabled": false,
-                          "symbol": <Level
+                          "symbol": <UNDEFINED
                             level="info"
                           />,
                           "type": "info",
@@ -1632,7 +1641,7 @@ exports[`Filter default render 1`] = `
                         Object {
                           "isChecked": true,
                           "isDisabled": false,
-                          "symbol": <Level
+                          "symbol": <UNDEFINED
                             level="error"
                           />,
                           "type": "error",
@@ -1663,7 +1672,7 @@ exports[`Filter default render 1`] = `
                               className="css-5ewcs4-ListItem e1cujor52"
                               onClick={[Function]}
                             >
-                              <Level
+                              <Memo()
                                 level="info"
                               >
                                 <StyledTag
@@ -1681,7 +1690,7 @@ exports[`Filter default render 1`] = `
                                     </div>
                                   </Component>
                                 </StyledTag>
-                              </Level>
+                              </Memo()>
                               <ListItemDescription>
                                 <div
                                   className="css-1xx8l1w-ListItemDescription e1cujor53"
@@ -1749,7 +1758,7 @@ exports[`Filter default render 1`] = `
                               className="css-5ewcs4-ListItem e1cujor52"
                               onClick={[Function]}
                             >
-                              <Level
+                              <Memo()
                                 level="error"
                               >
                                 <StyledTag
@@ -1767,7 +1776,7 @@ exports[`Filter default render 1`] = `
                                     </div>
                                   </Component>
                                 </StyledTag>
-                              </Level>
+                              </Memo()>
                               <ListItemDescription>
                                 <div
                                   className="css-1xx8l1w-ListItemDescription e1cujor53"

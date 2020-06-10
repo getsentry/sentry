@@ -475,6 +475,7 @@ urlpatterns += [
                     name="sentry-organization-issue-list",
                 ),
                 url(
+                    # See src.sentry.models.group.Group.get_absolute_url if this changes
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/$",
                     react_page_view,
                     name="sentry-organization-issue",

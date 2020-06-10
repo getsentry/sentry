@@ -395,8 +395,8 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
-        name={t('Data Privacy')}
-        path="data-privacy/"
+        name={t('Security & Privacy')}
+        path="security-and-privacy/"
         component={errorHandler(LazyLoad)}
         componentPromise={() =>
           import(
@@ -415,11 +415,11 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
-        path="android-mappings/"
-        name={t('Android Mappings')}
+        path="proguard/"
+        name={t('ProGuard Mappings')}
         componentPromise={() =>
           import(
-            /* webpackChunkName: "ProjectAndroidMappings" */ 'app/views/settings/projectAndroidMappings'
+            /* webpackChunkName: "ProjectProguard" */ 'app/views/settings/projectProguard'
           )
         }
         component={errorHandler(LazyLoad)}
@@ -736,6 +736,17 @@ function routes() {
       />
 
       <Route
+        name={t('Relays')}
+        path="relays/"
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "OrganizationRelays" */ 'app/views/settings/organizationRelays'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
         path="repos/"
         name="Repositories"
         componentPromise={() =>
@@ -960,6 +971,13 @@ function routes() {
       )}
 
       <Route path="/" component={errorHandler(App)}>
+        <IndexRoute
+          componentPromise={() =>
+            import(/* webpackChunkName: "AppRoot" */ 'app/views/app/root')
+          }
+          component={errorHandler(LazyLoad)}
+        />
+
         <Route
           path="/accept/:memberId/:token/"
           componentPromise={() =>

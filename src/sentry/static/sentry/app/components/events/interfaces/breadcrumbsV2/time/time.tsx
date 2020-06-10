@@ -1,38 +1,51 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
 
 import {defined} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import TextOverflow from 'app/components/textOverflow';
 
-const getBreadcrumbTimeTooltipTitle = (timestamp: string) => {
-  const parsedTimestamp = moment(timestamp);
-  const timestampFormat = parsedTimestamp.milliseconds() ? 'll H:mm:ss.SSS A' : 'lll';
-  return parsedTimestamp.format(timestampFormat);
-};
+import {getFormattedTimestamp} from './utils';
 
 type Props = {
   timestamp?: string;
+  relativeTime?: string;
+  displayRelativeTime?: boolean;
 };
 
-const Time = ({timestamp}: Props) =>
-  defined(timestamp) ? (
+const Time = React.memo(({timestamp, relativeTime, displayRelativeTime}: Props) => {
+  if (!(defined(timestamp) && defined(relativeTime))) {
+    return null;
+  }
+
+  const {date, time, displayTime} = getFormattedTimestamp(
+    timestamp,
+    relativeTime,
+    displayRelativeTime
+  );
+
+  return (
     <Wrapper>
       <Tooltip
-        title={getBreadcrumbTimeTooltipTitle(timestamp)}
+        title={
+          <div>
+            <div>{date}</div>
+            {time !== '\u2014' && <div>{time}</div>}
+          </div>
+        }
         containerDisplayMode="inline-flex"
       >
         <TextOverflow>
           {getDynamicText({
-            value: moment(timestamp).format('HH:mm:ss'),
+            value: displayTime,
             fixed: '00:00:00',
           })}
         </TextOverflow>
       </Tooltip>
     </Wrapper>
-  ) : null;
+  );
+});
 
 export default Time;
 

@@ -13,15 +13,22 @@ from sentry.utils.db import attach_foreignkey
 @register(Incident)
 class IncidentSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
+        attach_foreignkey(item_list, Incident.alert_rule, related=("snuba_query",))
         incident_projects = defaultdict(list)
         for incident_project in IncidentProject.objects.filter(
             incident__in=item_list
         ).select_related("project"):
             incident_projects[incident_project.incident_id].append(incident_project.project.slug)
 
+        alert_rules = {
+            d["id"]: d
+            for d in serialize(set(i.alert_rule for i in item_list if i.alert_rule.id), user)
+        }
+
         results = {}
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
+            results[incident]["alert_rule"] = alert_rules.get(six.text_type(incident.alert_rule.id))
 
         return results
 
@@ -31,6 +38,7 @@ class IncidentSerializer(Serializer):
             "identifier": six.text_type(obj.identifier),
             "organizationId": six.text_type(obj.organization_id),
             "projects": attrs["projects"],
+            "alertRule": attrs["alert_rule"],
             "status": obj.status,
             "statusMethod": obj.status_method,
             "type": obj.type,
@@ -45,7 +53,6 @@ class IncidentSerializer(Serializer):
 class DetailedIncidentSerializer(IncidentSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         results = super(DetailedIncidentSerializer, self).get_attrs(item_list, user=user, **kwargs)
-        attach_foreignkey(item_list, Incident.alert_rule, related=("snuba_query",))
         subscribed_incidents = set()
         if user.is_authenticated():
             subscribed_incidents = set(
@@ -82,7 +89,6 @@ class DetailedIncidentSerializer(IncidentSerializer):
         context["isSubscribed"] = attrs["is_subscribed"]
         context["seenBy"] = seen_list["seen_by"]
         context["hasSeen"] = seen_list["has_seen"]
-        context["alertRule"] = serialize(obj.alert_rule, user)
         # The query we should use to get accurate results in Discover.
         context["discoverQuery"] = self._build_discover_query(obj)
 
@@ -90,8 +96,15 @@ class DetailedIncidentSerializer(IncidentSerializer):
 
     def _build_discover_query(self, incident):
         query = incident.alert_rule.snuba_query.query
-        if QueryDatasets(incident.alert_rule.snuba_query.dataset) == QueryDatasets.EVENTS:
+        dataset = QueryDatasets(incident.alert_rule.snuba_query.dataset)
+        condition = None
+
+        if dataset == QueryDatasets.EVENTS:
             condition = "event.type:error"
+        elif dataset == QueryDatasets.TRANSACTIONS:
+            condition = "event.type:transaction"
+
+        if condition:
             query = "{} {}".format(condition, query) if query else condition
 
         return query

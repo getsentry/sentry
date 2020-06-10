@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import {IconChat} from 'app/icons';
 import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -69,17 +70,16 @@ class CompactIssueHeader extends React.Component {
   render() {
     const {data, organization, projectId, eventId} = this.props;
 
-    let styles = {};
-
     const basePath = `/organizations/${organization.slug}/issues/`;
 
     const issueLink = eventId
       ? `/organizations/${organization.slug}/projects/${projectId}/events/${eventId}/`
       : `${basePath}${data.id}/`;
 
-    if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
-      styles = {color: '#57be8c'};
-    }
+    const commentColor =
+      data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned'
+        ? 'green400'
+        : 'currentColor';
 
     return (
       <React.Fragment>
@@ -99,10 +99,10 @@ class CompactIssueHeader extends React.Component {
           </span>
           {data.numComments !== 0 && (
             <span>
-              <Link to={`${basePath}${data.id}/activity/`} className="comments">
-                <span className="icon icon-comments" style={styles} />
+              <ChatLink to={`${basePath}${data.id}/activity/`} className="comments">
+                <IconChat size="xs" color={commentColor} />
                 <span className="tag-count">{data.numComments}</span>
-              </Link>
+              </ChatLink>
             </span>
           )}
           <span className="culprit">{this.getMessage()}</span>
@@ -280,4 +280,10 @@ const IssueHeaderMetaWrapper = styled('div')`
 const StyledErrorLevel = styled(ErrorLevel)`
   display: block;
   margin-right: ${space(1)};
+`;
+
+const ChatLink = styled(Link)`
+  & > svg {
+    margin-right: ${space(0.5)};
+  }
 `;

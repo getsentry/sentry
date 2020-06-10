@@ -5,7 +5,7 @@ import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'app/api';
-import {Project} from 'app/types';
+import {Project, AvatarProject} from 'app/types';
 import {defined} from 'app/utils';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -15,9 +15,7 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 
-type ProjectPlaceholder = {
-  slug: string;
-};
+type ProjectPlaceholder = AvatarProject;
 
 type State = {
   /**

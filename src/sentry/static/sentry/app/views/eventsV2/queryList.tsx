@@ -16,6 +16,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventView from 'app/utils/discover/eventView';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
+import TimeSince from 'app/components/timeSince';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
@@ -178,6 +179,7 @@ class QueryList extends React.Component<Props> {
         moment(eventView.end).format('MMM D, YYYY h:mm A');
 
       const to = eventView.getResultsViewUrlTarget(organization.slug);
+      const dateStatus = <TimeSince date={savedQuery.dateUpdated} />;
 
       return (
         <QueryCard
@@ -187,6 +189,7 @@ class QueryList extends React.Component<Props> {
           subtitle={eventView.statsPeriod ? recentTimeline : customTimeline}
           queryDetail={eventView.query}
           createdBy={eventView.createdBy}
+          dateStatus={dateStatus}
           onEventClick={() => {
             trackAnalyticsEvent({
               eventKey: 'discover_v2.prebuilt_query_click',
@@ -302,6 +305,7 @@ const ContextMenu = ({children}) => (
 
 const MoreOptions = styled('span')`
   display: flex;
+  color: ${p => p.theme.gray700};
 `;
 
 const DropdownTarget = styled('div')`

@@ -39,6 +39,9 @@ export type TableViewProps = {
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
   title: string;
+
+  onChangeShowTags: () => void;
+  showTags: boolean;
 };
 
 /**
@@ -166,7 +169,15 @@ class TableView extends React.Component<TableViewProps> {
           location={location}
           tableMeta={tableData.meta}
         >
-          {fieldRenderer(dataRow, {organization, location})}
+          <CellAction
+            organization={organization}
+            eventView={eventView}
+            column={column}
+            dataRow={dataRow}
+            tableMeta={tableData.meta}
+          >
+            {fieldRenderer(dataRow, {organization, location})}
+          </CellAction>
         </ExpandAggregateRow>
       );
     }
@@ -178,6 +189,7 @@ class TableView extends React.Component<TableViewProps> {
         eventView={eventView}
         column={column}
         dataRow={dataRow}
+        tableMeta={tableData.meta}
       >
         {fieldRenderer(dataRow, {organization, location})}
       </CellAction>
@@ -216,7 +228,16 @@ class TableView extends React.Component<TableViewProps> {
   };
 
   renderHeaderButtons = () => {
-    const {organization, title, eventView, isLoading, tableData, location} = this.props;
+    const {
+      organization,
+      title,
+      eventView,
+      isLoading,
+      tableData,
+      location,
+      onChangeShowTags,
+      showTags,
+    } = this.props;
 
     return (
       <TableActions
@@ -227,6 +248,8 @@ class TableView extends React.Component<TableViewProps> {
         onEdit={this.handleEditColumns}
         tableData={tableData}
         location={location}
+        onChangeShowTags={onChangeShowTags}
+        showTags={showTags}
       />
     );
   };
