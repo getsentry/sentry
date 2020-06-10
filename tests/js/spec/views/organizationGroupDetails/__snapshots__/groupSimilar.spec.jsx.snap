@@ -1582,7 +1582,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                   </StyledTimes>
                                   <LoggerAnnotation>
                                     <span
-                                      className="css-ixgywj-EventAnnotation-AnnotationNoMargin-LoggerAnnotation eec9orn6"
+                                      className="css-ixgywj-EventAnnotation-AnnotationNoMargin-LoggerAnnotation eec9orn5"
                                     >
                                       <Link
                                         onlyActiveOnIndex={false}

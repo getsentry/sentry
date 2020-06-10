@@ -219,7 +219,7 @@ const ResultGrid = createReactClass({
   },
 
   fetchData() {
-    // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
+    // TODO(dcramer): this should explicitly allow filters/sortBy/cursor/perPage
     const queryParams = $.extend(
       {},
       this.props.defaultParams,
