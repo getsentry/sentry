@@ -270,7 +270,9 @@ class IncidentsListContainer extends React.Component<Props> {
                       disabled={!hasAccess}
                       title={
                         !hasAccess
-                          ? t('You do not have permission to add alert rules.')
+                          ? t(
+                              'Users with admin permission or higher can create alert rules.'
+                            )
                           : undefined
                       }
                       onClick={this.handleAddAlertRule}
