@@ -248,8 +248,8 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
         # Duration of 300s, but no alert rule
         time_window = incident.alert_rule.snuba_query.time_window if incident.alert_rule else 60
         assert result.rollup == time_window
-        expected_start = start if start else incident.date_started - timedelta(minutes=1)
-        expected_end = end if end else incident.current_end_date + timedelta(minutes=1)
+        expected_start = start if start else incident.date_started - timedelta(seconds=time_window)
+        expected_end = end if end else incident.current_end_date + timedelta(seconds=time_window)
 
         if windowed_stats:
             now = timezone.now()
@@ -270,6 +270,18 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
 
 @freeze_time()
 class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
+    @fixture
+    def bucket_incident(self):
+        incident_start = self.now.replace(minute=0, second=0, microsecond=0) - timedelta(minutes=23)
+        self.create_event(incident_start + timedelta(seconds=1))
+        self.create_event(incident_start + timedelta(minutes=2))
+        self.create_event(incident_start + timedelta(minutes=6))
+        self.create_event(incident_start + timedelta(minutes=9, seconds=59))
+        self.create_event(incident_start + timedelta(minutes=14))
+        self.create_event(incident_start + timedelta(minutes=16))
+        alert_rule = self.create_alert_rule(time_window=10)
+        return self.create_incident(date_started=incident_start, query="", alert_rule=alert_rule)
+
     def run_test(self, incident, expected_results, start=None, end=None, windowed_stats=False):
         kwargs = {}
         if start is not None:
@@ -281,23 +293,36 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         self.validate_result(incident, result, expected_results, start, end, windowed_stats)
 
     def test_project(self):
-        self.run_test(self.project_incident, [2, 1])
-        self.run_test(self.project_incident, [1], start=self.now - timedelta(minutes=1))
-        self.run_test(self.project_incident, [2], end=self.now - timedelta(minutes=1, seconds=59))
+        self.run_test(self.project_incident, [0, 2, 1])
+        self.run_test(self.project_incident, [0, 1], start=self.now - timedelta(minutes=1))
+        self.run_test(
+            self.project_incident, [0, 2], end=self.now - timedelta(minutes=1, seconds=59)
+        )
 
-        self.run_test(self.project_incident, [2, 1], windowed_stats=True)
+        self.run_test(self.project_incident, [0, 2, 1], windowed_stats=True)
         self.run_test(
             self.project_incident,
-            [2, 1],
+            [0, 2, 1],
             start=self.now - timedelta(minutes=1),
             windowed_stats=True,
         )
         self.run_test(
             self.project_incident,
-            [2, 1],
+            [0, 2, 1],
             end=self.now - timedelta(minutes=1, seconds=59),
             windowed_stats=True,
         )
+
+    def test_start_bucket(self):
+        self.run_test(self.bucket_incident, [2, 4, 2, 2])
+
+    def test_start_and_end_bucket(self):
+        self.create_event(self.bucket_incident.date_started + timedelta(minutes=19))
+
+        self.bucket_incident.update(
+            date_closed=self.bucket_incident.date_started + timedelta(minutes=18)
+        )
+        self.run_test(self.bucket_incident, [2, 4, 2, 3, 1])
 
     def test_with_transactions(self):
         incident = self.project_incident
@@ -316,7 +341,7 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         event_data["transaction"] = "/foo_transaction/"
         self.store_event(data=event_data, project_id=self.project.id)
 
-        self.run_test(incident, [2, 1])
+        self.run_test(incident, [0, 2, 1])
 
 
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
@@ -349,13 +374,13 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
         snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
         assert snapshot.start == incident.date_started - timedelta(minutes=1)
         assert snapshot.end == incident.current_end_date + timedelta(minutes=1)
-        assert [row[1] for row in snapshot.values] == [2, 1]
+        assert [row[1] for row in snapshot.values] == [0, 2, 1]
 
         snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
         expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
         assert snapshot.start == expected_start
         assert snapshot.end == expected_end
-        assert [row[1] for row in snapshot.values] == [2, 1]
+        assert [row[1] for row in snapshot.values] == [0, 2, 1]
 
 
 @freeze_time()
