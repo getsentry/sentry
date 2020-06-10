@@ -26,7 +26,7 @@ const getTimeShortString = (type: TimeAbbreviation, time: number) => {
     case TimeAbbreviation.DAY:
       return t('%s d', time);
     case TimeAbbreviation.YEAR:
-      return t('%s d', time);
+      return t('%s y', time);
     default:
       return '';
   }
