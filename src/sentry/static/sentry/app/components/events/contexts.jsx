@@ -95,14 +95,14 @@ class ContextChunk extends React.Component {
   };
 
   getTitle = () => {
-    const {value, type} = this.props;
+    const {value, alias, type} = this.props;
 
     if (defined(value.title)) {
       return value.title;
     }
 
     if (!defined(type)) {
-      return t('Default');
+      return toTitleCase(alias);
     }
 
     switch (type) {
@@ -119,7 +119,7 @@ class ContextChunk extends React.Component {
       case 'runtime':
         return t('Runtime');
       case 'default':
-        return t('Default');
+        return toTitleCase(alias);
       default:
         return toTitleCase(type);
     }
@@ -130,7 +130,9 @@ class ContextChunk extends React.Component {
     return (
       <React.Fragment>
         {this.getTitle()}
-        {alias !== type && <small>({alias})</small>}
+        {defined(type) && type !== 'default' && alias !== type && (
+          <small>({alias})</small>
+        )}
       </React.Fragment>
     );
   };

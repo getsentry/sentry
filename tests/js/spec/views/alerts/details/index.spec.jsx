@@ -51,6 +51,10 @@ describe('IncidentDetails', function() {
     });
 
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/456/',
       statusCode: 404,
     });
@@ -105,6 +109,19 @@ describe('IncidentDetails', function() {
     ).toBe('2 weeks');
   });
 
+  it('renders open in discover button', async function() {
+    const discoverOrg = {...organization, features: ['discover-basic', 'discover-query']};
+    const wrapper = createWrapper(
+      {},
+      {...routerContext, context: {...routerContext.context, organization: discoverOrg}}
+    );
+    await tick();
+    wrapper.update();
+
+    const chartActions = wrapper.find('ChartActions');
+    expect(chartActions.find('Button').text()).toBe('Open in Discover');
+  });
+
   it('handles invalid incident', async function() {
     const wrapper = createWrapper({params: {orgId: 'org-slug', alertId: '456'}});
     await tick();
@@ -130,11 +147,16 @@ describe('IncidentDetails', function() {
 
     expect(activitiesList).toHaveBeenCalledTimes(1);
 
-    expect(wrapper.find('Status').text()).not.toBe('Resolved');
+    expect(
+      wrapper
+        .find('Status')
+        .at(0)
+        .text()
+    ).not.toBe('Resolved');
     wrapper.find('[data-test-id="status-dropdown"] DropdownButton').simulate('click');
     wrapper
       .find('[data-test-id="status-dropdown"] MenuItem span')
-      .at(0)
+      .at(2)
       .simulate('click');
 
     await tick();
@@ -148,7 +170,12 @@ describe('IncidentDetails', function() {
 
     // Refresh activities list since status changes also creates an activity
     expect(activitiesList).toHaveBeenCalledTimes(2);
-    expect(wrapper.find('Status').text()).toBe('Resolved');
+    expect(
+      wrapper
+        .find('Status')
+        .at(0)
+        .text()
+    ).toBe('Resolved');
   });
 
   it('allows members to change issuet status', async function() {
@@ -162,7 +189,12 @@ describe('IncidentDetails', function() {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('Status').text()).not.toBe('Resolved');
+    expect(
+      wrapper
+        .find('Status')
+        .at(0)
+        .text()
+    ).not.toBe('Resolved');
     expect(wrapper.find('[data-test-id="status-dropdown"] DropdownButton').exists()).toBe(
       true
     );

@@ -10,7 +10,7 @@ type Props = {
   category?: string | null;
 };
 
-const Category = ({category}: Props) => {
+const Category = React.memo(({category}: Props) => {
   const title = !defined(category) ? t('generic') : category;
   return (
     <Wrapper title={title}>
@@ -19,7 +19,7 @@ const Category = ({category}: Props) => {
       </Tooltip>
     </Wrapper>
   );
-};
+});
 
 export default Category;
 

@@ -26,7 +26,7 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 
 describe('EventsV2 -> ColumnEditModal', function() {
   const initialData = initializeOrg({
-    organization: {features: ['transaction-events']},
+    organization: {features: ['performance-view']},
   });
   const tagKeys = ['browser.name', 'custom-field'];
   const columns = [
@@ -260,6 +260,26 @@ describe('EventsV2 -> ColumnEditModal', function() {
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['error_rate', '', undefined]},
       ]);
+    });
+  });
+
+  describe('adding rows', function() {
+    const wrapper = mountModal(
+      {
+        columns: [columns[0]],
+        onApply: () => void 0,
+        tagKeys,
+      },
+      initialData
+    );
+    it('allows rows to be added, but only up to 20', function() {
+      for (let i = 2; i <= 20; i++) {
+        wrapper.find('button[aria-label="Add a Column"]').simulate('click');
+        expect(wrapper.find('QueryField')).toHaveLength(i);
+      }
+      expect(
+        wrapper.find('button[aria-label="Add a Column"]').prop('aria-disabled')
+      ).toBe(true);
     });
   });
 

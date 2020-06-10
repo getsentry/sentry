@@ -55,6 +55,21 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400
 
+    def test_performance_view_feature(self):
+        self.login_as(user=self.user)
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["id", "project.id"], "project": [self.project.id]}
+        with self.feature(
+            {"organizations:discover-basic": False, "organizations:performance-view": True}
+        ):
+            response = self.client.get(self.url, query, format="json")
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
     def test_multi_project_feature_gate_rejection(self):
         self.login_as(user=self.user)
         team = self.create_team(organization=self.organization, members=[self.user])
@@ -1623,6 +1638,50 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 else:
                     assert data[0].get("issue", None) is None
 
+    def test_issue_negation(self):
+        self.login_as(user=self.user)
+
+        project1 = self.create_project()
+        project2 = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.two_min_ago,
+                "fingerprint": ["group_1"],
+            },
+            project_id=project1.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "transaction": "/example",
+                "message": "go really fast plz",
+                "timestamp": self.two_min_ago,
+                "fingerprint": ["group_2"],
+            },
+            project_id=project2.id,
+        )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["title", "issue.id"],
+                    "query": "!issue:{}".format(event1.group.qualified_short_id),
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+            assert data[0]["title"] == event2.title
+            assert data[0]["issue.id"] == event2.group_id
+
     def test_search_for_nonexistent_issue(self):
         self.login_as(user=self.user)
 
@@ -2588,3 +2647,18 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
 
             assert len(mock_quantize.mock_calls) == 2
+
+    def test_limit_number_of_fields(self):
+        self.login_as(user=self.user)
+        self.create_project()
+        with self.feature("organizations:discover-basic"):
+            for i in range(1, 25):
+                response = self.client.get(self.url, {"field": ["id"] * i})
+                if i <= 20:
+                    assert response.status_code == 200
+                else:
+                    assert response.status_code == 400
+                    assert (
+                        response.data["detail"]
+                        == "You can view up to 20 fields at a time. Please delete some and try again."
+                    )

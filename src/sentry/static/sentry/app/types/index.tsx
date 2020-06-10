@@ -154,6 +154,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
+  builtinSymbolSources?: string[];
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -921,8 +922,8 @@ export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;
-  platform: string;
-  platforms: string[];
+  platform: PlatformKey;
+  platforms: PlatformKey[];
   newGroups: number;
   healthData?: Health;
 };
@@ -997,19 +998,24 @@ export type NewQuery = {
   id: string | undefined;
   version: SavedQueryVersions;
   name: string;
-  projects: Readonly<number[]>;
+  createdBy?: User;
+
+  // Query and Table
+  query: string;
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
-  query: string;
   orderby?: string;
+
+  // GlobalSelectionHeader
+  projects: Readonly<number[]>;
+  environment?: Readonly<string[]>;
   range?: string;
   start?: string;
   end?: string;
-  environment?: Readonly<string[]>;
-  tags?: Readonly<string[]>;
+
+  // Graph
   yAxis?: string;
   display?: string;
-  createdBy?: User;
 };
 
 export type SavedQuery = NewQuery & {

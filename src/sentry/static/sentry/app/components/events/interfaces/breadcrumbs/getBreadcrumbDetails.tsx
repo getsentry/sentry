@@ -4,7 +4,14 @@ import {Color} from 'app/utils/theme';
 import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
 import ErrorRenderer from 'app/components/events/interfaces/breadcrumbs/errorRenderer';
 import DefaultRenderer from 'app/components/events/interfaces/breadcrumbs/defaultRenderer';
-import {IconInfo, IconWarning, IconLocation, IconUser, IconRefresh} from 'app/icons';
+import {
+  IconInfo,
+  IconLocation,
+  IconRefresh,
+  IconTerminal,
+  IconUser,
+  IconWarning,
+} from 'app/icons';
 
 import {Breadcrumb, BreadcrumbType} from './types';
 
@@ -65,7 +72,7 @@ function getBreadcrumbDetails(breadcrumb: Breadcrumb): Partial<Output> {
     }
     default:
       return {
-        icon: <span className="icon-console" />,
+        icon: <IconTerminal />,
         renderer: <DefaultRenderer breadcrumb={breadcrumb} />,
       };
   }

@@ -3,28 +3,36 @@ import memoize from 'lodash/memoize';
 import moment from 'moment';
 import styled from '@emotion/styled';
 
+import {IconWarning} from 'app/icons';
 import {PanelItem} from 'app/components/panels';
+import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Count from 'app/components/count';
+import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
+import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import Projects from 'app/utils/projects';
+import theme from 'app/utils/theme';
+import TimeSince from 'app/components/timeSince';
+import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-import {Incident, IncidentStats} from '../types';
+import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {getIncidentMetricPreset} from '../utils';
 import {TableLayout, TitleAndSparkLine} from './styles';
 import SparkLine from './sparkLine';
-import Status from '../status';
 
 type Props = {
   incident: Incident;
   projects: Parameters<React.ComponentProps<typeof Projects>['children']>[0]['projects'];
   projectsLoaded: boolean;
   orgId: string;
+  filteredStatus: 'open' | 'closed';
 } & AsyncComponent['props'];
 
 type State = {
@@ -32,10 +40,23 @@ type State = {
 } & AsyncComponent['state'];
 
 class AlertListRow extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, incident} = this.props;
-    return [['stats', `/organizations/${orgId}/incidents/${incident.identifier}/stats/`]];
+  get metricPreset() {
+    const {incident} = this.props;
+    return incident ? getIncidentMetricPreset(incident) : undefined;
   }
+
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {orgId, incident, filteredStatus} = this.props;
+
+    if (filteredStatus === 'open') {
+      return [
+        ['stats', `/organizations/${orgId}/incidents/${incident.identifier}/stats/`],
+      ];
+    }
+
+    return [];
+  }
+
   /**
    * Memoized function to find a project from a list of projects
    */
@@ -47,70 +68,162 @@ class AlertListRow extends AsyncComponent<Props, State> {
     return this.renderBody();
   }
 
+  renderError() {
+    return this.renderBody();
+  }
+
+  renderTimeSince(date: string) {
+    return (
+      <CreatedResolvedTime>
+        <TimeSince date={date} />
+        <br />
+        <StyledDateTime date={date} utc={false} />
+      </CreatedResolvedTime>
+    );
+  }
+
+  renderStatusIndicator() {
+    const {status} = this.props.incident;
+    const isResolved = status === IncidentStatus.CLOSED;
+    const isWarning = status === IncidentStatus.WARNING;
+
+    const color = isResolved ? theme.gray400 : isWarning ? theme.orange300 : theme.red300;
+    const text = isResolved ? t('Resolved') : isWarning ? t('Warning') : t('Critical');
+
+    return (
+      <Tooltip title={tct('Status: [text]', {text})}>
+        <StatusIndicator color={color} />
+      </Tooltip>
+    );
+  }
+
   renderBody() {
-    const {incident, orgId, projectsLoaded, projects} = this.props;
-    const {loading, stats} = this.state;
+    const {incident, orgId, projectsLoaded, projects, filteredStatus} = this.props;
+    const {loading, error, stats} = this.state;
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
     const slug = incident.projects[0];
+    const lastEventStatsValue =
+      stats?.eventStats.data[stats.eventStats.data.length - 1]?.[1]?.[0]?.count || 0;
 
     return (
-      <IncidentPanelItem>
-        <TableLayout>
-          <TitleAndSparkLine>
-            <TitleLink to={`/organizations/${orgId}/alerts/${incident.identifier}/`}>
-              {incident.title}
-            </TitleLink>
+      <ErrorBoundary>
+        <IncidentPanelItem>
+          <TableLayout status={filteredStatus}>
+            <TitleAndSparkLine status={filteredStatus}>
+              <Title>
+                {this.renderStatusIndicator()}
+                <IncidentLink
+                  to={`/organizations/${orgId}/alerts/${incident.identifier}/`}
+                >
+                  #{incident.id}
+                </IncidentLink>
+                {incident.title}
+              </Title>
 
-            <SparkLine eventStats={stats?.eventStats} />
-          </TitleAndSparkLine>
+              {filteredStatus === 'open' && (
+                <SparkLine
+                  error={error && <ErrorLoadingStatsIcon />}
+                  eventStats={stats?.eventStats}
+                />
+              )}
+            </TitleAndSparkLine>
 
-          <ProjectBadge
-            avatarSize={18}
-            project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-          />
+            {filteredStatus === 'open' && (
+              <NumericColumn>
+                {!loading && !error ? (
+                  <React.Fragment>
+                    <MetricName>
+                      {this.metricPreset?.name ?? t('Custom metric')}
+                      {':'}
+                    </MetricName>
+                    <Count value={lastEventStatsValue} />
+                  </React.Fragment>
+                ) : (
+                  <NumericPlaceholder error={error && <ErrorLoadingStatsIcon />} />
+                )}
+              </NumericColumn>
+            )}
 
-          <Status incident={incident} />
+            <ProjectBadge
+              avatarSize={18}
+              project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+            />
 
-          <div>
-            {started.format('L')}
-            <LightDuration seconds={getDynamicText({value: duration, fixed: 1200})} />
-          </div>
+            {this.renderTimeSince(incident.dateStarted)}
 
-          <NumericColumn>
-            {!loading ? <Count value={stats.uniqueUsers} /> : <NumericPlaceholder />}
-          </NumericColumn>
+            {filteredStatus === 'closed' && (
+              <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
+            )}
 
-          <NumericColumn>
-            {!loading ? <Count value={stats.totalEvents} /> : <NumericPlaceholder />}
-          </NumericColumn>
-        </TableLayout>
-      </IncidentPanelItem>
+            {filteredStatus === 'closed' &&
+              incident.dateClosed &&
+              this.renderTimeSince(incident.dateClosed)}
+          </TableLayout>
+        </IncidentPanelItem>
+      </ErrorBoundary>
     );
   }
 }
 
-const LightDuration = styled(Duration)`
-  color: ${p => p.theme.gray400};
-  font-size: 0.9em;
-  margin-left: ${space(1)};
+function ErrorLoadingStatsIcon() {
+  return (
+    <Tooltip title={t('Error loading alert stats')}>
+      <IconWarning />
+    </Tooltip>
+  );
+}
+
+const CreatedResolvedTime = styled('div')`
+  ${overflowEllipsis}
+  line-height: 1.4;
+`;
+
+const StyledDateTime = styled(DateTime)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
 `;
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
 
-const TitleLink = styled(Link)`
+const StatusIndicator = styled('div')<{color: string}>`
+  width: 10px;
+  height: 12px;
+  background: ${p => p.color};
+  display: inline-block;
+  border-top-right-radius: 40%;
+  border-bottom-right-radius: 40%;
+  margin-bottom: -1px;
+`;
+
+const Title = styled('span')`
   ${overflowEllipsis}
 `;
 
-const IncidentPanelItem = styled(PanelItem)`
-  padding: ${space(1)} ${space(2)};
+const MetricName = styled('span')`
+  margin-right: ${space(0.5)};
 `;
 
-const NumericPlaceholder = styled(Placeholder)`
+const IncidentLink = styled(Link)`
+  padding: 0 ${space(1)};
+`;
+
+const IncidentPanelItem = styled(PanelItem)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(1.5)} ${space(2)} ${space(1.5)} 0;
+`;
+
+const NumericPlaceholder = styled(Placeholder)<{error?: React.ReactNode}>`
+  ${p =>
+    p.error &&
+    `
+    align-items: center;
+    line-height: 1;
+    `}
   height: 100%;
 `;
 
@@ -118,7 +231,6 @@ const NumericColumn = styled('div')`
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
 `;
 
 export default AlertListRow;

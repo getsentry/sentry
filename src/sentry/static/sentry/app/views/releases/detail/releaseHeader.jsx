@@ -13,13 +13,14 @@ import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import SentryTypes from 'app/sentryTypes';
 
 import ReleaseDetailsActions from './releaseDetailActions';
 
 export default class ReleaseHeader extends React.Component {
   static propTypes = {
     release: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   static contextTypes = {
@@ -27,11 +28,11 @@ export default class ReleaseHeader extends React.Component {
   };
 
   render() {
-    const {release, orgId} = this.props;
+    const {release, organization} = this.props;
 
-    const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(
-      release.version
-    )}/`;
+    const releasePath = `/organizations/${
+      organization.slug
+    }/releases/${encodeURIComponent(release.version)}/`;
 
     const links = [
       {title: t('Overview'), to: releasePath},
@@ -98,7 +99,11 @@ export default class ReleaseHeader extends React.Component {
             </div>
           </div>
         </div>
-        <ReleaseDetailsActions api={this.api} orgId={orgId} release={release} />
+        <ReleaseDetailsActions
+          api={this.api}
+          organization={organization}
+          release={release}
+        />
         <NavTabs>
           {links.map(link => (
             <ListLink
