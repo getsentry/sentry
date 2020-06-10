@@ -155,8 +155,8 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       // Currently only one button in pannel, hide panel if not available
       <Feature features={['discover-basic']}>
-        <ChartActions>
-          <PanelBody withPadding>
+        <PanelFooter>
+          <ChartActionsBody withPadding>
             <Projects slugs={incident?.projects} orgId={params.orgId}>
               {({initiallyLoaded, fetching, projects}) => {
                 const preset = this.metricPreset;
@@ -183,8 +183,8 @@ export default class DetailsBody extends React.Component<Props> {
                 );
               }}
             </Projects>
-          </PanelBody>
-        </ChartActions>
+          </ChartActionsBody>
+        </PanelFooter>
       </Feature>
     );
   }
@@ -357,7 +357,10 @@ const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
 `;
 
-const ChartActions = styled(PanelFooter)``;
+const ChartActionsBody = styled(PanelBody)`
+  display: flex;
+  justify-content: flex-end;
+`;
 
 const ChartParameters = styled('div')`
   color: ${p => p.theme.gray600};
