@@ -3,7 +3,7 @@ import moment from 'moment';
 import {use24Hours} from 'app/utils/dates';
 import {defined} from 'app/utils';
 import {t} from 'app/locale';
-import {getAbbreviateRelativeTime} from 'app/utils/formatters';
+import {getDuration} from 'app/utils/formatters';
 
 const timeFormat = 'HH:mm:ss';
 const timeDateFormat = `ll ${timeFormat}`;
@@ -17,7 +17,11 @@ const getRelativeTime = (
   const formattedTime = moment(parsedTime.format(timeDateFormat));
   const formattedTimeToCompareWith = parsedTimeToCompareWith.format(timeDateFormat);
   const timeDiff = Math.abs(formattedTime.diff(formattedTimeToCompareWith));
-  const shortRelativeTime = getAbbreviateRelativeTime(timeDiff);
+
+  const shortRelativeTime = getDuration(Math.round(timeDiff / 1000), 0, true).replace(
+    /\s/g,
+    ''
+  );
 
   if (timeDiff !== 0) {
     return displayRelativeTime
