@@ -188,3 +188,9 @@ class AliasedIntegrationProvider(ExampleIntegrationProvider):
 class ServerExampleProvider(ExampleIntegrationProvider):
     key = "example_server"
     name = "Example Server"
+
+
+class FeatureFlagIntegration(ExampleIntegrationProvider):
+    key = "feature_flag_integration"
+    name = "Feature Flag Integration"
+    requires_feature_flag = True
