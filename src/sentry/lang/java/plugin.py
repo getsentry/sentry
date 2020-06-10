@@ -8,20 +8,10 @@ from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
 from sentry.utils.safe import get_path
-from sentry.utils.compat import map
 
 
 def is_valid_image(image):
     return bool(image) and image.get("type") == "proguard" and image.get("uuid") is not None
-
-
-def map_frame(raw_frame, new_frame):
-    frame = dict(raw_frame)
-    frame["module"] = new_frame.class_name
-    frame["function"] = new_frame.method
-    frame["lineno"] = new_frame.line
-
-    return frame
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
@@ -105,23 +95,26 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         # first, try to remap complete frames
         for view in self.mapping_views:
             mapped = view.remap_frame(frame["module"], frame["function"], frame.get("lineno") or 0)
-            mapped = map(lambda f: map_frame(frame, f), mapped)
 
             if len(mapped) > 0:
-                # sentry expects stack traces in reverse order
-                mapped = list(reversed(mapped))
-                # clear the filename for all *foreign* classes
-                bottom_class = mapped[0]["module"]
+                new_frames = []
+                bottom_class = mapped[-1].class_name
 
-                def rm_filename(frame):
+                # sentry expects stack traces in reverse order
+                for new_frame in reversed(mapped):
+                    frame = dict(raw_frame)
+                    frame["module"] = new_frame.class_name
+                    frame["function"] = new_frame.method
+                    frame["lineno"] = new_frame.line
+
+                    # clear the filename for all *foreign* classes
                     if frame["module"] != bottom_class:
                         frame.pop("filename", None)
                         frame.pop("abs_path", None)
-                    return frame
 
-                mapped = map(rm_filename, mapped)
+                    new_frames.append(frame)
 
-                return mapped, [raw_frame], []
+                return new_frames, [raw_frame], []
 
         # second, if that is not possible, try to re-map only the class-name
         for view in self.mapping_views:
