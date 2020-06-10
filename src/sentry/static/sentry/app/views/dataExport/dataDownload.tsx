@@ -36,6 +36,7 @@ type Download = {
     info: object;
   };
   status: DownloadStatus;
+  checksum: string;
 };
 
 type Props = {} & RouteComponentProps<RouteParams, {}>;
@@ -108,6 +109,7 @@ class DataDownload extends AsyncView<Props, State> {
       </React.Fragment>
     );
   }
+
   renderExpired(): React.ReactNode {
     const {query} = this.state.download;
     const actionLink = this.getActionLink(query.type);
@@ -136,7 +138,7 @@ class DataDownload extends AsyncView<Props, State> {
   }
   renderValid(): React.ReactNode {
     const {
-      download: {dateExpired},
+      download: {dateExpired, checksum},
     } = this.state;
     const {orgId, dataExportId} = this.props.params;
     return (
@@ -158,6 +160,10 @@ class DataDownload extends AsyncView<Props, State> {
             <br />
             {this.renderDate(dateExpired)}
           </p>
+          <p>{t('Want to double check the download?')}</p>
+          <small>
+            <strong>{`SHA1: ${checksum}`}</strong>
+          </small>
         </Body>
       </React.Fragment>
     );

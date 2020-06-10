@@ -33,4 +33,5 @@ class ExportedDataSerializer(Serializer):
             "dateExpired": obj.date_expired,
             "query": {"type": ExportQueryType.as_str(obj.query_type), "info": obj.query_info},
             "status": obj.status,
+            "checksum": obj.file.checksum,
         }
