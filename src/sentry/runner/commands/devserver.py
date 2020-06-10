@@ -140,7 +140,7 @@ def devserver(
     daemons = []
 
     if experimental_spa:
-        os.environ["SENTRY_EXPERIMENTAL_SPA"] = "1"
+        os.environ["SENTRY_UI_DEV_ONLY"] = "1"
         if not watchers:
             click.secho(
                 "Using experimental SPA mode without watchers enabled has no effect",
