@@ -3,6 +3,7 @@ import six
 
 import responses
 from django.core.urlresolvers import reverse
+import pytest
 
 from sentry.integrations.slack.utils import (
     build_group_attachment,
@@ -18,6 +19,7 @@ from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 
 class GetChannelIdTest(TestCase):
@@ -42,7 +44,11 @@ class GetChannelIdTest(TestCase):
         )
         self.add_list_response(
             "users",
-            [{"name": "morty", "id": "m"}, {"name": "other-user", "id": "o-u"}],
+            [
+                {"name": "morty", "id": "m", "profile": {"display_name": "Morty"}},
+                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
+                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
+            ],
             result_name="members",
         )
 
@@ -71,6 +77,13 @@ class GetChannelIdTest(TestCase):
 
     def test_valid_member_selected(self):
         self.run_valid_test("@morty", MEMBER_PREFIX, "m", False)
+
+    def test_valid_member_selected_display_name(self):
+        self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
+
+    def test_invalid_member_selected_display_name(self):
+        with pytest.raises(DuplicateDisplayNameError):
+            get_channel_id(self.organization, self.integration.id, "@Morty")
 
     def test_invalid_channel_selected(self):
         assert get_channel_id(self.organization, self.integration.id, "#fake-channel")[1] is None

@@ -169,7 +169,15 @@ class TableView extends React.Component<TableViewProps> {
           location={location}
           tableMeta={tableData.meta}
         >
-          {fieldRenderer(dataRow, {organization, location})}
+          <CellAction
+            organization={organization}
+            eventView={eventView}
+            column={column}
+            dataRow={dataRow}
+            tableMeta={tableData.meta}
+          >
+            {fieldRenderer(dataRow, {organization, location})}
+          </CellAction>
         </ExpandAggregateRow>
       );
     }
@@ -181,6 +189,7 @@ class TableView extends React.Component<TableViewProps> {
         eventView={eventView}
         column={column}
         dataRow={dataRow}
+        tableMeta={tableData.meta}
       >
         {fieldRenderer(dataRow, {organization, location})}
       </CellAction>
