@@ -28,7 +28,7 @@ type State = {
 };
 
 class Create extends React.Component<Props, State> {
-  state = {
+  state: State = {
     alertType: this.props.location.pathname.includes('/alerts/rules/')
       ? 'issue'
       : this.props.location.pathname.includes('/alerts/metric-rules/')
