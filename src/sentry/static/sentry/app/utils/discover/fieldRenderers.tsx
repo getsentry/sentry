@@ -295,11 +295,14 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     const palette = new Array(10).fill(theme.purpleDarkest);
     const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
     const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+    const miseryPercentage = ((100 * userMisery) / Math.max(uniqueUsers, 1)).toFixed(2);
+
     const title = tct(
-      '[affectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
+      '[affectedUsers] out of [totalUsers] ([miseryPercentage]%) unique users waited more than [duration]ms',
       {
         affectedUsers: userMisery,
         totalUsers: uniqueUsers,
+        miseryPercentage,
         duration: 4 * miseryLimit,
       }
     );
