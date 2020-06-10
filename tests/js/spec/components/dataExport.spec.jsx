@@ -79,9 +79,12 @@ describe('DataExport', function() {
       <WrappedDataExport payload={mockPayload} />,
       mockRouterContext(mockAuthorizedOrg)
     );
-    wrapper.find('button').simulate('click');
     expect(wrapper.find(DataExport).state()).toEqual({
       inProgress: false,
+    });
+    wrapper.find('button').simulate('click');
+    expect(wrapper.find(DataExport).state()).toEqual({
+      inProgress: true,
     });
     expect(postDataExport).toHaveBeenCalledWith(url, {
       data: {
@@ -139,6 +142,9 @@ describe('DataExport', function() {
     expect(addErrorMessage).toHaveBeenCalledWith(
       "We tried our hardest, but we couldn't export your data. Give it another go."
     );
+    expect(wrapper.find(DataExport).state()).toEqual({
+      inProgress: false,
+    });
   });
 
   it('should display provided error message', async function() {

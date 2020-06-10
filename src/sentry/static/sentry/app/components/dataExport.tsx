@@ -1,3 +1,4 @@
+import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import React from 'react';
 
@@ -61,6 +62,8 @@ class DataExport extends React.Component<Props, State> {
       payload: {queryType, queryInfo},
     } = this.props;
 
+    this.setState({inProgress: true});
+
     api
       .requestPromise(`/organizations/${slug}/data-export/`, {
         includeAllArgs: true,
@@ -79,13 +82,14 @@ class DataExport extends React.Component<Props, State> {
               )
             : t("It looks like we're already working on it. Sit tight, we'll email you.")
         );
-        this.setState({inProgress: true, dataExportId});
+        this.setState({dataExportId});
       })
       .catch(err => {
         const message =
           err?.responseJSON?.detail ??
           "We tried our hardest, but we couldn't export your data. Give it another go.";
         addErrorMessage(t(message));
+        this.setState({inProgress: false});
       });
   };
 
@@ -107,7 +111,7 @@ class DataExport extends React.Component<Props, State> {
           </NewButton>
         ) : (
           <NewButton
-            onClick={this.startDataExport}
+            onClick={debounce(this.startDataExport, 500)}
             disabled={disabled || false}
             size="small"
             priority="default"
