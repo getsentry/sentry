@@ -463,6 +463,11 @@ if (IS_UI_DEV_ONLY) {
     https: true,
     publicPath: '/_assets/',
     proxy: {
+      '/organization-avatar': {
+        target: 'https://sentry.io',
+        secure: false,
+        changeOrigin: true,
+      },
       '/api': {
         target: 'https://sentry.io',
         secure: false,
