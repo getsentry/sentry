@@ -48,7 +48,6 @@ class FormModel {
    *
    * Map of field name -> object
    */
-
   @observable fieldState = new Map();
 
   /**
