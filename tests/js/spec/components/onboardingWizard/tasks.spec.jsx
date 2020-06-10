@@ -70,6 +70,7 @@ describe('Task', () => {
         `${second_platform_task.location}?onboardingTask`,
         expect.anything()
       );
+      navigateTo.mockClear();
     });
 
     it('links to project configuration page after project is created', () => {
@@ -89,6 +90,26 @@ describe('Task', () => {
         `/settings/${org.slug}/projects/${project.slug}/install/?onboardingTask`,
         expect.anything()
       );
+      navigateTo.mockClear();
+    });
+
+    it('passes :projectId to router when project id cannot be resolved', () => {
+      second_platform_task.status = 'pending';
+
+      const wrapper = mountWithTheme(
+        <Task organization={org} task={second_platform_task} />,
+        TestStubs.routerContext()
+      );
+      wrapper
+        .find('[data-test-id="setup_second_platform"]')
+        .first()
+        .simulate('click');
+
+      expect(navigateTo).toHaveBeenCalledWith(
+        `/settings/${org.slug}/projects/:projectId/install/?onboardingTask`,
+        expect.anything()
+      );
+      navigateTo.mockClear();
     });
   });
 });

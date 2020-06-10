@@ -78,7 +78,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
       // to the new project.
       let location = task.location;
       if (task.task === OnboardingTaskKey.SECOND_PLATFORM && task.status === 'pending') {
-        // if there's no project id assiciated with the task, display project selector prompt.
+        // if there's no project id associated with the task, display project selector prompt.
         const projectSlug = task.project
           ? organization.projects.find(project => project.id === `${task.project}`)!.slug
           : ':projectId';
