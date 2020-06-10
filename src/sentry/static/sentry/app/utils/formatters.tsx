@@ -93,36 +93,36 @@ export function getExactDuration(seconds: number, abbreviation: boolean = false)
       return {quotient: Math.floor(value / time), remainder: value % time};
     };
 
-    if (value >= WEEK) {
-      const {quotient, remainder} = divideBy(WEEK);
+    if (value >= MS_WEEK) {
+      const {quotient, remainder} = divideBy(MS_WEEK);
 
       return `${quotient}${
         abbr ? t('wk') : ` ${tn('week', 'weeks', quotient)}`
       } ${convertDuration(remainder / 1000, abbr)}`;
     }
-    if (value >= DAY) {
-      const {quotient, remainder} = divideBy(DAY);
+    if (value >= MS_DAY) {
+      const {quotient, remainder} = divideBy(MS_DAY);
 
       return `${quotient}${
         abbr ? t('d') : ` ${tn('day', 'days', quotient)}`
       } ${convertDuration(remainder / 1000, abbr)}`;
     }
-    if (value >= HOUR) {
-      const {quotient, remainder} = divideBy(HOUR);
+    if (value >= MS_HOUR) {
+      const {quotient, remainder} = divideBy(MS_HOUR);
 
       return `${quotient}${
         abbr ? t('hr') : ` ${tn('hour', 'hours', quotient)}`
       } ${convertDuration(remainder / 1000, abbr)}`;
     }
-    if (value >= MINUTE) {
-      const {quotient, remainder} = divideBy(MINUTE);
+    if (value >= MS_MINUTE) {
+      const {quotient, remainder} = divideBy(MS_MINUTE);
 
       return `${quotient}${
         abbr ? t('min') : ` ${tn('minute', 'minutes', quotient)}`
       } ${convertDuration(remainder / 1000, abbr)}`;
     }
-    if (value >= SECOND) {
-      const {quotient, remainder} = divideBy(SECOND);
+    if (value >= MS_SECOND) {
+      const {quotient, remainder} = divideBy(MS_SECOND);
 
       return `${quotient}${
         abbr ? t('s') : ` ${tn('second', 'seconds', quotient)}`
