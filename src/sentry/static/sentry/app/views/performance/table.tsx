@@ -235,6 +235,11 @@ class Table extends React.Component<Props, State> {
         );
       }
 
+      if (field.startsWith('user_misery')) {
+        // don't display per cell actions for user_misery
+        return rendered;
+      }
+
       return (
         <CellAction
           column={column}
