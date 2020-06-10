@@ -8,7 +8,7 @@ import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import {Organization, Event} from 'app/types';
+import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import EventMetadata from 'app/components/events/eventMetadata';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
@@ -18,11 +18,13 @@ import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
+import TagsTable from 'app/components/tagsTable';
 import Projects from 'app/utils/projects';
 import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 import Breadcrumb from 'app/views/performance/breadcrumb';
+import {decodeScalar, appendTagCondition} from 'app/utils/queryString';
 
-import TagsTable from './tagsTable';
+import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 type Props = {
   organization: Organization;
@@ -73,6 +75,25 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return this.props.eventSlug.split(':')[0];
   }
 
+  generateTagUrl = (tag: EventTag) => {
+    const {location, organization} = this.props;
+    const {event} = this.state;
+    if (!event) {
+      return '';
+    }
+    const query = decodeScalar(location.query.query) || '';
+    const newQuery = {
+      ...location.query,
+      query: appendTagCondition(query, tag.key, tag.value),
+    };
+    return transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: event.title,
+      projectID: this.projectId,
+      query: newQuery,
+    });
+  };
+
   renderBody() {
     const {event} = this.state;
 
@@ -96,6 +117,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const {isSidebarVisible} = this.state;
     const transactionName = event.title;
+    const query = decodeScalar(location.query.query) || '';
 
     return (
       <React.Fragment>
@@ -136,12 +158,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               projectId={this.projectId}
             />
             <OpsBreakdown event={event} />
-            <TagsTable
-              location={location}
-              event={event}
-              organization={organization}
-              projectId={this.projectId}
-            />
+            <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
           </div>
         </ContentBox>
       </React.Fragment>

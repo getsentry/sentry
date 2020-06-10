@@ -13,7 +13,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getMessage, getTitle} from 'app/utils/events';
-import {Organization, Event} from 'app/types';
+import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 import Button from 'app/components/button';
@@ -21,16 +21,16 @@ import OpsBreakdown from 'app/components/events/opsBreakdown';
 import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
+import TagsTable from 'app/components/tagsTable';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 
-import {generateTitle} from '../utils';
+import {generateTitle, getExpandedResults} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
-import TagsTable from '../tagsTable';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 
@@ -101,6 +101,25 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   get projectId() {
     return this.props.eventSlug.split(':')[0];
   }
+
+  generateTagUrl = (tag: EventTag) => {
+    const {eventView, organization} = this.props;
+    const {event} = this.state;
+    if (!event) {
+      return '';
+    }
+    const eventReference = {...event};
+    if (eventReference.id) {
+      delete eventReference.id;
+    }
+
+    const nextView = getExpandedResults(
+      eventView,
+      {[tag.key]: tag.value},
+      eventReference
+    );
+    return nextView.getResultsViewUrlTarget(organization.slug);
+  };
 
   renderBody() {
     const {event} = this.state;
@@ -189,7 +208,11 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
-            <TagsTable eventView={eventView} event={event} organization={organization} />
+            <TagsTable
+              generateUrl={this.generateTagUrl}
+              event={event}
+              query={eventView.query}
+            />
           </div>
         </ContentBox>
       </React.Fragment>
