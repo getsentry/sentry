@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
-import {defined} from 'app/utils';
+import {toTitleCase, defined} from 'app/utils';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
@@ -13,7 +13,7 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
-import {IconTelescope, IconWarning, IconLink} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {SectionHeading} from 'app/components/charts/styles';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
@@ -39,7 +39,6 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import {getIncidentDiscoverUrl} from '../utils';
 
 type Props = {
   incident?: Incident;
@@ -91,8 +90,23 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <RuleDetails>
+        <span>{t('Data Source')}</span>
+        <span>{t(toTitleCase(incident.alertRule?.dataset))}</span>
+
         <span>{t('Metric')}</span>
         <span>{incident.alertRule?.aggregate}</span>
+
+        <span>{t('Time Window')}</span>
+        <span>
+          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
+        </span>
+
+        {incident.alertRule?.query && (
+          <React.Fragment>
+            <span>{t('Filter')}</span>
+            <span>{incident.alertRule?.query}</span>
+          </React.Fragment>
+        )}
 
         <span>{t('Critical Trigger')}</span>
         <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
@@ -117,11 +131,6 @@ export default class DetailsBody extends React.Component<Props> {
             )}
           </React.Fragment>
         )}
-
-        <span>{t('Time Window')}</span>
-        <span>
-          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
-        </span>
       </RuleDetails>
     );
   }
@@ -252,39 +261,11 @@ export default class DetailsBody extends React.Component<Props> {
                       pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
                     }}
                   >
-                    {t('View Rule')}
-                    <IconLink size="xs" />
+                    {t('Edit Alert Rule')}
                   </SideHeaderLink>
                 )}
               </SidebarHeading>
               {this.renderRuleDetails()}
-
-              <Feature features={['discover-basic']}>
-                <SidebarHeading>
-                  <span>{t('Query')}</span>
-                  <Projects slugs={incident?.projects} orgId={params.orgId}>
-                    {({initiallyLoaded, fetching, projects}) => (
-                      <SideHeaderLink
-                        disabled={!incident || fetching || !initiallyLoaded}
-                        to={getIncidentDiscoverUrl({
-                          orgSlug: params.orgId,
-                          projects: (initiallyLoaded ? projects : []) as Project[],
-                          incident,
-                          stats,
-                        })}
-                      >
-                        {t('View in Discover')}
-                        <IconTelescope size="xs" />
-                      </SideHeaderLink>
-                    )}
-                  </Projects>
-                </SidebarHeading>
-              </Feature>
-              {incident ? (
-                <Query>{incident?.alertRule.query || '""'}</Query>
-              ) : (
-                <Placeholder height="30px" />
-              )}
             </Sidebar>
           </DetailWrapper>
         </Main>
@@ -415,20 +396,20 @@ const RuleDetails = styled('div')`
     padding: ${space(0.5)} ${space(1)};
   }
 
+  & > span:nth-child(2n + 1) {
+    width: 125px;
+  }
+
   & > span:nth-child(2n + 2) {
     text-align: right;
+    width: 215px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
     background-color: ${p => p.theme.gray100};
   }
-`;
-
-const Query = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
-  background-color: ${p => p.theme.gray100};
-  padding: ${space(0.5)} ${space(1)};
-  color: ${p => p.theme.gray700};
 `;
