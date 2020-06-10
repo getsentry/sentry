@@ -462,18 +462,14 @@ if (IS_UI_DEV_ONLY) {
     compress: true,
     https: true,
     publicPath: '/_assets/',
-    proxy: {
-      '/organization-avatar': {
+    proxy: [
+      {
+        context: ['/api/', '/avatar/', '/organization-avatar/'],
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
       },
-      '/api': {
-        target: 'https://sentry.io',
-        secure: false,
-        changeOrigin: true,
-      },
-    },
+    ],
     historyApiFallback: {
       rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
     },
