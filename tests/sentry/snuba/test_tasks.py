@@ -218,8 +218,8 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter
         assert snuba_filter.conditions == [
             [
-                ["email", "=", "anengineer@work.io"],
-                ["username", "=", "anengineer@work.io"],
+                ["user_email", "=", "anengineer@work.io"],
+                ["user_name", "=", "anengineer@work.io"],
                 ["ip_address", "=", "anengineer@work.io"],
                 ["user_id", "=", "anengineer@work.io"],
             ],
