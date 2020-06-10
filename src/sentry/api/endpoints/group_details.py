@@ -289,6 +289,15 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             if environments:
                 with sentry_sdk.start_span(op="GroupDetailsEndpoint.get.current_release") as span:
                     span.set_data("Environment Count", len(environments))
+                    span.set_data(
+                        "Raw Parameters",
+                        {
+                            "group.id": group.id,
+                            "group.project_id": group.project_id,
+                            "group.project.organization_id": group.project.organization_id,
+                            "environments": [{"id": e.id, "name": e.name} for e in environments],
+                        },
+                    )
 
                     try:
                         current_release = GroupRelease.objects.filter(
