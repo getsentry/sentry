@@ -9,16 +9,29 @@ import textStyles from 'app/styles/text';
 import BulletList from 'app/styles/bulletList';
 import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
+import Feature from 'app/components/acl/feature';
 
 type Props = {
   selected?: string | null;
   onChange: (type: string) => void;
 };
 
+const MetricsTooltip = ({children}: {children?: React.ReactNode}) => (
+  <Tooltip
+    title={t(
+      `A metric is the value of an aggregate function like count() or avg()
+       applied to your events over time`
+    )}
+  >
+    <abbr>{children}</abbr>
+  </Tooltip>
+);
+
 const IssuesTooltip = ({children}: {children?: React.ReactNode}) => (
   <Tooltip
     title={t(
-      `An Issue is a unique error in Sentry, created by grouping error events based on stack trace and other factors.`
+      `An Issue is a unique error in Sentry, created by grouping error events
+       based on stack trace and other factors.`
     )}
   >
     <abbr>{children}</abbr>
@@ -37,25 +50,63 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
         {t('Metric Alert')}
         <FeatureBadge type="beta" />
       </RadioLabel>
-      <p>
-        {tct(
-          `Alert on performance metrics like latency, or total error count across multiple [note:Issues], in any part of your app.`,
-          {note: <IssuesTooltip />}
-        )}
-      </p>
-      {!selected && (
-        <BulletList>
-          <li>
-            {t('Performance metrics')}
-            <Example>{t('Latency, transaction volume, apdex, error rate')}</Example>
-          </li>
-          <li>
-            {t('Errors across issues')}
-            <Example>{t('100 or more errors with "database" in the title')}</Example>
-            <Example>{t('1000 or more errors in the entire project')}</Example>
-          </li>
-        </BulletList>
-      )}
+      <Feature
+        requireAll
+        features={[
+          'organizations:transaction-events',
+          'organizations:incidents-performance',
+        ]}
+      >
+        {({hasFeature}) =>
+          hasFeature ? (
+            <React.Fragment>
+              <p>
+                {tct(`Notifies you when a [tooltip:metric] exceeds a threshold.`, {
+                  tooltip: <MetricsTooltip />,
+                })}
+              </p>
+              {!selected && (
+                <React.Fragment>
+                  <ExampleHeading>{t('For Example:')}</ExampleHeading>
+                  <BulletList>
+                    <li>{t('Performance metrics like latency and apdex')}</li>
+                    <li>
+                      {t(
+                        `Frequency of error events or users affected in the
+                       project`
+                      )}
+                    </li>
+                  </BulletList>
+                </React.Fragment>
+              )}
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <p>
+                {tct(
+                  `Notifies you when a [tooltip:metric] like frequency of events or users affected in
+                   the project exceeds a threshold.`,
+                  {tooltip: <MetricsTooltip />}
+                )}
+              </p>
+              {!selected && (
+                <React.Fragment>
+                  <ExampleHeading>{t('For Example:')}</ExampleHeading>
+                  <BulletList>
+                    <li>{t('Total events in the project exceed 1000/minute')}</li>
+                    <li>
+                      {tct(
+                        'Events with tag [code:database] and "API" in the title exceed 100/minute',
+                        {code: <code />}
+                      )}
+                    </li>
+                  </BulletList>
+                </React.Fragment>
+              )}
+            </React.Fragment>
+          )
+        }
+      </Feature>
     </TypeCard>
     <TypeCard interactive onClick={() => onChange('issue')}>
       <RadioLabel>
@@ -67,19 +118,20 @@ const AlertTypeChooser = ({selected, onChange}: Props) => (
         {t('Issue Alert')}
       </RadioLabel>
       <p>
-        {t(`Get notified when individual Sentry Issues match your alerting criteria.`)}
+        {tct(
+          `Notifies you when individual [tooltip:Sentry Issues] trigger your
+           alerting criteria.`,
+          {tooltip: <IssuesTooltip />}
+        )}
       </p>
       {!selected && (
-        <BulletList>
-          <li>
-            {t('New or regressed issues')}
-            <Example>{t('New issue on the checkout page')}</Example>
-          </li>
-          <li>
-            {t('Issue frequency')}
-            <Example>{t('Issue affecting more than X users')}</Example>
-          </li>
-        </BulletList>
+        <React.Fragment>
+          <ExampleHeading>{t('For Example:')}</ExampleHeading>
+          <BulletList>
+            <li>{t('New Issues or regressions')}</li>
+            <li>{t('Frequency of individual Issues exceeds 100/minute')}</li>
+          </BulletList>
+        </React.Fragment>
       )}
     </TypeCard>
   </Container>
@@ -95,10 +147,12 @@ const RadioLabel = styled('label')`
   grid-gap: ${space(2)};
 `;
 
-const Example = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray700};
-  font-style: italic;
+const ExampleHeading = styled('div')`
+  text-transform: uppercase;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: bold;
+  color: ${p => p.theme.gray600};
+  margin-bottom: ${space(2)};
 `;
 
 const Container = styled('div')`
