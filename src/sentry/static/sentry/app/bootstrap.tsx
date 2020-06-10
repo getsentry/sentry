@@ -90,7 +90,7 @@ Sentry.init({
    */
   dsn: process.env.SPA_DSN || window.__SENTRY__OPTIONS.dsn,
   whitelistUrls: process.env.SPA_DSN
-    ? ['localhost', 'dev.getsentry.net', 'webpack-internal://']
+    ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
     : window.__SENTRY__OPTIONS.whitelistUrls,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
