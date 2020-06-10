@@ -267,6 +267,11 @@ const theme = {
 
   // Try to keep these ordered plz
   zIndex: {
+    breadcrumbs: {
+      header: 2,
+      gridCellError: 1,
+      iconWrapper: 1,
+    },
     traceView: {
       spanTreeToggler: 900,
       rowInfoMessage: 900,
