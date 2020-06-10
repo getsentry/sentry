@@ -59,12 +59,8 @@ class SentryInstrumentation {
    */
   measureAssetSizes(compilation) {
     if (!SENTRY_WEBPACK_WEBHOOK_SECRET) {
-      // eslint-disable-next-line
-      console.log('no webhook secret');
       return;
     }
-    // eslint-disable-next-line
-    console.log('measureAssetSizes');
 
     [...compilation.entrypoints].forEach(([entrypointName, entry]) =>
       entry.chunks.forEach(chunk =>
@@ -137,8 +133,6 @@ class SentryInstrumentation {
     compiler.hooks.done.tapAsync(
       PLUGIN_NAME,
       async ({compilation, startTime, endTime}, done) => {
-        // eslint-disable-next-line
-        console.log('webpack hook', IS_CI, this.initialBuild, TRAVIS_COMMIT);
         // Only record this once and only on Travis
         // Don't really care about asset sizes during local dev
         if (IS_CI && !this.initialBuild) {
