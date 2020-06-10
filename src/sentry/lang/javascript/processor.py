@@ -754,6 +754,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         changed_raw = sourcemap_applied and self.expand_frame(raw_frame)
 
         if sourcemap_applied or all_errors or changed_frame or changed_raw:
+            # In case we are done processing, we iterate over all errors that we got
+            # and we filter out all `JS_MISSING_SOURCE` errors since we consider if we have
+            # a `context_line` we have a symbolicated frame and we don't need to show the error
+            has_context_line = bool(new_frame.get("context_line"))
+            if has_context_line:
+                all_errors[:] = [
+                    x for x in all_errors if x.get("type") is not EventError.JS_MISSING_SOURCE
+                ]
+
             if in_app is not None:
                 new_frame["in_app"] = in_app
                 raw_frame["in_app"] = in_app
