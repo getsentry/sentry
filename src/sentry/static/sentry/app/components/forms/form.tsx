@@ -64,6 +64,10 @@ class Form<
     resetOnError: PropTypes.bool,
   };
 
+  static childContextTypes = {
+    form: PropTypes.object.isRequired,
+  };
+
   static defaultProps = {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
@@ -76,10 +80,6 @@ class Form<
     errorMessage: t(
       'Unable to save your changes. Please ensure all fields are valid and try again.'
     ),
-  };
-
-  static childContextTypes = {
-    form: PropTypes.object.isRequired,
   };
 
   constructor(props: Props, context: Context) {
