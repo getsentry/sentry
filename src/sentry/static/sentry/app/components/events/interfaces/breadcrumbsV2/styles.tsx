@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 
-import {Color} from 'app/utils/theme';
+import theme, {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
 
 const IconWrapper = styled('div', {
@@ -17,7 +18,7 @@ const IconWrapper = styled('div', {
   background: ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowLightest};
   border-radius: 32px;
-  z-index: 1;
+  z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
   border: 1px solid ${p => p.theme.gray400};
   color: ${p => p.theme.gray800};
@@ -48,7 +49,7 @@ const GridCell = styled('div')<{
       background: #fffcfb;
       border-top: 1px solid #fa4747;
       border-bottom: 1px solid #fa4747;
-      z-index: 1;
+      z-index: ${p.theme.zIndex.breadcrumbs.gridCellError};
     `}
   ${p => p.isLastItem && `border-bottom: none`};
 `;
@@ -72,17 +73,10 @@ const GridCellLeft = styled(GridCell)`
   }
 `;
 
-const Grid = styled('div')`
-  border: 1px solid ${p => p.theme.borderDark};
-  display: grid;
-  overflow: hidden;
-  > *:nth-last-child(5):before {
-    bottom: calc(100% - ${space(1)});
-  }
-  grid-template-columns: 45px 55px 1fr 76px 65px;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 65px 132px 1fr 94px 84px;
-  }
+const aroundContentStyle = css`
+  border: 1px solid ${theme.borderDark};
+  border-radius: ${theme.borderRadius};
+  box-shadow: ${theme.dropShadowLightest};
 `;
 
-export {Grid, GridCell, GridCellLeft, IconWrapper};
+export {GridCell, GridCellLeft, IconWrapper, aroundContentStyle};

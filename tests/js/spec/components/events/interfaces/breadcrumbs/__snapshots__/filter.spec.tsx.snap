@@ -715,6 +715,11 @@ exports[`Filter default render 1`] = `
                     "yellowOrangeDark": "#E08D54",
                     "yellowOrangeLight": "#FFC087",
                     "zIndex": Object {
+                      "breadcrumbs": Object {
+                        "gridCellError": 1,
+                        "header": 2,
+                        "iconWrapper": 1,
+                      },
                       "dropdown": 1001,
                       "dropdownAutocomplete": Object {
                         "actor": 1008,
