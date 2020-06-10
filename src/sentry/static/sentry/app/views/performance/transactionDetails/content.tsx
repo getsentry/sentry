@@ -21,23 +21,8 @@ import OpsBreakdown from 'app/components/events/opsBreakdown';
 import Projects from 'app/utils/projects';
 import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 import Breadcrumb from 'app/views/performance/breadcrumb';
-import {decodeScalar} from 'app/utils/queryString';
 
-//import TagsTable from '../tagsTable';
-
-const slugValidator = function(
-  props: {[key: string]: any},
-  propName: string,
-  componentName: string
-) {
-  const value = props[propName];
-  // Accept slugs that look like:
-  // * project-slug:deadbeef
-  if (value && typeof value === 'string' && !/^(?:[^:]+):(?:[a-f0-9-]+)$/.test(value)) {
-    return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
-  }
-  return null;
-};
+import TagsTable from './tagsTable';
 
 type Props = {
   organization: Organization;
@@ -55,7 +40,7 @@ type State = {
 class EventDetailsContent extends AsyncComponent<Props, State> {
   static propTypes: any = {
     organization: SentryTypes.Organization.isRequired,
-    eventSlug: slugValidator,
+    eventSlug: PropTypes.string.isRequired,
     location: PropTypes.object.isRequired,
   };
 
@@ -110,7 +95,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     });
 
     const {isSidebarVisible} = this.state;
-    const transactionName = decodeScalar(location.query.transaction);
+    const transactionName = event.title;
 
     return (
       <React.Fragment>
@@ -151,9 +136,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               projectId={this.projectId}
             />
             <OpsBreakdown event={event} />
-            {/* TODO show tagstable again.
-            <TagsTable eventView={eventView} event={event} organization={organization} />
-              */}
+            <TagsTable
+              location={location}
+              event={event}
+              organization={organization}
+              projectId={this.projectId}
+            />
           </div>
         </ContentBox>
       </React.Fragment>
