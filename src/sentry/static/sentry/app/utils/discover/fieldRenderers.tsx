@@ -67,6 +67,9 @@ type FieldFormatters = {
 export type FieldTypes = keyof FieldFormatters;
 
 const emptyValue = <span>{t('n/a')}</span>;
+const EmptyValueContainer = styled(Container)`
+  color: ${p => p.theme.gray500};
+`;
 
 /**
  * A mapping of field types to their rendering function.
@@ -252,11 +255,7 @@ const SPECIAL_FIELDS: SpecialFields = {
         return <Container>{badge}</Container>;
       }
 
-      const StyledContainer = styled('div')`
-        color: ${p => p.theme.gray500};
-      `;
-
-      return <StyledContainer>{t('n/a')}</StyledContainer>;
+      return <EmptyValueContainer>{emptyValue}</EmptyValueContainer>;
     },
   },
   release: {

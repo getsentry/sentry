@@ -106,7 +106,7 @@ describe('getFieldRenderer', function() {
     const badge = wrapper.find('UserBadge');
     expect(badge).toHaveLength(0);
 
-    const value = wrapper.find('StyledContainer');
+    const value = wrapper.find('EmptyValueContainer');
     expect(value).toHaveLength(1);
     expect(value.text()).toEqual('n/a');
   });
