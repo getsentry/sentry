@@ -1,29 +1,26 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
+import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
 import AsyncView from 'app/views/asyncView';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ApiForm} from 'app/components/forms';
 import {getOptionDefault, getOptionField, getForm} from 'app/options';
+import sentryPattern from 'app/../images/pattern/sentry-pattern.png';
+import space from 'app/styles/space';
+import Alert from 'app/components/alert';
+import {IconWarning} from 'app/icons';
 
-export default class InstallWizard extends AsyncView {
-  static propTypes = {
-    onConfigured: PropTypes.func.isRequired,
-  };
+type Props = {
+  onConfigured: () => void;
+} & AsyncView['props'];
 
-  UNSAFE_componentWillMount() {
-    super.UNSAFE_componentWillMount();
-    document.body.classList.add('install-wizard');
-  }
+type State = {} & AsyncView['state'];
 
-  componentWillUnmount() {
-    super.componentWillUnmount();
-    document.body.classList.remove('install-wizard');
-  }
-
-  getEndpoints() {
+export default class InstallWizard extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', '/internal/options/?query=is:required']];
   }
 
@@ -92,19 +89,19 @@ export default class InstallWizard extends AsyncView {
     const version = ConfigStore.get('version');
     return (
       <DocumentTitle title={this.getTitle()}>
-        <div className="app">
-          <div className="pattern" />
-          <div className="setup-wizard">
-            <h1>
+        <div>
+          <Pattern />
+          <SetupWizard>
+            <Heading>
               <span>{t('Welcome to Sentry')}</span>
-              <small>{version.current}</small>
-            </h1>
+              <Version>{version.current}</Version>
+            </Heading>
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-              ? this.renderError(new Error('Unable to load all required endpoints'))
+              ? this.renderError()
               : this.renderBody()}
-          </div>
+          </SetupWizard>
         </div>
       </DocumentTitle>
     );
@@ -112,12 +109,11 @@ export default class InstallWizard extends AsyncView {
 
   renderError() {
     return (
-      <div className="loading-error">
-        <span className="icon-exclamation" />
+      <Alert type="error" icon={<IconWarning />}>
         {t(
           'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
         )}
-      </div>
+      </Alert>
     );
   }
 
@@ -137,3 +133,54 @@ export default class InstallWizard extends AsyncView {
     );
   }
 }
+
+const fixedStyle = css`
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+`;
+
+const Pattern = styled('div')`
+  &::before {
+    ${fixedStyle}
+    content: '';
+    background-image: linear-gradient(to right, #9f73c3 0%, #6875be 100%);
+    background-repeat: repeat-y;
+  }
+
+  &::after {
+    ${fixedStyle}
+    content: '';
+    background: url(${sentryPattern});
+    background-size: 400px;
+    opacity: 0.8;
+  }
+`;
+
+const Heading = styled('h1')`
+  display: grid;
+  grid-gap: ${space(1)};
+  justify-content: space-between;
+  grid-auto-flow: column;
+  line-height: 36px;
+`;
+
+const Version = styled('small')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  line-height: inherit;
+`;
+
+const SetupWizard = styled('div')`
+  background: #fff;
+  width: 600px;
+  padding: 40px 40px 20px;
+  border-radius: 4px;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  margin-left: -300px;
+  margin-bottom: 50px;
+`;
