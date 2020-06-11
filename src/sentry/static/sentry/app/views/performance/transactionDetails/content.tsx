@@ -89,7 +89,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction: event.title,
-      projectID: this.projectId,
+      projectID: decodeScalar(location.query.project),
       query: newQuery,
     });
   };
