@@ -73,7 +73,7 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
               <IconFire color="red" />
             )
           ) : (
-            <IconCheckmark color="green" size="xs" />
+            <IconCheckmark color="green400" size="xs" />
           )}
         </InnerCell>
       </GridCell>

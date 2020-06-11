@@ -171,7 +171,11 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
     const isCritical = trigger.label === 'critical';
     const LINE_STYLE = {
-      stroke: isResolution ? theme.green500 : isCritical ? theme.redDark : theme.yellow,
+      stroke: isResolution
+        ? theme.green500
+        : isCritical
+        ? theme.redDark
+        : theme.yellow500,
       lineDash: [2],
     };
 
