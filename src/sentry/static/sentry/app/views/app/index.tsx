@@ -71,7 +71,7 @@ class App extends React.Component<Props, State> {
   state = {
     loading: false,
     error: false,
-    needsUpgrade: true, //ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
+    needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
     newsletterConsentPrompt: ConfigStore.get('user')?.flags?.newsletter_consent_prompt,
   };
 
