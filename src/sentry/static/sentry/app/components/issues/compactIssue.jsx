@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {IconChat} from 'app/icons';
+import {IconChat, IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -205,8 +205,6 @@ const CompactIssue = createReactClass({
       className += ' with-graph';
     }
 
-    const title = <span className="icon-more" />;
-
     return (
       <PanelItem
         className={className}
@@ -235,7 +233,7 @@ const CompactIssue = createReactClass({
               topLevelClasses="more-menu"
               className="more-menu-toggle"
               caret={false}
-              title={title}
+              title={<IconEllipsis size="xs" />}
             >
               <li>
                 <a

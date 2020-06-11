@@ -7,6 +7,7 @@ import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
@@ -93,14 +94,22 @@ class TransactionList extends React.PureComponent<WrapperProps> {
             ))}
           </DropdownControl>
           <HeaderButtonContainer>
-            <Button
-              onClick={this.handleDiscoverViewClick}
-              to={sortedEventView.getResultsViewUrlTarget(organization.slug)}
-              size="small"
-              data-test-id="discover-open"
+            <Feature
+              features={['organizations:discover-basic']}
+              organization={organization}
             >
-              {t('Open in Discover')}
-            </Button>
+              {({hasFeature}) => (
+                <Button
+                  onClick={this.handleDiscoverViewClick}
+                  to={sortedEventView.getResultsViewUrlTarget(organization.slug)}
+                  size="small"
+                  data-test-id="discover-open"
+                  disabled={!hasFeature}
+                >
+                  {t('Open in Discover')}
+                </Button>
+              )}
+            </Feature>
           </HeaderButtonContainer>
         </Header>
         <DiscoverQuery

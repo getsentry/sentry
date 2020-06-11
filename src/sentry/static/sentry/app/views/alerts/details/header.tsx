@@ -109,7 +109,7 @@ export default class DetailsHeader extends React.Component<Props> {
             {this.renderStatus()}
           </Controls>
         </BreadCrumbBar>
-        <Details>
+        <Details columns={isErrorDataset ? 5 : 3}>
           <div>
             <IncidentTitle data-test-id="incident-title" loading={!isIncidentReady}>
               {incident && !hasIncidentDetailsError ? incident.title : 'Loading'}
@@ -189,7 +189,9 @@ const Controls = styled('div')`
   grid-gap: ${space(1)};
 `;
 
-const Details = styled(PageHeader)`
+const Details = styled(PageHeader, {
+  shouldForwardProp: p => isPropValid(p) && p !== 'columns',
+})<{columns: 3 | 5}>`
   margin-bottom: 0;
   padding: ${space(1.5)} ${space(4)} ${space(2)};
 
@@ -198,7 +200,7 @@ const Details = styled(PageHeader)`
   grid-gap: ${space(3)};
   grid-auto-flow: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[p.columns === 3 ? 1 : 2]}) {
     grid-template-columns: auto;
     grid-auto-flow: row;
   }
@@ -214,14 +216,14 @@ const StyledLoadingError = styled(LoadingError)`
 
 const GroupedHeaderItems = styled('div', {
   shouldForwardProp: p => isPropValid(p) && p !== 'columns',
-})<{columns: number}>`
+})<{columns: 3 | 5}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, max-content);
   grid-gap: ${space(1)} ${space(4)};
   text-align: right;
   margin-top: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[p.columns === 3 ? 1 : 2]}) {
     text-align: left;
   }
 `;

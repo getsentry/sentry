@@ -76,14 +76,16 @@ exports[`CrashContent renders with meta data 1`] = `
               containerDisplayMode="inline-block"
               position="top"
               title={
-                <span>
+                <React.Fragment>
                   <span>
-                    from 
+                    <span>
+                      from 
+                    </span>
+                    <span>
+                      exceptions
+                    </span>
                   </span>
-                  <span>
-                    exceptions
-                  </span>
-                </span>
+                </React.Fragment>
               }
             >
               <Manager>

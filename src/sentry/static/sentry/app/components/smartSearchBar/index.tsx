@@ -19,6 +19,7 @@ import ButtonBar from 'app/components/buttonBar';
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 import DropdownLink from 'app/components/dropdownLink';
 import InlineSvg from 'app/components/inlineSvg';
+import {IconEllipsis, IconSearch, IconClose} from 'app/icons';
 import MemberListStore from 'app/stores/memberListStore';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -26,7 +27,6 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
 import {SavedSearch, LightWeightOrganization} from 'app/types';
-import {IconSearch, IconClose} from 'app/icons';
 import {
   fetchRecentSearches,
   pinSearch,
@@ -1162,9 +1162,8 @@ class SmartSearchBar extends React.Component<Props, State> {
                   }}
                   type="button"
                   aria-label={t('Show more')}
-                >
-                  <EllipsisIcon src="icon-ellipsis-filled" />
-                </EllipsisButton>
+                  icon={<VerticalEllipsisIcon size="xs" />}
+                />
               }
             >
               {hasPinnedSearch && (
@@ -1322,9 +1321,7 @@ const EllipsisButton = styled(InputButton)`
   margin: 6px 0 0 0;
 `;
 
-const EllipsisIcon = styled(InlineSvg)`
-  width: 12px;
-  height: 12px;
+const VerticalEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg);
 `;
 

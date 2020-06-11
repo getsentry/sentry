@@ -8,6 +8,7 @@ import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
+import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
@@ -453,7 +454,11 @@ const IssueListActions = createReactClass({
                 btnGroup
                 caret={false}
                 className="btn btn-sm btn-default action-more"
-                title={<span className="icon-ellipsis" />}
+                title={
+                  <IconPad>
+                    <IconEllipsis size="xs" />
+                  </IconPad>
+                }
               >
                 <MenuItem noAnchor>
                   <ActionLink
@@ -536,11 +541,9 @@ const IssueListActions = createReactClass({
                   className="btn btn-default btn-sm hidden-xs"
                   onClick={this.handleRealtimeChange}
                 >
-                  {realtimeActive ? (
-                    <span className="icon icon-pause" />
-                  ) : (
-                    <span className="icon icon-play" />
-                  )}
+                  <IconPad>
+                    {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+                  </IconPad>
                 </a>
               </Tooltip>
             </div>
@@ -728,6 +731,14 @@ const AssigneesLabel = styled('div')`
   width: 80px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
+`;
+
+// New icons are misaligned inside bootstrap buttons.
+// This is a shim that can be removed when buttons are upgraded
+// to styled components.
+const IconPad = styled('span')`
+  position: relative;
+  top: ${space(0.25)};
 `;
 
 export {IssueListActions};
