@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from bs4 import BeautifulSoup
 from collections import OrderedDict
+from requests.exceptions import RequestException
+
 from simplejson.decoder import JSONDecodeError
 from six.moves.urllib.parse import urlparse
 from sentry.utils import json
@@ -93,5 +95,5 @@ class IntegrationFormError(IntegrationError):
         self.field_errors = field_errors
 
 
-class IgnorableSentryAppError(IntegrationError):
+class IgnorableSentryAppError(RequestException):
     pass

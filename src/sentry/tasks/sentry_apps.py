@@ -310,6 +310,20 @@ def send_webhooks(installation, event, **kwargs):
         )
 
 
+def check_app_status(func):
+    def wrapper(url, sentry_app, app_platform_event):
+        try:
+            return func(url, sentry_app, app_platform_event)
+        except Exception:
+            if sentry_app.is_published:
+                raise
+            else:
+                raise IgnorableSentryAppError("unpublished or internal app")
+
+    return wrapper
+
+
+@check_app_status
 def send_and_save_webhook_request(url, sentry_app, app_platform_event):
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
@@ -326,8 +340,6 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         track_response_code(e.__class__.__name__.lower(), slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
-        if not sentry_app.is_published:
-            raise IgnorableSentryAppError("unpublished or internal app")
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
@@ -341,8 +353,6 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
             error_id=resp.headers.get("Sentry-Hook-Error"),
             project_id=resp.headers.get("Sentry-Hook-Project"),
         )
-        if not sentry_app.is_published:
-            raise IgnorableSentryAppError("unpublished or internal app")
 
         if resp.status_code == 503:
             raise ApiHostError.from_request(resp.request)
