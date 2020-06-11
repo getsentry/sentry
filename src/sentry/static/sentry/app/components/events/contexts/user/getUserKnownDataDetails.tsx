@@ -46,7 +46,7 @@ function getUserKnownDataDetails(
         value: data.email,
         subjectIcon: EMAIL_REGEX.test(data.email) && (
           <ExternalLink href={`mailto:${data.email}`} className="external-icon">
-            <IconMail size="sm" />
+            <IconMail size="xs" />
           </ExternalLink>
         ),
       };
