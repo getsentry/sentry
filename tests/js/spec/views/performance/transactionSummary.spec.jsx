@@ -8,7 +8,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import TransactionSummary from 'app/views/performance/transactionSummary';
 
 function initializeData() {
-  const features = ['transaction-event', 'performance-view'];
+  const features = ['discover-basic', 'performance-view'];
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
