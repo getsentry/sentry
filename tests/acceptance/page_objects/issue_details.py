@@ -85,3 +85,4 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_test_id("event-entries")
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
+        self.browser.wait_until_test_id("loaded-grouping-info")
