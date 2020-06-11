@@ -11,6 +11,8 @@ from django.conf import settings
 from django.db.models import Min, Q
 from django.utils import timezone
 
+import sentry_sdk
+
 from sentry import tagstore, tsdb
 from sentry.app import env
 from sentry.api.serializers import Serializer, register, serialize
@@ -333,7 +335,7 @@ class GroupSerializerBase(Serializer):
             result[item].update(seen_stats.get(item, {}))
         return result
 
-    def serialize(self, obj, attrs, user):
+    def _get_status(self, attrs, obj):
         status = obj.status
         status_details = {}
         if attrs["ignore_until"]:
@@ -382,7 +384,9 @@ class GroupSerializerBase(Serializer):
             status_label = "pending_merge"
         else:
             status_label = "unresolved"
+        return status_details, status_label
 
+    def _get_permalink(self, obj, user):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
@@ -403,13 +407,15 @@ class GroupSerializerBase(Serializer):
 
         if (
             is_superuser
-            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
             or is_valid_sentryapp
+            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
         ):
-            permalink = obj.get_absolute_url()
+            with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+                return obj.get_absolute_url()
         else:
-            permalink = None
+            return None
 
+    def _get_subscription(self, attrs):
         subscription_details = None
         if attrs["subscription"] is not disabled:
             is_subscribed, subscription = attrs["subscription"]
@@ -420,7 +426,12 @@ class GroupSerializerBase(Serializer):
         else:
             is_subscribed = False
             subscription_details = {"disabled": True}
+        return is_subscribed, subscription_details
 
+    def serialize(self, obj, attrs, user):
+        status_details, status_label = self._get_status(attrs, obj)
+        permalink = self._get_permalink(obj, user)
+        is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
 
         return {

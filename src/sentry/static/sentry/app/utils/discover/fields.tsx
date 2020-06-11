@@ -62,6 +62,7 @@ export const AGGREGATIONS = {
     parameters: [],
     outputType: 'number',
     isSortable: true,
+    multiPlotType: 'area',
   },
   count_unique: {
     parameters: [
@@ -73,6 +74,7 @@ export const AGGREGATIONS = {
     ],
     outputType: 'number',
     isSortable: true,
+    multiPlotType: 'line',
   },
   min: {
     parameters: [
@@ -84,6 +86,7 @@ export const AGGREGATIONS = {
     ],
     outputType: null,
     isSortable: true,
+    multiPlotType: 'line',
   },
   max: {
     parameters: [
@@ -95,33 +98,38 @@ export const AGGREGATIONS = {
     ],
     outputType: null,
     isSortable: true,
+    multiPlotType: 'line',
   },
   avg: {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration'],
+        columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
         required: true,
       },
     ],
     outputType: null,
     isSortable: true,
+    multiPlotType: 'line',
   },
   sum: {
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['integer', 'number', 'duration'],
+        columnTypes: ['duration'],
         required: true,
       },
     ],
     outputType: null,
     isSortable: true,
+    multiPlotType: 'area',
   },
   last_seen: {
     parameters: [],
     outputType: 'date',
     isSortable: true,
+    multiPlotType: 'area',
   },
 
   // Tracing functions.
@@ -129,27 +137,32 @@ export const AGGREGATIONS = {
     parameters: [],
     outputType: 'duration',
     isSortable: true,
+    multiPlotType: 'line',
   },
   p75: {
     parameters: [],
     outputType: 'duration',
     isSortable: true,
+    multiPlotType: 'line',
   },
   p95: {
     parameters: [],
     outputType: 'duration',
     type: [],
     isSortable: true,
+    multiPlotType: 'line',
   },
   p99: {
     parameters: [],
     outputType: 'duration',
     isSortable: true,
+    multiPlotType: 'line',
   },
   p100: {
     parameters: [],
     outputType: 'duration',
     isSortable: true,
+    multiPlotType: 'line',
   },
   percentile: {
     parameters: [
@@ -168,11 +181,13 @@ export const AGGREGATIONS = {
     ],
     outputType: null,
     isSortable: true,
+    multiPlotType: 'line',
   },
-  error_rate: {
+  failure_rate: {
     parameters: [],
     outputType: 'percentage',
     isSortable: true,
+    multiPlotType: 'line',
   },
   apdex: {
     parameters: [
@@ -185,6 +200,7 @@ export const AGGREGATIONS = {
     ],
     outputType: 'percentage',
     isSortable: true,
+    multiPlotType: 'line',
   },
   impact: {
     parameters: [
@@ -197,6 +213,7 @@ export const AGGREGATIONS = {
     ],
     outputType: 'number',
     isSortable: true,
+    multiPlotType: 'line',
   },
   user_misery: {
     parameters: [
@@ -209,16 +226,19 @@ export const AGGREGATIONS = {
     ],
     outputType: 'number',
     isSortable: false,
+    multiPlotType: 'area',
   },
   eps: {
     parameters: [],
     outputType: 'number',
     isSortable: true,
+    multiPlotType: 'area',
   },
   epm: {
     parameters: [],
     outputType: 'number',
     isSortable: true,
+    multiPlotType: 'area',
   },
 } as const;
 
@@ -226,11 +246,19 @@ assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation
 
 export type AggregationKey = keyof typeof AGGREGATIONS | '';
 
+export type AggregationOutputType = Extract<
+  ColumnType,
+  'number' | 'integer' | 'date' | 'duration' | 'percentage'
+>;
+
+export type PlotType = 'line' | 'area';
+
 export type Aggregation = {
   parameters: Readonly<AggregateParameter[]>;
   // null means to inherit from the column.
-  outputType: null | ColumnType;
+  outputType: AggregationOutputType | null;
   isSortable: boolean;
+  multiPlotType: PlotType;
 };
 
 /**
@@ -324,7 +352,7 @@ export const TRACING_FIELDS = [
   'p99',
   'p100',
   'percentile',
-  'error_rate',
+  'failure_rate',
   'apdex',
   'impact',
   'user_misery',
@@ -386,4 +414,43 @@ export function getAggregateAlias(field: string): string {
  */
 export function isAggregateField(field: string): boolean {
   return field.match(AGGREGATE_PATTERN) !== null;
+}
+
+/**
+ * Convert a function string into type it will output.
+ * This is useful when you need to format values in tooltips,
+ * or in series markers.
+ */
+export function aggregateOutputType(field: string): AggregationOutputType {
+  const matches = AGGREGATE_PATTERN.exec(field);
+  if (!matches) {
+    return 'number';
+  }
+  const funcName = matches[1];
+  const aggregate = AGGREGATIONS[funcName];
+  // Attempt to use the function's outputType. If the function
+  // is an inherit type it will have a field as the first parameter
+  // and we can use that to get the type.
+  if (aggregate && aggregate.outputType) {
+    return aggregate.outputType;
+  } else if (matches[2] && FIELDS.hasOwnProperty(matches[2])) {
+    return FIELDS[matches[2]];
+  }
+  return 'number';
+}
+
+/**
+ * Get the multi-series chart type for an aggregate function.
+ */
+export function aggregateMultiPlotType(field: string): PlotType {
+  const matches = AGGREGATE_PATTERN.exec(field);
+  // Handle invalid data.
+  if (!matches) {
+    return 'area';
+  }
+  const funcName = matches[1];
+  if (!AGGREGATIONS.hasOwnProperty(funcName)) {
+    return 'area';
+  }
+  return AGGREGATIONS[funcName].multiPlotType;
 }

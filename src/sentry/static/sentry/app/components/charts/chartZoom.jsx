@@ -218,6 +218,7 @@ class ChartZoom extends React.Component {
       return children(props);
     }
 
+    // TODO(mark) Update consumers of DataZoom when typing this.
     const renderProps = {
       // Zooming only works when grouped by date
       isGroupedByDate: true,

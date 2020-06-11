@@ -5,6 +5,7 @@ import six
 from copy import deepcopy
 from datetime import timedelta
 import logging
+import sentry_sdk
 
 from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns
@@ -57,14 +58,15 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        return self.__get_events(
-            filter,  # NOQA
-            orderby=orderby,
-            limit=limit,
-            offset=offset,
-            referrer=referrer,
-            should_bind_nodes=True,
-        )
+        with sentry_sdk.start_span(op="eventstore.snuba.get_events"):
+            return self.__get_events(
+                filter,  # NOQA
+                orderby=orderby,
+                limit=limit,
+                offset=offset,
+                referrer=referrer,
+                should_bind_nodes=True,
+            )
 
     def get_unfetched_events(
         self,

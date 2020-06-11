@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import HeroIcon from 'app/components/heroIcon';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 
 type Props = {
@@ -24,7 +23,7 @@ const EmptyStateWarning = ({
   small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconWarning color={theme.gray500} size="lg" />}
+        {withIcon && <StyledIconWarning color="gray500" size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>

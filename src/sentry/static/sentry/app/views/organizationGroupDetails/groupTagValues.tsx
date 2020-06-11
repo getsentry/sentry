@@ -18,7 +18,6 @@ import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {Group, Tag, TagValue, Environment} from 'app/types';
 
 type RouteParams = {
@@ -104,12 +103,12 @@ class GroupTagValues extends AsyncComponent<
               </GlobalSelectionLink>
               {tagValue.email && (
                 <StyledExternalLink href={`mailto:${tagValue.email}`}>
-                  <IconMail size="xs" color={theme.gray500} />
+                  <IconMail size="xs" color="gray500" />
                 </StyledExternalLink>
               )}
               {isUrl(tagValue.value) && (
                 <StyledExternalLink href={tagValue.value}>
-                  <IconOpen size="xs" color={theme.gray500} />
+                  <IconOpen size="xs" color="gray500" />
                 </StyledExternalLink>
               )}
             </ValueWrapper>

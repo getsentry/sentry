@@ -7,12 +7,13 @@ import isEqual from 'lodash/isEqual';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {Client} from 'app/api';
+import EventsChart from 'app/components/charts/eventsChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
-import {EventsChart} from 'app/views/events/eventsChart';
 import EventView from 'app/utils/discover/eventView';
 import {DisplayModes} from 'app/utils/discover/types';
+import {decodeScalar} from 'app/utils/queryString';
 
 import ChartFooter from './chartFooter';
 
@@ -44,11 +45,9 @@ class ResultsChart extends React.Component<ResultsChartProps> {
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.start
       ? getUtcToLocalDateObject(globalSelection.start)
-      : undefined;
+      : null;
 
-    const end = globalSelection.end
-      ? getUtcToLocalDateObject(globalSelection.end)
-      : undefined;
+    const end = globalSelection.end ? getUtcToLocalDateObject(globalSelection.end) : null;
 
     const {utc} = getParams(location.query);
     const apiPayload = eventView.getEventsAPIPayload(location);
@@ -81,7 +80,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               field={isTopEvents ? apiPayload.field : undefined}
               showDaily={isDaily}
               topEvents={isTopEvents ? 5 : undefined}
-              orderby={isTopEvents ? apiPayload.sort : undefined}
+              orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
             />
           ),
@@ -130,6 +129,19 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
     } = this.props;
 
     const yAxisValue = eventView.getYAxis();
+    const hasQueryFeature = organization.features.includes('discover-query');
+    const displayOptions = eventView.getDisplayOptions().filter(opt => {
+      // top5 modes are only available with larger packages in saas.
+      // We remove instead of disable here as showing tooltips in dropdown
+      // menus is clunky.
+      if (
+        [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes) &&
+        !hasQueryFeature
+      ) {
+        return false;
+      }
+      return true;
+    });
 
     return (
       <StyledPanel>
@@ -145,7 +157,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
           yAxisValue={yAxisValue}
           yAxisOptions={eventView.getYAxisOptions()}
           onAxisChange={onAxisChange}
-          displayOptions={eventView.getDisplayOptions()}
+          displayOptions={displayOptions}
           displayMode={eventView.display || DisplayModes.DEFAULT}
           onDisplayChange={onDisplayChange}
         />

@@ -73,7 +73,7 @@ def _merge_frame(new_frame, symbolicated):
         frame_meta["symbolicator_status"] = symbolicated["status"]
 
 
-def _handle_image_status(status, image, sdk_info, handle_symbolication_failed):
+def _handle_image_status(status, image, sdk_info, data):
     if status in ("found", "unused"):
         return
     elif status == "missing":
@@ -104,10 +104,11 @@ def _handle_image_status(status, image, sdk_info, handle_symbolication_failed):
     error.image_path = image.get("code_file")
     error.image_name = image_name(image.get("code_file"))
     error.image_uuid = image.get("debug_id")
-    handle_symbolication_failed(error)
+
+    write_error(error, data)
 
 
-def _merge_image(raw_image, complete_image, sdk_info, handle_symbolication_failed):
+def _merge_image(raw_image, complete_image, sdk_info, data):
     statuses = set()
 
     # Set image data from symbolicator as symbolicator might know more
@@ -119,7 +120,7 @@ def _merge_image(raw_image, complete_image, sdk_info, handle_symbolication_faile
             raw_image[k] = v
 
     for status in set(statuses):
-        _handle_image_status(status, raw_image, sdk_info, handle_symbolication_failed)
+        _handle_image_status(status, raw_image, sdk_info, data)
 
 
 def _handle_response_status(event_data, response_json):
@@ -179,7 +180,7 @@ def _merge_full_response(data, response):
 
     for complete_image in response["modules"]:
         image = {}
-        _merge_image(image, complete_image, sdk_info, lambda e: write_error(e, data))
+        _merge_image(image, complete_image, sdk_info, data)
         images.append(image)
 
     # Extract the crash reason and infos
@@ -316,7 +317,7 @@ def process_payload(data):
     sdk_info = get_sdk_from_event(data)
 
     for raw_image, complete_image in zip(modules, response["modules"]):
-        _merge_image(raw_image, complete_image, sdk_info, lambda e: write_error(e, data))
+        _merge_image(raw_image, complete_image, sdk_info, data)
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 

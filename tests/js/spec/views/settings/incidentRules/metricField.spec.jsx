@@ -10,7 +10,7 @@ import {Dataset} from 'app/views/settings/incidentRules/types';
 
 describe('MetricField', function() {
   const {organization} = initializeOrg({
-    organization: {features: ['transaction-events']},
+    organization: {features: ['performance-view']},
   });
 
   it('renders', function() {
@@ -72,10 +72,10 @@ describe('MetricField', function() {
         <MetricField name="metric" organization={organization} />
       </Form>
     );
-    selectByLabel(wrapper, 'error_rate()', {selector: 'QueryField'});
+    selectByLabel(wrapper, 'failure_rate()', {selector: 'QueryField'});
 
     expect(wrapper.find('FieldHelp Button[isSelected=true]').text()).toEqual(
-      'Error rate'
+      'Failure rate'
     );
 
     selectByLabel(wrapper, 'p95()', {selector: 'QueryField'});
@@ -90,10 +90,10 @@ describe('MetricField', function() {
       </Form>
     );
 
-    wrapper.find('FieldHelp button[aria-label="Error rate"]').simulate('click');
+    wrapper.find('FieldHelp button[aria-label="Failure rate"]').simulate('click');
 
     expect(wrapper.find('QueryField SingleValue SingleValue').text()).toEqual(
-      'error_rate()'
+      'failure_rate()'
     );
   });
 });

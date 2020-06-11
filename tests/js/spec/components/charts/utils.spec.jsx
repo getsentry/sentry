@@ -1,4 +1,8 @@
-import {getInterval, getDiffInMinutes} from 'app/components/charts/utils';
+import {
+  canIncludePreviousPeriod,
+  getInterval,
+  getDiffInMinutes,
+} from 'app/components/charts/utils';
 
 describe('Chart Utils', function() {
   describe('getInterval()', function() {
@@ -50,5 +54,24 @@ describe('Chart Utils', function() {
 
     // This uses moment so we probably don't need to test it too extensively
     describe('with absolute dates', function() {});
+  });
+
+  describe('canIncludePreviousPeriod()', function() {
+    it('does not include if `includePrevious` is false', function() {
+      expect(canIncludePreviousPeriod(false, '7d')).toBe(false);
+    });
+
+    it('is true if period is less than or equal to 45 days', function() {
+      expect(canIncludePreviousPeriod(true, '45d')).toBe(true);
+    });
+
+    it('is false if period is greater than 45d', function() {
+      expect(canIncludePreviousPeriod(true, '46d')).toBe(false);
+    });
+
+    it('returns value of `includePrevious` if no period', function() {
+      expect(canIncludePreviousPeriod(true)).toBe(true);
+      expect(canIncludePreviousPeriod(false)).toBe(false);
+    });
   });
 });

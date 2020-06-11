@@ -15,8 +15,6 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProfiler from 'app/utils/withProfiler';
 import withProjects from 'app/utils/withProjects';
-import Feature from 'app/components/acl/feature';
-import SwitchReleasesButton from 'app/views/releasesV2/utils/switchReleasesButton';
 
 import ReleaseHeader from './releaseHeader';
 
@@ -111,11 +109,7 @@ class OrganizationReleaseDetails extends AsyncView {
   }
 
   renderBody() {
-    const {
-      location,
-      params: {orgId},
-      organization,
-    } = this.props;
+    const {location, organization} = this.props;
     const {release} = this.state;
 
     const query = pick(location.query, Object.values(URL_PARAM));
@@ -129,14 +123,11 @@ class OrganizationReleaseDetails extends AsyncView {
 
     return (
       <PageContent>
-        <ReleaseHeader release={release} orgId={orgId} />
+        <ReleaseHeader release={release} organization={organization} />
         {React.cloneElement(this.props.children, {
           release,
           query,
         })}
-        <Feature features={['releases-v2']} organization={organization}>
-          <SwitchReleasesButton version="2" orgId={organization.id} />
-        </Feature>
       </PageContent>
     );
   }

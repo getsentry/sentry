@@ -1,16 +1,15 @@
 from __future__ import absolute_import
 
 import six
-from django.http import Http404
 
 from sentry.constants import ObjectStatus
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.bases.organization import OrganizationIntegrationsPermission
+from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
-from sentry.models import Integration
 
 
-class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
+class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def get(self, request, organization, integration_id):
@@ -24,10 +23,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
 
         :qparam string search: Name fragment to search repositories by.
         """
-        try:
-            integration = Integration.objects.get(id=integration_id, organizations=organization)
-        except Integration.DoesNotExist:
-            raise Http404
+        integration = self.get_integration(organization, integration_id)
 
         if integration.status == ObjectStatus.DISABLED:
             context = {"repos": []}

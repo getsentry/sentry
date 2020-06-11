@@ -111,14 +111,14 @@ class SelectMembers extends React.Component<Props, State> {
       this.setState({
         memberListLoading: !MemberListStore.isLoaded(),
       });
-    }),
+    }, undefined),
   ];
 
   renderUserBadge = (user: User) => (
     <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
   );
 
-  createMentionableUser = (user: User) => ({
+  createMentionableUser = (user: User): MentionableUser => ({
     value: user.id,
     label: this.renderUserBadge(user),
     searchKey: getSearchKeyForUser(user),

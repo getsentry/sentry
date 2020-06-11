@@ -28,7 +28,7 @@ from sentry.models import (
     ReleaseProject,
 )
 
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 from .client import SlackClient
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -162,6 +162,13 @@ def build_action_text(group, identity, action):
     )
 
 
+def build_rule_url(rule, group, project):
+    org_slug = group.organization.slug
+    project_slug = project.slug
+    rule_url = u"/settings/{}/projects/{}/alerts/rules/{}/".format(org_slug, project_slug, rule.id)
+    return absolute_uri(rule_url)
+
+
 def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
@@ -265,7 +272,8 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     footer = u"{}".format(group.qualified_short_id)
 
     if rules:
-        footer += u" via {}".format(rules[0].label)
+        rule_url = build_rule_url(rules[0], group, project)
+        footer += u" via <{}|{}>".format(rule_url, rules[0].label)
 
         if len(rules) > 1:
             footer += u" (+{} other)".format(len(rules) - 1)
@@ -403,6 +411,8 @@ def get_channel_id_with_timeout(integration, name, timeout):
     time_to_quit = time.time() + timeout
 
     client = SlackClient()
+    id_data = None
+    found_duplicate = False
     for list_type, result_name, prefix in LIST_TYPES:
         cursor = ""
         while True:
@@ -416,9 +426,20 @@ def get_channel_id_with_timeout(integration, name, timeout):
                 )
                 return (prefix, None, False)
 
-            item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
-            if item_id:
-                return (prefix, item_id, False)
+            for c in items[result_name]:
+                # The "name" field is unique (this is the username for users)
+                # so we return immediately if we find a match.
+                if c["name"] == name:
+                    return (prefix, c["id"], False)
+                # If we don't get a match on a unique identifier, we look through
+                # the users' display names, and error if there is a repeat.
+                if list_type == "users":
+                    profile = c.get("profile")
+                    if profile and profile.get("display_name") == name:
+                        if id_data:
+                            found_duplicate = True
+                        else:
+                            id_data = (prefix, c["id"], False)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
             if time.time() > time_to_quit:
@@ -426,6 +447,10 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
             if not cursor:
                 break
+        if found_duplicate:
+            raise DuplicateDisplayNameError(name)
+        elif id_data:
+            return id_data
 
     return (prefix, None, False)
 

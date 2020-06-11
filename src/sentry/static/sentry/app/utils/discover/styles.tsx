@@ -54,11 +54,13 @@ export const ContentBox = styled('div')`
     grid-template-columns: minmax(100px, auto) 325px;
   }
 `;
+
 export const Main = styled('div')`
   grid-column: 1/2;
   max-width: 100%;
   overflow: hidden;
 `;
+
 export const Side = styled('div')`
   grid-column: 2/3;
 `;
@@ -79,6 +81,11 @@ export const HeaderControls = styled('div')`
 
 export const StyledShortId = styled(ShortId)`
   justify-content: flex-start;
+`;
+
+export const BarContainer = styled('div')`
+  max-width: 80px;
+  margin-left: auto;
 `;
 
 export const EventId = ({value}: {value: string}) => {

@@ -154,6 +154,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
+  builtinSymbolSources?: string[];
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -435,6 +436,8 @@ export type AppOrProviderOrPlugin =
   | PluginWithProjectList
   | DocumentIntegration;
 
+export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_app';
+
 export type DocumentIntegration = {
   slug: string;
   name: string;
@@ -445,12 +448,14 @@ export type DocumentIntegration = {
   resourceLinks: Array<{title: string; url: string}>;
 };
 
+export type DateString = Date | string | null;
+
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
   datetime: {
-    start: Date | string | null;
-    end: Date | string | null;
+    start: DateString;
+    end: DateString;
     period: string;
     utc: boolean;
   };
@@ -917,8 +922,8 @@ export type ReleaseProject = {
   slug: string;
   name: string;
   id: number;
-  platform: string;
-  platforms: string[];
+  platform: PlatformKey;
+  platforms: PlatformKey[];
   newGroups: number;
   healthData?: Health;
 };
@@ -993,19 +998,24 @@ export type NewQuery = {
   id: string | undefined;
   version: SavedQueryVersions;
   name: string;
-  projects: Readonly<number[]>;
+  createdBy?: User;
+
+  // Query and Table
+  query: string;
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
-  query: string;
   orderby?: string;
+
+  // GlobalSelectionHeader
+  projects: Readonly<number[]>;
+  environment?: Readonly<string[]>;
   range?: string;
   start?: string;
   end?: string;
-  environment?: Readonly<string[]>;
-  tags?: Readonly<string[]>;
+
+  // Graph
   yAxis?: string;
   display?: string;
-  createdBy?: User;
 };
 
 export type SavedQuery = NewQuery & {

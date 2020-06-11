@@ -25,6 +25,7 @@ from sentry.models import (
 )
 from sentry.models.sentryapp import VALID_EVENTS, track_response_code
 from sentry.utils.compat import filter
+from sentry.constants import SentryAppInstallationStatus
 
 logger = logging.getLogger("sentry.tasks.sentry_apps")
 
@@ -90,7 +91,9 @@ def send_alert_event(event, rule, sentry_app_id):
 
     try:
         install = SentryAppInstallation.objects.get(
-            organization=organization.id, sentry_app=sentry_app
+            organization=organization.id,
+            sentry_app=sentry_app,
+            status=SentryAppInstallationStatus.INSTALLED,
         )
     except SentryAppInstallation.DoesNotExist:
         logger.info("event_alert_webhook.missing_installation", extra=extra)
@@ -158,7 +161,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     installations = filter(
         lambda i: event in i.sentry_app.events,
-        org.sentry_app_installations.select_related("sentry_app"),
+        SentryAppInstallation.get_installed_for_org(org.id).select_related("sentry_app"),
     )
 
     for installation in installations:
@@ -193,6 +196,7 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
     extra = {"installation_id": installation_id, "user_id": user_id}
 
     try:
+        # we should send the webhook for pending installations on the install event in case that's part of the workflow
         install = SentryAppInstallation.objects.get(id=installation_id)
     except SentryAppInstallation.DoesNotExist:
         logger.info("installation_webhook.missing_installation", extra=extra)
@@ -213,7 +217,9 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     extra = {"installation_id": installation_id, "issue_id": issue_id}
 
     try:
-        install = SentryAppInstallation.objects.get(id=installation_id)
+        install = SentryAppInstallation.objects.get(
+            id=installation_id, status=SentryAppInstallationStatus.INSTALLED
+        )
     except SentryAppInstallation.DoesNotExist:
         logger.info("workflow_notification.missing_installation", extra=extra)
         return

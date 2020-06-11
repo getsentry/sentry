@@ -109,9 +109,10 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_groupid_filter_invalid_value(self):
         url = "%s?group=not-a-number" % (self.url,)
-        response = self.client.get(url, format="json")
+        with self.feature({"organizations:discover-basic": False}):
+            response = self.client.get(url, format="json")
 
-        assert response.status_code == 400, response.content
+            assert response.status_code == 400, response.content
 
     def test_user_count(self):
         self.store_event(
@@ -180,6 +181,23 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
+
+    def test_performance_view_feature(self):
+        with self.feature(
+            {"organizations:performance-view": True, "organizations:discover-basic": False}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "query": "project_id:1",
+                    "interval": "30m",
+                    "yAxis": "count()",
+                },
+            )
+        assert response.status_code == 200
 
     def test_aggregate_function_count(self):
         with self.feature("organizations:discover-basic"):

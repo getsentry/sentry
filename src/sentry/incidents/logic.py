@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from copy import deepcopy
 from datetime import timedelta
+from itertools import chain
 
 import six
 from django.db import transaction
@@ -40,7 +41,10 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
 )
 from sentry.snuba.tasks import build_snuba_filter
+from sentry.utils.compat import zip
+from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
+from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
@@ -331,7 +335,6 @@ def build_incident_query_params(incident, start=None, end=None, windowed_stats=F
 
 
 def calculate_incident_time_range(incident, start=None, end=None, windowed_stats=False):
-    # TODO: When time_window is persisted, switch to using that instead of alert_rule.time_window.
     time_window = (
         incident.alert_rule.snuba_query.time_window if incident.alert_rule is not None else 60
     )
@@ -377,18 +380,55 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
     query_params = build_incident_query_params(
         incident, start=start, end=end, windowed_stats=windowed_stats
     )
+    time_window = incident.alert_rule.snuba_query.time_window
     aggregations = query_params.pop("aggregations")[0]
-    snuba_params = SnubaQueryParams(
-        aggregations=[(aggregations[0], aggregations[1], "count")],
-        orderby="time",
-        groupby=["time"],
-        rollup=incident.alert_rule.snuba_query.time_window,
-        limit=10000,
-        **query_params
-    )
+    snuba_params = [
+        SnubaQueryParams(
+            aggregations=[(aggregations[0], aggregations[1], "count")],
+            orderby="time",
+            groupby=["time"],
+            rollup=time_window,
+            limit=10000,
+            **query_params
+        )
+    ]
 
-    results = bulk_raw_query([snuba_params], referrer="incidents.get_incident_event_stats")
-    return SnubaTSResult(results[0], snuba_params.start, snuba_params.end, snuba_params.rollup)
+    # We want to include the specific buckets for the incident start and closed times,
+    # so that there's no need to interpolate to show them on the frontend. If they're
+    # cleanly divisible by the `time_window` then there's no need to fetch, since
+    # they'll be included in the standard results anyway.
+    extra_buckets = []
+    if int(to_timestamp(incident.date_started)) % time_window:
+        extra_buckets.append(incident.date_started)
+    if incident.date_closed and int(to_timestamp(incident.date_closed)) % time_window:
+        extra_buckets.append(incident.date_closed.replace(second=0, microsecond=0))
+
+    # We make extra queries to fetch these buckets
+    for bucket_start in extra_buckets:
+        extra_bucket_query_params = build_incident_query_params(
+            incident, start=bucket_start, end=bucket_start + timedelta(seconds=time_window)
+        )
+        aggregations = extra_bucket_query_params.pop("aggregations")[0]
+        snuba_params.append(
+            SnubaQueryParams(
+                aggregations=[(aggregations[0], aggregations[1], "count")],
+                limit=1,
+                **extra_bucket_query_params
+            )
+        )
+
+    results = bulk_raw_query(snuba_params, referrer="incidents.get_incident_event_stats")
+    # Once we receive the results, if we requested extra buckets we now need to label
+    # them with timestamp data, since the query we ran only returns the count.
+    for extra_start, result in zip(extra_buckets, results[1:]):
+        result["data"][0]["time"] = int(to_timestamp(extra_start))
+    merged_data = list(chain(*[r["data"] for r in results]))
+    merged_data.sort(key=lambda row: row["time"])
+    results[0]["data"] = merged_data
+
+    return SnubaTSResult(
+        results[0], snuba_params[0].start, snuba_params[0].end, snuba_params[0].rollup
+    )
 
 
 def get_incident_aggregates(
@@ -998,7 +1038,17 @@ def update_alert_rule_trigger_action(
 def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id, name):
     from sentry.integrations.slack.utils import get_channel_id
 
-    _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name,)
+    try:
+        _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name)
+    except DuplicateDisplayNameError as e:
+        integration = Integration.objects.get(id=integration_id)
+        domain = integration.metadata["domain_name"]
+
+        raise InvalidTriggerActionError(
+            'Multiple users were found with display name "%s". Please use your username, found at %s/account/settings.'
+            % (e.message, domain)
+        )
+
     if timed_out:
         raise InvalidTriggerActionError(
             "Could not find channel %s. We have timed out trying to look for it. " % name

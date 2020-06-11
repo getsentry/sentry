@@ -741,6 +741,7 @@ LOGGING = {
     "loggers": {
         "celery": {"level": "WARNING"},
         "sentry": {"level": "INFO"},
+        "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
         "sentry.interfaces": {"handlers": ["internal"], "propagate": False},
@@ -802,6 +803,8 @@ SENTRY_FEATURES = {
     "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
+    # Move release artifacts to settings.
+    "organizations:artifacts-in-settings": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -819,12 +822,10 @@ SENTRY_FEATURES = {
     "organizations:custom-symbol-sources": True,
     # Enable the events stream interface.
     "organizations:events": False,
-    # Enable events v2 instead of the events stream
-    "organizations:events-v2": False,
     # Enable discover 2 basic functions
-    "organizations:discover-basic": False,
+    "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
-    "organizations:discover-query": False,
+    "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
     # Enable multi project selection
@@ -841,6 +842,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable incidents performance feature
+    "organizations:incidents-performance": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -849,6 +852,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-issue-sync": True,
     # Enable interface functionality to receive event hooks.
     "organizations:integrations-event-hooks": False,
+    # Enable the Vercel integration
+    "organizations:integrations-vercel": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -867,6 +872,8 @@ SENTRY_FEATURES = {
     "organizations:datascrubbers-v2": False,
     # Enable the new version of interface/breadcrumbs
     "organizations:breadcrumbs-v2": False,
+    # Enable Relay config feature
+    "organizations:relay-config": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,
@@ -1509,7 +1516,7 @@ SENTRY_DEVSERVICES = {
         "command": ["run"],
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
     },
-    "reverse_proxy": {
+    "proxy": {
         "image": "nginx:1.16.1",
         "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
         "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
@@ -1558,6 +1565,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts.VstsIntegrationProvider",
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
+    "sentry.integrations.vercel.VercelIntegrationProvider",
 )
 
 
@@ -1750,7 +1758,7 @@ SENTRY_BUILTIN_SOURCES = {
 }
 
 # Relay
-# List of PKs whitelisted by Sentry.  All relays here are always
+# List of PKs explicitly allowed by Sentry.  All relays here are always
 # registered as internal relays.
 SENTRY_RELAY_WHITELIST_PK = [
     # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
@@ -1760,7 +1768,7 @@ SENTRY_RELAY_WHITELIST_PK = [
 ]
 
 # When open registration is not permitted then only relays in the
-# whitelist can register.
+# list of explicitly allowed relays can register.
 SENTRY_RELAY_OPEN_REGISTRATION = False
 
 # GeoIP

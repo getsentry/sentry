@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Organization} from 'app/types';
-import EventsRequest from 'app/views/events/utils/eventsRequest';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
 import {getInterval} from 'app/components/charts/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
@@ -89,7 +89,7 @@ class MiniGraph extends React.Component<Props> {
           if (errored) {
             return (
               <StyledGraphContainer>
-                <IconWarning color={theme.gray500} size="md" />
+                <IconWarning color="gray500" size="md" />
               </StyledGraphContainer>
             );
           }
@@ -105,7 +105,7 @@ class MiniGraph extends React.Component<Props> {
             ...series,
             areaStyle: {
               color: colors[0],
-              opacity: 0.5,
+              opacity: 1,
             },
             lineStyle: {
               opacity: 0,

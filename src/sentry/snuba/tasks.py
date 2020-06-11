@@ -3,11 +3,16 @@ from __future__ import absolute_import
 import json
 
 from sentry.api.event_search import get_filter, resolve_field_list
-from sentry.snuba.discover import resolve_discover_aliases
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.snuba import _snuba_pool, SnubaError
+from sentry.utils.snuba import (
+    _snuba_pool,
+    Dataset,
+    SnubaError,
+    resolve_snuba_aliases,
+    resolve_column,
+)
 
 
 # TODO: If we want to support security events here we'll need a way to
@@ -113,9 +118,14 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
 
 def build_snuba_filter(dataset, query, aggregate, environment, params=None):
+    resolve_func = (
+        resolve_column(Dataset.Events)
+        if dataset == QueryDatasets.EVENTS
+        else resolve_column(Dataset.Transactions)
+    )
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
-    snuba_filter = resolve_discover_aliases(snuba_filter)[0]
+    snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
     if environment:
         snuba_filter.conditions.append(["environment", "=", environment.name])
     snuba_filter.conditions = apply_dataset_conditions(dataset, snuba_filter.conditions)

@@ -23,7 +23,7 @@ export default class SubscribeButton extends React.Component<Props> {
 
   render() {
     const {size, isSubscribed, onClick, disabled} = this.props;
-    const icon = <IconBell color={isSubscribed ? 'blue' : 'black'} />;
+    const icon = <IconBell color={isSubscribed ? 'blue' : undefined} />;
 
     return (
       <Button size={size} icon={icon} onClick={onClick} disabled={disabled}>

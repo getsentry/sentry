@@ -58,20 +58,6 @@ const colors = {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Old Colors
-  offWhite: '#FAF9FB',
-  offWhiteLight: '#F2F0F5',
-  offWhite2: '#E7E1EC',
-
-  whiteDark: '#fbfbfc',
-  foreground: '#493E54',
-
-  gray1: '#BDB4C7',
-  gray2: '#9585A3',
-  gray3: '#645574',
-  gray4: '#4A3E56',
-  gray5: '#302839',
-  gray6: '#AFA3BB', // form disabled
-
   blue: '#3B6ECC',
   blueLight: '#628BD6',
   blueLightest: '#F5FAFE',
@@ -281,6 +267,11 @@ const theme = {
 
   // Try to keep these ordered plz
   zIndex: {
+    breadcrumbs: {
+      header: 2,
+      gridCellError: 1,
+      iconWrapper: 1,
+    },
     traceView: {
       spanTreeToggler: 900,
       rowInfoMessage: 900,

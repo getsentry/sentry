@@ -44,6 +44,15 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
   width: COL_WIDTH_UNDEFINED,
 };
 
+function normalizeUserTag(key: string, value: string) {
+  const parts = value.split(':', 2);
+  if (parts.length !== 2) {
+    return [key, parts[0]];
+  }
+  const normalizedKey = [key, parts[0]].join('.');
+  return [normalizedKey, parts[1]];
+}
+
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
 export function decodeColumnOrder(
@@ -113,7 +122,7 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
 
 export function getPrebuiltQueries(organization: Organization) {
   let views = ALL_VIEWS;
-  if (organization.features.includes('transaction-events')) {
+  if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
     const cloned = [...ALL_VIEWS];
     cloned.splice(2, 0, ...TRANSACTION_VIEWS);
@@ -163,20 +172,30 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 
 // A map between aggregate function names and its un-aggregated form
 const TRANSFORM_AGGREGATES = {
-  p99: 'transaction.duration',
-  p95: 'transaction.duration',
-  p75: 'transaction.duration',
   last_seen: 'timestamp',
   latest_event: 'id',
   apdex: '',
   impact: '',
   user_misery: '',
-  error_rate: '',
+  failure_rate: '',
 } as const;
+
+function transformAggregate(fieldName: string): string {
+  // test if a field name is a percentile field name. for example: p50
+  if (/^p\d+$/.test(fieldName)) {
+    return 'transaction.duration';
+  }
+
+  return TRANSFORM_AGGREGATES[fieldName] || '';
+}
+
+function isTransformAggregate(fieldName: string): boolean {
+  return transformAggregate(fieldName) !== '';
+}
 
 /**
  * Convert an aggregated query into one that does not have aggregates.
- * Can also apply additions conditions defined in `additionalConditions`
+ * Will also apply additions conditions defined in `additionalConditions`
  * and generate conditions based on the `dataRow` parameter and the current fields
  * in the `eventView`.
  */
@@ -204,20 +223,14 @@ export function getExpandedResults(
     const exploded = explodeFieldString(currentField.field);
 
     let fieldNameAlias: string = '';
-    if (
-      exploded.kind === 'function' &&
-      TRANSFORM_AGGREGATES.hasOwnProperty(exploded.function[0])
-    ) {
+    if (exploded.kind === 'function' && isTransformAggregate(exploded.function[0])) {
       fieldNameAlias = exploded.function[0];
     } else if (exploded.kind === 'field') {
       fieldNameAlias = exploded.field;
     }
 
-    if (
-      fieldNameAlias !== undefined &&
-      TRANSFORM_AGGREGATES.hasOwnProperty(fieldNameAlias)
-    ) {
-      const nextFieldName = TRANSFORM_AGGREGATES[fieldNameAlias];
+    if (fieldNameAlias !== undefined && isTransformAggregate(fieldNameAlias)) {
+      const nextFieldName = transformAggregate(fieldNameAlias);
       if (!nextFieldName || transformedFields.has(nextFieldName)) {
         // this field is either duplicated in another column, or nextFieldName is undefined.
         // in either case, we remove this column
@@ -250,6 +263,13 @@ export function getExpandedResults(
       if (exploded.function[0] === 'count') {
         field = 'id';
       }
+
+      if (!field) {
+        // This is a function with no field alias. We delete this column as it'll add a blank column in the drilldown.
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
+
       transformedFields.add(field);
 
       const updatedColumn: Column = {
@@ -307,19 +327,33 @@ function generateAdditionalConditions(
           // normalize the "timestamp" field to ensure the payload works
           conditions[column.field] = getUtcDateString(nextValue);
           break;
+        case 'user':
+          const normalized = normalizeUserTag(dataKey, nextValue);
+          conditions[normalized[0]] = normalized[1];
+          break;
         default:
           conditions[column.field] = nextValue;
       }
     }
 
     // If we have an event, check tags as well.
-    if (dataRow.tags && dataRow.tags instanceof Array) {
+    if (dataRow.tags && Array.isArray(dataRow.tags)) {
       const tagIndex = dataRow.tags.findIndex(item => item.key === dataKey);
       if (tagIndex > -1) {
         const key = specialKeys.includes(column.field)
           ? `tags[${column.field}]`
           : column.field;
-        conditions[key] = dataRow.tags[tagIndex].value;
+
+        const tagValue = dataRow.tags[tagIndex].value;
+        if (key === 'user') {
+          // Remove the user condition that might have been added
+          // from the user context.
+          delete conditions[key];
+          const normalized = normalizeUserTag(key, tagValue);
+          conditions[normalized[0]] = normalized[1];
+          return;
+        }
+        conditions[key] = tagValue;
       }
     }
   });
@@ -350,12 +384,18 @@ function generateExpandedConditions(
 
   // Add additional conditions provided and generated.
   for (const key in conditions) {
+    const value = additionalConditions[key];
     if (key === 'project.id') {
-      eventView.project = [...eventView.project, parseInt(additionalConditions[key], 10)];
+      eventView.project = [...eventView.project, parseInt(value, 10)];
       continue;
     }
     if (key === 'environment') {
-      eventView.environment = [...eventView.environment, additionalConditions[key]];
+      eventView.environment = [...eventView.environment, value];
+      continue;
+    }
+    if (key === 'user' && typeof value === 'string') {
+      const normalized = normalizeUserTag(key, value);
+      parsedQuery[normalized[0]] = [normalized[1]];
       continue;
     }
     const column = explodeFieldString(key);
@@ -397,7 +437,7 @@ export function generateFieldOptions({
   let functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
-  if (!organization.features.includes('transaction-events')) {
+  if (!organization.features.includes('performance-view')) {
     fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
     functions = functions.filter(item => !TRACING_FIELDS.includes(item));
   }

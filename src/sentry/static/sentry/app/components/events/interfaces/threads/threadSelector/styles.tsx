@@ -6,6 +6,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 const Grid = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;
+  height: 100%;
   grid-gap: ${space(1)};
   align-items: center;
   grid-template-columns: 30px 2.5fr 4fr 0fr 40px;

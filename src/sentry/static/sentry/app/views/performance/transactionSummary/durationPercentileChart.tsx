@@ -115,7 +115,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
     // Don't call super as we don't really need issues for this.
     return (
       <ErrorPanel>
-        <IconWarning color={theme.gray500} size="lg" />
+        <IconWarning color="gray500" size="lg" />
       </ErrorPanel>
     );
   }

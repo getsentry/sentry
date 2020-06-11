@@ -43,6 +43,7 @@ from django.test import override_settings, TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from exam import before, fixture, Exam
+from concurrent.futures import ThreadPoolExecutor
 from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -715,27 +716,19 @@ class AcceptanceTestCase(TransactionTestCase):
         # Forward session cookie to django client.
         self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
 
-    def dismiss_assistant(self):
-        res = self.client.put(
-            "/api/0/assistant/?v2",
-            content_type="application/json",
-            data=json.dumps({"guide": "discover_sidebar", "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201
+    def dismiss_assistant(self, which=None):
+        if which is None:
+            which = ("discover_sidebar", "issue", "issue_stream")
+        if isinstance(which, six.string_types):
+            which = [which]
 
-        res = self.client.put(
-            "/api/0/assistant/?v2",
-            content_type="application/json",
-            data=json.dumps({"guide": "issue", "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201
-
-        res = self.client.put(
-            "/api/0/assistant/?v2",
-            content_type="application/json",
-            data=json.dumps({"guide": "issue_stream", "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201
+        for item in which:
+            res = self.client.put(
+                "/api/0/assistant/?v2",
+                content_type="application/json",
+                data=json.dumps({"guide": item, "status": "viewed", "useful": True}),
+            )
+            assert res.status_code == 201, res.content
 
 
 class IntegrationTestCase(TestCase):
@@ -779,19 +772,27 @@ class SnubaTestCase(BaseTestCase):
     tests that require snuba.
     """
 
+    init_endpoints = (
+        "/tests/events/drop",
+        "/tests/groupedmessage/drop",
+        "/tests/transactions/drop",
+        "/tests/sessions/drop",
+    )
+
     def setUp(self):
         super(SnubaTestCase, self).setUp()
         self.init_snuba()
 
+    def call_snuba(self, endpoint):
+        return requests.post(settings.SENTRY_SNUBA + endpoint)
+
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/events/drop").status_code == 200
-        assert (
-            requests.post(settings.SENTRY_SNUBA + "/tests/groupedmessage/drop").status_code == 200
+        assert all(
+            response.status_code == 200
+            for response in ThreadPoolExecutor(4).map(self.call_snuba, self.init_endpoints)
         )
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/transactions/drop").status_code == 200
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/sessions/drop").status_code == 200
 
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):

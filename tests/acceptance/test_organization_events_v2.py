@@ -19,7 +19,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
-    "organizations:transaction-events",
+    "organizations:performance-view",
 ]
 
 
@@ -150,7 +150,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
         self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
 
-        self.dismiss_assistant()
+        self.dismiss_assistant("discover_sidebar")
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -178,12 +178,31 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_all_events_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         min_ago = iso_format(before_now(minutes=1))
+        two_min_ago = iso_format(before_now(minutes=2))
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
                 "timestamp": min_ago,
                 "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "this is bad.",
+                "timestamp": two_min_ago,
+                "fingerprint": ["group-2"],
+                "user": {
+                    "id": "123",
+                    "email": "someone@example.com",
+                    "username": "haveibeenpwned",
+                    "ip_address": "8.8.8.8",
+                    "name": "Someone",
+                },
             },
             project_id=self.project.id,
             assert_no_errors=False,

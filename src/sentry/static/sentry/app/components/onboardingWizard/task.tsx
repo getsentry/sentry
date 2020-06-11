@@ -14,7 +14,6 @@ import Card from 'app/components/card';
 import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
 import {IconLock, IconCheckmark, IconClose, IconEvent} from 'app/icons';
-import theme from 'app/utils/theme';
 import Avatar from 'app/components/avatar';
 import LetterAvatar from 'app/components/letterAvatar';
 
@@ -109,7 +108,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color={theme.redLight} />
+      <IconLock size="xs" color="redLight" />
     </Tooltip>
   );
 
@@ -247,13 +246,13 @@ const completedItemPoses = {
 const CompleteIndicator = posed(IconCheckmark)(completedItemPoses);
 CompleteIndicator.defaultProps = {
   isCircled: true,
-  color: theme.green400,
+  color: 'green400',
 };
 
 const SkippedIndicator = posed(IconClose)(completedItemPoses);
 SkippedIndicator.defaultProps = {
   isCircled: true,
-  color: theme.yellowOrange,
+  color: 'yellowOrange',
 };
 
 const CompletedDate = styled(posed.div(completedItemPoses))`

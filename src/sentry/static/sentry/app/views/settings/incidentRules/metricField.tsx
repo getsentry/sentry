@@ -22,7 +22,7 @@ import {
 } from 'app/utils/discover/fields';
 
 import {Dataset} from './types';
-import {PRESET_AGGREGATES} from './constants';
+import {PRESET_AGGREGATES} from './presets';
 
 type Props = Omit<FormField['props'], 'children' | 'help'> & {
   organization: Organization;
@@ -42,7 +42,7 @@ const transactionFieldConfig: OptionConfig = {
   aggregations: [
     'avg',
     'percentile',
-    'error_rate',
+    'failure_rate',
     'apdex',
     'count',
     'p50',

@@ -23,6 +23,4 @@ const App = ({data}: Props) => (
   <ContextBlock knownData={getAppKnownData(data, appKnownDataValues)} />
 );
 
-App.getTitle = () => 'App';
-
 export default App;

@@ -532,6 +532,10 @@ class GetLatestReleaseTest(TestCase):
             == new.version
         )
 
+        # Verify that not passing an environment correctly gets the latest one
+        assert get_latest_release([self.project], None) == newest.version
+        assert get_latest_release([self.project], []) == newest.version
+
         with pytest.raises(Release.DoesNotExist):
             # environment with no releases
             environment = self.create_environment()

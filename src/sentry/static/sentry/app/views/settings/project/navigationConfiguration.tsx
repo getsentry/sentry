@@ -63,14 +63,21 @@ export default function getConfiguration({
           title: t('Debug Files'),
         },
         {
-          path: `${pathPrefix}/android-mappings/`,
-          title: t('Android Mappings'),
+          path: `${pathPrefix}/source-maps/`,
+          title: t('Source Maps'),
+          show: () => organization.features?.includes('artifacts-in-settings'),
+        },
+        {
+          path: `${pathPrefix}/proguard/`,
+          title: t('ProGuard'),
           show: () => organization.features?.includes('android-mappings'),
         },
         {
-          path: `${pathPrefix}/data-privacy/`,
-          title: t('Data Privacy'),
-          description: t('Configure Datascrubbers for a project'),
+          path: `${pathPrefix}/security-and-privacy/`,
+          title: t('Security & Privacy'),
+          description: t(
+            'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
+          ),
           show: () => organization.features?.includes('datascrubbers-v2'),
           badge: () => 'new',
         },

@@ -21,6 +21,7 @@ from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerial
 from sentry import eventstore, features
 from sentry.snuba import discover
 from sentry.utils import snuba
+from sentry.utils.snuba import MAX_FIELDS
 from sentry.utils.http import absolute_uri
 from sentry.models.project import Project
 
@@ -116,7 +117,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         )
 
     def get(self, request, organization):
-        if not features.has("organizations:discover-basic", organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
@@ -132,6 +133,13 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             )
             if not has_global_views and len(params.get("project_id", [])) > 1:
                 raise ParseError(detail="You cannot view events from multiple projects.")
+
+            if len(request.GET.getlist("field")) > MAX_FIELDS:
+                raise ParseError(
+                    detail="You can view up to {0} fields at a time. Please delete some and try again.".format(
+                        MAX_FIELDS
+                    )
+                )
 
         def data_fn(offset, limit):
             return discover.query(

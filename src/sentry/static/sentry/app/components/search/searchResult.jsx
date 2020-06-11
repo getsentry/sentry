@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import IdBadge from 'app/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SentryTypes from 'app/sentryTypes';
 import SettingsSearch from 'app/views/settings/components/settingsSearch';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 
@@ -29,6 +28,7 @@ class SearchResult extends React.Component {
         'event',
         'plugin',
         'integration',
+        'docIntegration',
         'help',
       ]),
       /**
@@ -52,14 +52,7 @@ class SearchResult extends React.Component {
       resultIcon: PropTypes.node,
       title: PropTypes.node,
       description: PropTypes.node,
-      model: PropTypes.oneOfType([
-        SentryTypes.Organization,
-        SentryTypes.Project,
-        SentryTypes.Team,
-        SentryTypes.Member,
-        SentryTypes.Group,
-        SentryTypes.Event,
-      ]),
+      model: PropTypes.object,
     }),
     matches: PropTypes.array,
   };

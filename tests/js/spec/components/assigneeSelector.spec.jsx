@@ -76,7 +76,7 @@ describe('AssigneeSelector', function() {
       },
     });
 
-    MemberListStore.items = null;
+    MemberListStore.state = [];
     MemberListStore.loaded = false;
 
     assigneeSelector = mountWithTheme(

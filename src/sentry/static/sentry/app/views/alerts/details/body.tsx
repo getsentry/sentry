@@ -2,29 +2,30 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
-import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/constants';
-import {NewQuery, Project} from 'app/types';
+import {Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
-import {defined} from 'app/utils';
-import {getUtcDateString} from 'app/utils/dates';
+import {toTitleCase, defined} from 'app/utils';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
-import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
 import Feature from 'app/components/acl/feature';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
-import {IconTelescope, IconWarning, IconLink} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {SectionHeading} from 'app/components/charts/styles';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {Panel} from 'app/components/panels';
+import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
+import Button from 'app/components/button';
+import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
+import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
+import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 
+import Activity from './activity';
+import Chart from './chart';
 import {
   Incident,
   IncidentStats,
@@ -32,8 +33,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import Activity from './activity';
-import Chart from './chart';
+import {getIncidentMetricPreset} from '../utils';
 
 type Props = {
   incident?: Incident;
@@ -41,41 +41,9 @@ type Props = {
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
-  getDiscoverUrl(projects: Project[]) {
-    const {incident, params, stats} = this.props;
-    const {orgId} = params;
-
-    if (!projects || !projects.length || !incident || !stats) {
-      return '';
-    }
-
-    const timeWindowString = `${incident.alertRule.timeWindow}m`;
-    const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
-    const end = getUtcDateString(
-      stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
-    );
-
-    const discoverQuery: NewQuery = {
-      id: undefined,
-      name: (incident && incident.title) || '',
-      fields: ['issue', 'count(id)', 'count_unique(user.id)'],
-      orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
-      query: incident?.discoverQuery ?? '',
-      projects: projects
-        .filter(({slug}) => incident.projects.includes(slug))
-        .map(({id}) => Number(id)),
-      version: 2 as const,
-      start,
-      end,
-    };
-
-    const discoverView = EventView.fromSavedQuery(discoverQuery);
-    const {query, ...toObject} = discoverView.getResultsViewUrlTarget(orgId);
-
-    return {
-      query: {...query, interval: timeWindowString},
-      ...toObject,
-    };
+  get metricPreset() {
+    const {incident} = this.props;
+    return incident ? getIncidentMetricPreset(incident) : undefined;
   }
 
   /**
@@ -96,13 +64,6 @@ export default class DetailsBody extends React.Component<Props> {
     return `${direction} ${trigger[key]}`;
   }
 
-  get friendlyIncidentType() {
-    const aggregate = this.props?.incident?.alertRule?.aggregate;
-    const preset = PRESET_AGGREGATES.find(p => p.match.test(aggregate ?? ''));
-
-    return preset?.name ?? t('Custom metric');
-  }
-
   renderRuleDetails() {
     const {incident} = this.props;
 
@@ -119,8 +80,23 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <RuleDetails>
+        <span>{t('Data Source')}</span>
+        <span>{t(toTitleCase(incident.alertRule?.dataset))}</span>
+
         <span>{t('Metric')}</span>
         <span>{incident.alertRule?.aggregate}</span>
+
+        <span>{t('Time Window')}</span>
+        <span>
+          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
+        </span>
+
+        {incident.alertRule?.query && (
+          <React.Fragment>
+            <span>{t('Filter')}</span>
+            <span title={incident.alertRule?.query}>{incident.alertRule?.query}</span>
+          </React.Fragment>
+        )}
 
         <span>{t('Critical Trigger')}</span>
         <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
@@ -145,11 +121,6 @@ export default class DetailsBody extends React.Component<Props> {
             )}
           </React.Fragment>
         )}
-
-        <span>{t('Time Window')}</span>
-        <span>
-          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
-        </span>
       </RuleDetails>
     );
   }
@@ -160,27 +131,69 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <ChartHeader>
-        {this.friendlyIncidentType}
-
-        <ChartParameters>
-          {tct('Metric: [metric] over [window]', {
-            metric: <code>{alertRule?.aggregate ?? '...'}</code>,
-            window: (
-              <code>
-                {incident ? (
-                  <Duration seconds={incident.alertRule.timeWindow * 60} />
-                ) : (
-                  '...'
-                )}
-              </code>
-            ),
-          })}
-          {alertRule?.query &&
-            tct('Filter: [filter]', {
-              filter: <code>{alertRule.query}</code>,
+        <div>
+          {this.metricPreset?.name ?? t('Custom metric')}
+          <ChartParameters>
+            {tct('Metric: [metric] over [window]', {
+              metric: <code>{alertRule?.aggregate ?? '\u2026'}</code>,
+              window: (
+                <code>
+                  {incident ? (
+                    <Duration seconds={incident.alertRule.timeWindow * 60} />
+                  ) : (
+                    '\u2026'
+                  )}
+                </code>
+              ),
             })}
-        </ChartParameters>
+            {(alertRule?.query || incident?.alertRule?.dataset) &&
+              tct('Filter: [datasetType] [filter]', {
+                datasetType: incident?.alertRule?.dataset && (
+                  <code>{DATASET_EVENT_TYPE_FILTERS[incident.alertRule.dataset]}</code>
+                ),
+                filter: alertRule?.query && <code>{alertRule.query}</code>,
+              })}
+          </ChartParameters>
+        </div>
       </ChartHeader>
+    );
+  }
+
+  renderChartActions() {
+    const {incident, params, stats} = this.props;
+
+    return (
+      // Currently only one button in pannel, hide panel if not available
+      <Feature features={['discover-basic']}>
+        <ChartActions>
+          <Projects slugs={incident?.projects} orgId={params.orgId}>
+            {({initiallyLoaded, fetching, projects}) => {
+              const preset = this.metricPreset;
+              const ctaOpts = {
+                orgSlug: params.orgId,
+                projects: (initiallyLoaded ? projects : []) as Project[],
+                incident,
+                stats,
+              };
+
+              const {buttonText, ...props} = preset
+                ? preset.makeCtaParams(ctaOpts)
+                : makeDefaultCta(ctaOpts);
+
+              return (
+                <Button
+                  size="small"
+                  priority="primary"
+                  disabled={!incident || fetching || !initiallyLoaded}
+                  {...props}
+                >
+                  {buttonText}
+                </Button>
+              );
+            }}
+          </Projects>
+        </ChartActions>
+      </Feature>
     );
   }
 
@@ -189,31 +202,35 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <StyledPageContent>
-        {incident &&
-          incident.status === IncidentStatus.CLOSED &&
-          incident.statusMethod === IncidentStatusMethod.RULE_UPDATED && (
-            <AlertWrapper>
-              <Alert type="warning" icon={<IconWarning size="sm" />}>
-                {t(
-                  'This alert has been auto-resolved because the rule that triggered it has been modified or deleted'
-                )}
-              </Alert>
-            </AlertWrapper>
-          )}
         <Main>
+          {incident &&
+            incident.status === IncidentStatus.CLOSED &&
+            incident.statusMethod === IncidentStatusMethod.RULE_UPDATED && (
+              <AlertWrapper>
+                <Alert type="warning" icon={<IconWarning size="sm" />}>
+                  {t(
+                    'This alert has been auto-resolved because the rule that triggered it has been modified or deleted'
+                  )}
+                </Alert>
+              </AlertWrapper>
+            )}
           <PageContent>
             <ChartPanel>
-              {this.renderChartHeader()}
-              {incident && stats ? (
-                <Chart
-                  aggregate={incident.alertRule.aggregate}
-                  data={stats.eventStats.data}
-                  detected={incident.dateDetected}
-                  closed={incident.dateClosed}
-                />
-              ) : (
-                <Placeholder height="200px" />
-              )}
+              <PanelBody withPadding>
+                {this.renderChartHeader()}
+                {incident && stats ? (
+                  <Chart
+                    triggers={incident.alertRule.triggers}
+                    aggregate={incident.alertRule.aggregate}
+                    data={stats.eventStats.data}
+                    detected={incident.dateDetected}
+                    closed={incident.dateClosed || undefined}
+                  />
+                ) : (
+                  <Placeholder height="200px" />
+                )}
+              </PanelBody>
+              {this.renderChartActions()}
             </ChartPanel>
           </PageContent>
           <DetailWrapper>
@@ -248,36 +265,11 @@ export default class DetailsBody extends React.Component<Props> {
                       pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
                     }}
                   >
-                    {t('View Rule')}
-                    <IconLink size="xs" />
+                    {t('View Alert Rule')}
                   </SideHeaderLink>
                 )}
               </SidebarHeading>
               {this.renderRuleDetails()}
-
-              <SidebarHeading>
-                <span>{t('Query')}</span>
-                <Feature features={['discover-basic']}>
-                  <Projects slugs={incident?.projects} orgId={params.orgId}>
-                    {({initiallyLoaded, fetching, projects}) => (
-                      <SideHeaderLink
-                        disabled={!incident || fetching || !initiallyLoaded}
-                        to={this.getDiscoverUrl(
-                          ((initiallyLoaded && projects) as Project[]) || []
-                        )}
-                      >
-                        {t('View in Discover')}
-                        <IconTelescope size="xs" />
-                      </SideHeaderLink>
-                    )}
-                  </Projects>
-                </Feature>
-              </SidebarHeading>
-              {incident ? (
-                <Query>{incident?.alertRule.query || '""'}</Query>
-              ) : (
-                <Placeholder height="30px" />
-              )}
             </Sidebar>
           </DetailWrapper>
         </Main>
@@ -339,12 +331,16 @@ const StyledPageContent = styled(PageContent)`
   flex-direction: column;
 `;
 
-const ChartPanel = styled(Panel)`
-  padding: ${space(2)};
+const ChartPanel = styled(Panel)``;
+
+const ChartHeader = styled('header')`
+  margin-bottom: ${space(1)};
 `;
 
-const ChartHeader = styled('div')`
-  margin-bottom: ${space(1)};
+const ChartActions = styled(PanelFooter)`
+  display: flex;
+  justify-content: flex-end;
+  padding: ${space(2)};
 `;
 
 const ChartParameters = styled('div')`
@@ -355,6 +351,7 @@ const ChartParameters = styled('div')`
   grid-auto-columns: max-content;
   grid-gap: ${space(4)};
   align-items: center;
+  overflow-x: auto;
 
   > * {
     position: relative;
@@ -404,20 +401,20 @@ const RuleDetails = styled('div')`
     padding: ${space(0.5)} ${space(1)};
   }
 
+  & > span:nth-child(2n + 1) {
+    width: 125px;
+  }
+
   & > span:nth-child(2n + 2) {
     text-align: right;
+    width: 215px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
     background-color: ${p => p.theme.gray100};
   }
-`;
-
-const Query = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
-  background-color: ${p => p.theme.gray100};
-  padding: ${space(0.5)} ${space(1)};
-  color: ${p => p.theme.gray700};
 `;

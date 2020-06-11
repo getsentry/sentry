@@ -29,8 +29,6 @@ class TestAlertRuleSerializer(TestCase):
             "dataset": QueryDatasets.EVENTS.value,
             "query": "level:error",
             "threshold_type": 0,
-            "resolve_threshold": 1,
-            "alert_threshold": 0,
             "aggregate": "count()",
             "threshold_period": 1,
             "projects": [self.project.slug],
@@ -160,14 +158,27 @@ class TestAlertRuleSerializer(TestCase):
         assert alert_rule.snuba_query.dataset == QueryDatasets.TRANSACTIONS.value
         assert alert_rule.snuba_query.aggregate == "count()"
 
+    def test_decimal(self):
+        params = self.valid_transaction_params.copy()
+        alert_threshold = 0.8
+        resolve_threshold = 0.7
+        params["triggers"][0]["alertThreshold"] = alert_threshold
+        params["triggers"][0]["resolveThreshold"] = resolve_threshold
+        # Drop off the warning trigger
+        params["triggers"].pop()
+        serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
+        assert serializer.is_valid(), serializer.errors
+        alert_rule = serializer.save()
+        trigger = alert_rule.alertruletrigger_set.filter(label="critical").get()
+        assert trigger.alert_threshold == alert_threshold
+        assert trigger.resolve_threshold == resolve_threshold
+
     def test_simple_below_threshold(self):
         payload = {
             "name": "hello_im_a_test",
             "time_window": 10,
             "query": "level:error",
             "threshold_type": 0,
-            "resolve_threshold": 1,
-            "alert_threshold": 0,
             "aggregate": "count()",
             "threshold_period": 1,
             "projects": [self.project.slug],

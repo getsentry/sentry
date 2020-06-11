@@ -12,7 +12,6 @@ import SentryTypes from 'app/sentryTypes';
 import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import withApi from 'app/utils/withApi';
@@ -149,7 +148,7 @@ class Tags extends React.Component<Props, State> {
     } else {
       return (
         <StyledError>
-          <StyledIconWarning color={theme.gray500} size="lg" />
+          <StyledIconWarning color="gray500" size="lg" />
           {t('No tags found')}
         </StyledError>
       );
@@ -159,16 +158,12 @@ class Tags extends React.Component<Props, State> {
   render() {
     return (
       <React.Fragment>
-        <StyledSectionHeading>{t('Event Tag Summary')}</StyledSectionHeading>
+        <SectionHeading>{t('Tag Summary')}</SectionHeading>
         {this.renderBody()}
       </React.Fragment>
     );
   }
 }
-
-const StyledSectionHeading = styled(SectionHeading)`
-  margin-top: ${space(0.5)};
-`;
 
 const StyledError = styled('div')`
   color: ${p => p.theme.gray500};

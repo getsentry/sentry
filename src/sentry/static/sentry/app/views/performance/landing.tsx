@@ -48,6 +48,7 @@ type Props = {
   router: ReactRouter.InjectedRouter;
   projects: Project[];
   loadingProjects: boolean;
+  demoMode?: boolean;
 };
 
 type State = {
@@ -122,9 +123,9 @@ class PerformanceLanding extends React.Component<Props, State> {
   getViewLabel(currentView: FilterViews): string {
     switch (currentView) {
       case FilterViews.ALL_TRANSACTIONS:
-        return t('All Transactions');
+        return t('By Transaction');
       case FilterViews.KEY_TRANSACTIONS:
-        return t('My Key Transactions');
+        return t('By Key Transaction');
       default:
         throw Error(`Unknown view: ${currentView}`);
     }
@@ -178,8 +179,13 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   shouldShowOnboarding() {
-    const {projects} = this.props;
+    const {projects, demoMode} = this.props;
     const {eventView} = this.state;
+
+    // XXX used by getsentry to bypass onboarding for the upsell demo state.
+    if (demoMode) {
+      return false;
+    }
 
     if (projects.length === 0) {
       return false;

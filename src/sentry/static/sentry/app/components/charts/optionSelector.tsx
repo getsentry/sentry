@@ -43,6 +43,7 @@ function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}
             eventKey={opt.value}
             disabled={opt.disabled}
             isActive={selected === opt.value}
+            data-test-id={`option-${opt.value}`}
           >
             {opt.label}
           </DropdownItem>

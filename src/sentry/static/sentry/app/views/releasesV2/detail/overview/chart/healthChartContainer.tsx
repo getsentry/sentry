@@ -3,7 +3,6 @@ import * as ReactRouter from 'react-router';
 
 import ChartZoom from 'app/components/charts/chartZoom';
 import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
 import {GlobalSelection} from 'app/types';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
@@ -41,7 +40,7 @@ const ReleaseChartContainer = ({
           if (errored) {
             return (
               <ErrorPanel>
-                <IconWarning color={theme.gray500} size="lg" />
+                <IconWarning color="gray500" size="lg" />
               </ErrorPanel>
             );
           }

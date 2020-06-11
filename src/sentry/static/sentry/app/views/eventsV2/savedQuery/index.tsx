@@ -12,7 +12,6 @@ import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {IconBookmark, IconDelete} from 'app/icons';
 import EventView from 'app/utils/discover/eventView';
 
@@ -77,7 +76,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     // For modifying a SavedQuery
     const isEqualQuery = nextEventView.isEqualTo(savedEventView);
-
     return {
       isNewQuery: false,
       isEditingQuery: !isEqualQuery,
@@ -208,7 +206,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             showChevron={false}
             disabled={disabled}
           >
-            <StyledIconBookmark size="xs" color={theme.gray500} />
+            <StyledIconBookmark size="xs" color="gray500" />
             {t('Save as...')}
           </ButtonSaveAs>
         )}
@@ -246,7 +244,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     return (
       <ButtonSaved disabled={this.props.disabled}>
-        <StyledIconBookmark isSolid size="xs" color={theme.yellow} />
+        <StyledIconBookmark isSolid size="xs" color="yellow" />
         {t('Saved query')}
       </ButtonSaved>
     );

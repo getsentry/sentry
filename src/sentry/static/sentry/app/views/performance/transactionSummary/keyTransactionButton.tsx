@@ -5,7 +5,6 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import EventView from 'app/utils/discover/eventView';
 import {Organization} from 'app/types';
 import {saveKeyTransaction, deleteKeyTransaction} from 'app/actionCreators/performance';
@@ -137,7 +136,7 @@ class KeyTransactionButton extends React.Component<Props, State> {
         icon={
           <IconStar
             size="xs"
-            color={isKeyTransaction ? theme.yellow : undefined}
+            color={isKeyTransaction ? 'yellow' : 'gray500'}
             isSolid={!!isKeyTransaction}
           />
         }

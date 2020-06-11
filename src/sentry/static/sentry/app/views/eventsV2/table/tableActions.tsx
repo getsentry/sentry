@@ -1,18 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {OrganizationSummary} from 'app/types';
 import DataExport, {ExportQueryType} from 'app/components/dataExport';
+import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {IconDownload, IconEdit} from 'app/icons';
+import {IconDownload, IconStack, IconTag} from 'app/icons';
 import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import space from 'app/styles/space';
 
 import {TableData} from './types';
 import {downloadAsCsv} from '../utils';
@@ -25,6 +24,8 @@ type Props = {
   tableData: TableData | null | undefined;
   location: Location;
   onEdit: () => void;
+  onChangeShowTags: () => void;
+  showTags: boolean;
 };
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
@@ -59,10 +60,15 @@ function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Prop
     : () => handleDownloadAsCsv(props.title, {isLoading, ...props});
 
   return (
-    <HeaderButton disabled={disabled} onClick={onClick} data-test-id="grid-download-csv">
-      <IconDownload size="xs" />
-      {t('Export Page')}
-    </HeaderButton>
+    <Button
+      size="small"
+      disabled={disabled}
+      onClick={onClick}
+      data-test-id="grid-download-csv"
+      icon={<IconDownload size="xs" />}
+    >
+      {t('Export')}
+    </Button>
   );
 }
 renderBrowserExportButton.propTypes = {
@@ -73,16 +79,16 @@ function renderAsyncExportButton(canEdit: boolean, props: Props) {
   const {isLoading, location} = props;
   const disabled = isLoading || canEdit === false;
   return (
-    <HeaderDownloadButton
+    <DataExport
       payload={{
         queryType: ExportQueryType.Discover,
         queryInfo: location.query,
       }}
       disabled={disabled}
+      icon={<IconDownload size="xs" />}
     >
-      <IconDownload size="xs" />
       {t('Export All')}
-    </HeaderDownloadButton>
+    </DataExport>
   );
 }
 // Placate eslint proptype checking
@@ -93,10 +99,15 @@ renderAsyncExportButton.propTypes = {
 function renderEditButton(canEdit: boolean, props: Props) {
   const onClick = canEdit ? props.onEdit : undefined;
   return (
-    <HeaderButton disabled={!canEdit} onClick={onClick} data-test-id="grid-edit-enable">
-      <IconEdit size="xs" />
-      {t('Edit Columns')}
-    </HeaderButton>
+    <Button
+      size="small"
+      disabled={!canEdit}
+      onClick={onClick}
+      data-test-id="grid-edit-enable"
+      icon={<IconStack size="xs" />}
+    >
+      {t('Columns')}
+    </Button>
   );
 }
 // Placate eslint proptype checking
@@ -104,10 +115,17 @@ renderEditButton.propTypes = {
   onEdit: PropTypes.func,
 };
 
+function renderSummaryButton({onChangeShowTags, showTags}: Props) {
+  return (
+    <Button size="small" onClick={onChangeShowTags} icon={<IconTag size="xs" />}>
+      {showTags ? t('Hide Tags') : t('Show Tags')}
+    </Button>
+  );
+}
+
 function HeaderActions(props: Props) {
   const noEditMessage = t('Requires discover query feature.');
   const editFeatures = ['organizations:discover-query'];
-
   const renderDisabled = p => (
     <Hovercard
       body={
@@ -130,61 +148,13 @@ function HeaderActions(props: Props) {
     >
       {({hasFeature}) => (
         <React.Fragment>
-          {renderDownloadButton(hasFeature, props)}
           {renderEditButton(hasFeature, props)}
+          {renderDownloadButton(hasFeature, props)}
+          {renderSummaryButton(props)}
         </React.Fragment>
       )}
     </Feature>
   );
 }
-
-const HeaderButton = styled('button')<{disabled?: boolean}>`
-  display: flex;
-  align-items: center;
-
-  background: none;
-  border: none;
-  color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray600)};
-  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  padding: 0;
-  margin: 0;
-  outline: 0;
-
-  > svg {
-    margin-right: ${space(0.5)};
-  }
-
-  &:hover,
-  &:active {
-    color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray700)};
-  }
-`;
-
-const HeaderDownloadButton = styled(DataExport)<{disabled: boolean}>`
-  background: none;
-  border: none;
-  font-weight: normal;
-  box-shadow: none;
-  color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray600)};
-
-  padding: 0;
-  margin: 0;
-  outline: 0;
-
-  svg {
-    margin-right: ${space(0.5)};
-  }
-  > span {
-    padding: 0;
-  }
-
-  &:hover,
-  &:active {
-    color: ${p => (p.disabled ? p.theme.gray400 : p.theme.gray700)};
-    box-shadow: none;
-  }
-`;
 
 export default HeaderActions;

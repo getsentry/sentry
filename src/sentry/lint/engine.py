@@ -253,7 +253,7 @@ def js_test(file_list=None):
 
     has_errors = False
     if js_file_list:
-        status = Popen(["./bin/yarn", "test-precommit"] + js_file_list).wait()
+        status = Popen(["yarn", "test-precommit"] + js_file_list).wait()
         has_errors = status != 0
 
     return has_errors
