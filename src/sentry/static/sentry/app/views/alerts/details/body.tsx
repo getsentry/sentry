@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
-import {defined} from 'app/utils';
+import {toTitleCase, defined} from 'app/utils';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
@@ -13,7 +13,7 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
-import {IconTelescope, IconWarning, IconLink} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {SectionHeading} from 'app/components/charts/styles';
 import Projects from 'app/utils/projects';
 import space from 'app/styles/space';
@@ -33,7 +33,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import {getIncidentDiscoverUrl, getIncidentMetricPreset} from '../utils';
+import {getIncidentMetricPreset} from '../utils';
 
 type Props = {
   incident?: Incident;
@@ -80,8 +80,23 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <RuleDetails>
+        <span>{t('Data Source')}</span>
+        <span>{t(toTitleCase(incident.alertRule?.dataset))}</span>
+
         <span>{t('Metric')}</span>
         <span>{incident.alertRule?.aggregate}</span>
+
+        <span>{t('Time Window')}</span>
+        <span>
+          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
+        </span>
+
+        {incident.alertRule?.query && (
+          <React.Fragment>
+            <span>{t('Filter')}</span>
+            <span title={incident.alertRule?.query}>{incident.alertRule?.query}</span>
+          </React.Fragment>
+        )}
 
         <span>{t('Critical Trigger')}</span>
         <span>{this.getThresholdText(criticalTrigger, 'alertThreshold')}</span>
@@ -106,11 +121,6 @@ export default class DetailsBody extends React.Component<Props> {
             )}
           </React.Fragment>
         )}
-
-        <span>{t('Time Window')}</span>
-        <span>
-          {incident && <Duration seconds={incident.alertRule.timeWindow * 60} />}
-        </span>
       </RuleDetails>
     );
   }
@@ -156,34 +166,32 @@ export default class DetailsBody extends React.Component<Props> {
       // Currently only one button in pannel, hide panel if not available
       <Feature features={['discover-basic']}>
         <ChartActions>
-          <PanelBody withPadding>
-            <Projects slugs={incident?.projects} orgId={params.orgId}>
-              {({initiallyLoaded, fetching, projects}) => {
-                const preset = this.metricPreset;
-                const ctaOpts = {
-                  orgSlug: params.orgId,
-                  projects: (initiallyLoaded ? projects : []) as Project[],
-                  incident,
-                  stats,
-                };
+          <Projects slugs={incident?.projects} orgId={params.orgId}>
+            {({initiallyLoaded, fetching, projects}) => {
+              const preset = this.metricPreset;
+              const ctaOpts = {
+                orgSlug: params.orgId,
+                projects: (initiallyLoaded ? projects : []) as Project[],
+                incident,
+                stats,
+              };
 
-                const {buttonText, ...props} = preset
-                  ? preset.makeCtaParams(ctaOpts)
-                  : makeDefaultCta(ctaOpts);
+              const {buttonText, ...props} = preset
+                ? preset.makeCtaParams(ctaOpts)
+                : makeDefaultCta(ctaOpts);
 
-                return (
-                  <Button
-                    size="small"
-                    priority="primary"
-                    disabled={!incident || fetching || !initiallyLoaded}
-                    {...props}
-                  >
-                    {buttonText}
-                  </Button>
-                );
-              }}
-            </Projects>
-          </PanelBody>
+              return (
+                <Button
+                  size="small"
+                  priority="primary"
+                  disabled={!incident || fetching || !initiallyLoaded}
+                  {...props}
+                >
+                  {buttonText}
+                </Button>
+              );
+            }}
+          </Projects>
         </ChartActions>
       </Feature>
     );
@@ -257,39 +265,11 @@ export default class DetailsBody extends React.Component<Props> {
                       pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
                     }}
                   >
-                    {t('View Rule')}
-                    <IconLink size="xs" />
+                    {t('View Alert Rule')}
                   </SideHeaderLink>
                 )}
               </SidebarHeading>
               {this.renderRuleDetails()}
-
-              <Feature features={['discover-basic']}>
-                <SidebarHeading>
-                  <span>{t('Query')}</span>
-                  <Projects slugs={incident?.projects} orgId={params.orgId}>
-                    {({initiallyLoaded, fetching, projects}) => (
-                      <SideHeaderLink
-                        disabled={!incident || fetching || !initiallyLoaded}
-                        to={getIncidentDiscoverUrl({
-                          orgSlug: params.orgId,
-                          projects: (initiallyLoaded ? projects : []) as Project[],
-                          incident,
-                          stats,
-                        })}
-                      >
-                        {t('View in Discover')}
-                        <IconTelescope size="xs" />
-                      </SideHeaderLink>
-                    )}
-                  </Projects>
-                </SidebarHeading>
-              </Feature>
-              {incident ? (
-                <Query>{incident?.alertRule.query || '""'}</Query>
-              ) : (
-                <Placeholder height="30px" />
-              )}
             </Sidebar>
           </DetailWrapper>
         </Main>
@@ -357,7 +337,11 @@ const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
 `;
 
-const ChartActions = styled(PanelFooter)``;
+const ChartActions = styled(PanelFooter)`
+  display: flex;
+  justify-content: flex-end;
+  padding: ${space(2)};
+`;
 
 const ChartParameters = styled('div')`
   color: ${p => p.theme.gray600};
@@ -417,20 +401,20 @@ const RuleDetails = styled('div')`
     padding: ${space(0.5)} ${space(1)};
   }
 
+  & > span:nth-child(2n + 1) {
+    width: 125px;
+  }
+
   & > span:nth-child(2n + 2) {
     text-align: right;
+    width: 215px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
     background-color: ${p => p.theme.gray100};
   }
-`;
-
-const Query = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
-  background-color: ${p => p.theme.gray100};
-  padding: ${space(0.5)} ${space(1)};
-  color: ${p => p.theme.gray700};
 `;
