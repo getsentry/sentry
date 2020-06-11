@@ -94,7 +94,7 @@ export default class DetailsBody extends React.Component<Props> {
         {incident.alertRule?.query && (
           <React.Fragment>
             <span>{t('Filter')}</span>
-            <span>{incident.alertRule?.query}</span>
+            <span title={incident.alertRule?.query}>{incident.alertRule?.query}</span>
           </React.Fragment>
         )}
 
@@ -267,7 +267,7 @@ export default class DetailsBody extends React.Component<Props> {
                       pathname: `/settings/${params.orgId}/projects/${incident?.projects[0]}/alerts/metric-rules/${incident?.alertRule?.id}/`,
                     }}
                   >
-                    {t('Edit Alert Rule')}
+                    {t('View Alert Rule')}
                   </SideHeaderLink>
                 )}
               </SidebarHeading>
