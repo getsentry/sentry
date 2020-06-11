@@ -58,16 +58,6 @@ const colors = {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Old Colors
-  yellowDarkest: '#ecbb08',
-
-  yellowOrange: '#f9a66d',
-  yellowOrangeLight: '#FFC087',
-  yellowOrangeDark: '#E08D54',
-
-  orange: '#ec5e44',
-  orangeLight: '#FF785E',
-  orangeDark: '#D3452B',
-
   red: '#e03e2f',
   redLight: '#FA5849',
   redLightest: '#FDF6F5',
@@ -141,7 +131,7 @@ const alert = {
 
 const badge = {
   alpha: {
-    background: `linear-gradient(90deg, ${colors.orangeLight}, ${colors.orangeDark})`,
+    background: `linear-gradient(90deg, ${colors.orange300}, ${colors.orange500})`,
     indicatorColor: colors.orange,
   },
   beta: {
