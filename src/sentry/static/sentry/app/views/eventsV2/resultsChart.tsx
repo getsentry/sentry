@@ -111,7 +111,10 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
 
-    if (!eventView.isEqualTo(nextEventView) || this.props.confirmedQuery !== nextProps.confirmedQuery) {
+    if (
+      !eventView.isEqualTo(nextEventView) ||
+      this.props.confirmedQuery !== nextProps.confirmedQuery
+    ) {
       return true;
     }
 
@@ -132,7 +135,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
     } = this.props;
 
     if (!confirmedQuery) {
-      return (<div/>);
+      return <div />;
     }
 
     const yAxisValue = eventView.getYAxis();

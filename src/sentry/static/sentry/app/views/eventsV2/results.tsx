@@ -108,9 +108,11 @@ class Results extends React.Component<Props, State> {
     let confirmedQuery = true;
     const currentQuery = eventView.getEventsAPIPayload(location);
 
-    const duration = currentQuery.statsPeriod && currentQuery.statsPeriod.endsWith("d") ?
-      parseInt(currentQuery.statsPeriod.slice(0, -1)) :
-      (new Date(currentQuery.end) - new Date(currentQuery.start)) / (24*60*60*1000)
+    const duration =
+      currentQuery.statsPeriod && currentQuery.statsPeriod.endsWith('d')
+        ? parseInt(currentQuery.statsPeriod.slice(0, -1), 10)
+        : (new Date(currentQuery.end) - new Date(currentQuery.start)) /
+          (24 * 60 * 60 * 1000);
 
     if (duration >= 30) {
       const {results} = await fetchProjects(api, organization.slug, {allProjects: true});
@@ -119,7 +121,7 @@ class Results extends React.Component<Props, State> {
       if (projectLength === 0) {
         // My Projects
         projectLength = results.filter(project => project.isMember).length;
-      } else if (projectLength === 1 && currentQuery.project[0] === "-1") {
+      } else if (projectLength === 1 && currentQuery.project[0] === '-1') {
         // All Projects
         projectLength = results.length;
       }
@@ -141,7 +143,6 @@ class Results extends React.Component<Props, State> {
   };
 
   longQueryConfirmed = () => {
-    const {eventView} = this.state;
     this.setState({needConfirmation: false, confirmedQuery: true});
     this.fetchTotalCount(true);
   };
@@ -314,7 +315,15 @@ class Results extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, api} = this.props;
-    const {eventView, error, errorCode, totalValues, showTags, confirmedQuery, needConfirmation} = this.state;
+    const {
+      eventView,
+      error,
+      errorCode,
+      totalValues,
+      showTags,
+      confirmedQuery,
+      needConfirmation,
+    } = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
     console.log(confirmedQuery, needConfirmation);
@@ -374,8 +383,10 @@ class Results extends React.Component<Props, State> {
               onCancel={this.longQueryCancelled}
               message={
                 <p>
-                  You've created a query that will search for events made <strong>over more than 30 days</strong> for
-                  <strong>more than 10 projects</strong>. A lot has happened during that time, so this might take awhile. Are you sure you want to do this?
+                  You've created a query that will search for events made{' '}
+                  <strong>over more than 30 days</strong> for
+                  <strong>more than 10 projects</strong>. A lot has happened during that
+                  time, so this might take awhile. Are you sure you want to do this?
                 </p>
               }
             >
