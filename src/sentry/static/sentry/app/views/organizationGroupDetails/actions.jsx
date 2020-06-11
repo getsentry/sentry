@@ -106,9 +106,7 @@ class SubscribeAction extends React.Component {
             title={t('Subscribe')}
             onClick={onToggleSubscribe}
           >
-            <IconWrapperSpan>
-              <IconBell size="xs" />
-            </IconWrapperSpan>
+            <StyledIconBell size="xs" />
           </div>
         </Tooltip>
       </div>
@@ -421,8 +419,8 @@ export {GroupDetailsActions};
 
 export default withApi(withOrganization(GroupDetailsActions));
 
-// used to match the styles of .btn.icon
-const IconWrapperSpan = styled('span')`
+// Match the styles of bootstrap .btn.icon
+const StyledIconBell = styled(IconBell)`
   position: relative;
   top: 2px;
   margin-right: -1px;
