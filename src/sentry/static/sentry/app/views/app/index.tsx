@@ -71,7 +71,7 @@ class App extends React.Component<Props, State> {
   state = {
     loading: false,
     error: false,
-    needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
+    needsUpgrade: true, //ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
     newsletterConsentPrompt: ConfigStore.get('user')?.flags?.newsletter_consent_prompt,
   };
 
@@ -234,7 +234,7 @@ class App extends React.Component<Props, State> {
 
     if (needsUpgrade) {
       const InstallWizard = React.lazy(() =>
-        import(/* webpackChunkName: "InstallWizard" */ 'app/views/installWizard')
+        import(/* webpackChunkName: "InstallWizard" */ 'app/views/admin/installWizard')
       );
 
       return (
