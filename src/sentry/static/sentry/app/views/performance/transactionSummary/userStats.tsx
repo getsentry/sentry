@@ -9,9 +9,7 @@ import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {SectionHeading} from 'app/components/charts/styles';
-import ScoreBar from 'app/components/scoreBar';
-import Tooltip from 'app/components/tooltip';
-import theme from 'app/utils/theme';
+import UserMisery from 'app/components/userMisery';
 
 type Props = {
   location: Location;
@@ -22,6 +20,8 @@ type Props = {
 type Results = {
   [key: string]: React.ReactNode;
 } | null;
+
+const userMiseryLimit = 300;
 
 class UserStats extends React.Component<Props> {
   generateUserStatsEventView(eventView: EventView): EventView {
@@ -35,7 +35,11 @@ class UserStats extends React.Component<Props> {
       },
       {
         kind: 'function',
-        function: ['user_misery', '300', undefined],
+        function: ['user_misery', `${userMiseryLimit}`, undefined],
+      },
+      {
+        kind: 'function',
+        function: ['count_unique', '', undefined],
       },
     ]);
 
@@ -44,9 +48,24 @@ class UserStats extends React.Component<Props> {
     return eventView;
   }
 
-  renderContents(stats: Results) {
-    const palette = new Array(40).fill(theme.purpleDarkest);
-    const miseryScore = !stats ? '\u2014' : stats['user_misery(300)'];
+  renderContents(stats: Results, row?) {
+    let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
+
+    if (stats) {
+      const miserableUsers = Number(row[`user_misery_${userMiseryLimit}`]);
+      const totalUsers = Number(row.count_unique);
+      if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
+        userMisery = (
+          <UserMisery
+            bars={40}
+            barHeight={30}
+            miseryLimit={userMiseryLimit}
+            totalUsers={totalUsers}
+            miserableUsers={miserableUsers}
+          />
+        );
+      }
+    }
 
     return (
       <Container>
@@ -58,12 +77,10 @@ class UserStats extends React.Component<Props> {
           <SectionHeading>{t('Baseline Duration')}</SectionHeading>
           <StatNumber>{'\u2014'}</StatNumber>
         </div>
-        <BarContainer>
+        <UserMiseryContainer>
           <SectionHeading>{t('User Misery')}</SectionHeading>
-          <Tooltip title={miseryScore}>
-            <ScoreBar size={30} score={0} palette={palette} radius={0} />
-          </Tooltip>
-        </BarContainer>
+          {userMisery}
+        </UserMiseryContainer>
       </Container>
     );
   }
@@ -105,7 +122,7 @@ class UserStats extends React.Component<Props> {
 
             return acc;
           }, {});
-          return this.renderContents(stats);
+          return this.renderContents(stats, row);
         }}
       </DiscoverQuery>
     );
@@ -119,7 +136,7 @@ const Container = styled('div')`
   margin-bottom: 40px;
 `;
 
-const BarContainer = styled('div')`
+const UserMiseryContainer = styled('div')`
   grid-column: 1/3;
 `;
 
