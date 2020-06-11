@@ -115,6 +115,7 @@ const GroupExtra = styled('div')`
   font-size: 12px;
   position: relative;
   min-width: 500px;
+  white-space: nowrap;
 
   a {
     color: inherit;
