@@ -460,8 +460,8 @@ exports[`Filter default render 1`] = `
                     "background": "#fff",
                     "badge": Object {
                       "alpha": Object {
-                        "background": "linear-gradient(90deg, #FF785E, #D3452B)",
-                        "indicatorColor": "#ec5e44",
+                        "background": "linear-gradient(90deg, #F69C7D, #BA4A23)",
+                        "indicatorColor": undefined,
                       },
                       "beta": Object {
                         "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
@@ -619,14 +619,11 @@ exports[`Filter default render 1`] = `
                       "xl": "32px",
                       "xs": "12px",
                     },
-                    "orange": "#ec5e44",
                     "orange100": "#FCF8F7",
                     "orange200": "#F9C7B9",
                     "orange300": "#F69C7D",
                     "orange400": "#FF7738",
                     "orange500": "#BA4A23",
-                    "orangeDark": "#D3452B",
-                    "orangeLight": "#FF785E",
                     "pink": "#F868BC",
                     "pink100": "#FFF5F9",
                     "pink200": "#FFCEE4",
@@ -704,10 +701,6 @@ exports[`Filter default render 1`] = `
                     "yellow300": "#FFF492",
                     "yellow400": "#FFC227",
                     "yellow500": "#E2A301",
-                    "yellowDarkest": "#ecbb08",
-                    "yellowOrange": "#f9a66d",
-                    "yellowOrangeDark": "#E08D54",
-                    "yellowOrangeLight": "#FFC087",
                     "zIndex": Object {
                       "breadcrumbs": Object {
                         "gridCellError": 1,
