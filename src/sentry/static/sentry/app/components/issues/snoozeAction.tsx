@@ -4,26 +4,30 @@ import Modal from 'react-bootstrap/lib/Modal';
 
 import {t} from 'app/locale';
 
-const Snooze = {
+enum SnoozeTimes {
   // all values in minutes
-  '30MINUTES': 30,
-  '2HOURS': 60 * 2,
-  '24HOURS': 60 * 24,
+  THIRTY_MINUTES = 30,
+  TWO_HOURS = 60 * 2,
+  TWENTY_FOUR_HOURS = 60 * 24,
+}
+
+type SnoozeActionProps = {
+  disabled: boolean;
+  tooltip: string;
+  onSnooze: (duration: SnoozeTimes) => {};
+  className?: string;
 };
 
-class SnoozeAction extends React.Component {
+class SnoozeAction extends React.Component<SnoozeActionProps> {
   static propTypes = {
     disabled: PropTypes.bool,
     onSnooze: PropTypes.func.isRequired,
     tooltip: PropTypes.string,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      isModalOpen: false,
-    };
-  }
+  state = {
+    isModalOpen: false,
+  };
 
   toggleModal = () => {
     if (this.props.disabled) {
@@ -38,7 +42,7 @@ class SnoozeAction extends React.Component {
     this.setState({isModalOpen: false});
   };
 
-  onSnooze = duration => {
+  onSnooze = (duration: SnoozeTimes) => {
     this.props.onSnooze(duration);
     this.closeModal();
   };
@@ -49,7 +53,6 @@ class SnoozeAction extends React.Component {
         <a
           title={this.props.tooltip}
           className={this.props.className}
-          disabled={this.props.disabled}
           onClick={this.toggleModal}
         >
           <span>{t('zZz')}</span>
@@ -65,15 +68,17 @@ class SnoozeAction extends React.Component {
             <h5>{t('How long should we ignore this issue?')}</h5>
             <ul className="nav nav-stacked nav-pills">
               <li>
-                <a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>
+                <a onClick={this.onSnooze.bind(this, SnoozeTimes.THIRTY_MINUTES)}>
                   {t('30 minutes')}
                 </a>
               </li>
               <li>
-                <a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>{t('2 hours')}</a>
+                <a onClick={this.onSnooze.bind(this, SnoozeTimes.TWO_HOURS)}>
+                  {t('2 hours')}
+                </a>
               </li>
               <li>
-                <a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>
+                <a onClick={this.onSnooze.bind(this, SnoozeTimes.TWENTY_FOUR_HOURS)}>
                   {t('24 hours')}
                 </a>
               </li>
