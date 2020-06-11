@@ -110,13 +110,21 @@ const Chart = (props: Props) => {
 
   const warningTrigger = triggers?.find(trig => trig.label === 'warning');
   const criticalTrigger = triggers?.find(trig => trig.label === 'critical');
-  const warningTriggerThreshold =
+  const warningTriggerAlertThreshold =
     typeof warningTrigger?.alertThreshold === 'number'
       ? warningTrigger?.alertThreshold
       : undefined;
-  const criticalTriggerThreshold =
+  const warningTriggerResolveThreshold =
+    typeof warningTrigger?.resolveThreshold === 'number'
+      ? warningTrigger?.resolveThreshold
+      : undefined;
+  const criticalTriggerAlertThreshold =
     typeof criticalTrigger?.alertThreshold === 'number'
       ? criticalTrigger?.alertThreshold
+      : undefined;
+  const criticalTriggerResolveThreshold =
+    typeof criticalTrigger?.resolveThreshold === 'number'
+      ? criticalTrigger?.resolveThreshold
       : undefined;
 
   return (
@@ -159,15 +167,15 @@ const Chart = (props: Props) => {
           }),
         },
         warningTrigger &&
-          warningTriggerThreshold && {
-            name: 'Warning',
+          warningTriggerAlertThreshold && {
+            name: 'Warning Alert',
             type: 'line',
             markLine: MarkLine({
               silent: true,
               lineStyle: {color: theme.yellow400},
               data: [
                 {
-                  yAxis: warningTriggerThreshold,
+                  yAxis: warningTriggerAlertThreshold,
                 },
               ],
               label: {
@@ -180,16 +188,38 @@ const Chart = (props: Props) => {
             }),
             data: [],
           },
+        warningTrigger &&
+          warningTriggerResolveThreshold && {
+            name: 'Warning Resolve',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.gray400},
+              data: [
+                {
+                  yAxis: warningTriggerResolveThreshold,
+                },
+              ],
+              label: {
+                show: true,
+                position: 'insideEndBottom',
+                formatter: 'WARNING RESOLUTION',
+                color: theme.gray400,
+                fontSize: 10,
+              },
+            }),
+            data: [],
+          },
         criticalTrigger &&
-          criticalTriggerThreshold && {
-            name: 'Critical',
+          criticalTriggerAlertThreshold && {
+            name: 'Critical Alert',
             type: 'line',
             markLine: MarkLine({
               silent: true,
               lineStyle: {color: theme.red300},
               data: [
                 {
-                  yAxis: criticalTriggerThreshold,
+                  yAxis: criticalTriggerAlertThreshold,
                 },
               ],
               label: {
@@ -197,6 +227,28 @@ const Chart = (props: Props) => {
                 position: 'insideEndTop',
                 formatter: 'CRITICAL',
                 color: theme.red400,
+                fontSize: 10,
+              },
+            }),
+            data: [],
+          },
+        criticalTrigger &&
+          criticalTriggerResolveThreshold && {
+            name: 'Critical Resolve',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.gray400},
+              data: [
+                {
+                  yAxis: criticalTriggerResolveThreshold,
+                },
+              ],
+              label: {
+                show: true,
+                position: 'insideEndBottom',
+                formatter: 'CRITICAL RESOLUTION',
+                color: theme.gray400,
                 fontSize: 10,
               },
             }),
