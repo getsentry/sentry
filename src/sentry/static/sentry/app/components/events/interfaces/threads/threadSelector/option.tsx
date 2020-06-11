@@ -44,7 +44,7 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
         </InnerCell>
       </GridCell>
       <GridCell>
-        <InnerCell color="blue">
+        <InnerCell color="blue400">
           <Tooltip title={label} position="top">
             <TextOverflow>{label}</TextOverflow>
           </Tooltip>
