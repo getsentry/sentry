@@ -404,7 +404,7 @@ class SearchVisitor(NodeVisitor):
     def handle_negation(self, negation, operator):
         operator = operator[0] if not isinstance(operator, Node) else "="
         if self.is_negated(negation):
-            return NEGATION_MAP.get(operator, "=")
+            return NEGATION_MAP.get(operator, "!=")
         return operator
 
     def visit_aggregate_filter(self, node, children):
