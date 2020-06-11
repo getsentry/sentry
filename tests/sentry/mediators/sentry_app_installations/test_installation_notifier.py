@@ -60,7 +60,7 @@ class TestInstallationNotifier(TestCase):
                         "organization": {"slug": self.org.slug},
                         "uuid": self.install.uuid,
                         "code": self.install.api_grant.code,
-                        "status": "pending",
+                        "status": "installed",
                     }
                 },
                 "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},
@@ -94,7 +94,7 @@ class TestInstallationNotifier(TestCase):
                         "organization": {"slug": self.org.slug},
                         "uuid": self.install.uuid,
                         "code": self.install.api_grant.code,
-                        "status": "pending",
+                        "status": "installed",
                     }
                 },
                 "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},

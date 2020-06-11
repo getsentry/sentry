@@ -11,7 +11,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
 from sentry.mediators import sentry_app_components
-from sentry.models import Project, SentryAppComponent
+from sentry.models import Project, SentryAppComponent, SentryAppInstallation
 
 
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
@@ -36,7 +36,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
 
         components = []
 
-        for install in organization.sentry_app_installations.all():
+        for install in SentryAppInstallation.get_installed_for_org(organization.id):
             _components = SentryAppComponent.objects.filter(sentry_app_id=install.sentry_app_id)
 
             if "filter" in request.GET:

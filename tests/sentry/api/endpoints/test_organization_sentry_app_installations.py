@@ -43,7 +43,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 "organization": {"slug": self.org.slug},
                 "uuid": self.installation2.uuid,
                 "code": self.installation2.api_grant.code,
-                "status": "pending",
+                "status": "installed",
             }
         ]
 
@@ -58,7 +58,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 "organization": {"slug": self.super_org.slug},
                 "uuid": self.installation.uuid,
                 "code": self.installation.api_grant.code,
-                "status": "pending",
+                "status": "installed",
             }
         ]
 
@@ -73,7 +73,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 "organization": {"slug": self.org.slug},
                 "uuid": self.installation2.uuid,
                 "code": self.installation2.api_grant.code,
-                "status": "pending",
+                "status": "installed",
             }
         ]
 
