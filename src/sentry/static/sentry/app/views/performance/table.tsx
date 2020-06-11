@@ -64,13 +64,20 @@ class Table extends React.Component<Props, State> {
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>, tableMeta: MetaType) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location} = this.props;
+      const {eventView, location, organization} = this.props;
 
       let nextLocationQuery: Location['query'] = {};
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
       delete searchConditions['event.type'];
+
+      trackAnalyticsEvent({
+        eventKey: 'performance_views.overview.cellaction',
+        eventName: 'Performance Views: Cell Action Clicked',
+        organization_id: parseInt(organization.id, 10),
+        action,
+      });
 
       switch (action) {
         case Actions.ADD: {
