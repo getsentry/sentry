@@ -46,28 +46,30 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
         disabled={false}
         hideErrorMessage={false}
         label={
-          <span>
+          <React.Fragment>
             <span>
-              I agree to the 
-            </span>
-            <a
-              href="https://example.com/terms"
-            >
               <span>
-                Terms of Service
+                I agree to the 
               </span>
-            </a>
-            <span>
-               and the 
-            </span>
-            <a
-              href="https://example.com/privacy"
-            >
+              <a
+                href="https://example.com/terms"
+              >
+                <span>
+                  Terms of Service
+                </span>
+              </a>
               <span>
-                Privacy Policy
+                 and the 
               </span>
-            </a>
-          </span>
+              <a
+                href="https://example.com/privacy"
+              >
+                <span>
+                  Privacy Policy
+                </span>
+              </a>
+            </span>
+          </React.Fragment>
         }
         name="agreeTerms"
         required={true}

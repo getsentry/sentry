@@ -4108,14 +4108,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           containerDisplayMode="block"
                                           position="top"
                                           title={
-                                            <span>
+                                            <React.Fragment>
                                               <span>
-                                                Create a project
+                                                <span>
+                                                  Create a project
+                                                </span>
+                                                <span>
+                                                   before completing this task
+                                                </span>
                                               </span>
-                                              <span>
-                                                 before completing this task
-                                              </span>
-                                            </span>
+                                            </React.Fragment>
                                           }
                                         >
                                           <Manager>
@@ -4895,14 +4897,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           containerDisplayMode="block"
                                           position="top"
                                           title={
-                                            <span>
+                                            <React.Fragment>
                                               <span>
-                                                Create a project
+                                                <span>
+                                                  Create a project
+                                                </span>
+                                                <span>
+                                                   before completing this task
+                                                </span>
                                               </span>
-                                              <span>
-                                                 before completing this task
-                                              </span>
-                                            </span>
+                                            </React.Fragment>
                                           }
                                         >
                                           <Manager>
@@ -5688,14 +5692,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           containerDisplayMode="block"
                                           position="top"
                                           title={
-                                            <span>
+                                            <React.Fragment>
                                               <span>
-                                                Create a project
+                                                <span>
+                                                  Create a project
+                                                </span>
+                                                <span>
+                                                   before completing this task
+                                                </span>
                                               </span>
-                                              <span>
-                                                 before completing this task
-                                              </span>
-                                            </span>
+                                            </React.Fragment>
                                           }
                                         >
                                           <Manager>
@@ -6482,14 +6488,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           containerDisplayMode="block"
                                           position="top"
                                           title={
-                                            <span>
+                                            <React.Fragment>
                                               <span>
-                                                Create a project
+                                                <span>
+                                                  Create a project
+                                                </span>
+                                                <span>
+                                                   before completing this task
+                                                </span>
                                               </span>
-                                              <span>
-                                                 before completing this task
-                                              </span>
-                                            </span>
+                                            </React.Fragment>
                                           }
                                         >
                                           <Manager>
@@ -7174,14 +7182,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           containerDisplayMode="block"
                                           position="top"
                                           title={
-                                            <span>
+                                            <React.Fragment>
                                               <span>
-                                                Create a project
+                                                <span>
+                                                  Create a project
+                                                </span>
+                                                <span>
+                                                   before completing this task
+                                                </span>
                                               </span>
-                                              <span>
-                                                 before completing this task
-                                              </span>
-                                            </span>
+                                            </React.Fragment>
                                           }
                                         >
                                           <Manager>
