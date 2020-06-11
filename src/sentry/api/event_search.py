@@ -32,6 +32,11 @@ from sentry.utils.compat import zip
 from sentry.utils.compat import filter
 
 WILDCARD_CHARS = re.compile(r"[\*]")
+NEGATION_MAP = {
+    "=": "!=",
+    "<": ">=",
+    ">": "<=",
+}
 
 
 def translate(pat):
@@ -120,9 +125,9 @@ specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
 # Aggregate numeric filter
-aggregate_filter          = aggregate_key sep operator? (numeric_value / duration_format)
-aggregate_date_filter     = aggregate_key sep operator? (date_format / alt_date_format)
-aggregate_rel_date_filter = aggregate_key sep operator? rel_date_format
+aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format)
+aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
+aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
@@ -396,9 +401,15 @@ class SearchVisitor(NodeVisitor):
             )
             return self._handle_basic_filter(search_key, "=", search_value)
 
-    def visit_aggregate_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
+    def handle_negation(self, negation, operator):
         operator = operator[0] if not isinstance(operator, Node) else "="
+        if self.is_negated(negation):
+            return NEGATION_MAP.get(operator, "=")
+        return operator
+
+    def visit_aggregate_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        operator = self.handle_negation(negation, operator)
         search_value = search_value[0] if not isinstance(search_value, RegexNode) else search_value
 
         try:
@@ -420,9 +431,9 @@ class SearchVisitor(NodeVisitor):
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
+        (negation, search_key, _, operator, search_value) = children
         search_value = search_value[0]
-        operator = operator[0] if not isinstance(operator, Node) else "="
+        operator = self.handle_negation(negation, operator)
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
         if is_date_aggregate:
             try:
@@ -435,8 +446,8 @@ class SearchVisitor(NodeVisitor):
             return AggregateFilter(search_key, "=", SearchValue(search_value))
 
     def visit_aggregate_rel_date_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
-        operator = operator[0] if not isinstance(operator, Node) else "="
+        (negation, search_key, _, operator, search_value) = children
+        operator = self.handle_negation(negation, operator)
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
         if is_date_aggregate:
             try:
