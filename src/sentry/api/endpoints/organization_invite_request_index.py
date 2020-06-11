@@ -27,12 +27,25 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     permission_classes = (InviteRequestPermissions,)
 
     def get(self, request, organization):
-        queryset = OrganizationMember.objects.filter(
-            Q(user__isnull=True),
-            Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
-            | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
-            organization=organization,
-        ).order_by("invite_status", "email")
+        # Users with only member:read access can only see invites they've requested,
+        # and cannot see requests to join.
+        if request.access.has_scope("member:read") and not (
+            request.access.has_scope("member:write") or request.access.has_scope("member:admin")
+        ):
+            queryset = OrganizationMember.objects.filter(
+                Q(user__isnull=True),
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value),
+                Q(inviter=request.user),
+                organization=organization,
+            ).order_by("invite_status", "email")
+
+        else:
+            queryset = OrganizationMember.objects.filter(
+                Q(user__isnull=True),
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
+                organization=organization,
+            ).order_by("invite_status", "email")
 
         if organization.get_option("sentry:join_requests") is False:
             queryset = queryset.filter(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)

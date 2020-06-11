@@ -58,6 +58,37 @@ class OrganizationInviteRequestListTest(APITestCase):
         assert resp.data[0]["email"] == self.invite_request.email
         assert resp.data[0]["inviteStatus"] == "requested_to_be_invited"
 
+    def test_read_only_members_only_view_invites_they_sent(self):
+        readOnlyUser = self.create_user("foo@example.com")
+        testOrg = self.create_organization(name="Rowdy Tiger", owner=None)
+        testTeam = self.create_team(organization=testOrg, name="Mariachi Band")
+        self.create_member(
+            user=readOnlyUser,
+            email="bar@example.com",
+            organization=testOrg,
+            role="member",
+            teams=[testTeam],
+        )
+
+        self.login_as(user=readOnlyUser)
+        resp = self.get_response(testOrg.slug)
+
+        assert resp.status_code == 200
+        assert len(resp.data) == 0
+
+        postUrl = reverse(
+            "sentry-api-0-organization-invite-request-index",
+            kwargs={"organization_slug": testOrg.slug},
+        )
+
+        self.client.post(
+            postUrl, {"email": "eric@localhost", "role": "member", "teams": [testTeam.slug]}
+        )
+
+        filteredResponse = self.get_response(testOrg.slug)
+        assert filteredResponse.status_code == 200
+        assert len(filteredResponse.data) == 1
+
 
 class OrganizationInviteRequestCreateTest(APITestCase):
     def setUp(self):
