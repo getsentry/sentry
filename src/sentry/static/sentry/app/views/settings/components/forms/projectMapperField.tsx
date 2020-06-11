@@ -17,10 +17,10 @@ export default class ProjectMapperField extends React.Component<Props> {
   private mappedRef = React.createRef<typeof SelectControl>();
 
   renderField = (props: Props) => {
-    const {onChange, onBlur, value} = props;
+    const {onChange, onBlur, value, mappedDropdown} = props;
     const existingValues: Array<[number, string | number]> = value || [];
     const sentryProjects = props.sentryProjects || [];
-    const mappedDropdownItems = props.mappedDropdown?.items || [];
+    const mappedDropdownItems = mappedDropdown?.items || [];
 
     const sentryProjectsById = Object.fromEntries(
       sentryProjects.map(project => [project.id, project])
@@ -115,7 +115,7 @@ export default class ProjectMapperField extends React.Component<Props> {
             ref={this.sentryProjectRef}
           />
           <StyledSelectControl
-            placeholder={t('Select a Vercel Project')}
+            placeholder={mappedDropdown?.placeholder}
             name="mappedDropwdown"
             openMenuOnFocus
             options={mappedItemsToShow}

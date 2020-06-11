@@ -132,6 +132,7 @@ export type ProjectMapperType = {
   type: 'project_mapper';
   mappedDropdown?: {
     items: Array<{value: string | number; label: string}>;
+    placeholder: string;
   };
   sentryProjects?: Array<AvatarProject & {id: number; name: string}>;
 };

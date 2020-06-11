@@ -60,7 +60,10 @@ class VercelIntegration(IntegrationInstallation):
             {
                 "name": "project_mappings",
                 "type": "project_mapper",
-                "mappedDropdown": {"items": vercel_projects},
+                "mappedDropdown": {
+                    "items": vercel_projects,
+                    "placeholder": _('Select a Vercel Project')
+                    },
                 "sentryProjects": sentry_projects,
             }
         ]
