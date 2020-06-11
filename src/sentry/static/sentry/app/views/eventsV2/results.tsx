@@ -60,6 +60,9 @@ function readShowTagsState() {
   return value === '1';
 }
 
+const doTimeout = (timeout: number) =>
+  new Promise(resolve => setTimeout(resolve, timeout));
+
 class Results extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
     const eventView = EventView.fromLocation(nextProps.location);
@@ -133,6 +136,10 @@ class Results extends React.Component<Props, State> {
     }
     this.setState({needConfirmation, confirmedQuery});
     this.fetchTotalCount(confirmedQuery);
+
+    // Any time confirmed Query is enabled, need to flip it off after the fetch starts
+    await doTimeout(0);
+    this.setState({confirmedQuery: false});
   };
 
   openConfirmModal = ({open}) => {
@@ -142,9 +149,12 @@ class Results extends React.Component<Props, State> {
     }
   };
 
-  longQueryConfirmed = () => {
+  longQueryConfirmed = async () => {
     this.setState({needConfirmation: false, confirmedQuery: true});
     this.fetchTotalCount(true);
+
+    await doTimeout(0);
+    this.setState({confirmedQuery: false});
   };
 
   longQueryCancelled = () => {
@@ -326,7 +336,6 @@ class Results extends React.Component<Props, State> {
     } = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
-    console.log(confirmedQuery, needConfirmation);
 
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
