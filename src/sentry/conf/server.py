@@ -1318,6 +1318,7 @@ SENTRY_ROLES = (
                 "team:admin",
                 "org:read",
                 "org:write",
+                "org:admin",
                 "org:integrations",
             ]
         ),
