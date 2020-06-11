@@ -60,3 +60,12 @@ def deliver_digest(key, schedule_timestamp=None):
 
         if digest:
             mail_adapter.notify_digest(project, digest, target_type, target_identifier)
+        else:
+            logger.info(
+                "Skipped digest delivery due to empty digest",
+                extra={
+                    "project": project.id,
+                    "target_type": target_type.value,
+                    "target_identifier": target_identifier,
+                },
+            )
