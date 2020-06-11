@@ -24,7 +24,13 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import capture_exception
 
-from .base import ExportError, ExportQueryType, EXPORTED_ROWS_LIMIT, SNUBA_MAX_RESULTS
+from .base import (
+    ExportError,
+    ExportQueryType,
+    EXPORTED_ROWS_LIMIT,
+    SNUBA_MAX_RESULTS,
+    MAX_BATCH_SIZE,
+)
 from .models import ExportedData, ExportedDataBlob
 from .utils import convert_to_utf8, handle_snuba_errors
 from .processors.discover import DiscoverProcessor
@@ -65,14 +71,11 @@ def assemble_download(
         return
 
     try:
+        # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
         if export_limit is None:
             export_limit = EXPORTED_ROWS_LIMIT
         else:
             export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
-
-        # if there is an export limit, the last batch should only return up to the export limit
-        if export_limit is not None:
-            batch_size = min(batch_size, max(export_limit - offset, 0))
 
         processor = get_processor(data_export, environment_id)
 
@@ -81,10 +84,33 @@ def assemble_download(
             if first_page:
                 writer.writeheader()
 
-            rows = process_rows(processor, data_export, batch_size, offset)
-            writer.writerows(rows)
+            # the position in the file at the end of the headers
+            starting_pos = tf.tell()
 
-            next_offset = offset + len(rows)
+            # the row offset relative to the start of the current task
+            # this offset tells you the number of rows written during this batch fragment
+            fragment_offset = 0
+
+            # the absolute row offset from the beginning of the export
+            next_offset = offset + fragment_offset
+
+            while True:
+                # the number of rows to export in the next batch fragment
+                fragment_row_count = min(batch_size, max(export_limit - next_offset, 1))
+
+                rows = process_rows(processor, data_export, fragment_row_count, next_offset)
+                writer.writerows(rows)
+
+                fragment_offset += len(rows)
+                next_offset = offset + fragment_offset
+
+                if (
+                    not rows
+                    or len(rows) < batch_size
+                    # the batch may exceed MAX_BATCH_SIZE but immediately stops
+                    or tf.tell() - starting_pos >= MAX_BATCH_SIZE
+                ):
+                    break
 
             tf.seek(0)
             new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
@@ -105,12 +131,7 @@ def assemble_download(
         except MaxRetriesExceededError:
             return data_export.email_failure(message="Internal processing failure")
     else:
-        if (
-            rows
-            and len(rows) >= batch_size
-            and new_bytes_written
-            and (export_limit is None or next_offset < export_limit)
-        ):
+        if rows and len(rows) >= batch_size and new_bytes_written and next_offset < export_limit:
             assemble_download.delay(
                 data_export_id,
                 export_limit=export_limit,
