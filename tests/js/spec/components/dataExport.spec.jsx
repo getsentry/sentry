@@ -79,14 +79,10 @@ describe('DataExport', function() {
       <WrappedDataExport payload={mockPayload} />,
       mockRouterContext(mockAuthorizedOrg)
     );
-    expect(wrapper.find(Button).text()).toEqual(
-      expect.stringMatching(/^Export All to CSV/)
-    );
+    expect(wrapper.find(Button).prop('disabled')).toBe(false);
     wrapper.find('button').simulate('click');
     await tick();
-    expect(wrapper.find(Button).text()).toEqual(
-      expect.stringMatching(/^We're working on it.../)
-    );
+    expect(wrapper.find(Button).prop('disabled')).toBe(true);
     expect(postDataExport).toHaveBeenCalledWith(url, {
       data: {
         query_type: mockPayload.queryType,
@@ -98,11 +94,7 @@ describe('DataExport', function() {
     });
     await tick();
     wrapper.update();
-    expect(wrapper.text()).toContain("We're working on it...");
     expect(wrapper.find(Button).prop('disabled')).toBe(true);
-    expect(wrapper.find(Button).text()).toEqual(
-      expect.stringMatching(/^We're working on it.../)
-    );
   });
 
   it('should reset the state when receiving a new payload', async function() {
@@ -119,13 +111,10 @@ describe('DataExport', function() {
     wrapper.find('button').simulate('click');
     await tick();
     wrapper.update();
-    expect(wrapper.find(Button).text()).toEqual(
-      expect.stringMatching(/^We're working on it.../)
-    );
+    expect(wrapper.find(Button).prop('disabled')).toBe(true);
     wrapper.setProps({payload: {...mockPayload, queryType: 'Discover'}});
-    expect(wrapper.find(Button).text()).toEqual(
-      expect.stringMatching(/^Export All to CSV/)
-    );
+    wrapper.update();
+    expect(wrapper.find(Button).prop('disabled')).toBe(false);
   });
 
   it('should display default error message if non provided', async function() {
@@ -144,9 +133,8 @@ describe('DataExport', function() {
     expect(addErrorMessage).toHaveBeenCalledWith(
       "We tried our hardest, but we couldn't export your data. Give it another go."
     );
-    expect(wrapper.find(Button).text()).toEqual(
-      expect.stringMatching(/^Export All to CSV/)
-    );
+    wrapper.update();
+    expect(wrapper.find(Button).prop('disabled')).toBe(false);
   });
 
   it('should display provided error message', async function() {
