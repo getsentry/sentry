@@ -88,21 +88,21 @@ def assemble_download(
             starting_pos = tf.tell()
 
             # the row offset relative to the start of the current task
-            # this offset tells you the number of rows written during this batch
-            batch_offset = 0
+            # this offset tells you the number of rows written during this batch fragment
+            fragment_offset = 0
 
             # the absolute row offset from the beginning of the export
-            next_offset = offset + batch_offset
+            next_offset = offset + fragment_offset
 
             while True:
-                # the number of rows to export in the next mini-batch
-                batch_row_count = min(batch_size, max(export_limit - next_offset, 1))
+                # the number of rows to export in the next batch fragment
+                fragment_row_count = min(batch_size, max(export_limit - next_offset, 1))
 
-                rows = process_rows(processor, data_export, batch_row_count, next_offset)
+                rows = process_rows(processor, data_export, fragment_row_count, next_offset)
                 writer.writerows(rows)
 
-                batch_offset += len(rows)
-                next_offset = offset + batch_offset
+                fragment_offset += len(rows)
+                next_offset = offset + fragment_offset
 
                 if (
                     not rows

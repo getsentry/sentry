@@ -423,7 +423,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def test_discover_large_batch(self, emailer):
         """
         Each row in this export requires exactly 13 bytes, with batch_size=3 and
-        MAX_BATCH_SIZE=200, this means that each batch can export 6 mini batches,
+        MAX_BATCH_SIZE=200, this means that each batch can export 6 batch fragments,
         each containing 3 rows for a total of 3 * 6 * 13 = 234 bytes per batch before
         it stops the current batch and starts another. This runs for 2 batches and
         during the 3rd batch, it will finish exporting all 50 rows.
