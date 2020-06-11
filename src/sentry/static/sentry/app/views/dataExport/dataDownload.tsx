@@ -16,6 +16,11 @@ export enum DownloadStatus {
   Expired = 'EXPIRED',
 }
 
+const CodeBlock = styled('pre')`
+  word-break: break-all;
+  white-space: pre-wrap;
+`;
+
 type RouteParams = {
   orgId: string;
   dataExportId: string;
@@ -37,6 +42,7 @@ type Download = {
   };
   status: DownloadStatus;
   checksum: string;
+  fileName: string;
 };
 
 type Props = {} & RouteComponentProps<RouteParams, {}>;
@@ -138,7 +144,7 @@ class DataDownload extends AsyncView<Props, State> {
   }
   renderValid(): React.ReactNode {
     const {
-      download: {dateExpired, checksum},
+      download: {dateExpired, checksum, fileName},
     } = this.state;
     const {orgId, dataExportId} = this.props.params;
     return (
@@ -161,9 +167,11 @@ class DataDownload extends AsyncView<Props, State> {
             {this.renderDate(dateExpired)}
           </p>
           <p>{t('Want to double check the download?')}</p>
-          <small>
-            <strong>{`SHA1: ${checksum}`}</strong>
-          </small>
+          {checksum && fileName ? (
+            <CodeBlock>
+              echo "{checksum} {fileName}" | sha1sum -c -
+            </CodeBlock>
+          ) : null}
         </Body>
       </React.Fragment>
     );
