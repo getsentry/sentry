@@ -73,14 +73,6 @@ class ApiUnauthorized(ApiError):
     code = 401
 
 
-class ServiceUnavailable(ApiError):
-    code = 503
-
-
-class GatewayTimeout(ApiError):
-    code = 504
-
-
 class UnsupportedResponseType(ApiError):
     @property
     def content_type(self):

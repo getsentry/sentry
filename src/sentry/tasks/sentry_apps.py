@@ -30,8 +30,8 @@ from sentry.models import (
 )
 from sentry.shared_integrations.exceptions import (
     IgnorableSentryAppError,
-    ServiceUnavailable,
-    GatewayTimeout,
+    ApiHostError,
+    ApiTimeoutError,
 )
 from sentry.models.sentryapp import VALID_EVENTS, track_response_code
 from sentry.utils.compat import filter
@@ -80,7 +80,7 @@ def _webhook_event_data(event, group_id, project_id):
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
-@retry(on=(RequestException, ServiceUnavailable, GatewayTimeout), ignore=(IgnorableSentryAppError))
+@retry(on=(RequestException, ApiHostError, ApiTimeoutError), ignore=(IgnorableSentryAppError))
 def send_alert_event(event, rule, sentry_app_id):
     group = event.group
     project = Project.objects.get_from_cache(id=group.project_id)
@@ -199,7 +199,7 @@ def process_resource_change_bound(self, action, sender, instance_id, *args, **kw
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **TASK_OPTIONS)
-@retry(on=(RequestException, ServiceUnavailable, GatewayTimeout), ignore=(IgnorableSentryAppError))
+@retry(on=(RequestException, ApiHostError, ApiTimeoutError), ignore=(IgnorableSentryAppError))
 def installation_webhook(installation_id, user_id, *args, **kwargs):
     from sentry.mediators.sentry_app_installations import InstallationNotifier
 
@@ -221,7 +221,7 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
-@retry(on=(RequestException, ServiceUnavailable, GatewayTimeout), ignore=(IgnorableSentryAppError))
+@retry(on=(RequestException, ApiHostError, ApiTimeoutError), ignore=(IgnorableSentryAppError))
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
     extra = {"installation_id": installation_id, "issue_id": issue_id}
 
@@ -319,7 +319,7 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
         )
 
     except (Timeout, ConnectionError) as e:
-        track_response_code(e.__class__.__name__, slug, event)
+        track_response_code(e.__class__.__name__.lower(), slug, event)
         # Response code of 0 represents timeout
         buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
         if not sentry_app.is_published:
@@ -341,10 +341,10 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
             raise IgnorableSentryAppError("unpublished or internal app")
 
         if resp.status_code == 503:
-            raise ServiceUnavailable(six.binary_type(resp.status_code))
+            raise ApiHostError(six.binary_type(resp.status_code))
 
         elif resp.status_code == 504:
-            raise GatewayTimeout(six.binary_type(resp.status_code))
+            raise ApiTimeoutError(six.binary_type(resp.status_code))
 
         resp.raise_for_status()
 
