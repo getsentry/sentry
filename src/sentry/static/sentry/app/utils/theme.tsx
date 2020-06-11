@@ -58,17 +58,6 @@ const colors = {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Old Colors
-  blue: '#3B6ECC',
-  blueLight: '#628BD6',
-  blueLightest: '#F5FAFE',
-  blueDark: '#2F58A3',
-
-  green: '#57be8c',
-  greenLight: '#71D8A6',
-  greenLightest: '#f8fcf7',
-  greenDark: '#3EA573',
-  greenTransparent: 'rgba(87, 190, 140, 0.5)',
-
   yellow: '#ecc844',
   yellowLightest: '#FFFDF7',
   yellowLight: '#FFF15E',
