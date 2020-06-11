@@ -7,11 +7,12 @@ import AsyncView from 'app/views/asyncView';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ApiForm} from 'app/components/forms';
-import {getOptionDefault, getOptionField, getForm} from 'app/options';
 import sentryPattern from 'app/../images/pattern/sentry-pattern.png';
 import space from 'app/styles/space';
 import Alert from 'app/components/alert';
 import {IconWarning} from 'app/icons';
+
+import {getOptionDefault, getOptionField, getForm} from '../options';
 
 type Props = {
   onConfigured: () => void;
