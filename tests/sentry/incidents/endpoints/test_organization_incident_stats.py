@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import fixture
@@ -89,6 +90,7 @@ class OrganizationIncidentDetailsTest(SnubaTestCase, APITestCase):
             [{"count": 0}]
         ] + [[]] * 5
 
+    @pytest.mark.xfail(reason="unstable, need to rework")
     def test_buckets(self):
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
