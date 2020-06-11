@@ -28,7 +28,7 @@ type Data = [number, {count: number}[]];
  */
 function getNearbyIndex(data: Data[], needle: number) {
   // `data` is sorted, return the first index whose value (timestamp) is > `needle`
-  const index = data.findIndex(([ts]) => ts > needle);
+  const index = data.findIndex(([ts]) => ts >= needle);
 
   // this shouldn't happen, as we try to buffer dates before start/end dates
   if (index === 0) {
@@ -36,33 +36,6 @@ function getNearbyIndex(data: Data[], needle: number) {
   }
 
   return index !== -1 ? index - 1 : data.length - 1;
-}
-
-/**
- * We can't just pass an x value to the charts, so we calculate a y value
- * between points using the average of the two points it's between.
- *
- * @param data Data array
- * @param index The (lower) index of the two points used to calculate the average
- */
-function getAverageBetweenPoints(data: Data[], index: number) {
-  if (index >= data.length - 1) {
-    return getDataValue(data[data.length - 1]);
-  } else if (index < 0) {
-    return getDataValue(data[0]);
-  } else {
-    const pt1 = getDataValue(data[index]);
-    const pt2 = getDataValue(data[index + 1]);
-    return (pt1 + pt2) / 2;
-  }
-}
-
-function getDataValue(data: Data) {
-  if (data === undefined || data[1] === undefined) {
-    return 0;
-  } else {
-    return data[1].reduce((acc, {count} = {count: 0}) => acc + count, 0);
-  }
 }
 
 type Props = {
@@ -82,29 +55,15 @@ const Chart = (props: Props) => {
     val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
   ]);
 
-  let detectedCoordinate: number[] | undefined;
-  if (detectedTs) {
-    const nearbyDetectedTimestampIndex = getNearbyIndex(data, detectedTs);
-    const detectedYValue =
-      nearbyDetectedTimestampIndex &&
-      getAverageBetweenPoints(data, nearbyDetectedTimestampIndex);
-    detectedCoordinate = [detectedTs * 1000, detectedYValue];
-    chartData.splice(nearbyDetectedTimestampIndex + 1, 0, detectedCoordinate);
-  }
-
+  const detectedCoordinate = detectedTs
+    ? chartData[getNearbyIndex(data, detectedTs)]
+    : undefined;
   const showClosedMarker =
     data && closedTs && data[data.length - 1] && data[data.length - 1][0] >= closedTs
       ? true
       : false;
-  let closedCoordinate: number[] | undefined;
-  if (closedTs && showClosedMarker) {
-    const nearbyClosedTimestampIndex = getNearbyIndex(data, closedTs);
-    const closedYValue =
-      nearbyClosedTimestampIndex &&
-      getAverageBetweenPoints(data, nearbyClosedTimestampIndex);
-    closedCoordinate = [closedTs * 1000, closedYValue];
-    chartData.splice(nearbyClosedTimestampIndex + 1, 0, closedCoordinate);
-  }
+  const closedCoordinate =
+    closedTs && showClosedMarker ? chartData[getNearbyIndex(data, closedTs)] : undefined;
 
   const seriesName = aggregate;
 
