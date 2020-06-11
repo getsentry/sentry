@@ -11,19 +11,23 @@ const Snooze = {
   '24HOURS': 60 * 24,
 };
 
-class SnoozeAction extends React.Component {
+type SnoozeActionProps = {
+  disabled: boolean;
+  onSnooze: Function;
+  tooltip: string;
+  className?: string;
+};
+
+class SnoozeAction extends React.Component<SnoozeActionProps> {
   static propTypes = {
     disabled: PropTypes.bool,
     onSnooze: PropTypes.func.isRequired,
     tooltip: PropTypes.string,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      isModalOpen: false,
-    };
-  }
+  state = {
+    isModalOpen: false,
+  };
 
   toggleModal = () => {
     if (this.props.disabled) {
@@ -49,7 +53,6 @@ class SnoozeAction extends React.Component {
         <a
           title={this.props.tooltip}
           className={this.props.className}
-          disabled={this.props.disabled}
           onClick={this.toggleModal}
         >
           <span>{t('zZz')}</span>
