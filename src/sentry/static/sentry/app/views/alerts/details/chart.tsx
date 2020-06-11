@@ -64,14 +64,14 @@ const Chart = (props: Props) => {
     val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
   ]);
 
-  const detectedCoordinate: number[] | undefined = detectedTs
+  const detectedCoordinate = detectedTs
     ? chartData[getNearbyIndex(data, detectedTs)]
     : undefined;
   const showClosedMarker =
     data && closedTs && data[data.length - 1] && data[data.length - 1][0] >= closedTs
       ? true
       : false;
-  const closedCoordinate: number[] | undefined =
+  const closedCoordinate =
     closedTs && showClosedMarker ? chartData[getNearbyIndex(data, closedTs)] : undefined;
 
   const seriesName = aggregate;
