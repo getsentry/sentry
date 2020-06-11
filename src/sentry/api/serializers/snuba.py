@@ -131,6 +131,9 @@ def zerofill(data, start, end, rollup):
     i = 0
     for key in six.moves.xrange(start, end, rollup):
         try:
+            while data[i][0] < key:
+                rv.append(data[i])
+                i += 1
             if data[i][0] == key:
                 rv.append(data[i])
                 i += 1
