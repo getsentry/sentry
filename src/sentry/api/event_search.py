@@ -35,7 +35,9 @@ WILDCARD_CHARS = re.compile(r"[\*]")
 NEGATION_MAP = {
     "=": "!=",
     "<": ">=",
+    "<=": ">",
     ">": "<=",
+    ">=": "<",
 }
 
 

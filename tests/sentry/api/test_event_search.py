@@ -1319,8 +1319,14 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("!p95():>5s")
         assert result.having == [["p95", "<=", 5000.0]]
 
+        result = get_filter("!p95():>=5s")
+        assert result.having == [["p95", "<", 5000.0]]
+
         result = get_filter("!p95():<5s")
         assert result.having == [["p95", ">=", 5000.0]]
+
+        result = get_filter("!p95():<=5s")
+        assert result.having == [["p95", ">", 5000.0]]
 
     def test_function_with_default_arguments(self):
         result = get_filter("epm():>100", {"start": before_now(minutes=5), "end": before_now()})
@@ -1353,8 +1359,14 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("!last_seen():>2020-04-01T19:34:52+00:00")
         assert result.having == [["last_seen", "<=", 1585769692]]
 
+        result = get_filter("!last_seen():>=2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "<", 1585769692]]
+
         result = get_filter("!last_seen():<2020-04-01T19:34:52+00:00")
         assert result.having == [["last_seen", ">=", 1585769692]]
+
+        result = get_filter("!last_seen():<=2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", ">", 1585769692]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
