@@ -34,14 +34,87 @@ import Tooltip from 'app/components/tooltip';
 import {IconBell} from 'app/icons/iconBell';
 
 const SUBSCRIPTION_REASONS = {
-  commented: t("You're receiving updates because you have commented on this issue."),
-  assigned: t("You're receiving updates because you were assigned to this issue."),
-  bookmarked: t("You're receiving updates because you have bookmarked this issue."),
-  changed_status: t(
-    "You're receiving updates because you have changed the status of this issue."
+  commented: t(
+    "You're receiving workflow notifications because you have commented on this issue."
   ),
-  mentioned: t("You're receiving updates because you have been mentioned in this issue."),
+  assigned: t(
+    "You're receiving workflow notifications because you were assigned to this issue."
+  ),
+  bookmarked: t(
+    "You're receiving workflow notifications because you have bookmarked this issue."
+  ),
+  changed_status: t(
+    "You're receiving workflow notifications because you have changed the status of this issue."
+  ),
+  mentioned: t(
+    "You're receiving workflow notifications because you have been mentioned in this issue."
+  ),
 };
+
+class SubscribeAction extends React.Component {
+  static propTypes = {
+    group: SentryTypes.Group.isRequired,
+    onToggleSubscribe: PropTypes.func.isRequired,
+  };
+
+  getNotificationText() {
+    const {group} = this.props;
+
+    if (group.isSubscribed) {
+      let result = t(
+        "You're receiving updates because you are subscribed to this issue."
+      );
+      if (group.subscriptionDetails) {
+        const reason = group.subscriptionDetails.reason;
+        if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+          result = SUBSCRIPTION_REASONS[reason];
+        }
+      } else {
+        result = tct(
+          "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
+          {
+            link: <a href="/account/settings/notifications/" />,
+          }
+        );
+      }
+      return result;
+    } else {
+      if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
+        return tct('You have [link:disabled workflow notifications] for this project.', {
+          link: <a href="/account/settings/notifications/" />,
+        });
+      } else {
+        return t('Subscribe to receive workflow notifications for this issue');
+      }
+    }
+  }
+
+  render() {
+    const {group, onToggleSubscribe} = this.props;
+    const {isSubscribed} = group;
+
+    let subscribedClassName = `group-subscribe btn btn-default btn-sm`;
+    if (isSubscribed) {
+      subscribedClassName += ' active';
+    }
+
+    return (
+      <div className="btn-group">
+        <Tooltip title={this.getNotificationText()}>
+          <div
+            className={subscribedClassName}
+            title={t('Subscribe')}
+            onClick={onToggleSubscribe}
+          >
+            <IconWrapperSpan>
+              <IconBell size="xs" />
+            </IconWrapperSpan>
+          </div>
+        </Tooltip>
+      </div>
+    );
+  }
+}
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -268,52 +341,15 @@ const GroupDetailsActions = createReactClass({
     });
   },
 
-  getNotificationText() {
-    const {group} = this.props;
-
-    if (group.isSubscribed) {
-      let result = t(
-        "You're receiving updates because you are subscribed to this issue."
-      );
-      if (group.subscriptionDetails) {
-        const reason = group.subscriptionDetails.reason;
-        if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
-          result = SUBSCRIPTION_REASONS[reason];
-        }
-      } else {
-        result = tct(
-          "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
-          {
-            link: <a href="/account/settings/notifications/" />,
-          }
-        );
-      }
-      return result;
-    } else {
-      if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
-        return tct('You have [link:disabled workflow notifications] for this project.', {
-          link: <a href="/account/settings/notifications/" />,
-        });
-      } else {
-        return t("You're not subscribed to this issue.");
-      }
-    }
-  },
-
   render() {
     const {group, project, organization} = this.props;
     const orgFeatures = new Set(organization.features);
-    const {isBookmarked, isSubscribed} = group;
+    const {isBookmarked} = group;
 
     const buttonClassName = 'btn btn-default btn-sm';
     let bookmarkClassName = `group-bookmark ${buttonClassName}`;
     if (isBookmarked) {
       bookmarkClassName += ' active';
-    }
-
-    let subscribedClassName = `group-subscribe ${buttonClassName}`;
-    if (isSubscribed) {
-      subscribedClassName += ' active';
     }
 
     const hasRelease = new Set(project.features).has('releases');
@@ -337,15 +373,6 @@ const GroupDetailsActions = createReactClass({
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
           <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
         </GuideAnchor>
-        <div className="btn-group">
-          <div
-            className={bookmarkClassName}
-            title={t('Bookmark')}
-            onClick={this.onToggleBookmark}
-          >
-            <span className="icon-star-solid" />
-          </div>
-        </div>
         <DeleteActions
           organization={organization}
           project={project}
@@ -364,19 +391,6 @@ const GroupDetailsActions = createReactClass({
             />
           </div>
         )}
-        <div className="btn-group">
-          <Tooltip title={t('Subscribe to workflow notifications for this issue')}>
-            <div
-              className={subscribedClassName}
-              title={t('Subscribe')}
-              onClick={this.onToggleSubscribe}
-            >
-              <IconWrapperSpan>
-                <IconBell size="xs" />
-              </IconWrapperSpan>
-            </div>
-          </Tooltip>
-        </div>
         {orgFeatures.has('discover-basic') && (
           <div className="btn-group">
             <Link
@@ -388,6 +402,16 @@ const GroupDetailsActions = createReactClass({
             </Link>
           </div>
         )}
+        <div className="btn-group">
+          <div
+            className={bookmarkClassName}
+            title={t('Bookmark')}
+            onClick={this.onToggleBookmark}
+          >
+            <span className="icon-star-solid" />
+          </div>
+        </div>
+        <SubscribeAction group={group} onToggleSubscribe={this.onToggleSubscribe} />
       </div>
     );
   },
