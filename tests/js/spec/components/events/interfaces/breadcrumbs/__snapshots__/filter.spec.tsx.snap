@@ -716,6 +716,7 @@ exports[`Filter default render 1`] = `
                       "globalSelectionHeader": 1009,
                       "header": 1000,
                       "hovercard": 10002,
+                      "initial": 1,
                       "modal": 10000,
                       "orgAndUserMenu": 1030,
                       "sentryErrorEmbed": 1090,

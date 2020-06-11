@@ -89,7 +89,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
     const version = ConfigStore.get('version');
     return (
       <DocumentTitle title={this.getTitle()}>
-        <div>
+        <Wrapper>
           <Pattern />
           <SetupWizard>
             <Heading>
@@ -102,7 +102,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
               ? this.renderError()
               : this.renderBody()}
           </SetupWizard>
-        </div>
+        </Wrapper>
       </DocumentTitle>
     );
   }
@@ -134,6 +134,11 @@ export default class InstallWizard extends AsyncView<Props, State> {
   }
 }
 
+const Wrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+`;
+
 const fixedStyle = css`
   position: fixed;
   top: 0;
@@ -146,7 +151,11 @@ const Pattern = styled('div')`
   &::before {
     ${fixedStyle}
     content: '';
-    background-image: linear-gradient(to right, #9f73c3 0%, #6875be 100%);
+    background-image: linear-gradient(
+      to right,
+      ${p => p.theme.purple300} 0%,
+      ${p => p.theme.purple400} 100%
+    );
     background-repeat: repeat-y;
   }
 
@@ -173,14 +182,11 @@ const Version = styled('small')`
 `;
 
 const SetupWizard = styled('div')`
-  background: #fff;
-  width: 600px;
+  background: ${p => p.theme.white};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  margin-top: 40px;
   padding: 40px 40px 20px;
-  border-radius: 4px;
-  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
-  position: absolute;
-  top: 50px;
-  left: 50%;
-  margin-left: -300px;
-  margin-bottom: 50px;
+  width: 600px;
+  z-index: ${p => p.theme.zIndex.initial};
 `;
