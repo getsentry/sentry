@@ -14,6 +14,7 @@ import {
 } from 'app/components/charts/styles';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import OptionSelector from 'app/components/charts/optionSelector';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 
 import {AXIS_OPTIONS} from '../constants';
@@ -64,7 +65,13 @@ class ChartFooter extends React.Component<Props, State> {
   };
 
   handleSelectorChange(key: string, value: string) {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.overview.change_chart',
+      eventName: 'Performance Views: Change Overview Chart',
+      organization_id: parseInt(organization.id, 10),
+      metric: value,
+    });
 
     browserHistory.push({
       pathname: location.pathname,
