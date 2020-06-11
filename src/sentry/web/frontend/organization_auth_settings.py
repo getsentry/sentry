@@ -44,9 +44,9 @@ class AuthProviderSettingsForm(forms.Form):
 
 
 class OrganizationAuthSettingsView(OrganizationView):
-    # We restrict auth settings to org:admin as it allows a non-owner to
+    # We restrict auth settings to org:write as it allows a non-owner to
     # escalate members to own by disabling the default role.
-    required_scope = "org:admin"
+    required_scope = "org:write"
 
     def _disable_provider(self, request, organization, auth_provider):
         self.create_audit_entry(
