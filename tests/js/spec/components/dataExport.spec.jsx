@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
-import WrappedDataExport, {DataExport} from 'app/components/dataExport';
+import WrappedDataExport from 'app/components/dataExport';
 
 jest.mock('app/actionCreators/indicator');
 
@@ -79,13 +79,14 @@ describe('DataExport', function() {
       <WrappedDataExport payload={mockPayload} />,
       mockRouterContext(mockAuthorizedOrg)
     );
-    expect(wrapper.find(DataExport).state()).toEqual({
-      inProgress: false,
-    });
+    expect(wrapper.find(Button).text()).toEqual(
+      expect.stringMatching(/^Export All to CSV/)
+    );
     wrapper.find('button').simulate('click');
-    expect(wrapper.find(DataExport).state()).toEqual({
-      inProgress: true,
-    });
+    await tick();
+    expect(wrapper.find(Button).text()).toEqual(
+      expect.stringMatching(/^We're working on it.../)
+    );
     expect(postDataExport).toHaveBeenCalledWith(url, {
       data: {
         query_type: mockPayload.queryType,
@@ -99,10 +100,9 @@ describe('DataExport', function() {
     wrapper.update();
     expect(wrapper.text()).toContain("We're working on it...");
     expect(wrapper.find(Button).prop('disabled')).toBe(true);
-    expect(wrapper.find(DataExport).state()).toEqual({
-      inProgress: true,
-      dataExportId: 721,
-    });
+    expect(wrapper.find(Button).text()).toEqual(
+      expect.stringMatching(/^We're working on it.../)
+    );
   });
 
   it('should reset the state when receiving a new payload', async function() {
@@ -119,11 +119,13 @@ describe('DataExport', function() {
     wrapper.find('button').simulate('click');
     await tick();
     wrapper.update();
-    expect(wrapper.find(DataExport).state('inProgress')).toEqual(true);
-    expect(wrapper.find(DataExport).state('dataExportId')).toEqual(721);
+    expect(wrapper.find(Button).text()).toEqual(
+      expect.stringMatching(/^We're working on it.../)
+    );
     wrapper.setProps({payload: {...mockPayload, queryType: 'Discover'}});
-    expect(wrapper.find(DataExport).state('inProgress')).toEqual(false);
-    expect(wrapper.find(DataExport).state('dataExportId')).toBeUndefined();
+    expect(wrapper.find(Button).text()).toEqual(
+      expect.stringMatching(/^Export All to CSV/)
+    );
   });
 
   it('should display default error message if non provided', async function() {
@@ -142,9 +144,9 @@ describe('DataExport', function() {
     expect(addErrorMessage).toHaveBeenCalledWith(
       "We tried our hardest, but we couldn't export your data. Give it another go."
     );
-    expect(wrapper.find(DataExport).state()).toEqual({
-      inProgress: false,
-    });
+    expect(wrapper.find(Button).text()).toEqual(
+      expect.stringMatching(/^Export All to CSV/)
+    );
   });
 
   it('should display provided error message', async function() {
