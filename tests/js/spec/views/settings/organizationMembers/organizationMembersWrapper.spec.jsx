@@ -70,12 +70,17 @@ describe('OrganizationMembersWrapper', function() {
     });
   });
 
-  it('does not render requests tab without access', function() {
+  it('renders requests tab without join requests for users without write access', function() {
     const org = TestStubs.Organization({
       access: [],
       status: {
         id: 'active',
       },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/invite-requests/',
+      method: 'GET',
+      body: [inviteRequest],
     });
 
     const wrapper = mountWithTheme(
@@ -83,11 +88,13 @@ describe('OrganizationMembersWrapper', function() {
       TestStubs.routerContext()
     );
 
-    expect(wrapper.find('NavTabs').exists()).toBe(false);
-    expect(trackAnalyticsEvent).not.toHaveBeenCalled();
+    expect(wrapper.find('NavTabs').exists()).toBe(true);
+    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
+    expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
+    expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
   });
 
-  it('renders requests tab with access', function() {
+  it('renders requests tab for write-access users', function() {
     const org = TestStubs.Organization({
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
@@ -150,37 +157,6 @@ describe('OrganizationMembersWrapper', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
-    expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
-
-    expect(trackAnalyticsEvent).not.toHaveBeenCalled();
-  });
-
-  it('renders requests tab with team requests and no access', function() {
-    const org = TestStubs.Organization({
-      access: [],
-      status: {
-        id: 'active',
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/access-requests/',
-      method: 'GET',
-      body: [TestStubs.AccessRequest()],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/invite-requests/',
-      method: 'GET',
-      body: [inviteRequest, joinRequest],
-    });
-
-    const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={org} {...defaultProps} />,
-      TestStubs.routerContext()
-    );
-
-    expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="members-tab"]').exists()).toBe(true);
     expect(wrapper.find('ListLink[data-test-id="requests-tab"]').exists()).toBe(true);
 

@@ -51,6 +51,7 @@ describe('InviteRequestRow', function() {
         inviteRequestBusy={inviteRequestBusy}
         allTeams={[]}
         allRoles={roles}
+        hasWriteAccess
       />
     );
 
@@ -71,11 +72,28 @@ describe('InviteRequestRow', function() {
         inviteRequestBusy={inviteRequestBusy}
         allTeams={[]}
         allRoles={roles}
+        hasWriteAccess
       />
     );
 
     expect(wrapper.find('UserName').text()).toBe(joinRequest.email);
     expect(wrapper.find('JoinRequestIndicator').exists()).toBe(true);
+  });
+
+  it('displays status when no write access', function() {
+    const wrapper = mountWithTheme(
+      <InviteRequestRow
+        orgId={orgId}
+        inviteRequest={inviteRequest}
+        inviteRequestBusy={inviteRequestBusy}
+        allTeams={[]}
+        allRoles={roles}
+      />
+    );
+
+    expect(wrapper.find('InviteStatus').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Approve"]').exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Confirm"]').exists()).toBe(false);
   });
 
   it('can approve invite request', function() {
@@ -91,6 +109,7 @@ describe('InviteRequestRow', function() {
         onDeny={mockDeny}
         allTeams={[]}
         allRoles={roles}
+        hasWriteAccess
       />
     );
 
@@ -113,6 +132,7 @@ describe('InviteRequestRow', function() {
         onDeny={mockDeny}
         allTeams={[]}
         allRoles={roles}
+        hasWriteAccess
       />
     );
 
@@ -139,6 +159,7 @@ describe('InviteRequestRow', function() {
         allTeams={[{slug: 'one'}, {slug: 'two'}]}
         allRoles={roles}
         onUpdate={mockUpdate}
+        hasWriteAccess
       />
     );
 
@@ -167,6 +188,7 @@ describe('InviteRequestRow', function() {
         allTeams={[{slug: 'one'}, {slug: 'two'}]}
         allRoles={roles}
         onUpdate={mockUpdate}
+        hasWriteAccess
       />
     );
 

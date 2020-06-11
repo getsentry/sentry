@@ -23,6 +23,7 @@ type Props = {
   onUpdate: (data: Partial<Member>) => void;
   allTeams: Team[];
   allRoles: MemberRole[];
+  hasWriteAccess: boolean;
 };
 
 const InviteModalHook = HookOrDefault({
@@ -42,6 +43,7 @@ const InviteRequestRow = ({
   onUpdate,
   allTeams,
   allRoles,
+  hasWriteAccess,
 }: Props) => {
   const role = allRoles.find(r => r.id === inviteRequest.role);
   const roleDisallowed = !(role && role.allowed);
@@ -53,87 +55,95 @@ const InviteRequestRow = ({
         <h5 style={{marginBottom: '3px'}}>
           <UserName>{inviteRequest.email}</UserName>
         </h5>
-        {inviteRequest.inviteStatus === 'requested_to_be_invited' ? (
-          inviteRequest.inviterName && (
-            <Description>
-              <Tooltip
-                title={t(
-                  'An existing member has asked to invite this user to your organization'
-                )}
-              >
-                {tct('Requested by [inviterName]', {
-                  inviterName: inviteRequest.inviterName,
-                })}
-              </Tooltip>
-            </Description>
-          )
-        ) : (
-          <Tooltip title={t('This user has asked to join your organization.')}>
-            <JoinRequestIndicator size="small">{t('Join request')}</JoinRequestIndicator>
-          </Tooltip>
-        )}
+        {hasWriteAccess &&
+          (inviteRequest.inviteStatus === 'requested_to_be_invited' ? (
+            inviteRequest.inviterName && (
+              <Description>
+                <Tooltip
+                  title={t(
+                    'An existing member has asked to invite this user to your organization'
+                  )}
+                >
+                  {tct('Requested by [inviterName]', {
+                    inviterName: inviteRequest.inviterName,
+                  })}
+                </Tooltip>
+              </Description>
+            )
+          ) : (
+            <Tooltip title={t('This user has asked to join your organization.')}>
+              <JoinRequestIndicator size="small">
+                {t('Join request')}
+              </JoinRequestIndicator>
+            </Tooltip>
+          ))}
       </div>
+      {hasWriteAccess ? (
+        <React.Fragment>
+          <StyledRoleSelectControl
+            name="role"
+            disableUnallowed
+            onChange={r => onUpdate({role: r.value})}
+            value={inviteRequest.role}
+            roles={allRoles}
+          />
 
-      <StyledRoleSelectControl
-        name="role"
-        disableUnallowed
-        onChange={r => onUpdate({role: r.value})}
-        value={inviteRequest.role}
-        roles={allRoles}
-      />
+          <TeamSelectControl
+            deprecatedSelectControl
+            name="teams"
+            placeholder={t('Add to teams...')}
+            onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
+            value={inviteRequest.teams}
+            options={allTeams.map(({slug}) => ({
+              value: slug,
+              label: `#${slug}`,
+            }))}
+            multiple
+            clearable
+          />
 
-      <TeamSelectControl
-        deprecatedSelectControl
-        name="teams"
-        placeholder={t('Add to teams...')}
-        onChange={teams => onUpdate({teams: teams.map(team => team.value)})}
-        value={inviteRequest.teams}
-        options={allTeams.map(({slug}) => ({
-          value: slug,
-          label: `#${slug}`,
-        }))}
-        multiple
-        clearable
-      />
-
-      <ButtonGroup>
-        <Confirm
-          onConfirm={sendInvites}
-          disableConfirmButton={!canSend}
-          disabled={roleDisallowed}
-          message={
-            <React.Fragment>
-              {tct('Are you sure you want to invite [email] to your organization?', {
-                email: inviteRequest.email,
-              })}
-              {headerInfo}
-            </React.Fragment>
-          }
-        >
-          <Button
-            priority="primary"
-            size="small"
-            busy={inviteRequestBusy[inviteRequest.id]}
-            title={
-              roleDisallowed
-                ? t(
-                    `You do not have permission to approve a user of this role.
+          <ButtonGroup>
+            <Confirm
+              onConfirm={sendInvites}
+              disableConfirmButton={!canSend}
+              disabled={roleDisallowed}
+              message={
+                <React.Fragment>
+                  {tct('Are you sure you want to invite [email] to your organization?', {
+                    email: inviteRequest.email,
+                  })}
+                  {headerInfo}
+                </React.Fragment>
+              }
+            >
+              <Button
+                priority="primary"
+                size="small"
+                busy={inviteRequestBusy[inviteRequest.id]}
+                title={
+                  roleDisallowed
+                    ? t(
+                        `You do not have permission to approve a user of this role.
                      Select a different role to approve this user.`
-                  )
-                : undefined
-            }
-          >
-            {t('Approve')}
-          </Button>
-        </Confirm>
-        <Button
-          size="small"
-          busy={inviteRequestBusy[inviteRequest.id]}
-          onClick={() => onDeny(inviteRequest)}
-        >
-          {t('Deny')}
-        </Button>
-      </ButtonGroup>
+                      )
+                    : undefined
+                }
+              >
+                {t('Approve')}
+              </Button>
+            </Confirm>
+            <Button
+              size="small"
+              busy={inviteRequestBusy[inviteRequest.id]}
+              onClick={() => onDeny(inviteRequest)}
+            >
+              {t('Deny')}
+            </Button>
+          </ButtonGroup>
+        </React.Fragment>
+      ) : (
+        <InviteStatus>{`Waiting for Approval`}</InviteStatus>
+      )}
     </StyledPanelItem>
   );
 
@@ -175,6 +185,14 @@ const StyledPanelItem = styled(PanelItem)`
   grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 220px max-content;
   grid-gap: ${space(2)};
   align-items: center;
+`;
+
+const InviteStatus = styled('div')`
+  display: block;
+  font-size: 14px;
+  padding: ${space(0.5)} ${space(0.5)};
+  grid-column: max-content;
+  justify-self: end;
 `;
 
 const UserName = styled('div')`

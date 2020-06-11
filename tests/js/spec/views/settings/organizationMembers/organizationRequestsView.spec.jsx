@@ -136,7 +136,6 @@ describe('OrganizationRequestsView', function() {
     wrapper.update();
 
     expect(wrapper.find('[data-test-id="request-message"]').exists()).toBe(false);
-    expect(wrapper.find('NavTabs').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).not.toHaveBeenCalled();
   });
@@ -177,12 +176,9 @@ describe('OrganizationRequestsView', function() {
     wrapper.update();
 
     expect(wrapper.find('[data-test-id="request-message"]').exists()).toBe(false);
-    expect(wrapper.find('NavTabs').exists()).toBe(false);
-
-    expect(trackAnalyticsEvent).not.toHaveBeenCalled();
   });
 
-  it('does not render invite requests without access', function() {
+  it('does not render invite request approve / deny buttons without access', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
       method: 'GET',
@@ -191,7 +187,7 @@ describe('OrganizationRequestsView', function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/access-requests/',
       method: 'GET',
-      body: [accessRequest],
+      body: [],
     });
 
     const org = TestStubs.Organization({
@@ -209,8 +205,12 @@ describe('OrganizationRequestsView', function() {
     );
 
     expect(wrapper.find('NavTabs').exists()).toBe(true);
-    expect(wrapper.find('StyledBadge[text="1"]').exists()).toBe(true);
-    expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
+
+    expect(wrapper.find('StyledBadge').text()).toBe('1');
+
+    expect(wrapper.find('InviteStatus').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Approve"]').exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Confirm"]').exists()).toBe(false);
 
     expect(trackAnalyticsEvent).not.toHaveBeenCalled();
   });

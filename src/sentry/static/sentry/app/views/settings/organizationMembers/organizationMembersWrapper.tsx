@@ -54,27 +54,9 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     return organization.access.includes('member:write');
   }
 
-  get showInviteRequests() {
-    return this.hasWriteAccess;
-  }
-
-  get showNavTabs() {
-    const {requestList} = this.state;
-
-    // show the requests tab if there are pending team requests,
-    // or if the user has access to approve or deny invite requests
-    return (requestList && requestList.length > 0) || this.showInviteRequests;
-  }
-
   get requestCount() {
     const {requestList, inviteRequests} = this.state;
-    let count = requestList.length;
-
-    // if the user can't see the invite requests panel,
-    // exclude those requests from the total count
-    if (this.showInviteRequests) {
-      count += inviteRequests.length;
-    }
+    const count = requestList.length + inviteRequests.length;
     return count ? count.toString() : null;
   }
 
@@ -126,33 +108,30 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
           </Button>
         </StyledPanel>
 
-        {this.showNavTabs && (
-          <NavTabs underlined>
-            <ListLink
-              to={`/settings/${orgId}/members/`}
-              isActive={() => !this.onRequestsTab}
-              data-test-id="members-tab"
-            >
-              {t('Members')}
-            </ListLink>
-            <ListLink
-              to={`/settings/${orgId}/members/requests/`}
-              isActive={() => this.onRequestsTab}
-              data-test-id="requests-tab"
-              onClick={() => {
-                this.showInviteRequests &&
-                  trackAnalyticsEvent({
-                    eventKey: 'invite_request.tab_clicked',
-                    eventName: 'Invite Request Tab Clicked',
-                    organization_id: organization.id,
-                  });
-              }}
-            >
-              {t('Requests')}
-            </ListLink>
-            {this.requestCount && <StyledBadge text={this.requestCount} />}
-          </NavTabs>
-        )}
+        <NavTabs underlined>
+          <ListLink
+            to={`/settings/${orgId}/members/`}
+            isActive={() => !this.onRequestsTab}
+            data-test-id="members-tab"
+          >
+            {t('Members')}
+          </ListLink>
+          <ListLink
+            to={`/settings/${orgId}/members/requests/`}
+            isActive={() => this.onRequestsTab}
+            data-test-id="requests-tab"
+            onClick={() =>
+              trackAnalyticsEvent({
+                eventKey: 'invite_request.tab_clicked',
+                eventName: 'Invite Request Tab Clicked',
+                organization_id: organization.id,
+              })
+            }
+          >
+            {t('Requests')}
+          </ListLink>
+          {this.requestCount && <StyledBadge text={this.requestCount} />}
+        </NavTabs>
 
         {children &&
           React.cloneElement(children, {
@@ -161,7 +140,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
             onRemoveInviteRequest: this.removeInviteRequest,
             onUpdateInviteRequest: this.updateInviteRequest,
             onRemoveAccessRequest: this.removeAccessRequest,
-            showInviteRequests: this.showInviteRequests,
+            hasWriteAccess: this.hasWriteAccess,
           })}
       </React.Fragment>
     );

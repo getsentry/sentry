@@ -5,6 +5,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {MEMBER_ROLES} from 'app/constants';
 import {AccessRequest, Member, Organization, Team} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import Alert from 'app/components/alert';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -27,7 +28,7 @@ type Props = {
   onUpdateInviteRequest: (id: string, data: Partial<Member>) => void;
   onRemoveInviteRequest: (id: string) => void;
   onRemoveAccessRequest: (id: string) => void;
-  showInviteRequests: boolean;
+  hasWriteAccess: boolean;
 } & RouteComponentProps<{orgId: string}, {}> &
   DefaultProps;
 
@@ -41,7 +42,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     inviteRequests: PropTypes.array.isRequired,
     onRemoveInviteRequest: PropTypes.func.isRequired,
     onRemoveAccessRequest: PropTypes.func.isRequired,
-    showInviteRequests: PropTypes.bool.isRequired,
+    hasWriteAccess: PropTypes.bool.isRequired,
   };
 
   static defaultProps: DefaultProps = {
@@ -56,31 +57,10 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     };
   }
 
-  UNSAFE_componentWillMount() {
-    super.UNSAFE_componentWillMount();
-    this.handleRedirect();
-  }
-
-  componentDidUpdate() {
-    this.handleRedirect();
-  }
-
   getEndpoints(): [string, string][] {
     const orgId = this.props.organization.slug;
 
     return [['member', `/organizations/${orgId}/members/me/`]];
-  }
-
-  handleRedirect() {
-    const {router, params, requestList, showInviteRequests} = this.props;
-
-    // redirect to the members view if the user cannot see
-    // the invite requests panel and all of the team requests
-    // have been approved or denied
-    if (showInviteRequests || requestList.length) {
-      return null;
-    }
-    return router.push(`/settings/${params.orgId}/members/`);
   }
 
   handleAction = async ({
@@ -161,7 +141,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     const {
       params,
       requestList,
-      showInviteRequests,
+      hasWriteAccess,
       inviteRequests,
       onRemoveAccessRequest,
       onUpdateInviteRequest,
@@ -172,30 +152,35 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        {showInviteRequests && (
-          <Panel>
-            <PanelHeader>{t('Pending Invite Requests')}</PanelHeader>
-            <PanelBody>
-              {inviteRequests.map(inviteRequest => (
-                <InviteRequestRow
-                  key={inviteRequest.id}
-                  organization={organization}
-                  inviteRequest={inviteRequest}
-                  inviteRequestBusy={inviteRequestBusy}
-                  allTeams={teams}
-                  allRoles={member ? member.roles : MEMBER_ROLES}
-                  onApprove={this.handleApprove}
-                  onDeny={this.handleDeny}
-                  onUpdate={data => onUpdateInviteRequest(inviteRequest.id, data)}
-                />
-              ))}
-              {inviteRequests.length === 0 && (
-                <EmptyMessage>{t('No requests found.')}</EmptyMessage>
-              )}
-            </PanelBody>
-          </Panel>
+        {hasWriteAccess ? null : (
+          <Alert type="info" icon="icon-circle-info">
+            {t(
+              "Requests for invitations are listed here. They'll be sent once manager approval is received."
+            )}
+          </Alert>
         )}
-
+        <Panel>
+          <PanelHeader>{t('Pending Invite Requests')}</PanelHeader>
+          <PanelBody>
+            {inviteRequests.map(inviteRequest => (
+              <InviteRequestRow
+                key={inviteRequest.id}
+                organization={organization}
+                inviteRequest={inviteRequest}
+                inviteRequestBusy={inviteRequestBusy}
+                allTeams={teams}
+                allRoles={member ? member.roles : MEMBER_ROLES}
+                onApprove={this.handleApprove}
+                onDeny={this.handleDeny}
+                onUpdate={data => onUpdateInviteRequest(inviteRequest.id, data)}
+                hasWriteAccess={hasWriteAccess}
+              />
+            ))}
+            {inviteRequests.length === 0 && (
+              <EmptyMessage>{t('No requests found.')}</EmptyMessage>
+            )}
+          </PanelBody>
+        </Panel>
         <OrganizationAccessRequests
           orgId={params.orgId}
           requestList={requestList}
