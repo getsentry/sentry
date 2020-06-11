@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 
 from celery.task import current
 from django.core.urlresolvers import reverse
@@ -45,6 +44,11 @@ TASK_OPTIONS = {
     "max_retries": 3,
 }
 
+RETRY_OPTIONS = {
+    "on": (RequestException, ApiHostError, ApiTimeoutError),
+    "ignore": (IgnorableSentryAppError),
+}
+
 # We call some models by a different name, publicly, than their class name.
 # For example the model Group is called "Issue" in the UI. We want the Service
 # Hook events to match what we externally call these primitives.
@@ -80,7 +84,7 @@ def _webhook_event_data(event, group_id, project_id):
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
-@retry(on=(RequestException, ApiHostError, ApiTimeoutError), ignore=(IgnorableSentryAppError))
+@retry(**RETRY_OPTIONS)
 def send_alert_event(event, rule, sentry_app_id):
     group = event.group
     project = Project.objects.get_from_cache(id=group.project_id)
@@ -187,19 +191,19 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
 
 @instrumented_task("sentry.tasks.process_resource_change", **TASK_OPTIONS)
-@retry(ignore=(IgnorableSentryAppError))
+@retry(**RETRY_OPTIONS)
 def process_resource_change(action, sender, instance_id, *args, **kwargs):
     _process_resource_change(action, sender, instance_id, *args, **kwargs)
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
-@retry(ignore=(IgnorableSentryAppError))
+@retry(**RETRY_OPTIONS)
 def process_resource_change_bound(self, action, sender, instance_id, *args, **kwargs):
     _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **TASK_OPTIONS)
-@retry(on=(RequestException, ApiHostError, ApiTimeoutError), ignore=(IgnorableSentryAppError))
+@retry(**RETRY_OPTIONS)
 def installation_webhook(installation_id, user_id, *args, **kwargs):
     from sentry.mediators.sentry_app_installations import InstallationNotifier
 
@@ -221,7 +225,7 @@ def installation_webhook(installation_id, user_id, *args, **kwargs):
 
 
 @instrumented_task(name="sentry.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS)
-@retry(on=(RequestException, ApiHostError, ApiTimeoutError), ignore=(IgnorableSentryAppError))
+@retry(**RETRY_OPTIONS)
 def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwargs):
     extra = {"installation_id": installation_id, "issue_id": issue_id}
 
@@ -341,10 +345,10 @@ def send_and_save_webhook_request(url, sentry_app, app_platform_event):
             raise IgnorableSentryAppError("unpublished or internal app")
 
         if resp.status_code == 503:
-            raise ApiHostError(six.binary_type(resp.status_code))
+            raise ApiHostError.from_request(resp.request)
 
         elif resp.status_code == 504:
-            raise ApiTimeoutError(six.binary_type(resp.status_code))
+            raise ApiTimeoutError.from_request(resp.request)
 
         resp.raise_for_status()
 
