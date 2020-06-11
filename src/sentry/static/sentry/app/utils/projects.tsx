@@ -401,7 +401,7 @@ type FetchProjectsOptions = {
   prevSearch?: State['prevSearch'];
 } & Pick<Props, 'limit' | 'allProjects'>;
 
-async function fetchProjects(
+export async function fetchProjects(
   api: Client,
   orgId: string,
   {slugs, search, limit, prevSearch, cursor, allProjects}: FetchProjectsOptions = {}

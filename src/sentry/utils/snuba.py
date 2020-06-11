@@ -574,6 +574,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
+                query_params['debug'] = True
                 body = json.dumps(query_params)
                 referrer = headers.get("referer", "<unknown>")
                 with thread_hub.start_span(
@@ -610,6 +611,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     for response, _, reverse in query_results:
         try:
             body = json.loads(response.data)
+            # print(body.get("sql"))
         except ValueError:
             raise UnexpectedResponseError(
                 u"Could not decode JSON response: {}".format(response.data)

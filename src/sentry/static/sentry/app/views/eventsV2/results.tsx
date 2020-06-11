@@ -16,6 +16,7 @@ import Alert from 'app/components/alert';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import Confirm from 'app/components/confirm';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -24,6 +25,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {ContentBox, Main, Side} from 'app/utils/discover/styles';
+import {fetchProjects} from 'app/utils/projects';
 import {generateQueryWithTag} from 'app/utils';
 import localStorage from 'app/utils/localStorage';
 
@@ -48,6 +50,8 @@ type State = {
   errorCode: number;
   totalValues: null | number;
   showTags: boolean;
+  needConfirmation: boolean;
+  confirmedQuery: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -68,13 +72,15 @@ class Results extends React.Component<Props, State> {
     errorCode: 200,
     totalValues: null,
     showTags: readShowTagsState(),
+    needConfirmation: false,
+    confirmedQuery: false,
   };
 
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
     this.checkEventView();
-    this.fetchTotalCount();
+    this.canLoadEvents();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -91,13 +97,67 @@ class Results extends React.Component<Props, State> {
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
     if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
-      this.fetchTotalCount();
+      this.canLoadEvents();
     }
   }
 
-  async fetchTotalCount() {
+  canLoadEvents = async () => {
+    const {api, location, organization} = this.props;
+    const {eventView} = this.state;
+    let needConfirmation = false;
+    let confirmedQuery = true;
+    const currentQuery = eventView.getEventsAPIPayload(location);
+
+    const duration = currentQuery.statsPeriod && currentQuery.statsPeriod.endsWith("d") ?
+      parseInt(currentQuery.statsPeriod.slice(0, -1)) :
+      (new Date(currentQuery.end) - new Date(currentQuery.start)) / (24*60*60*1000)
+
+    if (duration >= 30) {
+      const {results} = await fetchProjects(api, organization.slug, {allProjects: true});
+      let projectLength = currentQuery.project.length;
+
+      if (projectLength === 0) {
+        // My Projects
+        projectLength = results.filter(project => project.isMember).length;
+      } else if (projectLength === 1 && currentQuery.project[0] === "-1") {
+        // All Projects
+        projectLength = results.length;
+      }
+
+      if (projectLength >= 10) {
+        needConfirmation = true;
+        confirmedQuery = false;
+      }
+    }
+    this.setState({needConfirmation, confirmedQuery});
+    this.fetchTotalCount(confirmedQuery);
+  };
+
+  openConfirmModal = ({open}) => {
+    const {needConfirmation} = this.state;
+    if (needConfirmation) {
+      open();
+    }
+  };
+
+  longQueryConfirmed = () => {
+    const {eventView} = this.state;
+    this.setState({needConfirmation: false, confirmedQuery: true});
+    this.fetchTotalCount(true);
+  };
+
+  longQueryCancelled = () => {
+    this.setState({needConfirmation: false, confirmedQuery: false});
+  };
+
+  async fetchTotalCount(confirmedQuery: boolean) {
     const {api, organization, location} = this.props;
     const {eventView} = this.state;
+
+    if (!confirmedQuery) {
+      this.setState({totalValues: null});
+      return;
+    }
     if (!eventView.isValid()) {
       return;
     }
@@ -254,9 +314,10 @@ class Results extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router, api} = this.props;
-    const {eventView, error, errorCode, totalValues, showTags} = this.state;
+    const {eventView, error, errorCode, totalValues, showTags, confirmedQuery, needConfirmation} = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
+    console.log(confirmedQuery, needConfirmation);
 
     return (
       <SentryDocumentTitle title={title} objSlug={organization.slug}>
@@ -287,6 +348,7 @@ class Results extends React.Component<Props, State> {
                   onAxisChange={this.handleYAxisChange}
                   onDisplayChange={this.handleDisplayChange}
                   total={totalValues}
+                  confirmedQuery={confirmedQuery && !needConfirmation}
                 />
               </Top>
               <StyledMain isCollapsed={!!showTags}>
@@ -298,10 +360,27 @@ class Results extends React.Component<Props, State> {
                   setError={this.setError}
                   onChangeShowTags={this.handleChangeShowTags}
                   showTags={showTags}
+                  confirmedQuery={confirmedQuery && !needConfirmation}
                 />
               </StyledMain>
               {showTags ? this.renderTagsTable() : null}
             </ContentBox>
+            <Confirm
+              priority="primary"
+              header={<strong>May lead to thumb twiddling</strong>}
+              confirmText="Do it"
+              cancelText="Nevermind"
+              onConfirm={this.longQueryConfirmed}
+              onCancel={this.longQueryCancelled}
+              message={
+                <p>
+                  You've created a query that will search for events made <strong>over more than 30 days</strong> for
+                  <strong>more than 10 projects</strong>. A lot has happened during that time, so this might take awhile. Are you sure you want to do this?
+                </p>
+              }
+            >
+              {this.openConfirmModal}
+            </Confirm>
           </LightWeightNoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>

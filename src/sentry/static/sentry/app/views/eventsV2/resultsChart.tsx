@@ -98,6 +98,7 @@ type ContainerProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  confirmedQuery: boolean;
 
   // chart footer props
   total: number | null;
@@ -110,7 +111,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
 
-    if (!eventView.isEqualTo(nextEventView)) {
+    if (!eventView.isEqualTo(nextEventView) || this.props.confirmedQuery !== nextProps.confirmedQuery) {
       return true;
     }
 
@@ -127,7 +128,12 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
       onAxisChange,
       onDisplayChange,
       organization,
+      confirmedQuery,
     } = this.props;
+
+    if (!confirmedQuery) {
+      return (<div/>);
+    }
 
     const yAxisValue = eventView.getYAxis();
     const hasQueryFeature = organization.features.includes('discover-query');
