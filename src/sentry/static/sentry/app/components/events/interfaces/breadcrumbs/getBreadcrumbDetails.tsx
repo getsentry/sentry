@@ -65,7 +65,7 @@ function getBreadcrumbDetails(breadcrumb: Breadcrumb): Partial<Output> {
     }
     case BreadcrumbType.HTTP: {
       return {
-        color: 'green',
+        color: 'green400',
         icon: <IconRefresh />,
         renderer: <HttpRenderer breadcrumb={breadcrumb} />,
       };
