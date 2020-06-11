@@ -135,6 +135,12 @@ class Results extends React.Component<Props, State> {
   }
 
   handleChangeShowTags = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.results.toggle_tag_facets',
+      eventName: 'Discoverv2: Toggle Tag Facets',
+      organization_id: parseInt(organization.id, 10),
+    });
     this.setState(state => {
       const newValue = !state.showTags;
       localStorage.setItem(SHOW_TAGS_STORAGE_KEY, newValue ? '1' : '0');
