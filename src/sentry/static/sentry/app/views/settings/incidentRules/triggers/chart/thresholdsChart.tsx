@@ -45,7 +45,7 @@ const COLOR = {
     .alpha(0.25)
     .rgb()
     .string(),
-  WARNING_FILL: color(theme.yellowLight)
+  WARNING_FILL: color(theme.yellow300)
     .alpha(0.1)
     .rgb()
     .string(),

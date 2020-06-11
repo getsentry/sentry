@@ -58,10 +58,6 @@ const colors = {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Old Colors
-  yellow: '#ecc844',
-  yellowLightest: '#FFFDF7',
-  yellowLight: '#FFF15E',
-  yellowDark: '#e6bc23',
   yellowDarkest: '#ecbb08',
 
   yellowOrange: '#f9a66d',
@@ -106,10 +102,10 @@ const colors = {
 } as const;
 
 const warning = {
-  backgroundLight: colors.yellowLightest,
-  background: colors.yellowDarkest,
-  border: colors.yellowDark,
-  iconColor: colors.yellowDark,
+  backgroundLight: colors.yellow100,
+  background: colors.yellow500,
+  border: colors.yellow500,
+  iconColor: colors.yellow500,
 } as const;
 
 const alert = {
