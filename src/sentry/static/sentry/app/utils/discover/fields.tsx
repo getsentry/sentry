@@ -105,6 +105,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: ['duration'],
+        defaultValue: 'transaction.duration',
         required: true,
       },
     ],
