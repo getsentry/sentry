@@ -332,7 +332,6 @@ class Results extends React.Component<Props, State> {
       totalValues,
       showTags,
       confirmedQuery,
-      needConfirmation,
     } = this.state;
     const query = location.query.query || '';
     const title = this.getDocumentTitle();
@@ -366,7 +365,7 @@ class Results extends React.Component<Props, State> {
                   onAxisChange={this.handleYAxisChange}
                   onDisplayChange={this.handleDisplayChange}
                   total={totalValues}
-                  confirmedQuery={confirmedQuery && !needConfirmation}
+                  confirmedQuery={confirmedQuery}
                 />
               </Top>
               <StyledMain isCollapsed={!!showTags}>
@@ -378,7 +377,7 @@ class Results extends React.Component<Props, State> {
                   setError={this.setError}
                   onChangeShowTags={this.handleChangeShowTags}
                   showTags={showTags}
-                  confirmedQuery={confirmedQuery && !needConfirmation}
+                  confirmedQuery={confirmedQuery}
                 />
               </StyledMain>
               {showTags ? this.renderTagsTable() : null}
