@@ -5,7 +5,7 @@ import {mount} from 'sentry-test/enzyme';
 import {tct} from 'app/locale';
 
 describe('locale.gettextComponentTemplate', () => {
-  it('should render two component templates inside the same element', async () => {
+  it('should render two component templates inside the same parent', async () => {
     const wrapper = mount(
       <div>
         {tct('1st: [one]', {
