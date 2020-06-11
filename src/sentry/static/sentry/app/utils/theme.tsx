@@ -132,7 +132,7 @@ const alert = {
 const badge = {
   alpha: {
     background: `linear-gradient(90deg, ${colors.orange300}, ${colors.orange500})`,
-    indicatorColor: colors.orange,
+    indicatorColor: colors.orange400,
   },
   beta: {
     background: `linear-gradient(90deg, ${colors.pink}, ${colors.purple})`,
