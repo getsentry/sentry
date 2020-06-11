@@ -189,7 +189,7 @@ const StyledPanelItem = styled(PanelItem)`
 
 const InviteStatus = styled('div')`
   display: block;
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(0.5)} ${space(0.5)};
   grid-column: max-content;
   justify-self: end;
