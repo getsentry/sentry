@@ -8,20 +8,11 @@ import {Trigger} from 'app/views/settings/incidentRules/types';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import MarkLine from 'app/components/charts/components/markLine';
-import VisualMap from 'app/components/charts/components/visualMap';
 
 import closedSymbol from './closedSymbol';
 import detectedSymbol from './detectedSymbol';
 
 type Data = [number, {count: number}[]];
-type PiecesObject = {
-  min?: number;
-  max?: number;
-  label?: string;
-  value?: number;
-  color?: string;
-};
-
 /**
  * So we'll have to see how this looks with real data, but echarts requires
  * an explicit (x,y) value to draw a symbol (incident detected/closed bubble).
@@ -119,34 +110,22 @@ const Chart = (props: Props) => {
 
   const warningTrigger = triggers?.find(trig => trig.label === 'warning');
   const criticalTrigger = triggers?.find(trig => trig.label === 'critical');
-  const warningTriggerThreshold =
-    warningTrigger &&
-    typeof warningTrigger.alertThreshold === 'number' &&
-    warningTrigger.alertThreshold;
-  const criticalTriggerThreshold =
-    criticalTrigger &&
-    typeof criticalTrigger.alertThreshold === 'number' &&
-    criticalTrigger.alertThreshold;
-
-  const visualMapPieces: PiecesObject[] = [];
-  // Echarts throws an error if when the first element in pieces doesn't have both min/max
-  if (warningTriggerThreshold ?? criticalTriggerThreshold)
-    visualMapPieces.push({
-      min: -1, // if this is 0 the x axis goes halfway over the line
-      max: (warningTriggerThreshold ?? criticalTriggerThreshold) || 0,
-      color: theme.purple500,
-    });
-  if (warningTriggerThreshold && criticalTriggerThreshold)
-    visualMapPieces.push({
-      min: warningTriggerThreshold,
-      max: criticalTriggerThreshold,
-      color: theme.yellow400,
-    });
-  if (criticalTriggerThreshold)
-    visualMapPieces.push({
-      min: criticalTriggerThreshold,
-      color: theme.red300,
-    });
+  const warningTriggerAlertThreshold =
+    typeof warningTrigger?.alertThreshold === 'number'
+      ? warningTrigger?.alertThreshold
+      : undefined;
+  const warningTriggerResolveThreshold =
+    typeof warningTrigger?.resolveThreshold === 'number'
+      ? warningTrigger?.resolveThreshold
+      : undefined;
+  const criticalTriggerAlertThreshold =
+    typeof criticalTrigger?.alertThreshold === 'number'
+      ? criticalTrigger?.alertThreshold
+      : undefined;
+  const criticalTriggerResolveThreshold =
+    typeof criticalTrigger?.resolveThreshold === 'number'
+      ? criticalTrigger?.resolveThreshold
+      : undefined;
 
   return (
     <LineChart
@@ -187,45 +166,95 @@ const Chart = (props: Props) => {
             ],
           }),
         },
-        warningTriggerThreshold && {
-          type: 'line',
-          markLine: MarkLine({
-            silent: true,
-            lineStyle: {color: theme.yellow400},
-            data: [
-              {
-                yAxis: warningTriggerThreshold,
+        warningTrigger &&
+          warningTriggerAlertThreshold && {
+            name: 'Warning Alert',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.yellow400},
+              data: [
+                {
+                  yAxis: warningTriggerAlertThreshold,
+                },
+              ],
+              label: {
+                show: true,
+                position: 'insideEndTop',
+                formatter: 'WARNING',
+                color: theme.yellow400,
+                fontSize: 10,
               },
-            ],
-            label: {
-              show: false,
-            },
-          }),
-          data: [],
-        },
-        criticalTriggerThreshold && {
-          type: 'line',
-          markLine: MarkLine({
-            silent: true,
-            lineStyle: {color: theme.red300},
-            data: [
-              {
-                yAxis: criticalTriggerThreshold,
+            }),
+            data: [],
+          },
+        warningTrigger &&
+          warningTriggerResolveThreshold && {
+            name: 'Warning Resolve',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.gray400},
+              data: [
+                {
+                  yAxis: warningTriggerResolveThreshold,
+                },
+              ],
+              label: {
+                show: true,
+                position: 'insideEndBottom',
+                formatter: 'WARNING RESOLUTION',
+                color: theme.gray400,
+                fontSize: 10,
               },
-            ],
-            label: {
-              show: false,
-            },
-          }),
-          data: [],
-        },
+            }),
+            data: [],
+          },
+        criticalTrigger &&
+          criticalTriggerAlertThreshold && {
+            name: 'Critical Alert',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.red300},
+              data: [
+                {
+                  yAxis: criticalTriggerAlertThreshold,
+                },
+              ],
+              label: {
+                show: true,
+                position: 'insideEndTop',
+                formatter: 'CRITICAL',
+                color: theme.red400,
+                fontSize: 10,
+              },
+            }),
+            data: [],
+          },
+        criticalTrigger &&
+          criticalTriggerResolveThreshold && {
+            name: 'Critical Resolve',
+            type: 'line',
+            markLine: MarkLine({
+              silent: true,
+              lineStyle: {color: theme.gray400},
+              data: [
+                {
+                  yAxis: criticalTriggerResolveThreshold,
+                },
+              ],
+              label: {
+                show: true,
+                position: 'insideEndBottom',
+                formatter: 'CRITICAL RESOLUTION',
+                color: theme.gray400,
+                fontSize: 10,
+              },
+            }),
+            data: [],
+          },
       ].filter(Boolean)}
-      options={{
-        visualMap: VisualMap({
-          pieces: visualMapPieces,
-          show: false,
-        }),
-      }}
     />
   );
 };
