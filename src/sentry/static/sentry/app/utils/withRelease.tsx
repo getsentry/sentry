@@ -24,7 +24,9 @@ type InjectedProps = {
   deploysError?: Error;
 };
 
-const withRelease = <P extends InjectedProps>(WrappedComponent: React.ComponentType<P>) =>
+const withRelease = <P extends DependentProps>(
+  WrappedComponent: React.ComponentType<P>
+) =>
   createReactClass<
     Omit<P, keyof InjectedProps> & Partial<InjectedProps> & DependentProps,
     InjectedProps
