@@ -8,38 +8,33 @@ import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Event, OrganizationSummary} from 'app/types';
+import {Event, EventTag} from 'app/types';
 import Version from 'app/components/version';
-import EventView from 'app/utils/discover/eventView';
-
-import {getExpandedResults} from './utils';
 
 type Props = {
-  organization: OrganizationSummary;
   event: Event;
-  eventView: EventView;
+  query: string;
+  generateUrl: (tag: EventTag) => LocationDescriptor;
+  title?: React.ReactNode;
 };
 
-const TagsTable = (props: Props) => {
-  const {organization, event, eventView} = props;
-
-  // create a clone of the event object, and delete the its id.
-  // we do this so that the id will not be added to the search conditions
-  // when the tag is clicked
-  const eventReference = {...event};
-  if (eventReference.id) {
-    delete eventReference.id;
-  }
-
+const TagsTable = ({
+  event,
+  query,
+  generateUrl,
+  title = t('Event Tag Details'),
+}: Props) => {
   const tags = event.tags;
+
   return (
     <StyledTagsTable>
-      <SectionHeading>{t('Event Tag Details')}</SectionHeading>
+      <SectionHeading>{title}</SectionHeading>
       <StyledTable>
         <tbody>
           {tags.map(tag => {
-            let target: LocationDescriptor | undefined;
-            const tagInQuery = eventView.query.includes(`${tag.key}:`);
+            const tagInQuery = query.includes(`${tag.key}:`);
+            const target = tagInQuery ? undefined : generateUrl(tag);
+
             const renderTagValue = () => {
               switch (tag.key) {
                 case 'release':
@@ -48,14 +43,6 @@ const TagsTable = (props: Props) => {
                   return tag.value;
               }
             };
-            if (!tagInQuery) {
-              const nextView = getExpandedResults(
-                eventView,
-                {[tag.key]: tag.value},
-                eventReference
-              );
-              target = nextView.getResultsViewUrlTarget(organization.slug);
-            }
 
             return (
               <StyledTr key={tag.key}>
