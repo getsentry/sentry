@@ -143,7 +143,11 @@ class TestDestroyer(TestCase):
 
     @responses.activate
     def test_fail_on_other_error(self):
+        from sentry.constants import SentryAppStatus
+
         install = self.install
+        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
+        # we don't log errors for unpublished and internal apps
         try:
             responses.add(
                 responses.POST, "https://example.com/webhook", body=Exception("Other error")

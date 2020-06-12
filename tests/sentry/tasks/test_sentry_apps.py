@@ -9,6 +9,7 @@ from django.core.urlresolvers import reverse
 from sentry.utils.compat.mock import patch
 from requests.exceptions import Timeout
 
+from sentry.constants import SentryAppStatus
 from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -430,7 +431,8 @@ class TestWebhookRequests(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=Timeout)
     def test_saves_error_for_request_timeout(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-
+        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
+        # we don't log errors for unpublished and internal apps
         with self.assertRaises(Timeout):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
