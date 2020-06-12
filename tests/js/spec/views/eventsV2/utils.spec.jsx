@@ -414,6 +414,17 @@ describe('getExpandedResults()', function() {
     const result = getExpandedResults(view, {trace: 'abc123'}, event);
     expect(result.query).toEqual('event.type:error title:bogus trace:abc123');
   });
+
+  it('applies project as condition if present', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'project'}, {field: 'count()'}],
+    });
+    const event = {project: 'whoosh'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('project:whoosh');
+  });
 });
 
 describe('getDiscoverLandingUrl', function() {
