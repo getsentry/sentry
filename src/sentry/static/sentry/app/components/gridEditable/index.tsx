@@ -396,6 +396,7 @@ class GridEditable<
 
 export default GridEditable;
 export {
+  COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   GridColumn,
   GridColumnHeader,
