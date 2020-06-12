@@ -55,6 +55,10 @@ export class Provider extends React.Component<PropType, StateType> {
     dividerPosition: DEFAULT_DIVIDER_POSITION,
   };
 
+  componentWillUnmount() {
+    this.cleanUpListeners();
+  }
+
   previousUserSelect: UserSelectValues | null = null;
   dividerHandlePosition: number = DEFAULT_DIVIDER_POSITION;
   isDragging: boolean = false;
@@ -187,10 +191,6 @@ export class Provider extends React.Component<PropType, StateType> {
       window.removeEventListener('mouseup', this.onDragEnd);
     }
   };
-
-  componentWillUnmount() {
-    this.cleanUpListeners();
-  }
 
   render() {
     const childrenProps = {
