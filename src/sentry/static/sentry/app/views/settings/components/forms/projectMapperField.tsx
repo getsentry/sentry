@@ -14,8 +14,8 @@ type Props = InputField['props'];
 type RenderProps = Props & ProjectMapperType;
 
 export class RenderField extends React.Component<RenderProps> {
-  private sentryProjectRef = React.createRef<typeof SelectControl>();
-  private mappedRef = React.createRef<typeof SelectControl>();
+  sentryProjectRef = React.createRef<typeof SelectControl>();
+  mappedRef = React.createRef<typeof SelectControl>();
 
   render() {
     const {
