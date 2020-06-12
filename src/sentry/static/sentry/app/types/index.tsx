@@ -1102,6 +1102,7 @@ export type OnboardingTaskDescriptor = {
   | {
       actionType: 'app' | 'external';
       location: string;
+      getPendingLocation?: (Organization, number?) => string;
     }
   | {
       actionType: 'action';
@@ -1116,6 +1117,7 @@ export type OnboardingTaskStatus = {
   dateCompleted?: string;
   completionSeen?: string;
   data?: object;
+  project?: number;
 };
 
 export type OnboardingTask = OnboardingTaskStatus &
