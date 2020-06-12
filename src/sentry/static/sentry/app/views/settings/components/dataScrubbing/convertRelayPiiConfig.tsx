@@ -45,7 +45,7 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
       const {type, redaction} = resolvedRule;
       const method = redaction.method as MethodType;
 
-      if (resolvedRule.type === RuleType.PATTERN && resolvedRule?.pattern) {
+      if (resolvedRule.type === RuleType.PATTERN && resolvedRule.pattern) {
         convertedRules.push({
           id,
           method,
