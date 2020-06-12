@@ -293,7 +293,7 @@ class IncidentsListContainer extends React.Component<Props> {
                   size="small"
                   icon={<IconSettings size="xs" />}
                 >
-                  {t('All Rules')}
+                  {t('View Rules')}
                 </Button>
 
                 <ButtonBar merged active={status}>
