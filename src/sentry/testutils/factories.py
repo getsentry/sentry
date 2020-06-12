@@ -275,11 +275,6 @@ class Factories(object):
         return env
 
     @staticmethod
-    def create_organization_environment(organization, **kwargs):
-        name = kwargs.get("name", petname.Generate(3, " ", letters=10)[:64])
-        return Environment.objects.create(organization_id=organization.id, name=name)
-
-    @staticmethod
     def create_project(organization=None, teams=None, fire_project_created=False, **kwargs):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()

@@ -109,8 +109,14 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             team = self.create_team(organization=organization)
             self.create_team_membership(team=team, user=self.user)
 
-            prod = self.create_organization_environment(organization, name="production")
-            dev = self.create_organization_environment(organization, name="development")
+            def set_up_environment(name):
+                env = self.create_environment(name=name)
+                env.organization_id = organization.id
+                env.save()
+                return env
+
+            prod = set_up_environment("production")
+            dev = set_up_environment("development")
 
             def set_up_project(environment):
                 project = self.create_project(organization=organization, teams=[team])
