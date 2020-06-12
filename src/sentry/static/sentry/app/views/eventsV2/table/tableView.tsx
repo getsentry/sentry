@@ -142,7 +142,7 @@ class TableView extends React.Component<TableViewProps> {
 
     return [
       <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
-        <IconLink to={target} data-test-id="view-events">
+        <IconLink to={target} data-test-id="open-stack">
           <IconStack size="sm" />
         </IconLink>
       </Tooltip>,
