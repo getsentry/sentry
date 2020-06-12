@@ -5,7 +5,10 @@ import {Location, LocationDescriptorObject} from 'history';
 
 import {Organization, OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  COL_WIDTH_MINIMUM,
+} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import {IconEvent, IconStack} from 'app/icons';
 import {t} from 'app/locale';
@@ -275,6 +278,11 @@ class TableView extends React.Component<TableViewProps> {
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
 
+    const hasAggregates = eventView.getAggregateFields().length > 0;
+    const prependColumnWidths = hasAggregates
+      ? ['40px']
+      : [`minmax(${COL_WIDTH_MINIMUM}px, auto)`];
+
     return (
       <GridEditable
         isLoading={isLoading}
@@ -288,7 +296,7 @@ class TableView extends React.Component<TableViewProps> {
           renderBodyCell: this._renderGridBodyCell as any,
           onResizeColumn: this._resizeColumn as any,
           renderPrependColumns: this._renderPrependColumns as any,
-          prependColumnWidths: ['40px'],
+          prependColumnWidths,
         }}
         headerButtons={this.renderHeaderButtons}
         location={location}
