@@ -307,7 +307,8 @@ const theme = {
     toast: 10001,
 
     // tooltips and hovercards can be inside modals sometimes.
-    tooltip: 10002,
+    hovercard: 10002,
+    tooltip: 10003,
   },
 
   grid: 8,
