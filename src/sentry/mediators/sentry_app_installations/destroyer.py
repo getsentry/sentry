@@ -7,7 +7,6 @@ from sentry.mediators import Mediator, Param
 from sentry.mediators import service_hooks, sentry_app_installation_tokens
 from sentry.models import ApiToken, AuditLogEntryEvent, SentryAppInstallationToken, ServiceHook
 from sentry.mediators.sentry_app_installations.installation_notifier import InstallationNotifier
-from sentry.shared_integrations.exceptions import IgnorableSentryAppError
 from sentry.utils.audit import create_audit_entry
 
 
@@ -56,7 +55,7 @@ class Destroyer(Mediator):
             try:
                 InstallationNotifier.run(install=self.install, user=self.user, action="deleted")
             # if the error is from a request exception, log the error and continue
-            except (RequestException, IgnorableSentryAppError) as exc:
+            except RequestException as exc:
                 self.log(error=exc)
         self.install.delete()
 

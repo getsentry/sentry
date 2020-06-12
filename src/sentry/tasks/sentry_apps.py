@@ -310,7 +310,7 @@ def send_webhooks(installation, event, **kwargs):
         )
 
 
-def check_app_status(func):
+def ignore_unpublished_app_errors(func):
     def wrapper(url, sentry_app, app_platform_event):
         try:
             return func(url, sentry_app, app_platform_event)
@@ -323,7 +323,7 @@ def check_app_status(func):
     return wrapper
 
 
-@check_app_status
+@ignore_unpublished_app_errors
 def send_and_save_webhook_request(url, sentry_app, app_platform_event):
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
