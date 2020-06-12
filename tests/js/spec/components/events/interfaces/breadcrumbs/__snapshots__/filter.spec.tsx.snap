@@ -461,7 +461,7 @@ exports[`Filter default render 1`] = `
                     "badge": Object {
                       "alpha": Object {
                         "background": "linear-gradient(90deg, #F69C7D, #BA4A23)",
-                        "indicatorColor": undefined,
+                        "indicatorColor": "#FF7738",
                       },
                       "beta": Object {
                         "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
