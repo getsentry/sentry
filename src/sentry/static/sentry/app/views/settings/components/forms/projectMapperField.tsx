@@ -10,18 +10,20 @@ import Button from 'app/components/button';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 
-type Props = InputField['props'] & Omit<ProjectMapperType, 'type'>;
+type Props = InputField['props'];
+type RenderProps = Props & ProjectMapperType;
 
 export default class ProjectMapperField extends React.Component<Props> {
   private sentryProjectRef = React.createRef<typeof SelectControl>();
   private mappedRef = React.createRef<typeof SelectControl>();
 
-  renderField = (props: Props) => {
+  renderField = (props: RenderProps) => {
     const {onChange, onBlur, value, mappedDropdown} = props;
     const existingValues: Array<[number, string | number]> = value || [];
     const sentryProjects = props.sentryProjects || [];
     const mappedDropdownItems = mappedDropdown?.items || [];
 
+    // create maps by the project id for constant time lookups
     const sentryProjectsById = Object.fromEntries(
       sentryProjects.map(project => [project.id, project])
     );
@@ -30,6 +32,7 @@ export default class ProjectMapperField extends React.Component<Props> {
       mappedDropdownItems.map(item => [item.value, item])
     );
 
+    //build sets of values used so we don't let the user select them twice
     const projectIdsUsed = new Set(existingValues.map(tuple => tuple[0]));
     const mappedValuesUsed = new Set(existingValues.map(tuple => tuple[1]));
 

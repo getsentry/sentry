@@ -115,12 +115,12 @@ export type TableType = {
   /**
    * An object with of column labels (headers) for the table.
    */
-  columnLabels?: object;
+  columnLabels: object;
   /**
    * A list of column keys for the table, in the order that you want
    * the columns to appear - order doesn't matter in columnLabels
    */
-  columnKeys?: string[];
+  columnKeys: string[];
   /**
    * The confirmation message before a a row is deleted
    */
@@ -130,11 +130,11 @@ export type TableType = {
 
 export type ProjectMapperType = {
   type: 'project_mapper';
-  mappedDropdown?: {
+  mappedDropdown: {
     items: Array<{value: string | number; label: string}>;
     placeholder: string;
   };
-  sentryProjects?: Array<AvatarProject & {id: number; name: string}>;
+  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
 };
 
 export type Field = (
