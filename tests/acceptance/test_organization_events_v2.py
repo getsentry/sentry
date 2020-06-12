@@ -319,8 +319,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
 
-            # Click the event link to open the events detail view
-            self.browser.element('[data-test-id="view-events"]').click()
+            # View Event
+            self.browser.find_elements_by_css_selector('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
             header = self.browser.element('[data-test-id="event-header"] span')
@@ -353,19 +353,15 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.result_path + "?" + errors_query() + "&statsPeriod=24h")
             self.wait_until_loaded()
 
-            # Click the event link to open the event detail view
-            self.browser.element('[data-test-id="view-events"]').click()
+            # Open the stack
+            self.browser.element('[data-test-id="open-stack"]').click()
+            self.wait_until_loaded()
+
+            # View Event
+            self.browser.find_elements_by_css_selector('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - grouped error event detail view")
-
-            # Check that the newest event is loaded first and that pagination
-            # controls display
-            display_id = self.browser.element('[data-test-id="event-id"]')
-            assert event_ids[0] in display_id.text
-
-            assert self.browser.element_exists_by_test_id("older-event")
-            assert self.browser.element_exists_by_test_id("newer-event")
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query(self, mock_now):
@@ -386,17 +382,18 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Get the list page
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
-            self.browser.save_screenshot("./index.png")
 
-            # Click the event link to open the event detail view
-            self.browser.find_elements_by_css_selector('[data-test-id="view-events"]')[0].click()
+            # Open the stack
+            self.browser.find_elements_by_css_selector('[data-test-id="open-stack"]')[0].click()
             self.wait_until_loaded()
-            self.browser.save_screenshot("./details.png")
+
+            # View Event
+            self.browser.find_elements_by_css_selector('[data-test-id="view-event"]')[0].click()
+            self.wait_until_loaded()
 
             # Open a span detail so we can check the search by trace link.
             # Click on the 6th one as a missing instrumentation span is inserted.
             self.browser.find_elements_by_css_selector('[data-test-id="span-row"]')[6].click()
-            self.browser.save_screenshot("./span.png")
 
             # Click on the child transaction.
             child_button = '[data-test-id="view-child-transaction"]'
@@ -459,7 +456,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             new_name = "Custom queryupdated!"
             new_card_selector = 'div[name="discover2-query-name"][value="{}"]'.format(new_name)
             self.browser.wait_until(new_card_selector)
-            self.browser.save_screenshot("./rename.png")
 
         # Assert the name was updated.
         assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
