@@ -23,12 +23,14 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
 };
 
+type AlertType = 'metric' | 'issue' | null;
+
 type State = {
-  alertType: string | null;
+  alertType: AlertType;
 };
 
 class Create extends React.Component<Props, State> {
-  state = {
+  state: State = {
     alertType: this.props.location.pathname.includes('/alerts/rules/')
       ? 'issue'
       : this.props.location.pathname.includes('/alerts/metric-rules/')
@@ -47,15 +49,13 @@ class Create extends React.Component<Props, State> {
     });
   }
 
-  handleChangeAlertType = (alertType: string) => {
+  handleChangeAlertType = (alertType: AlertType) => {
     // alertType should be `issue` or `metric`
-    this.setState({
-      alertType,
-    });
+    this.setState({alertType});
   };
 
   render() {
-    const {hasMetricAlerts} = this.props;
+    const {hasMetricAlerts, organization} = this.props;
     const {projectId} = this.props.params;
     const {alertType} = this.state;
 
@@ -68,7 +68,11 @@ class Create extends React.Component<Props, State> {
         <SettingsPageHeader title={title} />
 
         {shouldShowAlertTypeChooser && (
-          <AlertTypeChooser selected={alertType} onChange={this.handleChangeAlertType} />
+          <AlertTypeChooser
+            organization={organization}
+            selected={alertType}
+            onChange={this.handleChangeAlertType}
+          />
         )}
 
         {(!hasMetricAlerts || alertType === 'issue') && <IssueEditor {...this.props} />}

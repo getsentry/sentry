@@ -158,16 +158,12 @@ class Tags extends React.Component<Props, State> {
   render() {
     return (
       <React.Fragment>
-        <StyledSectionHeading>{t('Event Tag Summary')}</StyledSectionHeading>
+        <SectionHeading>{t('Tag Summary')}</SectionHeading>
         {this.renderBody()}
       </React.Fragment>
     );
   }
 }
-
-const StyledSectionHeading = styled(SectionHeading)`
-  margin-top: ${space(0.5)};
-`;
 
 const StyledError = styled('div')`
   color: ${p => p.theme.gray500};

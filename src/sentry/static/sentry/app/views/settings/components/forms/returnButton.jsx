@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconReturn} from 'app/icons/iconReturn';
 import Tooltip from 'app/components/tooltip';
 
 const SubmitButton = styled('div')`
@@ -38,7 +38,7 @@ const returnButton = props => (
   <ClickTargetStyled {...props}>
     <Tooltip title={t('Save')}>
       <SubmitButton>
-        <InlineSvg size="0.75em" src="icon-return-key" />
+        <IconReturn />
       </SubmitButton>
     </Tooltip>
   </ClickTargetStyled>

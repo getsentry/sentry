@@ -131,6 +131,9 @@ from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
+from .endpoints.organization_release_previous_commits import (
+    OrganizationReleasePreviousCommitsEndpoint,
+)
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
@@ -1013,6 +1016,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$",
                     OrganizationReleaseCommitsEndpoint.as_view(),
                     name="sentry-api-0-organization-release-commits",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/previous-with-commits/$",
+                    OrganizationReleasePreviousCommitsEndpoint.as_view(),
+                    name="sentry-api-0-organization-release-previous-with-commits",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/user-feedback/$",

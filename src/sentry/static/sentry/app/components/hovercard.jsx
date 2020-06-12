@@ -202,7 +202,7 @@ const StyledHovercard = styled('div')`
   padding: 0;
   line-height: 1;
   /* Some hovercards overlap the toplevel header and sidebar, and we need to appear on top */
-  z-index: ${p => p.theme.zIndex.tooltip};
+  z-index: ${p => p.theme.zIndex.hovercard};
   white-space: initial;
   color: ${p => p.theme.gray800};
   border: 1px solid ${p => p.theme.borderLight};

@@ -27,12 +27,11 @@ from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
     SnubaTSResult,
-    DISCOVER_COLUMN_MAP,
-    QUOTED_LITERAL_RE,
     raw_query,
     to_naive_timestamp,
     naiveify_datetime,
-    resolve_condition,
+    resolve_snuba_aliases,
+    resolve_column,
 )
 
 __all__ = (
@@ -59,6 +58,8 @@ ReferenceEvent.__new__.__defaults__ = (None, None)
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
+resolve_discover_column = resolve_column(Dataset.Discover)
+
 
 def is_real_column(col):
     """
@@ -80,7 +81,9 @@ def find_reference_event(reference_event):
     except ValueError:
         raise InvalidSearchQuery("Invalid reference event")
 
-    column_names = [resolve_column(col) for col in reference_event.fields if is_real_column(col)]
+    column_names = [
+        resolve_discover_column(col) for col in reference_event.fields if is_real_column(col)
+    ]
     # We don't need to run a query if there are no columns
     if not column_names:
         return None
@@ -134,7 +137,7 @@ def create_reference_event_conditions(reference_event):
     if event_data is None:
         return conditions
 
-    field_names = [resolve_column(col) for col in reference_event.fields]
+    field_names = [resolve_discover_column(col) for col in reference_event.fields]
     for (i, field) in enumerate(reference_event.fields):
         value = event_data.get(field_names[i], None)
         # If the value is a sequence use the first element as snuba
@@ -272,40 +275,6 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
     return new_results
 
 
-def resolve_column(col):
-    """
-    Used as a column resolver in discover queries.
-
-    Resolve a public schema name to the discover dataset.
-    unknown columns are converted into tags expressions.
-    """
-    if col is None:
-        return col
-    elif isinstance(col, (list, tuple)):
-        return col
-    # Whilst project_id is not part of the public schema we convert
-    # the project.name field into project_id way before we get here.
-    if col == "project_id":
-        return col
-    if col.startswith("tags[") or QUOTED_LITERAL_RE.match(col):
-        return col
-
-    return DISCOVER_COLUMN_MAP.get(col, u"tags[{}]".format(col))
-
-
-# TODO (evanh) Since we are assuming that all string values are columns,
-# this will get tricky if we ever have complex columns where there are
-# string arguments to the functions that aren't columns
-def resolve_complex_column(col):
-    args = col[1]
-
-    for i in range(len(args)):
-        if isinstance(args[i], (list, tuple)):
-            resolve_complex_column(args[i])
-        elif isinstance(args[i], six.string_types):
-            args[i] = resolve_column(args[i])
-
-
 def resolve_discover_aliases(snuba_filter, function_translations=None):
     """
     Resolve the public schema aliases to the discover dataset.
@@ -314,70 +283,9 @@ def resolve_discover_aliases(snuba_filter, function_translations=None):
     `translated_columns` key containing the selected fields that need to
     be renamed in the result set.
     """
-    resolved = snuba_filter.clone()
-    translated_columns = {}
-    derived_columns = set()
-    if function_translations:
-        for snuba_name, sentry_name in six.iteritems(function_translations):
-            derived_columns.add(snuba_name)
-            translated_columns[snuba_name] = sentry_name
-
-    selected_columns = resolved.selected_columns
-    if selected_columns:
-        for (idx, col) in enumerate(selected_columns):
-            if isinstance(col, (list, tuple)):
-                resolve_complex_column(col)
-            else:
-                name = resolve_column(col)
-                selected_columns[idx] = name
-                translated_columns[name] = col
-
-        resolved.selected_columns = selected_columns
-
-    groupby = resolved.groupby
-    if groupby:
-        for (idx, col) in enumerate(groupby):
-            name = col
-            if isinstance(col, (list, tuple)):
-                if len(col) == 3:
-                    name = col[2]
-            elif col not in derived_columns:
-                name = resolve_column(col)
-
-            groupby[idx] = name
-        resolved.groupby = groupby
-
-    aggregations = resolved.aggregations
-    for aggregation in aggregations or []:
-        derived_columns.add(aggregation[2])
-        if isinstance(aggregation[1], six.string_types):
-            aggregation[1] = resolve_column(aggregation[1])
-        elif isinstance(aggregation[1], (set, tuple, list)):
-            aggregation[1] = [resolve_column(col) for col in aggregation[1]]
-    resolved.aggregations = aggregations
-
-    conditions = resolved.conditions
-    if conditions:
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, resolve_column)
-            conditions[i] = replacement
-        resolved.conditions = [c for c in conditions if c]
-
-    orderby = resolved.orderby
-    if orderby:
-        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-        resolved_orderby = []
-
-        for field_with_order in orderby:
-            field = field_with_order.lstrip("-")
-            resolved_orderby.append(
-                u"{}{}".format(
-                    "-" if field_with_order.startswith("-") else "",
-                    field if field in derived_columns else resolve_column(field),
-                )
-            )
-        resolved.orderby = resolved_orderby
-    return resolved, translated_columns
+    return resolve_snuba_aliases(
+        snuba_filter, resolve_discover_column, function_translations=function_translations
+    )
 
 
 def zerofill(data, start, end, rollup, orderby):
@@ -918,7 +826,6 @@ def top_events_timeseries(
         )
 
         user_fields = FIELD_ALIASES["user"]["fields"]
-
         for field in selected_columns:
             # project is handled by filter_keys already
             if field in ["project", "project.id"]:
@@ -940,16 +847,19 @@ def top_events_timeseries(
                 # A user field can be any of its field aliases, do an OR across all the user fields
                 elif field == "user":
                     snuba_filter.conditions.append(
-                        [[resolve_column(user_field), "IN", values] for user_field in user_fields]
+                        [
+                            [resolve_discover_column(user_field), "IN", values]
+                            for user_field in user_fields
+                        ]
                     )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
-                    condition = [[["isNull", [resolve_column(field)]], "=", 1]]
+                    condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
                     if non_none_values:
-                        condition.append([resolve_column(field), "IN", non_none_values])
+                        condition.append([resolve_discover_column(field), "IN", non_none_values])
                     snuba_filter.conditions.append(condition)
                 else:
-                    snuba_filter.conditions.append([resolve_column(field), "IN", values])
+                    snuba_filter.conditions.append([resolve_discover_column(field), "IN", values])
 
     with sentry_sdk.start_span(op="discover.discover", description="top_events.snuba_query"):
         result = raw_query(

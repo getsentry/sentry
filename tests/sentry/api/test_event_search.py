@@ -49,7 +49,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p99", "number") == "duration"
     assert get_json_meta_type("p100", "number") == "duration"
     assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
-    assert get_json_meta_type("error_rate", "number") == "percentage"
+    assert get_json_meta_type("failure_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
     assert get_json_meta_type("user_misery_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
@@ -589,7 +589,8 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_numeric_filter(self):
-        # Numeric format should still return a string if field isn't whitelisted
+        # Numeric format should still return a string if field isn't
+        # allowed
         assert parse_search_query("random_field:>500") == [
             SearchFilter(
                 key=SearchKey(name="random_field"),
@@ -1146,7 +1147,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_has_issue_id(self):
         has_issue_filter = get_filter("has:issue.id")
         assert has_issue_filter.group_ids == []
-        assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "!=", 1]]
+        assert has_issue_filter.conditions == [["issue.id", "!=", 0]]
 
     def test_not_has_issue_id(self):
         has_issue_filter = get_filter("!has:issue.id")
@@ -1185,11 +1186,29 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {"group_id": [1]}
         assert _filter.group_ids == [1]
 
-    def test_issue_filter(self):
+    def test_issue_filter_invalid(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("issue:1", {"organization_id": 1})
         assert "Invalid value '" in six.text_type(err)
         assert "' for 'issue:' filter" in six.text_type(err)
+
+    def test_issue_filter(self):
+        group = self.create_group(project=self.project)
+        _filter = get_filter(
+            "issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+        )
+        assert _filter.conditions == [["issue.id", "=", group.id]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_negated_issue_filter(self):
+        group = self.create_group(project=self.project)
+        _filter = get_filter(
+            "!issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+        )
+        assert _filter.conditions == [["issue.id", "!=", group.id]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
 
     def test_environment_param(self):
         params = {"environment": ["", "prod"]}

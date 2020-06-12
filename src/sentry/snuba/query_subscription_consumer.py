@@ -6,7 +6,7 @@ import jsonschema
 import pytz
 import sentry_sdk
 from sentry_sdk.tracing import Span
-from confluent_kafka import Consumer, KafkaException, TopicPartition
+from confluent_kafka import Consumer, KafkaException, OFFSET_INVALID, TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
@@ -80,11 +80,22 @@ class QuerySubscriptionConsumer(object):
             "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
         }
 
+        def on_assign(consumer, partitions):
+            for partition in partitions:
+                if partition.offset == OFFSET_INVALID:
+                    updated_offset = None
+                else:
+                    updated_offset = partition.offset
+                self.offsets[partition.partition] = updated_offset
+
         def on_revoke(consumer, partitions):
-            self.commit_offsets()
+            partition_numbers = [partition.partition for partition in partitions]
+            self.commit_offsets(partition_numbers)
+            for partition_number in partition_numbers:
+                self.offsets.pop(partition_number, None)
 
         self.consumer = Consumer(conf)
-        self.consumer.subscribe([self.topic], on_revoke=on_revoke)
+        self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
 
         try:
             i = 0
@@ -119,14 +130,19 @@ class QuerySubscriptionConsumer(object):
 
         self.shutdown()
 
-    def commit_offsets(self):
+    def commit_offsets(self, partitions=None):
         if self.offsets and self.consumer:
-            to_commit = [
-                TopicPartition(self.topic, partition, offset)
-                for partition, offset in self.offsets.items()
-            ]
+            if partitions is None:
+                partitions = self.offsets.keys()
+            to_commit = []
+            for partition in partitions:
+                offset = self.offsets.get(partition)
+                if offset is None:
+                    # Skip partitions that have no offset
+                    continue
+                to_commit.append(TopicPartition(self.topic, partition, offset))
+
             self.consumer.commit(offsets=to_commit)
-            self.offsets.clear()
 
     def shutdown(self):
         logger.debug("Committing offsets and closing consumer")

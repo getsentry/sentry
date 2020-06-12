@@ -5,6 +5,7 @@ import {browserHistory} from 'react-router';
 import ActivityAvatar from 'app/components/activity/item/avatar';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Link from 'app/components/links/link';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {User} from 'app/types';
@@ -16,6 +17,7 @@ type Props = {
   queryDetail?: string;
   to: object;
   createdBy?: User | undefined;
+  dateStatus?: React.ReactNode;
   onEventClick?: () => void;
   renderGraph: () => React.ReactNode;
   renderContextMenu?: () => React.ReactNode;
@@ -38,6 +40,7 @@ class QueryCard extends React.PureComponent<Props> {
       renderContextMenu,
       renderGraph,
       createdBy,
+      dateStatus,
     } = this.props;
 
     return (
@@ -58,7 +61,14 @@ class QueryCard extends React.PureComponent<Props> {
           </QueryCardHeader>
           <QueryCardBody>{renderGraph()}</QueryCardBody>
           <QueryCardFooter>
-            <StyledCreator>{subtitle}</StyledCreator>
+            <DateSelected>
+              {subtitle}
+              {dateStatus ? (
+                <DateStatus>
+                  {t('Edited')} {dateStatus}
+                </DateStatus>
+              ) : null}
+            </DateSelected>
             {renderContextMenu && renderContextMenu()}
           </QueryCardFooter>
         </StyledQueryCard>
@@ -107,7 +117,7 @@ const QueryDetail = styled('div')`
 `;
 
 const QueryCardBody = styled('div')`
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.gray200};
   max-height: 100px;
   height: 100%;
   overflow: hidden;
@@ -118,14 +128,19 @@ const QueryCardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  color: ${p => p.theme.gray600};
 `;
 
-const StyledCreator = styled('div')`
+const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-column-gap: ${space(1)};
   ${overflowEllipsis};
+  color: ${p => p.theme.gray700};
+`;
+
+const DateStatus = styled('span')`
+  color: ${p => p.theme.purple400};
+  padding-left: ${space(1)};
 `;
 
 export default QueryCard;

@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import partial from 'lodash/partial';
+import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
 import {t, tct} from 'app/locale';
@@ -66,6 +67,9 @@ type FieldFormatters = {
 export type FieldTypes = keyof FieldFormatters;
 
 const emptyValue = <span>{t('n/a')}</span>;
+const EmptyValueContainer = styled(Container)`
+  color: ${p => p.theme.gray500};
+`;
 
 /**
  * A mapping of field types to their rendering function.
@@ -246,9 +250,12 @@ const SPECIAL_FIELDS: SpecialFields = {
         ip_address: '',
       };
 
-      const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
+      if (data.user) {
+        const badge = <UserBadge user={userObj} hideEmail avatarSize={16} />;
+        return <Container>{badge}</Container>;
+      }
 
-      return <Container>{badge}</Container>;
+      return <EmptyValueContainer>{emptyValue}</EmptyValueContainer>;
     },
   },
   release: {
@@ -295,11 +302,14 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     const palette = new Array(10).fill(theme.purpleDarkest);
     const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
     const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+    const miseryPercentage = ((100 * userMisery) / Math.max(uniqueUsers, 1)).toFixed(2);
+
     const title = tct(
-      '[affectedUsers] out of [totalUsers] unique users waited more than [duration]ms',
+      '[affectedUsers] out of [totalUsers] ([miseryPercentage]%) unique users waited more than [duration]ms',
       {
         affectedUsers: userMisery,
         totalUsers: uniqueUsers,
+        miseryPercentage,
         duration: 4 * miseryLimit,
       }
     );

@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel, Model
+from sentry.models import Project
 
 
 def default_uuid():
@@ -35,6 +36,19 @@ class SentryAppInstallationToken(Model):
             return False
 
         return install_token.sentry_app_installation.organization_id == organization.id
+
+    @classmethod
+    def get_projects(cls, token):
+        try:
+            install_token = cls.objects.select_related("sentry_app_installation").get(
+                api_token=token
+            )
+        except cls.DoesNotExist:
+            return False
+
+        return Project.objects.filter(
+            organization_id=install_token.sentry_app_installation.organization_id
+        )
 
 
 class SentryAppInstallation(ParanoidModel):
@@ -93,3 +107,9 @@ class SentryAppInstallation(ParanoidModel):
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
         return super(SentryAppInstallation, self).save(*args, **kwargs)
+
+    @classmethod
+    def get_installed_for_org(cls, organization_id):
+        return cls.objects.filter(
+            organization_id=organization_id, status=SentryAppInstallationStatus.INSTALLED
+        )
