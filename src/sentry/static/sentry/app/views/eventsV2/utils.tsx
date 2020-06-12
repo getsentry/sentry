@@ -403,10 +403,6 @@ function generateExpandedConditions(
     if (column.kind === 'function') {
       continue;
     }
-    // Skip project name
-    if (key === 'project' || key === 'project.name') {
-      continue;
-    }
     parsedQuery[key] = [conditions[key]];
   }
 
