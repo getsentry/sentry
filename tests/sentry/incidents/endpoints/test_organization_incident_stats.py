@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-import pytest
 from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import fixture
@@ -90,7 +89,6 @@ class OrganizationIncidentDetailsTest(SnubaTestCase, APITestCase):
             [{"count": 0}]
         ] + [[]] * 5
 
-    @pytest.mark.xfail(reason="unstable, need to rework")
     def test_buckets(self):
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
@@ -99,13 +97,14 @@ class OrganizationIncidentDetailsTest(SnubaTestCase, APITestCase):
 
         assert resp.data["totalEvents"] == 6
         assert resp.data["uniqueUsers"] == 0
-        assert [data[1] for data in resp.data["eventStats"]["data"]] == [[]] * 194 + [
+        for i, data in enumerate(resp.data["eventStats"]["data"]):
+            if data[1]:
+                break
+        # We don't care about the empty rows, we just want to find this block of rows
+        # with counts somewhere in the data
+        assert [data[1] for data in resp.data["eventStats"]["data"][i : i + 4]] == [
             [{"count": 2}],
             [{"count": 4}],
             [{"count": 2}],
             [{"count": 2}],
-            [],
-            [],
-            [],
-            [],
         ]
