@@ -419,11 +419,22 @@ describe('getExpandedResults()', function() {
     const view = new EventView({
       ...state,
       query: '',
-      fields: [{field: 'project'}, {field: 'count()'}],
+      fields: [{field: 'project'}],
     });
     const event = {project: 'whoosh'};
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('project:whoosh');
+  });
+
+  it('applies project name as condition if present', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'project.name'}],
+    });
+    const event = {'project.name': 'whoosh'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('project.name:whoosh');
   });
 });
 
