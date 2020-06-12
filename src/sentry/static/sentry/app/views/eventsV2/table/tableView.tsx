@@ -126,7 +126,7 @@ class TableView extends React.Component<TableViewProps> {
 
       return [
         <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-          <Link data-test-id="expand-count" to={target}>
+          <Link data-test-id="view-event" to={target}>
             {value}
           </Link>
         </Tooltip>,
