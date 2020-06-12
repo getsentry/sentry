@@ -13,15 +13,20 @@ import {t} from 'app/locale';
 type Props = InputField['props'];
 type RenderProps = Props & ProjectMapperType;
 
-export default class ProjectMapperField extends React.Component<Props> {
+export class RenderField extends React.Component<RenderProps> {
   private sentryProjectRef = React.createRef<typeof SelectControl>();
   private mappedRef = React.createRef<typeof SelectControl>();
 
-  renderField = (props: RenderProps) => {
-    const {onChange, onBlur, value, mappedDropdown} = props;
+  render() {
+    const {
+      onChange,
+      onBlur,
+      value,
+      mappedDropdown,
+      sentryProjects,
+      mappedDropdown: {items: mappedDropdownItems},
+    } = this.props;
     const existingValues: Array<[number, string | number]> = value || [];
-    const sentryProjects = props.sentryProjects || [];
-    const mappedDropdownItems = mappedDropdown?.items || [];
 
     // create maps by the project id for constant time lookups
     const sentryProjectsById = Object.fromEntries(
@@ -121,7 +126,7 @@ export default class ProjectMapperField extends React.Component<Props> {
             ref={this.sentryProjectRef}
           />
           <StyledSelectControl
-            placeholder={mappedDropdown?.placeholder}
+            placeholder={mappedDropdown.placeholder}
             name="mappedDropwdown"
             openMenuOnFocus
             options={mappedItemsToShow}
@@ -131,12 +136,17 @@ export default class ProjectMapperField extends React.Component<Props> {
         </SelectContainer>
       </Wrapper>
     );
-  };
-
-  render() {
-    return <InputField {...this.props} field={this.renderField} />;
   }
 }
+
+const ProjectMapperField = (props: Props) => (
+  <InputField
+    {...props}
+    field={(renderProps: RenderProps) => <RenderField {...renderProps} />}
+  />
+);
+
+export default ProjectMapperField;
 
 const StyledSelectControl = styled(SelectControl)`
   width: 50%;
