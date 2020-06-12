@@ -31,7 +31,7 @@ function UserMisery(props: Props) {
     }
   );
   return (
-    <Tooltip title={title} disabled={false} containerDisplayMode="block">
+    <Tooltip title={title} containerDisplayMode="block">
       <ScoreBar size={barHeight} score={score} palette={palette} radius={0} />
     </Tooltip>
   );
