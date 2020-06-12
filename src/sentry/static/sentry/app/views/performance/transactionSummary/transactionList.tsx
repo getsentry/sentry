@@ -233,7 +233,11 @@ class TransactionTable extends React.PureComponent<Props> {
         );
 
         rendered = (
-          <Link to={target} onClick={this.handleViewDetailsClick}>
+          <Link
+            data-test-id="view-details"
+            to={target}
+            onClick={this.handleViewDetailsClick}
+          >
             {rendered}
           </Link>
         );
