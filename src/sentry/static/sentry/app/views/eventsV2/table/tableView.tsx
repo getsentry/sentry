@@ -89,21 +89,22 @@ class TableView extends React.Component<TableViewProps> {
     if (isHeader) {
       if (!hasAggregates) {
         return [
-          <SortLink
-            key="header-event-id"
-            align="left"
-            title={t('Id')}
-            direction={undefined}
-            canSort={false}
-            generateSortLink={() => undefined}
-          />,
+          <PrependHeader key="header-event-id">
+            <SortLink
+              align="left"
+              title={t('Id')}
+              direction={undefined}
+              canSort={false}
+              generateSortLink={() => undefined}
+            />
+          </PrependHeader>,
         ];
       }
 
       return [
-        <HeaderIcon key="header-icon">
+        <PrependHeader key="header-icon">
           <IconStack size="sm" />
-        </HeaderIcon>,
+        </PrependHeader>,
       ];
     }
 
@@ -372,10 +373,10 @@ function ExpandAggregateRow(props: {
   return <React.Fragment>{children}</React.Fragment>;
 }
 
-const HeaderIcon = styled('span')`
+const PrependHeader = styled('span')`
+  color: ${p => p.theme.gray600};
   & > svg {
     vertical-align: top;
-    color: ${p => p.theme.gray600};
   }
 `;
 
