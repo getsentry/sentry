@@ -184,4 +184,3 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.ignore_issue()
 
         self.browser.snapshot("issue details ignored")
-        self.browser.save_screenshot("test.png")
