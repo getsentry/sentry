@@ -386,17 +386,14 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Get the list page
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
-            self.browser.save_screenshot("./index.png")
 
             # Open the stack
             self.browser.find_elements_by_css_selector('[data-test-id="open-stack"]')[0].click()
             self.wait_until_loaded()
-            self.browser.save_screenshot("./details.png")
 
             # Open a span detail so we can check the search by trace link.
             # Click on the 6th one as a missing instrumentation span is inserted.
             self.browser.find_elements_by_css_selector('[data-test-id="span-row"]')[6].click()
-            self.browser.save_screenshot("./span.png")
 
             # Click on the child transaction.
             child_button = '[data-test-id="view-child-transaction"]'
@@ -459,7 +456,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             new_name = "Custom queryupdated!"
             new_card_selector = 'div[name="discover2-query-name"][value="{}"]'.format(new_name)
             self.browser.wait_until(new_card_selector)
-            self.browser.save_screenshot("./rename.png")
 
         # Assert the name was updated.
         assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
