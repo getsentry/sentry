@@ -319,8 +319,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
 
-            # Click the event link to open the events detail view
-            self.browser.element('[data-test-id="view-events"]').click()
+            # Open the stack
+            self.browser.element('[data-test-id="open-stack"]').click()
             self.wait_until_loaded()
 
             header = self.browser.element('[data-test-id="event-header"] span')
@@ -353,8 +353,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.result_path + "?" + errors_query() + "&statsPeriod=24h")
             self.wait_until_loaded()
 
-            # Click the event link to open the event detail view
-            self.browser.element('[data-test-id="view-events"]').click()
+            # Open the stack
+            self.browser.element('[data-test-id="open-stack"]').click()
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - grouped error event detail view")
@@ -388,8 +388,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.save_screenshot("./index.png")
 
-            # Click the event link to open the event detail view
-            self.browser.find_elements_by_css_selector('[data-test-id="view-events"]')[0].click()
+            # Open the stack
+            self.browser.find_elements_by_css_selector('[data-test-id="open-stack"]')[0].click()
             self.wait_until_loaded()
             self.browser.save_screenshot("./details.png")
 
