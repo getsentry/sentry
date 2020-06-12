@@ -15,6 +15,7 @@ import Tooltip from 'app/components/tooltip';
 import HeaderItem from 'app/components/organizations/headerItem';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
+import PlatformList from 'app/components/platformList';
 
 import ProjectSelector from './projectSelector';
 
@@ -202,7 +203,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return shouldForceProject ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
+        icon={<PlatformList platforms={[forceProject.platform]} max={1} size={20} />}
         locked
         lockedMessage={this.getLockedMessage()}
         settingsLink={
@@ -261,12 +262,21 @@ export default class MultipleProjectSelector extends React.PureComponent {
                 : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
                 ? t('All Projects')
                 : t('My Projects');
+              const icon = hasSelected ? (
+                <PlatformList
+                  platforms={selectedProjects.map(p => p.platform).reverse()}
+                  max={5}
+                  size={20}
+                />
+              ) : (
+                <StyledInlineSvg src="icon-project" />
+              );
 
               return (
                 <StyledHeaderItem
                   data-test-id="global-header-project-selector"
                   active={hasSelected || isOpen}
-                  icon={<StyledInlineSvg src="icon-project" />}
+                  icon={icon}
                   hasSelected={hasSelected}
                   hasChanges={this.state.hasChanges}
                   isOpen={isOpen}
