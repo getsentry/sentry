@@ -8,7 +8,7 @@ storiesOf('UI|EmptyStateWarning', module).add(
   'default',
   withInfo('Default')(() => (
     <EmptyStateWarning data="https://example.org/foo/bar/">
-      <p>There are no events found!</p>
+      There are no events found!
     </EmptyStateWarning>
   ))
 );
