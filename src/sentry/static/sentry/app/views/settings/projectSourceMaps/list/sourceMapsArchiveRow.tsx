@@ -1,24 +1,26 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {SourceMapsArchive} from 'app/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import TimeSince from 'app/components/timeSince';
 import Button from 'app/components/button';
-import {IconClock, IconFile} from 'app/icons';
+import {IconClock, IconFile, IconDelete} from 'app/icons';
 import ButtonBar from 'app/components/buttonBar';
 import Version from 'app/components/version';
 import Count from 'app/components/count';
+import Confirm from 'app/components/confirm';
 
 type Props = {
-  name: string;
-  date: string;
-  fileCount: number;
+  archive: SourceMapsArchive;
   orgId: string;
   projectId: string;
+  onDelete: (id: number) => void;
 };
 
-const SourceMapsArchiveRow = ({name, date, fileCount, orgId, projectId}: Props) => {
+const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
+  const {id, name, date, fileCount} = archive;
   return (
     <React.Fragment>
       <Column>
@@ -44,6 +46,14 @@ const SourceMapsArchiveRow = ({name, date, fileCount, orgId, projectId}: Props) 
           >
             {t('Open')}
           </Button>
+          <Confirm
+            onConfirm={() => onDelete(id)}
+            message={t('Are you sure you want to remove all artifacts in this archive?')}
+          >
+            <Button size="xsmall" icon={<IconDelete size="xs" />}>
+              {t('Delete')}
+            </Button>
+          </Confirm>
         </ButtonBar>
       </RightColumn>
     </React.Fragment>
