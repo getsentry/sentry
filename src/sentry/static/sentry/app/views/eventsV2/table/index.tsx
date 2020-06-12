@@ -75,22 +75,14 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {organization, location, setError} = this.props;
-    let {eventView} = this.props;
+    const {eventView, organization, location, setError} = this.props;
 
     if (!eventView.isValid()) {
       return;
     }
 
-    const hasAggregates = eventView.getAggregateFields().length > 0;
-    const hasEventIdColumn = eventView.getFields().includes('id');
-
-    if (!hasAggregates && !hasEventIdColumn) {
-      eventView = eventView.withNewColumn({
-        kind: 'field',
-        field: 'id',
-      });
-    }
+    // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
+    // the API payload response
 
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
