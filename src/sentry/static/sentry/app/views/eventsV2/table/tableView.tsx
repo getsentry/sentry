@@ -304,7 +304,7 @@ class TableView extends React.Component<TableViewProps> {
     const hasAggregates = eventView.getAggregateFields().length > 0;
     const prependColumnWidths = hasAggregates
       ? ['40px']
-      : [`minmax(${COL_WIDTH_MINIMUM}px, auto)`];
+      : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
     return (
       <GridEditable
