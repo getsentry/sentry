@@ -342,11 +342,10 @@ const GroupDetailsActions = createReactClass({
   render() {
     const {group, project, organization} = this.props;
     const orgFeatures = new Set(organization.features);
-    const {isBookmarked} = group;
 
     const buttonClassName = 'btn btn-default btn-sm';
     let bookmarkClassName = `group-bookmark ${buttonClassName}`;
-    if (isBookmarked) {
+    if (group.isBookmarked) {
       bookmarkClassName += ' active';
     }
 
