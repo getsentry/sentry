@@ -15,6 +15,7 @@ from sentry.models import (
     GroupHash,
     GroupAssignee,
     GroupBookmark,
+    GroupRelease,
     GroupResolution,
     GroupSeen,
     GroupSnooze,
@@ -23,9 +24,11 @@ from sentry.models import (
     GroupTombstone,
     GroupMeta,
     Release,
+    ReleaseEnvironment,
     Integration,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import MockClock
 from sentry.plugins.base import plugins
 
 
@@ -94,6 +97,74 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
+
+    def test_current_release(self):
+        clock = MockClock()
+
+        # Create several of everything, to exercise all filtering clauses.
+
+        def set_up_organization():
+            organization = self.create_organization()
+
+            team = self.create_team(organization=organization)
+            self.create_team_membership(team=team, user=self.user)
+
+            prod = self.create_organization_environment(organization, name="production")
+            dev = self.create_organization_environment(organization, name="development")
+
+            def set_up_project(environment):
+                project = self.create_project(organization=organization, teams=[team])
+                environment.add_project(project)
+
+                def set_up_group():
+                    group = self.create_group(project=project)
+
+                    def set_up_release():
+                        release = self.create_release(project=project)
+
+                        timestamp = clock()
+                        ReleaseEnvironment.get_or_create(project, release, environment, timestamp)
+                        group_release = GroupRelease.get_or_create(
+                            group, release, environment, timestamp
+                        )
+
+                        return group_release
+
+                    set_up_release()
+                    latest_gr = set_up_release()
+
+                    return group, latest_gr
+
+                set_up_group()
+                target_group, target_gr = set_up_group()
+
+                # TODO(ryanskonnord): We should be able to call set_up_group()
+                # once more here and still get the target GroupRelease, but it
+                # get None instead. This may be exposing an implementation bug?
+
+                return project, target_group, target_gr
+
+            set_up_project(prod)
+            target_project, target_group, target_gr = set_up_project(prod)
+            set_up_project(prod)
+            set_up_project(dev)
+            set_up_project(dev)
+
+            return organization, target_project, target_group, target_gr
+
+        set_up_organization()
+        target_org, target_project, target_group, target_gr = set_up_organization()
+        set_up_organization()
+
+        self.login_as(user=self.user)
+        url = u"/api/0/issues/{}/".format(target_group.id)
+        response = self.client.get(url, {"environment": "production"}, format="json")
+        assert response.status_code == 200
+
+        current_release = response.data["currentRelease"]
+        assert current_release is not None
+        assert current_release["firstSeen"] == target_gr.first_seen
+        assert current_release["lastSeen"] == target_gr.last_seen
 
     def test_pending_delete_pending_merge_excluded(self):
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)

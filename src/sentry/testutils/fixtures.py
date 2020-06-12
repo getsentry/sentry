@@ -97,6 +97,9 @@ class Fixtures(object):
             project = self.project
         return Factories.create_environment(project=project, **kwargs)
 
+    def create_organization_environment(self, organization, **kwargs):
+        return Factories.create_organization_environment(organization, **kwargs)
+
     def create_project(self, **kwargs):
         kwargs.setdefault("teams", [self.team])
         return Factories.create_project(**kwargs)
