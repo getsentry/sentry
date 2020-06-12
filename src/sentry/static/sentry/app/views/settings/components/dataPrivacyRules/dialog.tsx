@@ -100,7 +100,7 @@ class Dialog extends React.Component<Props, State> {
     }
 
     if (stateProperty === 'pattern' || stateProperty === 'source') {
-      this.clearError(stateProperty as keyof Omit<Rule, 'id'>);
+      this.clearError(stateProperty);
     }
 
     this.setState({rule});
