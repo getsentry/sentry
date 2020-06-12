@@ -30,7 +30,7 @@ type State = {
 };
 
 class Content extends React.PureComponent<Props, State> {
-  state: State = {editRule: undefined};
+  state: State = {};
 
   componentDidUpdate(prevProps: Props) {
     if (
