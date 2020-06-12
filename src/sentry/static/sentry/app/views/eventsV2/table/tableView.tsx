@@ -126,9 +126,9 @@ class TableView extends React.Component<TableViewProps> {
 
       return [
         <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
-          <Link data-test-id="view-event" to={target}>
+          <StyledLink data-test-id="view-event" to={target}>
             {value}
-          </Link>
+          </StyledLink>
         </Tooltip>,
       ];
     }
@@ -142,9 +142,9 @@ class TableView extends React.Component<TableViewProps> {
 
     return [
       <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
-        <IconLink to={target} data-test-id="open-stack">
-          <IconStack size="sm" />
-        </IconLink>
+        <Link to={target} data-test-id="open-stack">
+          <StyledIcon size="sm" />
+        </Link>
       </Tooltip>,
     ];
   };
@@ -375,16 +375,16 @@ function ExpandAggregateRow(props: {
 
 const PrependHeader = styled('span')`
   color: ${p => p.theme.gray600};
-  & > svg {
-    vertical-align: top;
+`;
+
+const StyledLink = styled(Link)`
+  > div {
+    display: inline;
   }
 `;
 
-// Fudge the icon down so it is center aligned with the table contents.
-const IconLink = styled(Link)`
-  position: relative;
-  display: inline-block;
-  top: 3px;
+const StyledIcon = styled(IconStack)`
+  vertical-align: middle;
 `;
 
 export default TableView;
