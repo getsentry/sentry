@@ -7,13 +7,11 @@ import {IconWarning} from 'app/icons';
 import {PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import Count from 'app/components/count';
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import Placeholder from 'app/components/placeholder';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 import TimeSince from 'app/components/timeSince';
@@ -99,14 +97,12 @@ class AlertListRow extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {incident, orgId, projectsLoaded, projects, filteredStatus} = this.props;
-    const {loading, error, stats} = this.state;
+    const {error, stats} = this.state;
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
     const slug = incident.projects[0];
-    const lastEventStatsValue =
-      stats?.eventStats.data[stats.eventStats.data.length - 1]?.[1]?.[0]?.count || 0;
 
     return (
       <ErrorBoundary>
@@ -130,22 +126,6 @@ class AlertListRow extends AsyncComponent<Props, State> {
                 />
               )}
             </TitleAndSparkLine>
-
-            {filteredStatus === 'open' && (
-              <NumericColumn>
-                {!loading && !error ? (
-                  <React.Fragment>
-                    <MetricName>
-                      {this.metricPreset?.name ?? t('Custom metric')}
-                      {':'}
-                    </MetricName>
-                    <Count value={lastEventStatsValue} />
-                  </React.Fragment>
-                ) : (
-                  <NumericPlaceholder error={error && <ErrorLoadingStatsIcon />} />
-                )}
-              </NumericColumn>
-            )}
 
             <ProjectBadge
               avatarSize={18}
@@ -204,10 +184,6 @@ const Title = styled('span')`
   ${overflowEllipsis}
 `;
 
-const MetricName = styled('span')`
-  margin-right: ${space(0.5)};
-`;
-
 const IncidentLink = styled(Link)`
   padding: 0 ${space(1)};
 `;
@@ -215,22 +191,6 @@ const IncidentLink = styled(Link)`
 const IncidentPanelItem = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1.5)} ${space(2)} ${space(1.5)} 0;
-`;
-
-const NumericPlaceholder = styled(Placeholder)<{error?: React.ReactNode}>`
-  ${p =>
-    p.error &&
-    `
-    align-items: center;
-    line-height: 1;
-    `}
-  height: 100%;
-`;
-
-const NumericColumn = styled('div')`
-  height: 100%;
-  display: flex;
-  align-items: center;
 `;
 
 export default AlertListRow;

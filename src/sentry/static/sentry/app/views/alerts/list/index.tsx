@@ -163,7 +163,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                 <div>{t('Alert')}</div>
                 {status === 'open' && <div>{t('Graph')}</div>}
               </PaddedTitleAndSparkLine>
-              {status === 'open' && <div>{t('Current Status')}</div>}
               <div>{t('Project')}</div>
               <div>{t('Triggered')}</div>
               {status === 'closed' && <div>{t('Duration')}</div>}
