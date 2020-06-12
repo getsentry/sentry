@@ -115,22 +115,6 @@ describe('IncidentsList', function() {
     ).toMatchObject({
       slug: 'a',
     });
-
-    expect(
-      items
-        .at(0)
-        .find('Count')
-        .at(0)
-        .text()
-    ).toBe('0');
-
-    expect(
-      items
-        .at(1)
-        .find('Count')
-        .at(0)
-        .text()
-    ).toBe('42');
   });
 
   it('displays empty state', async function() {
