@@ -31,14 +31,13 @@ export const HeaderContainer = styled('div')`
 export const HeaderTitle = styled('h3')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1.5)};
-  align-items: center;
-
+  grid-gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
-  line-height: 1.2;
   color: ${p => p.theme.gray700};
-  padding: 0 ${space(1)};
+  padding-left: ${space(1)};
+  line-height: 1.1;
+  margin-bottom: 0;
 `;
 
 export const HeaderTitleLegend = styled(HeaderTitle)`

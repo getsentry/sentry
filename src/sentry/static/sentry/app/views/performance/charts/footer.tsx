@@ -124,14 +124,14 @@ class ChartFooter extends React.Component<Props, State> {
         </InlineContainer>
         <InlineContainer>
           <OptionSelector
-            title={t('Left')}
+            title={t('Display 1')}
             selected={leftAxis}
             options={leftOptions}
             onChange={(val: string) => this.handleSelectorChange('left', val)}
             menuWidth="200px"
           />
           <OptionSelector
-            title={t('Right')}
+            title={t('Display 2')}
             selected={rightAxis}
             options={rightOptions}
             onChange={(val: string) => this.handleSelectorChange('right', val)}
