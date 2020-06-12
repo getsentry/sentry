@@ -18,8 +18,8 @@ type Props = {
   rules: Array<Rule>;
   onUpdateRule: (rule: Rule) => void;
   onDeleteRule: (rulesToBeDeleted: Array<Rule['id']>) => void;
-  onUpdateEventId?: (eventId: string) => void;
   errors: Errors;
+  onUpdateEventId?: (eventId: string) => void;
   disabled?: boolean;
   sourceSuggestions?: Array<SourceSuggestion>;
   eventId?: EventId;
