@@ -2,6 +2,9 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
+/**
+ * Base container for 66/33 containers.
+ */
 export const ContentBox = styled('div')`
   padding: ${space(2)} ${space(4)};
   margin: 0;
@@ -21,18 +24,17 @@ export const ContentBox = styled('div')`
 `;
 
 /**
- * Header container for when there are no breadcrumbs/toolbars
+ * Header container for breadcrumbs and toolbars.
  */
-export const Header = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
-  height: 40px;
-  margin-bottom: ${space(1)};
+export const Header = styled(ContentBox)`
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  grid-row-gap: ${space(1)};
+  background-color: transparent;
+  flex-grow: 0;
 `;
-
+/**
+ * Container for top right controls
+ */
 export const HeaderTopControls = styled('div')`
   display: flex;
   justify-self: end;
@@ -40,6 +42,9 @@ export const HeaderTopControls = styled('div')`
   grid-column: 2/3;
 `;
 
+/**
+ * Container for bottom right controls
+ */
 export const HeaderBottomControls = styled('div')`
   display: flex;
   justify-self: end;
@@ -49,21 +54,13 @@ export const HeaderBottomControls = styled('div')`
 `;
 
 /**
- * Header container for breadcrumbs and toolbars.
+ * Containers for two column 66/33 layout.
  */
-export const HeaderWithControls = styled(ContentBox)`
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(1)};
-  background-color: transparent;
-  flex-grow: 0;
-`;
-
 export const Main = styled('div')`
   grid-column: 1/2;
   max-width: 100%;
   overflow: hidden;
 `;
-
 export const Side = styled('div')`
   grid-column: 2/3;
 `;
