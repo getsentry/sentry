@@ -54,7 +54,7 @@ class VercelIntegration(IntegrationInstallation):
 
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
-            lambda proj: {key: getattr(proj, key) for key in proj_fields},
+            lambda proj: {key: proj[key] for key in proj_fields},
             (
                 Project.objects.filter(organization_id=self.organization_id)
                 .order_by("slug")
