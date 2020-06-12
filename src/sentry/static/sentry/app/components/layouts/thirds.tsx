@@ -5,7 +5,7 @@ import space from 'app/styles/space';
 /**
  * Base container for 66/33 containers.
  */
-export const ContentBox = styled('div')`
+export const LayoutBody = styled('div')`
   padding: ${space(2)} ${space(4)};
   margin: 0;
   background-color: ${p => p.theme.white};
@@ -26,7 +26,7 @@ export const ContentBox = styled('div')`
 /**
  * Header container for breadcrumbs and toolbars.
  */
-export const Header = styled(ContentBox)`
+export const Header = styled(LayoutBody)`
   border-bottom: 1px solid ${p => p.theme.borderDark};
   grid-row-gap: ${space(1)};
   background-color: transparent;
@@ -56,11 +56,11 @@ export const HeaderBottomControls = styled('div')`
 /**
  * Containers for two column 66/33 layout.
  */
-export const Main = styled('div')`
+export const Main = styled('section')<{fullWidth?: boolean}>`
   grid-column: 1/2;
   max-width: 100%;
   overflow: hidden;
 `;
-export const Side = styled('div')`
+export const Side = styled('aside')`
   grid-column: 2/3;
 `;
