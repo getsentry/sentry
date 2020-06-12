@@ -44,7 +44,9 @@ export default class ProjectMapperField extends React.Component<Props> {
     const handleAdd = () => {
       const {value: sentryProjectId} = this.sentryProjectRef.current.state.value;
       const {value: mappedValue} = this.mappedRef.current.state.value;
+      //add the new value to the list of exsiting values
       const projectMappings = [...existingValues, [sentryProjectId, mappedValue]];
+      //trigger events so we save the value and show the check mark
       onChange?.(projectMappings, []);
       onBlur?.(projectMappings, []);
     };
@@ -62,6 +64,7 @@ export default class ProjectMapperField extends React.Component<Props> {
 
     const customValueContainer = containerProps => {
       const valueList = containerProps.getValue();
+      //if no value set, we want to return the default component that is rendered
       if (valueList.length === 0) {
         return <components.ValueContainer {...containerProps} />;
       }
@@ -83,7 +86,7 @@ export default class ProjectMapperField extends React.Component<Props> {
     };
 
     const customOptionProject = projectProps => {
-      const project = sentryProjects.find(({id}) => projectProps.value === id);
+      const project = sentryProjectsById[projectProps.value];
       if (!project) {
         return null;
       }
