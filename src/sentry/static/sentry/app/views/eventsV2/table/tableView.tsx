@@ -85,10 +85,9 @@ class TableView extends React.Component<TableViewProps> {
   ): React.ReactNode[] => {
     const {organization, eventView} = this.props;
     const hasAggregates = eventView.getAggregateFields().length > 0;
-    if (isHeader) {
-      const hasEventIdColumn = eventView.getFields().includes('id');
 
-      if (hasEventIdColumn && !hasAggregates) {
+    if (isHeader) {
+      if (!hasAggregates) {
         return [
           <SortLink
             key="header-event-id"
@@ -103,7 +102,7 @@ class TableView extends React.Component<TableViewProps> {
 
       return [
         <HeaderIcon key="header-icon">
-          {hasAggregates ? <IconStack size="sm" /> : <IconEvent size="sm" />}
+          <IconStack size="sm" />
         </HeaderIcon>,
       ];
     }
