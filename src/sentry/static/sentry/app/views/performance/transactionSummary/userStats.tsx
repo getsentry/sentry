@@ -8,8 +8,10 @@ import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
+import {PERFORMANCE_TERMS} from 'app/views/performance/constants';
 
 type Props = {
   location: Location;
@@ -78,7 +80,14 @@ class UserStats extends React.Component<Props> {
           <StatNumber>{'\u2014'}</StatNumber>
         </div>
         <UserMiseryContainer>
-          <SectionHeading>{t('User Misery')}</SectionHeading>
+          <SectionHeading>
+            {t('User Misery')}
+            <QuestionTooltip
+              position="top"
+              title={PERFORMANCE_TERMS.userMisery}
+              size="sm"
+            />
+          </SectionHeading>
           {userMisery}
         </UserMiseryContainer>
       </Container>
