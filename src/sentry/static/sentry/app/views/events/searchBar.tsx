@@ -10,12 +10,12 @@ import React from 'react';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {defined} from 'app/utils';
 import {fetchTagValues} from 'app/actionCreators/tags';
-import SentryTypes from 'app/sentryTypes';
 import SmartSearchBar, {SearchType} from 'app/components/smartSearchBar';
 import {Field, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
 import {Client} from 'app/api';
+import {Organization, Tag} from 'app/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -26,20 +26,20 @@ const FIELD_TAGS = Object.fromEntries(
   Object.keys(FIELDS).map(item => [item, {key: item, name: item}])
 );
 
-type SearchBarProps = {
+type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   api: Client;
-  organization: SentryTypes.Organization;
-  tags: SentryTypes.Tag;
+  organization: Organization;
+  tags: {[key: string]: Tag};
   omitTags?: string[];
-  projectIds?: string[];
-  fields?: Field[];
+  projectIds?: number[] | Readonly<number[]>;
+  fields?: Readonly<Field[]>;
 };
 
 class SearchBar extends React.PureComponent<SearchBarProps> {
   static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization,
-    tags: PropTypes.objectOf(SentryTypes.Tag),
+    api: PropTypes.object,
+    organization: PropTypes.object,
+    tags: PropTypes.object,
     omitTags: PropTypes.arrayOf(PropTypes.string.isRequired),
     projectIds: PropTypes.arrayOf(PropTypes.number.isRequired),
     fields: PropTypes.arrayOf(PropTypes.object.isRequired) as any,
@@ -68,13 +68,14 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
   getEventFieldValues = memoize(
     (tag, query, endpointParams): Promise<string[]> => {
       const {api, organization, projectIds} = this.props;
+      const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
       return fetchTagValues(
         api,
         organization.slug,
         tag.key,
         query,
-        projectIds,
+        projectIdStrings,
         endpointParams
       ).then(
         results =>
