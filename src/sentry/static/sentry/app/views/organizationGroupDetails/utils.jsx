@@ -92,7 +92,13 @@ const SUBSCRIPTION_REASONS = {
 export function getSubscriptionReason(group, removeLinks = false) {
   if (group.isSubscribed) {
     if (group.subscriptionDetails) {
-      const reason = group.subscriptionDetails.reason;
+      const {reason} = group.subscriptionDetails;
+      if (reason === 'unknown') {
+        return t(
+          "You're receiving workflow notifications because you are subscribed to this issue."
+        );
+      }
+
       if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
         return SUBSCRIPTION_REASONS[reason];
       }
