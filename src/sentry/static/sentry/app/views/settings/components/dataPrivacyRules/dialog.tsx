@@ -152,7 +152,9 @@ class Dialog extends React.Component<Props, State> {
     return (
       <StyledModal show animation={false} onHide={onClose}>
         <Modal.Header closeButton>
-          {isNewRule ? t('Add a data privacy rule') : t('Edit a data privacy rule')}
+          {isNewRule
+            ? t('Add an advanced data scrubbing rule')
+            : t('Edit an advanced data scrubbing rule')}
         </Modal.Header>
         <Modal.Body>
           <Form
