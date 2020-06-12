@@ -83,7 +83,7 @@ class TableView extends React.Component<TableViewProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {organization, eventView} = this.props;
+    const {organization, eventView, tableData, location} = this.props;
     const hasAggregates = eventView.getAggregateFields().length > 0;
 
     if (isHeader) {
@@ -91,7 +91,7 @@ class TableView extends React.Component<TableViewProps> {
         return [
           <SortLink
             key="header-event-id"
-            align="right"
+            align="left"
             title={t('Event Id')}
             direction={undefined}
             canSort={false}
@@ -115,10 +115,27 @@ class TableView extends React.Component<TableViewProps> {
       eventView,
     });
 
+    if (!hasAggregates) {
+      let value = dataRow.id;
+
+      if (tableData && tableData.meta) {
+        const fieldRenderer = getFieldRenderer('id', tableData.meta);
+        value = fieldRenderer(dataRow, {organization, location});
+      }
+
+      return [
+        <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+          <Link data-test-id="expand-count" to={target}>
+            {value}
+          </Link>
+        </Tooltip>,
+      ];
+    }
+
     return [
       <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
         <IconLink to={target} data-test-id="view-events">
-          {hasAggregates ? <IconStack size="sm" /> : <IconEvent size="sm" />}
+          <IconStack size="sm" />
         </IconLink>
       </Tooltip>,
     ];
