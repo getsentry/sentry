@@ -10,7 +10,7 @@ import GridEditable, {
   COL_WIDTH_MINIMUM,
 } from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
-import {IconEvent, IconStack} from 'app/icons';
+import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {openModal} from 'app/actionCreators/modal';
 import Link from 'app/components/links/link';
@@ -107,14 +107,6 @@ class TableView extends React.Component<TableViewProps> {
       ];
     }
 
-    const eventSlug = generateEventSlug(dataRow);
-
-    const target = eventDetailsRouteWithEventView({
-      orgSlug: organization.slug,
-      eventSlug,
-      eventView,
-    });
-
     if (!hasAggregates) {
       let value = dataRow.id;
 
@@ -122,6 +114,14 @@ class TableView extends React.Component<TableViewProps> {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
         value = fieldRenderer(dataRow, {organization, location});
       }
+
+      const eventSlug = generateEventSlug(dataRow);
+
+      const target = eventDetailsRouteWithEventView({
+        orgSlug: organization.slug,
+        eventSlug,
+        eventView,
+      });
 
       return [
         <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
@@ -132,8 +132,15 @@ class TableView extends React.Component<TableViewProps> {
       ];
     }
 
+    const nextView = getExpandedResults(eventView, {}, dataRow);
+
+    const target = {
+      pathname: location.pathname,
+      query: nextView.generateQueryStringObject(),
+    };
+
     return [
-      <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
+      <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
         <IconLink to={target} data-test-id="view-events">
           <IconStack size="sm" />
         </IconLink>
