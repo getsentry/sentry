@@ -28,7 +28,7 @@ type Data = [number, {count: number}[]];
  */
 function getNearbyIndex(data: Data[], needle: number) {
   // `data` is sorted, return the first index whose value (timestamp) is > `needle`
-  const index = data.findIndex(([ts]) => ts >= needle);
+  const index = data.findIndex(([ts]) => ts > needle);
 
   // this shouldn't happen, as we try to buffer dates before start/end dates
   if (index === 0) {
