@@ -152,5 +152,6 @@ describe('SettingsSearch', function() {
       .simulate('click');
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything());
+    navigateTo.mockClear();
   });
 });
