@@ -139,6 +139,10 @@ type EventsRequestPartialProps = {
    * How to order results when getting top events.
    */
   orderby?: string;
+  /**
+   * Discover needs confirmation to run >30 day >10 project queries
+   */
+  confirmedQuery?: boolean;
 };
 
 type TimeAggregationProps =
@@ -199,6 +203,8 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     keyTransactions: PropTypes.bool,
     topEvents: PropTypes.number,
     orderby: PropTypes.string,
+
+    confirmedQuery: PropTypes.bool,
   };
 
   static defaultProps: DefaultProps = {
@@ -236,8 +242,12 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, ...props} = this.props;
+    const {api, confirmedQuery, ...props} = this.props;
     let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
+
+    if (confirmedQuery === false) {
+      return;
+    }
 
     this.setState(state => ({
       reloading: state.timeseriesData !== null,

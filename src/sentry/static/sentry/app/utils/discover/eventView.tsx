@@ -534,6 +534,24 @@ class EventView {
     return decodeColumnOrder(this.fields);
   }
 
+  getDays(): number {
+    const statsPeriod = decodeScalar(this.statsPeriod);
+    const start = decodeScalar(this.start);
+    const end = decodeScalar(this.end);
+
+    if (statsPeriod && statsPeriod.endsWith('d')) {
+      return parseInt(statsPeriod.slice(0, -1), 10);
+    } else if (statsPeriod && statsPeriod.endsWith('h')) {
+      return parseInt(statsPeriod.slice(0, -1), 10) / 24;
+    } else if (start && end) {
+      return (
+        (new Date(end).getTime() - new Date(start).getTime()) / (24 * 60 * 60 * 1000)
+      );
+    } else {
+      return 0;
+    }
+  }
+
   clone(): EventView {
     // NOTE: We rely on usage of Readonly from TypeScript to ensure we do not mutate
     //       the attributes of EventView directly. This enables us to quickly

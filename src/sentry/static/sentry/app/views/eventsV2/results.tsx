@@ -60,9 +60,6 @@ function readShowTagsState() {
   return value === '1';
 }
 
-const doTimeout = (timeout: number) =>
-  new Promise(resolve => setTimeout(resolve, timeout));
-
 class Results extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
     const eventView = EventView.fromLocation(nextProps.location);
@@ -80,8 +77,6 @@ class Results extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {api, organization, selection} = this.props;
-    loadOrganizationTags(api, organization.slug, selection);
     this.checkEventView();
     this.canLoadEvents();
   }
@@ -110,14 +105,9 @@ class Results extends React.Component<Props, State> {
     let needConfirmation = false;
     let confirmedQuery = true;
     const currentQuery = eventView.getEventsAPIPayload(location);
+    const duration = eventView.getDays();
 
-    const duration =
-      currentQuery.statsPeriod && currentQuery.statsPeriod.endsWith('d')
-        ? parseInt(currentQuery.statsPeriod.slice(0, -1), 10)
-        : (new Date(currentQuery.end) - new Date(currentQuery.start)) /
-          (24 * 60 * 60 * 1000);
-
-    if (duration >= 30) {
+    if (duration >= 30 && currentQuery.project) {
       const {results} = await fetchProjects(api, organization.slug, {allProjects: true});
       let projectLength = currentQuery.project.length;
 
@@ -134,12 +124,10 @@ class Results extends React.Component<Props, State> {
         confirmedQuery = false;
       }
     }
-    this.setState({needConfirmation, confirmedQuery});
+    this.setState({needConfirmation, confirmedQuery}, () => {
+      this.setState({confirmedQuery: false});
+    });
     this.fetchTotalCount(confirmedQuery);
-
-    // Any time confirmed Query is enabled, need to flip it off after the fetch starts
-    await doTimeout(0);
-    this.setState({confirmedQuery: false});
   };
 
   openConfirmModal = ({open}) => {
@@ -147,14 +135,14 @@ class Results extends React.Component<Props, State> {
     if (needConfirmation) {
       open();
     }
+    return null;
   };
 
   longQueryConfirmed = async () => {
-    this.setState({needConfirmation: false, confirmedQuery: true});
+    this.setState({needConfirmation: false, confirmedQuery: true}, () => {
+      this.setState({confirmedQuery: false});
+    });
     this.fetchTotalCount(true);
-
-    await doTimeout(0);
-    this.setState({confirmedQuery: false});
   };
 
   longQueryCancelled = () => {
@@ -281,7 +269,7 @@ class Results extends React.Component<Props, State> {
 
   renderTagsTable() {
     const {organization, location} = this.props;
-    const {eventView, totalValues} = this.state;
+    const {eventView, totalValues, confirmedQuery} = this.state;
 
     return (
       <Side>
@@ -291,6 +279,7 @@ class Results extends React.Component<Props, State> {
           eventView={eventView}
           organization={organization}
           location={location}
+          confirmedQuery={confirmedQuery}
         />
       </Side>
     );
