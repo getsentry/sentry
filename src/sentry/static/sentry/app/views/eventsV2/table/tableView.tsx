@@ -349,22 +349,6 @@ function ExpandAggregateRow(props: {
     });
   }
 
-  // count(column) drilldown
-  if (aggregation === 'count') {
-    const nextView = getExpandedResults(eventView, {}, dataRow);
-
-    const target = {
-      pathname: location.pathname,
-      query: nextView.generateQueryStringObject(),
-    };
-
-    return (
-      <Link data-test-id="expand-count" to={target} onClick={handleClick}>
-        {children}
-      </Link>
-    );
-  }
-
   // count_unique(column) drilldown
   if (aggregation === 'count_unique') {
     // Drilldown into each distinct value and get a count() for each value.
