@@ -13,6 +13,8 @@ from sentry.integrations import (
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
+from sentry.models import Project
+from sentry.utils.compat import map
 
 from .client import VercelClient
 
@@ -23,9 +25,9 @@ VERCEL DESC
 FEATURES = [
     FeatureDescription(
         """
-        COMMIT DESCRIPTION
+        DEPLOYMENT DESCRIPTION
         """,
-        IntegrationFeatures.COMMITS,
+        IntegrationFeatures.DEPLOYMENT,
     ),
 ]
 
@@ -42,7 +44,37 @@ metadata = IntegrationMetadata(
 
 
 class VercelIntegration(IntegrationInstallation):
-    pass
+    def get_organization_config(self):
+        metadata = self.model.metadata
+        vercel_client = VercelClient(metadata["access_token"], metadata.get("team_id"))
+        # TODO: add try/catch if we get API failure
+        vercel_projects = [
+            {"value": p["id"], "label": p["name"]} for p in vercel_client.get_projects()
+        ]
+
+        proj_fields = ["id", "platform", "name", "slug"]
+        sentry_projects = map(
+            lambda proj: {key: proj[key] for key in proj_fields},
+            (
+                Project.objects.filter(organization_id=self.organization_id)
+                .order_by("slug")
+                .values(*proj_fields)
+            ),
+        )
+
+        fields = [
+            {
+                "name": "project_mappings",
+                "type": "project_mapper",
+                "mappedDropdown": {
+                    "items": vercel_projects,
+                    "placeholder": "Select a Vercel Project",  # TOOD: add translation
+                },
+                "sentryProjects": sentry_projects,
+            }
+        ]
+
+        return fields
 
 
 class VercelIntegrationProvider(IntegrationProvider):
@@ -51,7 +83,7 @@ class VercelIntegrationProvider(IntegrationProvider):
     requires_feature_flag = True
     metadata = metadata
     integration_cls = VercelIntegration
-    features = frozenset([IntegrationFeatures.COMMITS])
+    features = frozenset([IntegrationFeatures.DEPLOYMENT])
     oauth_redirect_url = "/extensions/vercel/configure/"
 
     def get_pipeline_views(self):
@@ -69,12 +101,13 @@ class VercelIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         data = state["identity"]["data"]
         access_token = data["access_token"]
-        client = VercelClient(access_token)
+        team_id = data.get("team_id")
+        client = VercelClient(access_token, team_id)
 
-        if data.get("team_id"):
-            external_id = data["team_id"]
+        if team_id:
+            external_id = team_id
             installation_type = "team"
-            team = client.get_team(external_id)
+            team = client.get_team()
             name = team["name"]
         else:
             external_id = data["user_id"]
