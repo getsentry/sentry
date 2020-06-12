@@ -107,7 +107,10 @@ export function getOnboardingTasks(
         // instructions for the corresponding project to prompt the user to send an event
         // to the new project.
         const projectSlug =
-          project && org.projects && org.projects.find(p => p.id === `${project}`)
+          project &&
+          org.projects &&
+          org.projects.find(p => p.id === `${project}`) &&
+          org.projects.find(p => p.id === `${project}`).slug
             ? org.projects.find(p => p.id === `${project}`).slug
             : ':projectId';
         // if there's no project id associated with the task, sending 'projectId' to the router
