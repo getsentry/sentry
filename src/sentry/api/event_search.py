@@ -1180,7 +1180,7 @@ FUNCTIONS = {
     "failure_rate": {
         "name": "failure_rate",
         "args": [],
-        "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
+        "transform": "failure_rate()",
         "result_type": "percentage",
     },
     # The user facing signature for this function is histogram(<column>, <num_buckets>)
