@@ -331,13 +331,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         onSubmitSuccess(resp, model);
       }
     } catch (err) {
-      let errors: string[] = [];
+      let errors = [];
       if (Array.isArray(err?.responseJSON)) {
         errors = err.responseJSON;
       } else if (err?.responseJSON) {
-        errors = Object.values(err?.responseJSON).filter(
-          value => typeof value[0] === 'string'
-        );
+        errors = Object.values(err?.responseJSON);
+        value => value instanceof Array && typeof value[0] === 'string';
       }
       const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
       addErrorMessage(t('Unable to save alert%s', apiErrors));
