@@ -47,7 +47,7 @@ export default class ProjectMapperField extends React.Component<Props> {
     const handleAdd = () => {
       const {value: sentryProjectId} = this.sentryProjectRef.current.state.value;
       const {value: mappedValue} = this.mappedRef.current.state.value;
-      //add the new value to the list of exsiting values
+      //add the new value to the list of existing values
       const projectMappings = [...existingValues, [sentryProjectId, mappedValue]];
       //trigger events so we save the value and show the check mark
       onChange?.(projectMappings, []);
@@ -144,7 +144,6 @@ const StyledSelectControl = styled(SelectControl)`
 
 const SelectContainer = styled('div')`
   display: flex;
-  flex-direction: row;
 `;
 
 const Wrapper = styled('div')``;

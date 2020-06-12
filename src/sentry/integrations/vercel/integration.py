@@ -14,6 +14,7 @@ from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
 from sentry.models import Project
+from sentry.utils.compat import map
 
 from .client import VercelClient
 
@@ -46,14 +47,19 @@ class VercelIntegration(IntegrationInstallation):
     def get_organization_config(self):
         metadata = self.model.metadata
         vercel_client = VercelClient(metadata["access_token"], metadata.get("team_id"))
+        # TODO: add try/catch if we get API failure
         vercel_projects = [
             {"value": p["id"], "label": p["name"]} for p in vercel_client.get_projects()
         ]
 
-        sentry_projects = (
-            Project.objects.filter(organization_id=self.organization_id)
-            .order_by("slug")
-            .values("id", "platform", "name", "slug")
+        proj_fields = ["id", "platform", "name", "slug"]
+        sentry_projects = map(
+            lambda proj: {key: getattr(proj, key) for key in proj_fields},
+            (
+                Project.objects.filter(organization_id=self.organization_id)
+                .order_by("slug")
+                .values(*proj_fields)
+            ),
         )
 
         fields = [
@@ -62,8 +68,8 @@ class VercelIntegration(IntegrationInstallation):
                 "type": "project_mapper",
                 "mappedDropdown": {
                     "items": vercel_projects,
-                    "placeholder": _('Select a Vercel Project')
-                    },
+                    "placeholder": "Select a Vercel Project",  # TOOD: add translation
+                },
                 "sentryProjects": sentry_projects,
             }
         ]
