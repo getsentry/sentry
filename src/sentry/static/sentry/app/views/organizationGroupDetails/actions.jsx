@@ -11,7 +11,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
 import {openModal} from 'app/actionCreators/modal';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
@@ -33,23 +33,7 @@ import withOrganization from 'app/utils/withOrganization';
 import Tooltip from 'app/components/tooltip';
 import {IconBell} from 'app/icons/iconBell';
 
-const SUBSCRIPTION_REASONS = {
-  commented: t(
-    "You're receiving workflow notifications because you have commented on this issue."
-  ),
-  assigned: t(
-    "You're receiving workflow notifications because you were assigned to this issue."
-  ),
-  bookmarked: t(
-    "You're receiving workflow notifications because you have bookmarked this issue."
-  ),
-  changed_status: t(
-    "You're receiving workflow notifications because you have changed the status of this issue."
-  ),
-  mentioned: t(
-    "You're receiving workflow notifications because you have been mentioned in this issue."
-  ),
-};
+import {getSubscriptionReason} from './utils';
 
 class SubscribeAction extends React.Component {
   static propTypes = {
@@ -57,36 +41,12 @@ class SubscribeAction extends React.Component {
     onToggleSubscribe: PropTypes.func.isRequired,
   };
 
-  getNotificationText() {
-    const {group} = this.props;
+  canChangeSubscriptionState() {
+    return !(this.props.group.subscriptionDetails || {disabled: false}).disabled;
+  }
 
-    if (group.isSubscribed) {
-      let result = t(
-        "You're receiving updates because you are subscribed to this issue."
-      );
-      if (group.subscriptionDetails) {
-        const reason = group.subscriptionDetails.reason;
-        if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
-          result = SUBSCRIPTION_REASONS[reason];
-        }
-      } else {
-        result = tct(
-          "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
-          {
-            link: <a href="/account/settings/notifications/" />,
-          }
-        );
-      }
-      return result;
-    } else {
-      if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
-        return tct('You have [link:disabled workflow notifications] for this project.', {
-          link: <a href="/account/settings/notifications/" />,
-        });
-      } else {
-        return t('Subscribe to receive workflow notifications for this issue');
-      }
-    }
+  getNotificationText() {
+    return getSubscriptionReason(this.props.group, true);
   }
 
   render() {
@@ -99,17 +59,19 @@ class SubscribeAction extends React.Component {
     }
 
     return (
-      <div className="btn-group">
-        <Tooltip title={this.getNotificationText()}>
-          <div
-            className={subscribedClassName}
-            title={t('Subscribe')}
-            onClick={onToggleSubscribe}
-          >
-            <StyledIconBell size="xs" />
-          </div>
-        </Tooltip>
-      </div>
+      this.canChangeSubscriptionState() && (
+        <div className="btn-group">
+          <Tooltip title={this.getNotificationText()}>
+            <div
+              className={subscribedClassName}
+              title={t('Subscribe')}
+              onClick={onToggleSubscribe}
+            >
+              <StyledIconBell size="xs" />
+            </div>
+          </Tooltip>
+        </div>
+      )
     );
   }
 }

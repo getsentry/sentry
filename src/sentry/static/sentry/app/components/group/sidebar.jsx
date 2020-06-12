@@ -6,7 +6,7 @@ import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalIssueList from 'app/components/group/externalIssuesList';
 import GroupParticipants from 'app/components/group/participants';
@@ -15,9 +15,9 @@ import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import SentryTypes from 'app/sentryTypes';
-import SubscribeButton from 'app/components/subscribeButton';
 import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import withApi from 'app/utils/withApi';
+import {getSubscriptionReason} from 'app/views/organizationGroupDetails/utils';
 
 class GroupSidebar extends React.Component {
   static propTypes = {
@@ -165,8 +165,8 @@ class GroupSidebar extends React.Component {
     return null;
   }
 
-  canChangeSubscriptionState() {
-    return !(this.props.group.subscriptionDetails || {disabled: false}).disabled;
+  getNotificationText() {
+    return getSubscriptionReason(this.props.group);
   }
 
   renderParticipantData() {
@@ -247,6 +247,10 @@ class GroupSidebar extends React.Component {
         )}
 
         {this.renderParticipantData()}
+        <h6>
+          <span>{t('Notifications')}</span>
+        </h6>
+        <p className="help-block">{this.getNotificationText()}</p>
       </div>
     );
   }
