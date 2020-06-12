@@ -63,4 +63,4 @@ export type PiiConfigRule = {
   [key: string]: PiiConfig;
 };
 
-export type Applications = {[key: string]: Array<string>};
+export type Applications = Record<string, Array<string>>;
