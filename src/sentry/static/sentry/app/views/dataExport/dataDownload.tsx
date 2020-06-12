@@ -16,11 +16,6 @@ export enum DownloadStatus {
   Expired = 'EXPIRED',
 }
 
-const CodeBlock = styled('pre')`
-  word-break: break-all;
-  white-space: pre-wrap;
-`;
-
 type RouteParams = {
   orgId: string;
   dataExportId: string;
@@ -42,7 +37,6 @@ type Download = {
   };
   status: DownloadStatus;
   checksum: string;
-  fileName: string;
 };
 
 type Props = {} & RouteComponentProps<RouteParams, {}>;
@@ -144,7 +138,7 @@ class DataDownload extends AsyncView<Props, State> {
   }
   renderValid(): React.ReactNode {
     const {
-      download: {dateExpired, checksum, fileName},
+      download: {dateExpired, checksum},
     } = this.state;
     const {orgId, dataExportId} = this.props.params;
     return (
@@ -166,12 +160,19 @@ class DataDownload extends AsyncView<Props, State> {
             <br />
             {this.renderDate(dateExpired)}
           </p>
-          <p>{t('Want to double check the download?')}</p>
-          {checksum && fileName ? (
-            <CodeBlock>
-              echo "{checksum} {fileName}" | sha1sum -c -
-            </CodeBlock>
-          ) : null}
+          <small>
+            <strong>SHA1:{checksum}</strong>
+          </small>
+          <p>
+            Need help verifying? Checkout our{' '}
+            <a
+              href="https://docs.sentry.io/performance/discover/query-builder/#verifying-the-download"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              docs
+            </a>
+          </p>
         </Body>
       </React.Fragment>
     );
