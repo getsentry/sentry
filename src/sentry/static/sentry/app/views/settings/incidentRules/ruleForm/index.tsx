@@ -9,6 +9,7 @@ import {
   DATASET_EVENT_TYPE_FILTERS,
 } from 'app/views/settings/incidentRules/constants';
 import {defined} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -286,6 +287,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   // don't want to update the filter on every input change, just on blurs and
   // searches.
   handleFilterUpdate = (query: string) => {
+    const {organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'alert_builder.filter',
+      eventName: 'Alert Builder: Filter',
+      query,
+      organization_id: organization.id,
+    });
+
     this.setState({query});
   };
 
