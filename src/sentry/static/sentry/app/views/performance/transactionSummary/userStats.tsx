@@ -75,10 +75,10 @@ class UserStats extends React.Component<Props> {
           <SectionHeading>{t('Apdex Score')}</SectionHeading>
           <StatNumber>{!stats ? '\u2014' : stats['apdex()']}</StatNumber>
         </div>
-        <div>
+        {/* <div>
           <SectionHeading>{t('Baseline Duration')}</SectionHeading>
           <StatNumber>{'\u2014'}</StatNumber>
-        </div>
+        </div> */}
         <UserMiseryContainer>
           <SectionHeading>
             {t('User Misery')}
