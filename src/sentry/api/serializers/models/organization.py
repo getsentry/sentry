@@ -129,7 +129,6 @@ class OnboardingTasksSerializer(Serializer):
             "completionSeen": obj.completion_seen,
             "dateCompleted": obj.date_completed,
             "data": obj.data,
-            "project": obj.project_id,
         }
 
 
