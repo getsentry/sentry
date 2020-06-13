@@ -9,7 +9,7 @@ import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
 import InlineSvg from 'app/components/inlineSvg';
-import {IconTelescope} from 'app/icons';
+import {IconStack, IconTelescope} from 'app/icons';
 import {
   getDiscoverUrlPathFromDiscoverQuery,
   getDiscover2UrlPathFromDiscoverQuery,
@@ -153,7 +153,7 @@ class ExploreWidget extends React.Component {
             : t('You do not have access to Events')
         }
       >
-        <InlineSvg src="icon-stack" />
+        <IconStack />
       </ExploreAction>
     );
   }

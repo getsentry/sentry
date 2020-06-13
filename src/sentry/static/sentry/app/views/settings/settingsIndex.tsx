@@ -12,10 +12,10 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {IconDocs, IconLock, IconStack, IconSupport} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import SentryTypes from 'app/sentryTypes';
 import SettingsLayout from 'app/views/settings/components/settingsLayout';
@@ -35,7 +35,7 @@ const LINKS = {
   SERVICE_STATUS: 'https://status.sentry.io/',
 };
 
-const HOME_ICON_SIZE = 76;
+const HOME_ICON_SIZE = 56;
 
 const flexCenter = css`
   display: flex;
@@ -132,7 +132,7 @@ class SettingsIndex extends React.Component<Props> {
                     </AvatarContainer>
                   ) : (
                     <HomeIcon color="green">
-                      <InlineSvg src="icon-stack" size="44px" />
+                      <IconStack size="lg" />
                     </HomeIcon>
                   )}
                   <OrganizationName>
@@ -166,7 +166,7 @@ class SettingsIndex extends React.Component<Props> {
               <HomePanelHeader>
                 <ExternalHomeLink isCentered href={LINKS.DOCUMENTATION}>
                   <HomeIcon color="orange">
-                    <InlineSvg src="icon-docs" size="48px" />
+                    <IconDocs size="lg" />
                   </HomeIcon>
                 </ExternalHomeLink>
                 <ExternalHomeLink href={LINKS.DOCUMENTATION}>
@@ -200,7 +200,7 @@ class SettingsIndex extends React.Component<Props> {
               <HomePanelHeader>
                 <SupportLinkComponent isCentered {...supportLinkProps}>
                   <HomeIcon color="purple">
-                    <InlineSvg src="icon-support" size="48px" />
+                    <IconSupport size="lg" />
                   </HomeIcon>
                   {t('Support')}
                 </SupportLinkComponent>
@@ -232,7 +232,7 @@ class SettingsIndex extends React.Component<Props> {
               <HomePanelHeader>
                 <HomeLinkIcon to={LINKS.API}>
                   <HomeIcon>
-                    <InlineSvg src="icon-lock" size="48px" />
+                    <IconLock size="lg" />
                   </HomeIcon>
                   {t('API Keys')}
                 </HomeLinkIcon>
@@ -296,15 +296,14 @@ const HomePanelBody = styled(PanelBody)`
 
 const HomeIcon = styled('div')<{color?: string}>`
   background: ${p => p.theme[p.color || 'gray500']};
-  color: #fff;
+  color: ${p => p.theme.white};
   width: ${HOME_ICON_SIZE}px;
   height: ${HOME_ICON_SIZE}px;
   border-radius: ${HOME_ICON_SIZE}px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin-bottom: 20px;
-
-  ${InlineSvg} {
-    margin-top: 14px;
-  }
 `;
 
 type CenterableProps = {
