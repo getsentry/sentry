@@ -399,7 +399,7 @@ describe('InviteMembersModal', function() {
         'Send invite request'
       );
 
-      expect(wrapper.find('Heading Tooltip').exists()).toBe(true);
+      expect(wrapper.find('Alert').exists()).toBe(true);
     });
 
     it('POSTS to the invite-request endpoint', function() {

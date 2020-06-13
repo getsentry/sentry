@@ -7,10 +7,11 @@ import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
+import Alert from 'app/components/alert';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
-import QuestionTooltip from 'app/components/questionTooltip';
+import Link from 'app/components/links/link';
 import {IconAdd, IconMail} from 'app/icons';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -256,7 +257,17 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
       const sentCount = statuses.filter(i => i.sent).length;
       const errorCount = statuses.filter(i => i.error).length;
 
-      const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
+      const invites = (
+        <strong>
+          {this.willInvite
+            ? tn('%s invite', '%s invites', sentCount)
+            : tn(
+                '%s invite request to owners and managers for approval',
+                '%s invite requests to owners and managers for approval',
+                sentCount
+              )}
+        </strong>
+      );
       const tctComponents = {
         invites,
         failed: errorCount,
@@ -266,7 +277,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
         <StatusMessage status="success">
           <InlineSvg src="icon-checkmark-sm" size="16px" />
           {errorCount > 0
-            ? tct('Sent [invites], [failed] failed to send.', tctComponents)
+            ? tct(`Sent [invites], [failed] failed to send.`, tctComponents)
             : tct('Sent [invites]', tctComponents)}
         </StatusMessage>
       );
@@ -318,27 +329,26 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
         <Heading>
           <IconMail size="lg" />
           {t('Invite New Members')}
-          {!this.willInvite && (
-            <QuestionTooltip
-              title={t(
-                `You do not have permission to directly invite members. Email
-                 addresses entered here will be forwarded to organization
-                 managers and owners; they will be prompted to approve the
-                 invitation.`
-              )}
-              size="sm"
-              position="bottom"
-            />
-          )}
         </Heading>
         <Subtext>
           {this.willInvite
             ? t('Invite new members by email to join your organization.')
             : t(
                 `You don’t have permission to directly invite users, but we’ll
-                 send a request on your behalf.`
+                 send your request to organization managers and owners for approval.`
               )}
         </Subtext>
+        {!this.willInvite && (
+          <Alert type="info" icon="icon-circle-info">
+            {tct('Check the status of your pending invite requests in the [link].', {
+              link: (
+                <Link to={`/settings/${organization.slug}/members/requests`}>
+                  {t('Requests tab')}
+                </Link>
+              ),
+            })}
+          </Alert>
+        )}
 
         {headerInfo}
 
