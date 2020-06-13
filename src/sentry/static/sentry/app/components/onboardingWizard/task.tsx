@@ -17,9 +17,8 @@ import {IconLock, IconCheckmark, IconClose, IconEvent} from 'app/icons';
 import Avatar from 'app/components/avatar';
 import LetterAvatar from 'app/components/letterAvatar';
 
-import SkipConfirm from './skipConfirm';
-import {isSecondPlatformPending, sendEventPromptText} from './taskConfig';
 import {taskIsDone} from './utils';
+import SkipConfirm from './skipConfirm';
 
 const recordAnalytics = (
   task: OnboardingTask,
@@ -134,11 +133,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         {IncompleteMarker}
         {task.title}
       </Title>
-      <Description>{`${task.description}. ${task.detailedDescription ??
-        ''}`}</Description>
-      {isSecondPlatformPending(task) && (
-        <Description data-test-id="send-event-prompt">{sendEventPromptText}</Description>
-      )}
+      <Description>{`${task.description}. ${task.detailedDescription}`}</Description>
       {task.requisiteTasks.length === 0 && (
         <ActionBar>
           {task.status === 'pending' ? (
