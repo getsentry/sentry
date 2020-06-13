@@ -1508,7 +1508,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                 <p
                   class="css-127nzq8-Description e9zebce2"
                 >
-                  Add Sentry to a second platform. Capture errors from both your front and back ends.
+                  Add a new project to capture errors from both your front and back ends for your other platforms. 
                 </p>
               </div>
               <div
@@ -1706,9 +1706,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                   },
                   Object {
                     "actionType": "app",
-                    "description": "Add Sentry to a second platform",
-                    "detailedDescription": "Capture errors from both your front and back ends.",
+                    "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                     "display": true,
+                    "getPendingLocation": [Function],
                     "location": "/organizations/org-slug/projects/new/",
                     "requisiteTasks": Array [
                       Object {
@@ -4199,9 +4199,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                       task={
                         Object {
                           "actionType": "app",
-                          "description": "Add Sentry to a second platform",
-                          "detailedDescription": "Capture errors from both your front and back ends.",
+                          "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                           "display": true,
+                          "getPendingLocation": [Function],
                           "location": "/organizations/org-slug/projects/new/",
                           "requisiteTasks": Array [
                             Object {
@@ -4280,9 +4280,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                         task={
                           Object {
                             "actionType": "app",
-                            "description": "Add Sentry to a second platform",
-                            "detailedDescription": "Capture errors from both your front and back ends.",
+                            "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                             "display": true,
+                            "getPendingLocation": [Function],
                             "location": "/organizations/org-slug/projects/new/",
                             "requisiteTasks": Array [
                               Object {
@@ -4329,9 +4329,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           task={
                             Object {
                               "actionType": "app",
-                              "description": "Add Sentry to a second platform",
-                              "detailedDescription": "Capture errors from both your front and back ends.",
+                              "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                               "display": true,
+                              "getPendingLocation": [Function],
                               "location": "/organizations/org-slug/projects/new/",
                               "requisiteTasks": Array [
                                 Object {
@@ -4379,9 +4379,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                             task={
                               Object {
                                 "actionType": "app",
-                                "description": "Add Sentry to a second platform",
-                                "detailedDescription": "Capture errors from both your front and back ends.",
+                                "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                                 "display": true,
+                                "getPendingLocation": [Function],
                                 "location": "/organizations/org-slug/projects/new/",
                                 "requisiteTasks": Array [
                                   Object {
@@ -4458,9 +4458,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                               task={
                                 Object {
                                   "actionType": "app",
-                                  "description": "Add Sentry to a second platform",
-                                  "detailedDescription": "Capture errors from both your front and back ends.",
+                                  "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                                   "display": true,
+                                  "getPendingLocation": [Function],
                                   "location": "/organizations/org-slug/projects/new/",
                                   "requisiteTasks": Array [
                                     Object {
@@ -4836,9 +4836,9 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                 task={
                                   Object {
                                     "actionType": "app",
-                                    "description": "Add Sentry to a second platform",
-                                    "detailedDescription": "Capture errors from both your front and back ends.",
+                                    "description": "Add a new project to capture errors from both your front and back ends for your other platforms",
                                     "display": true,
+                                    "getPendingLocation": [Function],
                                     "location": "/organizations/org-slug/projects/new/",
                                     "requisiteTasks": Array [
                                       Object {
@@ -4969,7 +4969,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                       <p
                                         className="css-127nzq8-Description e9zebce2"
                                       >
-                                        Add Sentry to a second platform. Capture errors from both your front and back ends.
+                                        Add a new project to capture errors from both your front and back ends for your other platforms. 
                                       </p>
                                     </Description>
                                   </div>
