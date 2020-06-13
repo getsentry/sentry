@@ -95,24 +95,11 @@ export function getOnboardingTasks(
     {
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Add a second platform'),
-      description: t(
-        `Add a new project to capture errors from both your front and back ends for your other platforms`
-      ),
+      description: t('Add Sentry to a second platform'),
+      detailedDescription: t('Capture errors from both your front and back ends.'),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
-      getPendingLocation: (org, project) => {
-        // It's confusing to continue linking to the "create new project"
-        // page after the user has created the new project. Instead, link to the install
-        // instructions for the corresponding project to prompt the user to send an event
-        // to the new project.
-        const projectSlug =
-          (project && org?.projects.find(p => p.id === `${project}`)?.slug) ??
-          ':projectId';
-        // if there's no project id associated with the task, sending 'projectId' to the router
-        // causes it to display a project selector prompt, then resolve to the given page.
-        return `/settings/${org.slug}/projects/${projectSlug}/install/`;
-      },
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
     },
@@ -196,15 +183,6 @@ export function getOnboardingTasks(
   ];
 }
 
-export const sendEventPromptText = t(
-  'Complete this task by sending an event to your new project.'
-);
-
-// Enable custom functionality for the "second platform" task when the task status
-// is pending.
-export const isSecondPlatformPending = (task: OnboardingTask) =>
-  task.task === OnboardingTaskKey.SECOND_PLATFORM && task.status === 'pending';
-
 export function getMergedTasks(organization: Organization) {
   const taskDescriptors = getOnboardingTasks(organization);
   const serverTasks = organization.onboardingTasks;
@@ -218,17 +196,6 @@ export function getMergedTasks(organization: Organization) {
         requisiteTasks: [],
       } as OnboardingTask)
   );
-
-  // Change task.location for the "second platform" task when task status is pending.
-  allTasks.map(task => {
-    if (!isSecondPlatformPending(task)) return task;
-    if (
-      !('location' in task && 'getPendingLocation' in task && !!task.getPendingLocation)
-    )
-      return task;
-    task.location = task.getPendingLocation(organization, task.project);
-    return task;
-  });
 
   // Map incomplete requisiteTasks as full task objects
   return allTasks.map(task => ({
