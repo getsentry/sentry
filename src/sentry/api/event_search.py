@@ -1174,7 +1174,7 @@ FUNCTIONS = {
         "name": "user_misery",
         "args": [NumberRange("satisfaction", 0, None)],
         "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-        "transform": u"uniqIf(user, duration > {tolerated:g})",
+        "transform": u"uniqIf(user, greater(duration, {tolerated:g}))",
         "result_type": "number",
     },
     "failure_rate": {
