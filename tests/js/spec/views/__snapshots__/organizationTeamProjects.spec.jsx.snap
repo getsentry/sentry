@@ -329,7 +329,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             withPadding={false}
           >
             <div
-              className="css-1ehogmz-FlexBox e1vnwt6f0"
+              className="css-1nto0rx-FlexBox e1vnwt6f0"
             >
               <StyledPanelItem
                 key="2"

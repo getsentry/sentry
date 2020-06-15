@@ -349,7 +349,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     withPadding={false}
                   >
                     <div
-                      className="css-1ehogmz-FlexBox e1vnwt6f0"
+                      className="css-1nto0rx-FlexBox e1vnwt6f0"
                     >
                       <EmptyMessage>
                         <Component
@@ -519,7 +519,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     withPadding={false}
                   >
                     <div
-                      className="css-1ehogmz-FlexBox e1vnwt6f0"
+                      className="css-1nto0rx-FlexBox e1vnwt6f0"
                     >
                       <EmptyMessage>
                         <Component
