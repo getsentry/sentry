@@ -42,15 +42,11 @@ export const ContentBox = styled('div')`
   background-color: ${p => p.theme.white};
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
     display: grid;
-    grid-template-columns: 66% auto;
     align-content: start;
     grid-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: minmax(100px, auto) 325px;
+    grid-template-columns: minmax(100px, auto) 475px;
   }
 `;
 

@@ -9,7 +9,7 @@ import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventQuery} from 'app/actionCreators/events';
-import {SavedQuery, NewQuery, SelectValue, User} from 'app/types';
+import {SavedQuery, NewQuery, SelectValue, User, Project, Organization} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
@@ -456,6 +456,16 @@ class EventView {
     }
 
     return newQuery;
+  }
+
+  toNewAlertUrl(organization: Organization, project: Project) {
+    const query = this.generateQueryStringObject();
+    const pathname = `/settings/${organization.slug}/projects/${project.slug}/alerts/new/`;
+
+    return {
+      pathname,
+      query,
+    };
   }
 
   // TODO(mark) Refactor this to return the GlobalSelection type instead.
