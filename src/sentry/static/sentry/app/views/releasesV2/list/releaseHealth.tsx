@@ -9,7 +9,6 @@ import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
-import ProgressRing from 'app/components/progressRing';
 import Count from 'app/components/count';
 import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
@@ -21,17 +20,13 @@ import Placeholder from 'app/components/placeholder';
 import Link from 'app/components/links/link';
 
 import HealthStatsChart from './healthStatsChart';
-import {
-  displayCrashFreePercent,
-  convertAdoptionToProgress,
-  getCrashFreePercentColor,
-  getReleaseNewIssuesUrl,
-} from '../utils';
+import {convertAdoptionToProgress, getReleaseNewIssuesUrl} from '../utils';
 import HealthStatsSubject, {StatsSubject} from './healthStatsSubject';
 import HealthStatsPeriod, {StatsPeriod} from './healthStatsPeriod';
 import AdoptionTooltip from './adoptionTooltip';
 import NotAvailable from './notAvailable';
 import ClippedHealthRows from './clippedHealthRows';
+import CrashFree from './crashFree';
 
 type Props = {
   release: Release;
@@ -133,7 +128,7 @@ const ReleaseHealth = ({
                             size={20}
                             thickness={5}
                             radius={0}
-                            palette={Array(10).fill(theme.green400)}
+                            palette={Array(10).fill(theme.purple500)}
                           />
                         </Tooltip>
                         <TextOverflow>
@@ -150,15 +145,7 @@ const ReleaseHealth = ({
                     {showPlaceholders ? (
                       <StyledPlaceholder width="60px" />
                     ) : defined(crashFreeUsers) ? (
-                      <React.Fragment>
-                        <StyledProgressRing
-                          progressColor={getCrashFreePercentColor}
-                          value={crashFreeUsers}
-                        />
-                        <ProgressRingCaption>
-                          {displayCrashFreePercent(crashFreeUsers)}
-                        </ProgressRingCaption>
-                      </React.Fragment>
+                      <CrashFree percent={crashFreeUsers} />
                     ) : (
                       <NotAvailable />
                     )}
@@ -168,15 +155,7 @@ const ReleaseHealth = ({
                     {showPlaceholders ? (
                       <StyledPlaceholder width="60px" />
                     ) : defined(crashFreeSessions) ? (
-                      <React.Fragment>
-                        <StyledProgressRing
-                          progressColor={getCrashFreePercentColor}
-                          value={crashFreeSessions}
-                        />
-                        <ProgressRingCaption>
-                          {displayCrashFreePercent(crashFreeSessions)}
-                        </ProgressRingCaption>
-                      </React.Fragment>
+                      <CrashFree percent={crashFreeSessions} />
                     ) : (
                       <NotAvailable />
                     )}
@@ -332,21 +311,11 @@ const StyledScoreBar = styled(ScoreBar)`
   margin-right: ${space(1)};
 `;
 
-const StyledProgressRing = styled(ProgressRing)`
-  position: relative;
-  top: ${space(0.5)};
-`;
-
-const ProgressRingCaption = styled('span')`
-  margin-left: ${space(1)};
-`;
-
 const ChartWrapper = styled('div')`
   flex: 1;
   g > .barchart-rect {
-    /* gray1 is too dark */
-    background: #c6becf;
-    fill: #c6becf;
+    background: ${p => p.theme.gray400};
+    fill: ${p => p.theme.gray400};
   }
 `;
 
