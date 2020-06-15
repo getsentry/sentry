@@ -98,7 +98,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
 
-    def test_current_release(self):
+    def _test_current_release(self, group_is_latest):
         clock = MockClock()
 
         # Create several of everything, to exercise all filtering clauses.
@@ -137,10 +137,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
                 set_up_group()
                 target_group, target_gr = set_up_group()
-
-                # TODO(ryanskonnord): We should be able to call set_up_group()
-                # once more here and still get the target GroupRelease, but it
-                # get None instead. This may be exposing an implementation bug?
+                if not group_is_latest:
+                    set_up_group()
 
                 return project, target_group, target_gr
 
@@ -160,11 +158,17 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = u"/api/0/issues/{}/".format(target_group.id)
         response = self.client.get(url, {"environment": "production"}, format="json")
         assert response.status_code == 200
+        return response.data["currentRelease"], target_gr
 
-        current_release = response.data["currentRelease"]
+    def test_current_release_on_same_group(self):
+        current_release, target_gr = self._test_current_release(True)
         assert current_release is not None
         assert current_release["firstSeen"] == target_gr.first_seen
         assert current_release["lastSeen"] == target_gr.last_seen
+
+    def test_current_release_on_other_group(self):
+        current_release, target_gr = self._test_current_release(False)
+        assert current_release is None
 
     def test_pending_delete_pending_merge_excluded(self):
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)
