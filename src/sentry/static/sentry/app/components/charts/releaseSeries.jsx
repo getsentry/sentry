@@ -16,11 +16,13 @@ import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
-function getOrganizationReleases(api, organization, projects = null) {
+function getOrganizationReleases(api, organization, conditions = null) {
   const query = {};
-  if (projects) {
-    query.project = projects;
-  }
+  Object.keys(conditions).forEach(key => {
+    if (conditions[key]) {
+      query[key] = conditions[key];
+    }
+  });
   return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
     method: 'GET',
     query,
@@ -34,6 +36,9 @@ class ReleaseSeries extends React.Component {
     organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(PropTypes.number),
 
+    period: PropTypes.string,
+    start: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
+    end: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
     utc: PropTypes.bool,
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
@@ -64,9 +69,10 @@ class ReleaseSeries extends React.Component {
   }
 
   fetchData() {
-    const {api, organization, projects} = this.props;
+    const {api, organization, projects, period, start, end} = this.props;
 
-    getOrganizationReleases(api, organization, projects)
+    const conditions = {start, end, project: projects, statsPeriod: period};
+    getOrganizationReleases(api, organization, conditions)
       .then(releases => {
         this.setReleasesWithSeries(releases);
       })
