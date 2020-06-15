@@ -320,7 +320,7 @@ class TableView extends React.Component<TableViewProps> {
 
           return;
         }
-        case Actions.OPEN_STACK: {
+        case Actions.DRILLDOWN: {
           // count_unique(column) drilldown
 
           trackAnalyticsEvent({

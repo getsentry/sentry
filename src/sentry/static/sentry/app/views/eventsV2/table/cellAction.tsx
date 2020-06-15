@@ -19,7 +19,7 @@ export enum Actions {
   SHOW_LESS_THAN = 'show_less_than',
   TRANSACTION = 'transaction',
   RELEASE = 'release',
-  OPEN_STACK = 'open_stack',
+  DRILLDOWN = 'drilldown',
 }
 
 type Props = {
@@ -199,13 +199,13 @@ class CellAction extends React.Component<Props, State> {
       column.column.function[0] === 'count_unique'
     ) {
       addMenuItem(
-        Actions.OPEN_STACK,
+        Actions.DRILLDOWN,
         <ActionItem
           key="open-stack"
           data-test-id="per-cell-open-stack"
-          onClick={() => handleCellAction(Actions.OPEN_STACK, value)}
+          onClick={() => handleCellAction(Actions.DRILLDOWN, value)}
         >
-          {t('Open Stack')}
+          {t('View Stacks')}
         </ActionItem>
       );
     }
