@@ -8,7 +8,7 @@ import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons';
+import {IconDelete, IconStack} from 'app/icons';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -181,7 +181,7 @@ class AccountEmails extends AsyncView {
           <JsonForm location={this.props.location} forms={accountEmailsFields} />
         </Form>
 
-        <AlertLink to="/settings/account/notifications" icon="icon-stack">
+        <AlertLink to="/settings/account/notifications" icon={<IconStack />}>
           {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
       </div>
