@@ -1,6 +1,7 @@
 import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -8,12 +9,13 @@ import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconDelete, IconAdd} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
-import {IconAdd} from 'app/icons';
+import space from 'app/styles/space';
 
 class OrganizationApiKeysList extends React.Component {
   static propTypes = {
@@ -112,7 +114,7 @@ class OrganizationApiKeysList extends React.Component {
                         message={t('Are you sure you want to remove this API key?')}
                         title={t('Remove API Key?')}
                       >
-                        <span className="icon-trash" />
+                        <StyledIconDelete size="xs" />
                       </LinkWithConfirmation>
                     </Box>
                   </PanelItem>
@@ -124,5 +126,10 @@ class OrganizationApiKeysList extends React.Component {
     );
   }
 }
+
+const StyledIconDelete = styled(IconDelete)`
+  position: relative;
+  top: ${space(0.25)};
+`;
 
 export default OrganizationApiKeysList;

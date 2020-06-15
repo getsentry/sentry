@@ -20,6 +20,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
+import {IconDelete} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
@@ -99,7 +100,7 @@ class DeleteActions extends React.Component {
           )}
           onConfirm={this.props.onDelete}
         >
-          <span className="icon-trash" />
+          <IconDelete size="xs" />
         </LinkWithConfirmation>
         <DropdownLink caret className="group-delete btn btn-default btn-sm">
           <MenuItem onClick={this.openDiscardModal}>
