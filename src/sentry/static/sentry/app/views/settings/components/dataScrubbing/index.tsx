@@ -10,6 +10,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import Button from 'app/components/button';
 import {Organization, Project} from 'app/types';
 
+import {valueSuggestions} from './utils';
 import Dialog from './dialog';
 import Content from './content';
 import OrganizationRules from './organizationRules';
@@ -21,7 +22,6 @@ import {
   EventId,
   RequestError,
 } from './types';
-import {sourceSuggestions} from './utils';
 import convertRelayPiiConfig from './convertRelayPiiConfig';
 import submitRules from './submitRules';
 import handleError from './handleError';
@@ -126,7 +126,7 @@ class DataScrubbing extends React.Component<Props, State> {
     }
 
     this.setState(prevState => ({
-      sourceSuggestions,
+      sourceSuggestions: valueSuggestions,
       eventId: {
         ...prevState.eventId,
         status: EventIdStatus.LOADING,
@@ -156,7 +156,7 @@ class DataScrubbing extends React.Component<Props, State> {
       }
 
       this.setState(prevState => ({
-        sourceSuggestions,
+        sourceSuggestions: valueSuggestions,
         eventId: {
           ...prevState.eventId,
           status: EventIdStatus.NOT_FOUND,

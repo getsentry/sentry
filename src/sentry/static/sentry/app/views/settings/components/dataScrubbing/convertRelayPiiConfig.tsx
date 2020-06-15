@@ -45,13 +45,13 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
       const {type, redaction} = resolvedRule;
       const method = redaction.method as MethodType;
 
-      if (resolvedRule.type === RuleType.PATTERN && resolvedRule.pattern) {
+      if (resolvedRule.type === RuleType.PATTERN) {
         convertedRules.push({
           id,
           method,
           type: RuleType.PATTERN,
           source: application,
-          pattern: resolvedRule.pattern,
+          pattern: resolvedRule?.pattern,
         });
         continue;
       }
