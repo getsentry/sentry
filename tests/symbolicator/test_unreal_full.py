@@ -10,9 +10,8 @@ from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
-from sentry.testutils import TransactionTestCase
+from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models import EventAttachment
-from sentry import eventstore
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 
 from tests.symbolicator import get_fixture_path
@@ -32,7 +31,7 @@ def get_unreal_crash_apple_file():
 
 
 @override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
-class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
+class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
     # `~/.sentry/config.yml` and run `sentry devservices up`
 
@@ -83,11 +82,7 @@ class SymbolicatorUnrealIntegrationTest(TransactionTestCase):
         # attachments feature has to be on for the files extract stick around
         with self.feature("organizations:event-attachments"):
             with open(filename, "rb") as f:
-                resp = self._postUnrealWithHeader(f.read())
-                assert resp.status_code == 200
-                event_id = resp.content
-
-        event = eventstore.get_event_by_id(self.project.id, event_id)
+                event = self.post_and_retrieve_unreal(f.read())
 
         self.insta_snapshot(
             {

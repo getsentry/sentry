@@ -151,3 +151,11 @@ def get_relay_minidump_url(relay_server):
         return "{}/api/{}/minidump/".format(relay_server["url"], project_id)
 
     return inner
+
+
+@pytest.fixture
+def get_relay_unreal_url(relay_server):
+    def inner(project_id, key):
+        return "{}/api/{}/unreal/{}/".format(relay_server["url"], project_id, key)
+
+    return inner
