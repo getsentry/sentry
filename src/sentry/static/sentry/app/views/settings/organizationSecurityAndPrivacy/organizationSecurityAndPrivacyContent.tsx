@@ -11,7 +11,7 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
 import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
 
-import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
+import DataScrubbing from '../components/dataScrubbing';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -64,7 +64,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
             disabled={!access.has('org:write')}
           />
         </Form>
-        <DataPrivacyRules
+        <DataScrubbing
           additionalContext={t('These rules can be configured for each project.')}
           endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}

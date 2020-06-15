@@ -8,12 +8,12 @@ import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 
-import DataPrivacyRulesPanelForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
+import Form from './form/form';
 import {RuleType, MethodType} from './types';
 
 const DEFAULT_RULE_SOURCE_VALUE = '';
 
-type FormProps = React.ComponentProps<typeof DataPrivacyRulesPanelForm>;
+type FormProps = React.ComponentProps<typeof Form>;
 type Rule = FormProps['rule'];
 type Errors = FormProps['errors'];
 type Error = keyof Errors;
@@ -33,7 +33,7 @@ type State = {
   errors: Errors;
 };
 
-class DataPrivacyRulesModal extends React.Component<Props, State> {
+class Dialog extends React.Component<Props, State> {
   state: State = {
     rule: {
       id: defined(this.props.rule?.id) ? this.props.rule?.id! : -1,
@@ -137,7 +137,7 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
             : t('Add a data scrubbing rule')}
         </Modal.Header>
         <Modal.Body>
-          <DataPrivacyRulesPanelForm
+          <Form
             onChange={this.handleChange}
             onValidate={this.handleValidation}
             sourceSuggestions={sourceSuggestions}
@@ -167,7 +167,7 @@ class DataPrivacyRulesModal extends React.Component<Props, State> {
   }
 }
 
-export default DataPrivacyRulesModal;
+export default Dialog;
 
 const StyledModal = styled(Modal)`
   .modal-dialog {

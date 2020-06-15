@@ -2,20 +2,20 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Source from 'app/views/settings/components/dataPrivacyRules/dataPrivacyRulesForm/source';
+import SourceField from 'app/views/settings/components/dataScrubbing/form/sourceField';
 import {
   binaryOperatorSuggestions,
   unaryOperatorSuggestions,
   defaultSuggestions,
-} from 'app/views/settings/components/dataPrivacyRules/dataPrivacyRulesForm/dataPrivacyRulesFormSourceSuggestions';
+} from 'app/views/settings/components/dataScrubbing/form/sourceFieldSuggestions';
 
 function renderComponent({
   value = '$string',
   onChange = jest.fn(),
   ...props
-}: Partial<Source['props']>) {
+}: Partial<SourceField['props']>) {
   return mountWithTheme(
-    <Source
+    <SourceField
       isRegExMatchesSelected={false}
       suggestions={defaultSuggestions}
       onChange={onChange}

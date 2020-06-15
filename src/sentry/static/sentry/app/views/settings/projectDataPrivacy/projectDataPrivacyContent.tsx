@@ -11,7 +11,7 @@ import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
 import {Organization, Project} from 'app/types';
 
-import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
+import DataScrubbing from '../components/dataScrubbing';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -74,7 +74,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
             ]}
           />
         </Form>
-        <DataPrivacyRules
+        <DataScrubbing
           additionalContext={
             <span>
               {tct(

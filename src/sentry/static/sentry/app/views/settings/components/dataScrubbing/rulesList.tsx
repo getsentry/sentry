@@ -8,11 +8,11 @@ import TextOverflow from 'app/components/textOverflow';
 import {IconDelete, IconEdit} from 'app/icons';
 import Button from 'app/components/button';
 
-import DataPrivacyRulesForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
-import {getRuleTypeLabel, getMethodTypeLabel} from './dataPrivacyRulesForm/utils';
+import Form from './form/form';
+import {getRuleTypeLabel, getMethodTypeLabel} from './form/utils';
 import {RuleType} from './types';
 
-type Rule = React.ComponentProps<typeof DataPrivacyRulesForm>['rule'];
+type Rule = React.ComponentProps<typeof Form>['rule'];
 type Props = {
   rules: Array<Rule>;
   onShowEditRuleModal?: (id: Rule['id']) => () => void;
