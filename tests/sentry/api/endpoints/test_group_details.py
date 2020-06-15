@@ -111,18 +111,18 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
             prod = self.create_environment(name="production", organization=organization)
             dev = self.create_environment(name="development", organization=organization)
+            environments = (prod, dev)
 
-            def set_up_project(environment):
+            def set_up_project():
                 project = self.create_project(organization=organization, teams=[team])
-                environment.add_project(project)
+                for environment in environments:
+                    environment.add_project(project)
 
                 def set_up_release():
                     release = self.create_release(project=project)
-                    ReleaseEnvironment.get_or_create(project, release, environment, clock())
+                    for environment in environments:
+                        ReleaseEnvironment.get_or_create(project, release, environment, clock())
                     return release
-
-                def seen_on(group, release):
-                    return GroupRelease.get_or_create(group, release, environment, clock())
 
                 groups = [self.create_group(project=project) for i in range(3)]
                 target_group = groups[1]
@@ -130,24 +130,30 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 early_release = set_up_release()
                 later_release = set_up_release()
 
-                for release in (early_release, later_release):
-                    for group in groups:
-                        if group != target_group:
-                            seen_on(group, release)
+                def seen_on(group, release, environment):
+                    return GroupRelease.get_or_create(group, release, environment, clock())
 
-                latest_seen = seen_on(target_group, early_release)
-                if group_seen_on_latest_release:
-                    latest_seen = seen_on(target_group, later_release)
+                def set_up_group_releases(environment):
+                    for release in (early_release, later_release):
+                        for group in groups:
+                            if group != target_group:
+                                seen_on(group, release, environment)
 
-                return project, target_group, latest_seen
+                    latest_seen = seen_on(target_group, early_release, environment)
+                    if group_seen_on_latest_release:
+                        latest_seen = seen_on(target_group, later_release, environment)
+                    return latest_seen
 
-            set_up_project(prod)
-            target_project, target_group, latest_seen = set_up_project(prod)
-            set_up_project(prod)
-            set_up_project(dev)
-            set_up_project(dev)
+                target_group_release = set_up_group_releases(prod)
+                set_up_group_releases(dev)
 
-            return organization, target_project, target_group, latest_seen
+                return project, target_group, target_group_release
+
+            set_up_project()
+            target_project, target_group, target_group_release = set_up_project()
+            set_up_project()
+
+            return organization, target_project, target_group, target_group_release
 
         set_up_organization()
         target_org, target_project, target_group, latest_seen = set_up_organization()
