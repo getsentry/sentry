@@ -27,11 +27,11 @@ class ActionHandler(object):
         self.project = project
 
     @abc.abstractmethod
-    def fire(self):
+    def fire(self, metric_value):
         pass
 
     @abc.abstractmethod
-    def resolve(self):
+    def resolve(self, metric_value):
         pass
 
 
@@ -68,10 +68,10 @@ class EmailActionHandler(ActionHandler):
         #     emails = [target]
         return targets
 
-    def fire(self):
+    def fire(self, metric_value):
         self.email_users(TriggerStatus.ACTIVE)
 
-    def resolve(self):
+    def resolve(self, metric_value):
         self.email_users(TriggerStatus.RESOLVED)
 
     def email_users(self, status):
@@ -148,17 +148,17 @@ class EmailActionHandler(ActionHandler):
     integration_provider="slack",
 )
 class SlackActionHandler(ActionHandler):
-    def fire(self):
-        self.send_alert()
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
 
-    def resolve(self):
-        self.send_alert()
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
 
-    def send_alert(self):
+    def send_alert(self, metric_value):
         from sentry.integrations.slack.utils import send_incident_alert_notification
 
         # TODO: We should include more information about the trigger/severity etc.
-        send_incident_alert_notification(self.action, self.incident)
+        send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
 def format_duration(minutes):

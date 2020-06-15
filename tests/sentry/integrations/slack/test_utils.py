@@ -118,6 +118,34 @@ class BuildIncidentAttachmentTest(TestCase):
             "actions": [],
         }
 
+    def test_metric_value(self):
+        logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=2)
+        title = u"{}: {}".format("Resolved", alert_rule.name)
+        metric_value = 5000
+        assert build_incident_attachment(incident, metric_value=metric_value) == {
+            "fallback": title,
+            "title": title,
+            "title_link": absolute_uri(
+                reverse(
+                    "sentry-metric-alert",
+                    kwargs={
+                        "organization_slug": incident.organization.slug,
+                        "incident_id": incident.identifier,
+                    },
+                )
+            ),
+            "text": "{} events in the last 10 minutes\nFilter: level:error".format(metric_value),
+            "fields": [],
+            "mrkdwn_in": ["text"],
+            "footer_icon": logo_url,
+            "footer": "Sentry Incident",
+            "ts": to_timestamp(incident.date_started),
+            "color": RESOLVED_COLOR,
+            "actions": [],
+        }
+
     def test_build_group_attachment(self):
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
