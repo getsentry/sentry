@@ -281,9 +281,7 @@ class CellAction extends React.Component<Props, State> {
 
     // do not display per cell actions for count() and count_unique()
     const shouldIgnoreColumn =
-      column.column.kind === 'function' &&
-      (column.column.function[0] === 'count' ||
-        column.column.function[0] === 'count_unique');
+      column.column.kind === 'function' && column.column.function[0] === 'count_unique';
 
     if (!defined(value) || shouldIgnoreColumn) {
       // per cell actions do not apply to values that are null
