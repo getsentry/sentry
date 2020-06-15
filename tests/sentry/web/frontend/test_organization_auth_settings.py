@@ -40,6 +40,17 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         om.save()
         return user
 
+    def create_manager_and_attach_identity(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization, role="manager", teams=[self.team]
+        )
+        AuthIdentity.objects.create(user=user, ident="foo3", auth_provider=self.auth_provider)
+        om = OrganizationMember.objects.get(user=user, organization=self.organization)
+        setattr(om.flags, "sso:linked", True)
+        om.save()
+        return user
+
     def test_teamless_admin_cannot_load(self):
         with self.feature("organizations:sso-basic"):
             self.assert_teamless_admin_cannot_access(self.path)
@@ -51,6 +62,14 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
     def test_manager_cannot_load(self):
         with self.feature("organizations:sso-basic"):
             self.assert_role_cannot_access(self.path, "manager")
+
+    def test_manager_can_load(self):
+        manager = self.create_manager_and_attach_identity()
+
+        self.login_as(manager, organization_id=self.organization.id)
+        with self.feature("organizations:sso-basic"):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
 
     def test_owner_can_load(self):
         owner = self.create_owner_and_attach_identity()

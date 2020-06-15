@@ -32,7 +32,7 @@ export default class ProviderItem extends React.PureComponent {
   renderDisabledLock = p => <LockedFeature provider={p.provider} features={p.features} />;
 
   renderInstallButton = ({provider, hasFeature}) => (
-    <Access access={['org:admin']}>
+    <Access access={['org:write']}>
       {({hasAccess}) => (
         <Button
           type="submit"
