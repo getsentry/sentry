@@ -201,8 +201,8 @@ class CellAction extends React.Component<Props, State> {
       addMenuItem(
         Actions.DRILLDOWN,
         <ActionItem
-          key="open-stack"
-          data-test-id="per-cell-open-stack"
+          key="drilldown"
+          data-test-id="per-cell-drilldown"
           onClick={() => handleCellAction(Actions.DRILLDOWN, value)}
         >
           {t('View Stacks')}
