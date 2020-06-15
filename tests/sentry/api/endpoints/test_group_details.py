@@ -98,7 +98,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
 
-    def _test_current_release(self, group_is_latest):
+    def _test_current_release(self, group_seen_on_latest_release):
         clock = MockClock()
 
         # Create several of everything, to exercise all filtering clauses.
@@ -116,58 +116,57 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 project = self.create_project(organization=organization, teams=[team])
                 environment.add_project(project)
 
-                def set_up_group():
-                    group = self.create_group(project=project)
+                def set_up_release():
+                    release = self.create_release(project=project)
+                    ReleaseEnvironment.get_or_create(project, release, environment, clock())
+                    return release
 
-                    def set_up_release():
-                        release = self.create_release(project=project)
+                def seen_on(group, release):
+                    return GroupRelease.get_or_create(group, release, environment, clock())
 
-                        timestamp = clock()
-                        ReleaseEnvironment.get_or_create(project, release, environment, timestamp)
-                        group_release = GroupRelease.get_or_create(
-                            group, release, environment, timestamp
-                        )
+                groups = [self.create_group(project=project) for i in range(3)]
+                target_group = groups[1]
 
-                        return group_release
+                early_release = set_up_release()
+                later_release = set_up_release()
 
-                    set_up_release()
-                    latest_gr = set_up_release()
+                for release in (early_release, later_release):
+                    for group in groups:
+                        if group != target_group:
+                            seen_on(group, release)
 
-                    return group, latest_gr
+                latest_seen = seen_on(target_group, early_release)
+                if group_seen_on_latest_release:
+                    latest_seen = seen_on(target_group, later_release)
 
-                set_up_group()
-                target_group, target_gr = set_up_group()
-                if not group_is_latest:
-                    set_up_group()
-
-                return project, target_group, target_gr
+                return project, target_group, latest_seen
 
             set_up_project(prod)
-            target_project, target_group, target_gr = set_up_project(prod)
+            target_project, target_group, latest_seen = set_up_project(prod)
             set_up_project(prod)
             set_up_project(dev)
             set_up_project(dev)
 
-            return organization, target_project, target_group, target_gr
+            return organization, target_project, target_group, latest_seen
 
         set_up_organization()
-        target_org, target_project, target_group, target_gr = set_up_organization()
+        target_org, target_project, target_group, latest_seen = set_up_organization()
         set_up_organization()
 
         self.login_as(user=self.user)
         url = u"/api/0/issues/{}/".format(target_group.id)
         response = self.client.get(url, {"environment": "production"}, format="json")
         assert response.status_code == 200
-        return response.data["currentRelease"], target_gr
+        return response.data["currentRelease"], latest_seen
 
-    def test_current_release_on_same_group(self):
-        current_release, target_gr = self._test_current_release(True)
+    def test_current_release_has_group(self):
+        current_release, group_release = self._test_current_release(True)
         assert current_release is not None
-        assert current_release["firstSeen"] == target_gr.first_seen
-        assert current_release["lastSeen"] == target_gr.last_seen
+        assert current_release["firstSeen"] == group_release.first_seen
+        assert current_release["lastSeen"] == group_release.last_seen
 
-    def test_current_release_on_other_group(self):
-        current_release, target_gr = self._test_current_release(False)
+    def test_current_release_is_later(self):
+        current_release, group_release = self._test_current_release(False)
         assert current_release is None
 
     def test_pending_delete_pending_merge_excluded(self):
