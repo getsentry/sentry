@@ -314,15 +314,18 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       errorText = 'Either event.type:errors or event.type:transaction is required';
     }
 
-    let url: object | undefined;
+    let newAlertUrl: object | undefined;
     if (!isDisabled && project) {
-      url = eventView.toNewAlertUrl(organization, project);
+      const query = eventView.generateQueryStringObject();
+      query.createFromDiscover = 'true';
+      const pathname = `/settings/${organization.slug}/projects/${project.slug}/alerts/new/`;
+      newAlertUrl = {pathname, query};
     }
 
     return (
       <Feature features={['create-from-discover']} organization={organization}>
         <Tooltip title={errorText} disabled={!isDisabled}>
-          <Button disabled={isDisabled} to={url} icon={<IconSiren />}>
+          <Button disabled={isDisabled} to={newAlertUrl} icon={<IconSiren />}>
             {t('Create alert')}
           </Button>
         </Tooltip>
