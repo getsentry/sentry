@@ -8,7 +8,7 @@ import DateTime from 'app/components/dateTime';
 import AsyncView from 'app/views/asyncView';
 import Layout from 'app/views/auth/layout';
 import space from 'app/styles/space';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 
 export enum DownloadStatus {
   Early = 'EARLY',
@@ -36,6 +36,7 @@ type Download = {
     info: object;
   };
   status: DownloadStatus;
+  checksum: string;
 };
 
 type Props = {} & RouteComponentProps<RouteParams, {}>;
@@ -108,6 +109,7 @@ class DataDownload extends AsyncView<Props, State> {
       </React.Fragment>
     );
   }
+
   renderExpired(): React.ReactNode {
     const {query} = this.state.download;
     const actionLink = this.getActionLink(query.type);
@@ -136,7 +138,7 @@ class DataDownload extends AsyncView<Props, State> {
   }
   renderValid(): React.ReactNode {
     const {
-      download: {dateExpired},
+      download: {dateExpired, checksum},
     } = this.state;
     const {orgId, dataExportId} = this.props.params;
     return (
@@ -157,6 +159,22 @@ class DataDownload extends AsyncView<Props, State> {
             {t("That link won't last forever — it expires:")}
             <br />
             {this.renderDate(dateExpired)}
+          </p>
+          <small>
+            <strong>SHA1:{checksum}</strong>
+          </small>
+          <p>
+            {tct('Need help verifying? [link].', {
+              link: (
+                <a
+                  href="https://docs.sentry.io/performance/discover/query-builder/#verifying-the-download"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('Check out our docs.')}
+                </a>
+              ),
+            })}
           </p>
         </Body>
       </React.Fragment>

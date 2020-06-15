@@ -55,6 +55,8 @@ class DataExportTest(APITestCase):
             "dateExpired": None,
             "query": {"type": self.payload["query_type"], "info": self.payload["query_info"]},
             "status": ExportStatus.Early,
+            "checksum": None,
+            "fileName": None,
         }
 
     def test_progress_export(self):
@@ -82,6 +84,8 @@ class DataExportTest(APITestCase):
                 "info": data_export.query_info,
             },
             "status": data_export.status,
+            "checksum": None,
+            "fileName": None,
         }
 
     def test_export_too_many_fields(self):
