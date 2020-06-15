@@ -96,21 +96,19 @@ class RelayStoreHelper(object):
         except AssertionError:
             return None
 
-    def post_and_retrieve_minidump(self, f, data):
+    def post_and_retrieve_minidump(self, files, data):
         url = self.get_relay_minidump_url(self.project.id)
         responses.add_passthru(url)
 
-        data = dict(data or ())
-        data["upload_file_minidump"] = f
-
-        requests.post(
+        resp = requests.post(
             url,
-            headers={"x-sentry-auth": self.auth_header, "content-type": "application/octet-stream"},
-            data=data,
+            headers={"x-sentry-auth": self.auth_header},
+            files=dict(files or ()),
+            data=dict(data or ()),
         )
 
         assert resp.ok
-        event_id = resp.text.strip()
+        event_id = resp.text.strip().replace("-", "")
 
         event = self.wait_for_ingest_consumer(
             lambda: eventstore.get_event_by_id(self.project.id, event_id)
