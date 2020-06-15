@@ -6,7 +6,6 @@ import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
 import SentryTypes from 'app/sentryTypes';
 import {Organization} from 'app/types';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import withOrganization from 'app/utils/withOrganization';
 
 type DefaultProps = {
   avatarSize: OrganizationAvatar['props']['size'];
@@ -54,4 +53,4 @@ class OrganizationBadge extends React.Component<Props> {
   }
 }
 
-export default withOrganization(OrganizationBadge);
+export default OrganizationBadge;
