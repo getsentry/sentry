@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import Link from 'app/components/links/link';
+import ExternalLink from 'app/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {t, tct} from 'app/locale';
@@ -62,11 +62,14 @@ class ColumnEditModal extends React.Component<Props, State> {
         <Body>
           <Instruction>
             {tct(
-              'To stack events, add [functionLink: functions] f(x) that may take in additional parameters. [tagLink: Tags] and [fieldLink: fields] columns will help you view more details about the events (i.e. title).',
+              'To stack events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
               {
-                functionLink: <Link to="/" />,
-                tagLink: <Link to="/" />,
-                fieldLink: <Link to="/" />,
+                functionLink: (
+                  <ExternalLink href="https://docs.sentry.io/performance/discover/query-builder/#aggregation-functions" />
+                ),
+                tagFieldLink: (
+                  <ExternalLink href="https://docs.sentry.io/workflow/search/?platform=javascript#event-properties" />
+                ),
               }
             )}
           </Instruction>
@@ -100,8 +103,8 @@ const modalCss = css`
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
       width: auto;
-      max-width: 800px;
-      margin-left: -400px;
+      max-width: 750px;
+      margin-left: -375px;
     }
   }
 `;
