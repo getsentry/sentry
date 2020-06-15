@@ -11,7 +11,7 @@ import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
 import {Organization, Project} from 'app/types';
 
-import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
+import DataPrivacyRules from '../components/dataPrivacyRules';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;

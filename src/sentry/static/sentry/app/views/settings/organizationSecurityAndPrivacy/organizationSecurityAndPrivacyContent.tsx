@@ -11,7 +11,7 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
 import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
 
-import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
+import DataPrivacyRules from '../components/dataPrivacyRules';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;

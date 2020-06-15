@@ -13,7 +13,7 @@ type Props = {
   status?: EventIdStatus;
 };
 
-const DataPrivacyRulesFormEventIdStatusIcon = ({status, onClickIconClose}: Props) => {
+const EventIdFieldStatusIcon = ({status, onClickIconClose}: Props) => {
   switch (status) {
     case EventIdStatus.ERROR:
     case EventIdStatus.INVALID:
@@ -34,7 +34,7 @@ const DataPrivacyRulesFormEventIdStatusIcon = ({status, onClickIconClose}: Props
   }
 };
 
-export default DataPrivacyRulesFormEventIdStatusIcon;
+export default EventIdFieldStatusIcon;
 
 const CloseIcon = styled('div')`
   cursor: pointer;

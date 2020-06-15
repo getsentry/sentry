@@ -8,10 +8,10 @@ import TextField from 'app/components/forms/textField';
 
 import {Rule, RuleType, MethodType} from '../types';
 import {getMethodTypeLabel, getRuleTypeLabel} from './utils';
-import Source from './source';
-import DataPrivacyRulesFormField from './dataPrivacyRulesFormField';
-import DataPrivacyRulesFormSelectControl from './dataPrivacyRulesFormSelectControl';
-import DataPrivacyRulesFormEventId from './dataPrivacyRulesFormEventId';
+import Source from './sourceField';
+import FormField from './formField';
+import DataPrivacyRulesFormSelectControl from './selectField';
+import DataPrivacyRulesFormEventId from './eventIdField';
 
 type EventIdProps = React.ComponentProps<typeof DataPrivacyRulesFormEventId>;
 type SourceProps = React.ComponentProps<typeof Source>;
@@ -29,7 +29,7 @@ type Props = EventIdProps & {
   errors: Errors;
 };
 
-const DataPrivacyRulesForm = ({
+const Form = ({
   disabled,
   rule: {source, customRegularExpression, type, method},
   errors,
@@ -41,7 +41,7 @@ const DataPrivacyRulesForm = ({
 }: Props) => (
   <Wrapper>
     <WrapperSelectFields>
-      <DataPrivacyRulesFormField label={t('Method')} tooltipInfo={t('What to do')}>
+      <FormField label={t('Method')} tooltipInfo={t('What to do')}>
         <DataPrivacyRulesFormSelectControl
           placeholder={t('Select method')}
           name="method"
@@ -53,8 +53,8 @@ const DataPrivacyRulesForm = ({
           onChange={({value}) => onChange('method', value)}
           isDisabled={disabled}
         />
-      </DataPrivacyRulesFormField>
-      <DataPrivacyRulesFormField
+      </FormField>
+      <FormField
         label={t('Data Type')}
         tooltipInfo={t(
           'What to look for. Use an existing pattern or define your own using regular expressions.'
@@ -71,10 +71,10 @@ const DataPrivacyRulesForm = ({
           onChange={({value}) => onChange('type', value)}
           isDisabled={disabled}
         />
-      </DataPrivacyRulesFormField>
+      </FormField>
     </WrapperSelectFields>
     {type === RuleType.PATTERN && (
-      <DataPrivacyRulesFormField
+      <FormField
         label={t('Regex matches')}
         tooltipInfo={t('Custom Perl-style regex (PCRE)')}
         isFullWidth
@@ -90,10 +90,10 @@ const DataPrivacyRulesForm = ({
           error={errors.customRegularExpression}
           disabled={disabled}
         />
-      </DataPrivacyRulesFormField>
+      </FormField>
     )}
     <DataPrivacyRulesFormEventId onUpdateEventId={onUpdateEventId} eventId={eventId} />
-    <DataPrivacyRulesFormField
+    <FormField
       label={t('Source')}
       tooltipInfo={t(
         'Where to look. In the simplest case this can be an attribute name.'
@@ -110,11 +110,11 @@ const DataPrivacyRulesForm = ({
         error={errors.source}
         disabled={disabled}
       />
-    </DataPrivacyRulesFormField>
+    </FormField>
   </Wrapper>
 );
 
-export default DataPrivacyRulesForm;
+export default Form;
 
 const Wrapper = styled('div')`
   display: grid;

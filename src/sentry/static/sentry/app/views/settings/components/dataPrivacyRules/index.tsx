@@ -10,10 +10,10 @@ import ExternalLink from 'app/components/links/externalLink';
 import Button from 'app/components/button';
 import {Organization, Project} from 'app/types';
 
-import {defaultSuggestions as sourceDefaultSuggestions} from './dataPrivacyRulesForm/dataPrivacyRulesFormSourceSuggestions';
-import DataPrivacyRulesModal from './dataPrivacyRulesModal';
-import DataPrivacyRulesPanelContent from './dataPrivacyRulesContent';
-import DataPrivacyRulesPanelForm from './dataPrivacyRulesForm/dataPrivacyRulesForm';
+import {defaultSuggestions as sourceDefaultSuggestions} from './form/sourceFieldSuggestions';
+import Dialog from './dialog';
+import Content from './content';
+import Form from './form/form';
 import OrganizationRules from './organizationRules';
 import {Rule, EventIdStatus} from './types';
 import convertRelayPiiConfig from './convertRelayPiiConfig';
@@ -22,12 +22,10 @@ import getRelayPiiConfig from './getRelayPiiConfig';
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/data-management/advanced-datascrubbing/';
 
-type DataPrivacyRulesPanelFormProps = React.ComponentProps<
-  typeof DataPrivacyRulesPanelForm
->;
-type ModalProps = React.ComponentProps<typeof DataPrivacyRulesModal>;
-type SourceSuggestions = ModalProps['sourceSuggestions'];
-type Errors = DataPrivacyRulesPanelFormProps['errors'];
+type FormProps = React.ComponentProps<typeof Form>;
+type DialogProps = React.ComponentProps<typeof Dialog>;
+type SourceSuggestions = DialogProps['sourceSuggestions'];
+type Errors = FormProps['errors'];
 
 type Props = {
   endpoint: string;
@@ -44,7 +42,7 @@ type State = {
   savedRules: Array<Rule>;
   relayPiiConfig?: string;
   sourceSuggestions: SourceSuggestions;
-  eventId: ModalProps['eventId'];
+  eventId: DialogProps['eventId'];
   orgRules: Array<Rule>;
   showAddRuleModal?: boolean;
   isProjectLevel?: boolean;
@@ -326,7 +324,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
           </PanelAlert>
           <PanelBody>
             {isProjectLevel && <OrganizationRules rules={orgRules} />}
-            <DataPrivacyRulesPanelContent
+            <Content
               rules={rules}
               onDeleteRule={this.handleDeleteRule}
               onUpdateRule={this.handleUpdateRule}
@@ -354,7 +352,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
           </PanelBody>
         </Panel>
         {showAddRuleModal && (
-          <DataPrivacyRulesModal
+          <Dialog
             sourceSuggestions={sourceSuggestions}
             onSaveRule={this.handleAddRule}
             onClose={this.handleToggleAddRuleModal(false)}
