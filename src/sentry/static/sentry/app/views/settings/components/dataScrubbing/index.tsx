@@ -334,11 +334,7 @@ class DataScrubbing extends React.Component<Props, State> {
               disabled={disabled}
             />
             <PanelAction>
-              <Button
-                href={ADVANCED_DATASCRUBBING_LINK}
-                target="_blank"
-                disabled={disabled}
-              >
+              <Button href={ADVANCED_DATASCRUBBING_LINK} target="_blank">
                 {t('Read the docs')}
               </Button>
               <Button

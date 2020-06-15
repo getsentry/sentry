@@ -1,12 +1,13 @@
 import React from 'react';
-import SourceField from 'app/views/settings/components/dataPrivacyRules/form/sourceField';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import SourceField from 'app/views/settings/components/dataScrubbing/form/sourceField';
 import {
   binaryOperatorSuggestions,
   unaryOperatorSuggestions,
   defaultSuggestions,
-} from 'app/views/settings/components/dataPrivacyRules/form/sourceFieldSuggestions';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
+} from 'app/views/settings/components/dataScrubbing/form/sourceFieldSuggestions';
 
 function renderComponent({
   value = '$string',
