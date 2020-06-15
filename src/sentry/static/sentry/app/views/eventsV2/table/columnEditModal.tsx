@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import Link from 'app/components/links/link';
 import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -60,8 +61,13 @@ class ColumnEditModal extends React.Component<Props, State> {
         </Header>
         <Body>
           <Instruction>
-            {t(
-              'To stack events, add functions that may take in additional parameters. Tag and field columns will help you view more details about the events.'
+            {tct(
+              'To stack events, add [functionLink: functions] f(x) that may take in additional parameters. [tagLink: Tags] and [fieldLink: fields] columns will help you view more details about the events (i.e. title).',
+              {
+                functionLink: <Link to="/" />,
+                tagLink: <Link to="/" />,
+                fieldLink: <Link to="/" />,
+              }
             )}
           </Instruction>
           <ColumnEditCollection
@@ -87,15 +93,15 @@ class ColumnEditModal extends React.Component<Props, State> {
 }
 
 const Instruction = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(4)};
 `;
 
 const modalCss = css`
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
       width: auto;
-      max-width: 875px;
-      margin-left: -437px;
+      max-width: 800px;
+      margin-left: -400px;
     }
   }
 `;
