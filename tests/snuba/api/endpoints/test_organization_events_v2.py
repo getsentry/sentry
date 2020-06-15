@@ -1871,6 +1871,44 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert len(data) == 1
             assert data[0]["count_id"] == 0
 
+    def test_aggregate_negation(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("transaction")
+        data["timestamp"] = iso_format(before_now(minutes=1))
+        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        self.store_event(data, project_id=project.id)
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "p99()"],
+                    "query": "event.type:transaction p99():5s",
+                    "statsPeriod": "24h",
+                },
+            )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 1
+
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["event.type", "p99()"],
+                    "query": "event.type:transaction !p99():5s",
+                    "statsPeriod": "24h",
+                },
+            )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 0
+
     def test_all_aggregates_in_columns(self):
         self.login_as(user=self.user)
 
