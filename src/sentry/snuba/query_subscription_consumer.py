@@ -89,7 +89,10 @@ class QuerySubscriptionConsumer(object):
                 self.offsets[partition.partition] = updated_offset
 
         def on_revoke(consumer, partitions):
-            self.commit_offsets([partition.partition for partition in partitions])
+            partition_numbers = [partition.partition for partition in partitions]
+            self.commit_offsets(partition_numbers)
+            for partition_number in partition_numbers:
+                self.offsets.pop(partition_number, None)
 
         self.consumer = Consumer(conf)
         self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
@@ -133,7 +136,7 @@ class QuerySubscriptionConsumer(object):
                 partitions = self.offsets.keys()
             to_commit = []
             for partition in partitions:
-                offset = self.offsets.pop(partition)
+                offset = self.offsets.get(partition)
                 if offset is None:
                     # Skip partitions that have no offset
                     continue

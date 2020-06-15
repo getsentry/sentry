@@ -20,7 +20,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from sentry.event_manager import EventManager
-from sentry.constants import SentryAppStatus
+from sentry.constants import SentryAppStatus, SentryAppInstallationStatus
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -659,17 +659,20 @@ class Factories(object):
         return _kwargs
 
     @staticmethod
-    def create_sentry_app_installation(organization=None, slug=None, user=None):
+    def create_sentry_app_installation(organization=None, slug=None, user=None, status=None):
         if not organization:
             organization = Factories.create_organization()
 
         Factories.create_project(organization=organization)
 
-        return sentry_app_installations.Creator.run(
+        install = sentry_app_installations.Creator.run(
             slug=(slug or Factories.create_sentry_app().slug),
             organization=organization,
             user=(user or Factories.create_user()),
         )
+        install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
+        install.save()
+        return install
 
     @staticmethod
     def create_issue_link_schema():

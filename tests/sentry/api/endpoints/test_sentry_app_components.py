@@ -7,6 +7,7 @@ from sentry.utils.compat.mock import patch, call
 
 from sentry.coreapi import APIError
 from sentry.testutils import APITestCase
+from sentry.constants import SentryAppInstallationStatus
 
 
 class SentryAppComponentsTest(APITestCase):
@@ -68,6 +69,12 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         self.install2 = self.create_sentry_app_installation(
             slug=self.sentry_app2.slug, organization=self.org
+        )
+
+        self.install3 = self.create_sentry_app_installation(
+            slug=self.sentry_app3.slug,
+            organization=self.org,
+            status=SentryAppInstallationStatus.PENDING,
         )
 
         self.component1 = self.sentry_app1.components.first()

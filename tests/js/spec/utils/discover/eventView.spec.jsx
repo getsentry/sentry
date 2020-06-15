@@ -561,6 +561,7 @@ describe('EventView.generateQueryStringObject()', function() {
       environment: ['staging'],
       yAxis: 'count()',
       display: 'releases',
+      interval: '1m',
     };
 
     const eventView = new EventView(state);
@@ -579,6 +580,7 @@ describe('EventView.generateQueryStringObject()', function() {
       environment: ['staging'],
       yAxis: 'count()',
       display: 'releases',
+      interval: '1m',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -1176,6 +1178,7 @@ describe('EventView.clone()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      interval: '5m',
       display: 'releases',
     };
 

@@ -13,6 +13,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import GroupList from 'app/components/issues/groupList';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 type Props = {
@@ -48,6 +49,15 @@ class RelatedIssues extends React.Component<Props> {
     };
   }
 
+  handleOpenClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.open_issues',
+      eventName: 'Performance Views: Open issues from transaction summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
   renderEmptyMessage = () => {
     const {statsPeriod} = this.props;
 
@@ -81,7 +91,12 @@ class RelatedIssues extends React.Component<Props> {
       <React.Fragment>
         <ControlsWrapper>
           <SectionHeading>{t('Related Issues')}</SectionHeading>
-          <Button data-test-id="issues-open" size="small" to={issueSearch}>
+          <Button
+            data-test-id="issues-open"
+            size="small"
+            to={issueSearch}
+            onClick={this.handleOpenClick}
+          >
             {t('Open in Issues')}
           </Button>
         </ControlsWrapper>

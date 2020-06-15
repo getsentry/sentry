@@ -25,13 +25,15 @@ class VercelIntegrationTest(IntegrationTestCase):
         }
 
         if is_team:
+            team_query = "?teamId=my_team_id"
             access_json["team_id"] = "my_team_id"
             responses.add(
                 responses.GET,
-                "https://api.vercel.com/v1/teams/my_team_id?teamId=my_team_id",
+                "https://api.vercel.com/v1/teams/my_team_id%s" % team_query,
                 json={"name": "my_team_name"},
             )
         else:
+            team_query = ""
             responses.add(
                 responses.GET,
                 "https://api.vercel.com/www/user",
@@ -40,6 +42,12 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST, "https://api.vercel.com/v2/oauth/access_token", json=access_json
+        )
+
+        responses.add(
+            responses.GET,
+            "https://api.vercel.com/v4/projects/%s" % team_query,
+            json={"projects": []},
         )
 
         resp = self.client.get(u"{}?{}".format(self.setup_path, urlencode({"code": "oauth-code"}),))
