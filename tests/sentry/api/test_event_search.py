@@ -1388,7 +1388,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 None,
                 "impact_300",
             ],
-            ["uniqIf(user, duration > 1200)", None, "user_misery_300"],
+            ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
             ["quantile(0.99)", "transaction.duration", "percentile_transaction_duration_0_99"],
