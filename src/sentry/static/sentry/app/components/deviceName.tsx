@@ -43,8 +43,6 @@ export default class DeviceName extends React.Component<Props, State> {
     };
   }
 
-  private _isMounted?: boolean;
-
   componentDidMount() {
     // This is to handle react's warning on calling setState for unmounted components
     // Since we can't cancel promises, we need to do this
@@ -64,6 +62,8 @@ export default class DeviceName extends React.Component<Props, State> {
   componentWillUnmount() {
     this._isMounted = false;
   }
+
+  private _isMounted?: boolean;
 
   render() {
     const {value, children} = this.props;

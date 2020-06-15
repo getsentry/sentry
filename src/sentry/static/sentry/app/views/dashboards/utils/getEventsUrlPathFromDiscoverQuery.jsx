@@ -6,12 +6,7 @@ import {getUtcDateString} from 'app/utils/dates';
 import {getDiscoverConditionsToSearchString} from './getDiscoverConditionsToSearchString';
 
 export function getEventsUrlPathFromDiscoverQuery({organization, selection, query}) {
-  const {
-    projects,
-    datetime,
-    environments, // eslint-disable-line no-unused-vars
-    ...restSelection
-  } = selection;
+  const {projects, datetime, environments: _environments, ...restSelection} = selection;
 
   return `/organizations/${organization.slug}/events/?${qs.stringify(
     pickBy({

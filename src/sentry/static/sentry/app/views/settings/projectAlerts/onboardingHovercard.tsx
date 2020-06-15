@@ -57,7 +57,7 @@ class OnboardingHovercard extends React.Component<Props, State> {
   };
 
   render() {
-    const {children, organization, location, ...props} = this.props;
+    const {children, organization: _org, location: _location, ...props} = this.props;
 
     if (!this.shouldShowHovercard) {
       return children;

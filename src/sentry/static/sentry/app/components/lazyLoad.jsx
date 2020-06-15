@@ -116,8 +116,7 @@ class LazyLoad extends React.Component {
 
   render() {
     const {Component, error} = this.state;
-    // eslint-disable-next-line no-unused-vars
-    const {hideBusy, hideError, component, ...otherProps} = this.props;
+    const {hideBusy, hideError, component: _component, ...otherProps} = this.props;
 
     if (error && !hideError) {
       return (

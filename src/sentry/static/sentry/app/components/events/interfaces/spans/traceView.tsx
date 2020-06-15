@@ -49,8 +49,6 @@ type State = {
 };
 
 class TraceView extends React.PureComponent<Props, State> {
-  minimapInteractiveRef = React.createRef<HTMLDivElement>();
-
   constructor(props: Props) {
     super(props);
 
@@ -66,6 +64,8 @@ class TraceView extends React.PureComponent<Props, State> {
       this.filterOnSpans(this.props.searchQuery);
     }
   }
+
+  minimapInteractiveRef = React.createRef<HTMLDivElement>();
 
   async filterOnSpans(searchQuery: string | undefined) {
     if (!searchQuery) {
