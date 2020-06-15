@@ -8,7 +8,7 @@ import DateTime from 'app/components/dateTime';
 import AsyncView from 'app/views/asyncView';
 import Layout from 'app/views/auth/layout';
 import space from 'app/styles/space';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 
 export enum DownloadStatus {
   Early = 'EARLY',
@@ -164,14 +164,17 @@ class DataDownload extends AsyncView<Props, State> {
             <strong>SHA1:{checksum}</strong>
           </small>
           <p>
-            Need help verifying? Checkout our{' '}
-            <a
-              href="https://docs.sentry.io/performance/discover/query-builder/#verifying-the-download"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              docs
-            </a>
+            {tct('Need help verifying? [link].', {
+              link: (
+                <a
+                  href="https://docs.sentry.io/performance/discover/query-builder/#verifying-the-download"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('Checkout our docs.')}
+                </a>
+              ),
+            })}
           </p>
         </Body>
       </React.Fragment>
