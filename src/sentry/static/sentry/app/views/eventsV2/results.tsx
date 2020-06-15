@@ -25,7 +25,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {ContentBox, Main, Side} from 'app/utils/discover/styles';
-import {fetchProjects} from 'app/utils/projects';
+import {fetchProjectsCount} from 'app/utils/projects';
 import {generateQueryWithTag} from 'app/utils';
 import localStorage from 'app/utils/localStorage';
 
@@ -107,19 +107,20 @@ class Results extends React.Component<Props, State> {
     const currentQuery = eventView.getEventsAPIPayload(location);
     const duration = eventView.getDays();
 
-    if (duration >= 30 && currentQuery.project) {
-      const {results} = await fetchProjects(api, organization.slug, {allProjects: true});
+    if (duration > 30 && currentQuery.project) {
       let projectLength = currentQuery.project.length;
 
-      if (projectLength === 0) {
-        // My Projects
-        projectLength = results.filter(project => project.isMember).length;
-      } else if (projectLength === 1 && currentQuery.project[0] === '-1') {
-        // All Projects
-        projectLength = results.length;
+      if (
+        projectLength === 0 ||
+        (projectLength === 1 && currentQuery.project[0] === '-1')
+      ) {
+        const {results} = await fetchProjectsCount(api, organization.slug);
+
+        if (projectLength === 0) projectLength = results.myProjects;
+        else projectLength = results.allProjects;
       }
 
-      if (projectLength >= 10) {
+      if (projectLength > 10) {
         needConfirmation = true;
         confirmedQuery = false;
       }
@@ -381,7 +382,7 @@ class Results extends React.Component<Props, State> {
               message={
                 <p>
                   You've created a query that will search for events made{' '}
-                  <strong>over more than 30 days</strong> for
+                  <strong>over more than 30 days</strong> for{' '}
                   <strong>more than 10 projects</strong>. A lot has happened during that
                   time, so this might take awhile. Are you sure you want to do this?
                 </p>

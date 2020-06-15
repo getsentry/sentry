@@ -104,10 +104,17 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         # TODO(davidenwang): remove this after frontend requires only paginated projects
         get_all_projects = request.GET.get("all_projects") == "1"
+        # get counts not compatible with a query since its designed to get my projects and all counts
+        get_count = request.GET.get("get_counts") == "1" and not query
 
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
             return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
+        elif get_count:
+            all_projects = queryset.count()
+            my_projects = queryset.filter(teams__organizationmember__user=request.user).count()
+
+            return Response({"allProjects": all_projects, "myProjects": my_projects})
         else:
 
             def serialize_on_result(result):
