@@ -17,7 +17,7 @@ import EventView, {MetaType} from 'app/utils/discover/eventView';
 import SortLink from 'app/components/gridEditable/sortLink';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
+import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
@@ -27,11 +27,13 @@ import {
 } from 'app/views/performance/constants';
 
 import {GridBodyCell, GridBodyCellNumber, GridHeadCell} from '../styles';
+import {getTransactionDetailsUrl} from '../utils';
 
 type WrapperProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  transactionName: string;
 };
 
 class TransactionList extends React.PureComponent<WrapperProps> {
@@ -68,7 +70,7 @@ class TransactionList extends React.PureComponent<WrapperProps> {
   };
 
   render() {
-    const {eventView, location, organization} = this.props;
+    const {eventView, location, organization, transactionName} = this.props;
     const activeFilter = this.getTransactionSort(location);
     const sortedEventView = eventView.withSorts([activeFilter.sort]);
 
@@ -120,6 +122,7 @@ class TransactionList extends React.PureComponent<WrapperProps> {
             <TransactionTable
               organization={organization}
               location={location}
+              transactionName={transactionName}
               eventView={eventView}
               tableData={tableData}
               isLoading={isLoading}
@@ -135,6 +138,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  transactionName: string;
 
   isLoading: boolean;
   tableData: TableData | null | undefined;
@@ -205,7 +209,7 @@ class TransactionTable extends React.PureComponent<Props> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ) {
-    const {organization, location, eventView} = this.props;
+    const {organization, location, transactionName} = this.props;
 
     return columnOrder.map((column, index) => {
       const field = String(column.key);
@@ -219,18 +223,21 @@ class TransactionTable extends React.PureComponent<Props> {
       const isFirstCell = index === 0;
 
       if (isFirstCell) {
-        // the first column of the row should link to the transaction details view
-        // on Discover
+        // The first column of the row should link to the transaction details view
         const eventSlug = generateEventSlug(row);
-
-        const target = eventDetailsRouteWithEventView({
-          orgSlug: organization.slug,
+        const target = getTransactionDetailsUrl(
+          organization,
           eventSlug,
-          eventView,
-        });
+          transactionName,
+          location.query
+        );
 
         rendered = (
-          <Link to={target} onClick={this.handleViewDetailsClick}>
+          <Link
+            data-test-id="view-details"
+            to={target}
+            onClick={this.handleViewDetailsClick}
+          >
             {rendered}
           </Link>
         );

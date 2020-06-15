@@ -196,7 +196,11 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 {IGNORE_COUNTS.map(count => (
                   <li className="dropdown-submenu" key={count}>
                     <DropdownLink
-                      title={tn('one time\u2026', '%s times\u2026', count)}
+                      title={
+                        count === 1
+                          ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
+                          : tn('%s time\u2026', '%s times\u2026', count)
+                      }
                       caret={false}
                       isNestedDropdown
                       alwaysRenderMenu
