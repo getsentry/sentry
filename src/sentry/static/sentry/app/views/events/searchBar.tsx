@@ -47,17 +47,13 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
 
   componentDidMount() {
     // Clear memoized data on mount to make tests more consistent.
-    if (this.getEventFieldValues.cache.clear) {
-      this.getEventFieldValues.cache.clear();
-    }
+    this.getEventFieldValues.cache.clear?.();
   }
 
   componentDidUpdate(prevProps) {
     if (!isEqual(this.props.projectIds, prevProps.projectIds)) {
       // Clear memoized data when projects change.
-      if (this.getEventFieldValues.cache.clear) {
-        this.getEventFieldValues.cache.clear();
-      }
+      this.getEventFieldValues.cache.clear?.();
     }
   }
 
