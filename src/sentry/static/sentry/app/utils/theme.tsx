@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/browser';
 import color from 'color';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
@@ -390,4 +391,64 @@ export type Theme = typeof theme;
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
 
-export default theme;
+const DEPRECATED = new Set([
+  'blue',
+  'blueLight',
+  'blueLightest',
+  'blueDark',
+
+  'green',
+  'greenLight',
+  'greenLightest',
+  'greenDark',
+  'greenTransparent',
+
+  'yellow',
+  'yellowLightest',
+  'yellowLight',
+  'yellowDark',
+  'yellowDarkest',
+
+  'yellowOrange',
+  'yellowOrangeLight',
+  'yellowOrangeDark',
+
+  'orange',
+  'orangeLight',
+  'orangeDark',
+
+  'red',
+  'redLight',
+  'redLightest',
+  'redDark',
+]);
+
+class DeprecatedThemeError extends Error {
+  constructor(message, ...params) {
+    // Pass remaining arguments (including vendor specific ones) to parent constructor
+    super(...params);
+
+    // Maintains proper stack trace for where our error was thrown (only available on V8)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, DeprecatedThemeError);
+    }
+
+    this.name = 'DeprecatedThemeKey';
+    this.message = message;
+  }
+}
+
+export default new Proxy(theme, {
+  get: (obj, prop) => {
+    if (DEPRECATED.has(prop)) {
+      const err = new DeprecatedThemeError(`Using deprecated theme key "${prop}"`);
+      console.error(err); // eslint-disable-line no-console
+      Sentry.withScope(scope => {
+        scope.setFingerprint('deprecated-theme');
+        Sentry.captureException(err);
+      });
+    }
+
+    return obj[prop];
+  },
+});
