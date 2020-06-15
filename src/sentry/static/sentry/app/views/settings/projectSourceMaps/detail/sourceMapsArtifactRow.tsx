@@ -58,7 +58,9 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
                   icon={<IconDownload size="xs" />}
                   disabled={!hasAccess}
                   href={downloadUrl}
-                />
+                >
+                  {t('Download')}
+                </Button>
               </Tooltip>
             )}
           </Access>
@@ -67,7 +69,7 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
             message={t('Are you sure you want to remove this artifact?')}
             onConfirm={handleDeleteClick}
           >
-            <Button size="xsmall" icon={<IconDelete size="xs" />} />
+            <Button size="xsmall" icon={<IconDelete size="xs" />} priority="danger" />
           </LinkWithConfirmation>
         </ButtonBar>
       </RightColumn>

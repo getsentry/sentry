@@ -11,6 +11,7 @@ import ButtonBar from 'app/components/buttonBar';
 import Version from 'app/components/version';
 import Count from 'app/components/count';
 import Confirm from 'app/components/confirm';
+import Link from 'app/components/links/link';
 
 type Props = {
   archive: SourceMapsArchive;
@@ -21,11 +22,16 @@ type Props = {
 
 const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
   const {id, name, date, fileCount} = archive;
+  const archiveLink = `/settings/${orgId}/projects/${projectId}/source-maps/${encodeURIComponent(
+    name
+  )}`;
   return (
     <React.Fragment>
       <Column>
         <Name>
-          <Version version={name} tooltipRawVersion anchor={false} truncate />
+          <Link to={archiveLink}>
+            <Version version={name} anchor={false} truncate />
+          </Link>
         </Name>
         <TimeWrapper>
           <IconClock size="xs" />
@@ -37,22 +43,14 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
       </Column>
       <RightColumn>
         <ButtonBar gap={0.5}>
-          <Button
-            size="xsmall"
-            icon={<IconFile size="xs" />}
-            to={`/settings/${orgId}/projects/${projectId}/source-maps/${encodeURIComponent(
-              name
-            )}`}
-          >
+          <Button size="xsmall" icon={<IconFile size="xs" />} to={archiveLink}>
             {t('Open')}
           </Button>
           <Confirm
             onConfirm={() => onDelete(id)}
             message={t('Are you sure you want to remove all artifacts in this archive?')}
           >
-            <Button size="xsmall" icon={<IconDelete size="xs" />}>
-              {t('Delete')}
-            </Button>
+            <Button size="xsmall" icon={<IconDelete size="xs" />} priority="danger" />
           </Confirm>
         </ButtonBar>
       </RightColumn>
