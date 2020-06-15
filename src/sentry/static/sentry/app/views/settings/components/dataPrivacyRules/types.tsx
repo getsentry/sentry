@@ -50,3 +50,17 @@ export type Rule = {
   source: string;
   customRegularExpression?: string;
 };
+
+export type PiiConfig = {
+  type: RuleType;
+  pattern?: string;
+  redaction?: {
+    method?: MethodType;
+  };
+};
+
+export type PiiConfigRule = {
+  [key: string]: PiiConfig;
+};
+
+export type Applications = Record<string, Array<string>>;
