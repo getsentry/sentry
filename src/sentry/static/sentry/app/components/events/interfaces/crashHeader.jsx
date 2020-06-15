@@ -212,7 +212,7 @@ const TitleWrapper = styled('div')`
 `;
 
 const ButtonGroup = styled(ButtonBar)`
-  padding: ${space(1.5)} ${space(1)} ${space(1.5)} 0;
+  padding-right: ${space(1)};
 `;
 
 const ButtonGroupWrapper = styled('div')`
