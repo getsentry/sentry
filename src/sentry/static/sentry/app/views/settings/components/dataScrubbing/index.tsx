@@ -48,7 +48,7 @@ type State = {
   isProjectLevel?: boolean;
 };
 
-class DataPrivacyRules extends React.Component<Props, State> {
+class DataScrubbing extends React.Component<Props, State> {
   state: State = {
     rules: [],
     savedRules: [],
@@ -365,7 +365,7 @@ class DataPrivacyRules extends React.Component<Props, State> {
   }
 }
 
-export default DataPrivacyRules;
+export default DataScrubbing;
 
 const PanelAction = styled('div')`
   padding: ${space(1)} ${space(2)};

@@ -11,12 +11,7 @@ type Props = {
   isFullWidth?: boolean;
 };
 
-const DataPrivacyRulesFormField = ({
-  label,
-  tooltipInfo,
-  children,
-  isFullWidth,
-}: Props) => (
+const FormField = ({label, tooltipInfo, children, isFullWidth}: Props) => (
   <Wrapper isFullWidth={isFullWidth}>
     <Label>
       <LabelDescription>{label}</LabelDescription>
@@ -26,7 +21,7 @@ const DataPrivacyRulesFormField = ({
   </Wrapper>
 );
 
-export default DataPrivacyRulesFormField;
+export default FormField;
 
 const Wrapper = styled('div')<{isFullWidth?: boolean}>`
   ${p =>

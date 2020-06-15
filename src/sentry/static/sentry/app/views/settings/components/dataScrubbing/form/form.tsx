@@ -10,10 +10,10 @@ import {Rule, RuleType, MethodType} from '../types';
 import {getMethodTypeLabel, getRuleTypeLabel} from './utils';
 import Source from './sourceField';
 import FormField from './formField';
-import DataPrivacyRulesFormSelectControl from './selectField';
-import DataPrivacyRulesFormEventId from './eventIdField';
+import SelectField from './selectField';
+import EventidField from './eventIdField';
 
-type EventIdProps = React.ComponentProps<typeof DataPrivacyRulesFormEventId>;
+type EventIdProps = React.ComponentProps<typeof EventidField>;
 type SourceProps = React.ComponentProps<typeof Source>;
 type Errors = {
   customRegularExpression?: string;
@@ -42,7 +42,7 @@ const Form = ({
   <Wrapper>
     <WrapperSelectFields>
       <FormField label={t('Method')} tooltipInfo={t('What to do')}>
-        <DataPrivacyRulesFormSelectControl
+        <SelectField
           placeholder={t('Select method')}
           name="method"
           options={sortBy(Object.values(MethodType)).map(value => ({
@@ -60,7 +60,7 @@ const Form = ({
           'What to look for. Use an existing pattern or define your own using regular expressions.'
         )}
       >
-        <DataPrivacyRulesFormSelectControl
+        <SelectField
           placeholder={t('Select type')}
           name="type"
           options={sortBy(Object.values(RuleType)).map(value => ({
@@ -92,7 +92,7 @@ const Form = ({
         />
       </FormField>
     )}
-    <DataPrivacyRulesFormEventId onUpdateEventId={onUpdateEventId} eventId={eventId} />
+    <EventidField onUpdateEventId={onUpdateEventId} eventId={eventId} />
     <FormField
       label={t('Source')}
       tooltipInfo={t(
