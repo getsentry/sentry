@@ -403,7 +403,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             {complete ? (
               <React.Fragment>
                 <Button data-test-id="send-more" size="small" onClick={this.reset}>
-                  {t('Send more invites')}
+                  {this.willInvite ? t('Send more invites') : t('Send more requests')}
                 </Button>
                 <Button
                   data-test-id="close"
