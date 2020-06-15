@@ -460,6 +460,7 @@ class EventView {
 
   toNewAlertUrl(organization: Organization, project: Project) {
     const query = this.generateQueryStringObject();
+    query.createFromDiscover = 'true';
     const pathname = `/settings/${organization.slug}/projects/${project.slug}/alerts/new/`;
 
     return {

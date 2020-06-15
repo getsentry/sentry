@@ -320,10 +320,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
 
     return (
-      <Feature
-        features={['organizations:create-from-discover']}
-        organization={organization}
-      >
+      <Feature features={['create-from-discover']} organization={organization}>
         <Tooltip title={errorText} disabled={!isDisabled}>
           <Button disabled={isDisabled} to={url} icon={<IconSiren />}>
             {t('Create alert')}

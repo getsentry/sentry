@@ -4,6 +4,7 @@ import {
   Trigger,
   Dataset,
 } from 'app/views/settings/incidentRules/types';
+import EventView from 'app/utils/discover/eventView';
 
 export const DEFAULT_AGGREGATE = 'count()';
 
@@ -31,5 +32,24 @@ export function createDefaultRule(): UnsavedIncidentRule {
     triggers: [createDefaultTrigger()],
     projects: [],
     environment: null,
+  };
+}
+
+export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRule {
+  return {
+    ...createDefaultRule(),
+    dataset: eventView.query.includes('event.type:transaction')
+      ? Dataset.TRANSACTIONS
+      : Dataset.ERRORS,
+    query: eventView.query
+      .slice()
+      .replace(/event\.type:(transaction|error)/, '')
+      .trim(),
+    aggregate:
+      eventView.yAxis === 'count_unique(user)'
+        ? 'count_unique(tags[sentry:user])'
+        : DEFAULT_AGGREGATE,
+    timeWindow: 1,
+    environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }
