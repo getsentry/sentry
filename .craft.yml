@@ -1,0 +1,17 @@
+minVersion: "0.10.0"
+github:
+  owner: getsentry
+  repo: sentry
+releaseBranchPrefix: releases
+changelog: CHANGES
+changelogPolicy: auto
+artifactProvider:
+  name: none # TODO: This shoudl be Zeus w/ PyPI target
+statusProvider:
+  name: github
+targets:
+  # TODO: Add PyPI target
+  - name: github
+  - name: docker
+    source: us.gcr.io/sentryio/sentry
+    target: getsentry/sentry
