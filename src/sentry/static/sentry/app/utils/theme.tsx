@@ -267,6 +267,11 @@ const theme = {
 
   // Try to keep these ordered plz
   zIndex: {
+    breadcrumbs: {
+      header: 2,
+      gridCellError: 1,
+      iconWrapper: 1,
+    },
     traceView: {
       spanTreeToggler: 900,
       rowInfoMessage: 900,
@@ -302,7 +307,8 @@ const theme = {
     toast: 10001,
 
     // tooltips and hovercards can be inside modals sometimes.
-    tooltip: 10002,
+    hovercard: 10002,
+    tooltip: 10003,
   },
 
   grid: 8,

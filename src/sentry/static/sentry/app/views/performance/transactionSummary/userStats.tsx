@@ -8,6 +8,10 @@ import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import QuestionTooltip from 'app/components/questionTooltip';
+import {SectionHeading} from 'app/components/charts/styles';
+import UserMisery from 'app/components/userMisery';
+import {PERFORMANCE_TERMS} from 'app/views/performance/constants';
 
 type Props = {
   location: Location;
@@ -18,6 +22,8 @@ type Props = {
 type Results = {
   [key: string]: React.ReactNode;
 } | null;
+
+const userMiseryLimit = 300;
 
 class UserStats extends React.Component<Props> {
   generateUserStatsEventView(eventView: EventView): EventView {
@@ -31,7 +37,11 @@ class UserStats extends React.Component<Props> {
       },
       {
         kind: 'function',
-        function: ['user_misery', '300', undefined],
+        function: ['user_misery', `${userMiseryLimit}`, undefined],
+      },
+      {
+        kind: 'function',
+        function: ['count_unique', '', undefined],
       },
     ]);
 
@@ -40,17 +50,46 @@ class UserStats extends React.Component<Props> {
     return eventView;
   }
 
-  renderContents(stats: Results) {
+  renderContents(stats: Results, row?) {
+    let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
+
+    if (stats) {
+      const miserableUsers = Number(row[`user_misery_${userMiseryLimit}`]);
+      const totalUsers = Number(row.count_unique);
+      if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
+        userMisery = (
+          <UserMisery
+            bars={40}
+            barHeight={30}
+            miseryLimit={userMiseryLimit}
+            totalUsers={totalUsers}
+            miserableUsers={miserableUsers}
+          />
+        );
+      }
+    }
+
     return (
       <Container>
         <div>
-          <StatTitle>{t('Apdex Score')}</StatTitle>
+          <SectionHeading>{t('Apdex Score')}</SectionHeading>
           <StatNumber>{!stats ? '\u2014' : stats['apdex()']}</StatNumber>
         </div>
-        <div>
-          <StatTitle>{t('User Misery')}</StatTitle>
-          <StatNumber>{!stats ? '\u2014' : stats['user_misery(300)']}</StatNumber>
-        </div>
+        {/* <div>
+          <SectionHeading>{t('Baseline Duration')}</SectionHeading>
+          <StatNumber>{'\u2014'}</StatNumber>
+        </div> */}
+        <UserMiseryContainer>
+          <SectionHeading>
+            {t('User Misery')}
+            <QuestionTooltip
+              position="top"
+              title={PERFORMANCE_TERMS.userMisery}
+              size="sm"
+            />
+          </SectionHeading>
+          {userMisery}
+        </UserMiseryContainer>
       </Container>
     );
   }
@@ -92,7 +131,7 @@ class UserStats extends React.Component<Props> {
 
             return acc;
           }, {});
-          return this.renderContents(stats);
+          return this.renderContents(stats, row);
         }}
       </DiscoverQuery>
     );
@@ -100,22 +139,23 @@ class UserStats extends React.Component<Props> {
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(4)};
-  display: flex;
-  > * + * {
-    margin-left: ${space(4)};
-  }
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-row-gap: ${space(4)};
+  margin-bottom: 40px;
 `;
 
-const StatTitle = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray600};
-  margin: ${space(1)} 0 ${space(1.5)} 0;
+const UserMiseryContainer = styled('div')`
+  grid-column: 1/3;
 `;
 
 const StatNumber = styled('div')`
   font-size: 32px;
   color: ${p => p.theme.gray700};
+
+  > div {
+    text-align: left;
+  }
 `;
 
 export default UserStats;

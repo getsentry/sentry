@@ -2,8 +2,11 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
-import WrappedDataExport, {DataExport} from 'app/components/dataExport';
+import WrappedDataExport from 'app/components/dataExport';
+
+jest.mock('app/actionCreators/indicator');
 
 describe('DataExport', function() {
   const mockUnauthorizedOrg = TestStubs.Organization({
@@ -76,10 +79,10 @@ describe('DataExport', function() {
       <WrappedDataExport payload={mockPayload} />,
       mockRouterContext(mockAuthorizedOrg)
     );
+    expect(wrapper.find(Button).prop('disabled')).toBe(false);
     wrapper.find('button').simulate('click');
-    expect(wrapper.find(DataExport).state()).toEqual({
-      inProgress: false,
-    });
+    await tick();
+    expect(wrapper.find(Button).prop('disabled')).toBe(true);
     expect(postDataExport).toHaveBeenCalledWith(url, {
       data: {
         query_type: mockPayload.queryType,
@@ -91,12 +94,7 @@ describe('DataExport', function() {
     });
     await tick();
     wrapper.update();
-    expect(wrapper.text()).toContain("We're working on it...");
     expect(wrapper.find(Button).prop('disabled')).toBe(true);
-    expect(wrapper.find(DataExport).state()).toEqual({
-      inProgress: true,
-      dataExportId: 721,
-    });
   });
 
   it('should reset the state when receiving a new payload', async function() {
@@ -113,10 +111,46 @@ describe('DataExport', function() {
     wrapper.find('button').simulate('click');
     await tick();
     wrapper.update();
-    expect(wrapper.find(DataExport).state('inProgress')).toEqual(true);
-    expect(wrapper.find(DataExport).state('dataExportId')).toEqual(721);
+    expect(wrapper.find(Button).prop('disabled')).toBe(true);
     wrapper.setProps({payload: {...mockPayload, queryType: 'Discover'}});
-    expect(wrapper.find(DataExport).state('inProgress')).toEqual(false);
-    expect(wrapper.find(DataExport).state('dataExportId')).toBeUndefined();
+    wrapper.update();
+    expect(wrapper.find(Button).prop('disabled')).toBe(false);
+  });
+
+  it('should display default error message if non provided', async function() {
+    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      statusCode: 400,
+    });
+    const wrapper = mountWithTheme(
+      <WrappedDataExport payload={mockPayload} />,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    wrapper.find('button').simulate('click');
+    await tick();
+    expect(addErrorMessage).toHaveBeenCalledWith(
+      "We tried our hardest, but we couldn't export your data. Give it another go."
+    );
+    wrapper.update();
+    expect(wrapper.find(Button).prop('disabled')).toBe(false);
+  });
+
+  it('should display provided error message', async function() {
+    const url = `/organizations/${mockAuthorizedOrg.slug}/data-export/`;
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'uh oh'},
+    });
+    const wrapper = mountWithTheme(
+      <WrappedDataExport payload={mockPayload} />,
+      mockRouterContext(mockAuthorizedOrg)
+    );
+    wrapper.find('button').simulate('click');
+    await tick();
+    expect(addErrorMessage).toHaveBeenCalledWith('uh oh');
   });
 });

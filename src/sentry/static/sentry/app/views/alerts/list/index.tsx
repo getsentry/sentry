@@ -52,8 +52,8 @@ const trackDocumentationClicked = (org: Organization) =>
     user_id: ConfigStore.get('user').id,
   });
 
-function getQueryStatus(status: any) {
-  return ['open', 'closed', 'all'].includes(status) ? status : DEFAULT_QUERY_STATUS;
+function getQueryStatus(status: any): 'open' | 'closed' {
+  return ['open', 'closed'].includes(status) ? status : DEFAULT_QUERY_STATUS;
 }
 
 class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
@@ -122,7 +122,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         <p>
           <React.Fragment>
             {tct('No [status] metric alerts. ', {
-              status: status === 'open' || status === 'all' ? 'active' : 'resolved',
+              status: status === 'open' ? 'active' : 'resolved',
             })}
           </React.Fragment>
           <React.Fragment>
@@ -152,23 +152,23 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         ? true
         : false;
     const showLoadingIndicator = loading || checkingForAlertRules;
+    const status = getQueryStatus(this.props.location.query.status);
 
     return (
       <React.Fragment>
         <Panel>
-          <PanelHeader>
-            <TableLayout>
-              <TitleAndSparkLine>
+          <StyledPanelHeader>
+            <TableLayout status={status}>
+              <PaddedTitleAndSparkLine status={status}>
                 <div>{t('Alert')}</div>
-                <RightAlignedHeader>{t('Trend')}</RightAlignedHeader>
-              </TitleAndSparkLine>
+                {status === 'open' && <div>{t('Graph')}</div>}
+              </PaddedTitleAndSparkLine>
               <div>{t('Project')}</div>
-              <div>{t('Status')}</div>
-              <div>{t('Start time (duration)')}</div>
-              <RightAlignedHeader>{t('Users affected')}</RightAlignedHeader>
-              <RightAlignedHeader>{t('Total events')}</RightAlignedHeader>
+              <div>{t('Triggered')}</div>
+              {status === 'closed' && <div>{t('Duration')}</div>}
+              {status === 'closed' && <div>{t('Resolved')}</div>}
             </TableLayout>
-          </PanelHeader>
+          </StyledPanelHeader>
 
           <PanelBody>
             {showLoadingIndicator && <LoadingIndicator />}
@@ -184,6 +184,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                         projects={projects}
                         incident={incident}
                         orgId={orgId}
+                        filteredStatus={status}
                       />
                     ))
                   }
@@ -250,7 +251,6 @@ class IncidentsListContainer extends React.Component<Props> {
 
     const openIncidentsQuery = omit({...query, status: 'open'}, 'cursor');
     const closedIncidentsQuery = omit({...query, status: 'closed'}, 'cursor');
-    const allIncidentsQuery = omit({...query, status: 'all'}, 'cursor');
 
     const status = getQueryStatus(query.status);
 
@@ -270,7 +270,9 @@ class IncidentsListContainer extends React.Component<Props> {
                       disabled={!hasAccess}
                       title={
                         !hasAccess
-                          ? t('You do not have permission to add alert rules.')
+                          ? t(
+                              'Users with admin permission or higher can create alert rules.'
+                            )
                           : undefined
                       }
                       onClick={this.handleAddAlertRule}
@@ -290,7 +292,7 @@ class IncidentsListContainer extends React.Component<Props> {
                   size="small"
                   icon={<IconSettings size="xs" />}
                 >
-                  {t('Settings')}
+                  {t('View Rules')}
                 </Button>
 
                 <ButtonBar merged active={status}>
@@ -307,13 +309,6 @@ class IncidentsListContainer extends React.Component<Props> {
                     size="small"
                   >
                     {t('Resolved')}
-                  </Button>
-                  <Button
-                    to={{pathname, query: allIncidentsQuery}}
-                    barId="all"
-                    size="small"
-                  >
-                    {t('All')}
                   </Button>
                 </ButtonBar>
               </Actions>
@@ -348,15 +343,20 @@ const StyledPageHeading = styled(PageHeading)`
   align-items: center;
 `;
 
+const PaddedTitleAndSparkLine = styled(TitleAndSparkLine)`
+  padding-left: ${space(2)};
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  /* Match table row padding for the grid to align */
+  padding: ${space(1.5)} ${space(2)} ${space(1.5)} 0;
+`;
+
 const Actions = styled('div')`
   display: grid;
   align-items: center;
   grid-gap: ${space(1)};
   grid-auto-flow: column;
-`;
-
-const RightAlignedHeader = styled('div')`
-  text-align: right;
 `;
 
 export default withOrganization(IncidentsListContainer);

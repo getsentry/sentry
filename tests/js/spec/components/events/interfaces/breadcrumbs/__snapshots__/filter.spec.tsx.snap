@@ -219,6 +219,7 @@ exports[`Filter default render 1`] = `
                       <StyledButton
                         className="css-3q3sgn-StyledDropdownButton e1sx99c0"
                         hasDarkBorderBottomColor={true}
+                        hideBottomBorder={true}
                         isOpen={false}
                         onClick={[Function]}
                         onKeyDown={[Function]}
@@ -236,6 +237,7 @@ exports[`Filter default render 1`] = `
                         <forwardRef<Button>
                           className="e1sx99c0 css-1qtgjoa-StyledButton-StyledDropdownButton eenpoef1"
                           hasDarkBorderBottomColor={true}
+                          hideBottomBorder={true}
                           isOpen={false}
                           onClick={[Function]}
                           onKeyDown={[Function]}
@@ -256,6 +258,7 @@ exports[`Filter default render 1`] = `
                             disabled={false}
                             forwardRef={[Function]}
                             hasDarkBorderBottomColor={true}
+                            hideBottomBorder={true}
                             isOpen={false}
                             onClick={[Function]}
                             onKeyDown={[Function]}
@@ -276,6 +279,7 @@ exports[`Filter default render 1`] = `
                               disabled={false}
                               forwardRef={[Function]}
                               hasDarkBorderBottomColor={true}
+                              hideBottomBorder={true}
                               isOpen={false}
                               onClick={[Function]}
                               onKeyDown={[Function]}
@@ -711,6 +715,11 @@ exports[`Filter default render 1`] = `
                     "yellowOrangeDark": "#E08D54",
                     "yellowOrangeLight": "#FFC087",
                     "zIndex": Object {
+                      "breadcrumbs": Object {
+                        "gridCellError": 1,
+                        "header": 2,
+                        "iconWrapper": 1,
+                      },
                       "dropdown": 1001,
                       "dropdownAutocomplete": Object {
                         "actor": 1008,
@@ -719,13 +728,14 @@ exports[`Filter default render 1`] = `
                       "errorMessage": 1000,
                       "globalSelectionHeader": 1009,
                       "header": 1000,
+                      "hovercard": 10002,
                       "modal": 10000,
                       "orgAndUserMenu": 1030,
                       "sentryErrorEmbed": 1090,
                       "sidebar": 1020,
                       "sidebarPanel": 1019,
                       "toast": 10001,
-                      "tooltip": 10002,
+                      "tooltip": 10003,
                       "traceView": Object {
                         "dividerLine": 909,
                         "minimapContainer": 999,

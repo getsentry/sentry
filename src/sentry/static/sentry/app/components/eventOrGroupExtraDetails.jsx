@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {IconChat} from 'app/icons';
 import {tct} from 'app/locale';
 import EventAnnotation from 'app/components/events/eventAnnotation';
-import InlineSvg from 'app/components/inlineSvg';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
@@ -62,10 +62,12 @@ class EventOrGroupExtraDetails extends React.Component {
         <StyledTimes lastSeen={lastSeen} firstSeen={firstSeen} />
         {numComments > 0 && (
           <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-            <GroupExtraIcon
-              src="icon-comment-sm"
-              mentioned={
+            <IconChat
+              size="xs"
+              color={
                 subscriptionDetails && subscriptionDetails.reason === 'mentioned'
+                  ? 'green400'
+                  : 'currentColor'
               }
             />
             <span>{numComments}</span>
@@ -113,6 +115,7 @@ const GroupExtra = styled('div')`
   font-size: 12px;
   position: relative;
   min-width: 500px;
+  white-space: nowrap;
 
   a {
     color: inherit;
@@ -124,6 +127,10 @@ const StyledTimes = styled(Times)`
 `;
 
 const CommentsLink = styled(Link)`
+  display: inline-grid;
+  grid-gap: ${space(0.5)};
+  align-items: center;
+  grid-auto-flow: column;
   color: ${p => p.theme.gray700};
 `;
 
@@ -131,12 +138,6 @@ const GroupShortId = styled(ShortId)`
   flex-shrink: 0;
   font-size: 12px;
   color: ${p => p.theme.gray600};
-`;
-
-const GroupExtraIcon = styled(InlineSvg)`
-  color: ${p => (p.isMentioned ? p.theme.green400 : null)};
-  font-size: 11px;
-  margin-right: 4px;
 `;
 
 const AnnotationNoMargin = styled(EventAnnotation)`

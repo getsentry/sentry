@@ -4,6 +4,7 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -12,32 +13,26 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getMessage, getTitle} from 'app/utils/events';
-import {Organization, Event} from 'app/types';
+import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
-import {SectionHeading} from 'app/components/charts/styles';
-import DateTime from 'app/components/dateTime';
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
-import FileSize from 'app/components/fileSize';
+import OpsBreakdown from 'app/components/events/opsBreakdown';
+import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
+import TagsTable from 'app/components/tagsTable';
 import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import EventEntries from 'app/components/events/eventEntries';
-import {DataSection} from 'app/components/events/styles';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
-import {ContentBox, HeaderBox} from 'app/utils/discover/styles';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
+import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 
-import {generateTitle} from '../utils';
+import {generateTitle, getExpandedResults} from '../utils';
 import Pagination from './pagination';
 import LineGraph from './lineGraph';
-import TagsTable from '../tagsTable';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
-import OpsBreakdown from './transaction/opsBreakdown';
 
 const slugValidator = function(
   props: {[key: string]: any},
@@ -107,6 +102,25 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return this.props.eventSlug.split(':')[0];
   }
 
+  generateTagUrl = (tag: EventTag) => {
+    const {eventView, organization} = this.props;
+    const {event} = this.state;
+    if (!event) {
+      return '';
+    }
+    const eventReference = {...event};
+    if (eventReference.id) {
+      delete eventReference.id;
+    }
+
+    const nextView = getExpandedResults(
+      eventView,
+      {[tag.key]: tag.value},
+      eventReference
+    );
+    return nextView.getResultsViewUrlTarget(organization.slug);
+  };
+
   renderBody() {
     const {event} = this.state;
 
@@ -118,7 +132,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventView} = this.props;
+    const {api, organization, location, eventView} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -142,7 +156,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             location={location}
           />
           <EventHeader event={event} />
-          <Controller>
+          <HeaderBottomControls>
             <StyledButton size="small" onClick={this.toggleSidebar}>
               {isSidebarVisible ? 'Hide Details' : 'Show Details'}
             </StyledButton>
@@ -153,7 +167,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 eventView={eventView}
               />
             )}
-          </Controller>
+          </HeaderBottomControls>
         </HeaderBox>
         <ContentBox>
           <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
@@ -171,7 +185,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               })}
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
-                <StyledEventEntries
+                <BorderlessEventEntries
+                  api={api}
                   organization={organization}
                   event={event}
                   project={projects[0]}
@@ -193,7 +208,11 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             {event.groupID && (
               <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
             )}
-            <TagsTable eventView={eventView} event={event} organization={organization} />
+            <TagsTable
+              generateUrl={this.generateTagUrl}
+              event={event}
+              query={eventView.query}
+            />
           </div>
         </ContentBox>
       </React.Fragment>
@@ -286,55 +305,6 @@ const EventHeader = (props: {event: Event}) => {
   );
 };
 
-/**
- * Render metadata about the event and provide a link to the JSON blob
- */
-const EventMetadata = (props: {
-  event: Event;
-  organization: Organization;
-  projectId: string;
-}) => {
-  const {event, organization, projectId} = props;
-
-  const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${event.eventID}/json/`;
-
-  return (
-    <MetaDataID>
-      <SectionHeading>{t('Event ID')}</SectionHeading>
-      <MetadataContainer data-test-id="event-id">{event.eventID}</MetadataContainer>
-      <MetadataContainer>
-        <DateTime
-          date={getDynamicText({
-            value: event.dateCreated || (event.endTimestamp || 0) * 1000,
-            fixed: 'Dummy timestamp',
-          })}
-        />
-      </MetadataContainer>
-      <Projects orgId={organization.slug} slugs={[projectId]}>
-        {({projects}) => {
-          const project = projects.find(p => p.slug === projectId);
-          return (
-            <StyledProjectBadge
-              project={project ? project : {slug: projectId}}
-              avatarSize={16}
-            />
-          );
-        }}
-      </Projects>
-      <MetadataJSON href={eventJsonUrl} className="json-link">
-        {t('Preview JSON')} (<FileSize bytes={event.size} />)
-      </MetadataJSON>
-    </MetaDataID>
-  );
-};
-
-const Controller = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  grid-row: 2/3;
-  grid-column: 2/3;
-`;
-
 const StyledButton = styled(Button)`
   display: none;
 
@@ -355,35 +325,7 @@ const StyledEventHeader = styled('div')`
 const StyledTitle = styled('span')`
   color: ${p => p.theme.gray700};
   margin-right: ${space(1)};
-`;
-
-const MetaDataID = styled('div')`
-  margin-bottom: ${space(4)};
-`;
-
-const MetadataContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  color: ${p => p.theme.gray600};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const MetadataJSON = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const StyledEventEntries = styled(EventEntries)`
-  & ${/* sc-selector */ DataSection} {
-    padding: ${space(3)} 0 0 0;
-  }
-  & ${/* sc-selector */ DataSection}:first-child {
-    padding-top: 0;
-    border-top: none;
-  }
-`;
-
-const StyledProjectBadge = styled(ProjectBadge)`
-  margin-bottom: ${space(2)};
+  align-self: center;
 `;
 
 export default withApi(EventDetailsContent);

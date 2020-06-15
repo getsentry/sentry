@@ -480,10 +480,12 @@ class ProjectGeneralSettings extends AsyncView {
                 <Panel>
                   <PanelHeader>{t('Data Privacy')}</PanelHeader>
                   <EmptyMessage
-                    title={t('Data Privacy section now has its own tab')}
+                    title={t('Data Privacy has moved')}
                     description={
-                      <Link to={`/settings/${orgId}/projects/${projectId}/data-privacy/`}>
-                        {t('Go to Data Privacy')}
+                      <Link
+                        to={`/settings/${orgId}/projects/${projectId}/security-and-privacy/`}
+                      >
+                        {t('Go to Security & Privacy')}
                       </Link>
                     }
                   />
@@ -491,6 +493,8 @@ class ProjectGeneralSettings extends AsyncView {
               ) : (
                 <JsonForm
                   {...jsonFormProps}
+                  // Legacy use of the name Data Privacy... this codepath is
+                  // going to be gone if datascrubbersv2 goes GA
                   title={t('Data Privacy')}
                   fields={[
                     fields.dataScrubber,

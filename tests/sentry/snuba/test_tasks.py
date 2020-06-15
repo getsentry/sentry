@@ -11,6 +11,7 @@ from six import add_metaclass
 
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery
 from sentry.snuba.tasks import (
+    build_snuba_filter,
     create_subscription_in_snuba,
     update_subscription_in_snuba,
     delete_subscription_from_snuba,
@@ -153,3 +154,74 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
         assert sub.subscription_id is None
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+
+class BuildSnubaFilterTest(TestCase):
+    def test_simple_events(self):
+        snuba_filter = build_snuba_filter(QueryDatasets.EVENTS, "", "count_unique(user)", None,)
+        assert snuba_filter
+        assert snuba_filter.conditions == [["type", "=", "error"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+
+    def test_simple_transactions(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.TRANSACTIONS, "", "count_unique(user)", None,
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == []
+        assert snuba_filter.aggregations == [["uniq", "user", u"count_unique_user"]]
+
+    def test_aliased_query_events(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.EVENTS, "release:latest", "count_unique(user)", None,
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [
+            ["tags[sentry:release]", "=", "latest"],
+            ["type", "=", "error"],
+        ]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+
+    def test_aliased_query_transactions(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.TRANSACTIONS,
+            "release:latest",
+            "percentile(transaction.duration,.95)",
+            None,
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [["release", "=", "latest"]]
+        assert snuba_filter.aggregations == [
+            [u"quantile(0.95)", "duration", u"percentile_transaction_duration__95"]
+        ]
+
+    def test_user_query(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.EVENTS, "user:anengineer@work.io", "count()", None,
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [
+            [
+                ["email", "=", "anengineer@work.io"],
+                ["username", "=", "anengineer@work.io"],
+                ["ip_address", "=", "anengineer@work.io"],
+                ["user_id", "=", "anengineer@work.io"],
+            ],
+            ["type", "=", "error"],
+        ]
+        assert snuba_filter.aggregations == [[u"count", None, u"count"]]
+
+    def test_user_query_transactions(self):
+        snuba_filter = build_snuba_filter(
+            QueryDatasets.TRANSACTIONS, "user:anengineer@work.io", "p95()", None,
+        )
+        assert snuba_filter
+        assert snuba_filter.conditions == [
+            [
+                ["user_email", "=", "anengineer@work.io"],
+                ["user_name", "=", "anengineer@work.io"],
+                ["ip_address", "=", "anengineer@work.io"],
+                ["user_id", "=", "anengineer@work.io"],
+            ],
+        ]
+        assert snuba_filter.aggregations == [[u"quantile(0.95)", "duration", u"p95"]]

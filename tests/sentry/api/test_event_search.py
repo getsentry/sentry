@@ -49,7 +49,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p99", "number") == "duration"
     assert get_json_meta_type("p100", "number") == "duration"
     assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
-    assert get_json_meta_type("error_rate", "number") == "percentage"
+    assert get_json_meta_type("failure_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
     assert get_json_meta_type("user_misery_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
@@ -589,7 +589,8 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
     def test_numeric_filter(self):
-        # Numeric format should still return a string if field isn't whitelisted
+        # Numeric format should still return a string if field isn't
+        # allowed
         assert parse_search_query("random_field:>500") == [
             SearchFilter(
                 key=SearchKey(name="random_field"),

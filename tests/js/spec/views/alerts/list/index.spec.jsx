@@ -9,6 +9,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 describe('IncidentsList', function() {
   const {routerContext, organization} = initializeOrg();
   let mock;
+  let statsMock;
   let projectMock;
   let wrapper;
   let projects;
@@ -48,14 +49,20 @@ describe('IncidentsList', function() {
         }),
       ],
     });
-    MockApiClient.addMockResponse({
+    statsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/1/stats/',
       body: TestStubs.IncidentStats(),
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/2/stats/',
-      body: TestStubs.IncidentStats({totalEvents: 1000, uniqueUsers: 32}),
+      body: TestStubs.IncidentStats({
+        totalEvents: 1000,
+        uniqueUsers: 32,
+        eventStats: {
+          data: [[1591390293327, [{count: 42}]]],
+        },
+      }),
     });
 
     projects = [
@@ -108,38 +115,6 @@ describe('IncidentsList', function() {
     ).toMatchObject({
       slug: 'a',
     });
-
-    expect(
-      items
-        .at(0)
-        .find('Count')
-        .at(0)
-        .text()
-    ).toBe('20');
-
-    expect(
-      items
-        .at(0)
-        .find('Count')
-        .at(1)
-        .text()
-    ).toBe('100');
-
-    expect(
-      items
-        .at(1)
-        .find('Count')
-        .at(0)
-        .text()
-    ).toBe('32');
-
-    expect(
-      items
-        .at(1)
-        .find('Count')
-        .at(1)
-        .text()
-    ).toBe('1k');
   });
 
   it('displays empty state', async function() {
@@ -163,7 +138,7 @@ describe('IncidentsList', function() {
     expect(wrapper.text()).toContain('No active metric alerts.');
   });
 
-  it('toggles all/open', async function() {
+  it('toggles open/closed', async function() {
     wrapper = await createWrapper();
 
     expect(
@@ -174,6 +149,21 @@ describe('IncidentsList', function() {
         .prop('priority')
     ).toBe('primary');
 
+    expect(
+      wrapper
+        .find('IncidentPanelItem')
+        .at(0)
+        .find('Duration')
+        .exists()
+    ).toBeFalsy();
+
+    expect(
+      wrapper
+        .find('IncidentPanelItem')
+        .at(0)
+        .find('TimeSince')
+    ).toHaveLength(1);
+
     expect(mock).toHaveBeenCalledTimes(1);
 
     expect(mock).toHaveBeenCalledWith(
@@ -181,21 +171,38 @@ describe('IncidentsList', function() {
       expect.objectContaining({query: {status: 'open'}})
     );
 
-    wrapper.setProps({location: {query: {status: 'all'}, search: '?status=all`'}});
+    wrapper.setProps({location: {query: {status: 'closed'}, search: '?status=closed`'}});
 
     expect(
       wrapper
         .find('ButtonBar')
         .find('Button')
-        .at(2)
+        .at(1)
         .prop('priority')
     ).toBe('primary');
 
+    expect(
+      wrapper
+        .find('IncidentPanelItem')
+        .at(0)
+        .find('Duration')
+        .text()
+    ).toBe('2 weeks');
+
+    expect(
+      wrapper
+        .find('IncidentPanelItem')
+        .at(0)
+        .find('TimeSince')
+    ).toHaveLength(2);
+
     expect(mock).toHaveBeenCalledTimes(2);
+    // Stats not called for closed incidents
+    expect(statsMock).toHaveBeenCalledTimes(1);
 
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: expect.objectContaining({status: 'all'})})
+      expect.objectContaining({query: expect.objectContaining({status: 'closed'})})
     );
   });
 
