@@ -10,12 +10,12 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import HeaderItem from 'app/components/organizations/headerItem';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
 import PlatformList from 'app/components/platformList';
+import {IconProject} from 'app/icons';
 
 import ProjectSelector from './projectSelector';
 
@@ -207,7 +207,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
           <PlatformList
             platforms={forceProject?.platform ? [forceProject.platform] : []}
             max={1}
-            size={20}
+            size={16}
           />
         }
         locked
@@ -223,7 +223,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
     ) : !isGlobalSelectionReady ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
-        icon={<StyledInlineSvg src="icon-project" />}
+        icon={<IconProject />}
         loading
       >
         {t('Loading\u2026')}
@@ -272,10 +272,10 @@ export default class MultipleProjectSelector extends React.PureComponent {
                 <PlatformList
                   platforms={selectedProjects.map(p => p.platform ?? 'other').reverse()}
                   max={5}
-                  size={20}
+                  size={16}
                 />
               ) : (
-                <StyledInlineSvg src="icon-project" />
+                <IconProject />
               );
 
               return (
@@ -396,12 +396,6 @@ const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
   width: 100%;
   ${p => p.locked && 'cursor: default'};
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  height: 18px;
-  width: 18px;
-  transform: translateY(-2px);
 `;
 
 const StyledLink = styled(Link)`
