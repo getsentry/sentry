@@ -14,7 +14,6 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
-import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -73,8 +72,6 @@ class AlertListRow extends AsyncComponent<Props, State> {
   renderTimeSince(date: string) {
     return (
       <CreatedResolvedTime>
-        <TimeSince date={date} />
-        <br />
         <StyledDateTime date={date} utc={false} />
       </CreatedResolvedTime>
     );
@@ -162,7 +159,6 @@ const CreatedResolvedTime = styled('div')`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray500};
 `;
 
