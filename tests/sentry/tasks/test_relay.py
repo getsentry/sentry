@@ -8,6 +8,8 @@ from sentry.tasks.relay import schedule_update_config_cache
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 
+from sentry.models import ProjectKey
+
 
 @pytest.fixture
 def redis_cache(monkeypatch):
@@ -183,3 +185,20 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
                 )
 
     update_config_cache.assert_not_called()  # noqa
+
+
+@pytest.mark.django_db
+def test_projectkeys(default_project, task_runner, redis_cache):
+    with task_runner():
+        ProjectKey.objects.filter(project=default_project).delete()
+        pk = ProjectKey(project=default_project)
+        pk.save()
+
+    (pk_json,) = redis_cache.get(default_project.id)["publicKeys"]
+    assert pk_json["publicKey"] == pk.public_key
+    assert pk_json["isEnabled"]
+
+    with task_runner():
+        pk.delete()
+
+    assert not redis_cache.get(default_project.id)["publicKeys"]

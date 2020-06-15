@@ -23,6 +23,7 @@ from sentry.db.models import (
     JSONField,
     sane_repr,
 )
+from sentry.tasks.relay import schedule_update_config_cache
 
 _uuid4_re = re.compile(r"^[a-f0-9]{32}$")
 
@@ -32,6 +33,18 @@ _uuid4_re = re.compile(r"^[a-f0-9]{32}$")
 class ProjectKeyStatus(object):
     ACTIVE = 0
     INACTIVE = 1
+
+
+class ProjectKeyManager(BaseManager):
+    def post_save(self, instance, **kwargs):
+        schedule_update_config_cache(
+            project_id=instance.project_id, generate=True, update_reason="projectkey.post_save"
+        )
+
+    def post_delete(self, instance, **kwargs):
+        schedule_update_config_cache(
+            project_id=instance.project_id, generate=True, update_reason="projectkey.post_delete"
+        )
 
 
 class ProjectKey(Model):
@@ -63,7 +76,7 @@ class ProjectKey(Model):
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
-    objects = BaseManager(
+    objects = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
         # store projectkeys in memcached for longer than other models,
         # specifically to make the relay_projectconfig endpoint faster.
