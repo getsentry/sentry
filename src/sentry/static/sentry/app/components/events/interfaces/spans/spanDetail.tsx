@@ -109,6 +109,15 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderTraversalButton(): React.ReactNode {
+    const {span, orgId, trace, eventView, event, organization} = this.props;
+
+    const orgFeatures = new Set(organization.features);
+
+    if (!orgFeatures.has('discover-basic')) {
+      // org needs at least the ability to make Discover queries
+      return null;
+    }
+
     if (!this.state.transactionResults) {
       // TODO: Amend size to use theme when we evetually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
@@ -126,8 +135,6 @@ class SpanDetail extends React.Component<Props, State> {
         </StyledDiscoverButton>
       );
     }
-
-    const {span, orgId, trace, eventView, event, organization} = this.props;
 
     assert(!isGapSpan(span));
 
@@ -148,8 +155,6 @@ class SpanDetail extends React.Component<Props, State> {
         </StyledDiscoverButton>
       );
     }
-
-    const orgFeatures = new Set(organization.features);
 
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
@@ -188,6 +193,13 @@ class SpanDetail extends React.Component<Props, State> {
   renderTraceButton() {
     const {span, orgId, organization, trace, event} = this.props;
 
+    const orgFeatures = new Set(organization.features);
+
+    if (!orgFeatures.has('discover-basic')) {
+      // org needs at least the ability to make Discover queries
+      return null;
+    }
+
     const {start, end} = getTraceDateTimeRange({
       start: trace.traceStartTimestamp,
       end: trace.traceEndTimestamp,
@@ -196,8 +208,6 @@ class SpanDetail extends React.Component<Props, State> {
     if (isGapSpan(span)) {
       return null;
     }
-
-    const orgFeatures = new Set(organization.features);
 
     const traceEventView = EventView.fromSavedQuery({
       id: undefined,
