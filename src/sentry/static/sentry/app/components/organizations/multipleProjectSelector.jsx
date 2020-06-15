@@ -203,7 +203,13 @@ export default class MultipleProjectSelector extends React.PureComponent {
     return shouldForceProject ? (
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
-        icon={<PlatformList platforms={[forceProject.platform]} max={1} size={20} />}
+        icon={
+          <PlatformList
+            platforms={forceProject?.platform ? [forceProject.platform] : []}
+            max={1}
+            size={20}
+          />
+        }
         locked
         lockedMessage={this.getLockedMessage()}
         settingsLink={
@@ -264,7 +270,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
                 : t('My Projects');
               const icon = hasSelected ? (
                 <PlatformList
-                  platforms={selectedProjects.map(p => p.platform).reverse()}
+                  platforms={selectedProjects.map(p => p.platform ?? 'other').reverse()}
                   max={5}
                   size={20}
                 />
