@@ -171,7 +171,7 @@ class DataDownload extends AsyncView<Props, State> {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {t('Checkout our docs.')}
+                  {t('Check out our docs.')}
                 </a>
               ),
             })}
