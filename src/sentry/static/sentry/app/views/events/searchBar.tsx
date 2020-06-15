@@ -15,7 +15,7 @@ import {Field, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
 import {Client} from 'app/api';
-import {Organization, Tag} from 'app/types';
+import {Organization, TagCollection} from 'app/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -29,7 +29,7 @@ const FIELD_TAGS = Object.fromEntries(
 type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   api: Client;
   organization: Organization;
-  tags: {[key: string]: Tag};
+  tags: TagCollection;
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
   fields?: Readonly<Field[]>;
