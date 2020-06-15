@@ -62,6 +62,42 @@ describe('ReleaseSeries', function() {
     );
   });
 
+  it('fetches releases with start and end dates', async function() {
+    const wrapper = mount(
+      <ReleaseSeries start="2020-01-01" end="2020-01-31">
+        {renderFunc}
+      </ReleaseSeries>,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(releasesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {start: '2020-01-01', end: '2020-01-31'},
+      })
+    );
+  });
+
+  it('fetches releases with period', async function() {
+    const wrapper = mount(
+      <ReleaseSeries period="14d">{renderFunc}</ReleaseSeries>,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(releasesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {statsPeriod: '14d'},
+      })
+    );
+  });
+
   it('generates an eCharts `markLine` series from releases', async function() {
     const wrapper = mount(<ReleaseSeries>{renderFunc}</ReleaseSeries>, routerContext);
 
