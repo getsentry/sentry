@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {t, tct} from 'app/locale';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Button from 'app/components/button';
+import DiscoverButton from 'app/components/discoverButton';
 import GroupList from 'app/components/issues/groupList';
 import space from 'app/styles/space';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -189,9 +190,9 @@ class Issues extends React.Component<Props, State> {
 
           <ButtonBar gap={1}>
             <Feature features={['discover-basic']}>
-              <OpenInButton to={this.getDiscoverUrl()}>
+              <OpenDiscoverButton to={this.getDiscoverUrl()}>
                 {t('Open in Discover')}
-              </OpenInButton>
+              </OpenDiscoverButton>
             </Feature>
 
             <OpenInButton to={this.getIssuesUrl()}>{t('Open in Issues')}</OpenInButton>
@@ -217,6 +218,7 @@ class Issues extends React.Component<Props, State> {
 // used in media query
 const FilterButton = styled(DropdownButton)``;
 const OpenInButton = styled(Button)``;
+const OpenDiscoverButton = styled(DiscoverButton)``;
 
 const ControlsWrapper = styled('div')`
   display: flex;
@@ -224,7 +226,9 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    ${FilterButton}, ${OpenInButton} {
+    ${/* sc-selector */ FilterButton},
+    ${/* sc-selector */ OpenInButton},
+    ${/* sc-selector */ OpenDiscoverButton} {
       font-size: ${p => p.theme.fontSizeSmall};
     }
   }

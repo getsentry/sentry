@@ -11,7 +11,7 @@ import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
-import Button from 'app/components/button';
+import DiscoverButton from 'app/components/discoverButton';
 import DateTime from 'app/components/dateTime';
 import EventView from 'app/utils/discover/eventView';
 import Link from 'app/components/links/link';
@@ -76,9 +76,16 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   fetchSpanDescendents(spanID: string, traceID: string): Promise<any> {
-    const {api, orgId, trace} = this.props;
+    const {api, organization, trace} = this.props;
 
-    const url = `/organizations/${orgId}/eventsv2/`;
+    // Skip doing a request if the results will be behind a disabled button.
+    if (!organization.features.includes('discover-basic')) {
+      return new Promise(resolve => {
+        resolve({data: []});
+      });
+    }
+
+    const url = `/organizations/${organization.slug}/eventsv2/`;
 
     const {start, end} = getParams(
       getTraceDateTimeRange({
@@ -106,21 +113,21 @@ class SpanDetail extends React.Component<Props, State> {
       // TODO: Amend size to use theme when we evetually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
-        <StyledButton size="xsmall" disabled>
+        <StyledDiscoverButton size="xsmall" disabled>
           <StyledLoadingIndicator size={12} />
-        </StyledButton>
+        </StyledDiscoverButton>
       );
     }
 
     if (this.state.transactionResults.length <= 0) {
       return (
-        <StyledButton size="xsmall" disabled>
+        <StyledDiscoverButton size="xsmall" disabled>
           {t('No Children')}
-        </StyledButton>
+        </StyledDiscoverButton>
       );
     }
 
-    const {span, orgId, trace, eventView, organization, event} = this.props;
+    const {span, orgId, trace, eventView, event, organization} = this.props;
 
     assert(!isGapSpan(span));
 
@@ -136,9 +143,9 @@ class SpanDetail extends React.Component<Props, State> {
       };
 
       return (
-        <StyledButton data-test-id="view-child-transaction" size="xsmall" to={to}>
+        <StyledDiscoverButton data-test-id="view-child-transaction" size="xsmall" to={to}>
           {t('View Child')}
-        </StyledButton>
+        </StyledDiscoverButton>
       );
     }
 
@@ -168,13 +175,13 @@ class SpanDetail extends React.Component<Props, State> {
     });
 
     return (
-      <StyledButton
+      <StyledDiscoverButton
         data-test-id="view-child-transactions"
         size="xsmall"
         to={childrenEventView.getResultsViewUrlTarget(orgId)}
       >
         {t('View Children')}
-      </StyledButton>
+      </StyledDiscoverButton>
     );
   }
 
@@ -211,9 +218,12 @@ class SpanDetail extends React.Component<Props, State> {
     });
 
     return (
-      <StyledButton size="xsmall" to={traceEventView.getResultsViewUrlTarget(orgId)}>
+      <StyledDiscoverButton
+        size="xsmall"
+        to={traceEventView.getResultsViewUrlTarget(orgId)}
+      >
         {t('Search by Trace')}
-      </StyledButton>
+      </StyledDiscoverButton>
     );
   }
 
@@ -402,7 +412,7 @@ class SpanDetail extends React.Component<Props, State> {
   }
 }
 
-const StyledButton = styled(Button)`
+const StyledDiscoverButton = styled(DiscoverButton)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};
