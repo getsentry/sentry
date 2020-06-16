@@ -12,9 +12,11 @@ import {defined} from 'app/utils';
 import {fetchTagValues} from 'app/actionCreators/tags';
 import SentryTypes from 'app/sentryTypes';
 import SmartSearchBar, {SearchType} from 'app/components/smartSearchBar';
-import {FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
+import {Field, FIELDS, TRACING_FIELDS} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
+import {Client} from 'app/api';
+import {Organization, TagCollection} from 'app/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -25,25 +27,34 @@ const FIELD_TAGS = Object.fromEntries(
   Object.keys(FIELDS).map(item => [item, {key: item, name: item}])
 );
 
-class SearchBar extends React.PureComponent {
-  static propTypes = {
+type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
+  api: Client;
+  organization: Organization;
+  tags: TagCollection;
+  omitTags?: string[];
+  projectIds?: number[] | Readonly<number[]>;
+  fields?: Readonly<Field[]>;
+};
+
+class SearchBar extends React.PureComponent<SearchBarProps> {
+  static propTypes: any = {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
     tags: PropTypes.objectOf(SentryTypes.Tag),
-    omitTags: PropTypes.arrayOf(PropTypes.string),
-    projectIds: PropTypes.arrayOf(PropTypes.number),
-    fields: PropTypes.arrayOf(PropTypes.object),
+    omitTags: PropTypes.arrayOf(PropTypes.string.isRequired),
+    projectIds: PropTypes.arrayOf(PropTypes.number.isRequired),
+    fields: PropTypes.arrayOf(PropTypes.object.isRequired) as any,
   };
 
   componentDidMount() {
     // Clear memoized data on mount to make tests more consistent.
-    this.getEventFieldValues.cache.clear();
+    this.getEventFieldValues.cache.clear?.();
   }
 
   componentDidUpdate(prevProps) {
     if (!isEqual(this.props.projectIds, prevProps.projectIds)) {
       // Clear memoized data when projects change.
-      this.getEventFieldValues.cache.clear();
+      this.getEventFieldValues.cache.clear?.();
     }
   }
 
@@ -52,15 +63,16 @@ class SearchBar extends React.PureComponent {
    * with data when ready
    */
   getEventFieldValues = memoize(
-    (tag, query, endpointParams) => {
+    (tag, query, endpointParams): Promise<string[]> => {
       const {api, organization, projectIds} = this.props;
+      const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
       return fetchTagValues(
         api,
         organization.slug,
         tag.key,
         query,
-        projectIds,
+        projectIdStrings,
         endpointParams
       ).then(
         results =>

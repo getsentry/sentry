@@ -1136,6 +1136,8 @@ export type Tag = {
   predefined?: boolean;
 };
 
+export type TagCollection = {[key: string]: Tag};
+
 export type TagValue = {
   count: number;
   name: string;
