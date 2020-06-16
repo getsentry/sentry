@@ -94,9 +94,8 @@ class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
 
     if (isProjectLevel) {
       try {
-        const convertedRules = convertRelayPiiConfig(organization.relayPiiConfig);
         this.setState({
-          orgRules: convertedRules,
+          orgRules: convertRelayPiiConfig(organization.relayPiiConfig),
         });
       } catch {
         addErrorMessage(t('Unable to load organization rules'));
@@ -192,7 +191,7 @@ class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
         this.setState(prevState => ({
           errors: {
             ...prevState.errors,
-            customRegex: error.message,
+            pattern: error.message,
           },
         }));
         break;

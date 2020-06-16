@@ -30,6 +30,7 @@ type Props<R extends Rule, K extends KeysOfUnion<R>> = {
   sourceSuggestions?: Array<SourceSuggestion>;
   eventId?: EventId;
 };
+
 const Form = ({
   rule,
   errors,
@@ -42,37 +43,51 @@ const Form = ({
   const {source, type, method} = rule;
   return (
     <Wrapper>
-      <WrapperSelectFields>
-        <FormField label={t('Method')} tooltipInfo={t('What to do')}>
-          <SelectField
-            placeholder={t('Select method')}
-            name="method"
-            options={sortBy(Object.values(MethodType)).map(value => ({
-              ...getMethodLabel(value),
-              value,
-            }))}
-            value={method}
-            onChange={({value}) => onChange('method', value)}
-          />
-        </FormField>
+      <FormField label={t('Method')} tooltipInfo={t('What to do')}>
+        <SelectField
+          placeholder={t('Select method')}
+          name="method"
+          options={sortBy(Object.values(MethodType)).map(value => ({
+            ...getMethodLabel(value),
+            value,
+          }))}
+          value={method}
+          onChange={({value}) => onChange('method', value)}
+        />
+      </FormField>
+      {rule.method === MethodType.REPLACE && (
         <FormField
-          label={t('Data Type')}
-          tooltipInfo={t(
-            'What to look for. Use an existing pattern or define your own using regular expressions.'
-          )}
+          label={t('Custom Placeholder (Optional)')}
+          tooltipInfo={t('It will replace the default placeholder [Filtered]')}
+          isFullWidth
         >
-          <SelectField
-            placeholder={t('Select type')}
-            name="type"
-            options={sortBy(Object.values(RuleType)).map(value => ({
-              label: getRuleLabel(value),
-              value,
-            }))}
-            value={type}
-            onChange={({value}) => onChange('type', value)}
+          <Placeholder
+            name="placeholder"
+            placeholder={`[${t('Filtered')}]`}
+            onChange={(value: string) => {
+              onChange('placeholder', value);
+            }}
+            value={rule.placeholder}
           />
         </FormField>
-      </WrapperSelectFields>
+      )}
+      <FormField
+        label={t('Data Type')}
+        tooltipInfo={t(
+          'What to look for. Use an existing pattern or define your own using regular expressions.'
+        )}
+      >
+        <SelectField
+          placeholder={t('Select type')}
+          name="type"
+          options={sortBy(Object.values(RuleType)).map(value => ({
+            label: getRuleLabel(value),
+            value,
+          }))}
+          value={type}
+          onChange={({value}) => onChange('type', value)}
+        />
+      </FormField>
       {rule.type === RuleType.PATTERN && (
         <FormField
           label={t('Regex matches')}
@@ -122,20 +137,20 @@ const Wrapper = styled('div')`
   grid-row-gap: ${space(2)};
 `;
 
-const WrapperSelectFields = styled('div')`
-  display: grid;
-  grid-gap: ${space(2)};
-  grid-template-columns: 1fr;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: auto auto;
-  }
-`;
-
-const RegularExpression = styled(TextField)`
-  font-size: ${p => p.theme.fontSizeSmall};
+const StyledTextField = styled(TextField)`
   height: 40px;
   input {
     height: 40px;
+  }
+`;
+
+const Placeholder = styled(StyledTextField)`
+  margin-bottom: 0;
+`;
+
+const RegularExpression = styled(StyledTextField)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  input {
     font-family: ${p => p.theme.text.familyMono};
   }
 `;
