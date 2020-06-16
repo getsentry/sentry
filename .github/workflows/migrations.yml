@@ -100,7 +100,7 @@ jobs:
             echo $(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
 
         - name: Generate SQL for migration
-          uses: getsentry/action-migrations@v1.0.3
+          uses: getsentry/action-migrations@v1.0.4
           env:
             SENTRY_LOG_LEVEL: ERROR
             PGPASSWORD: postgres
