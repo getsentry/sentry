@@ -41,24 +41,28 @@ class ReleaseArtifacts extends AsyncView<Props> {
     return (
       <React.Fragment>
         <Feature features={['artifacts-in-settings']}>
-          <AlertLink
-            to={`/settings/${organization.slug}/projects/${
-              project.slug
-            }/source-maps/${encodeURIComponent(params.release)}/`}
-            priority="info"
-          >
-            {tct('Artifacts were moved to [sourceMaps] in Settings.', {
-              sourceMaps: <u>{t('Source Maps')}</u>,
-            })}
-          </AlertLink>
+          {hasFeature =>
+            hasFeature ? (
+              <AlertLink
+                to={`/settings/${organization.slug}/projects/${
+                  project.slug
+                }/source-maps/${encodeURIComponent(params.release)}/`}
+                priority="info"
+              >
+                {tct('Artifacts were moved to [sourceMaps] in Settings.', {
+                  sourceMaps: <u>{t('Source Maps')}</u>,
+                })}
+              </AlertLink>
+            ) : (
+              <ReleaseArtifactsV1
+                params={params}
+                location={location}
+                projectId={project.slug}
+                smallEmptyMessage
+              />
+            )
+          }
         </Feature>
-
-        <ReleaseArtifactsV1
-          params={params}
-          location={location}
-          projectId={project.slug}
-          smallEmptyMessage
-        />
       </React.Fragment>
     );
   }
