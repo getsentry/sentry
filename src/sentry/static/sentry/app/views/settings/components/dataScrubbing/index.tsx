@@ -207,7 +207,7 @@ class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
       const data = await submitRules(this.api, endpoint, rules);
       if (data?.relayPiiConfig) {
         const convertedRules = convertRelayPiiConfig(data.relayPiiConfig);
-        this.setState({rules: convertedRules});
+        this.setState({rules: convertedRules, showAddRuleModal: undefined});
         addSuccessMessage(successMessage);
         if (onSubmitSuccess) {
           onSubmitSuccess(data);

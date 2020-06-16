@@ -389,7 +389,7 @@ class SourceField extends React.Component<Props, State> {
           value={value}
           onKeyDown={this.handleKeyDown}
           error={error}
-          help={help}
+          help={error ? undefined : help}
           onBlur={onBlur}
           onFocus={this.handleFocus}
         />
