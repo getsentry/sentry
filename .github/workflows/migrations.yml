@@ -1,8 +1,6 @@
 name: migrations
 on:
-  push:
-    branches:
-      - '!master'
+  pull_request:
     paths:
       - 'src/sentry/migrations/*'
 
