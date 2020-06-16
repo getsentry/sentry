@@ -310,7 +310,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     } else if (hasEnvironmentError) {
       errorText = 'One or all environments is required';
     } else if (hasEventTypeError) {
-      errorText = 'Either event.type:errors or event.type:transaction is required';
+      errorText = 'Either event.type:error or event.type:transaction is required';
     }
 
     let newAlertUrl: object | undefined;
