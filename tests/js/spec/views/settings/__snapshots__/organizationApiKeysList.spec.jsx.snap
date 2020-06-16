@@ -448,19 +448,32 @@ exports[`OrganizationApiKeysList renders 1`] = `
                               onClick={[Function]}
                               title="Remove API Key?"
                             >
-                              <StyledIconDelete
+                              <EmotionCssPropInternal
+                                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                  Object {
+                                    "$$typeof": Symbol(react.forward_ref),
+                                    "displayName": "IconDelete",
+                                    "render": [Function],
+                                  }
+                                }
+                                css={
+                                  Object {
+                                    "name": "17ls4qs-OrganizationApiKeysList",
+                                    "styles": "position:relative;top:2px;;label:OrganizationApiKeysList;",
+                                  }
+                                }
                                 size="xs"
                               >
                                 <IconDelete
-                                  className="css-yf24ud-StyledIconDelete eszsvtk0"
+                                  className="css-17ls4qs-OrganizationApiKeysList"
                                   size="xs"
                                 >
                                   <ForwardRef(SvgIcon)
-                                    className="css-yf24ud-StyledIconDelete eszsvtk0"
+                                    className="css-17ls4qs-OrganizationApiKeysList"
                                     size="xs"
                                   >
                                     <svg
-                                      className="css-yf24ud-StyledIconDelete eszsvtk0"
+                                      className="css-17ls4qs-OrganizationApiKeysList"
                                       fill="currentColor"
                                       height="12px"
                                       viewBox="0 0 16 16"
@@ -487,7 +500,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                     </svg>
                                   </ForwardRef(SvgIcon)>
                                 </IconDelete>
-                              </StyledIconDelete>
+                              </EmotionCssPropInternal>
                             </a>
                             <Modal
                               animation={false}
