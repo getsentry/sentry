@@ -182,6 +182,20 @@ class OrganizationProjectsTest(APITestCase):
         # Verify projects that were returned were foo_users projects
         self.check_valid_response(response, foo_user_projects)
 
+
+class OrganizationProjectsCountTest(APITestCase):
+    @fixture
+    def org(self):
+        return self.create_organization(owner=self.user, name="baz")
+
+    @fixture
+    def team(self):
+        return self.create_team(organization=self.org)
+
+    @fixture
+    def path(self):
+        return u"/api/0/organizations/{}/projects-count/".format(self.org.slug)
+
     def test_project_count(self):
         self.foo_user = self.create_user("foo@example.com")
         self.login_as(user=self.foo_user)

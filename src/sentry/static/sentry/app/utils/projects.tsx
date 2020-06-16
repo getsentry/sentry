@@ -395,7 +395,7 @@ class Projects extends React.Component<Props, State> {
 export default withProjects(withApi(Projects));
 
 export async function fetchProjectsCount(api: Client, orgId: string) {
-  return fetchProjects(api, orgId, {getCount: true});
+  return await api.requestPromise(`/organizations/${orgId}/projects-count/`);
 }
 
 type FetchProjectsOptions = {
@@ -403,21 +403,12 @@ type FetchProjectsOptions = {
   cursor?: State['nextCursor'];
   search?: State['prevSearch'];
   prevSearch?: State['prevSearch'];
-  getCount?: boolean;
 } & Pick<Props, 'limit' | 'allProjects'>;
 
 async function fetchProjects(
   api: Client,
   orgId: string,
-  {
-    slugs,
-    search,
-    limit,
-    prevSearch,
-    cursor,
-    allProjects,
-    getCount,
-  }: FetchProjectsOptions = {}
+  {slugs, search, limit, prevSearch, cursor, allProjects}: FetchProjectsOptions = {}
 ) {
   const query: {
     query?: string;
@@ -455,10 +446,6 @@ async function fetchProjects(
     }
     // Otherwise mark the query to fetch all projects from the API
     query.all_projects = 1;
-  }
-
-  if (getCount) {
-    query.get_counts = 1;
   }
 
   let hasMore: null | boolean = false;

@@ -7,6 +7,7 @@ import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
 
 import {Organization, GlobalSelection} from 'app/types';
+import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Client} from 'app/api';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -114,7 +115,7 @@ class Results extends React.Component<Props, State> {
         projectLength === 0 ||
         (projectLength === 1 && currentQuery.project[0] === '-1')
       ) {
-        const {results} = await fetchProjectsCount(api, organization.slug);
+        const results = await fetchProjectsCount(api, organization.slug);
 
         if (projectLength === 0) projectLength = results.myProjects;
         else projectLength = results.allProjects;
@@ -373,17 +374,23 @@ class Results extends React.Component<Props, State> {
             </ContentBox>
             <Confirm
               priority="primary"
-              header={<strong>May lead to thumb twiddling</strong>}
-              confirmText="Do it"
-              cancelText="Nevermind"
+              header={<strong>{t('May lead to thumb twiddling')}</strong>}
+              confirmText={t('Do it')}
+              cancelText={t('Nevermind')}
               onConfirm={this.longQueryConfirmed}
               onCancel={this.longQueryCancelled}
               message={
                 <p>
-                  You've created a query that will search for events made{' '}
-                  <strong>over more than 30 days</strong> for{' '}
-                  <strong>more than 10 projects</strong>. A lot has happened during that
-                  time, so this might take awhile. Are you sure you want to do this?
+                  {tct(
+                    `You've created a query that will search for events made
+                    [dayLimit] for [projectLimit].
+                    A lot has happened during that time, so this might take awhile.
+                    Are you sure you want to do this?`,
+                    {
+                      dayLimit: <strong>{t('over more than 30 days')}</strong>,
+                      projectLimit: <strong>{t('more than 10 projects')}</strong>,
+                    }
+                  )}
                 </p>
               }
             >
