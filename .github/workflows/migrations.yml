@@ -98,6 +98,8 @@ jobs:
         - name: Generate SQL for migration
           uses: getsentry/action-migrations@v1
           env:
+            SENTRY_LOG_LEVEL: WARN
             PGPASSWORD: postgres
           with:
+            githubToken: ${{ secrets.GITHUB_TOKEN }}
             migration: '0085'
