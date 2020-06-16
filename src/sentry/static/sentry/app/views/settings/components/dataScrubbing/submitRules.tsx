@@ -1,17 +1,39 @@
 import {Client} from 'app/api';
 
-import {RuleType, PiiConfig, Applications, Rule} from './types';
+import {RuleType, MethodType, PiiConfig, Applications, Rule} from './types';
 
-function getCustomRule(rule: Rule): PiiConfig {
+function getSubmitFormatRule(rule: Rule): PiiConfig {
+  if (rule.type === RuleType.PATTERN && rule.method === MethodType.REPLACE) {
+    return {
+      type: rule.type,
+      pattern: rule.pattern,
+      redaction: {
+        method: rule.method,
+        text: rule?.placeholder,
+      },
+    };
+  }
+
   if (rule.type === RuleType.PATTERN) {
     return {
       type: rule.type,
-      pattern: rule?.pattern,
+      pattern: rule.pattern,
       redaction: {
         method: rule.method,
       },
     };
   }
+
+  if (rule.method === MethodType.REPLACE) {
+    return {
+      type: rule.type,
+      redaction: {
+        method: rule.method,
+        text: rule?.placeholder,
+      },
+    };
+  }
+
   return {
     type: rule.type,
     redaction: {
@@ -22,12 +44,12 @@ function getCustomRule(rule: Rule): PiiConfig {
 
 function submitRules(api: Client, endpoint: string, rules: Array<Rule>) {
   const applications: Applications = {};
-  const customRules: Record<string, PiiConfig> = {};
+  const submitFormatRules: Record<string, PiiConfig> = {};
 
   for (let i = 0; i < rules.length; i++) {
     const rule = rules[i];
     const ruleId = String(i);
-    customRules[ruleId] = getCustomRule(rule);
+    submitFormatRules[ruleId] = getSubmitFormatRule(rule);
 
     if (!applications[rule.source]) {
       applications[rule.source] = [];
@@ -38,7 +60,7 @@ function submitRules(api: Client, endpoint: string, rules: Array<Rule>) {
     }
   }
 
-  const piiConfig = {rules: customRules, applications};
+  const piiConfig = {rules: submitFormatRules, applications};
 
   return api.requestPromise(endpoint, {
     method: 'PUT',
