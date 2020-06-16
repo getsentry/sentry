@@ -301,8 +301,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       !eventView.query.includes('event.type:error') &&
       !eventView.query.includes('event.type:transaction');
     const project = projects.find(p => p.id === String(eventView.project[0]));
-    const isDisabled =
-      project && (hasProjectError || hasEnvironmentError || hasEventTypeError);
+    const isDisabled = hasProjectError || hasEnvironmentError || hasEventTypeError;
 
     // TODO(scttcper): Implement real design for errors
     let errorText = '';
