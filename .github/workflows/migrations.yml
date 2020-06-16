@@ -43,7 +43,7 @@ jobs:
 
         - name: Debug
           run: |
-            echo $(git diff-tree --no-commit-id --name-only -r master)
+            echo $(git diff-tree --no-commit-id --name-only -r origin/master)
 
 
         # Python
