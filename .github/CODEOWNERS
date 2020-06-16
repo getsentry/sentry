@@ -29,6 +29,7 @@
 /src/sentry/net/    @getsentry/security
 
 # Build & Releases
+/.github/workflows/release.yml
 /docker             @getsentry/releases
 setup.py            @getsentry/releases
 setup.cfg           @getsentry/releases
