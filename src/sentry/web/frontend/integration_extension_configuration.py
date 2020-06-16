@@ -14,12 +14,16 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
         org_slug = self.organization.slug
         provider = self.provider.integration_key
         integration_id = self.integration.id
-        next_url = self.request.GET["next"]
-        redirect_uri = u"/settings/%s/integrations/%s/%s/?%s" % (
+        # add in param string if we have a next page
+        param_string = ""
+        if "next" in self.request.GET:
+            param_string = u"?%s" % urlencode({"next": self.request.GET["next"]})
+
+        redirect_uri = u"/settings/%s/integrations/%s/%s/%s" % (
             org_slug,
             provider,
             integration_id,
-            urlencode({"next": next_url}),
+            param_string,
         )
         return HttpResponseRedirect(redirect_uri)
 
