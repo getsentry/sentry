@@ -96,8 +96,8 @@ jest.mock('echarts-for-react/lib/core', () => {
   };
 });
 
-jest.mock('@sentry/browser', () => {
-  const SentryBrowser = jest.requireActual('@sentry/browser');
+jest.mock('@sentry/react', () => {
+  const SentryBrowser = jest.requireActual('@sentry/react');
   return {
     init: jest.fn(),
     configureScope: jest.fn(),

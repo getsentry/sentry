@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
 
+import * as Sentry from '@sentry/react';
 import {
   closeGuide,
   dismissGuide,

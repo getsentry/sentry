@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/browser';
 import React from 'react';
 
+import * as Sentry from '@sentry/react';
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
 import {NavigationSection, NavigationProps} from 'app/views/settings/types';
 

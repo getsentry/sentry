@@ -1,7 +1,7 @@
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import styled from '@emotion/styled';
 
+import * as Sentry from '@sentry/react';
 import {
   Action,
   ActionType,

@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
-import * as Sentry from '@sentry/browser';
 
 import userFeedback from 'sentry-dreamy-components/dist/user-feedback.svg';
 
+import * as Sentry from '@sentry/react';
 import {Organization, Project} from 'app/types';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent, trackAdhocEvent} from 'app/utils/analytics';

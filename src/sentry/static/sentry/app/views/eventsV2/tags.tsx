@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor} from 'history';
-import * as Sentry from '@sentry/browser';
 
+import * as Sentry from '@sentry/react';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Client} from 'app/api';

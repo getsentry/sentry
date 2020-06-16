@@ -1,10 +1,10 @@
-import * as Sentry from '@sentry/browser';
 import {browserHistory} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
+import * as Sentry from '@sentry/react';
 import {Client} from 'app/api';
 import {metric} from 'app/utils/analytics';
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';

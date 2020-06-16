@@ -12,14 +12,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
-import * as Sentry from '@sentry/browser';
-import {ExtraErrorData} from '@sentry/integrations';
-import {Integrations} from '@sentry/apm';
 import SentryRRWeb from '@sentry/rrweb';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
+import {Integrations} from '@sentry/apm';
+import {ExtraErrorData} from '@sentry/integrations';
+import * as Sentry from '@sentry/react';
 import {metric} from 'app/utils/analytics';
 import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 import ConfigStore from 'app/stores/configStore';

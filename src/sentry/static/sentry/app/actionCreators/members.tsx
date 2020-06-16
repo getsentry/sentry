@@ -1,5 +1,4 @@
-import * as Sentry from '@sentry/browser';
-
+import * as Sentry from '@sentry/react';
 import {Client} from 'app/api';
 import {Member} from 'app/types';
 import MemberActions from 'app/actions/memberActions';

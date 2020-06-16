@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/browser';
 import React from 'react';
 
+import * as Sentry from '@sentry/react';
 import {analytics} from 'app/utils/analytics';
 import {Client} from 'app/api';
 import {Organization, Project, Group} from 'app/types';

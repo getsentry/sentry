@@ -3,9 +3,9 @@ import {Params} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
 import isEqual from 'lodash/isEqual';
 
+import * as Sentry from '@sentry/react';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {fetchTotalCount} from 'app/actionCreators/events';

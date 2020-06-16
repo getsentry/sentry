@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 
+import * as Sentry from '@sentry/react';
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
 type GetActorArgs = {

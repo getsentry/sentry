@@ -1,8 +1,8 @@
 import isUndefined from 'lodash/isUndefined';
 import isNil from 'lodash/isNil';
 import $ from 'jquery';
-import {Severity} from '@sentry/browser';
 
+import {Severity} from '@sentry/react';
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,

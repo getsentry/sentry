@@ -2,8 +2,8 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as ReactRouter from 'react-router';
-import * as Sentry from '@sentry/browser';
 
+import * as Sentry from '@sentry/react';
 import {Client} from 'app/api';
 import {Group, Organization, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';

@@ -2,8 +2,8 @@ import {withRouter} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 
+import * as Sentry from '@sentry/react';
 import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
 import {PageContent} from 'app/styles/organization';
