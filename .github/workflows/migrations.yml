@@ -44,7 +44,7 @@ jobs:
         - name: Get changed migration files
           id: file
           run: |
-            echo "::set-output name=modified::$(git diff --diff-filter=am --name-only origin/master HEAD | grep 'src/sentry/migations/')"
+            echo "::set-output name=modified::$(git diff --diff-filter=am --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
 
 
         # Python
