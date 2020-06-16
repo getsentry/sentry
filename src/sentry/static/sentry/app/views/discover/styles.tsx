@@ -106,20 +106,15 @@ export const StyledInlineSvg = styled(InlineSvg)`
 
 export const DiscoverDocs = styled('span')`
   align-items: center;
-  display: flex;
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: min-content auto min-content;
   margin: 25px ${space(3)};
-  justify-content: space-between;
 `;
 
 export const DocsLabel = styled('span')`
   font-size: 15px;
   flex-grow: 1;
-`;
-
-export const DocsIcon = styled(InlineSvg)`
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
 `;
 
 export const Body = styled('div')`
