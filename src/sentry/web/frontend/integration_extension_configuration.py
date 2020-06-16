@@ -56,6 +56,7 @@ class IntegrationExtensionConfigurationView(BaseView):
             if not self.is_enabled_for_org(organization, request.user):
                 return self.redirect("/")
 
+            # TODO(steve): we probably should check the user has permissions and show an error page if not
             pipeline = self.init_pipeline(request, organization, request.GET.dict())
             return pipeline.current_step()
 
