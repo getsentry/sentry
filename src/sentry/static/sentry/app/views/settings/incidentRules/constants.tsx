@@ -35,10 +35,13 @@ export function createDefaultRule(): UnsavedIncidentRule {
   };
 }
 
+/**
+ * Create an unsaved alert from a discover EventView object
+ */
 export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRule {
   return {
     ...createDefaultRule(),
-    dataset: eventView.query.includes('event.type:transaction')
+    dataset: eventView.query.includes(DATASET_EVENT_TYPE_FILTERS[Dataset.TRANSACTIONS])
       ? Dataset.TRANSACTIONS
       : Dataset.ERRORS,
     query: eventView.query
@@ -49,7 +52,6 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
       eventView.yAxis === 'count_unique(user)'
         ? 'count_unique(tags[sentry:user])'
         : DEFAULT_AGGREGATE,
-    timeWindow: 1,
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }
