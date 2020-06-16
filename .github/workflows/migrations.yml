@@ -95,8 +95,12 @@ jobs:
             psql -c 'create database sentry;' -h localhost -U postgres
             sentry init
 
+        - name: Debug
+          run: |
+            echo $(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
+
         - name: Generate SQL for migration
-          uses: getsentry/action-migrations@v1.0.1
+          uses: getsentry/action-migrations@v1.0.2
           env:
             SENTRY_LOG_LEVEL: WARN
             PGPASSWORD: postgres
