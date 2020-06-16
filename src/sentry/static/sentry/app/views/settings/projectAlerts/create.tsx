@@ -55,14 +55,12 @@ class Create extends React.Component<Props, State> {
 
     if (hasCreateFromDiscover && location.query.createFromDiscover) {
       const eventView = EventView.fromLocation(location);
-      if (this.state.alertType !== 'metric') {
-        // eslint-disable-next-line react/no-did-mount-set-state
-        this.setState({alertType: 'metric', eventView});
-        // Remove create from discover query parameters after loading
-        browserHistory.replace({
-          pathname: location.pathname,
-        });
-      }
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({alertType: 'metric', eventView});
+      // Remove create from discover query parameters after loading
+      browserHistory.replace({
+        pathname: location.pathname,
+      });
     }
   }
 
