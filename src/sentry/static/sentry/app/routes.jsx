@@ -1016,6 +1016,15 @@ function routes() {
         />
 
         <Route
+          path="/extensions/:integrationSlug/link/"
+          getComponent={(_loc, cb) =>
+            import(
+              /* webpackChunkName: "VSTSOrganizationLink" */ 'app/views/integrationOrganizationLink'
+            ).then(lazyLoad(cb))
+          }
+        />
+
+        <Route
           path="/sentry-apps/:sentryAppSlug/external-install/"
           componentPromise={() =>
             import(
