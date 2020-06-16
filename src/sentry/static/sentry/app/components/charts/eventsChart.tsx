@@ -348,7 +348,14 @@ class EventsChart extends React.Component<Props> {
     if (!disableReleases) {
       const previousChart = chartImplementation;
       chartImplementation = chartProps => (
-        <ReleaseSeries utc={utc} api={api} projects={projects}>
+        <ReleaseSeries
+          utc={utc}
+          period={period}
+          start={start}
+          end={end}
+          api={api}
+          projects={projects}
+        >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>
       );

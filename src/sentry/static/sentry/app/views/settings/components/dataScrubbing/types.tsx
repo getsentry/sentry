@@ -36,6 +36,12 @@ export enum SourceSuggestionType {
   STRING = 'string',
 }
 
+export enum RequestError {
+  Unknown = 'unknown',
+  InvalidSelector = 'invalid-selector',
+  RegexParse = 'regex-parse',
+}
+
 export type SourceSuggestion = {
   type: SourceSuggestionType;
   value: string;
@@ -43,24 +49,82 @@ export type SourceSuggestion = {
   examples?: Array<string>;
 };
 
-export type Rule = {
+type RuleBase = {
   id: number;
-  type: RuleType;
-  method: MethodType;
   source: string;
-  customRegularExpression?: string;
 };
 
-export type PiiConfig = {
-  type: RuleType;
-  pattern?: string;
-  redaction?: {
-    method?: MethodType;
+export type RuleDefault = RuleBase & {
+  type:
+    | RuleType.CREDITCARD
+    | RuleType.PASSWORD
+    | RuleType.IP
+    | RuleType.IMEI
+    | RuleType.EMAIL
+    | RuleType.UUID
+    | RuleType.PEMKEY
+    | RuleType.URLAUTH
+    | RuleType.USSSN
+    | RuleType.USER_PATH
+    | RuleType.MAC
+    | RuleType.ANYTHING;
+  method: MethodType.MASK | MethodType.REMOVE | MethodType.HASH;
+};
+
+export type RulePattern = RuleBase & {
+  type: RuleType.PATTERN;
+  pattern: string;
+} & Pick<RuleDefault, 'method'>;
+
+export type RuleReplace = RuleBase & {
+  method: MethodType.REPLACE;
+  placeholder?: string;
+} & Pick<RuleDefault, 'type'>;
+
+export type KeysOfUnion<T> = T extends any ? keyof T : never;
+
+export type RuleReplaceAndPattern = Omit<RulePattern, 'method'> &
+  Omit<RuleReplace, 'type'>;
+
+export type Rule = RuleDefault | RuleReplace | RulePattern | RuleReplaceAndPattern;
+
+export type EventId = {
+  value: string;
+  status?: EventIdStatus;
+};
+
+type PiiConfigDefault = {
+  type: RuleDefault['type'];
+  redaction: {
+    method: RuleDefault['method'];
   };
 };
 
-export type PiiConfigRule = {
-  [key: string]: PiiConfig;
+type PiiConfigReplace = {
+  type: RuleReplace['type'];
+  redaction: {
+    method: RuleReplace['method'];
+    text?: string;
+  };
 };
 
+type PiiConfigPattern = {
+  type: RulePattern['type'];
+  pattern: string;
+  redaction: {
+    method: RulePattern['method'];
+  };
+};
+
+type PiiConfigRelaceAndPattern = Omit<PiiConfigPattern, 'redaction'> &
+  Pick<PiiConfigReplace, 'redaction'>;
+
+export type PiiConfig =
+  | PiiConfigDefault
+  | PiiConfigPattern
+  | PiiConfigReplace
+  | PiiConfigRelaceAndPattern;
+
 export type Applications = Record<string, Array<string>>;
+
+export type Errors = Partial<Record<KeysOfUnion<Rule>, string>>;

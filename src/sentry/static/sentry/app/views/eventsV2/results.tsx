@@ -29,6 +29,7 @@ import {ContentBox, Main, Side} from 'app/utils/discover/styles';
 import {fetchProjectsCount} from 'app/utils/projects';
 import {generateQueryWithTag} from 'app/utils';
 import localStorage from 'app/utils/localStorage';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
@@ -323,7 +324,7 @@ class Results extends React.Component<Props, State> {
       showTags,
       confirmedQuery,
     } = this.state;
-    const query = location.query.query || '';
+    const query = decodeScalar(location.query.query) || '';
     const title = this.getDocumentTitle();
 
     return (

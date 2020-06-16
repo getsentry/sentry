@@ -10,28 +10,32 @@ import ExternalLink from 'app/components/links/externalLink';
 import Button from 'app/components/button';
 import {Organization, Project} from 'app/types';
 
-import {defaultSuggestions as sourceDefaultSuggestions} from './form/sourceFieldSuggestions';
+import {valueSuggestions} from './utils';
 import Dialog from './dialog';
 import Content from './content';
-import Form from './form/form';
 import OrganizationRules from './organizationRules';
-import {Rule, EventIdStatus} from './types';
+import {
+  Rule,
+  EventIdStatus,
+  SourceSuggestion,
+  Errors,
+  EventId,
+  RequestError,
+} from './types';
 import convertRelayPiiConfig from './convertRelayPiiConfig';
-import getRelayPiiConfig from './getRelayPiiConfig';
+import submitRules from './submitRules';
+import handleError from './handleError';
 
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/data-management/advanced-datascrubbing/';
 
-type FormProps = React.ComponentProps<typeof Form>;
-type DialogProps = React.ComponentProps<typeof Dialog>;
-type SourceSuggestions = DialogProps['sourceSuggestions'];
-type Errors = FormProps['errors'];
+type ProjectId = Project['id'] | undefined;
 
-type Props = {
+type Props<T extends ProjectId> = {
   endpoint: string;
   organization: Organization;
-  onSubmitSuccess: (resp: Organization | Project) => void;
-  projectId?: Project['id'];
+  onSubmitSuccess?: (data: T extends undefined ? Organization : Project) => void;
+  projectId?: T;
   relayPiiConfig?: string;
   additionalContext?: React.ReactNode;
   disabled?: boolean;
@@ -40,15 +44,19 @@ type Props = {
 type State = {
   rules: Array<Rule>;
   savedRules: Array<Rule>;
-  relayPiiConfig?: string;
-  sourceSuggestions: SourceSuggestions;
-  eventId: DialogProps['eventId'];
+  sourceSuggestions: Array<SourceSuggestion>;
+  eventId: EventId;
   orgRules: Array<Rule>;
+  errors: Errors;
   showAddRuleModal?: boolean;
   isProjectLevel?: boolean;
+  relayPiiConfig?: string;
 };
 
-class DataScrubbing extends React.Component<Props, State> {
+class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
+  Props<T>,
+  State
+> {
   state: State = {
     rules: [],
     savedRules: [],
@@ -58,6 +66,7 @@ class DataScrubbing extends React.Component<Props, State> {
       value: '',
     },
     orgRules: [],
+    errors: {},
     isProjectLevel: this.props.endpoint.includes('projects'),
   };
 
@@ -67,7 +76,7 @@ class DataScrubbing extends React.Component<Props, State> {
     this.loadOrganizationRules();
   }
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
+  componentDidUpdate(_prevProps: Props<T>, prevState: State) {
     if (prevState.relayPiiConfig !== this.state.relayPiiConfig) {
       this.loadRules();
     }
@@ -85,9 +94,8 @@ class DataScrubbing extends React.Component<Props, State> {
 
     if (isProjectLevel) {
       try {
-        const convertedRules = convertRelayPiiConfig(organization.relayPiiConfig);
         this.setState({
-          orgRules: convertedRules,
+          orgRules: convertRelayPiiConfig(organization.relayPiiConfig),
         });
       } catch {
         addErrorMessage(t('Unable to load organization rules'));
@@ -113,7 +121,7 @@ class DataScrubbing extends React.Component<Props, State> {
 
     if (!eventId.value) {
       this.setState(prevState => ({
-        sourceSuggestions: sourceDefaultSuggestions,
+        sourceSuggestions: valueSuggestions,
         eventId: {
           ...prevState.eventId,
           status: undefined,
@@ -123,7 +131,7 @@ class DataScrubbing extends React.Component<Props, State> {
     }
 
     this.setState(prevState => ({
-      sourceSuggestions: sourceDefaultSuggestions,
+      sourceSuggestions: valueSuggestions,
       eventId: {
         ...prevState.eventId,
         status: EventIdStatus.LOADING,
@@ -139,7 +147,7 @@ class DataScrubbing extends React.Component<Props, State> {
         `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
         {query}
       );
-      const sourceSuggestions: SourceSuggestions = rawSuggestions.suggestions;
+      const sourceSuggestions: Array<SourceSuggestion> = rawSuggestions.suggestions;
 
       if (sourceSuggestions && sourceSuggestions.length > 0) {
         this.setState(prevState => ({
@@ -153,7 +161,7 @@ class DataScrubbing extends React.Component<Props, State> {
       }
 
       this.setState(prevState => ({
-        sourceSuggestions: sourceDefaultSuggestions,
+        sourceSuggestions: valueSuggestions,
         eventId: {
           ...prevState.eventId,
           status: EventIdStatus.NOT_FOUND,
@@ -169,118 +177,69 @@ class DataScrubbing extends React.Component<Props, State> {
     }
   };
 
-  handleSubmit = async (rules: Array<Rule>) => {
+  convertRequestError = (error: ReturnType<typeof handleError>) => {
+    switch (error.type) {
+      case RequestError.InvalidSelector:
+        this.setState(prevState => ({
+          errors: {
+            ...prevState.errors,
+            source: error.message,
+          },
+        }));
+        break;
+      case RequestError.RegexParse:
+        this.setState(prevState => ({
+          errors: {
+            ...prevState.errors,
+            pattern: error.message,
+          },
+        }));
+        break;
+      default:
+        addErrorMessage(error.message);
+    }
+  };
+
+  handleSave = async (rules: Array<Rule>, successMessage: string) => {
     const {endpoint, onSubmitSuccess} = this.props;
-
-    const errors: Errors = {};
-
-    const relayPiiConfig = getRelayPiiConfig(rules);
-
-    return await this.api
-      .requestPromise(endpoint, {
-        method: 'PUT',
-        data: {relayPiiConfig},
-      })
-      .then(result => {
-        onSubmitSuccess(result);
-        this.setState({relayPiiConfig});
-      })
-      .then(() => {
-        addSuccessMessage(t('Successfully saved data scrubbing rule'));
-        return undefined;
-      })
-      .catch(error => {
-        const errorMessage = error.responseJSON?.relayPiiConfig?.[0];
-
-        if (!errorMessage) {
-          addErrorMessage(t('Unknown error occurred while saving data scrubbing rule'));
-          return undefined;
+    try {
+      const data = await submitRules(this.api, endpoint, rules);
+      if (data?.relayPiiConfig) {
+        const convertedRules = convertRelayPiiConfig(data.relayPiiConfig);
+        this.setState({rules: convertedRules, showAddRuleModal: undefined});
+        addSuccessMessage(successMessage);
+        if (onSubmitSuccess) {
+          onSubmitSuccess(data);
         }
-
-        if (errorMessage.startsWith('invalid selector: ')) {
-          for (const line of errorMessage.split('\n')) {
-            if (line.startsWith('1 | ')) {
-              const selector = line.slice(3);
-              errors.source = t('Invalid source value: %s', selector);
-              break;
-            }
-          }
-          return {
-            errors,
-          };
-        }
-
-        if (errorMessage.startsWith('regex parse error:')) {
-          for (const line of errorMessage.split('\n')) {
-            if (line.startsWith('error:')) {
-              const regex = line.slice(6).replace(/at line \d+ column \d+/, '');
-              errors.customRegularExpression = t('Invalid regex: %s', regex);
-              break;
-            }
-          }
-          return {
-            errors,
-          };
-        }
-
-        addErrorMessage(t('Unknown error occurred while saving data scrubbing rule'));
-        return undefined;
-      });
-  };
-
-  handleAddRule = async (rule: Rule) => {
-    const newRule = {
-      ...rule,
-      id: this.state.rules.length,
-    };
-
-    const rules = [...this.state.rules, newRule];
-
-    return await this.handleSubmit(rules).then(result => {
-      if (!result) {
-        this.setState({
-          rules,
-        });
-        return undefined;
       }
-      return result;
-    });
+    } catch (error) {
+      this.convertRequestError(handleError(error));
+    }
   };
 
-  handleUpdateRule = async (updatedRule: Rule) => {
+  handleAddRule = (rule: Rule) => {
+    const newRule = {...rule, id: this.state.rules.length};
+    const rules = [...this.state.rules, newRule];
+    this.handleSave(rules, t('Successfully added rule'));
+  };
+
+  handleUpdateRule = (updatedRule: Rule) => {
     const rules = this.state.rules.map(rule => {
       if (rule.id === updatedRule.id) {
         return updatedRule;
       }
       return rule;
     });
-
-    return await this.handleSubmit(rules).then(result => {
-      if (!result) {
-        this.setState({
-          rules,
-        });
-        return undefined;
-      }
-      return result;
-    });
+    this.handleSave(rules, t('Successfully updated rule'));
   };
 
-  handleDeleteRule = async (rulesToBeDeleted: Array<Rule['id']>) => {
+  handleDeleteRule = (rulesToBeDeleted: Array<Rule['id']>) => {
     const rules = this.state.rules.filter(rule => !rulesToBeDeleted.includes(rule.id));
-    await this.handleSubmit(rules).then(result => {
-      if (!result) {
-        this.setState({
-          rules,
-        });
-      }
-    });
+    this.handleSave(rules, t('Successfully deleted rule'));
   };
 
   handleToggleAddRuleModal = (showAddRuleModal: boolean) => () => {
-    this.setState({
-      showAddRuleModal,
-    });
+    this.setState({showAddRuleModal});
   };
 
   handleUpdateEventId = (eventId: string) => {
@@ -303,6 +262,7 @@ class DataScrubbing extends React.Component<Props, State> {
       eventId,
       orgRules,
       isProjectLevel,
+      errors,
     } = this.state;
 
     return (
@@ -325,6 +285,7 @@ class DataScrubbing extends React.Component<Props, State> {
           <PanelBody>
             {isProjectLevel && <OrganizationRules rules={orgRules} />}
             <Content
+              errors={errors}
               rules={rules}
               onDeleteRule={this.handleDeleteRule}
               onUpdateRule={this.handleUpdateRule}
@@ -349,6 +310,7 @@ class DataScrubbing extends React.Component<Props, State> {
         </Panel>
         {showAddRuleModal && (
           <Dialog
+            errors={errors}
             sourceSuggestions={sourceSuggestions}
             onSaveRule={this.handleAddRule}
             onClose={this.handleToggleAddRuleModal(false)}

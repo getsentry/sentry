@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import fixture
 from freezegun import freeze_time
@@ -79,17 +78,6 @@ class OrganizationIncidentDetailsTest(SnubaTestCase, APITestCase):
         assert resp.status_code == 404
 
     def test_simple(self):
-        incident = self.create_incident(date_started=timezone.now() - timedelta(minutes=5))
-        with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(incident.organization.slug, incident.identifier)
-
-        assert resp.data["totalEvents"] == 0
-        assert resp.data["uniqueUsers"] == 0
-        assert [data[1] for data in resp.data["eventStats"]["data"]] == [[]] * 196 + [
-            [{"count": 0}]
-        ] + [[]] * 5
-
-    def test_buckets(self):
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
                 self.bucket_incident.organization.slug, self.bucket_incident.identifier

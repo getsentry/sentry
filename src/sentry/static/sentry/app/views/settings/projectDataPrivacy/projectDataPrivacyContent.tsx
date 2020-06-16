@@ -94,9 +94,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
           disabled={!access.has('project:write')}
           organization={organization}
           projectId={project.id}
-          onSubmitSuccess={resp => {
-            this.handleUpdateProject(resp as Project);
-          }}
+          onSubmitSuccess={this.handleUpdateProject}
         />
       </React.Fragment>
     );

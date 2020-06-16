@@ -33,6 +33,7 @@ class ShareUrlContainer extends React.Component {
     if (!this.urlRef) {
       return;
     }
+    // eslint-disable-next-line react/no-find-dom-node
     selectText(ReactDOM.findDOMNode(this.urlRef));
   };
 
@@ -41,6 +42,7 @@ class ShareUrlContainer extends React.Component {
 
     if (this.urlRef) {
       // Always select url if it's available
+      // eslint-disable-next-line react/no-find-dom-node
       selectText(ReactDOM.findDOMNode(this.urlRef));
     }
   };
@@ -186,7 +188,7 @@ class ShareIssue extends React.Component {
   };
 
   // State of confirm modal so we can keep dropdown menu opn
-  handleConfirmCancel = e => (this.hasConfirmModal = false);
+  handleConfirmCancel = () => (this.hasConfirmModal = false);
   handleConfirmReshare = () => (this.hasConfirmModal = true);
 
   render() {

@@ -1,4 +1,4 @@
-import {RuleType, MethodType, Rule, PiiConfig, Applications} from './types';
+import {RuleType, MethodType, Rule, PiiConfig, Applications, RuleDefault} from './types';
 
 // Remap PII config format to something that is more usable in React. Ideally
 // we would stop doing this at some point and make some updates to how we
@@ -17,6 +17,7 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
     for (const rule of applications[application]) {
       const resolvedRule = rules[rule];
       const id = convertedRules.length;
+      const source = application;
 
       if (!resolvedRule) {
         // Convert a "built-in" rule like "@anything:remove" to an object {
@@ -24,13 +25,11 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
         //   method: "remove"
         // }
         if (rule[0] === '@') {
-          const [type, method] = rule.slice(1).split(':') as [RuleType, MethodType];
-          convertedRules.push({
-            id,
-            method,
-            type,
-            source: application,
-          });
+          const [type, method] = rule.slice(1).split(':') as [
+            RuleDefault['type'],
+            RuleDefault['method']
+          ];
+          convertedRules.push({id, method, type, source});
         }
         continue;
       }
@@ -38,18 +37,41 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
       const {type, redaction} = resolvedRule;
       const method = redaction.method as MethodType;
 
-      if (resolvedRule.type === RuleType.PATTERN && resolvedRule?.pattern) {
+      if (method === MethodType.REPLACE && resolvedRule.type === RuleType.PATTERN) {
         convertedRules.push({
           id,
-          method,
+          method: MethodType.REPLACE,
           type: RuleType.PATTERN,
-          source: application,
-          customRegularExpression: resolvedRule.pattern,
+          source,
+          placeholder: redaction?.text,
+          pattern: resolvedRule.pattern,
         });
         continue;
       }
 
-      convertedRules.push({id, method, type, source: application});
+      if (method === MethodType.REPLACE) {
+        convertedRules.push({
+          id,
+          method: MethodType.REPLACE,
+          type,
+          source,
+          placeholder: redaction?.text,
+        });
+        continue;
+      }
+
+      if (resolvedRule.type === RuleType.PATTERN) {
+        convertedRules.push({
+          id,
+          method,
+          type: RuleType.PATTERN,
+          source,
+          pattern: resolvedRule.pattern,
+        });
+        continue;
+      }
+
+      convertedRules.push({id, method, type, source});
     }
   }
 
