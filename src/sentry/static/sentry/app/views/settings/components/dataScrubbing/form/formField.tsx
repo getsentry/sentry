@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 
 import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
@@ -12,12 +11,7 @@ type Props = {
   isFullWidth?: boolean;
 };
 
-const DataPrivacyRulesFormField = ({
-  label,
-  tooltipInfo,
-  children,
-  isFullWidth,
-}: Props) => (
+const FormField = ({label, tooltipInfo, children, isFullWidth}: Props) => (
   <Wrapper isFullWidth={isFullWidth}>
     <Label>
       <LabelDescription>{label}</LabelDescription>
@@ -27,12 +21,12 @@ const DataPrivacyRulesFormField = ({
   </Wrapper>
 );
 
-export default DataPrivacyRulesFormField;
+export default FormField;
 
 const Wrapper = styled('div')<{isFullWidth?: boolean}>`
   ${p =>
     p.isFullWidth &&
-    css`
+    `
       grid-column-start: 1;
       grid-column-end: -1;
     `}

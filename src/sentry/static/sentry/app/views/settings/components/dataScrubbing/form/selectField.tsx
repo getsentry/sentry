@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 // eslint import checks can't find types in the flow code.
 // eslint-disable-next-line import/named
 import {components, OptionProps} from 'react-select';
@@ -15,7 +14,7 @@ type Props = Pick<
   'value' | 'placeholder' | 'name' | 'onChange' | 'options' | 'isDisabled'
 >;
 
-class DataPrivacyRulesPanelFormSelectControl extends React.Component<Props> {
+class SelectField extends React.Component<Props> {
   componentDidMount() {
     if (!this.selectRef.current) {
       return;
@@ -66,7 +65,7 @@ class DataPrivacyRulesPanelFormSelectControl extends React.Component<Props> {
   }
 }
 
-export default DataPrivacyRulesPanelFormSelectControl;
+export default SelectField;
 
 const Description = styled('div')`
   color: ${p => p.theme.gray500};
@@ -78,7 +77,7 @@ const Wrapper = styled('div')<{isSelected?: boolean}>`
   grid-gap: ${space(1)};
   ${p =>
     p.isSelected &&
-    css`
+    `
       ${Description} {
         :not(:hover) {
           color: ${p.theme.white};

@@ -86,3 +86,19 @@ describe('decodeScalar()', function() {
     expect(utils.decodeScalar('')).toBeUndefined();
   });
 });
+
+describe('decodeList()', function() {
+  it('wraps string values', function() {
+    expect(utils.decodeList('one')).toEqual(['one']);
+  });
+
+  it('handles arrays', function() {
+    expect(utils.decodeList(['one', 'two'])).toEqual(['one', 'two']);
+  });
+
+  it('handles falsey values', function() {
+    expect(utils.decodeList(undefined)).toBeUndefined();
+    expect(utils.decodeList(false)).toBeUndefined();
+    expect(utils.decodeList('')).toBeUndefined();
+  });
+});

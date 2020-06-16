@@ -655,7 +655,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["uniqIf(user, duration > 1200)", None, "user_misery_300"],
+                ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [

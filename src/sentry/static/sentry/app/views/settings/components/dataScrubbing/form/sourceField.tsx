@@ -10,7 +10,7 @@ import {defined} from 'app/utils';
 import {
   unaryOperatorSuggestions,
   binaryOperatorSuggestions,
-} from './dataPrivacyRulesFormSourceSuggestions';
+} from './sourceFieldSuggestions';
 import SourceSuggestionExamples from './sourceSuggestionExamples';
 import {SourceSuggestion, SourceSuggestionType} from '../types';
 
@@ -33,7 +33,7 @@ type State = {
   help?: string;
 };
 
-class Source extends React.Component<Props, State> {
+class SourceField extends React.Component<Props, State> {
   state: State = {
     suggestions: [],
     fieldValues: [],
@@ -440,7 +440,7 @@ class Source extends React.Component<Props, State> {
   }
 }
 
-export default Source;
+export default SourceField;
 
 const Wrapper = styled('div')<{hideCaret?: boolean}>`
   position: relative;

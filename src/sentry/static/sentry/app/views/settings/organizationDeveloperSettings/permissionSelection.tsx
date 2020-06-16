@@ -89,23 +89,20 @@ type State = {
 };
 
 export default class PermissionSelection extends React.Component<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-    form: PropTypes.object,
-  };
-
   static propTypes = {
     permissions: PropTypes.object.isRequired,
     onChange: PropTypes.func.isRequired,
     appPublished: PropTypes.bool,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      permissions: this.props.permissions,
-    };
-  }
+  static contextTypes = {
+    router: PropTypes.object.isRequired,
+    form: PropTypes.object,
+  };
+
+  state = {
+    permissions: this.props.permissions,
+  };
 
   /**
    * Converts the "Permission" values held in `state` to a list of raw
