@@ -1,7 +1,6 @@
 import {Box, Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -15,7 +14,6 @@ import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
-import space from 'app/styles/space';
 
 class OrganizationApiKeysList extends React.Component {
   static propTypes = {
@@ -114,7 +112,7 @@ class OrganizationApiKeysList extends React.Component {
                         message={t('Are you sure you want to remove this API key?')}
                         title={t('Remove API Key?')}
                       >
-                        <StyledIconDelete size="xs" />
+                        <IconDelete size="xs" css={{position: 'relative', top: '2px'}} />
                       </LinkWithConfirmation>
                     </Box>
                   </PanelItem>
@@ -126,10 +124,5 @@ class OrganizationApiKeysList extends React.Component {
     );
   }
 }
-
-const StyledIconDelete = styled(IconDelete)`
-  position: relative;
-  top: ${space(0.25)};
-`;
 
 export default OrganizationApiKeysList;

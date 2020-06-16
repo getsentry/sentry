@@ -100,7 +100,7 @@ class DeleteActions extends React.Component {
           )}
           onConfirm={this.props.onDelete}
         >
-          <IconDelete size="xs" />
+          <IconDelete size="xs" css={{position: 'relative', top: '1px'}} />
         </LinkWithConfirmation>
         <DropdownLink caret className="group-delete btn btn-default btn-sm">
           <MenuItem onClick={this.openDiscardModal}>
