@@ -34,9 +34,7 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
 
     atomic = False
-
     dependencies = [("sentry", "0084_exported_data_blobs")]
-
     operations = [
         migrations.RunPython(fix_error_rate_snuba_queries, reverse_code=migrations.RunPython.noop)
     ]

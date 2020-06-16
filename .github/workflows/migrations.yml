@@ -39,7 +39,7 @@ jobs:
 
       steps:
         # Checkout codebase
-        - uses: actions/checkout@v2
+        - uses: actions/checkout@v1
 
         # Python
         #   Use `.python-version` to avoid duplication
