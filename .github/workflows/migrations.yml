@@ -97,5 +97,7 @@ jobs:
 
         - name: Generate SQL for migration
           uses: getsentry/action-migrations@v1
+          env:
+            PGPASSWORD: postgres
           with:
             migration: '0085'
