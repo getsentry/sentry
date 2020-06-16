@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import six
+import logging
+
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -15,8 +18,11 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
 from sentry.models import Project
 from sentry.utils.compat import map
+from sentry.shared_integrations.exceptions import IntegrationError, ApiError
 
 from .client import VercelClient
+
+logger = logging.getLogger("sentry.integrations.vercel")
 
 DESCRIPTION = """
 VERCEL DESC
@@ -44,9 +50,15 @@ metadata = IntegrationMetadata(
 
 
 class VercelIntegration(IntegrationInstallation):
+    def get_client(self):
+        access_token = self.model.metadata["access_token"]
+        if self.model.metadata["installation_type"] == "team":
+            return VercelClient(access_token, self.model.external_id)
+
+        return VercelClient(access_token)
+
     def get_organization_config(self):
-        metadata = self.model.metadata
-        vercel_client = VercelClient(metadata["access_token"], metadata.get("team_id"))
+        vercel_client = self.get_client()
         # TODO: add try/catch if we get API failure
         vercel_projects = [
             {"value": p["id"], "label": p["name"]} for p in vercel_client.get_projects()
@@ -115,6 +127,20 @@ class VercelIntegrationProvider(IntegrationProvider):
             user = client.get_user()
             name = user["name"]
 
+        try:
+            webhook = client.create_deploy_webhook()
+        except ApiError as err:
+            logger.info(
+                "vercel.create_webhook.failed",
+                extra={"error": six.text_type(err), "external_id": external_id},
+            )
+            try:
+                details = err.json["messages"][0].values().pop()
+            except Exception:
+                details = ""
+            message = u"Could not create deployment webhook in Vercel. {}".format(details)
+            raise IntegrationError(message)
+
         integration = {
             "name": name,
             "external_id": external_id,
@@ -122,6 +148,7 @@ class VercelIntegrationProvider(IntegrationProvider):
                 "access_token": access_token,
                 "installation_id": data["installation_id"],
                 "installation_type": installation_type,
+                "webhook_id": webhook["id"],
             },
         }
 
