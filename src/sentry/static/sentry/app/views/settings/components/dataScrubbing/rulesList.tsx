@@ -26,17 +26,12 @@ const getListItemDescription = (rule: Rule) => {
 
   descriptionDetails.push(`[${methodLabel.label}]`);
 
+  descriptionDetails.push(
+    rule.type === RuleType.PATTERN ? `[${rule.pattern}]` : `[${typeLabel}]`
+  );
+
   if (rule.method === MethodType.REPLACE && rule.placeholder) {
-    descriptionDetails.push(`with [${rule.placeholder}]`);
-  }
-
-  descriptionDetails.push(`[${typeLabel}]`);
-
-  if (rule.type === RuleType.PATTERN) {
-    descriptionDetails[descriptionDetails.length - 1] =
-      descriptionDetails.length === 3
-        ? `${t('using')} [${rule.pattern}]`
-        : `[${rule.pattern}]`;
+    descriptionDetails.push(` with [${rule.placeholder}]`);
   }
 
   return `${descriptionDetails.join(' ')} ${t('from')} [${source}]`;
