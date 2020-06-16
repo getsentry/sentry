@@ -33,7 +33,7 @@ jobs:
           GIT_COMMITTER_NAME: getsentry-bot
           GIT_AUTHOR_NAME: getsentry-bot
           EMAIL: bot@getsentry.com
-          TWINE_USERNAME: 'byk' # TODO: Move this to a Sentry bot account
+          TWINE_USERNAME: 'getsentry'
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
           DOCKER_USERNAME: 'sentrybuilder'
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
