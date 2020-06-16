@@ -132,8 +132,7 @@ class Results extends React.Component<Props, State> {
   };
 
   openConfirmModal = ({open}) => {
-    const {needConfirmation} = this.state;
-    if (needConfirmation) {
+    if (this.state.needConfirmation) {
       open();
     }
     return null;
