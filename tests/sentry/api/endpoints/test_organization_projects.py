@@ -181,3 +181,23 @@ class OrganizationProjectsTest(APITestCase):
         response = self.client.get(self.path + "?query=is_member:1")
         # Verify projects that were returned were foo_users projects
         self.check_valid_response(response, foo_user_projects)
+
+    def test_project_count(self):
+        self.foo_user = self.create_user("foo@example.com")
+        self.login_as(user=self.foo_user)
+
+        other_team = self.create_team(organization=self.org)
+
+        self.create_project(teams=[self.team], name="bar", slug="bar")
+        self.create_project(teams=[self.team], name="bar1", slug="bar1")
+        self.create_project(teams=[self.team], name="bar2", slug="bar2")
+        self.create_project(teams=[self.team], name="bar3", slug="bar3")
+        self.create_project(teams=[other_team], name="foo", slug="foo")
+        self.create_project(teams=[other_team], name="baz", slug="baz")
+
+        # Make foo_user a part of the org and self.team
+        self.create_member(organization=self.org, user=self.foo_user, teams=[self.team])
+
+        response = self.client.get(self.path + "?get_counts=1")
+        assert response.status_code == 200, response.content
+        assert response.data == {"allProjects": 6, "myProjects": 4}
