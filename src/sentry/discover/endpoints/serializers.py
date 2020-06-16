@@ -215,15 +215,21 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             if len(query["fields"]) < 1:
                 raise serializers.ValidationError("You must include at least one field.")
 
-        if "query" in query:
-            try:
-                get_filter(query["query"])
-            except InvalidSearchQuery as err:
-                raise serializers.ValidationError("Cannot save invalid query: {}".format(err))
-
         if data["projects"] == ALL_ACCESS_PROJECTS:
             data["projects"] = []
             query["all_projects"] = True
+
+        if "query" in query:
+            try:
+                get_filter(
+                    query["query"],
+                    {
+                        "project_id": data["projects"],
+                        "organization_id": self.context["organization"],
+                    },
+                )
+            except InvalidSearchQuery as err:
+                raise serializers.ValidationError("Cannot save invalid query: {}".format(err))
 
         return {
             "name": data["name"],

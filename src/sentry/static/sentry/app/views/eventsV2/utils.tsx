@@ -122,7 +122,7 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
 
 export function getPrebuiltQueries(organization: Organization) {
   let views = ALL_VIEWS;
-  if (organization.features.includes('transaction-events')) {
+  if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
     const cloned = [...ALL_VIEWS];
     cloned.splice(2, 0, ...TRANSACTION_VIEWS);
@@ -144,7 +144,8 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
         // This needs to match the order done in the userBadge component
         if (col === 'user') {
           return disableMacros(
-            row['user.name'] ||
+            row.user ||
+              row['user.name'] ||
               row['user.email'] ||
               row['user.username'] ||
               row['user.ip']
@@ -177,7 +178,7 @@ const TRANSFORM_AGGREGATES = {
   apdex: '',
   impact: '',
   user_misery: '',
-  error_rate: '',
+  failure_rate: '',
 } as const;
 
 function transformAggregate(fieldName: string): string {
@@ -403,10 +404,6 @@ function generateExpandedConditions(
     if (column.kind === 'function') {
       continue;
     }
-    // Skip project name
-    if (key === 'project' || key === 'project.name') {
-      continue;
-    }
     parsedQuery[key] = [conditions[key]];
   }
 
@@ -437,7 +434,7 @@ export function generateFieldOptions({
   let functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
-  if (!organization.features.includes('transaction-events')) {
+  if (!organization.features.includes('performance-view')) {
     fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
     functions = functions.filter(item => !TRACING_FIELDS.includes(item));
   }

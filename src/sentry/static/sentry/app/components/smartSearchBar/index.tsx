@@ -18,7 +18,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 import DropdownLink from 'app/components/dropdownLink';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconEllipsis, IconSearch, IconSliders, IconClose, IconPin} from 'app/icons';
 import MemberListStore from 'app/stores/memberListStore';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -26,7 +26,6 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
 import {SavedSearch, LightWeightOrganization} from 'app/types';
-import {IconSearch, IconClose} from 'app/icons';
 import {
   fetchRecentSearches,
   pinSearch,
@@ -101,6 +100,9 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
 
   &:hover {
     color: ${theme.blue500};
+  }
+  & > svg {
+    margin-right: ${space(1)};
   }
 
   ${p.showBelowMediaQuery &&
@@ -1034,7 +1036,11 @@ class SmartSearchBar extends React.Component<Props, State> {
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
-    const pinIconSrc = !!pinnedSearch ? 'icon-pin-filled' : 'icon-pin';
+    const pinIcon = !!pinnedSearch ? (
+      <IconPin isSolid size="xs" />
+    ) : (
+      <IconPin size="xs" />
+    );
     const hasQuery = !!this.state.query;
 
     const input = (
@@ -1111,9 +1117,8 @@ class SmartSearchBar extends React.Component<Props, State> {
               onClick={this.onTogglePinnedSearch}
               collapseIntoEllipsisMenu={1}
               isActive={!!pinnedSearch}
-            >
-              <InlineSvg src={pinIconSrc} />
-            </InputButton>
+              icon={pinIcon}
+            />
           )}
           {canCreateSavedSearch && (
             <ClassNames>
@@ -1144,9 +1149,8 @@ class SmartSearchBar extends React.Component<Props, State> {
               collapseIntoEllipsisMenu={2}
               aria-label={t('Toggle search builder')}
               onClick={onSidebarToggle}
-            >
-              <InlineSvg src="icon-sliders" size="13" />
-            </SearchBuilderButton>
+              icon={<IconSliders size="xs" />}
+            />
           )}
 
           {(hasPinnedSearch || canCreateSavedSearch || hasSearchBuilder) && (
@@ -1162,9 +1166,8 @@ class SmartSearchBar extends React.Component<Props, State> {
                   }}
                   type="button"
                   aria-label={t('Show more')}
-                >
-                  <EllipsisIcon src="icon-ellipsis-filled" />
-                </EllipsisButton>
+                  icon={<VerticalEllipsisIcon size="xs" />}
+                />
               }
             >
               {hasPinnedSearch && (
@@ -1173,8 +1176,8 @@ class SmartSearchBar extends React.Component<Props, State> {
                   data-test-id="pin-icon"
                   onClick={this.onTogglePinnedSearch}
                 >
-                  <MenuIcon src={pinIconSrc} size="13" />
-                  {!!pinnedSearch ? 'Unpin Search' : 'Pin Search'}
+                  {pinIcon}
+                  {!!pinnedSearch ? t('Unpin Search') : t('Pin Search')}
                 </DropdownElement>
               )}
               {canCreateSavedSearch && (
@@ -1196,8 +1199,8 @@ class SmartSearchBar extends React.Component<Props, State> {
               )}
               {hasSearchBuilder && (
                 <DropdownElement showBelowMediaQuery={2} last onClick={onSidebarToggle}>
-                  <MenuIcon src="icon-sliders" size="12" />
-                  Toggle sidebar
+                  <IconSliders size="xs" />
+                  {t('Toggle sidebar')}
                 </DropdownElement>
               )}
             </StyledDropdownLink>
@@ -1310,10 +1313,6 @@ const StyledButtonBar = styled(ButtonBar)`
   margin-right: ${space(1)};
 `;
 
-const MenuIcon = styled(InlineSvg)`
-  margin-right: ${space(1)};
-`;
-
 const EllipsisButton = styled(InputButton)`
   /*
    * this is necessary because DropdownLink wraps the button in an unstyled
@@ -1322,9 +1321,7 @@ const EllipsisButton = styled(InputButton)`
   margin: 6px 0 0 0;
 `;
 
-const EllipsisIcon = styled(InlineSvg)`
-  width: 12px;
-  height: 12px;
+const VerticalEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg);
 `;
 

@@ -78,6 +78,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               disablePrevious={eventView.display !== DisplayModes.PREVIOUS}
               disableReleases={eventView.display !== DisplayModes.RELEASES}
               field={isTopEvents ? apiPayload.field : undefined}
+              interval={eventView.interval}
               showDaily={isDaily}
               topEvents={isTopEvents ? 5 : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
@@ -129,6 +130,19 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
     } = this.props;
 
     const yAxisValue = eventView.getYAxis();
+    const hasQueryFeature = organization.features.includes('discover-query');
+    const displayOptions = eventView.getDisplayOptions().filter(opt => {
+      // top5 modes are only available with larger packages in saas.
+      // We remove instead of disable here as showing tooltips in dropdown
+      // menus is clunky.
+      if (
+        [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes) &&
+        !hasQueryFeature
+      ) {
+        return false;
+      }
+      return true;
+    });
 
     return (
       <StyledPanel>
@@ -144,7 +158,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
           yAxisValue={yAxisValue}
           yAxisOptions={eventView.getYAxisOptions()}
           onAxisChange={onAxisChange}
-          displayOptions={eventView.getDisplayOptions()}
+          displayOptions={displayOptions}
           displayMode={eventView.display || DisplayModes.DEFAULT}
           onDisplayChange={onDisplayChange}
         />

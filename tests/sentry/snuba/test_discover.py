@@ -598,13 +598,13 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_error_rate_alias(self, mock_query):
+    def test_selected_columns_failure_rate_alias(self, mock_query):
         mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "error_rate"}],
-            "data": [{"transaction": "api.do_things", "error_rate": 0.314159}],
+            "meta": [{"name": "transaction"}, {"name": "failure_rate"}],
+            "data": [{"transaction": "api.do_things", "failure_rate": 0.314159}],
         }
         discover.query(
-            selected_columns=["transaction", "error_rate()"],
+            selected_columns=["transaction", "failure_rate()"],
             query="",
             params={"project_id": [self.project.id]},
             auto_fields=True,
@@ -615,7 +615,7 @@ class QueryTransformTest(TestCase):
                 [
                     "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
                     None,
-                    "error_rate",
+                    "failure_rate",
                 ],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
@@ -655,7 +655,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["uniqIf(user, duration > 1200)", None, "user_misery_300"],
+                ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [
@@ -1700,9 +1700,9 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
         )
         assert len(result.data["data"]) == 3
 
-    def test_error_rate_field_alias(self):
+    def test_failure_rate_field_alias(self):
         result = discover.timeseries_query(
-            selected_columns=["error_rate()"],
+            selected_columns=["failure_rate()"],
             query="event.type:transaction transaction:api.issue.delete",
             params={
                 "start": self.day_ago,

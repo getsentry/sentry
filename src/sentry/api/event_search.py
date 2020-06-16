@@ -32,6 +32,13 @@ from sentry.utils.compat import zip
 from sentry.utils.compat import filter
 
 WILDCARD_CHARS = re.compile(r"[\*]")
+NEGATION_MAP = {
+    "=": "!=",
+    "<": ">=",
+    "<=": ">",
+    ">": "<=",
+    ">=": "<",
+}
 
 
 def translate(pat):
@@ -120,9 +127,9 @@ specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
 # Aggregate numeric filter
-aggregate_filter          = aggregate_key sep operator? (numeric_value / duration_format)
-aggregate_date_filter     = aggregate_key sep operator? (date_format / alt_date_format)
-aggregate_rel_date_filter = aggregate_key sep operator? rel_date_format
+aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format)
+aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
+aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
@@ -260,7 +267,7 @@ class SearchVisitor(NodeVisitor):
             "p75",
             "p95",
             "p99",
-            "error_rate",
+            "failure_rate",
             "user_misery",
         ]
     )
@@ -396,9 +403,15 @@ class SearchVisitor(NodeVisitor):
             )
             return self._handle_basic_filter(search_key, "=", search_value)
 
-    def visit_aggregate_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
+    def handle_negation(self, negation, operator):
         operator = operator[0] if not isinstance(operator, Node) else "="
+        if self.is_negated(negation):
+            return NEGATION_MAP.get(operator, "!=")
+        return operator
+
+    def visit_aggregate_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        operator = self.handle_negation(negation, operator)
         search_value = search_value[0] if not isinstance(search_value, RegexNode) else search_value
 
         try:
@@ -420,9 +433,9 @@ class SearchVisitor(NodeVisitor):
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
+        (negation, search_key, _, operator, search_value) = children
         search_value = search_value[0]
-        operator = operator[0] if not isinstance(operator, Node) else "="
+        operator = self.handle_negation(negation, operator)
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
         if is_date_aggregate:
             try:
@@ -435,8 +448,8 @@ class SearchVisitor(NodeVisitor):
             return AggregateFilter(search_key, "=", SearchValue(search_value))
 
     def visit_aggregate_rel_date_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
-        operator = operator[0] if not isinstance(operator, Node) else "="
+        (negation, search_key, _, operator, search_value) = children
+        operator = self.handle_negation(negation, operator)
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
         if is_date_aggregate:
             try:
@@ -760,6 +773,19 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
                 )
             )
         return [name, search_filter.operator, internal_value]
+    elif name == "issue.id":
+        # Handle "has" queries
+        if search_filter.value.raw_value == "":
+            if search_filter.operator == "=":
+                # Use isNull to get events with no issue (transactions)
+                return [["isNull", [name]], search_filter.operator, 1]
+            else:
+                # Compare to 0 as group_id is not nullable on issues.
+                return [name, search_filter.operator, 0]
+
+        # Skip isNull check on group_id value as we want to
+        # allow snuba's prewhere optimizer to find this condition.
+        return [name, search_filter.operator, value]
     else:
         value = (
             int(to_timestamp(value)) * 1000
@@ -862,17 +888,21 @@ def get_filter(query=None, params=None):
             elif name == ISSUE_ID_ALIAS and value != "":
                 # A blank term value means that this is a has filter
                 kwargs["group_ids"].extend(to_list(value))
-            elif name == ISSUE_ALIAS and value != "":
-                if params and "organization_id" in params:
+            elif name == ISSUE_ALIAS:
+                if value != "" and params and "organization_id" in params:
                     try:
                         group = Group.objects.by_qualified_short_id(
                             params["organization_id"], value
                         )
-                        kwargs["group_ids"].extend(to_list(group.id))
                     except Exception:
                         raise InvalidSearchQuery(
                             u"Invalid value '{}' for 'issue:' filter".format(value)
                         )
+                    else:
+                        value = group.id
+                term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(value))
+                converted_filter = convert_search_filter_to_snuba_query(term)
+                kwargs["conditions"].append(converted_filter)
             elif name == USER_ALIAS:
                 # If the key is user, do an OR across all the different possible user fields
                 user_conditions = [
@@ -1157,11 +1187,11 @@ FUNCTIONS = {
         "name": "user_misery",
         "args": [NumberRange("satisfaction", 0, None)],
         "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-        "transform": u"uniqIf(user, duration > {tolerated:g})",
+        "transform": u"uniqIf(user, greater(duration, {tolerated:g}))",
         "result_type": "number",
     },
-    "error_rate": {
-        "name": "error_rate",
+    "failure_rate": {
+        "name": "failure_rate",
         "args": [],
         "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
         "result_type": "percentage",

@@ -13,11 +13,7 @@ from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
 
-FEATURE_NAMES = (
-    "organizations:discover-basic",
-    "organizations:transaction-events",
-    "organizations:performance-view",
-)
+FEATURE_NAMES = ("organizations:performance-view",)
 
 
 def make_event(event_data):
@@ -74,3 +70,19 @@ class PerformanceSummaryTest(AcceptanceTestCase):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
             self.browser.snapshot("performance summary - with data")
+
+    @patch("django.utils.timezone.now")
+    def test_view_details_from_summary(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        event = make_event(load_data("transaction"))
+        self.store_event(data=event, project_id=self.project.id)
+
+        with self.feature(FEATURE_NAMES):
+            self.browser.get(self.path)
+            self.page.wait_until_loaded()
+
+            # View the first event details.
+            self.browser.element('[data-test-id="view-details"]').click()
+            self.page.wait_until_loaded()
+            self.browser.snapshot("performance event details")

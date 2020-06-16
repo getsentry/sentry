@@ -58,12 +58,10 @@ class OrganizationAuthList extends React.Component {
     const providerList = sortedByPopularity.sort((a, b) => {
       const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
       const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
-
-      if (aEnabled !== bEnabled) {
-        return aEnabled ? -1 : 1;
+      if (aEnabled === bEnabled) {
+        return 0;
       }
-
-      return a.requiredFeature.localeCompare(b.requiredFeature);
+      return aEnabled ? -1 : 1;
     });
 
     const warn2FADisable =

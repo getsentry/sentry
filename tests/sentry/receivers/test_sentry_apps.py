@@ -5,6 +5,7 @@ from sentry.utils.compat.mock import patch
 from sentry.models import Commit, GroupAssignee, GroupLink, Repository, Release
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import faux
+from sentry.constants import SentryAppInstallationStatus
 
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
@@ -144,6 +145,13 @@ class TestIssueWorkflowNotifications(APITestCase):
             user_id=self.user.id,
             data={},
         )
+
+    def test_notify_pending_installation(self, delay):
+        self.install.status = SentryAppInstallationStatus.PENDING
+        self.install.save()
+
+        self.update_issue()
+        assert not delay.called
 
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")

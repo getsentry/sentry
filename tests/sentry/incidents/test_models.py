@@ -431,7 +431,7 @@ class AlertRuleTriggerActionActivateTest(object):
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        assert trigger.fire(Mock(), Mock()) is None
+        assert trigger.fire(Mock(), Mock(), 123) is None
 
     def test_handler(self):
         mock_handler = Mock()
@@ -440,7 +440,7 @@ class AlertRuleTriggerActionActivateTest(object):
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        assert getattr(trigger, self.method)(Mock(), Mock()) == mock_method.return_value
+        assert getattr(trigger, self.method)(Mock(), Mock(), 123) == mock_method.return_value
 
 
 class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateTest, unittest.TestCase):

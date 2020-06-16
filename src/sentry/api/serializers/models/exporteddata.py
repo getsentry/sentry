@@ -25,6 +25,13 @@ class ExportedDataSerializer(Serializer):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs):
+        if obj.file is None:
+            checksum = None
+            file_name = None
+        else:
+            checksum = obj.file.checksum
+            file_name = obj.file.name
+
         return {
             "id": obj.id,
             "user": attrs["user"],
@@ -33,4 +40,6 @@ class ExportedDataSerializer(Serializer):
             "dateExpired": obj.date_expired,
             "query": {"type": ExportQueryType.as_str(obj.query_type), "info": obj.query_info},
             "status": obj.status,
+            "checksum": checksum,
+            "fileName": file_name,
         }

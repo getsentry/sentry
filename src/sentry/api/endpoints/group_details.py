@@ -8,6 +8,8 @@ from uuid import uuid4
 from django.utils import timezone
 from rest_framework.response import Response
 
+import sentry_sdk
+
 from sentry import eventstream, tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
@@ -285,30 +287,41 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             # the current release is the 'latest seen' release within the
             # environment even if it hasnt affected this issue
             if environments:
-                try:
-                    current_release = GroupRelease.objects.filter(
-                        group_id=group.id,
-                        environment__in=[env.name for env in environments],
-                        release_id=ReleaseEnvironment.objects.filter(
-                            release_id__in=ReleaseProject.objects.filter(
-                                project_id=group.project_id
-                            ).values_list("release_id", flat=True),
-                            organization_id=group.project.organization_id,
-                            environment_id__in=environment_ids,
-                        )
-                        .order_by("-first_seen")
-                        .values_list("release_id", flat=True)[:1],
-                    )[0]
-                except IndexError:
-                    current_release = None
+                with sentry_sdk.start_span(op="GroupDetailsEndpoint.get.current_release") as span:
+                    span.set_data("Environment Count", len(environments))
+                    span.set_data(
+                        "Raw Parameters",
+                        {
+                            "group.id": group.id,
+                            "group.project_id": group.project_id,
+                            "group.project.organization_id": group.project.organization_id,
+                            "environments": [{"id": e.id, "name": e.name} for e in environments],
+                        },
+                    )
 
-                data.update(
-                    {
-                        "currentRelease": serialize(
-                            current_release, request.user, GroupReleaseWithStatsSerializer()
-                        )
-                    }
+                    try:
+                        current_release = GroupRelease.objects.filter(
+                            group_id=group.id,
+                            environment__in=[env.name for env in environments],
+                            release_id=(
+                                ReleaseEnvironment.objects.filter(
+                                    release_id__in=ReleaseProject.objects.filter(
+                                        project_id=group.project_id
+                                    ).values_list("release_id", flat=True),
+                                    organization_id=group.project.organization_id,
+                                    environment_id__in=environment_ids,
+                                )
+                                .order_by("-first_seen")
+                                .values_list("release_id", flat=True)
+                            )[:1],
+                        )[0]
+                    except IndexError:
+                        current_release = None
+
+                data["currentRelease"] = serialize(
+                    current_release, request.user, GroupReleaseWithStatsSerializer()
                 )
+
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(data)
         except Exception:

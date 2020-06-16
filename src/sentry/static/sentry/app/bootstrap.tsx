@@ -30,7 +30,9 @@ import routes from 'app/routes';
 import {normalizeTransactionName} from 'app/utils/apm';
 
 if (process.env.NODE_ENV === 'development') {
-  import(/* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings');
+  import(
+    /* webpackChunkName: "SilenceReactUnsafeWarnings" */ /* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings'
+  );
 }
 
 function getSentryIntegrations(hasReplays: boolean = false) {
@@ -84,6 +86,14 @@ const appRoutes = Router.createRoutes(routes());
 
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
+  /**
+   * For SPA mode, we need a way to overwrite the default DSN from backend
+   * as well as `whitelistUrls`
+   */
+  dsn: process.env.SPA_DSN || window.__SENTRY__OPTIONS.dsn,
+  whitelistUrls: process.env.SPA_DSN
+    ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
+    : window.__SENTRY__OPTIONS.whitelistUrls,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
 });

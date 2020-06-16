@@ -10,7 +10,6 @@ import space from 'app/styles/space';
 /**
  * Styled components used to render discover result sets.
  */
-
 export const Container = styled('div')`
   ${overflowEllipsis};
 `;
@@ -54,11 +53,13 @@ export const ContentBox = styled('div')`
     grid-template-columns: minmax(100px, auto) 325px;
   }
 `;
+
 export const Main = styled('div')`
   grid-column: 1/2;
   max-width: 100%;
   overflow: hidden;
 `;
+
 export const Side = styled('div')`
   grid-column: 2/3;
 `;
@@ -70,10 +71,18 @@ export const HeaderBox = styled(ContentBox)`
   flex-grow: 0;
 `;
 
-export const HeaderControls = styled('div')`
+export const HeaderTopControls = styled('div')`
   display: flex;
   justify-self: end;
   grid-row: 1/2;
+  grid-column: 2/3;
+`;
+
+export const HeaderBottomControls = styled('div')`
+  display: flex;
+  justify-self: end;
+  justify-content: flex-end;
+  grid-row: 2/3;
   grid-column: 2/3;
 `;
 

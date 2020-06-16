@@ -192,10 +192,13 @@ class HandleTriggerActionTest(TestCase):
                 mock_handler
             )
             incident = self.create_incident()
+            metric_value = 1234
             with self.tasks():
-                handle_trigger_action.delay(self.action.id, incident.id, self.project.id, "fire")
+                handle_trigger_action.delay(
+                    self.action.id, incident.id, self.project.id, "fire", metric_value=metric_value
+                )
             mock_handler.assert_called_once_with(self.action, incident, self.project)
-            mock_handler.return_value.fire.assert_called_once_with()
+            mock_handler.return_value.fire.assert_called_once_with(metric_value)
 
 
 class ProcessPendingIncidentSnapshots(TestCase):

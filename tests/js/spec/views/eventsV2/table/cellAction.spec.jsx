@@ -1,20 +1,23 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import CellAction from 'app/views/eventsV2/table/cellAction';
 import EventView from 'app/utils/discover/eventView';
 
-function makeWrapper(eventView, initial) {
-  const data = {transaction: 'best-transaction', count: 19};
+function makeWrapper(eventView, handleCellAction, columnIndex = 0) {
+  const data = {
+    transaction: 'best-transaction',
+    count: 19,
+    timestamp: '2020-06-09T01:46:25+00:00',
+    release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
+  };
   return mountWithTheme(
     <CellAction
-      organization={initial.organization}
       dataRow={data}
       eventView={eventView}
-      column={eventView.getColumns()[0]}
+      column={eventView.getColumns()[columnIndex]}
+      handleCellAction={handleCellAction}
     >
       <strong>some content</strong>
     </CellAction>
@@ -25,8 +28,8 @@ describe('Discover -> CellAction', function() {
     query: {
       id: '42',
       name: 'best query',
-      field: ['transaction', 'count()'],
-      widths: ['123', '456'],
+      field: ['transaction', 'count()', 'timestamp', 'release'],
+      widths: ['437', '647', '416', '905'],
       sort: ['title'],
       query: 'event.type:transaction',
       project: [123],
@@ -38,10 +41,9 @@ describe('Discover -> CellAction', function() {
     },
   };
   const view = EventView.fromLocation(location);
-  const initial = initializeOrg();
 
   describe('hover menu button', function() {
-    const wrapper = makeWrapper(view, initial);
+    const wrapper = makeWrapper(view);
 
     it('shows no menu by default', function() {
       expect(wrapper.find('MenuButton')).toHaveLength(0);
@@ -57,7 +59,7 @@ describe('Discover -> CellAction', function() {
   });
 
   describe('opening the menu', function() {
-    const wrapper = makeWrapper(view, initial);
+    const wrapper = makeWrapper(view);
     wrapper.find('Container').simulate('mouseEnter');
 
     it('toggles the menu on click', function() {
@@ -70,55 +72,88 @@ describe('Discover -> CellAction', function() {
     });
   });
 
-  describe('action buttons basics', function() {
+  describe('per cell actions', function() {
     let wrapper;
+    let handleCellAction;
     beforeEach(function() {
-      wrapper = makeWrapper(view, initial);
+      handleCellAction = jest.fn();
+      wrapper = makeWrapper(view, handleCellAction);
       // Show button and menu.
       wrapper.find('Container').simulate('mouseEnter');
       wrapper.find('MenuButton').simulate('click');
-
-      browserHistory.push.mockReset();
     });
 
     it('add button appends condition', function() {
       wrapper.find('button[data-test-id="add-to-filter"]').simulate('click');
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/discover/results/',
-        query: expect.objectContaining({
-          query: 'event.type:transaction transaction:best-transaction',
-        }),
-      });
+      expect(handleCellAction).toHaveBeenCalledWith('add', 'best-transaction');
     });
 
     it('exclude button adds condition', function() {
       wrapper.find('button[data-test-id="exclude-from-filter"]').simulate('click');
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/discover/results/',
-        query: expect.objectContaining({
-          query: 'event.type:transaction !transaction:best-transaction',
-        }),
-      });
+      expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
     it('exclude button appends exclusions', function() {
       const excludeView = EventView.fromLocation({
         query: {...location.query, query: '!transaction:nope'},
       });
-      wrapper = makeWrapper(excludeView, initial);
+      wrapper = makeWrapper(excludeView, handleCellAction);
       // Show button and menu.
       wrapper.find('Container').simulate('mouseEnter');
       wrapper.find('MenuButton').simulate('click');
       wrapper.find('button[data-test-id="exclude-from-filter"]').simulate('click');
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/discover/results/',
-        query: expect.objectContaining({
-          query: '!transaction:nope !transaction:best-transaction',
-        }),
-      });
+      expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
+    });
+
+    it('go to summary button goes to transaction summary page', function() {
+      wrapper.find('button[data-test-id="transaction-summary"]').simulate('click');
+
+      expect(handleCellAction).toHaveBeenCalledWith('transaction', 'best-transaction');
+    });
+
+    it('go to release button goes to release health page', function() {
+      wrapper = makeWrapper(view, handleCellAction, 3);
+      // Show button and menu.
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+
+      wrapper.find('button[data-test-id="release"]').simulate('click');
+
+      expect(handleCellAction).toHaveBeenCalledWith(
+        'release',
+        'F2520C43515BD1F0E8A6BD46233324641A370BF6'
+      );
+    });
+
+    it('greater than button adds condition', function() {
+      wrapper = makeWrapper(view, handleCellAction, 2);
+      // Show button and menu.
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+
+      wrapper.find('button[data-test-id="show-values-greater-than"]').simulate('click');
+
+      expect(handleCellAction).toHaveBeenCalledWith(
+        'show_greater_than',
+        '2020-06-09T01:46:25+00:00'
+      );
+    });
+
+    it('less than button adds condition', function() {
+      wrapper = makeWrapper(view, handleCellAction, 2);
+      // Show button and menu.
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+
+      wrapper.find('button[data-test-id="show-values-less-than"]').simulate('click');
+
+      expect(handleCellAction).toHaveBeenCalledWith(
+        'show_less_than',
+        '2020-06-09T01:46:25+00:00'
+      );
     });
   });
 });

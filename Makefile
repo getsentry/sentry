@@ -66,15 +66,7 @@ setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
-
-	@# XXX(joshuarli): virtualenv >= 20 doesn't work with the version of six we have pinned for sentry.
-	@# Since pre-commit is installed in the venv, it will install virtualenv in the venv as well.
-	@# We need to tell pre-commit to install an older virtualenv,
-	@# And we need to tell virtualenv to install an older six, so that sentry installation
-	@# won't complain about a newer six being present.
-	@# So, this six pin here needs to be synced with requirements-base.txt.
-	$(PIP) install "pre-commit==1.18.2" "virtualenv>=16.7,<20" "six>=1.10.0,<1.11.0"
-
+	$(PIP) install "pre-commit==1.18.2" "virtualenv==20.0.23"
 	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) pre-commit install --install-hooks
 	@echo ""
 

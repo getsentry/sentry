@@ -20,16 +20,13 @@ export const SubHeading = styled('h3')`
 `;
 
 export const SectionHeading = styled('h4')`
-  display: grid;
+  display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1.5)};
-  align-items: center;
-
+  grid-gap: ${space(1)};
   color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
-  padding-right: ${space(1)};
-  line-height: 1.2;
+  line-height: 1.3;
 `;
 
 export const SectionValue = styled('span')`
@@ -40,9 +37,12 @@ export const SectionValue = styled('span')`
 
 export const InlineContainer = styled('div')`
   display: flex;
-  flex-direction: row;
   align-items: center;
   margin-right: ${space(2)};
+
+  > h4 {
+    margin-right: ${space(1)};
+  }
 
   &:last-child {
     margin-right: 0;

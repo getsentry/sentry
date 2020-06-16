@@ -206,6 +206,13 @@ jobs:
           run: |
             yarn webpack --display errors-only
 
+        # Setup custom pytest matcher, see https://github.com/actions/setup-node/issues/97
+        - name: Add pytest log matcher
+          if: always()
+          run: |
+            echo "::remove-matcher owner=pytest::"
+            echo "::add-matcher::.github/pytest.json"
+
         - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
           if: always()
           uses: percy/exec-action@v0.3.0

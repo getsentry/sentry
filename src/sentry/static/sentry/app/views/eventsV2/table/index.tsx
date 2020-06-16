@@ -19,9 +19,11 @@ type TableProps = {
   location: Location;
   eventView: EventView;
   organization: Organization;
+  showTags: boolean;
   tags: {[key: string]: Tag};
   setError: (msg: string, code: number) => void;
   title: string;
+  onChangeShowTags: () => void;
 };
 
 type TableState = {
@@ -78,6 +80,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
     if (!eventView.isValid()) {
       return;
     }
+
+    // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
+    // the API payload response
+
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);

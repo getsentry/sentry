@@ -741,6 +741,7 @@ LOGGING = {
     "loggers": {
         "celery": {"level": "WARNING"},
         "sentry": {"level": "INFO"},
+        "sentry_plugins": {"level": "INFO"},
         "sentry.files": {"level": "WARNING"},
         "sentry.minidumps": {"handlers": ["internal"], "propagate": False},
         "sentry.interfaces": {"handlers": ["internal"], "propagate": False},
@@ -851,6 +852,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-issue-sync": True,
     # Enable interface functionality to receive event hooks.
     "organizations:integrations-event-hooks": False,
+    # Enable the Vercel integration
+    "organizations:integrations-vercel": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -869,6 +872,8 @@ SENTRY_FEATURES = {
     "organizations:datascrubbers-v2": False,
     # Enable the new version of interface/breadcrumbs
     "organizations:breadcrumbs-v2": False,
+    # Enable Relay config feature
+    "organizations:relay-config": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,
@@ -1560,6 +1565,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts.VstsIntegrationProvider",
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
+    "sentry.integrations.vercel.VercelIntegrationProvider",
 )
 
 
@@ -1752,7 +1758,7 @@ SENTRY_BUILTIN_SOURCES = {
 }
 
 # Relay
-# List of PKs whitelisted by Sentry.  All relays here are always
+# List of PKs explicitly allowed by Sentry.  All relays here are always
 # registered as internal relays.
 SENTRY_RELAY_WHITELIST_PK = [
     # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
@@ -1762,7 +1768,7 @@ SENTRY_RELAY_WHITELIST_PK = [
 ]
 
 # When open registration is not permitted then only relays in the
-# whitelist can register.
+# list of explicitly allowed relays can register.
 SENTRY_RELAY_OPEN_REGISTRATION = False
 
 # GeoIP

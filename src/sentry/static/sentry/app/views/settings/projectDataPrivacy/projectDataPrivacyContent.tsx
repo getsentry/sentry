@@ -11,7 +11,7 @@ import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
 import {Organization, Project} from 'app/types';
 
-import DataPrivacyRules from '../components/dataPrivacyRules/dataPrivacyRules';
+import DataScrubbing from '../components/dataScrubbing';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -40,7 +40,7 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Data Privacy')} />
+        <SettingsPageHeader title={t('Security & Privacy')} />
         <Form
           saveOnBlur
           allowUndo
@@ -50,7 +50,16 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
           onSubmitSuccess={this.handleUpdateProject}
         >
           <JsonForm
-            title={t('Data Privacy')}
+            title={t('Security & Privacy')}
+            additionalFieldProps={{
+              organization,
+            }}
+            features={features}
+            disabled={!access.has('project:write')}
+            fields={[fields.storeCrashReports]}
+          />
+          <JsonForm
+            title={t('Data Scrubbing')}
             additionalFieldProps={{
               organization,
             }}
@@ -62,11 +71,10 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
               fields.scrubIPAddresses,
               fields.sensitiveFields,
               fields.safeFields,
-              fields.storeCrashReports,
             ]}
           />
         </Form>
-        <DataPrivacyRules
+        <DataScrubbing
           additionalContext={
             <span>
               {tct(

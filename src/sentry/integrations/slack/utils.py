@@ -28,7 +28,7 @@ from sentry.models import (
     ReleaseProject,
 )
 
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 from .client import SlackClient
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -295,7 +295,14 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     }
 
 
-def build_incident_attachment(incident):
+def build_incident_attachment(incident, metric_value=None):
+    """
+    Builds an incident attachment for slack unfurling
+    :param incident: The `Incident` to build the attachment for
+    :param metric_value: The value of the metric that triggered this alert to fire. If
+    not provided we'll attempt to calculate this ourselves.
+    :return:
+    """
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
 
@@ -326,10 +333,13 @@ def build_incident_attachment(incident):
     agg_text = QUERY_AGGREGATION_DISPLAY.get(
         alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate
     )
-    agg_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)["count"]
+    if metric_value is None:
+        metric_value = get_incident_aggregates(incident, start, end, use_alert_aggregate=True)[
+            "count"
+        ]
     time_window = alert_rule.snuba_query.time_window / 60
 
-    text = "{} {} in the last {} minutes".format(agg_value, agg_text, time_window)
+    text = "{} {} in the last {} minutes".format(metric_value, agg_text, time_window)
 
     if alert_rule.snuba_query.query != "":
         text = text + "\nFilter: {}".format(alert_rule.snuba_query.query)
@@ -411,6 +421,8 @@ def get_channel_id_with_timeout(integration, name, timeout):
     time_to_quit = time.time() + timeout
 
     client = SlackClient()
+    id_data = None
+    found_duplicate = False
     for list_type, result_name, prefix in LIST_TYPES:
         cursor = ""
         while True:
@@ -424,9 +436,20 @@ def get_channel_id_with_timeout(integration, name, timeout):
                 )
                 return (prefix, None, False)
 
-            item_id = {c["name"]: c["id"] for c in items[result_name]}.get(name)
-            if item_id:
-                return (prefix, item_id, False)
+            for c in items[result_name]:
+                # The "name" field is unique (this is the username for users)
+                # so we return immediately if we find a match.
+                if c["name"] == name:
+                    return (prefix, c["id"], False)
+                # If we don't get a match on a unique identifier, we look through
+                # the users' display names, and error if there is a repeat.
+                if list_type == "users":
+                    profile = c.get("profile")
+                    if profile and profile.get("display_name") == name:
+                        if id_data:
+                            found_duplicate = True
+                        else:
+                            id_data = (prefix, c["id"], False)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
             if time.time() > time_to_quit:
@@ -434,14 +457,18 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
             if not cursor:
                 break
+        if found_duplicate:
+            raise DuplicateDisplayNameError(name)
+        elif id_data:
+            return id_data
 
     return (prefix, None, False)
 
 
-def send_incident_alert_notification(action, incident):
+def send_incident_alert_notification(action, incident, metric_value):
     channel = action.target_identifier
     integration = action.integration
-    attachment = build_incident_attachment(incident)
+    attachment = build_incident_attachment(incident, metric_value)
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,
