@@ -29,10 +29,13 @@ import handleError from './handleError';
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/data-management/advanced-datascrubbing/';
 
-type Props = {
+type ProjectId = Project['id'] | undefined;
+
+type Props<T extends ProjectId> = {
   endpoint: string;
   organization: Organization;
-  projectId?: Project['id'];
+  onSubmitSuccess?: (data: T extends undefined ? Organization : Project) => void;
+  projectId?: T;
   relayPiiConfig?: string;
   additionalContext?: React.ReactNode;
   disabled?: boolean;
@@ -50,7 +53,10 @@ type State = {
   relayPiiConfig?: string;
 };
 
-class DataScrubbing extends React.Component<Props, State> {
+class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
+  Props<T>,
+  State
+> {
   state: State = {
     rules: [],
     savedRules: [],
@@ -70,7 +76,7 @@ class DataScrubbing extends React.Component<Props, State> {
     this.loadOrganizationRules();
   }
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
+  componentDidUpdate(_prevProps: Props<T>, prevState: State) {
     if (prevState.relayPiiConfig !== this.state.relayPiiConfig) {
       this.loadRules();
     }
@@ -116,7 +122,7 @@ class DataScrubbing extends React.Component<Props, State> {
 
     if (!eventId.value) {
       this.setState(prevState => ({
-        sourceSuggestions,
+        sourceSuggestions: valueSuggestions,
         eventId: {
           ...prevState.eventId,
           status: undefined,
@@ -142,11 +148,11 @@ class DataScrubbing extends React.Component<Props, State> {
         `/organizations/${organization.slug}/data-scrubbing-selector-suggestions/`,
         {query}
       );
-      const suggestions: Array<SourceSuggestion> = rawSuggestions.suggestions;
+      const sourceSuggestions: Array<SourceSuggestion> = rawSuggestions.suggestions;
 
-      if (suggestions && suggestions.length > 0) {
+      if (sourceSuggestions && sourceSuggestions.length > 0) {
         this.setState(prevState => ({
-          sourceSuggestions: suggestions,
+          sourceSuggestions,
           eventId: {
             ...prevState.eventId,
             status: EventIdStatus.LOADED,
@@ -196,13 +202,16 @@ class DataScrubbing extends React.Component<Props, State> {
   };
 
   handleSave = async (rules: Array<Rule>, successMessage: string) => {
-    const {endpoint} = this.props;
+    const {endpoint, onSubmitSuccess} = this.props;
     try {
       const data = await submitRules(this.api, endpoint, rules);
       if (data?.relayPiiConfig) {
         const convertedRules = convertRelayPiiConfig(data.relayPiiConfig);
         this.setState({rules: convertedRules});
         addSuccessMessage(successMessage);
+        if (onSubmitSuccess) {
+          onSubmitSuccess(data);
+        }
       }
     } catch (error) {
       this.convertRequestError(handleError(error));
@@ -210,29 +219,19 @@ class DataScrubbing extends React.Component<Props, State> {
   };
 
   handleAddRule = (rule: Rule) => {
-    const {rules} = this.state;
-    const newRule = {...rule, id: rules.length};
-    const updatedRules = [...rules, newRule];
-    this.handleSave(updatedRules, t('Successfully added rule'));
+    const newRule = {...rule, id: this.state.rules.length};
+    const rules = [...this.state.rules, newRule];
+    this.handleSave(rules, t('Successfully added rule'));
   };
 
   handleUpdateRule = (updatedRule: Rule) => {
-    console.log('rule', updatedRule);
-    // const rules = this.state.rules.map(rule => {
-    //   if (rule.id === updatedRule.id) {
-    //     return updatedRule;
-    //   }
-    //   return rule;
-    // });
-    // return await this.handleSubmit(rules).then(result => {
-    //   if (!result) {
-    //     this.setState({
-    //       rules,
-    //     });
-    //     return undefined;
-    //   }
-    //   return result;
-    // });
+    const rules = this.state.rules.map(rule => {
+      if (rule.id === updatedRule.id) {
+        return updatedRule;
+      }
+      return rule;
+    });
+    this.handleSave(rules, t('Successfully updated rule'));
   };
 
   handleDeleteRule = (rulesToBeDeleted: Array<Rule['id']>) => {
@@ -241,9 +240,7 @@ class DataScrubbing extends React.Component<Props, State> {
   };
 
   handleToggleAddRuleModal = (showAddRuleModal: boolean) => () => {
-    this.setState({
-      showAddRuleModal,
-    });
+    this.setState({showAddRuleModal});
   };
 
   handleUpdateEventId = (eventId: string) => {
@@ -289,6 +286,7 @@ class DataScrubbing extends React.Component<Props, State> {
           <PanelBody>
             {isProjectLevel && <OrganizationRules rules={orgRules} />}
             <Content
+              errors={errors}
               rules={rules}
               onDeleteRule={this.handleDeleteRule}
               onUpdateRule={this.handleUpdateRule}
@@ -313,6 +311,7 @@ class DataScrubbing extends React.Component<Props, State> {
         </Panel>
         {showAddRuleModal && (
           <Dialog
+            errors={errors}
             sourceSuggestions={sourceSuggestions}
             onSaveRule={this.handleAddRule}
             onClose={this.handleToggleAddRuleModal(false)}

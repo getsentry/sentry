@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -18,9 +17,9 @@ type Props = {
   disabled?: boolean;
 };
 
-const RulesList = React.forwardRef<HTMLUListElement, Props>(function RulesList(
-  {rules, onShowEditRuleModal, onDeleteRule, disabled},
-  ref
+const RulesList = React.forwardRef(function RulesList(
+  {rules, onShowEditRuleModal, onDeleteRule, disabled}: Props,
+  ref: React.Ref<HTMLUListElement>
 ) {
   return (
     <List ref={ref} isDisabled={disabled}>
@@ -58,13 +57,6 @@ const RulesList = React.forwardRef<HTMLUListElement, Props>(function RulesList(
     </List>
   );
 });
-
-RulesList.propTypes = {
-  rules: PropTypes.array.isRequired,
-  onShowEditRuleModal: PropTypes.func,
-  onDeleteRule: PropTypes.func,
-  disabled: PropTypes.bool,
-};
 
 export default RulesList;
 

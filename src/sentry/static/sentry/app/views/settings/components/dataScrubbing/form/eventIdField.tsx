@@ -7,18 +7,8 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import FormField from './formField';
-<<<<<<< HEAD:src/sentry/static/sentry/app/views/settings/components/dataScrubbing/form/eventIdField.tsx
-import EventIdFieldStatusIconStatusIcon from './eventIdFieldStatusIcon';
-import {EventIdStatus} from '../types';
-
-type EventId = {
-  value: string;
-  status?: EventIdStatus;
-};
-=======
 import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
 import {EventIdStatus, EventId} from '../types';
->>>>>>> ref(pii): Updated save logic:src/sentry/static/sentry/app/views/settings/components/dataPrivacyRules/form/eventIdField.tsx
 
 type Props = {
   onUpdateEventId: (eventId: string) => void;
@@ -135,20 +125,12 @@ class EventIdField extends React.Component<Props, State> {
             error={this.getErrorMessage()}
           />
           <Status>
-<<<<<<< HEAD:src/sentry/static/sentry/app/views/settings/components/dataScrubbing/form/eventIdField.tsx
-            <EventIdFieldStatusIconStatusIcon
-=======
             <EventIdFieldStatusIcon
->>>>>>> ref(pii): Updated save logic:src/sentry/static/sentry/app/views/settings/components/dataPrivacyRules/form/eventIdField.tsx
               onClickIconClose={this.handleClickIconClose}
               status={status}
             />
           </Status>
-<<<<<<< HEAD:src/sentry/static/sentry/app/views/settings/components/dataScrubbing/form/eventIdField.tsx
-        </EventIdFieldWrapper>
-=======
         </FieldWrapper>
->>>>>>> ref(pii): Updated save logic:src/sentry/static/sentry/app/views/settings/components/dataPrivacyRules/form/eventIdField.tsx
       </FormField>
     );
   }

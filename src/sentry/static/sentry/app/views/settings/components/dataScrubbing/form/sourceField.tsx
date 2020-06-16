@@ -7,14 +7,7 @@ import TextField from 'app/components/forms/textField';
 import TextOverflow from 'app/components/textOverflow';
 import {defined} from 'app/utils';
 
-<<<<<<< HEAD:src/sentry/static/sentry/app/views/settings/components/dataScrubbing/form/sourceField.tsx
-import {
-  unaryOperatorSuggestions,
-  binaryOperatorSuggestions,
-} from './sourceFieldSuggestions';
-=======
 import {unarySuggestions, binarySuggestions} from '../utils';
->>>>>>> ref(pii): Updated save logic:src/sentry/static/sentry/app/views/settings/components/dataPrivacyRules/form/sourceField.tsx
 import SourceSuggestionExamples from './sourceSuggestionExamples';
 import {SourceSuggestion, SourceSuggestionType} from '../types';
 
@@ -25,7 +18,6 @@ type Props = {
   suggestions?: Array<SourceSuggestion>;
   error?: string;
   onBlur?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-  disabled?: boolean;
 };
 
 type State = {
@@ -384,7 +376,7 @@ class SourceField extends React.Component<Props, State> {
   };
 
   render() {
-    const {error, disabled, value, onBlur} = this.props;
+    const {error, value, onBlur} = this.props;
     const {showSuggestions, suggestions, activeSuggestion, hideCaret, help} = this.state;
 
     return (
@@ -400,7 +392,6 @@ class SourceField extends React.Component<Props, State> {
           help={help}
           onBlur={onBlur}
           onFocus={this.handleFocus}
-          disabled={disabled}
         />
         {showSuggestions && suggestions.length > 0 && (
           <React.Fragment>
