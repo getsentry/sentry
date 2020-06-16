@@ -15,15 +15,7 @@ import RouteError from 'app/views/routeError';
 import {metric} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
-type AsyncComponentProps = {
-  /**
-   * Optional sentry APM profiling.
-   *
-   * NOTE: we don't decorate `AsyncComponent` but rather the subclass so we can
-   *       get its component name
-   */
-  finishProfile?: () => void;
-} & Partial<RouteComponentProps<{}, {}>>;
+type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
 
 type AsyncComponentState = {
   loading: boolean;
@@ -167,11 +159,6 @@ export default class AsyncComponent<
         },
       });
       this._measurement.hasMeasured = true;
-
-      // sentry apm profiling
-      if (typeof this.props.finishProfile === 'function') {
-        this.props.finishProfile();
-      }
     }
 
     // Re-fetch data when router params change.

@@ -29,7 +29,6 @@ type State = AsyncView['state'] & {
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
-  finishProfile: () => void;
 };
 
 class OrganizationUserFeedback extends AsyncView<Props, State> {

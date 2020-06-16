@@ -31,18 +31,9 @@ class Dashboard extends React.Component {
   static propTypes = {
     teams: PropTypes.array,
     organization: SentryTypes.Organization,
-    finishProfile: PropTypes.func,
     loadingTeams: PropTypes.bool,
     error: PropTypes.instanceOf(Error),
   };
-
-  componentDidMount() {
-    const {finishProfile} = this.props;
-
-    if (finishProfile) {
-      finishProfile();
-    }
-  }
 
   componentWillUnmount() {
     ProjectsStatsStore.reset();

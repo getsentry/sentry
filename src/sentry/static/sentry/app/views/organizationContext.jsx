@@ -35,7 +35,6 @@ const OrganizationContext = createReactClass({
     useLastOrganization: PropTypes.bool,
     organizationsLoading: PropTypes.bool,
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
-    finishProfile: PropTypes.func,
     detailed: PropTypes.bool,
   },
 
@@ -102,10 +101,6 @@ const OrganizationContext = createReactClass({
       (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
     ) {
       this.remountComponent();
-    }
-
-    if (this.state.organization && this.props.finishProfile) {
-      this.props.finishProfile();
     }
   },
 

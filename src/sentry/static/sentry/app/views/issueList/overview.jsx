@@ -62,9 +62,6 @@ const IssueListOverview = createReactClass({
     savedSearches: PropTypes.arrayOf(SentryTypes.SavedSearch),
     savedSearchLoading: PropTypes.bool.isRequired,
     tags: PropTypes.object,
-
-    // TODO(apm): manual profiling
-    finishProfile: PropTypes.func,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
@@ -112,10 +109,6 @@ const IssueListOverview = createReactClass({
   componentDidUpdate(prevProps, prevState) {
     // Fire off profiling/metrics first
     if (prevState.issuesLoading && !this.state.issuesLoading) {
-      if (typeof this.props.finishProfile === 'function') {
-        this.props.finishProfile();
-      }
-
       // First Meaningful Paint for /organizations/:orgId/issues/
       if (prevState.queryCount === null) {
         metric.measure({

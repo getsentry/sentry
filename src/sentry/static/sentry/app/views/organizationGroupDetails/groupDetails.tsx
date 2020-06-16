@@ -29,7 +29,6 @@ type Props = {
   environments: string[];
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
-  finishProfile: () => void;
 } & ReactRouter.RouteComponentProps<{orgId: string; groupId: string}, {}>;
 
 type State = {
@@ -59,11 +58,7 @@ class GroupDetails extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    if (prevState.loading && !this.state.loading) {
-      callIfFunction(this.props.finishProfile);
-    }
-
+  componentDidUpdate(prevProps: Props) {
     if (prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady) {
       this.fetchData();
     }
