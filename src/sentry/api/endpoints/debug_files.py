@@ -427,7 +427,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            default_per_page=20,
+            default_per_page=10,
             on_results=serialize_results,
         )
 
@@ -445,6 +445,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
         :qparam string id: The id of the archive to delete.
         :auth: required
         """
+        # TODO: wip, we need to delete release_file.file too (in async way)
+        return Response(status=404)
+
         archive_id = request.GET.get("id")
 
         if archive_id:
