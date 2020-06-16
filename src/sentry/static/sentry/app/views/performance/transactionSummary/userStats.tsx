@@ -41,7 +41,7 @@ class UserStats extends React.Component<Props> {
       },
       {
         kind: 'function',
-        function: ['count_unique', '', undefined],
+        function: ['count_unique', 'user', undefined],
       },
     ]);
 
