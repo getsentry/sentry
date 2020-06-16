@@ -9,6 +9,7 @@ from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_date_range_from_params
 from sentry.models import Environment
 from sentry.utils import metrics
 from sentry.utils.compat import map
@@ -67,15 +68,27 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             if not features.has("organizations:discover-basic", organization, actor=request.user):
                 return Response(status=403)
 
-            if len(data["query_info"].get("field", [])) > MAX_FIELDS:
+            query_info = data["query_info"]
+
+            if len(query_info.get("field", [])) > MAX_FIELDS:
                 detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
                     MAX_FIELDS
                 )
                 raise ParseError(detail=detail)
 
-            if "project" not in data["query_info"]:
+            if "project" not in query_info:
                 projects = self.get_projects(request, organization)
-                data["query_info"]["project"] = [project.id for project in projects]
+                query_info["project"] = [project.id for project in projects]
+
+            start, end = get_date_range_from_params(query_info)
+            if "statsPeriod" in query_info:
+                del query_info["statsPeriod"]
+            if "statsPeriodStart" in query_info:
+                del query_info["statsPeriodStart"]
+            if "statsPeriodEnd" in query_info:
+                del query_info["statsPeriodEnd"]
+            query_info["start"] = start.isoformat()
+            query_info["end"] = end.isoformat()
 
         try:
             # If this user has sent a sent a request with the same payload and organization,
