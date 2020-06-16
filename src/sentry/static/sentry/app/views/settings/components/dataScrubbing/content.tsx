@@ -7,7 +7,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {IconWarning} from 'app/icons';
 
 import RulesList from './rulesList';
-import DataPrivacyRulesModal from './dialog';
+import Dialog from './dialog';
 import {Rule, SourceSuggestion, EventId, Errors} from './types';
 
 type Props = {
@@ -85,7 +85,7 @@ class Content extends React.PureComponent<Props, State> {
           disabled={disabled}
         />
         {defined(editRule) && (
-          <DataPrivacyRulesModal
+          <Dialog
             rule={rules[editRule]}
             sourceSuggestions={sourceSuggestions}
             onClose={this.handleCloseEditRuleModal}
