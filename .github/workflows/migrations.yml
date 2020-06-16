@@ -93,6 +93,7 @@ jobs:
             pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
             pip install -U -e ".[dev]"
             psql -c 'create database sentry;' -h localhost -U postgres
+            sentry init
 
         - name: Generate SQL for migration
           uses: getsentry/action-migrations@v1
