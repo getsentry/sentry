@@ -9,7 +9,6 @@ import {DataSection} from 'app/components/events/styles';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import space from 'app/styles/space';
-import {IconAnchor} from 'app/icons/iconAnchor';
 
 const defaultProps = {
   wrapTitle: true,
@@ -79,7 +78,7 @@ class EventDataSection extends React.Component<Props> {
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
             <Permalink href={'#' + type} className="permalink">
-              <IconAnchor />
+              <em className="icon-anchor" />
             </Permalink>
             {titleNode}
             {type === 'extra' && (
@@ -110,12 +109,14 @@ class EventDataSection extends React.Component<Props> {
 }
 
 const Permalink = styled('a')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 27px;
   display: none;
   position: absolute;
-  top: 4px;
+  top: -1.5px;
   left: -22px;
-  color: ${p => p.theme.gray500};
-  width: 100%;
+  color: ${p => p.theme.gray400};
+  padding: ${space(0.25)} 5px;
 `;
 
 const SectionHeader = styled('div')<{isCentered?: boolean}>`
@@ -157,7 +158,6 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
 
   &:hover ${Permalink} {
-    color: ${p => p.theme.gray500};
     display: block;
   }
 
