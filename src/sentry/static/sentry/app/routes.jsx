@@ -433,7 +433,26 @@ function routes() {
           )
         }
         component={errorHandler(LazyLoad)}
-      />
+      >
+        <IndexRoute
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ProjectSourceMapsList" */ 'app/views/settings/projectSourceMaps/list'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path=":version/"
+          name={t('Archive')}
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ProjectSourceMapsDetail" */ 'app/views/settings/projectSourceMaps/detail'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
       <Route
         path="processing-issues/"
         name="Processing Issues"
