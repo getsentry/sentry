@@ -5,13 +5,14 @@ github:
 releaseBranchPrefix: releases
 changelog: CHANGES
 changelogPolicy: auto
-artifactProvider:
-  name: none # TODO: This shoudl be Zeus w/ PyPI target
 statusProvider:
   name: github
 targets:
-  # TODO: Add PyPI target
   - name: github
+  - name: pypi
   - name: docker
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
+
+requireNames:
+  - /^sentry-.+-py27-none-any.whl$/
