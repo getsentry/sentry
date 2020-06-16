@@ -337,9 +337,7 @@ class SourceField extends React.Component<Props, State> {
   };
 
   toggleSuggestions = (showSuggestions: boolean) => {
-    this.setState({
-      showSuggestions,
-    });
+    this.setState({showSuggestions});
   };
 
   handleFocus = () => {
@@ -382,7 +380,7 @@ class SourceField extends React.Component<Props, State> {
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
         <StyledTextField
-          name="from"
+          name="source"
           placeholder={t('Enter a custom attribute, variable or header name')}
           onChange={this.handleChange}
           autoComplete="off"

@@ -14,7 +14,7 @@ function handleError(error: any): Error {
   if (!errorMessage) {
     return {
       type: RequestError.Unknown,
-      message: t('Unknown error occurred while saving data privacy rules'),
+      message: t('Unknown error occurred while saving data scrubbing rule'),
     };
   }
 
@@ -44,7 +44,7 @@ function handleError(error: any): Error {
 
   return {
     type: RequestError.Unknown,
-    message: t('An unknown error occurred while saving data privacy rules'),
+    message: t('An unknown error occurred while saving data scrubbing rule'),
   };
 }
 
