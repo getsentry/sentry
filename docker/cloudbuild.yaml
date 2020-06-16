@@ -69,7 +69,7 @@ steps:
   - '-c'
   - |
     # Only push to Zeus from releases/*
-    # [[ ! "$BRANCH_NAME" =~ ^release/ ]] && exit 0
+    [[ ! "$BRANCH_NAME" =~ ^releases/ ]] && exit 0
     npx -p "@zeus-ci/cli" zeus job update --build $BUILD_ID --job 1 --ref $COMMIT_SHA --build-label "$(Build.BuildNumber)" --job-label "OSS Packages" --status passed
     npx -p "@zeus-ci/cli" zeus upload --build $BUILD_ID --job 1 --type "application/x-pywheel+zip" dist/*.whl
 timeout: 2400s
