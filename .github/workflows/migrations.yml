@@ -41,6 +41,11 @@ jobs:
         # Checkout codebase
         - uses: actions/checkout@v1
 
+        - name: Debug
+          run: |
+            echo $(git diff-tree --no-commit-id --name-only -r master)
+
+
         # Python
         #   Use `.python-version` to avoid duplication
         #   XXX: can't actually read from .python-version because GitHub Actions
@@ -94,10 +99,6 @@ jobs:
             pip install -U -e ".[dev]"
             psql -c 'create database sentry;' -h localhost -U postgres
             sentry init
-
-        - name: Debug
-          run: |
-            echo $(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
 
         - name: Generate SQL for migration
           uses: getsentry/action-migrations@v1.0.4
