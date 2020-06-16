@@ -6,9 +6,7 @@ import assign from 'lodash/assign';
 import getDisplayName from 'app/utils/getDisplayName';
 import MemberListStore from 'app/stores/memberListStore';
 import TagStore from 'app/stores/tagStore';
-import {User, Tag} from 'app/types';
-
-type TagCollection = {[key: string]: Tag};
+import {User, TagCollection} from 'app/types';
 
 type InjectedTagsProps = {
   tags: TagCollection;

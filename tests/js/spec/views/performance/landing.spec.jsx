@@ -144,10 +144,10 @@ describe('Performance > Landing', function() {
 
   it('does not render onboarding for "my projects"', async function() {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+      TestStubs.Project({id: '1', firstTransactionEvent: false}),
+      TestStubs.Project({id: '2', firstTransactionEvent: true}),
     ];
-    const data = initializeData(projects, {project: [-1]});
+    const data = initializeData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
       <PerformanceLanding

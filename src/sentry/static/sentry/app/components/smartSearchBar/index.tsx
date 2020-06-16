@@ -25,7 +25,7 @@ import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
-import {SavedSearch, LightWeightOrganization} from 'app/types';
+import {LightWeightOrganization, SavedSearch, Tag} from 'app/types';
 import {
   fetchRecentSearches,
   pinSearch,
@@ -40,7 +40,7 @@ import {
 } from 'app/constants';
 
 import SearchDropdown from './searchDropdown';
-import {SearchItem, SearchType, SearchGroup, Tag, ItemType} from './types';
+import {SearchItem, SearchType, SearchGroup, ItemType} from './types';
 import {
   addSpace,
   removeSpace,
@@ -215,7 +215,7 @@ type Props = {
    * is because we don't want to treat environment as a tag in some places
    * such as the stream view where it is a top level concept
    */
-  excludeEnvironment: boolean;
+  excludeEnvironment?: boolean;
 };
 
 type State = {
@@ -623,7 +623,7 @@ class SmartSearchBar extends React.Component<Props, State> {
    * with results
    */
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
-    tag.values
+    (tag.values ?? [])
       .filter(value => value.indexOf(query) > -1)
       .map(value => ({
         value,

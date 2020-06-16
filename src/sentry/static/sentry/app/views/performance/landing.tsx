@@ -243,7 +243,6 @@ class PerformanceLanding extends React.Component<Props, State> {
                   <StyledSearchBar
                     organization={organization}
                     projectIds={eventView.project}
-                    location={location}
                     query={filterString}
                     fields={eventView.fields}
                     onSearch={this.handleSearch}

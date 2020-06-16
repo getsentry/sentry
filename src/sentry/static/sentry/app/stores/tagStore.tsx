@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 import reduce from 'lodash/reduce';
 
-import {Tag} from 'app/types';
+import {Tag, TagCollection} from 'app/types';
 import TagActions from 'app/actions/tagActions';
 
 // This list is only used on issues. Events/discover
@@ -49,8 +49,6 @@ const BUILTIN_TAGS = [
   acc[tag] = {key: tag, name: tag};
   return acc;
 }, {});
-
-type TagCollection = {[key: string]: Tag};
 
 type TagStoreInterface = {
   state: TagCollection;
