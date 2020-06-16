@@ -7,7 +7,7 @@ import logging
 import posixpath
 
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Exists, OuterRef
 from django.http import StreamingHttpResponse, HttpResponse, Http404
 from rest_framework.response import Response
 from symbolic import normalize_debug_id, SymbolicError
@@ -19,7 +19,13 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import KNOWN_DIF_FORMATS
-from sentry.models import FileBlobOwner, ProjectDebugFile, create_files_from_dif_zip, Release
+from sentry.models import (
+    FileBlobOwner,
+    ProjectDebugFile,
+    create_files_from_dif_zip,
+    Release,
+    ReleaseFile,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.tasks.assemble import (
     get_assemble_status,
@@ -365,7 +371,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
         Retrieve a list of source map archives (releases, later bundles) for a given project.
 
         :pparam string organization_slug: the slug of the organization the
-                                          source map group belongs to.
+                                          source map archive belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      source map archives of.
         :qparam string query: If set, this parameter is used to locate source map archives with.
@@ -376,9 +382,13 @@ class SourceMapsEndpoint(ProjectEndpoint):
         try:
             queryset = (
                 Release.objects.filter(projects=project, organization_id=project.organization_id)
-                .annotate(file_count=Count("releasefile"))
-                .values("version", "date_added", "file_count")
-                .filter(file_count__gt=0)
+                .annotate(
+                    has_file=Exists(
+                        ReleaseFile.objects.filter(release=OuterRef("id")).values_list("id")
+                    )
+                )
+                .values("id", "version", "date_added")
+                .filter(has_file=True)
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
@@ -392,13 +402,25 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
             queryset = queryset.filter(query_q)
 
-        def expose_release(release):
+        def expose_release(release, count):
             return {
                 "type": "release",
+                "id": release["id"],
                 "name": release["version"],
                 "date": release["date_added"],
-                "fileCount": release["file_count"],
+                "fileCount": count,
             }
+
+        def serialize_results(results):
+            file_counts = (
+                Release.objects.filter(id__in=[r["id"] for r in results])
+                .annotate(count=Count("releasefile"))
+                .values("count", "id")
+            )
+            file_count_map = {r["id"]: r["count"] for r in file_counts}
+            return serialize(
+                [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
+            )
 
         return self.paginate(
             request=request,
@@ -406,7 +428,35 @@ class SourceMapsEndpoint(ProjectEndpoint):
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
             default_per_page=20,
-            on_results=lambda releases: serialize(
-                [expose_release(r) for r in releases], request.user
-            ),
+            on_results=serialize_results,
         )
+
+    def delete(self, request, project):
+        """
+        Delete an Archive
+        ```````````````````````````````````````````````````
+
+        Delete all artifacts inside given archive.
+
+        :pparam string organization_slug: the slug of the organization the
+                                            archive belongs to.
+        :pparam string project_slug: the slug of the project to delete the
+                                        archive of.
+        :qparam string id: The id of the archive to delete.
+        :auth: required
+        """
+        archive_id = request.GET.get("id")
+
+        if archive_id:
+            with transaction.atomic():
+                release = Release.objects.get(
+                    organization_id=project.organization_id, projects=project, id=archive_id
+                )
+                if release is not None:
+                    release_files = ReleaseFile.objects.filter(release=release)
+                    # TODO: do we need to delete release_file.file too?
+                    # src/sentry/api/endpoints/project_release_file_details.py:191
+                    release_files.delete()
+                    return Response(status=204)
+
+        return Response(status=404)

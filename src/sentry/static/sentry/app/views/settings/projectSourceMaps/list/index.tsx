@@ -13,6 +13,11 @@ import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import space from 'app/styles/space';
 import {decodeScalar} from 'app/utils/queryString';
+import {
+  addLoadingMessage,
+  addSuccessMessage,
+  addErrorMessage,
+} from 'app/actionCreators/indicator';
 
 import SourceMapsArchiveRow from './sourceMapsArchiveRow';
 
@@ -39,19 +44,14 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
-    const {params} = this.props;
-    const {orgId, projectId} = params;
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    return [['archives', this.getArchivesUrl(), {query: {query: this.getQuery()}}]];
+  }
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
-      [
-        'archives',
-        `/projects/${orgId}/${projectId}/files/source-maps/`,
-        {query: {query: this.getQuery()}},
-      ],
-    ];
+  getArchivesUrl() {
+    const {orgId, projectId} = this.props.params;
 
-    return endpoints;
+    return `/projects/${orgId}/${projectId}/files/source-maps/`;
   }
 
   handleSearch = (query: string) => {
@@ -61,6 +61,20 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
       ...location,
       query: {...location.query, cursor: undefined, query},
     });
+  };
+
+  handleDelete = async (id: number) => {
+    addLoadingMessage(t('Removing archive\u2026'));
+    try {
+      await this.api.requestPromise(this.getArchivesUrl(), {
+        method: 'DELETE',
+        query: {id},
+      });
+      this.fetchData();
+      addSuccessMessage(t('Archive removed.'));
+    } catch {
+      addErrorMessage(t('Unable to remove archive. Please try again.'));
+    }
   };
 
   getQuery() {
@@ -90,15 +104,14 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
       return null;
     }
 
-    return archives.map(({name, date, fileCount}) => {
+    return archives.map(a => {
       return (
         <SourceMapsArchiveRow
-          key={name}
-          name={name}
-          date={date}
-          fileCount={fileCount}
+          key={a.name}
+          archive={a}
           orgId={orgId}
           projectId={projectId}
+          onDelete={this.handleDelete}
         />
       );
     });
@@ -147,7 +160,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 100px 200px;
+  grid-template-columns: 1fr 100px 150px;
 `;
 
 const Actions = styled('div')`

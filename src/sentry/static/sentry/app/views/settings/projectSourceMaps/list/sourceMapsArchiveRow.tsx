@@ -1,29 +1,37 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {SourceMapsArchive} from 'app/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import TimeSince from 'app/components/timeSince';
 import Button from 'app/components/button';
-import {IconClock, IconFile} from 'app/icons';
+import {IconClock, IconFile, IconDelete} from 'app/icons';
 import ButtonBar from 'app/components/buttonBar';
 import Version from 'app/components/version';
 import Count from 'app/components/count';
+import Confirm from 'app/components/confirm';
+import Link from 'app/components/links/link';
 
 type Props = {
-  name: string;
-  date: string;
-  fileCount: number;
+  archive: SourceMapsArchive;
   orgId: string;
   projectId: string;
+  onDelete: (id: number) => void;
 };
 
-const SourceMapsArchiveRow = ({name, date, fileCount, orgId, projectId}: Props) => {
+const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
+  const {id, name, date, fileCount} = archive;
+  const archiveLink = `/settings/${orgId}/projects/${projectId}/source-maps/${encodeURIComponent(
+    name
+  )}`;
   return (
     <React.Fragment>
       <Column>
         <Name>
-          <Version version={name} tooltipRawVersion anchor={false} truncate />
+          <Link to={archiveLink}>
+            <Version version={name} anchor={false} truncate />
+          </Link>
         </Name>
         <TimeWrapper>
           <IconClock size="xs" />
@@ -35,15 +43,15 @@ const SourceMapsArchiveRow = ({name, date, fileCount, orgId, projectId}: Props) 
       </Column>
       <RightColumn>
         <ButtonBar gap={0.5}>
-          <Button
-            size="xsmall"
-            icon={<IconFile size="xs" />}
-            to={`/settings/${orgId}/projects/${projectId}/source-maps/${encodeURIComponent(
-              name
-            )}`}
-          >
+          <Button size="xsmall" icon={<IconFile size="xs" />} to={archiveLink}>
             {t('Open')}
           </Button>
+          <Confirm
+            onConfirm={() => onDelete(id)}
+            message={t('Are you sure you want to remove all artifacts in this archive?')}
+          >
+            <Button size="xsmall" icon={<IconDelete size="xs" />} priority="danger" />
+          </Confirm>
         </ButtonBar>
       </RightColumn>
     </React.Fragment>

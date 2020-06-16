@@ -182,7 +182,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 100px 100px;
+  grid-template-columns: 1fr 100px 150px;
 `;
 
 const Actions = styled('div')`

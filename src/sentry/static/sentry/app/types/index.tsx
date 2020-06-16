@@ -1282,6 +1282,7 @@ export type EventGroupVariant = {
 };
 
 export type SourceMapsArchive = {
+  id: number;
   type: 'release';
   name: string;
   date: string;
