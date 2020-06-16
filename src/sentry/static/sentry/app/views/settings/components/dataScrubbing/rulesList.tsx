@@ -8,13 +8,38 @@ import {IconDelete, IconEdit} from 'app/icons';
 import Button from 'app/components/button';
 
 import {getMethodLabel, getRuleLabel} from './utils';
-import {RuleType, Rule} from './types';
+import {RuleType, MethodType, Rule} from './types';
 
 type Props = {
   rules: Array<Rule>;
   onShowEditRuleModal?: (id: Rule['id']) => () => void;
   onDeleteRule?: (id: Rule['id']) => () => void;
   disabled?: boolean;
+};
+
+const getListItemDescription = (rule: Rule) => {
+  const {method, type, source} = rule;
+  const methodLabel = getMethodLabel(method);
+  const typeLabel = getRuleLabel(type);
+
+  const descriptionDetails: Array<string> = [];
+
+  descriptionDetails.push(`[${methodLabel.label}]`);
+
+  if (rule.method === MethodType.REPLACE && rule.placeholder) {
+    descriptionDetails.push(`with [${rule.placeholder}]`);
+  }
+
+  descriptionDetails.push(`[${typeLabel}]`);
+
+  if (rule.type === RuleType.PATTERN) {
+    descriptionDetails[descriptionDetails.length - 1] =
+      descriptionDetails.length === 3
+        ? `${t('using')} [${rule.pattern}]`
+        : `[${rule.pattern}]`;
+  }
+
+  return `${descriptionDetails.join(' ')} ${t('from')} [${source}]`;
 };
 
 const RulesList = React.forwardRef(function RulesList(
@@ -24,15 +49,10 @@ const RulesList = React.forwardRef(function RulesList(
   return (
     <List ref={ref} isDisabled={disabled}>
       {rules.map(rule => {
-        const {id, method, type, source} = rule;
-        const methodLabel = getMethodLabel(method);
-        const typeLabel = getRuleLabel(type);
-        const typeDescription = rule.type === RuleType.PATTERN ? rule.pattern : typeLabel;
+        const {id} = rule;
         return (
           <ListItem key={id}>
-            <TextOverflow>
-              {`[${methodLabel.label}] [${typeDescription}] ${t('from')} [${source}]`}
-            </TextOverflow>
+            <TextOverflow>{getListItemDescription(rule)}</TextOverflow>
             {onShowEditRuleModal && (
               <Button
                 label={t('Edit Rule')}

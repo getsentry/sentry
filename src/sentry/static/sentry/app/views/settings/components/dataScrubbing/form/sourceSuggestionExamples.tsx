@@ -16,9 +16,7 @@ type State = {
 };
 
 class SourceSuggestionExamples extends React.Component<Props, State> {
-  state: State = {
-    isOpen: false,
-  };
+  state: State = {isOpen: false};
 
   toggleModal = () => {
     this.setState({isOpen: !this.state.isOpen});
