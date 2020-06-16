@@ -41,9 +41,10 @@ jobs:
         # Checkout codebase
         - uses: actions/checkout@v1
 
-        - name: Debug
+        - name: Get changed migration files
+          id: file
           run: |
-            echo $(git diff-tree --no-commit-id --name-only -r origin/master)
+            echo "::set-output name=modified::$(git diff --diff-filter=am --name-only origin/master HEAD | grep 'src/sentry/migations/')"
 
 
         # Python
@@ -101,10 +102,10 @@ jobs:
             sentry init
 
         - name: Generate SQL for migration
-          uses: getsentry/action-migrations@v1.0.4
+          uses: getsentry/action-migrations@v1.0.5
           env:
             SENTRY_LOG_LEVEL: ERROR
             PGPASSWORD: postgres
           with:
             githubToken: ${{ secrets.GITHUB_TOKEN }}
-            migration: '0085'
+            migration: ${{ steps.file.outputs.modified }}
