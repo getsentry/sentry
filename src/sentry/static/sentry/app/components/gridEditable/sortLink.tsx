@@ -27,9 +27,9 @@ class SortLink extends React.Component<Props> {
     }
 
     if (direction === 'desc') {
-      return <StyledIconArrow size="xs" direction="down" />;
+      return <StyledIconArrow size="xs" direction="up" />;
     }
-    return <StyledIconArrow size="xs" direction="up" />;
+    return <StyledIconArrow size="xs" direction="down" />;
   }
 
   render() {
