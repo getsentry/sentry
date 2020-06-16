@@ -40,7 +40,7 @@ class VercelClient(ApiClient):
 
     def create_deploy_webhook(self):
         data = {
-            "name": "sentry_webhook",
+            "name": "Sentry webhook",
             "url": absolute_uri("/extensions/vercel/webhook/"),
             "events": ["deployment"],
         }

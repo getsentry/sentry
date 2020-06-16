@@ -137,8 +137,8 @@ class VercelIntegrationProvider(IntegrationProvider):
             try:
                 details = err.json["messages"][0].values().pop()
             except Exception:
-                details = ""
-            message = u"Could not create deployment webhook in Vercel. {}".format(details)
+                details = "Unknown Error"
+            message = u"Could not create deployment webhook in Vercel: {}".format(details)
             raise IntegrationError(message)
 
         integration = {
