@@ -4,10 +4,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SourceField from 'app/views/settings/components/dataScrubbing/form/sourceField';
 import {
-  binaryOperatorSuggestions,
-  unaryOperatorSuggestions,
-  defaultSuggestions,
-} from 'app/views/settings/components/dataScrubbing/form/sourceFieldSuggestions';
+  binarySuggestions,
+  unarySuggestions,
+  valueSuggestions,
+} from 'app/views/settings/components/dataScrubbing/utils';
 
 function renderComponent({
   value = '$string',
@@ -17,7 +17,7 @@ function renderComponent({
   return mountWithTheme(
     <SourceField
       isRegExMatchesSelected={false}
-      suggestions={defaultSuggestions}
+      suggestions={valueSuggestions}
       onChange={onChange}
       value={value}
       {...props}
@@ -67,9 +67,9 @@ describe('Source', () => {
     // binaryOperatorSuggestions.length === 2
     expect(suggestions).toHaveLength(2);
     // &&
-    expect(suggestions.at(0).text()).toEqual(binaryOperatorSuggestions[0].value);
+    expect(suggestions.at(0).text()).toEqual(binarySuggestions[0].value);
     // ||
-    expect(suggestions.at(1).text()).toEqual(binaryOperatorSuggestions[1].value);
+    expect(suggestions.at(1).text()).toEqual(binarySuggestions[1].value);
   });
 
   it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', () => {
@@ -83,7 +83,7 @@ describe('Source', () => {
     // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 12
     expect(suggestions).toHaveLength(12);
     // !
-    expect(suggestions.at(11).text()).toEqual(unaryOperatorSuggestions[0].value);
+    expect(suggestions.at(11).text()).toEqual(unarySuggestions[0].value);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue has type value', () => {
@@ -97,9 +97,9 @@ describe('Source', () => {
     // binaryOperatorSuggestions.length === 2
     expect(suggestions).toHaveLength(2);
     // &&
-    expect(suggestions.at(0).text()).toEqual(binaryOperatorSuggestions[0].value);
+    expect(suggestions.at(0).text()).toEqual(binarySuggestions[0].value);
     // ||
-    expect(suggestions.at(1).text()).toEqual(binaryOperatorSuggestions[1].value);
+    expect(suggestions.at(1).text()).toEqual(binarySuggestions[1].value);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue is of typeof Array', () => {
@@ -113,9 +113,9 @@ describe('Source', () => {
     // binaryOperatorSuggestions.length === 2
     expect(suggestions).toHaveLength(2);
     // &&
-    expect(suggestions.at(0).text()).toEqual(binaryOperatorSuggestions[0].value);
+    expect(suggestions.at(0).text()).toEqual(binarySuggestions[0].value);
     // ||
-    expect(suggestions.at(1).text()).toEqual(binaryOperatorSuggestions[1].value);
+    expect(suggestions.at(1).text()).toEqual(binarySuggestions[1].value);
   });
 
   it('display defaultSuggestions if penultimateFieldValue has type unary', () => {
@@ -131,7 +131,7 @@ describe('Source', () => {
 
     // everywhere
     expect(suggestions.at(0).text()).toEqual(
-      `${defaultSuggestions[0].value}(${defaultSuggestions[0].description})`
+      `${valueSuggestions[0].value}(${valueSuggestions[0].description})`
     );
   });
 
@@ -148,7 +148,7 @@ describe('Source', () => {
       .children();
 
     suggestions.at(1).simulate('click');
-    expect(wrapper.state().fieldValues[2].value).toBe(defaultSuggestions[1].value);
+    expect(wrapper.state().fieldValues[2].value).toBe(valueSuggestions[1].value);
   });
 
   it('suggestions keyDown and keyUp should work', () => {

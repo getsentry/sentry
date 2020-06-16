@@ -33,9 +33,7 @@ class OrganizationRules extends React.Component<Props, State> {
     if (!this.state.contentHeight) {
       const contentHeight = this.rulesListRef.current?.offsetHeight;
       if (contentHeight) {
-        this.setState({
-          contentHeight: `${contentHeight}px`,
-        });
+        this.setState({contentHeight: `${contentHeight}px`});
       }
     }
   };

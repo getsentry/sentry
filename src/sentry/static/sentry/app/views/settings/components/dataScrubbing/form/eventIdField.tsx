@@ -7,17 +7,12 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import FormField from './formField';
-import EventIdFieldStatusIconStatusIcon from './eventIdFieldStatusIcon';
-import {EventIdStatus} from '../types';
-
-type EventId = {
-  value: string;
-  status?: EventIdStatus;
-};
+import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
+import {EventIdStatus, EventId} from '../types';
 
 type Props = {
   onUpdateEventId: (eventId: string) => void;
-  eventId: EventId;
+  eventId?: EventId;
   disabled?: boolean;
 };
 
@@ -28,8 +23,8 @@ type State = {
 
 class EventIdField extends React.Component<Props, State> {
   state = {
-    value: this.props.eventId.value,
-    status: this.props.eventId.status,
+    value: this.props.eventId?.value || '',
+    status: this.props.eventId?.status,
   };
 
   componentDidUpdate(prevProps: Props) {
@@ -117,7 +112,7 @@ class EventIdField extends React.Component<Props, State> {
           'Providing an event ID will automatically provide you a list of suggested sources'
         )}
       >
-        <EventIdFieldWrapper>
+        <FieldWrapper>
           <StyledTextField
             name="eventId"
             disabled={disabled}
@@ -130,12 +125,12 @@ class EventIdField extends React.Component<Props, State> {
             error={this.getErrorMessage()}
           />
           <Status>
-            <EventIdFieldStatusIconStatusIcon
+            <EventIdFieldStatusIcon
               onClickIconClose={this.handleClickIconClose}
               status={status}
             />
           </Status>
-        </EventIdFieldWrapper>
+        </FieldWrapper>
       </FormField>
     );
   }
@@ -161,7 +156,7 @@ const Status = styled('div')`
   align-items: center;
 `;
 
-const EventIdFieldWrapper = styled('div')`
+const FieldWrapper = styled('div')`
   position: relative;
   display: flex;
   align-items: center;

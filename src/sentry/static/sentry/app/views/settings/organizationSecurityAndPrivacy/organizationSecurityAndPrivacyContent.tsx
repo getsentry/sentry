@@ -70,9 +70,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
           relayPiiConfig={relayPiiConfig}
           disabled={!access.has('org:write')}
           organization={organization}
-          onSubmitSuccess={resp => {
-            this.handleUpdateOrganization(resp as Organization);
-          }}
+          onSubmitSuccess={this.handleUpdateOrganization}
         />
       </React.Fragment>
     );

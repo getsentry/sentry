@@ -1,12 +1,12 @@
-import {RuleType, PiiConfig, Rule} from './types';
+import {Client} from 'app/api';
 
-type Applications = Record<string, Array<string>>;
+import {RuleType, PiiConfig, Applications, Rule} from './types';
 
 function getCustomRule(rule: Rule): PiiConfig {
   if (rule.type === RuleType.PATTERN) {
     return {
       type: rule.type,
-      pattern: rule?.customRegularExpression,
+      pattern: rule?.pattern,
       redaction: {
         method: rule.method,
       },
@@ -20,7 +20,7 @@ function getCustomRule(rule: Rule): PiiConfig {
   };
 }
 
-function getRelayPiiConfig(rules: Array<Rule>) {
+function submitRules(api: Client, endpoint: string, rules: Array<Rule>) {
   const applications: Applications = {};
   const customRules: Record<string, PiiConfig> = {};
 
@@ -40,7 +40,10 @@ function getRelayPiiConfig(rules: Array<Rule>) {
 
   const piiConfig = {rules: customRules, applications};
 
-  return JSON.stringify(piiConfig);
+  return api.requestPromise(endpoint, {
+    method: 'PUT',
+    data: {relayPiiConfig: JSON.stringify(piiConfig)},
+  });
 }
 
-export default getRelayPiiConfig;
+export default submitRules;
