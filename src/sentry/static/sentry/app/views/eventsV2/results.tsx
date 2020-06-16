@@ -81,20 +81,18 @@ class Results extends React.Component<Props, State> {
     const {api, location, organization, selection} = this.props;
     const {eventView} = this.state;
 
-    if (
-      !isEqual(prevProps.selection.projects, selection.projects) ||
-      !isEqual(prevProps.selection.datetime, selection.datetime)
-    ) {
-      api.clear();
-      loadOrganizationTags(api, organization.slug, selection);
-    }
-
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
     if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
       api.clear();
       this.fetchTotalCount();
+      if (
+        !isEqual(prevQuery.statsPeriod, currentQuery.statsPeriod) ||
+        !isEqual(prevQuery.project, currentQuery.project)
+      ) {
+        loadOrganizationTags(api, organization.slug, selection);
+      }
     }
   }
 
