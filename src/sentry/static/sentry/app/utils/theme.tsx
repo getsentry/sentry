@@ -424,7 +424,7 @@ const DEPRECATED = new Set([
 ]);
 
 class DeprecatedThemeError extends Error {
-  constructor(message, ...params) {
+  constructor(...params) {
     // Pass remaining arguments (including vendor specific ones) to parent constructor
     super(...params);
 
@@ -434,17 +434,18 @@ class DeprecatedThemeError extends Error {
     }
 
     this.name = 'DeprecatedThemeKey';
-    this.message = message;
   }
 }
 
 export default new Proxy(theme, {
   get: (obj, prop) => {
-    if (DEPRECATED.has(prop)) {
-      const err = new DeprecatedThemeError(`Using deprecated theme key "${prop}"`);
+    if (DEPRECATED.has(String(prop))) {
+      const err = new DeprecatedThemeError(
+        `Using deprecated theme key "${String(prop)}"`
+      );
       console.error(err); // eslint-disable-line no-console
       Sentry.withScope(scope => {
-        scope.setFingerprint('deprecated-theme');
+        scope.setFingerprint(['deprecated-theme']);
         Sentry.captureException(err);
       });
     }
