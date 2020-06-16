@@ -41,7 +41,7 @@ class ReleaseArtifacts extends AsyncView<Props> {
     return (
       <React.Fragment>
         <Feature features={['artifacts-in-settings']}>
-          {hasFeature =>
+          {({hasFeature}) =>
             hasFeature ? (
               <AlertLink
                 to={`/settings/${organization.slug}/projects/${
