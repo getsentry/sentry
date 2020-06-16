@@ -43,69 +43,71 @@ const Form = ({
   const {source, type, method} = rule;
   return (
     <Wrapper>
-      <FormField label={t('Method')} tooltipInfo={t('What to do')}>
-        <SelectField
-          placeholder={t('Select method')}
-          name="method"
-          options={sortBy(Object.values(MethodType)).map(value => ({
-            ...getMethodLabel(value),
-            value,
-          }))}
-          value={method}
-          onChange={({value}) => onChange('method', value)}
-        />
-      </FormField>
-      {rule.method === MethodType.REPLACE && (
-        <FormField
-          label={t('Custom Placeholder (Optional)')}
-          tooltipInfo={t('It will replace the default placeholder [Filtered]')}
-          isFullWidth
-        >
-          <Placeholder
-            name="placeholder"
-            placeholder={`[${t('Filtered')}]`}
-            onChange={(value: string) => {
-              onChange('placeholder', value);
-            }}
-            value={rule.placeholder}
+      <GroupField hasTwoColumns={rule.method === MethodType.REPLACE}>
+        <FormField label={t('Method')} tooltipInfo={t('What to do')}>
+          <SelectField
+            placeholder={t('Select method')}
+            name="method"
+            options={sortBy(Object.values(MethodType)).map(value => ({
+              ...getMethodLabel(value),
+              value,
+            }))}
+            value={method}
+            onChange={({value}) => onChange('method', value)}
           />
         </FormField>
-      )}
-      <FormField
-        label={t('Data Type')}
-        tooltipInfo={t(
-          'What to look for. Use an existing pattern or define your own using regular expressions.'
+        {rule.method === MethodType.REPLACE && (
+          <FormField
+            label={t('Custom Placeholder (Optional)')}
+            tooltipInfo={t('It will replace the default placeholder [Filtered]')}
+          >
+            <StyledTextField
+              name="placeholder"
+              placeholder={`[${t('Filtered')}]`}
+              onChange={(value: string) => {
+                onChange('placeholder', value);
+              }}
+              value={rule.placeholder}
+            />
+          </FormField>
         )}
-      >
-        <SelectField
-          placeholder={t('Select type')}
-          name="type"
-          options={sortBy(Object.values(RuleType)).map(value => ({
-            label: getRuleLabel(value),
-            value,
-          }))}
-          value={type}
-          onChange={({value}) => onChange('type', value)}
-        />
-      </FormField>
-      {rule.type === RuleType.PATTERN && (
+      </GroupField>
+      <GroupField hasTwoColumns={rule.type === RuleType.PATTERN}>
         <FormField
-          label={t('Regex matches')}
-          tooltipInfo={t('Custom Perl-style regex (PCRE)')}
-          isFullWidth
+          label={t('Data Type')}
+          tooltipInfo={t(
+            'What to look for. Use an existing pattern or define your own using regular expressions.'
+          )}
         >
-          <RegularExpression
-            name="pattern"
-            placeholder={t('[a-zA-Z0-9]+')}
-            onChange={(value: string) => {
-              onChange('pattern', value);
-            }}
-            value={rule.pattern}
-            onBlur={onValidate('pattern')}
-            error={errors?.pattern}
+          <SelectField
+            placeholder={t('Select type')}
+            name="type"
+            options={sortBy(Object.values(RuleType)).map(value => ({
+              label: getRuleLabel(value),
+              value,
+            }))}
+            value={type}
+            onChange={({value}) => onChange('type', value)}
           />
         </FormField>
-      )}
+        {rule.type === RuleType.PATTERN && (
+          <FormField
+            label={t('Regex matches')}
+            tooltipInfo={t('Custom Perl-style regex (PCRE)')}
+          >
+            <RegularExpression
+              name="pattern"
+              placeholder={t('[a-zA-Z0-9]+')}
+              onChange={(value: string) => {
+                onChange('pattern', value);
+              }}
+              value={rule.pattern}
+              onBlur={onValidate('pattern')}
+              error={errors?.pattern}
+            />
+          </FormField>
+        )}
+      </GroupField>
       {onUpdateEventId && (
         <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
       )}
@@ -137,15 +139,23 @@ const Wrapper = styled('div')`
   grid-row-gap: ${space(2)};
 `;
 
-const StyledTextField = styled(TextField)`
+const GroupField = styled('div')<{hasTwoColumns: boolean}>`
+  display: grid;
+  grid-gap: ${space(2)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
+  }
+`;
+
+const StyledTextField = styled(TextField)<{error?: string}>`
   height: 40px;
   input {
     height: 40px;
   }
-`;
-
-const Placeholder = styled(StyledTextField)`
-  margin-bottom: 0;
+  ${p => !p.error && `margin-bottom: 0;`}
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    margin-bottom: 0;
+  }
 `;
 
 const RegularExpression = styled(StyledTextField)`
