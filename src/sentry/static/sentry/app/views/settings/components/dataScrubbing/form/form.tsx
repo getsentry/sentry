@@ -6,113 +6,114 @@ import space from 'app/styles/space';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 
-import {Rule, RuleType, MethodType} from '../types';
-import {getMethodTypeLabel, getRuleTypeLabel} from './utils';
-import Source from './sourceField';
+import EventIdField from './eventIdField';
 import FormField from './formField';
 import SelectField from './selectField';
-import EventidField from './eventIdField';
+import SourceField from './sourceField';
+import {getRuleLabel, getMethodLabel} from '../utils';
+import {
+  MethodType,
+  RuleType,
+  Rule,
+  SourceSuggestion,
+  EventId,
+  Errors,
+  KeysOfUnion,
+} from '../types';
 
-type EventIdProps = React.ComponentProps<typeof EventidField>;
-type SourceProps = React.ComponentProps<typeof Source>;
-type Errors = {
-  customRegularExpression?: string;
-  source?: string;
-};
-
-type Props = EventIdProps & {
-  rule: Rule;
-  sourceSuggestions: SourceProps['suggestions'];
-  onChange: <T extends keyof Omit<Rule, 'id'>>(stateProperty: T, value: Rule[T]) => void;
-  onUpdateEventId: (eventId: string) => void;
-  onValidate: <T extends keyof Errors>(field: T) => () => void;
+type Props<R extends Rule, K extends KeysOfUnion<R>> = {
+  rule: R;
+  onChange: (stateProperty: K, value: R[K]) => void;
+  onValidate: (field: K) => () => void;
+  onUpdateEventId?: (eventId: string) => void;
   errors: Errors;
+  sourceSuggestions?: Array<SourceSuggestion>;
+  eventId?: EventId;
 };
-
 const Form = ({
-  disabled,
-  rule: {source, customRegularExpression, type, method},
+  rule,
   errors,
   sourceSuggestions,
   onUpdateEventId,
   eventId,
   onChange,
   onValidate,
-}: Props) => (
-  <Wrapper>
-    <WrapperSelectFields>
-      <FormField label={t('Method')} tooltipInfo={t('What to do')}>
-        <SelectField
-          placeholder={t('Select method')}
-          name="method"
-          options={sortBy(Object.values(MethodType)).map(value => ({
-            ...getMethodTypeLabel(value),
-            value,
-          }))}
-          value={method}
-          onChange={({value}) => onChange('method', value)}
-          isDisabled={disabled}
-        />
-      </FormField>
+}: Props<Rule, KeysOfUnion<Rule>>) => {
+  const {source, type, method} = rule;
+  return (
+    <Wrapper>
+      <WrapperSelectFields>
+        <FormField label={t('Method')} tooltipInfo={t('What to do')}>
+          <SelectField
+            placeholder={t('Select method')}
+            name="method"
+            options={sortBy(Object.values(MethodType)).map(value => ({
+              ...getMethodLabel(value),
+              value,
+            }))}
+            value={method}
+            onChange={({value}) => onChange('method', value)}
+          />
+        </FormField>
+        <FormField
+          label={t('Data Type')}
+          tooltipInfo={t(
+            'What to look for. Use an existing pattern or define your own using regular expressions.'
+          )}
+        >
+          <SelectField
+            placeholder={t('Select type')}
+            name="type"
+            options={sortBy(Object.values(RuleType)).map(value => ({
+              label: getRuleLabel(value),
+              value,
+            }))}
+            value={type}
+            onChange={({value}) => onChange('type', value)}
+          />
+        </FormField>
+      </WrapperSelectFields>
+      {rule.type === RuleType.PATTERN && (
+        <FormField
+          label={t('Regex matches')}
+          tooltipInfo={t('Custom Perl-style regex (PCRE)')}
+          isFullWidth
+        >
+          <RegularExpression
+            name="pattern"
+            placeholder={t('[a-zA-Z0-9]+')}
+            onChange={(value: string) => {
+              onChange('pattern', value);
+            }}
+            value={rule.pattern}
+            onBlur={onValidate('pattern')}
+            error={errors?.pattern}
+          />
+        </FormField>
+      )}
+      {onUpdateEventId && (
+        <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
+      )}
       <FormField
-        label={t('Data Type')}
+        label={t('Source')}
         tooltipInfo={t(
-          'What to look for. Use an existing pattern or define your own using regular expressions.'
+          'Where to look. In the simplest case this can be an attribute name.'
         )}
       >
-        <SelectField
-          placeholder={t('Select type')}
-          name="type"
-          options={sortBy(Object.values(RuleType)).map(value => ({
-            label: getRuleTypeLabel(value),
-            value,
-          }))}
-          value={type}
-          onChange={({value}) => onChange('type', value)}
-          isDisabled={disabled}
-        />
-      </FormField>
-    </WrapperSelectFields>
-    {type === RuleType.PATTERN && (
-      <FormField
-        label={t('Regex matches')}
-        tooltipInfo={t('Custom Perl-style regex (PCRE)')}
-        isFullWidth
-      >
-        <CustomRegularExpression
-          name="customRegularExpression"
-          placeholder={t('[a-zA-Z0-9]+')}
+        <SourceField
           onChange={(value: string) => {
-            onChange('customRegularExpression', value);
+            onChange('source', value);
           }}
-          value={customRegularExpression}
-          onBlur={onValidate('customRegularExpression')}
-          error={errors.customRegularExpression}
-          disabled={disabled}
+          value={source}
+          onBlur={onValidate('source')}
+          isRegExMatchesSelected={type === RuleType.PATTERN}
+          suggestions={sourceSuggestions}
+          error={errors?.source}
         />
       </FormField>
-    )}
-    <EventidField onUpdateEventId={onUpdateEventId} eventId={eventId} />
-    <FormField
-      label={t('Source')}
-      tooltipInfo={t(
-        'Where to look. In the simplest case this can be an attribute name.'
-      )}
-    >
-      <Source
-        onChange={(value: string) => {
-          onChange('source', value);
-        }}
-        isRegExMatchesSelected={type === RuleType.PATTERN}
-        value={source}
-        onBlur={onValidate('source')}
-        suggestions={sourceSuggestions}
-        error={errors.source}
-        disabled={disabled}
-      />
-    </FormField>
-  </Wrapper>
-);
+    </Wrapper>
+  );
+};
 
 export default Form;
 
@@ -130,7 +131,7 @@ const WrapperSelectFields = styled('div')`
   }
 `;
 
-const CustomRegularExpression = styled(TextField)`
+const RegularExpression = styled(TextField)`
   font-size: ${p => p.theme.fontSizeSmall};
   height: 40px;
   input {

@@ -36,6 +36,12 @@ export enum SourceSuggestionType {
   STRING = 'string',
 }
 
+export enum RequestError {
+  Unknown = 'unknown',
+  InvalidSelector = 'invalid-selector',
+  RegexParse = 'regex-parse',
+}
+
 export type SourceSuggestion = {
   type: SourceSuggestionType;
   value: string;
@@ -43,24 +49,56 @@ export type SourceSuggestion = {
   examples?: Array<string>;
 };
 
-export type Rule = {
+type RuleBase = {
   id: number;
-  type: RuleType;
   method: MethodType;
   source: string;
-  customRegularExpression?: string;
 };
 
-export type PiiConfig = {
-  type: RuleType;
-  pattern?: string;
-  redaction?: {
-    method?: MethodType;
+export type RuleRegex = {
+  type: RuleType.PATTERN;
+  pattern: string;
+} & RuleBase;
+
+export type RuleWithoutRegex = {
+  type:
+    | RuleType.CREDITCARD
+    | RuleType.PASSWORD
+    | RuleType.IP
+    | RuleType.IMEI
+    | RuleType.EMAIL
+    | RuleType.UUID
+    | RuleType.PEMKEY
+    | RuleType.URLAUTH
+    | RuleType.USSSN
+    | RuleType.USER_PATH
+    | RuleType.MAC
+    | RuleType.ANYTHING;
+} & RuleBase;
+
+export type Rule = RuleRegex | RuleWithoutRegex;
+
+export type KeysOfUnion<T> = T extends any ? keyof T : never;
+
+export type EventId = {
+  value: string;
+  status?: EventIdStatus;
+};
+
+type PiiConfigBase = {
+  redaction: {
+    method: MethodType;
   };
 };
 
-export type PiiConfigRule = {
-  [key: string]: PiiConfig;
-};
+type PiiConfigRegex = Pick<RuleRegex, 'type'> & {
+  pattern: string;
+} & PiiConfigBase;
+
+type PiiConfigWithoutRegex = Pick<RuleWithoutRegex, 'type'> & PiiConfigBase;
+
+export type PiiConfig = PiiConfigWithoutRegex | PiiConfigRegex;
 
 export type Applications = Record<string, Array<string>>;
+
+export type Errors = Partial<Record<KeysOfUnion<Rule>, string>>;
