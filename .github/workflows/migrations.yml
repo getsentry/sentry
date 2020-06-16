@@ -76,6 +76,6 @@ jobs:
             psql -c 'create database sentry;' -h localhost -U postgres
 
         - name: Generate SQL for migration
-          uses: getsentry/action-migrations@master
+          uses: getsentry/action-migrations@v1
           with:
             migration: '0085'
