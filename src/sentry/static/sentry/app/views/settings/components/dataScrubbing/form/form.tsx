@@ -30,6 +30,7 @@ type Props<R extends Rule, K extends KeysOfUnion<R>> = {
   sourceSuggestions?: Array<SourceSuggestion>;
   eventId?: EventId;
 };
+
 const Form = ({
   rule,
   errors,
@@ -42,7 +43,7 @@ const Form = ({
   const {source, type, method} = rule;
   return (
     <Wrapper>
-      <WrapperSelectFields>
+      <GroupField hasTwoColumns={rule.method === MethodType.REPLACE}>
         <FormField label={t('Method')} tooltipInfo={t('What to do')}>
           <SelectField
             placeholder={t('Select method')}
@@ -55,6 +56,23 @@ const Form = ({
             onChange={({value}) => onChange('method', value)}
           />
         </FormField>
+        {rule.method === MethodType.REPLACE && (
+          <FormField
+            label={t('Custom Placeholder (Optional)')}
+            tooltipInfo={t('It will replace the default placeholder [Filtered]')}
+          >
+            <StyledTextField
+              name="placeholder"
+              placeholder={`[${t('Filtered')}]`}
+              onChange={(value: string) => {
+                onChange('placeholder', value);
+              }}
+              value={rule.placeholder}
+            />
+          </FormField>
+        )}
+      </GroupField>
+      <GroupField hasTwoColumns={rule.type === RuleType.PATTERN}>
         <FormField
           label={t('Data Type')}
           tooltipInfo={t(
@@ -72,25 +90,24 @@ const Form = ({
             onChange={({value}) => onChange('type', value)}
           />
         </FormField>
-      </WrapperSelectFields>
-      {rule.type === RuleType.PATTERN && (
-        <FormField
-          label={t('Regex matches')}
-          tooltipInfo={t('Custom Perl-style regex (PCRE)')}
-          isFullWidth
-        >
-          <RegularExpression
-            name="pattern"
-            placeholder={t('[a-zA-Z0-9]+')}
-            onChange={(value: string) => {
-              onChange('pattern', value);
-            }}
-            value={rule.pattern}
-            onBlur={onValidate('pattern')}
-            error={errors?.pattern}
-          />
-        </FormField>
-      )}
+        {rule.type === RuleType.PATTERN && (
+          <FormField
+            label={t('Regex matches')}
+            tooltipInfo={t('Custom Perl-style regex (PCRE)')}
+          >
+            <RegularExpression
+              name="pattern"
+              placeholder={t('[a-zA-Z0-9]+')}
+              onChange={(value: string) => {
+                onChange('pattern', value);
+              }}
+              value={rule.pattern}
+              onBlur={onValidate('pattern')}
+              error={errors?.pattern}
+            />
+          </FormField>
+        )}
+      </GroupField>
       {onUpdateEventId && (
         <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
       )}
@@ -122,20 +139,28 @@ const Wrapper = styled('div')`
   grid-row-gap: ${space(2)};
 `;
 
-const WrapperSelectFields = styled('div')`
+const GroupField = styled('div')<{hasTwoColumns: boolean}>`
   display: grid;
   grid-gap: ${space(2)};
-  grid-template-columns: 1fr;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: auto auto;
+    ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
   }
 `;
 
-const RegularExpression = styled(TextField)`
-  font-size: ${p => p.theme.fontSizeSmall};
+const StyledTextField = styled(TextField)<{error?: string}>`
   height: 40px;
   input {
     height: 40px;
+  }
+  ${p => !p.error && `margin-bottom: 0;`}
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    margin-bottom: 0;
+  }
+`;
+
+const RegularExpression = styled(StyledTextField)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  input {
     font-family: ${p => p.theme.text.familyMono};
   }
 `;

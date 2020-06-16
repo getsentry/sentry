@@ -92,7 +92,12 @@ class Dialog extends React.Component<Props, State> {
   ) => {
     const rule: Rule = {...this.state.rule, [stateProperty]: value};
 
+    if (rule.type === RuleType.PATTERN) {
+      rule.pattern = rule?.pattern || '';
+    }
+
     if (rule.type !== RuleType.PATTERN) {
+      // TODO(Priscila): Improve this logic
       // @ts-ignore
       delete rule?.pattern;
       this.clearError('pattern');
