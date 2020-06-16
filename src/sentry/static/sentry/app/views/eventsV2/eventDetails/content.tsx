@@ -91,6 +91,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const query = eventView.getEventsAPIPayload(location);
 
+    // Fields aren't used, reduce complexity by omitting from query entirely
+    query.field = [];
+
     const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
 
     // Get a specific event. This could be coming from
