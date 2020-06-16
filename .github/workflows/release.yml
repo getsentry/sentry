@@ -1,3 +1,4 @@
+name: release
 on:
   repository_dispatch:
     types: [release]
@@ -24,6 +25,7 @@ jobs:
           GIT_COMMITTER_NAME: getsentry-bot
           GIT_AUTHOR_NAME: getsentry-bot
           EMAIL: bot@getsentry.com
+          ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
       - uses: getsentry/craft@master
         with:
           action: publish
@@ -33,6 +35,7 @@ jobs:
           GIT_COMMITTER_NAME: getsentry-bot
           GIT_AUTHOR_NAME: getsentry-bot
           EMAIL: bot@getsentry.com
+          ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
           TWINE_USERNAME: 'getsentry'
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
           DOCKER_USERNAME: 'sentrybuilder'
