@@ -27,16 +27,13 @@ const getListItemDescription = (rule: Rule) => {
   descriptionDetails.push(`[${methodLabel.label}]`);
 
   if (rule.method === MethodType.REPLACE && rule.placeholder) {
-    descriptionDetails.push(`with [${rule.placeholder}]`);
+    descriptionDetails.push(` with [${rule.placeholder}]`);
   }
 
   descriptionDetails.push(`[${typeLabel}]`);
 
   if (rule.type === RuleType.PATTERN) {
-    descriptionDetails[descriptionDetails.length - 1] =
-      descriptionDetails.length === 3
-        ? `${t('using')} [${rule.pattern}]`
-        : `[${rule.pattern}]`;
+    descriptionDetails[descriptionDetails.length - 1] = `[${rule.pattern}]`;
   }
 
   return `${descriptionDetails.join(' ')} ${t('from')} [${source}]`;
