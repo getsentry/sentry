@@ -216,7 +216,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           headers={[
             t('Debug ID'),
             t('Information'),
-            <TextRight key="actions">{t('Actions')}</TextRight>,
+            <Actions key="actions">{t('Actions')}</Actions>,
           ]}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={debugFiles?.length === 0}
@@ -234,7 +234,7 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 37% 1fr auto;
 `;
 
-const TextRight = styled('div')`
+const Actions = styled('div')`
   text-align: right;
 `;
 
