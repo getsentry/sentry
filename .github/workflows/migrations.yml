@@ -15,8 +15,27 @@ jobs:
         SENTRY_SKIP_BACKEND_VALIDATION: 1
         MIGRATIONS_TEST_MIGRATE: 0
 
+        # The hostname used to communicate with the PostgreSQL from sentry
+        DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
+
         # Use this to override the django version in the requirements file.
         DJANGO_VERSION: ">=1.11,<1.12"
+
+      services:
+        postgres:
+          image: postgres:9.6
+          env:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+          ports:
+            # Maps tcp port 5432 on service container to the host
+            - 5432:5432
+          # needed because the postgres container does not provide a healthcheck
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
 
       steps:
         # Checkout codebase
