@@ -79,3 +79,5 @@ jobs:
 
         - name: Generate SQL for migration
           uses: getsentry/action-migrations@master
+          with:
+            migration: '0085'
