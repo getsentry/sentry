@@ -6,6 +6,7 @@ import six
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.slack import SlackIntegrationProvider
+from sentry.integrations.slack.integration import _get_channels_from_rules
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
@@ -211,3 +212,15 @@ class SlackMigrationTest(IntegrationTestCase):
         resp = self.client.get(u"{}?{}".format(self.init_path, urlencode({"integration_id": -1})))
         assert resp.status_code == 200
         self.assertContains(resp, "Setup Error")
+
+    def test_get_channels_from_rules(self):
+        new_rule = self.create_slack_project_rule(
+            project=self.project,
+            integration_id=six.text_type(self.integration.id),
+            channel_name="#something",
+        )
+        # test that we don't error out if channel_id isn't saved
+        del new_rule.data["actions"][0]["channel_id"]
+        new_rule.save()
+        channels = _get_channels_from_rules(self.organization, self.integration)
+        assert len(channels) == 1
