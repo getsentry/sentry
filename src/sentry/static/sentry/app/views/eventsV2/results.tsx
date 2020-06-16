@@ -80,10 +80,12 @@ class Results extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {api, location, organization, selection} = this.props;
     const {eventView} = this.state;
+
     if (
       !isEqual(prevProps.selection.projects, selection.projects) ||
       !isEqual(prevProps.selection.datetime, selection.datetime)
     ) {
+      api.clear();
       loadOrganizationTags(api, organization.slug, selection);
     }
 
@@ -91,6 +93,7 @@ class Results extends React.Component<Props, State> {
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
     if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
+      api.clear();
       this.fetchTotalCount();
     }
   }
