@@ -20,7 +20,8 @@ import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-type Props = RouteComponentProps<{integrationSlug: string}, {}>;
+//installationId present for Github flow
+type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
 
 type State = AsyncView['state'] & {
   selectedOrg?: string;
@@ -28,8 +29,7 @@ type State = AsyncView['state'] & {
   provider?: IntegrationProvider;
 };
 
-//TODO: make generic props so we can use with Github external installation by extending class
-export default class IntegrationInstallation extends AsyncView<Props, State> {
+export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
   getEndpoints(): [string, string][] {
     return [['organizations', '/organizations/']];
   }
@@ -142,8 +142,11 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
     );
   }
 
-  //This is where github would implement diffiferent functionality
   renderAddButtonContainer() {
+    // TOOD: Implement for Github
+    if (this.props.params.installationId) {
+      throw new Error('Not implemented yet');
+    }
     return this.renderAddButton(() => {
       // add the selected org to the query parameters and then redirect back to configure
       const {selectedOrg} = this.state;
