@@ -97,7 +97,7 @@ jest.mock('echarts-for-react/lib/core', () => {
 });
 
 jest.mock('@sentry/react', () => {
-  const SentryBrowser = jest.requireActual('@sentry/react');
+  const SentryReact = jest.requireActual('@sentry/react');
   return {
     init: jest.fn(),
     configureScope: jest.fn(),
@@ -113,9 +113,10 @@ jest.mock('@sentry/react', () => {
     startSpan: jest.fn(),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
-    getCurrentHub: jest.spyOn(SentryBrowser, 'getCurrentHub'),
-    withScope: jest.spyOn(SentryBrowser, 'withScope'),
-    Severity: SentryBrowser.Severity,
+    getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
+    withScope: jest.spyOn(SentryReact, 'withScope'),
+    Severity: SentryReact.Severity,
+    withProfiler: SentryReact.withProfiler,
   };
 });
 

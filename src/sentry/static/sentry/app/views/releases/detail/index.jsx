@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import pick from 'lodash/pick';
 
+import {withProfiler} from '@sentry/react';
 import {PageContent} from 'app/styles/organization';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {tn} from 'app/locale';
@@ -13,7 +14,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import withProfiler from 'app/utils/withProfiler';
 import withProjects from 'app/utils/withProjects';
 
 import ReleaseHeader from './releaseHeader';

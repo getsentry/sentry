@@ -17,7 +17,6 @@ import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
-import withProfiler from 'app/utils/withProfiler';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -295,4 +294,4 @@ class GroupDetails extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withProfiler(GroupDetails));
+export default withApi(Sentry.withProfiler(GroupDetails));

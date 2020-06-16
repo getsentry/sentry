@@ -24,7 +24,6 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
-import withProfiler from 'app/utils/withProfiler';
 
 const OrganizationContext = createReactClass({
   displayName: 'OrganizationContext',
@@ -299,7 +298,7 @@ const OrganizationContext = createReactClass({
   },
 });
 
-export default withApi(withOrganizations(withProfiler(OrganizationContext)));
+export default withApi(withOrganizations(Sentry.withProfiler(OrganizationContext)));
 export {OrganizationContext};
 
 const ErrorWrapper = styled('div')`
