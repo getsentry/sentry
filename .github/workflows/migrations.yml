@@ -102,7 +102,7 @@ jobs:
         - name: Generate SQL for migration
           uses: getsentry/action-migrations@v1.0.2
           env:
-            SENTRY_LOG_LEVEL: WARN
+            SENTRY_LOG_LEVEL: ERROR
             PGPASSWORD: postgres
           with:
             githubToken: ${{ secrets.GITHUB_TOKEN }}
