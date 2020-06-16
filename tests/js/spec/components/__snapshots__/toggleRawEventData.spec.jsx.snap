@@ -12,7 +12,9 @@ exports[`EventDataSection renders formatted 1`] = `
       className="permalink"
       href="#extra"
     >
-      <ForwardRef />
+      <em
+        className="icon-anchor"
+      />
     </Permalink>
     <h3>
       Additional Data
@@ -53,7 +55,9 @@ exports[`EventDataSection renders raw 1`] = `
       className="permalink"
       href="#extra"
     >
-      <ForwardRef />
+      <em
+        className="icon-anchor"
+      />
     </Permalink>
     <h3>
       Additional Data
