@@ -39,6 +39,13 @@ class VercelExtensionConfigurationTest(TestCase):
         responses.add(
             responses.GET, "https://api.vercel.com/v4/projects/", json={"projects": []},
         )
+
+        responses.add(
+            responses.POST,
+            "https://api.vercel.com/v1/integrations/webhooks",
+            json={"id": "webhook-id"},
+        )
+
         self.params = {
             "configurationId": "config_id",
             "code": "my-code",
