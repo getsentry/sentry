@@ -29,9 +29,10 @@
 /src/sentry/net/    @getsentry/security
 
 # Build & Releases
-/docker             @getsentry/releases
-setup.py            @getsentry/releases
-setup.cfg           @getsentry/releases
+/.github/workflows/release.yml  @getsentry/releases
+/docker                         @getsentry/releases
+setup.py                        @getsentry/releases
+setup.cfg                       @getsentry/releases
 # TODO: owners-build (for travis / gha)
 requirements*.txt   @getsentry/owners-python-build
 pyproject.toml      @getsentry/owners-python-build
