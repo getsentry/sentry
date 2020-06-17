@@ -11,6 +11,8 @@ export type Query = {
   query?: string;
   orderby?: string;
   groupby?: string;
+  rollup?: number;
+  name?: string;
   limit?: number;
   range?: string;
   start?: string;
