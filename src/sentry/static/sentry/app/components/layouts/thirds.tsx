@@ -5,7 +5,7 @@ import space from 'app/styles/space';
 /**
  * Base container for 66/33 containers.
  */
-export const LayoutBody = styled('div')`
+export const Body = styled('div')`
   padding: ${space(2)} ${space(4)};
   margin: 0;
   background-color: ${p => p.theme.white};
