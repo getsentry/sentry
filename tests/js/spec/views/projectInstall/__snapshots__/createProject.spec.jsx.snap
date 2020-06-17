@@ -67,7 +67,7 @@ exports[`CreateProject should block if you have access to no teams 1`] = `
                 borderless={true}
                 data-test-id="create-team"
                 icon={
-                  <ForwardRef
+                  <ForwardRef(IconAdd)
                     isCircled={true}
                   />
                 }
@@ -1522,7 +1522,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                 borderless={true}
                                 data-test-id="create-team"
                                 icon={
-                                  <ForwardRef
+                                  <ForwardRef(IconAdd)
                                     isCircled={true}
                                   />
                                 }
@@ -1536,7 +1536,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                   disabled={false}
                                   forwardRef={null}
                                   icon={
-                                    <ForwardRef
+                                    <ForwardRef(IconAdd)
                                       isCircled={true}
                                     />
                                   }
@@ -1583,7 +1583,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                               <span
                                                 className="css-1a0nfqj-Icon edwq9my2"
                                               >
-                                                <ForwardRef
+                                                <IconAdd
                                                   isCircled={true}
                                                 >
                                                   <ForwardRef(SvgIcon)>
@@ -1604,7 +1604,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                                       />
                                                     </svg>
                                                   </ForwardRef(SvgIcon)>
-                                                </ForwardRef>
+                                                </IconAdd>
                                               </span>
                                             </Icon>
                                           </span>
@@ -2133,7 +2133,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                       borderless={true}
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
-                        <ForwardRef
+                        <ForwardRef(IconClose)
                           isCircled={true}
                           size="xs"
                         />
@@ -2148,7 +2148,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <ForwardRef
+                          <ForwardRef(IconClose)
                             isCircled={true}
                             size="xs"
                           />
@@ -2197,7 +2197,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                       className="css-dm7gfi-Icon edwq9my2"
                                       size="xsmall"
                                     >
-                                      <ForwardRef
+                                      <IconClose
                                         isCircled={true}
                                         size="xs"
                                       >
@@ -2221,7 +2221,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconClose>
                                     </span>
                                   </Icon>
                                 </span>
@@ -2528,7 +2528,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                 borderless={true}
                                 data-test-id="create-team"
                                 icon={
-                                  <ForwardRef
+                                  <ForwardRef(IconAdd)
                                     isCircled={true}
                                   />
                                 }
@@ -2542,7 +2542,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                   disabled={false}
                                   forwardRef={null}
                                   icon={
-                                    <ForwardRef
+                                    <ForwardRef(IconAdd)
                                       isCircled={true}
                                     />
                                   }
@@ -2589,7 +2589,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                               <span
                                                 className="css-1a0nfqj-Icon edwq9my2"
                                               >
-                                                <ForwardRef
+                                                <IconAdd
                                                   isCircled={true}
                                                 >
                                                   <ForwardRef(SvgIcon)>
@@ -2610,7 +2610,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                                       />
                                                     </svg>
                                                   </ForwardRef(SvgIcon)>
-                                                </ForwardRef>
+                                                </IconAdd>
                                               </span>
                                             </Icon>
                                           </span>
@@ -3039,7 +3039,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                       borderless={true}
                       className="css-rqv9pd-ClearButton exv4dm85"
                       icon={
-                        <ForwardRef
+                        <ForwardRef(IconClose)
                           isCircled={true}
                           size="xs"
                         />
@@ -3054,7 +3054,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <ForwardRef
+                          <ForwardRef(IconClose)
                             isCircled={true}
                             size="xs"
                           />
@@ -3103,7 +3103,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                       className="css-dm7gfi-Icon edwq9my2"
                                       size="xsmall"
                                     >
-                                      <ForwardRef
+                                      <IconClose
                                         isCircled={true}
                                         size="xs"
                                       >
@@ -3127,7 +3127,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconClose>
                                     </span>
                                   </Icon>
                                 </span>
@@ -4234,7 +4234,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                 borderless={true}
                                 data-test-id="create-team"
                                 icon={
-                                  <ForwardRef
+                                  <ForwardRef(IconAdd)
                                     isCircled={true}
                                   />
                                 }
@@ -4248,7 +4248,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                   disabled={false}
                                   forwardRef={null}
                                   icon={
-                                    <ForwardRef
+                                    <ForwardRef(IconAdd)
                                       isCircled={true}
                                     />
                                   }
@@ -4295,7 +4295,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                               <span
                                                 className="css-1a0nfqj-Icon edwq9my2"
                                               >
-                                                <ForwardRef
+                                                <IconAdd
                                                   isCircled={true}
                                                 >
                                                   <ForwardRef(SvgIcon)>
@@ -4316,7 +4316,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                                       />
                                                     </svg>
                                                   </ForwardRef(SvgIcon)>
-                                                </ForwardRef>
+                                                </IconAdd>
                                               </span>
                                             </Icon>
                                           </span>
