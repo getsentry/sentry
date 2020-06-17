@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
@@ -136,11 +137,58 @@ class DataDownload extends AsyncView<Props, State> {
       </React.Fragment>
     );
   }
+
+  openInDiscover() {
+    const {
+      download: {
+        query: {info},
+      },
+    } = this.state;
+    const {orgId} = this.props.params;
+
+    const to = {
+      pathname: `/organizations/${orgId}/discover/results/`,
+      query: info,
+    };
+
+    browserHistory.push(to);
+  }
+
+  renderOpenInDiscover() {
+    const {
+      download: {
+        query = {
+          type: ExportQueryType.IssuesByTag,
+          info: {},
+        },
+      },
+    } = this.state;
+
+    // default to IssuesByTag because we dont want to
+    // display this unless we're sure its a discover query
+    const {type = ExportQueryType.IssuesByTag} = query;
+
+    return type === 'Discover' ? (
+      <React.Fragment>
+        <p>{t('Need to make changes?')}</p>
+        <Button
+          priority="primary"
+          icon="icon-discover"
+          onClick={() => this.openInDiscover()}
+        >
+          {t('Open in Discover')}
+        </Button>
+        <br />
+      </React.Fragment>
+    ) : null;
+  }
+
   renderValid(): React.ReactNode {
     const {
       download: {dateExpired, checksum},
     } = this.state;
     const {orgId, dataExportId} = this.props.params;
+
     return (
       <React.Fragment>
         <Header>
@@ -160,6 +208,7 @@ class DataDownload extends AsyncView<Props, State> {
             <br />
             {this.renderDate(dateExpired)}
           </p>
+          {this.renderOpenInDiscover()}
           <small>
             <strong>SHA1:{checksum}</strong>
           </small>
@@ -180,6 +229,7 @@ class DataDownload extends AsyncView<Props, State> {
       </React.Fragment>
     );
   }
+
   renderError(): React.ReactNode {
     const {
       errors: {download: err},
