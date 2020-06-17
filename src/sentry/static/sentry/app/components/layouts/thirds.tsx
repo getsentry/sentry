@@ -54,7 +54,7 @@ export const Header = styled('div')`
  * Containers for two column 66/33 layout.
  */
 export const Main = styled('section')<{fullWidth?: boolean}>`
-  grid-column: 1/2;
+  grid-column: ${p => (p.fullWidth ? '1/3' : '1/2')};
   max-width: 100%;
 `;
 export const Side = styled('aside')`

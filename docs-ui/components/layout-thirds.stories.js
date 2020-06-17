@@ -121,10 +121,13 @@ storiesOf('Layouts|Thirds', module)
             </ButtonBar>
           </Layout.HeaderContent>
         </Layout.Header>
-        <Layout.Body>
+        <Layout.Body fullWidth>
           <Layout.Main fullWidth>
             <h1>Content Region</h1>
-            <p>Some text here</p>
+            <p>
+              Some text here, that goes on and on. It should strecth the full width of the
+              container, and have no space on the right.
+            </p>
           </Layout.Main>
         </Layout.Body>
       </Container>
