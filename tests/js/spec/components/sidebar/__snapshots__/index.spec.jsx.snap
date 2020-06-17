@@ -1450,7 +1450,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                     class="css-1513qml-Container eowlwvy0"
                   >
                     <svg
-                      fill="#FA5849"
+                      fill="redLight"
                       height="12px"
                       viewBox="0 0 16 16"
                       width="12px"
@@ -1487,7 +1487,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                     class="css-1513qml-Container eowlwvy0"
                   >
                     <svg
-                      fill="#FA5849"
+                      fill="redLight"
                       height="12px"
                       viewBox="0 0 16 16"
                       width="12px"
@@ -1524,7 +1524,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                     class="css-1513qml-Container eowlwvy0"
                   >
                     <svg
-                      fill="#FA5849"
+                      fill="redLight"
                       height="12px"
                       viewBox="0 0 16 16"
                       width="12px"
@@ -1562,7 +1562,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                     class="css-1513qml-Container eowlwvy0"
                   >
                     <svg
-                      fill="#FA5849"
+                      fill="redLight"
                       height="12px"
                       viewBox="0 0 16 16"
                       width="12px"
@@ -1600,7 +1600,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                     class="css-1513qml-Container eowlwvy0"
                   >
                     <svg
-                      fill="#FA5849"
+                      fill="redLight"
                       height="12px"
                       viewBox="0 0 16 16"
                       width="12px"
@@ -4486,7 +4486,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         size="xs"
                                                       >
                                                         <svg
-                                                          fill="#FA5849"
+                                                          fill="redLight"
                                                           height="12px"
                                                           viewBox="0 0 16 16"
                                                           width="12px"
@@ -5387,7 +5387,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         size="xs"
                                                       >
                                                         <svg
-                                                          fill="#FA5849"
+                                                          fill="redLight"
                                                           height="12px"
                                                           viewBox="0 0 16 16"
                                                           width="12px"
@@ -6294,7 +6294,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         size="xs"
                                                       >
                                                         <svg
-                                                          fill="#FA5849"
+                                                          fill="redLight"
                                                           height="12px"
                                                           viewBox="0 0 16 16"
                                                           width="12px"
@@ -7202,7 +7202,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         size="xs"
                                                       >
                                                         <svg
-                                                          fill="#FA5849"
+                                                          fill="redLight"
                                                           height="12px"
                                                           viewBox="0 0 16 16"
                                                           width="12px"
@@ -8008,7 +8008,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                         size="xs"
                                                       >
                                                         <svg
-                                                          fill="#FA5849"
+                                                          fill="redLight"
                                                           height="12px"
                                                           viewBox="0 0 16 16"
                                                           width="12px"
