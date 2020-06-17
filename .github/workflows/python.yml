@@ -6,7 +6,7 @@ on:
 
 jobs:
     check-missing-migration:
-      name: Check Missing Migration
+      name: Check Migration Required
       runs-on: ubuntu-16.04
 
       env:
@@ -95,7 +95,7 @@ jobs:
             psql -c 'create database sentry;' -h localhost -U postgres
             sentry init
 
-        - name: Check for migration
+        - name: Check if a migration is required
           env:
             SENTRY_LOG_LEVEL: ERROR
             PGPASSWORD: postgres
