@@ -297,7 +297,7 @@ exports[`RuleBuilder renders 1`] = `
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                          className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                           clearable={false}
                           deleteRemoves={false}
                           disabled={false}
@@ -331,7 +331,7 @@ exports[`RuleBuilder renders 1`] = `
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                            className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -395,7 +395,7 @@ exports[`RuleBuilder renders 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
+                              className="Select e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
                             >
                               <input
                                 disabled={false}
@@ -529,7 +529,7 @@ exports[`RuleBuilder renders 1`] = `
         value=""
       >
         <input
-          className="css-1i5uufk-Input-BuilderInput e1hyuoc77"
+          className="css-dcbptt-Input-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
@@ -759,7 +759,7 @@ exports[`RuleBuilder renders 1`] = `
                           async={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                          className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -780,7 +780,7 @@ exports[`RuleBuilder renders 1`] = `
                             autoload={true}
                             backspaceRemoves={true}
                             cache={false}
-                            className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                            className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                             clearable={true}
                             defaultOptions={true}
                             deleteRemoves={true}
@@ -807,7 +807,7 @@ exports[`RuleBuilder renders 1`] = `
                               backspaceRemoves={true}
                               backspaceToRemoveMessage="Press backspace to remove {label}"
                               cache={false}
-                              className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                              className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                               clearAllText="Clear all"
                               clearRenderer={[Function]}
                               clearValueText="Clear value"
@@ -995,7 +995,7 @@ exports[`RuleBuilder renders 1`] = `
                               valueKey="value"
                             >
                               <div
-                                className="Select css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0 is-clearable is-searchable Select--multi"
+                                className="Select css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0 is-clearable is-searchable Select--multi"
                               >
                                 <div
                                   className="Select-control"
@@ -1288,21 +1288,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-11joymd-RuleCandidate e1hyuoc73"
+          className="css-1ua5imf-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <StyledIconAdd
             isCircled={true}
           >
             <IconAdd
-              className="css-zq12t8-StyledIconAdd e1hyuoc74"
+              className="css-hvja8k-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
               <ForwardRef(SvgIcon)
-                className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                className="css-hvja8k-StyledIconAdd e1hyuoc74"
               >
                 <svg
-                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  className="css-hvja8k-StyledIconAdd e1hyuoc74"
                   fill="currentColor"
                   height="16px"
                   viewBox="0 0 16 16"
@@ -1330,7 +1330,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-acyfg9-TypeHint e1hyuoc71"
+              className="css-g76lhf-TypeHint e1hyuoc71"
             >
               [PATH]
             </div>
@@ -1342,21 +1342,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-11joymd-RuleCandidate e1hyuoc73"
+          className="css-1ua5imf-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <StyledIconAdd
             isCircled={true}
           >
             <IconAdd
-              className="css-zq12t8-StyledIconAdd e1hyuoc74"
+              className="css-hvja8k-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
               <ForwardRef(SvgIcon)
-                className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                className="css-hvja8k-StyledIconAdd e1hyuoc74"
               >
                 <svg
-                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  className="css-hvja8k-StyledIconAdd e1hyuoc74"
                   fill="currentColor"
                   height="16px"
                   viewBox="0 0 16 16"
@@ -1384,7 +1384,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-acyfg9-TypeHint e1hyuoc71"
+              className="css-g76lhf-TypeHint e1hyuoc71"
             >
               [PATH]
             </div>
@@ -1396,21 +1396,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-11joymd-RuleCandidate e1hyuoc73"
+          className="css-1ua5imf-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <StyledIconAdd
             isCircled={true}
           >
             <IconAdd
-              className="css-zq12t8-StyledIconAdd e1hyuoc74"
+              className="css-hvja8k-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
               <ForwardRef(SvgIcon)
-                className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                className="css-hvja8k-StyledIconAdd e1hyuoc74"
               >
                 <svg
-                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  className="css-hvja8k-StyledIconAdd e1hyuoc74"
                   fill="currentColor"
                   height="16px"
                   viewBox="0 0 16 16"
@@ -1438,7 +1438,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-acyfg9-TypeHint e1hyuoc71"
+              className="css-g76lhf-TypeHint e1hyuoc71"
             >
               [URL]
             </div>
@@ -1450,21 +1450,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-11joymd-RuleCandidate e1hyuoc73"
+          className="css-1ua5imf-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <StyledIconAdd
             isCircled={true}
           >
             <IconAdd
-              className="css-zq12t8-StyledIconAdd e1hyuoc74"
+              className="css-hvja8k-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
               <ForwardRef(SvgIcon)
-                className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                className="css-hvja8k-StyledIconAdd e1hyuoc74"
               >
                 <svg
-                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  className="css-hvja8k-StyledIconAdd e1hyuoc74"
                   fill="currentColor"
                   height="16px"
                   viewBox="0 0 16 16"
@@ -1492,7 +1492,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-acyfg9-TypeHint e1hyuoc71"
+              className="css-g76lhf-TypeHint e1hyuoc71"
             >
               [URL]
             </div>
@@ -1731,7 +1731,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                          className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                           clearable={false}
                           deleteRemoves={false}
                           disabled={false}
@@ -1765,7 +1765,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                            className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -1829,7 +1829,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
+                              className="Select e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
                             >
                               <input
                                 disabled={false}
@@ -1963,7 +1963,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         value="a/bar"
       >
         <input
-          className="css-1i5uufk-Input-BuilderInput e1hyuoc77"
+          className="css-dcbptt-Input-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value="a/bar"
@@ -1972,33 +1972,15 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       <Divider
         direction="right"
       >
-        <IconChevron
-          className="css-15osf6z-Divider e1hyuoc79"
-          direction="right"
+        <ForwardRef
+          className="css-nys6t0-InlineSvg-Divider e1hyuoc79"
+          src="icon-chevron-right"
         >
-          <EmotionCssPropInternal
-            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
-            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
-              Object {
-                "$$typeof": Symbol(react.forward_ref),
-                "propTypes": Object {
-                  "color": [Function],
-                  "size": [Function],
-                  "viewBox": [Function],
-                },
-                "render": [Function],
-              }
-            }
-            className="css-15osf6z-Divider e1hyuoc79"
-            css={
-              Object {
-                "map": undefined,
-                "name": "72rehw-IconChevron",
-                "next": undefined,
-                "styles": "transform:rotate(90deg);;label:IconChevron;",
-                "toString": [Function],
-              }
-            }
+          <svg
+            className="css-nys6t0-InlineSvg-Divider e1hyuoc79"
+            height="1em"
+            viewBox={Object {}}
+            width="1em"
           >
             <ForwardRef(SvgIcon)
               className="e1hyuoc79 css-3y5g3p-IconChevron-Divider"
@@ -2459,7 +2441,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           async={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                          className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -2518,7 +2500,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             autoload={true}
                             backspaceRemoves={true}
                             cache={false}
-                            className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                            className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                             clearable={true}
                             defaultOptions={true}
                             deleteRemoves={true}
@@ -2583,7 +2565,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               backspaceRemoves={true}
                               backspaceToRemoveMessage="Press backspace to remove {label}"
                               cache={false}
-                              className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                              className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                               clearAllText="Clear all"
                               clearRenderer={[Function]}
                               clearValueText="Clear value"
@@ -2809,7 +2791,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               valueKey="value"
                             >
                               <div
-                                className="Select css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0 has-value is-clearable is-focused is-searchable Select--multi"
+                                className="Select css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0 has-value is-clearable is-focused is-searchable Select--multi"
                               >
                                 <div
                                   className="Select-control"

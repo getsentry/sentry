@@ -162,7 +162,7 @@ exports[`SharedGroupDetails renders 1`] = `
                 >
                   <Wrapper>
                     <div
-                      className="css-rl8raw-Wrapper ew9ysh20"
+                      className="css-1947e1m-Wrapper ew9ysh20"
                     >
                       <Details>
                         <div
@@ -580,7 +580,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                 className=""
                               >
                                 <div
-                                  className=" css-14ma22z-DataSection e1z0bih40"
+                                  className=" css-3rlrsb-DataSection e1z0bih40"
                                 >
                                   <SectionHeader
                                     id="message"

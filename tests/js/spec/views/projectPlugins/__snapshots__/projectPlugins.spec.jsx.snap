@@ -60,14 +60,14 @@ exports[`ProjectPlugins renders 1`] = `
 >
   <Panel>
     <Component
-      className="css-15hwgrz-Panel e119nu470"
+      className="css-ietoyz-Panel e119nu470"
     >
       <div
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <PanelHeader>
           <div
-            className="css-1es1m70-PanelHeader en8g1d30"
+            className="css-pi486d-PanelHeader en8g1d30"
           >
             <div>
               Legacy Integration
@@ -296,7 +296,7 @@ exports[`ProjectPlugins renders 1`] = `
                 p={2}
               >
                 <div
-                  className="css-ylaqrk-PanelItem ej5ox20"
+                  className="css-hd0iky-PanelItem ej5ox20"
                 >
                   <WithOrganizationMockWrapper
                     assets={Array []}
@@ -671,7 +671,7 @@ exports[`ProjectPlugins renders 1`] = `
                                       >
                                         <button
                                           aria-checked={false}
-                                          className="css-1tqvyh8-SwitchButton ezmyi9u0"
+                                          className="css-18mwse8-SwitchButton ezmyi9u0"
                                           data-test-id="switch"
                                           onClick={[Function]}
                                           role="checkbox"
@@ -707,7 +707,7 @@ exports[`ProjectPlugins renders 1`] = `
                 p={2}
               >
                 <div
-                  className="css-ylaqrk-PanelItem ej5ox20"
+                  className="css-hd0iky-PanelItem ej5ox20"
                 >
                   <WithOrganizationMockWrapper
                     assets={Array []}
@@ -1051,7 +1051,7 @@ exports[`ProjectPlugins renders 1`] = `
                                       >
                                         <button
                                           aria-checked={true}
-                                          className="css-xyqwsd-SwitchButton ezmyi9u0"
+                                          className="css-9o71x4-SwitchButton ezmyi9u0"
                                           data-test-id="switch"
                                           role="checkbox"
                                           size="lg"

@@ -779,7 +779,7 @@ exports[`Project Ownership Input renders 1`] = `
                             async={true}
                             backspaceRemoves={true}
                             cache={false}
-                            className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                            className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                             clearable={true}
                             defaultOptions={true}
                             deleteRemoves={true}
@@ -800,7 +800,7 @@ exports[`Project Ownership Input renders 1`] = `
                               autoload={true}
                               backspaceRemoves={true}
                               cache={false}
-                              className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                              className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                               clearable={true}
                               defaultOptions={true}
                               deleteRemoves={true}
@@ -827,7 +827,7 @@ exports[`Project Ownership Input renders 1`] = `
                                 backspaceRemoves={true}
                                 backspaceToRemoveMessage="Press backspace to remove {label}"
                                 cache={false}
-                                className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                                className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                                 clearAllText="Clear all"
                                 clearRenderer={[Function]}
                                 clearValueText="Clear value"
@@ -879,7 +879,7 @@ exports[`Project Ownership Input renders 1`] = `
                                 valueKey="value"
                               >
                                 <div
-                                  className="Select css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0 is-clearable is-loading is-searchable Select--multi"
+                                  className="Select css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0 is-clearable is-loading is-searchable Select--multi"
                                 >
                                   <div
                                     className="Select-control"
@@ -1131,7 +1131,7 @@ tags.sku_class:enterprise #enterprise"
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        className="css-1bcdesj-StyledTextArea en3n9di3"
+        className="css-1ws5ptf-StyledTextArea en3n9di3"
         onChange={[Function]}
         placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1146,7 +1146,7 @@ tags.sku_class:enterprise #enterprise"
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
-          className="css-1bcdesj-StyledTextArea en3n9di3"
+          className="css-1ws5ptf-StyledTextArea en3n9di3"
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
