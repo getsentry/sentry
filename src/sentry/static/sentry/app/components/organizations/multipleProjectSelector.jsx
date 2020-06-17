@@ -204,11 +204,12 @@ export default class MultipleProjectSelector extends React.PureComponent {
       <StyledHeaderItem
         data-test-id="global-header-project-selector"
         icon={
-          <PlatformList
-            platforms={forceProject?.platform ? [forceProject.platform] : []}
-            max={1}
-            size={16}
-          />
+          forceProject && (
+            <PlatformList
+              platforms={forceProject.platform ? [forceProject.platform] : []}
+              max={1}
+            />
+          )
         }
         locked
         lockedMessage={this.getLockedMessage()}
@@ -272,7 +273,6 @@ export default class MultipleProjectSelector extends React.PureComponent {
                 <PlatformList
                   platforms={selectedProjects.map(p => p.platform ?? 'other').reverse()}
                   max={5}
-                  size={16}
                 />
               ) : (
                 <IconProject />
