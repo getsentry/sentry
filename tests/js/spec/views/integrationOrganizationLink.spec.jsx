@@ -6,7 +6,7 @@ import {selectByValue} from 'sentry-test/select-new';
 
 import IntegrationOrganizationLink from 'app/views/integrationOrganizationLink';
 
-describe('SentryAppExternalInstallation', () => {
+describe('IntegrationOrganizationLink', () => {
   let wrapper,
     getOrgsMock,
     getOrgMock,
