@@ -292,8 +292,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
   renderButtonCreateAlert() {
     const {eventView, organization, projects} = this.props;
-    // Must have exactly one project selected
-    const hasProjectError = eventView.project.length !== 1;
+    // Must have exactly one project selected and not -1 (all projects)
+    const hasProjectError = eventView.project.length !== 1 || eventView.project[0] === -1;
     // Must have one or zero environments
     const hasEnvironmentError = eventView.environment.length > 1;
     // Must have event.type of error or transaction
