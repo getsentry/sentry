@@ -324,7 +324,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               withPadding={false}
             >
               <div
-                className="css-1ehogmz-FlexBox e1vnwt6f0"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <EmptyMessage>
                   <Component
@@ -680,7 +680,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               withPadding={false}
             >
               <div
-                className="css-1ehogmz-FlexBox e1vnwt6f0"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <EmptyMessage>
                   <Component
@@ -1036,7 +1036,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
               withPadding={false}
             >
               <div
-                className="css-1ehogmz-FlexBox e1vnwt6f0"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <EnvironmentRow
                   actionText="Show"

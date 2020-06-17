@@ -56,7 +56,7 @@ exports[`ReleaseCommits organization release commits 1`] = `
                 withPadding={false}
               >
                 <div
-                  className="css-1ehogmz-FlexBox e1vnwt6f0"
+                  className="css-1nto0rx-FlexBox e1vnwt6f0"
                 >
                   <Styled(CommitRow)
                     commit={
@@ -442,7 +442,7 @@ exports[`ReleaseCommits project release commits 1`] = `
                 withPadding={false}
               >
                 <div
-                  className="css-1ehogmz-FlexBox e1vnwt6f0"
+                  className="css-1nto0rx-FlexBox e1vnwt6f0"
                 >
                   <Styled(CommitRow)
                     commit={
