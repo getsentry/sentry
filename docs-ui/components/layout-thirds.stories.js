@@ -48,17 +48,17 @@ storiesOf('Layouts|Thirds', module)
     withInfo('Two column layout with header controls')(() => (
       <Container>
         <Layout.Header>
-          <Layout.HeaderRegion>
+          <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
             <Button>Top button</Button>
-          </Layout.HeaderRegion>
-          <Layout.HeaderRegion>
+          </Layout.HeaderContent>
+          <Layout.HeaderContent>
             <Heading>Some heading content</Heading>
             <ButtonBar gap={1}>
               <Button size="small">clicker</Button>
               <Button size="small">clicker</Button>
             </ButtonBar>
-          </Layout.HeaderRegion>
+          </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>
@@ -77,11 +77,11 @@ storiesOf('Layouts|Thirds', module)
     withInfo('Two column layout with header controls')(() => (
       <Container>
         <Layout.Header>
-          <Layout.HeaderRegion>
+          <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
             <Button>Top button</Button>
-          </Layout.HeaderRegion>
-          <Layout.HeaderRegion>
+          </Layout.HeaderContent>
+          <Layout.HeaderContent>
             <Heading>Heading text</Heading>
             <ButtonBar gap={1}>
               <Button size="small">rollup</Button>
@@ -90,7 +90,7 @@ storiesOf('Layouts|Thirds', module)
               <Button size="small">update</Button>
               <Button size="small">delete</Button>
             </ButtonBar>
-          </Layout.HeaderRegion>
+          </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>
@@ -109,17 +109,17 @@ storiesOf('Layouts|Thirds', module)
     withInfo('Single column mode so we can hide the sidebar')(() => (
       <Container>
         <Layout.Header>
-          <Layout.HeaderRegion>
+          <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
             <Button>Top button</Button>
-          </Layout.HeaderRegion>
-          <Layout.HeaderRegion>
+          </Layout.HeaderContent>
+          <Layout.HeaderContent>
             <Heading>Some heading content</Heading>
             <ButtonBar gap={1}>
               <Button size="small">clicker</Button>
               <Button size="small">clicker</Button>
             </ButtonBar>
-          </Layout.HeaderRegion>
+          </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>

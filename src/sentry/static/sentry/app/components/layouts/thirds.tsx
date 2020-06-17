@@ -24,10 +24,10 @@ export const Body = styled('div')`
 `;
 
 /**
- * Use HeaderRegion to create horizontal regions in the header
+ * Use HeaderContent to create horizontal regions in the header
  * that contain a heading/breadcrumbs and a button group.
  */
-export const HeaderRegion = styled('div')`
+export const HeaderContent = styled('div')`
   display: flex;
   justify-content: space-between;
 `;
@@ -42,10 +42,10 @@ export const Header = styled('div')`
   margin: 0;
   flex-grow: 0;
 
-  & > ${HeaderRegion} {
+  & > ${/* sc-selector */ HeaderContent} {
     margin-bottom: ${space(1)};
   }
-  & > ${HeaderRegion}:last-child {
+  & > ${/* sc-selector */ HeaderContent}:last-child {
     margin: 0;
   }
 `;
