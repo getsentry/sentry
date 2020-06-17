@@ -24,7 +24,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  selectedOrg?: string;
+  selectedOrgSlug?: string;
   organization?: Organization;
   provider?: IntegrationProvider;
 };
@@ -94,7 +94,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   };
 
   onSelectOrg = async ({value: orgSlug}: {value: string}) => {
-    this.setState({selectedOrg: orgSlug, reloading: true, organization: undefined});
+    this.setState({selectedOrgSlug: orgSlug, reloading: true, organization: undefined});
 
     try {
       const [organization, {providers}]: [
@@ -149,8 +149,8 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     }
     return this.renderAddButton(() => {
       // add the selected org to the query parameters and then redirect back to configure
-      const {selectedOrg} = this.state;
-      const query = {orgSlug: selectedOrg, ...this.queryParams};
+      const {selectedOrgSlug} = this.state;
+      const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
       this.trackInstallationStart();
       window.location.assign(`/extensions/vercel/configure/?${urlEncode(query)}`);
     });
@@ -197,7 +197,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   };
 
   renderBottom() {
-    const {organization, selectedOrg, provider, reloading} = this.state;
+    const {organization, selectedOrgSlug, provider, reloading} = this.state;
     const {FeatureList} = getIntegrationFeatureGate();
     if (reloading) {
       return <LoadingIndicator />;
@@ -205,7 +205,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
 
     return (
       <React.Fragment>
-        {selectedOrg && organization && !this.hasAccess() && (
+        {selectedOrgSlug && organization && !this.hasAccess() && (
           <Alert type="error" icon="icon-circle-exclamation">
             <p>
               {tct(
@@ -241,7 +241,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   }
 
   renderBody() {
-    const {selectedOrg} = this.state;
+    const {selectedOrgSlug} = this.state;
     const options = this.state.organizations.map((org: Organization) => ({
       value: org.slug,
       label: org.name,
@@ -264,7 +264,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
         <Field label={t('Organization')} inline={false} stacked required>
           <SelectControl
             onChange={this.onSelectOrg}
-            value={selectedOrg}
+            value={selectedOrgSlug}
             placeholder={t('Select an organization')}
             options={options}
             components={{
