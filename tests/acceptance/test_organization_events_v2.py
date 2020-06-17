@@ -4,7 +4,6 @@ import copy
 import six
 import pytest
 import pytz
-import time
 from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
@@ -13,7 +12,7 @@ from six.moves.urllib.parse import urlencode
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
-from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers.datetime import iso_format, before_now, timestamp_format
 
 
 FEATURE_NAMES = [
@@ -60,19 +59,10 @@ def transactions_query(**kwargs):
 
 
 def generate_transaction():
-    event_data = load_data("transaction")
-    event_data.update({"event_id": "a" * 32})
-
-    # set timestamps
-
     start_datetime = before_now(minutes=1)
-    end_datetime = start_datetime + timedelta(milliseconds=500)
-
-    def generate_timestamp(date_time):
-        return time.mktime(date_time.utctimetuple()) + date_time.microsecond / 1e6
-
-    event_data["start_timestamp"] = generate_timestamp(start_datetime)
-    event_data["timestamp"] = generate_timestamp(end_datetime)
+    end_datetime = before_now(minutes=1, milliseconds=500)
+    event_data = load_data("transaction", timestamp=end_datetime, start_timestamp=start_datetime)
+    event_data.update({"event_id": "a" * 32})
 
     # generate and build up span tree
     reference_span = event_data["spans"][0]
@@ -108,8 +98,8 @@ def generate_transaction():
             (start_delta, span_length) = time_offsets.get(span_id, (timedelta(), timedelta()))
 
             span_start_time = start_datetime + start_delta
-            span["start_timestamp"] = generate_timestamp(span_start_time)
-            span["timestamp"] = generate_timestamp(span_start_time + span_length)
+            span["start_timestamp"] = timestamp_format(span_start_time)
+            span["timestamp"] = timestamp_format(span_start_time + span_length)
             spans.append(span)
 
             if isinstance(child, dict):
@@ -126,8 +116,8 @@ def generate_transaction():
                 (start_delta, span_length) = time_offsets.get(span_id, (timedelta(), timedelta()))
 
                 span_start_time = start_datetime + start_delta
-                span["start_timestamp"] = generate_timestamp(span_start_time)
-                span["timestamp"] = generate_timestamp(span_start_time + span_length)
+                span["start_timestamp"] = timestamp_format(span_start_time)
+                span["timestamp"] = timestamp_format(span_start_time + span_length)
                 spans.append(span)
 
         return spans
