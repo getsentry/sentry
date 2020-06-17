@@ -143,7 +143,7 @@ class SubscriptionProcessor(object):
             ) and not self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
                 metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
                 with transaction.atomic():
-                    self.trigger_alert_threshold(trigger)
+                    self.trigger_alert_threshold(trigger, aggregation_value)
             elif (
                 trigger.resolve_threshold is not None
                 and resolve_operator(aggregation_value, trigger.resolve_threshold)
@@ -151,7 +151,7 @@ class SubscriptionProcessor(object):
             ):
                 metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
                 with transaction.atomic():
-                    self.trigger_resolve_threshold(trigger)
+                    self.trigger_resolve_threshold(trigger, aggregation_value)
             else:
                 self.trigger_alert_counts[trigger.id] = 0
                 self.trigger_resolve_counts[trigger.id] = 0
@@ -163,7 +163,7 @@ class SubscriptionProcessor(object):
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
-    def trigger_alert_threshold(self, trigger):
+    def trigger_alert_threshold(self, trigger, metric_value):
         """
         Called when a subscription update exceeds the value defined in the
         `trigger.alert_threshold`, and the trigger hasn't already been activated.
@@ -211,7 +211,7 @@ class SubscriptionProcessor(object):
                     status=TriggerStatus.ACTIVE.value,
                 )
             self.handle_incident_severity_update()
-            self.handle_trigger_actions(incident_trigger)
+            self.handle_trigger_actions(incident_trigger, metric_value)
             self.incident_triggers[trigger.id] = incident_trigger
 
             # TODO: We should create an audit log, and maybe something that keeps
@@ -237,7 +237,7 @@ class SubscriptionProcessor(object):
                 return False
         return True
 
-    def trigger_resolve_threshold(self, trigger):
+    def trigger_resolve_threshold(self, trigger, metric_value):
         """
         Called when a subscription update exceeds the value defined in
         `trigger.resolve_threshold` and the trigger is currently ACTIVE.
@@ -249,7 +249,7 @@ class SubscriptionProcessor(object):
             incident_trigger = self.incident_triggers[trigger.id]
             incident_trigger.status = TriggerStatus.RESOLVED.value
             incident_trigger.save()
-            self.handle_trigger_actions(incident_trigger)
+            self.handle_trigger_actions(incident_trigger, metric_value)
             self.handle_incident_severity_update()
 
             if self.check_triggers_resolved():
@@ -262,7 +262,7 @@ class SubscriptionProcessor(object):
                 self.incident_triggers.clear()
             self.trigger_resolve_counts[trigger.id] = 0
 
-    def handle_trigger_actions(self, incident_trigger):
+    def handle_trigger_actions(self, incident_trigger, metric_value):
         method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
 
         for action in incident_trigger.alert_rule_trigger.alertruletriggeraction_set.all():
@@ -271,6 +271,7 @@ class SubscriptionProcessor(object):
                     "action_id": action.id,
                     "incident_id": incident_trigger.incident_id,
                     "project_id": self.subscription.project_id,
+                    "metric_value": metric_value,
                     "method": method,
                 },
                 countdown=5,
