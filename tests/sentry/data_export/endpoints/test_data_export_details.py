@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
+from hashlib import sha1
+
 import six
 from datetime import timedelta
 from django.utils import timezone
 
 from sentry.data_export.base import ExportStatus, ExportQueryType
 from sentry.data_export.models import ExportedData
+from sentry.models import File
 from sentry.testutils import APITestCase
 
 
@@ -67,3 +70,21 @@ class DataExportDetailsTest(APITestCase):
         assert response.data["dateExpired"] is not None
         assert response.data["dateExpired"] == self.data_export.date_expired
         assert response.data["status"] == ExportStatus.Expired
+
+    def test_no_file(self):
+        with self.feature("organizations:data-export"):
+            response = self.get_valid_response(self.organization.slug, self.data_export.id)
+        assert response.data["checksum"] is None
+        assert response.data["fileName"] is None
+
+    def test_file(self):
+        contents = b"test"
+        file = File.objects.create(
+            name="test.csv", type="export.csv", headers={"Content-Type": "text/csv"}
+        )
+        file.putfile(six.BytesIO(contents))
+        self.data_export.update(file=file)
+        with self.feature("organizations:data-export"):
+            response = self.get_valid_response(self.organization.slug, self.data_export.id)
+        assert response.data["checksum"] == sha1(contents).hexdigest()
+        assert response.data["fileName"] == "test.csv"

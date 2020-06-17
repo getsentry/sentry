@@ -144,7 +144,8 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
         // This needs to match the order done in the userBadge component
         if (col === 'user') {
           return disableMacros(
-            row['user.name'] ||
+            row.user ||
+              row['user.name'] ||
               row['user.email'] ||
               row['user.username'] ||
               row['user.ip']

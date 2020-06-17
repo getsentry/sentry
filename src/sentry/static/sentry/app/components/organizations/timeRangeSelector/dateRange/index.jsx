@@ -26,6 +26,11 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 class DateRange extends React.Component {
+  static getTimeStringFromDate = date =>
+    moment(date)
+      .local()
+      .format('HH:mm');
+
   static propTypes = {
     /**
      * Start date value for absolute date selector
@@ -74,20 +79,15 @@ class DateRange extends React.Component {
     organization: SentryTypes.Organization,
   };
 
+  static contextTypes = {
+    router: PropTypes.object,
+  };
+
   static defaultProps = {
     showAbsolute: true,
     showRelative: false,
     maxPickableDays: MAX_PICKABLE_DAYS,
   };
-
-  static contextTypes = {
-    router: PropTypes.object,
-  };
-
-  static getTimeStringFromDate = date =>
-    moment(date)
-      .local()
-      .format('HH:mm');
 
   handleSelectDateRange = ({selection}) => {
     const {onChange} = this.props;

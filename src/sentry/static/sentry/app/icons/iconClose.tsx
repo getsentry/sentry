@@ -6,8 +6,11 @@ type Props = React.ComponentProps<typeof SvgIcon> & {
   isCircled?: boolean;
 };
 
-const IconClose = React.forwardRef<SVGSVGElement, Props>(
-  ({isCircled = false, ...props}: Props, ref) => (
+const IconClose = React.forwardRef(function IconClose(
+  {isCircled = false, ...props}: Props,
+  ref: React.Ref<SVGSVGElement>
+) {
+  return (
     <SvgIcon ref={ref} {...props}>
       {isCircled ? (
         <React.Fragment>
@@ -21,7 +24,9 @@ const IconClose = React.forwardRef<SVGSVGElement, Props>(
         </React.Fragment>
       )}
     </SvgIcon>
-  )
-);
+  );
+});
+
+IconClose.displayName = 'IconClose';
 
 export {IconClose};

@@ -145,7 +145,7 @@ class EmailActionHandlerFireTest(TestCase):
         incident = self.create_incident(status=IncidentStatus.CRITICAL.value)
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
-            handler.fire()
+            handler.fire(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == u"[Critical] {} - {}".format(incident.title, self.project.slug)
@@ -161,7 +161,7 @@ class EmailActionHandlerResolveTest(TestCase):
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
             incident.status = IncidentStatus.CLOSED.value
-            handler.resolve()
+            handler.resolve(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
@@ -202,12 +202,15 @@ class SlackActionHandlerBaseTest(object):
             body='{"ok": true}',
         )
         handler = SlackActionHandler(action, incident, self.project)
+        metric_value = 1000
         with self.tasks():
-            getattr(handler, method)()
+            getattr(handler, method)(metric_value)
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
-        assert json.loads(data["attachments"][0])[0] == build_incident_attachment(incident)
+        assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
+            incident, metric_value
+        )
 
 
 class SlackActionHandlerFireTest(SlackActionHandlerBaseTest, TestCase):

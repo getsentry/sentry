@@ -14,6 +14,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import EventView from 'app/utils/discover/eventView';
 import {DisplayModes} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
+import withApi from 'app/utils/withApi';
 
 import ChartFooter from './chartFooter';
 
@@ -167,7 +168,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
   }
 }
 
-export default ResultsChartContainer;
+export default withApi(ResultsChartContainer);
 
 export const StyledPanel = styled(Panel)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
