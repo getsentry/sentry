@@ -20,9 +20,11 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
+        project_ids = self.get_requested_project_ids(request) or None
+
         return self.paginate(
             request,
-            queryset=AlertRule.objects.fetch_for_organization(organization),
+            queryset=AlertRule.objects.fetch_for_organization(organization, project_ids),
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
