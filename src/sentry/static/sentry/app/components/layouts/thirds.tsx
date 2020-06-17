@@ -24,33 +24,30 @@ export const LayoutBody = styled('div')`
 `;
 
 /**
- * Header container for breadcrumbs and toolbars.
+ * Use HeaderRegion to create horizontal regions in the header
+ * that contain a heading/breadcrumbs and a button group.
  */
-export const Header = styled(LayoutBody)`
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(1)};
-  background-color: transparent;
-  flex-grow: 0;
-`;
-/**
- * Container for top right controls
- */
-export const HeaderTopControls = styled('div')`
+export const HeaderRegion = styled('div')`
   display: flex;
-  justify-self: end;
-  grid-row: 1/2;
-  grid-column: 2/3;
+  justify-content: space-between;
 `;
 
 /**
- * Container for bottom right controls
+ * Header container for breadcrumbs and toolbars.
  */
-export const HeaderBottomControls = styled('div')`
-  display: flex;
-  justify-self: end;
-  justify-content: flex-end;
-  grid-row: 2/3;
-  grid-column: 2/3;
+export const Header = styled('div')`
+  background-color: transparent;
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  padding: ${space(2)} ${space(4)};
+  margin: 0;
+  flex-grow: 0;
+
+  & > ${HeaderRegion} {
+    margin-bottom: ${space(1)};
+  }
+  & > ${HeaderRegion}:last-child {
+    margin: 0;
+  }
 `;
 
 /**
@@ -59,7 +56,6 @@ export const HeaderBottomControls = styled('div')`
 export const Main = styled('section')<{fullWidth?: boolean}>`
   grid-column: 1/2;
   max-width: 100%;
-  overflow: hidden;
 `;
 export const Side = styled('aside')`
   grid-column: 2/3;

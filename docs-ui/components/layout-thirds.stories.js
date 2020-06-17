@@ -48,17 +48,49 @@ storiesOf('Layouts|Thirds', module)
     withInfo('Two column layout with header controls')(() => (
       <Container>
         <Layout.Header>
-          <Breadcrumbs crumbs={crumbs} />
-          <Heading>Some heading content</Heading>
-          <Layout.HeaderTopControls>
+          <Layout.HeaderRegion>
+            <Breadcrumbs crumbs={crumbs} />
             <Button>Top button</Button>
-          </Layout.HeaderTopControls>
-          <Layout.HeaderBottomControls>
+          </Layout.HeaderRegion>
+          <Layout.HeaderRegion>
+            <Heading>Some heading content</Heading>
             <ButtonBar gap={1}>
               <Button size="small">clicker</Button>
               <Button size="small">clicker</Button>
             </ButtonBar>
-          </Layout.HeaderBottomControls>
+          </Layout.HeaderRegion>
+        </Layout.Header>
+        <Layout.LayoutBody>
+          <Layout.Main>
+            <h1>Content Region</h1>
+            <p>Some text here</p>
+          </Layout.Main>
+          <Layout.Side>
+            <h3>Sidebar content</h3>
+          </Layout.Side>
+        </Layout.LayoutBody>
+      </Container>
+    ))
+  )
+  .add(
+    '66/33 with many header controls',
+    withInfo('Two column layout with header controls')(() => (
+      <Container>
+        <Layout.Header>
+          <Layout.HeaderRegion>
+            <Breadcrumbs crumbs={crumbs} />
+            <Button>Top button</Button>
+          </Layout.HeaderRegion>
+          <Layout.HeaderRegion>
+            <Heading>Heading text</Heading>
+            <ButtonBar gap={1}>
+              <Button size="small">rollup</Button>
+              <Button size="small">modify</Button>
+              <Button size="small">create</Button>
+              <Button size="small">update</Button>
+              <Button size="small">delete</Button>
+            </ButtonBar>
+          </Layout.HeaderRegion>
         </Layout.Header>
         <Layout.LayoutBody>
           <Layout.Main>
@@ -77,17 +109,17 @@ storiesOf('Layouts|Thirds', module)
     withInfo('Single column mode so we can hide the sidebar')(() => (
       <Container>
         <Layout.Header>
-          <Breadcrumbs crumbs={crumbs} />
-          <Heading>Some heading content</Heading>
-          <Layout.HeaderTopControls>
+          <Layout.HeaderRegion>
+            <Breadcrumbs crumbs={crumbs} />
             <Button>Top button</Button>
-          </Layout.HeaderTopControls>
-          <Layout.HeaderBottomControls>
+          </Layout.HeaderRegion>
+          <Layout.HeaderRegion>
+            <Heading>Some heading content</Heading>
             <ButtonBar gap={1}>
               <Button size="small">clicker</Button>
               <Button size="small">clicker</Button>
             </ButtonBar>
-          </Layout.HeaderBottomControls>
+          </Layout.HeaderRegion>
         </Layout.Header>
         <Layout.LayoutBody>
           <Layout.Main fullWidth>
