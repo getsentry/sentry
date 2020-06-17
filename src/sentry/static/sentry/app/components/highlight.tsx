@@ -42,7 +42,7 @@ const HighlightComponent = ({className, children, disabled, text}: Props) => {
 
 const Highlight = styled(HighlightComponent)`
   font-weight: normal;
-  background-color: ${p => p.theme.yellowLight};
+  background-color: ${p => p.theme.yellow300};
   color: ${p => p.theme.gray700};
 `;
 

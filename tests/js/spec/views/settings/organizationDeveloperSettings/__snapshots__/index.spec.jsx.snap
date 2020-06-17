@@ -131,7 +131,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
               withoutMarginBottom={false}
             >
               <Component
-                className="css-1fqt8dl-StyledLink e1ylhppg0"
+                className="css-1j7y39l-StyledLink e1ylhppg0"
                 href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                 openInNewTab={false}
                 priority="warning"
@@ -139,12 +139,12 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                 withoutMarginBottom={false}
               >
                 <ForwardRef(ExternalLink)
-                  className="css-1fqt8dl-StyledLink e1ylhppg0"
+                  className="css-1j7y39l-StyledLink e1ylhppg0"
                   href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                   openInNewTab={false}
                 >
                   <a
-                    className="css-1fqt8dl-StyledLink e1ylhppg0"
+                    className="css-1j7y39l-StyledLink e1ylhppg0"
                     href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                   >
                     <AlertLinkText>

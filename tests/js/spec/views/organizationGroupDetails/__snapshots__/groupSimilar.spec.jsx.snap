@@ -892,7 +892,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             level="error"
                                           >
                                             <div
-                                              className="css-1ipn9w2-GroupLevel eex8od5"
+                                              className="css-10kyqk5-GroupLevel eex8od5"
                                             >
                                               <Tooltip
                                                 containerDisplayMode="inline-block"

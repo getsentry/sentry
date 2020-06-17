@@ -165,7 +165,7 @@ const Muted = styled('span')`
 
 const Starred = styled('span')`
   ${iconStyles};
-  color: ${p => p.theme.yellowOrange};
+  color: ${p => p.theme.orange300};
 `;
 
 const GroupLevel = styled('div')`
@@ -182,9 +182,9 @@ const GroupLevel = styled('div')`
       case 'info':
         return p.theme.blue400;
       case 'warning':
-        return p.theme.yellowOrange;
+        return p.theme.orange300;
       case 'error':
-        return p.theme.orange;
+        return p.theme.orange400;
       case 'fatal':
         return p.theme.red;
       default:

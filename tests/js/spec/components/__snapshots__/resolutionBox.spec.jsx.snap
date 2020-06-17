@@ -6,7 +6,7 @@ exports[`ResolutionBox render() handles default 1`] = `
 >
   <BannerSummary>
     <IconCheckmark
-      color="green"
+      color="green400"
     />
     <span>
       This issue has been marked as resolved.
@@ -21,7 +21,7 @@ exports[`ResolutionBox render() handles inCommit 1`] = `
 >
   <BannerSummary>
     <IconCheckmark
-      color="green"
+      color="green400"
     />
     <span>
       <span
@@ -61,7 +61,7 @@ exports[`ResolutionBox render() handles inNextRelease 1`] = `
 >
   <BannerSummary>
     <IconCheckmark
-      color="green"
+      color="green400"
     />
     <span>
       This issue has been marked as resolved in the upcoming release.
@@ -76,7 +76,7 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
 >
   <BannerSummary>
     <IconCheckmark
-      color="green"
+      color="green400"
     />
     <span>
       <span
@@ -124,7 +124,7 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
 >
   <BannerSummary>
     <IconCheckmark
-      color="green"
+      color="green400"
     />
     <span>
       <span
@@ -158,7 +158,7 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
 >
   <BannerSummary>
     <IconCheckmark
-      color="green"
+      color="green400"
     />
     <span>
       <span
