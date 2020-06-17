@@ -445,8 +445,6 @@ class SourceMapsEndpoint(ProjectEndpoint):
         :qparam string id: The id of the archive to delete.
         :auth: required
         """
-        # TODO: wip, we need to delete release_file.file too (in async way)
-        return Response(status=404)
 
         archive_id = request.GET.get("id")
 
@@ -457,8 +455,6 @@ class SourceMapsEndpoint(ProjectEndpoint):
                 )
                 if release is not None:
                     release_files = ReleaseFile.objects.filter(release=release)
-                    # TODO: do we need to delete release_file.file too?
-                    # src/sentry/api/endpoints/project_release_file_details.py:191
                     release_files.delete()
                     return Response(status=204)
 
