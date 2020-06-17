@@ -103,7 +103,7 @@ const getMenuArrow = ({menuWithArrow, alignMenu}: Params) => {
 };
 
 const DropdownBubble = styled('div')<Params>`
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.white};
   border: 1px solid ${p => p.theme.gray400};
   position: absolute;
   top: calc(100% - 1px);

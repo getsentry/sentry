@@ -65,9 +65,6 @@ const colors = {
   dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
-
-  background: '#fff',
-  placeholderBackground: '#f5f5f5',
 } as const;
 
 const warning = {
