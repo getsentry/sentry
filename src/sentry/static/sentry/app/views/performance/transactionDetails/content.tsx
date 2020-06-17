@@ -12,6 +12,7 @@ import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import EventMetadata from 'app/components/events/eventMetadata';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
+import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import Button from 'app/components/button';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
@@ -26,6 +27,7 @@ import EventView from 'app/utils/discover/eventView';
 import {decodeScalar, appendTagCondition} from 'app/utils/queryString';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
+import {getTransactionDetailsUrl} from '../utils';
 
 type Props = {
   organization: Organization;
@@ -160,16 +162,29 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
-                <BorderlessEventEntries
-                  api={api}
-                  organization={organization}
-                  event={event}
-                  project={projects[0]}
-                  location={location}
-                  showExampleCommit={false}
-                  showTagSummary={false}
-                  eventView={eventView}
-                />
+                <SpanEntryContext.Provider
+                  value={{
+                    getViewChildTransactionTarget: childTransactionProps => {
+                      return getTransactionDetailsUrl(
+                        organization,
+                        childTransactionProps.eventSlug,
+                        childTransactionProps.transaction,
+                        location.query
+                      );
+                    },
+                  }}
+                >
+                  <BorderlessEventEntries
+                    api={api}
+                    organization={organization}
+                    event={event}
+                    project={projects[0]}
+                    location={location}
+                    showExampleCommit={false}
+                    showTagSummary={false}
+                    eventView={eventView}
+                  />
+                </SpanEntryContext.Provider>
               )}
             </Projects>
           </div>
