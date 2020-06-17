@@ -679,12 +679,13 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                             direction="down"
                                                             size="10px"
                                                           >
-                                                            <ForwardRef
+                                                            <IconChevron
                                                               className="css-17f1s2z-StyledChevron eenpoef0"
                                                               direction="down"
                                                               size="10px"
                                                             >
                                                               <EmotionCssPropInternal
+                                                                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
                                                                 __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                                                   Object {
                                                                     "$$typeof": Symbol(react.forward_ref),
@@ -725,7 +726,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                                                                   </svg>
                                                                 </ForwardRef(SvgIcon)>
                                                               </EmotionCssPropInternal>
-                                                            </ForwardRef>
+                                                            </IconChevron>
                                                           </StyledChevron>
                                                         </span>
                                                       </ButtonLabel>

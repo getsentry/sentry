@@ -19,6 +19,7 @@ exports[`Filter default render 1`] = `
             icon={
               Object {
                 "$$typeof": Symbol(react.forward_ref),
+                "displayName": "IconSwitch",
                 "render": [Function],
               }
             }
@@ -38,6 +39,7 @@ exports[`Filter default render 1`] = `
             icon={
               Object {
                 "$$typeof": Symbol(react.forward_ref),
+                "displayName": "IconSpan",
                 "render": [Function],
               }
             }
@@ -57,6 +59,7 @@ exports[`Filter default render 1`] = `
             icon={
               Object {
                 "$$typeof": Symbol(react.forward_ref),
+                "displayName": "IconUser",
                 "render": [Function],
               }
             }
@@ -76,6 +79,7 @@ exports[`Filter default render 1`] = `
             icon={
               Object {
                 "$$typeof": Symbol(react.forward_ref),
+                "displayName": "IconLocation",
                 "render": [Function],
               }
             }
@@ -95,6 +99,7 @@ exports[`Filter default render 1`] = `
             icon={
               Object {
                 "$$typeof": Symbol(react.forward_ref),
+                "displayName": "IconFix",
                 "render": [Function],
               }
             }
@@ -114,6 +119,7 @@ exports[`Filter default render 1`] = `
             icon={
               Object {
                 "$$typeof": Symbol(react.forward_ref),
+                "displayName": "IconFire",
                 "render": [Function],
               }
             }
@@ -341,12 +347,13 @@ exports[`Filter default render 1`] = `
                                         direction="down"
                                         size="10px"
                                       >
-                                        <ForwardRef
+                                        <IconChevron
                                           className="css-17f1s2z-StyledChevron eenpoef0"
                                           direction="down"
                                           size="10px"
                                         >
                                           <EmotionCssPropInternal
+                                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
                                             __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                               Object {
                                                 "$$typeof": Symbol(react.forward_ref),
@@ -387,7 +394,7 @@ exports[`Filter default render 1`] = `
                                               </svg>
                                             </ForwardRef(SvgIcon)>
                                           </EmotionCssPropInternal>
-                                        </ForwardRef>
+                                        </IconChevron>
                                       </StyledChevron>
                                     </span>
                                   </ButtonLabel>
@@ -807,7 +814,7 @@ exports[`Filter default render 1`] = `
                                     isChecked={false}
                                     isIndeterminate={true}
                                   >
-                                    <ForwardRef
+                                    <IconSubtract
                                       color="white"
                                       size="70%"
                                     >
@@ -828,7 +835,7 @@ exports[`Filter default render 1`] = `
                                           />
                                         </svg>
                                       </ForwardRef(SvgIcon)>
-                                    </ForwardRef>
+                                    </IconSubtract>
                                   </CheckboxFancyContent>
                                 </div>
                               </Component>
@@ -854,6 +861,7 @@ exports[`Filter default render 1`] = `
                             icon={
                               Object {
                                 "$$typeof": Symbol(react.forward_ref),
+                                "displayName": "IconSwitch",
                                 "render": [Function],
                               }
                             }
@@ -873,6 +881,7 @@ exports[`Filter default render 1`] = `
                             icon={
                               Object {
                                 "$$typeof": Symbol(react.forward_ref),
+                                "displayName": "IconSpan",
                                 "render": [Function],
                               }
                             }
@@ -892,6 +901,7 @@ exports[`Filter default render 1`] = `
                             icon={
                               Object {
                                 "$$typeof": Symbol(react.forward_ref),
+                                "displayName": "IconUser",
                                 "render": [Function],
                               }
                             }
@@ -911,6 +921,7 @@ exports[`Filter default render 1`] = `
                             icon={
                               Object {
                                 "$$typeof": Symbol(react.forward_ref),
+                                "displayName": "IconLocation",
                                 "render": [Function],
                               }
                             }
@@ -930,6 +941,7 @@ exports[`Filter default render 1`] = `
                             icon={
                               Object {
                                 "$$typeof": Symbol(react.forward_ref),
+                                "displayName": "IconFix",
                                 "render": [Function],
                               }
                             }
@@ -949,6 +961,7 @@ exports[`Filter default render 1`] = `
                             icon={
                               Object {
                                 "$$typeof": Symbol(react.forward_ref),
+                                "displayName": "IconFire",
                                 "render": [Function],
                               }
                             }
@@ -987,6 +1000,7 @@ exports[`Filter default render 1`] = `
                                 icon={
                                   Object {
                                     "$$typeof": Symbol(react.forward_ref),
+                                    "displayName": "IconSwitch",
                                     "render": [Function],
                                   }
                                 }
@@ -998,7 +1012,7 @@ exports[`Filter default render 1`] = `
                                   <div
                                     className="css-m7rno3-IconWrapper e1oljvyu0"
                                   >
-                                    <ForwardRef
+                                    <IconSwitch
                                       size="xs"
                                     >
                                       <ForwardRef(SvgIcon)
@@ -1024,7 +1038,7 @@ exports[`Filter default render 1`] = `
                                           />
                                         </svg>
                                       </ForwardRef(SvgIcon)>
-                                    </ForwardRef>
+                                    </IconSwitch>
                                   </div>
                                 </IconWrapper>
                               </Memo()>
@@ -1059,7 +1073,7 @@ exports[`Filter default render 1`] = `
                                       isChecked={true}
                                       isIndeterminate={false}
                                     >
-                                      <ForwardRef
+                                      <IconCheckmark
                                         color="white"
                                         size="70%"
                                       >
@@ -1080,7 +1094,7 @@ exports[`Filter default render 1`] = `
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconCheckmark>
                                     </CheckboxFancyContent>
                                   </div>
                                 </Component>
@@ -1102,6 +1116,7 @@ exports[`Filter default render 1`] = `
                                 icon={
                                   Object {
                                     "$$typeof": Symbol(react.forward_ref),
+                                    "displayName": "IconSpan",
                                     "render": [Function],
                                   }
                                 }
@@ -1113,7 +1128,7 @@ exports[`Filter default render 1`] = `
                                   <div
                                     className="css-efjb4a-IconWrapper e1oljvyu0"
                                   >
-                                    <ForwardRef
+                                    <IconSpan
                                       size="xs"
                                     >
                                       <ForwardRef(SvgIcon)
@@ -1130,7 +1145,7 @@ exports[`Filter default render 1`] = `
                                           />
                                         </svg>
                                       </ForwardRef(SvgIcon)>
-                                    </ForwardRef>
+                                    </IconSpan>
                                   </div>
                                 </IconWrapper>
                               </Memo()>
@@ -1165,7 +1180,7 @@ exports[`Filter default render 1`] = `
                                       isChecked={true}
                                       isIndeterminate={false}
                                     >
-                                      <ForwardRef
+                                      <IconCheckmark
                                         color="white"
                                         size="70%"
                                       >
@@ -1186,7 +1201,7 @@ exports[`Filter default render 1`] = `
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconCheckmark>
                                     </CheckboxFancyContent>
                                   </div>
                                 </Component>
@@ -1208,6 +1223,7 @@ exports[`Filter default render 1`] = `
                                 icon={
                                   Object {
                                     "$$typeof": Symbol(react.forward_ref),
+                                    "displayName": "IconUser",
                                     "render": [Function],
                                   }
                                 }
@@ -1219,7 +1235,7 @@ exports[`Filter default render 1`] = `
                                   <div
                                     className="css-12w2aso-IconWrapper e1oljvyu0"
                                   >
-                                    <ForwardRef
+                                    <IconUser
                                       size="xs"
                                     >
                                       <ForwardRef(SvgIcon)
@@ -1239,7 +1255,7 @@ exports[`Filter default render 1`] = `
                                           />
                                         </svg>
                                       </ForwardRef(SvgIcon)>
-                                    </ForwardRef>
+                                    </IconUser>
                                   </div>
                                 </IconWrapper>
                               </Memo()>
@@ -1274,7 +1290,7 @@ exports[`Filter default render 1`] = `
                                       isChecked={true}
                                       isIndeterminate={false}
                                     >
-                                      <ForwardRef
+                                      <IconCheckmark
                                         color="white"
                                         size="70%"
                                       >
@@ -1295,7 +1311,7 @@ exports[`Filter default render 1`] = `
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconCheckmark>
                                     </CheckboxFancyContent>
                                   </div>
                                 </Component>
@@ -1317,6 +1333,7 @@ exports[`Filter default render 1`] = `
                                 icon={
                                   Object {
                                     "$$typeof": Symbol(react.forward_ref),
+                                    "displayName": "IconLocation",
                                     "render": [Function],
                                   }
                                 }
@@ -1328,7 +1345,7 @@ exports[`Filter default render 1`] = `
                                   <div
                                     className="css-1o5bgxp-IconWrapper e1oljvyu0"
                                   >
-                                    <ForwardRef
+                                    <IconLocation
                                       size="xs"
                                     >
                                       <ForwardRef(SvgIcon)
@@ -1348,7 +1365,7 @@ exports[`Filter default render 1`] = `
                                           />
                                         </svg>
                                       </ForwardRef(SvgIcon)>
-                                    </ForwardRef>
+                                    </IconLocation>
                                   </div>
                                 </IconWrapper>
                               </Memo()>
@@ -1383,7 +1400,7 @@ exports[`Filter default render 1`] = `
                                       isChecked={true}
                                       isIndeterminate={false}
                                     >
-                                      <ForwardRef
+                                      <IconCheckmark
                                         color="white"
                                         size="70%"
                                       >
@@ -1404,7 +1421,7 @@ exports[`Filter default render 1`] = `
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconCheckmark>
                                     </CheckboxFancyContent>
                                   </div>
                                 </Component>
@@ -1426,6 +1443,7 @@ exports[`Filter default render 1`] = `
                                 icon={
                                   Object {
                                     "$$typeof": Symbol(react.forward_ref),
+                                    "displayName": "IconFix",
                                     "render": [Function],
                                   }
                                 }
@@ -1437,7 +1455,7 @@ exports[`Filter default render 1`] = `
                                   <div
                                     className="css-11o98lp-IconWrapper e1oljvyu0"
                                   >
-                                    <ForwardRef
+                                    <IconFix
                                       size="xs"
                                     >
                                       <ForwardRef(SvgIcon)
@@ -1454,7 +1472,7 @@ exports[`Filter default render 1`] = `
                                           />
                                         </svg>
                                       </ForwardRef(SvgIcon)>
-                                    </ForwardRef>
+                                    </IconFix>
                                   </div>
                                 </IconWrapper>
                               </Memo()>
@@ -1489,7 +1507,7 @@ exports[`Filter default render 1`] = `
                                       isChecked={true}
                                       isIndeterminate={false}
                                     >
-                                      <ForwardRef
+                                      <IconCheckmark
                                         color="white"
                                         size="70%"
                                       >
@@ -1510,7 +1528,7 @@ exports[`Filter default render 1`] = `
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconCheckmark>
                                     </CheckboxFancyContent>
                                   </div>
                                 </Component>
@@ -1532,6 +1550,7 @@ exports[`Filter default render 1`] = `
                                 icon={
                                   Object {
                                     "$$typeof": Symbol(react.forward_ref),
+                                    "displayName": "IconFire",
                                     "render": [Function],
                                   }
                                 }
@@ -1543,7 +1562,7 @@ exports[`Filter default render 1`] = `
                                   <div
                                     className="css-1hei10e-IconWrapper e1oljvyu0"
                                   >
-                                    <ForwardRef
+                                    <IconFire
                                       size="xs"
                                     >
                                       <ForwardRef(SvgIcon)
@@ -1560,7 +1579,7 @@ exports[`Filter default render 1`] = `
                                           />
                                         </svg>
                                       </ForwardRef(SvgIcon)>
-                                    </ForwardRef>
+                                    </IconFire>
                                   </div>
                                 </IconWrapper>
                               </Memo()>
@@ -1595,7 +1614,7 @@ exports[`Filter default render 1`] = `
                                       isChecked={true}
                                       isIndeterminate={false}
                                     >
-                                      <ForwardRef
+                                      <IconCheckmark
                                         color="white"
                                         size="70%"
                                       >
@@ -1616,7 +1635,7 @@ exports[`Filter default render 1`] = `
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconCheckmark>
                                     </CheckboxFancyContent>
                                   </div>
                                 </Component>
@@ -1721,7 +1740,7 @@ exports[`Filter default render 1`] = `
                                       isChecked={true}
                                       isIndeterminate={false}
                                     >
-                                      <ForwardRef
+                                      <IconCheckmark
                                         color="white"
                                         size="70%"
                                       >
@@ -1742,7 +1761,7 @@ exports[`Filter default render 1`] = `
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconCheckmark>
                                     </CheckboxFancyContent>
                                   </div>
                                 </Component>
@@ -1807,7 +1826,7 @@ exports[`Filter default render 1`] = `
                                       isChecked={true}
                                       isIndeterminate={false}
                                     >
-                                      <ForwardRef
+                                      <IconCheckmark
                                         color="white"
                                         size="70%"
                                       >
@@ -1828,7 +1847,7 @@ exports[`Filter default render 1`] = `
                                             />
                                           </svg>
                                         </ForwardRef(SvgIcon)>
-                                      </ForwardRef>
+                                      </IconCheckmark>
                                     </CheckboxFancyContent>
                                   </div>
                                 </Component>

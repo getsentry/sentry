@@ -6,8 +6,11 @@ type Props = React.ComponentProps<typeof SvgIcon> & {
   isCircled?: boolean;
 };
 
-const IconCheckmark = React.forwardRef<SVGSVGElement, Props>(
-  ({isCircled = false, ...props}: Props, ref) => (
+const IconCheckmark = React.forwardRef(function IconCheckmark(
+  {isCircled = false, ...props}: Props,
+  ref: React.Ref<SVGSVGElement>
+) {
+  return (
     <SvgIcon {...props} ref={ref} data-test-id="icon-check-mark">
       {isCircled ? (
         <React.Fragment>
@@ -18,7 +21,9 @@ const IconCheckmark = React.forwardRef<SVGSVGElement, Props>(
         <path d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z" />
       )}
     </SvgIcon>
-  )
-);
+  );
+});
+
+IconCheckmark.displayName = 'IconCheckmark';
 
 export {IconCheckmark};

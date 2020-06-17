@@ -906,7 +906,7 @@ exports[`RuleBuilder renders 1`] = `
                                           borderless={true}
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconAdd)
                                               isCircled={true}
                                             />
                                           }
@@ -1067,7 +1067,7 @@ exports[`RuleBuilder renders 1`] = `
       <AddButton
         disabled={true}
         icon={
-          <ForwardRef
+          <ForwardRef(IconAdd)
             isCircled={true}
             size="xs"
           />
@@ -1080,7 +1080,7 @@ exports[`RuleBuilder renders 1`] = `
           className="css-f6y09s-AddButton e1hyuoc711"
           disabled={true}
           icon={
-            <ForwardRef
+            <ForwardRef(IconAdd)
               isCircled={true}
               size="xs"
             />
@@ -1095,7 +1095,7 @@ exports[`RuleBuilder renders 1`] = `
             disabled={true}
             forwardRef={null}
             icon={
-              <ForwardRef
+              <ForwardRef(IconAdd)
                 isCircled={true}
                 size="xs"
               />
@@ -1145,7 +1145,7 @@ exports[`RuleBuilder renders 1`] = `
                           className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
-                          <ForwardRef
+                          <IconAdd
                             isCircled={true}
                             size="xs"
                           >
@@ -1169,7 +1169,7 @@ exports[`RuleBuilder renders 1`] = `
                                 />
                               </svg>
                             </ForwardRef(SvgIcon)>
-                          </ForwardRef>
+                          </IconAdd>
                         </span>
                       </Icon>
                     </span>
@@ -1265,7 +1265,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           <StyledIconAdd
             isCircled={true}
           >
-            <ForwardRef
+            <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
@@ -1290,7 +1290,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   />
                 </svg>
               </ForwardRef(SvgIcon)>
-            </ForwardRef>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1319,7 +1319,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           <StyledIconAdd
             isCircled={true}
           >
-            <ForwardRef
+            <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
@@ -1344,7 +1344,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   />
                 </svg>
               </ForwardRef(SvgIcon)>
-            </ForwardRef>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1373,7 +1373,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           <StyledIconAdd
             isCircled={true}
           >
-            <ForwardRef
+            <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
@@ -1398,7 +1398,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   />
                 </svg>
               </ForwardRef(SvgIcon)>
-            </ForwardRef>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1427,7 +1427,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           <StyledIconAdd
             isCircled={true}
           >
-            <ForwardRef
+            <IconAdd
               className="css-zq12t8-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
@@ -1452,7 +1452,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   />
                 </svg>
               </ForwardRef(SvgIcon)>
-            </ForwardRef>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -2653,7 +2653,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           borderless={true}
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconAdd)
                                               isCircled={true}
                                             />
                                           }
@@ -3127,7 +3127,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       <AddButton
         disabled={false}
         icon={
-          <ForwardRef
+          <ForwardRef(IconAdd)
             isCircled={true}
             size="xs"
           />
@@ -3140,7 +3140,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           className="css-f6y09s-AddButton e1hyuoc711"
           disabled={false}
           icon={
-            <ForwardRef
+            <ForwardRef(IconAdd)
               isCircled={true}
               size="xs"
             />
@@ -3155,7 +3155,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             disabled={false}
             forwardRef={null}
             icon={
-              <ForwardRef
+              <ForwardRef(IconAdd)
                 isCircled={true}
                 size="xs"
               />
@@ -3205,7 +3205,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
-                          <ForwardRef
+                          <IconAdd
                             isCircled={true}
                             size="xs"
                           >
@@ -3229,7 +3229,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 />
                               </svg>
                             </ForwardRef(SvgIcon)>
-                          </ForwardRef>
+                          </IconAdd>
                         </span>
                       </Icon>
                     </span>

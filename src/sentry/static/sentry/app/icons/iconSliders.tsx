@@ -9,8 +9,11 @@ type Props = React.ComponentProps<typeof SvgIcon> & {
   direction?: 'up' | 'right' | 'down' | 'left';
 };
 
-const IconSliders = React.forwardRef<SVGSVGElement, Props>(
-  ({direction = 'up', ...props}: Props, ref) => (
+const IconSliders = React.forwardRef(function IconSliders(
+  {direction = 'up', ...props}: Props,
+  ref: React.Ref<SVGSVGElement>
+) {
+  return (
     <SvgIcon
       {...props}
       ref={ref}
@@ -29,7 +32,9 @@ const IconSliders = React.forwardRef<SVGSVGElement, Props>(
       <path d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z" />
       <path d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z" />
     </SvgIcon>
-  )
-);
+  );
+});
+
+IconSliders.displayName = 'IconSliders';
 
 export {IconSliders};

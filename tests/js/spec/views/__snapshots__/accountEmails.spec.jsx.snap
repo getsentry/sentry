@@ -79,7 +79,7 @@ exports[`AccountEmails renders with emails 1`] = `
       />
     </Form>
     <AlertLink
-      icon={<ForwardRef />}
+      icon={<ForwardRef(IconStack) />}
       openInNewTab={false}
       priority="warning"
       size="normal"

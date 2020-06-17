@@ -22,7 +22,7 @@ exports[`TextCopyInput renders 1`] = `
       size="xsmall"
       type="button"
     >
-      <ForwardRef />
+      <IconCopy />
     </StyledCopyButton>
   </Clipboard>
 </Wrapper>
