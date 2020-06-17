@@ -1650,6 +1650,15 @@ class GetSnubaQueryArgsTest(TestCase):
         assert "Invalid value" in six.text_type(err)
         assert "cancelled," in six.text_type(err)
 
+    def test_error_handled(self):
+        result = get_filter("error.handled:1")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("error.handled:0")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.handled:99")
+
     def test_function_negation(self):
         result = get_filter("!p95():5s")
         assert result.having == [["p95", "!=", 5000.0]]

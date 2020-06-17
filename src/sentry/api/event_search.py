@@ -794,6 +794,15 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
                 1,
             ]
         return [user_display_expr, search_filter.operator, value]
+    elif name == "error.handled":
+        # null values and 1 are the same, and both indicate a handled error.
+        if value in ("1", 1):
+            return [["isHandled", []], "=", 1]
+        if value in ("0", 0,):
+            return [["notHandled", []], "=", 1]
+        raise InvalidSearchQuery(
+            "Invalid value for error.handled condition. Accepted values are 1, 0"
+        )
     else:
         value = (
             int(to_timestamp(value)) * 1000
