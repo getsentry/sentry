@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import {browserHistory} from 'react-router';
 
 import {Organization, Project} from 'app/types';
 import {t} from 'app/locale';
@@ -57,10 +56,6 @@ class Create extends React.Component<Props, State> {
       const eventView = EventView.fromLocation(location);
       // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({alertType: 'metric', eventView});
-      // Remove create from discover query parameters after loading
-      browserHistory.replace({
-        pathname: location.pathname,
-      });
     }
   }
 
