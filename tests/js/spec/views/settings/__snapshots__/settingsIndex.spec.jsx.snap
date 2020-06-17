@@ -186,7 +186,7 @@ exports[`SettingsIndex renders 1`] = `
             <HomeIcon
               color="orange"
             >
-              <ForwardRef
+              <IconDocs
                 size="lg"
               />
             </HomeIcon>
@@ -240,7 +240,7 @@ exports[`SettingsIndex renders 1`] = `
             <HomeIcon
               color="purple"
             >
-              <ForwardRef
+              <IconSupport
                 size="lg"
               />
             </HomeIcon>
@@ -287,7 +287,7 @@ exports[`SettingsIndex renders 1`] = `
             to="/settings/account/api/"
           >
             <HomeIcon>
-              <ForwardRef
+              <IconLock
                 size="lg"
               />
             </HomeIcon>
