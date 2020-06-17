@@ -8,6 +8,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import QuestionTooltip from 'app/components/questionTooltip';
 import ControlState from 'app/views/settings/components/forms/field/controlState';
 import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
 import FieldDescription from 'app/views/settings/components/forms/field/fieldDescription';
@@ -19,6 +20,8 @@ import FieldWrapper, {
   Props as FieldWrapperProps,
 } from 'app/views/settings/components/forms/field/fieldWrapper';
 
+import FieldQuestion from './fieldQuestion';
+
 type ChildrenFunction = (props) => React.ReactNode;
 
 type Props = {
@@ -27,6 +30,7 @@ type Props = {
   visible?: boolean | ((props) => boolean);
   disabled?: boolean | ((props) => boolean);
   disabledReason?: string;
+  description?: string;
   flexibleControlStateSize?: boolean;
   label?: React.ReactNode;
   help?: React.ReactNode | React.ReactElement | Function;
@@ -75,6 +79,11 @@ class Field extends React.Component<Props> {
      * Reason why field is disabled (displays in tooltip)
      */
     disabledReason: PropTypes.string,
+
+    /**
+     * Describes the field (displays in tooltip)
+     */
+    description: PropTypes.string,
 
     /**
      * Error message
@@ -164,6 +173,7 @@ class Field extends React.Component<Props> {
       stacked,
       children,
       style,
+      description,
     } = otherProps;
     const isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     const isVisible = typeof visible === 'function' ? visible(this.props) : visible;
@@ -211,7 +221,13 @@ class Field extends React.Component<Props> {
           <FieldDescription inline={inline} htmlFor={id}>
             {label && (
               <FieldLabel disabled={isDisabled}>
-                {label} {required && <FieldRequiredBadge />}
+                <span>{label}</span>
+                {required && <FieldRequiredBadge />}
+                {description && (
+                  <FieldQuestion>
+                    <QuestionTooltip position="top" size="sm" title={description} />
+                  </FieldQuestion>
+                )}
               </FieldLabel>
             )}
             {helpElement && (

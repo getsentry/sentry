@@ -86,16 +86,17 @@ exports[`ConfirmDelete renders 1`] = `
                       disabled={false}
                     >
                       <div
-                        className="css-1c18lg-FieldLabel e16ushrl0"
+                        className="css-109z6zm-FieldLabel e16ushrl0"
                       >
-                        Please enter 
-                        <code
-                          key="1"
-                        >
-                          CoolOrg
-                        </code>
-                         to confirm the deletion
-                         
+                        <span>
+                          Please enter 
+                          <code
+                            key="1"
+                          >
+                            CoolOrg
+                          </code>
+                           to confirm the deletion
+                        </span>
                       </div>
                     </FieldLabel>
                   </label>
