@@ -39,9 +39,9 @@ jobs:
 
       steps:
         - name: Placeholder
-          uses: getsentry/action-migrations@v1.0.6
+          uses: getsentry/action-migrations@v1.0.7
           with:
-            action: placeholder
+            run: placeholder
             githubToken: ${{ secrets.GITHUB_TOKEN }}
 
         # Checkout codebase
@@ -109,7 +109,7 @@ jobs:
             sentry init
 
         - name: Generate SQL for migration
-          uses: getsentry/action-migrations@v1.0.5
+          uses: getsentry/action-migrations@v1.0.7
           env:
             SENTRY_LOG_LEVEL: ERROR
             PGPASSWORD: postgres
