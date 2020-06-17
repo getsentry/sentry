@@ -182,11 +182,15 @@ class SubscriptionProcessor(object):
                 # labels them by the front. This causes us an off-by-one error with
                 # alert start dates, so to prevent this we subtract a bucket off of the
                 # start date.
-                # We also multiply by threshold_period so that we can show when the
-                # alert actually started happening, rather than when we detected it.
+                detected_at -= timedelta(seconds=self.alert_rule.snuba_query.time_window)
+                # We want to also subtract `frequency * (threshold_period - 1)` from the
+                # query. This allows us to show the actual start date of the alert,
+                # rather than the start of the last update that we received.
                 detected_at -= timedelta(
-                    seconds=self.alert_rule.snuba_query.time_window
-                    * self.alert_rule.threshold_period
+                    seconds=(
+                        self.alert_rule.snuba_query.resolution
+                        * (self.alert_rule.threshold_period - 1)
+                    )
                 )
                 self.active_incident = create_incident(
                     self.alert_rule.organization,
