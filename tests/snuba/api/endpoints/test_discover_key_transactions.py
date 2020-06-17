@@ -242,10 +242,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     def test_get_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         project2 = self.create_project(name="foo", organization=self.org)
-        event_data = load_data("transaction")
-        start_timestamp = iso_format(before_now(minutes=1))
-        end_timestamp = iso_format(before_now(minutes=1))
-        event_data.update({"start_timestamp": start_timestamp, "timestamp": end_timestamp})
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
 
         transactions = [
             (self.project, "/foo_transaction/"),
@@ -340,10 +337,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_get_transaction_with_query(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        start_timestamp = iso_format(before_now(minutes=1))
-        end_timestamp = iso_format(before_now(minutes=1))
-        event_data = load_data("transaction")
-        event_data.update({"start_timestamp": start_timestamp, "timestamp": end_timestamp})
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
 
         transactions = [("127.0.0.1", "/foo_transaction/"), ("192.168.0.1", "/blah_transaction/")]
 
@@ -385,16 +379,8 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_get_transaction_with_backslash_and_quotes(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        start_timestamp = iso_format(before_now(minutes=1))
-        end_timestamp = iso_format(before_now(minutes=1))
-        event_data = load_data("transaction")
-        event_data.update(
-            {
-                "transaction": "\\someth\"'ing\\",
-                "start_timestamp": start_timestamp,
-                "timestamp": end_timestamp,
-            }
-        )
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "\\someth\"'ing\\"
 
         self.store_event(data=event_data, project_id=self.project.id)
         KeyTransaction.objects.create(
@@ -599,14 +585,10 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        data = load_data("transaction")
-        event_ids = ["d" * 32, "e" * 32, "f" * 32]
-        data.update(
-            {
-                "timestamp": iso_format(before_now(minutes=30)),
-                "start_timestamp": iso_format(before_now(minutes=31)),
-            }
+        data = load_data(
+            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
         )
+        event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
             data["event_id"] = event_id
             self.store_event(data=data, project_id=self.project.id)
@@ -684,14 +666,10 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats_with_no_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        data = load_data("transaction")
-        event_ids = ["d" * 32, "e" * 32, "f" * 32]
-        data.update(
-            {
-                "timestamp": iso_format(before_now(minutes=30)),
-                "start_timestamp": iso_format(before_now(minutes=31)),
-            }
+        data = load_data(
+            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
         )
+        event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
             data["event_id"] = event_id
             self.store_event(data=data, project_id=self.project.id)
@@ -721,14 +699,10 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats_with_multi_yaxis(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        data = load_data("transaction")
-        event_ids = ["d" * 32, "e" * 32, "f" * 32]
-        data.update(
-            {
-                "timestamp": iso_format(before_now(minutes=30)),
-                "start_timestamp": iso_format(before_now(minutes=31)),
-            }
+        data = load_data(
+            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
         )
+        event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
             data["event_id"] = event_id
             self.store_event(data=data, project_id=self.project.id)
@@ -768,14 +742,10 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats_with_multi_yaxis_no_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        data = load_data("transaction")
-        event_ids = ["d" * 32, "e" * 32, "f" * 32]
-        data.update(
-            {
-                "timestamp": iso_format(before_now(minutes=30)),
-                "start_timestamp": iso_format(before_now(minutes=31)),
-            }
+        data = load_data(
+            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
         )
+        event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
             data["event_id"] = event_id
             for i in range(5):

@@ -367,9 +367,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         data["user"] = {
             "email": "foo@example.com",
             "id": "123",
@@ -401,9 +399,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         self.store_event(data, project_id=project.id)
 
         with self.feature(
@@ -428,9 +424,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
         )
 
-        data = load_data("transaction")
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         self.store_event(data, project_id=project.id)
 
         with self.feature(
@@ -467,20 +461,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         # Load events with data that shouldn't match
         for key in user_data:
-            data = load_data("transaction")
+            data = load_data("transaction", timestamp=before_now(minutes=1))
             data["transaction"] = "/transactions/{}".format(key)
-            data["timestamp"] = iso_format(before_now(minutes=1))
-            data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
             event_data = user_data.copy()
             event_data[key] = "undefined"
             data["user"] = event_data
             self.store_event(data, project_id=project.id)
 
         # Load a matching event
-        data = load_data("transaction")
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/transactions/matching"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["user"] = user_data
         self.store_event(data, project_id=project.id)
 
@@ -815,24 +805,19 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_failure_rate_alias_field(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        data = load_data("transaction")
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/failure_rate/success"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/failure_rate/unknown"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["contexts"]["trace"]["status"] = "unknown_error"
         self.store_event(data, project_id=project.id)
 
         for i in range(6):
-            data = load_data("transaction")
+            data = load_data("transaction", timestamp=before_now(minutes=1))
             data["transaction"] = "/failure_rate/{}".format(i)
-            data["timestamp"] = iso_format(before_now(minutes=1))
-            data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
             data["contexts"]["trace"]["status"] = "unauthenticated"
             self.store_event(data, project_id=project.id)
 
@@ -861,14 +846,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             ("three", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data("transaction")
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
             data["event_id"] = "{}".format(idx) * 32
             data["transaction"] = "/user_misery/horribilis/{}".format(idx)
             data["user"] = {"email": "{}@example.com".format(event[0])}
-            data["timestamp"] = iso_format(before_now(minutes=(1 + idx)))
-            data["start_timestamp"] = iso_format(
-                before_now(minutes=(1 + idx), milliseconds=event[1])
-            )
             self.store_event(data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
@@ -1020,16 +1005,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_aggregation_alias_comparison(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         data["transaction"] = "/aggregates/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=3),
+        )
         data["transaction"] = "/aggregates/2"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
         event = self.store_event(data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
@@ -1175,16 +1164,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_percentile_function(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         data["transaction"] = "/aggregates/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         event1 = self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=3),
+        )
         data["transaction"] = "/aggregates/2"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
         event2 = self.store_event(data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
@@ -1209,16 +1202,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_percentile_function_as_condition(self):
         self.login_as(user=self.user)
         project = self.create_project()
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         data["transaction"] = "/aggregates/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         event1 = self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=3),
+        )
         data["transaction"] = "/aggregates/2"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
         self.store_event(data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
@@ -1242,16 +1239,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         data["transaction"] = "/aggregates/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         event1 = self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=3),
+        )
         data["transaction"] = "/aggregates/2"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
         event2 = self.store_event(data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
@@ -1278,16 +1279,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         data["transaction"] = "/aggregates/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         event1 = self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=3),
+        )
         data["transaction"] = "/aggregates/2"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=3))
         event2 = self.store_event(data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
@@ -1504,9 +1509,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         self.store_event(data=data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
@@ -1528,9 +1535,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         self.store_event(data=data, project_id=project.id)
 
         with self.feature("organizations:discover-basic"):
@@ -1815,11 +1824,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
-
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/transactionstatus/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(data, project_id=project.id)
 
         with self.feature(
@@ -1845,11 +1851,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
-
+        data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/transactionstatus/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         self.store_event(data, project_id=project.id)
 
         with self.feature(
@@ -1875,9 +1878,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         self.store_event(data, project_id=project.id)
 
         with self.feature(
@@ -1913,16 +1918,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=5),
+        )
         data["transaction"] = "/failure_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=2))
-        data["start_timestamp"] = iso_format(before_now(minutes=2, seconds=5))
         self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         data["transaction"] = "/failure_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["contexts"]["trace"]["status"] = "unauthenticated"
         event = self.store_event(data, project_id=project.id)
 
@@ -2030,17 +2039,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
-
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=5),
+        )
         data["transaction"] = "/failure_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=2))
-        data["start_timestamp"] = iso_format(before_now(minutes=2, seconds=5))
         self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         data["transaction"] = "/failure_rate/2"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["contexts"]["trace"]["status"] = "unauthenticated"
         self.store_event(data, project_id=project.id)
 
@@ -2173,17 +2185,20 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         project = self.create_project()
-        data = load_data("transaction")
-
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=5),
+        )
         data["transaction"] = "/failure_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=2))
-        data["start_timestamp"] = iso_format(before_now(minutes=2, seconds=5))
         self.store_event(data, project_id=project.id)
 
-        data = load_data("transaction")
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         data["transaction"] = "/failure_rate/2"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["contexts"]["trace"]["status"] = "unauthenticated"
         event = self.store_event(data, project_id=project.id)
 
@@ -2470,13 +2485,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         project = self.create_project()
         data = load_data("android")
-        transaction_data = load_data("transaction")
+        transaction_data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=5),
+        )
         data["spans"] = transaction_data["spans"]
         data["contexts"]["trace"] = transaction_data["contexts"]["trace"]
         data["type"] = "error"
         data["transaction"] = "/failure_rate/1"
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=5))
         data["user"]["geo"] = {"country_code": "US", "region": "CA", "city": "San Francisco"}
         data["contexts"]["http"] = {
             "method": "GET",
