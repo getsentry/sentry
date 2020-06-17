@@ -89,6 +89,8 @@ class Results extends React.Component<Props, State> {
       this.fetchTotalCount();
       if (
         !isEqual(prevQuery.statsPeriod, currentQuery.statsPeriod) ||
+        !isEqual(prevQuery.start, currentQuery.start) ||
+        !isEqual(prevQuery.end, currentQuery.end) ||
         !isEqual(prevQuery.project, currentQuery.project)
       ) {
         loadOrganizationTags(api, organization.slug, selection);
