@@ -9,7 +9,7 @@ import WorldMapChart from 'app/components/charts/worldMapChart';
 
 import {WIDGET_DISPLAY} from '../constants';
 
-const CHART_MAP = {
+const CHART_MAP: Record<WIDGET_DISPLAY, React.Component> = {
   [WIDGET_DISPLAY.LINE_CHART]: LineChart,
   [WIDGET_DISPLAY.AREA_CHART]: AreaChart,
   [WIDGET_DISPLAY.STACKED_AREA_CHART]: StackedAreaChart,
@@ -18,7 +18,7 @@ const CHART_MAP = {
   [WIDGET_DISPLAY.WORLD_MAP]: WorldMapChart,
   [WIDGET_DISPLAY.TABLE]: PercentageTableChart,
   [WIDGET_DISPLAY.PERCENTAGE_AREA_CHART]: PercentageAreaChart,
-} as {[key: string]: React.Component};
+};
 
 export function getChartComponent({type}: {type: WIDGET_DISPLAY}) {
   return CHART_MAP[type];
