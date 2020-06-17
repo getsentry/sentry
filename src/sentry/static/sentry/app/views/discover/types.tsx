@@ -10,6 +10,9 @@ export type Query = {
   version?: number;
   query?: string;
   orderby?: string;
+  groupby?: string;
+  rollup?: number;
+  name?: string;
   limit?: number;
   range?: string;
   start?: string;

@@ -2,14 +2,24 @@ import qs from 'query-string';
 
 import {getExternal, getInternal} from 'app/views/discover/aggregations/utils';
 import {getQueryStringFromQuery} from 'app/views/discover/utils';
+import {Query} from 'app/views/discover/types';
+import {GlobalSelection, Organization} from 'app/types';
 
-export function getDiscoverUrlPathFromDiscoverQuery({organization, selection, query}) {
+export function getDiscoverUrlPathFromDiscoverQuery({
+  organization,
+  selection,
+  query,
+}: {
+  organization: Organization;
+  selection: GlobalSelection;
+  query: Query;
+}) {
   const {datetime, environments: _environments, ...restSelection} = selection;
 
   // Discover does not support importing these
   const {groupby: _groupby, rollup: _rollup, name: _name, orderby, ...restQuery} = query;
 
-  const orderbyTimeIndex = orderby.indexOf('time');
+  const orderbyTimeIndex = orderby?.indexOf('time');
   const visual = orderbyTimeIndex === -1 ? 'table' : 'line-by-day';
 
   const aggregations = query.aggregations.map(aggregation =>
@@ -18,8 +28,7 @@ export function getDiscoverUrlPathFromDiscoverQuery({organization, selection, qu
   const [, , aggregationAlias] = (aggregations.length && aggregations[0]) || [];
 
   // Discover expects the aggregation aliases to be in a specific format
-  restQuery.orderby = `${orderbyTimeIndex === 0 ? '' : '-'}${aggregationAlias || ''}`;
-  restQuery.aggregations = aggregations;
+  const discoverOrderby = `${orderbyTimeIndex === 0 ? '' : '-'}${aggregationAlias || ''}`;
 
   return `/organizations/${organization.slug}/discover/${getQueryStringFromQuery({
     ...restQuery,
@@ -28,6 +37,8 @@ export function getDiscoverUrlPathFromDiscoverQuery({organization, selection, qu
     end: datetime.end,
     range: datetime.period,
     limit: 1000,
+    aggregations,
+    orderby: discoverOrderby,
   })}&visualization=${visual}`;
 }
 
@@ -41,6 +52,7 @@ export function getDiscover2UrlPathFromDiscoverQuery({
     field: ['title', ...d1Query.fields],
     sort: d1Query.orderby,
     statsPeriod: selection?.datetime?.period,
+    query: '',
   };
 
   const queryQueries = (d1Query.conditions || []).map(c => {
@@ -59,7 +71,7 @@ export function getDiscover2UrlPathFromDiscoverQuery({
     }
 
     // Build the query
-    const q = [];
+    const q = [] as string[];
     if (isNot) {
       q.push('!');
     }
