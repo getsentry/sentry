@@ -90,7 +90,7 @@ exports[`ConfirmDelete renders 1`] = `
                         className="css-wufuns-FieldLabel e16ushrl0"
                       >
                         <span>
-                          Please enter 
+                          Please enter
                           <code
                             key="1"
                           >
