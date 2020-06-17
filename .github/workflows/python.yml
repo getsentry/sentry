@@ -5,8 +5,8 @@ on:
       - 'src/sentry/**/*.py'
 
 jobs:
-    sentry:
-      name: sentry
+    check-missing-migration:
+      name: Check Missing Migration
       runs-on: ubuntu-16.04
 
       env:
