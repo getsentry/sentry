@@ -38,6 +38,12 @@ jobs:
             --health-retries 5
 
       steps:
+        - name: Placeholder
+          uses: getsentry/action-migrations@v1.0.6
+          with:
+            action: placeholder
+            githubToken: ${{ secrets.GITHUB_TOKEN }}
+
         # Checkout codebase
         - uses: actions/checkout@v1
 
