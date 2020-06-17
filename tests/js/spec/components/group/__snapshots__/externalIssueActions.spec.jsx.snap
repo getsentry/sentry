@@ -170,7 +170,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                     onMouseEnter={[Function]}
                     onMouseLeave={[Function]}
                   >
-                    <ForwardRef
+                    <IconGithub
                       size="md"
                     >
                       <ForwardRef(SvgIcon)
@@ -187,7 +187,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
                           />
                         </svg>
                       </ForwardRef(SvgIcon)>
-                    </ForwardRef>
+                    </IconGithub>
                     <IntegrationLink
                       onClick={[Function]}
                     >
