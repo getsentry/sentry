@@ -23,7 +23,6 @@ import TagsTable from 'app/components/tagsTable';
 import Projects from 'app/utils/projects';
 import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 import Breadcrumb from 'app/views/performance/breadcrumb';
-import EventView from 'app/utils/discover/eventView';
 import {decodeScalar, appendTagCondition} from 'app/utils/queryString';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
@@ -122,26 +121,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const transactionName = event.title;
     const query = decodeScalar(location.query.query) || '';
 
-    // Build a new event view so span details links will go to useful results.
-    const eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: undefined,
-        name: 'Related events',
-        fields: [
-          'transaction',
-          'project',
-          'trace.span',
-          'transaction.duration',
-          'timestamp',
-        ],
-        orderby: '-timestamp',
-        version: 2,
-        projects: [],
-        query: appendTagCondition(query, 'transaction', transactionName),
-      },
-      location
-    );
-
     return (
       <React.Fragment>
         <HeaderBox>
@@ -182,7 +161,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     location={location}
                     showExampleCommit={false}
                     showTagSummary={false}
-                    eventView={eventView}
                   />
                 </SpanEntryContext.Provider>
               )}

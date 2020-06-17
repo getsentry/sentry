@@ -119,7 +119,7 @@ class EventEntries extends React.Component {
   }
 
   renderEntries() {
-    const {event, project, organization, isShare, eventView} = this.props;
+    const {event, project, organization, isShare} = this.props;
 
     const entries = event && event.entries;
 
@@ -138,12 +138,6 @@ class EventEntries extends React.Component {
           return null;
         }
 
-        // inject additional props for certain interfaces
-        const extraProps = {};
-        if (entry.type === 'spans' && eventView) {
-          extraProps.eventView = eventView;
-        }
-
         return (
           <Component
             key={'entry-' + entryIdx}
@@ -153,7 +147,6 @@ class EventEntries extends React.Component {
             type={entry.type}
             data={entry.data}
             isShare={isShare}
-            {...extraProps}
           />
         );
       } catch (ex) {
