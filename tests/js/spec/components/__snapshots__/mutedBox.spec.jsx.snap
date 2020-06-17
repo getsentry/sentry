@@ -9,7 +9,7 @@ exports[`MutedBox render() handles default 1`] = `
       className="icon icon-soundoff"
       style={
         Object {
-          "color": undefined,
+          "color": "#FA4747",
         }
       }
     />
@@ -31,7 +31,7 @@ exports[`MutedBox render() handles ignoreCount 1`] = `
       className="icon icon-soundoff"
       style={
         Object {
-          "color": undefined,
+          "color": "#FA4747",
         }
       }
     />
@@ -59,7 +59,7 @@ exports[`MutedBox render() handles ignoreCount with ignoreWindow 1`] = `
       className="icon icon-soundoff"
       style={
         Object {
-          "color": undefined,
+          "color": "#FA4747",
         }
       }
     />
@@ -94,7 +94,7 @@ exports[`MutedBox render() handles ignoreUntil 1`] = `
       className="icon icon-soundoff"
       style={
         Object {
-          "color": undefined,
+          "color": "#FA4747",
         }
       }
     />
@@ -124,7 +124,7 @@ exports[`MutedBox render() handles ignoreUserCount 1`] = `
       className="icon icon-soundoff"
       style={
         Object {
-          "color": undefined,
+          "color": "#FA4747",
         }
       }
     />
@@ -152,7 +152,7 @@ exports[`MutedBox render() handles ignoreUserCount with ignoreUserWindow 1`] = `
       className="icon icon-soundoff"
       style={
         Object {
-          "color": undefined,
+          "color": "#FA4747",
         }
       }
     />

@@ -135,7 +135,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                 onMouseLeave={[Function]}
               >
                 <div
-                  className="css-1l784b3-DropdownBubble-BubbleWithMinWidth ejumqxq11"
+                  className="css-prdiwi-DropdownBubble-BubbleWithMinWidth ejumqxq11"
                   onClick={[Function]}
                   onMouseDown={[Function]}
                   onMouseEnter={[Function]}
@@ -374,7 +374,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                 onMouseLeave={[Function]}
               >
                 <div
-                  className="css-1l784b3-DropdownBubble-BubbleWithMinWidth ejumqxq11"
+                  className="css-prdiwi-DropdownBubble-BubbleWithMinWidth ejumqxq11"
                   onClick={[Function]}
                   onMouseDown={[Function]}
                   onMouseEnter={[Function]}

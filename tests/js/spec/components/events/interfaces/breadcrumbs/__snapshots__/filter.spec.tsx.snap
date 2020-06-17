@@ -457,7 +457,6 @@ exports[`Filter default render 1`] = `
                         "iconColor": "#E2A301",
                       },
                     },
-                    "background": "#fff",
                     "badge": Object {
                       "alpha": Object {
                         "background": "linear-gradient(90deg, #F69C7D, #BA4A23)",
@@ -626,7 +625,6 @@ exports[`Filter default render 1`] = `
                     "pink300": "#FF99BC",
                     "pink400": "#E1567C",
                     "pink500": "#902D4C",
-                    "placeholderBackground": "#f5f5f5",
                     "purple100": "#FAF5FF",
                     "purple200": "#E7D3FF",
                     "purple300": "#B9A2FD",
@@ -720,7 +718,7 @@ exports[`Filter default render 1`] = `
                 width="240px"
               >
                 <div
-                  className="css-1adc7cr-DropdownBubble-Content e1r8p2re2"
+                  className="css-1pa22ky-DropdownBubble-Content e1r8p2re2"
                   onClick={[Function]}
                   onMouseEnter={[Function]}
                   onMouseLeave={[Function]}
