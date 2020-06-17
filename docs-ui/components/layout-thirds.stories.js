@@ -60,7 +60,7 @@ storiesOf('Layouts|Thirds', module)
             </ButtonBar>
           </Layout.HeaderRegion>
         </Layout.Header>
-        <Layout.LayoutBody>
+        <Layout.Body>
           <Layout.Main>
             <h1>Content Region</h1>
             <p>Some text here</p>
@@ -68,7 +68,7 @@ storiesOf('Layouts|Thirds', module)
           <Layout.Side>
             <h3>Sidebar content</h3>
           </Layout.Side>
-        </Layout.LayoutBody>
+        </Layout.Body>
       </Container>
     ))
   )
