@@ -111,7 +111,7 @@ storiesOf('Style|Icons', module).add(
 );
 
 const Highlight = styled('span')`
-  color: ${p => p.theme.purple};
+  color: ${p => p.theme.purple400};
   font-weight: 600;
 `;
 
@@ -132,7 +132,7 @@ const SwatchWrapper = styled('div')`
 `;
 
 const Swatches = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.gray300};
   padding: 24px;
 `;
 

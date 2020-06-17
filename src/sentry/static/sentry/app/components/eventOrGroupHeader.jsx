@@ -160,7 +160,7 @@ const iconStyles = css`
 
 const Muted = styled('span')`
   ${iconStyles};
-  color: ${p => p.theme.red};
+  color: ${p => p.theme.red400};
 `;
 
 const Starred = styled('span')`
