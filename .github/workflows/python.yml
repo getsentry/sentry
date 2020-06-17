@@ -2,7 +2,7 @@ name: python
 on:
   pull_request:
     paths:
-      - 'src/sentry/**/*.py'
+      - 'src/**/*.py'
 
 jobs:
     check-missing-migration:
