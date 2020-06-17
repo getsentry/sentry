@@ -298,8 +298,12 @@ class AlertRuleManager(BaseManager):
             .exclude(status=AlertRuleStatus.SNAPSHOT.value)
         )
 
-    def fetch_for_organization(self, organization):
-        return self.filter(organization=organization)
+    def fetch_for_organization(self, organization, projects=None):
+        queryset = self.filter(organization=organization)
+        if projects is not None:
+            queryset = queryset.filter(snuba_query__subscriptions__project__in=projects)
+
+        return queryset
 
     def fetch_for_project(self, project):
         return self.filter(snuba_query__subscriptions__project=project)
