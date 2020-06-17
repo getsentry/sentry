@@ -6,7 +6,7 @@ on:
 
 jobs:
     sentry:
-      name: jira_server
+      name: sentry
       runs-on: ubuntu-16.04
 
       env:
