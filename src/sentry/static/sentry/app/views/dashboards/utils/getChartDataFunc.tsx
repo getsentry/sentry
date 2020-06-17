@@ -7,7 +7,11 @@ import {WIDGET_DISPLAY} from '../constants';
 /**
  * Get data function based on widget properties
  */
-export function getChartDataFunc({queries, type, fieldLabelMap}: Widget) {
+export function getChartDataFunc({
+  queries,
+  type,
+  fieldLabelMap,
+}: Widget): [Function, object[]] {
   if (queries.discover.some(isTimeSeries)) {
     return [
       getChartDataByDay,

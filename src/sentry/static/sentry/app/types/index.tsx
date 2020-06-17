@@ -1310,7 +1310,7 @@ export type Widget = {
   title: React.ReactNode;
   type: WIDGET_DISPLAY;
   fieldLabelMap?: object;
-  yAxisMapping?: [number, number];
+  yAxisMapping?: [number[], number[]];
   includeReleases?: boolean;
   includePreviousPeriod?: boolean;
 };
