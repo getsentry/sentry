@@ -12,7 +12,7 @@ exports[`AlertLink renders 1`] = `
     This is an external link button
   </AlertLinkText>
   <IconLink>
-    <ForwardRef
+    <IconChevron
       direction="right"
     />
   </IconLink>
@@ -28,13 +28,13 @@ exports[`AlertLink renders with icon 1`] = `
   withoutMarginBottom={false}
 >
   <IconWrapper>
-    <ForwardRef />
+    <IconMail />
   </IconWrapper>
   <AlertLinkText>
     This is an external link button
   </AlertLinkText>
   <IconLink>
-    <ForwardRef
+    <IconChevron
       direction="right"
     />
   </IconLink>

@@ -4,24 +4,22 @@ import partial from 'lodash/partial';
 import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import ScoreBar from 'app/components/scoreBar';
-import Tooltip from 'app/components/tooltip';
 import UserBadge from 'app/components/idBadge/userBadge';
+import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
 import getDynamicText from 'app/utils/getDynamicText';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
-import theme from 'app/utils/theme';
 
 import {
+  BarContainer,
   Container,
   EventId,
-  BarContainer,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
@@ -299,25 +297,17 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       );
     }
 
-    const palette = new Array(10).fill(theme.purpleDarkest);
-    const score = Math.floor((userMisery / Math.max(uniqueUsers, 1)) * palette.length);
     const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
-    const miseryPercentage = ((100 * userMisery) / Math.max(uniqueUsers, 1)).toFixed(2);
 
-    const title = tct(
-      '[affectedUsers] out of [totalUsers] ([miseryPercentage]%) unique users waited more than [duration]ms',
-      {
-        affectedUsers: userMisery,
-        totalUsers: uniqueUsers,
-        miseryPercentage,
-        duration: 4 * miseryLimit,
-      }
-    );
     return (
       <BarContainer>
-        <Tooltip title={title} disabled={false} containerDisplayMode="block">
-          <ScoreBar size={20} score={score} palette={palette} radius={0} />
-        </Tooltip>
+        <UserMisery
+          bars={10}
+          barHeight={20}
+          miseryLimit={miseryLimit}
+          totalUsers={uniqueUsers}
+          miserableUsers={userMisery}
+        />
       </BarContainer>
     );
   },

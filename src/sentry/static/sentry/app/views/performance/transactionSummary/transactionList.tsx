@@ -6,8 +6,7 @@ import {browserHistory} from 'react-router';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import Button from 'app/components/button';
-import Feature from 'app/components/acl/feature';
+import DiscoverButton from 'app/components/discoverButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
@@ -94,22 +93,14 @@ class TransactionList extends React.PureComponent<WrapperProps> {
             ))}
           </DropdownControl>
           <HeaderButtonContainer>
-            <Feature
-              features={['organizations:discover-basic']}
-              organization={organization}
+            <DiscoverButton
+              onClick={this.handleDiscoverViewClick}
+              to={sortedEventView.getResultsViewUrlTarget(organization.slug)}
+              size="small"
+              data-test-id="discover-open"
             >
-              {({hasFeature}) => (
-                <Button
-                  onClick={this.handleDiscoverViewClick}
-                  to={sortedEventView.getResultsViewUrlTarget(organization.slug)}
-                  size="small"
-                  data-test-id="discover-open"
-                  disabled={!hasFeature}
-                >
-                  {t('Open in Discover')}
-                </Button>
-              )}
-            </Feature>
+              {t('Open in Discover')}
+            </DiscoverButton>
           </HeaderButtonContainer>
         </Header>
         <DiscoverQuery
@@ -233,7 +224,11 @@ class TransactionTable extends React.PureComponent<Props> {
         );
 
         rendered = (
-          <Link to={target} onClick={this.handleViewDetailsClick}>
+          <Link
+            data-test-id="view-details"
+            to={target}
+            onClick={this.handleViewDetailsClick}
+          >
             {rendered}
           </Link>
         );

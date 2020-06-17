@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 import os.path
 import random
+import pytz
+import six
+
 from datetime import datetime, timedelta
 from django.utils import timezone
-
-import six
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager
@@ -100,7 +101,7 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
     ).to_json()
 
 
-def load_data(platform, default=None, sample_name=None):
+def load_data(platform, default=None, sample_name=None, timestamp=None, start_timestamp=None):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
     # has production consequences.
@@ -149,18 +150,29 @@ def load_data(platform, default=None, sample_name=None):
     if platform in ("csp", "hkpk", "expectct", "expectstaple"):
         return data
 
-    # Fixing up timestamps for all events
-    now = timezone.now()
-    now_time = to_timestamp(now)
-    start_time = to_timestamp(now - timedelta(seconds=2))
-    data.setdefault("timestamp", now_time)
+    # Generate a timestamp in the present.
+    if timestamp is None:
+        timestamp = timezone.now()
+    else:
+        timestamp = timestamp.replace(tzinfo=pytz.utc)
+    data.setdefault("timestamp", to_timestamp(timestamp))
 
     if data.get("type") == "transaction":
-        data["start_timestamp"] = start_time
+        if start_timestamp is None:
+            start_timestamp = timestamp - timedelta(seconds=2)
+        else:
+            start_timestamp = start_timestamp.replace(tzinfo=pytz.utc)
+        data["start_timestamp"] = to_timestamp(start_timestamp)
 
-    for span in data.get("spans") or ():
-        span.setdefault("timestamp", now_time)
-        span.setdefault("start_timestamp", start_time)
+        for span in data.get("spans", []):
+            # Use data to generate span timestamps consistently and based
+            # on event timestamp
+            duration = span.get("data", {}).get("duration", 10.0)
+            offset = span.get("data", {}).get("offset", 0)
+
+            span_start = data["start_timestamp"] + offset
+            span.setdefault("start_timestamp", span_start)
+            span.setdefault("timestamp", span_start + duration)
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.

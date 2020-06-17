@@ -65,7 +65,13 @@ type LetterAvatarProps = React.ComponentProps<'svg'> & Props;
  * the svg, etc) will also need to be changed there.
  */
 const LetterAvatar = styled(
-  ({identifier, displayName, round, forwardedRef, ...props}: LetterAvatarProps) => (
+  ({
+    identifier,
+    displayName,
+    round: _round,
+    forwardedRef,
+    ...props
+  }: LetterAvatarProps) => (
     <svg ref={forwardedRef} viewBox="0 0 120 120" {...props}>
       <rect
         x="0"

@@ -35,7 +35,6 @@ import TemplateInterface from 'app/components/events/interfaces/template';
 import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
 import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import BreadcrumbsInterface from './eventEntriesBreadcrumbs';
@@ -283,5 +282,5 @@ const StyledEventUserFeedback = styled(EventUserFeedback)`
   margin: 0;
 `;
 
-export default withOrganization(withApi(EventEntries));
+export default withOrganization(EventEntries);
 export {BorderlessEventEntries};

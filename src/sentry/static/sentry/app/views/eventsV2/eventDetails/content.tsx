@@ -15,7 +15,6 @@ import withApi from 'app/utils/withApi';
 import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
-import getDynamicText from 'app/utils/getDynamicText';
 import Button from 'app/components/button';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import EventMetadata from 'app/components/events/eventMetadata';
@@ -29,8 +28,6 @@ import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 
 import {generateTitle, getExpandedResults} from '../utils';
-import Pagination from './pagination';
-import LineGraph from './lineGraph';
 import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
 
@@ -91,6 +88,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const query = eventView.getEventsAPIPayload(location);
 
+    // Fields aren't used, reduce complexity by omitting from query entirely
+    query.field = [];
+
     const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
 
     // Get a specific event. This could be coming from
@@ -142,8 +142,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       organization_id: parseInt(organization.id, 10),
     });
 
-    // Having an aggregate field means we want to show pagination/graphs
-    const isGroupedView = eventView.hasAggregateField();
     const {isSidebarVisible} = this.state;
 
     return (
@@ -160,29 +158,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <StyledButton size="small" onClick={this.toggleSidebar}>
               {isSidebarVisible ? 'Hide Details' : 'Show Details'}
             </StyledButton>
-            {isGroupedView && (
-              <Pagination
-                event={event}
-                organization={organization}
-                eventView={eventView}
-              />
-            )}
           </HeaderBottomControls>
         </HeaderBox>
         <ContentBox>
           <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
-            {isGroupedView &&
-              getDynamicText({
-                value: (
-                  <LineGraph
-                    organization={organization}
-                    currentEvent={event}
-                    location={location}
-                    eventView={eventView}
-                  />
-                ),
-                fixed: 'events chart',
-              })}
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
                 <BorderlessEventEntries
