@@ -18,7 +18,7 @@ describe('EventsRequest', function() {
   const organization = TestStubs.Organization();
   const mock = jest.fn(() => null);
   const DEFAULTS = {
-    api: {},
+    api: new MockApiClient(),
     projects: [parseInt(project.id, 10)],
     environments: [],
     period: '24h',

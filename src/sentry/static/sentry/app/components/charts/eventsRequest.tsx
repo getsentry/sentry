@@ -245,6 +245,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     }));
 
     try {
+      api.clear();
       timeseriesData = await doEventsRequest(api, props);
     } catch (resp) {
       if (resp && resp.responseJSON && resp.responseJSON.detail) {
