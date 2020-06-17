@@ -247,8 +247,12 @@ export function makeDefaultCta({
   incident,
   stats,
 }: PresetCtaOpts): PresetCta {
+  const extraQueryParams = {
+    display: 'top5',
+  };
+
   return {
     buttonText: t('Open in Discover'),
-    to: getIncidentDiscoverUrl({orgSlug, projects, incident, stats}),
+    to: getIncidentDiscoverUrl({orgSlug, projects, incident, stats, extraQueryParams}),
   };
 }

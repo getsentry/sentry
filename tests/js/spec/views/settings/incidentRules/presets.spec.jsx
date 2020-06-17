@@ -61,6 +61,9 @@ describe('Incident Presets', function() {
         projects,
         incident,
         stats: mockStats,
+        extraQueryParams: {
+          display: 'top5',
+        },
       });
 
       expect(cta).toEqual(
@@ -95,6 +98,9 @@ describe('Incident Presets', function() {
         projects,
         incident,
         stats: mockStats,
+        extraQueryParams: {
+          display: 'top5',
+        },
       });
 
       expect(cta).toEqual(
