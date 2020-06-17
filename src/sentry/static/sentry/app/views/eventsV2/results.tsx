@@ -13,6 +13,7 @@ import {Client} from 'app/api';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {fetchProjectsCount} from 'app/actionCreators/projects';
 import Alert from 'app/components/alert';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -26,7 +27,6 @@ import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {ContentBox, Main, Side} from 'app/utils/discover/styles';
-import {fetchProjectsCount} from 'app/utils/projects';
 import {generateQueryWithTag} from 'app/utils';
 import localStorage from 'app/utils/localStorage';
 import {decodeScalar} from 'app/utils/queryString';
@@ -140,14 +140,14 @@ class Results extends React.Component<Props, State> {
     return null;
   };
 
-  longQueryConfirmed = async () => {
+  handleConfirmed = async () => {
     this.setState({needConfirmation: false, confirmedQuery: true}, () => {
       this.setState({confirmedQuery: false});
     });
     this.fetchTotalCount(true);
   };
 
-  longQueryCancelled = () => {
+  handleCancelled = () => {
     this.setState({needConfirmation: false, confirmedQuery: false});
   };
 
@@ -378,18 +378,18 @@ class Results extends React.Component<Props, State> {
               header={<strong>{t('May lead to thumb twiddling')}</strong>}
               confirmText={t('Do it')}
               cancelText={t('Nevermind')}
-              onConfirm={this.longQueryConfirmed}
-              onCancel={this.longQueryCancelled}
+              onConfirm={this.handleConfirmed}
+              onCancel={this.handleCancelled}
               message={
                 <p>
                   {tct(
                     `You've created a query that will search for events made
-                    [dayLimit] for [projectLimit].
+                    [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                     A lot has happened during that time, so this might take awhile.
                     Are you sure you want to do this?`,
                     {
-                      dayLimit: <strong>{t('over more than 30 days')}</strong>,
-                      projectLimit: <strong>{t('more than 10 projects')}</strong>,
+                      dayLimit: <strong />,
+                      projectLimit: <strong />,
                     }
                   )}
                 </p>

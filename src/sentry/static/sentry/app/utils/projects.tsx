@@ -394,10 +394,6 @@ class Projects extends React.Component<Props, State> {
 
 export default withProjects(withApi(Projects));
 
-export async function fetchProjectsCount(api: Client, orgId: string) {
-  return await api.requestPromise(`/organizations/${orgId}/projects-count/`);
-}
-
 type FetchProjectsOptions = {
   slugs?: string[];
   cursor?: State['nextCursor'];
@@ -415,7 +411,6 @@ async function fetchProjects(
     cursor?: typeof cursor;
     per_page?: number;
     all_projects?: number;
-    get_counts?: number;
   } = {};
 
   if (slugs && slugs.length) {
