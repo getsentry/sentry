@@ -10,6 +10,7 @@ import {t, tct} from 'app/locale';
 import {
   trackIntegrationEvent,
   getIntegrationFeatureGate,
+  SingleIntegrationEvent,
 } from 'app/utils/integrationUtil';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
@@ -38,7 +39,10 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return t('Choose Installation Organization');
   }
 
-  trackOpened() {
+  trackIntegrationEvent = (
+    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>,
+    startSession?: boolean
+  ) => {
     const {organization, provider} = this.state;
     //should have these set but need to make TS happy
     if (!organization || !provider) {
@@ -47,8 +51,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
 
     trackIntegrationEvent(
       {
-        eventKey: 'integrations.integration_viewed',
-        eventName: 'Integrations: Integration Viewed',
+        ...options,
         integration_type: 'first_party',
         integration: provider.key,
         //We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
@@ -56,29 +59,25 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
         view: 'external_install',
       },
       organization,
-      {startSession: true}
+      {startSession: !!startSession}
+    );
+  };
+
+  trackOpened() {
+    this.trackIntegrationEvent(
+      {
+        eventKey: 'integrations.integration_viewed',
+        eventName: 'Integrations: Integration Viewed',
+      },
+      true
     );
   }
 
   trackInstallationStart() {
-    const {organization, provider} = this.state;
-    //should have these set but need to make TS happy
-    if (!organization || !provider) {
-      return;
-    }
-
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.installation_start',
-        eventName: 'Integrations: Installation Start',
-        integration_type: 'first_party',
-        integration: provider.key,
-        //We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
-        already_installed: false,
-        view: 'external_install',
-      },
-      organization
-    );
+    this.trackIntegrationEvent({
+      eventKey: 'integrations.installation_start',
+      eventName: 'Integrations: Installation Start',
+    });
   }
 
   get integrationSlug() {
