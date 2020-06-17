@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
     queue="data_export",
     default_retry_delay=30,
     max_retries=3,
+    acks_late=True,
 )
 def assemble_download(
     data_export_id,
@@ -230,7 +231,7 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
             return 0
 
 
-@instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export")
+@instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
 def merge_export_blobs(data_export_id, **kwargs):
     try:
         data_export = ExportedData.objects.get(id=data_export_id)
