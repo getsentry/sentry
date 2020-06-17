@@ -38,6 +38,12 @@ jobs:
             --health-retries 5
 
       steps:
+        - name: Create placeholder comment
+          uses: getsentry/action-migrations@v1.0.6
+          with:
+            action: placeholder
+            githubToken: ${{ secrets.GITHUB_TOKEN }}
+
         # Checkout codebase
         - uses: actions/checkout@v1
 
@@ -103,7 +109,7 @@ jobs:
             sentry init
 
         - name: Generate SQL for migration
-          uses: getsentry/action-migrations@v1.0.5
+          uses: getsentry/action-migrations@v1.0.6
           env:
             SENTRY_LOG_LEVEL: ERROR
             PGPASSWORD: postgres
