@@ -54,7 +54,6 @@ type Props = {
 type State = {
   eventView: EventView;
   error: string | undefined;
-  currentView: FilterViews;
 };
 
 class PerformanceLanding extends React.Component<Props, State> {
@@ -65,7 +64,6 @@ class PerformanceLanding extends React.Component<Props, State> {
   state: State = {
     eventView: generatePerformanceEventView(this.props.location),
     error: undefined,
-    currentView: FilterViews.ALL_TRANSACTIONS,
   };
 
   componentDidMount() {
@@ -151,24 +149,30 @@ class PerformanceLanding extends React.Component<Props, State> {
     return stringifyQueryObject(parsed);
   }
 
-  renderHeaderButtons() {
-    const selectView = (viewKey: FilterViews) => {
-      return () => {
-        this.setState({
-          currentView: viewKey,
-        });
-      };
-    };
+  getCurrentView(): string {
+    const {location} = this.props;
+    return (location.query.view as string) ?? FilterViews.ALL_TRANSACTIONS;
+  }
 
+  handleViewChange(viewKey: FilterViews) {
+    const {location} = this.props;
+
+    ReactRouter.browserHistory.push({
+      pathname: location.pathname,
+      query: {...location.query, view: viewKey},
+    });
+  }
+
+  renderHeaderButtons() {
     return (
-      <ButtonBar merged active={this.state.currentView}>
+      <ButtonBar merged active={this.getCurrentView()}>
         {VIEWS.map(viewKey => {
           return (
             <Button
               key={viewKey}
               barId={viewKey}
               size="small"
-              onClick={selectView(viewKey)}
+              onClick={() => this.handleViewChange(viewKey)}
             >
               {this.getViewLabel(viewKey)}
             </Button>
@@ -214,6 +218,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     const showOnboarding = this.shouldShowOnboarding();
     const filterString = this.getTransactionSearchQuery();
     const summaryConditions = this.getSummaryConditions(filterString);
+    const currentView = this.getCurrentView();
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
@@ -252,7 +257,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     router={router}
-                    keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
+                    keyTransactions={currentView === 'KEY_TRANSACTIONS'}
                   />
                   <Table
                     eventView={eventView}
@@ -260,7 +265,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     setError={this.setError}
-                    keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
+                    keyTransactions={currentView === 'KEY_TRANSACTIONS'}
                     summaryConditions={summaryConditions}
                   />
                 </div>
