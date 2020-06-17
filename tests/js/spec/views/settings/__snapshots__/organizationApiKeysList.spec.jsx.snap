@@ -452,7 +452,6 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                 __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                   Object {
                                     "$$typeof": Symbol(react.forward_ref),
-                                    "displayName": "IconDelete",
                                     "render": [Function],
                                   }
                                 }
@@ -464,7 +463,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                 }
                                 size="xs"
                               >
-                                <IconDelete
+                                <ForwardRef(IconDelete)
                                   className="css-17ls4qs-OrganizationApiKeysList"
                                   size="xs"
                                 >
@@ -499,7 +498,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                                       />
                                     </svg>
                                   </ForwardRef(SvgIcon)>
-                                </IconDelete>
+                                </ForwardRef(IconDelete)>
                               </EmotionCssPropInternal>
                             </a>
                             <Modal
