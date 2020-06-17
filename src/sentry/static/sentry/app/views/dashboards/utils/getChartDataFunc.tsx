@@ -1,4 +1,5 @@
 import {getChartDataForWidget, getChartDataByDay} from 'app/views/discover/result/utils';
+import {Widget} from 'app/types';
 
 import {isTimeSeries} from './isTimeSeries';
 import {WIDGET_DISPLAY} from '../constants';
@@ -6,7 +7,7 @@ import {WIDGET_DISPLAY} from '../constants';
 /**
  * Get data function based on widget properties
  */
-export function getChartDataFunc({queries, type, fieldLabelMap}) {
+export function getChartDataFunc({queries, type, fieldLabelMap}: Widget) {
   if (queries.discover.some(isTimeSeries)) {
     return [
       getChartDataByDay,

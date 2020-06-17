@@ -18,7 +18,7 @@ const CHART_MAP = {
   [WIDGET_DISPLAY.WORLD_MAP]: WorldMapChart,
   [WIDGET_DISPLAY.TABLE]: PercentageTableChart,
   [WIDGET_DISPLAY.PERCENTAGE_AREA_CHART]: PercentageAreaChart,
-};
+} as {[key: string]: React.Component};
 
 export function getChartComponent({type}: {type: WIDGET_DISPLAY}) {
   return CHART_MAP[type];

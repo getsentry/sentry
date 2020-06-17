@@ -8,7 +8,9 @@ import {
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
+import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
 import {Props as AlertProps} from 'app/components/alert';
+import {Query as DiscoverQuery} from 'app/views/discover/types';
 
 declare global {
   interface Window {
@@ -1299,6 +1301,18 @@ export type Artifact = {
   sha1: string;
   size: number;
   headers: {'Content-Type': string};
+};
+
+export type Widget = {
+  queries: {
+    discover: DiscoverQuery[];
+  };
+  title: React.ReactNode;
+  type: WIDGET_DISPLAY;
+  fieldLabelMap?: object;
+  yAxisMapping?: [number, number];
+  includeReleases?: boolean;
+  includePreviousPeriod?: boolean;
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
