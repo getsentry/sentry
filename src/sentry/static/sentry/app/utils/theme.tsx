@@ -58,22 +58,6 @@ const colors = {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Old Colors
-  red: '#e03e2f',
-  redLight: '#FA5849',
-  redLightest: '#FDF6F5',
-  redDark: '#C72516',
-
-  pink: '#F868BC',
-  pinkLight: '#FF82D6',
-  pinkDark: '#DF4FA3',
-
-  purple: '#6C5FC7',
-  purple2: '#6f617c', // This is from event-details
-  purpleLightest: '#9F92FA',
-  purpleLight: '#8679E1',
-  purpleDark: '#5346AE',
-  purpleDarkest: '#392C94',
-
   borderLighter: '#f9f6fd',
   borderLight: '#E2DBE8',
   borderDark: '#D1CAD8',
@@ -134,8 +118,8 @@ const badge = {
     indicatorColor: colors.orange400,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink}, ${colors.purple})`,
-    indicatorColor: colors.purple,
+    background: `linear-gradient(90deg, ${colors.pink400}, ${colors.purple400})`,
+    indicatorColor: colors.purple400,
   },
   new: {
     background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
@@ -167,11 +151,11 @@ const button = {
   primary: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.purple,
+    background: colors.purple400,
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
     borderActive: '#352b7b',
-    focusShadow: color(colors.purple)
+    focusShadow: color(colors.purple400)
       .alpha(0.4)
       .string(),
   },

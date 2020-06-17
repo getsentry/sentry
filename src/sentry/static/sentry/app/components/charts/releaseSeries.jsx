@@ -106,7 +106,7 @@ class ReleaseSeries extends React.Component {
       markLine: MarkLine({
         lineStyle: {
           normal: {
-            color: theme.purpleLight,
+            color: theme.purple400,
             opacity: 0.3,
             type: 'solid',
           },

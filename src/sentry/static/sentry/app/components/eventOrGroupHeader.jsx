@@ -178,7 +178,7 @@ const GroupLevel = styled('div')`
   background-color: ${p => {
     switch (p.level) {
       case 'sample':
-        return p.theme.purple;
+        return p.theme.purple400;
       case 'info':
         return p.theme.blue400;
       case 'warning':
@@ -186,7 +186,7 @@ const GroupLevel = styled('div')`
       case 'error':
         return p.theme.orange400;
       case 'fatal':
-        return p.theme.red;
+        return p.theme.red400;
       default:
         return p.theme.gray500;
     }

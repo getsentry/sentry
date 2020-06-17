@@ -268,7 +268,7 @@ const ProgressStep = styled('div')`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 4px solid ${p => (p.active ? Theme.colors.pink : p.theme.borderLight)};
+  border: 4px solid ${p => (p.active ? Theme.colors.pink400 : p.theme.borderLight)};
   background: #fff;
 `;
 
@@ -310,7 +310,7 @@ const OnboardingStep = styled(PosedOnboardingStep)`
     height: 30px;
     top: -5px;
     left: -30px;
-    background-color: ${p => (p.active ? Theme.colors.pink : p.theme.gray500)};
+    background-color: ${p => (p.active ? Theme.colors.pink400 : p.theme.gray500)};
     border-radius: 50%;
     color: #fff;
     font-size: 1.5rem;

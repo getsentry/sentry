@@ -186,7 +186,7 @@ const GuideAnchor = createReactClass<Props, State>({
       <StyledHovercard
         show
         body={this.getHovercardBody()}
-        tipColor={theme.purple}
+        tipColor={theme.purple400}
         position={position}
         offset={offset}
       >
@@ -202,8 +202,8 @@ const GuideContainer = styled('div')`
   grid-gap: ${space(2)};
   text-align: center;
   line-height: 1.5;
-  background-color: ${p => p.theme.purple};
-  border-color: ${p => p.theme.purple};
+  background-color: ${p => p.theme.purple400};
+  border-color: ${p => p.theme.purple400};
   color: ${p => p.theme.gray100};
 `;
 
@@ -256,7 +256,7 @@ const StepCount = styled('div')`
 
 const StyledHovercard = styled(Hovercard)`
   ${HovercardBody} {
-    background-color: ${theme.purple};
+    background-color: ${theme.purple400};
     margin: -1px;
     border-radius: ${theme.borderRadius};
   }

@@ -199,7 +199,7 @@ class SettingsIndex extends React.Component<Props> {
             <GridPanel>
               <HomePanelHeader>
                 <SupportLinkComponent isCentered {...supportLinkProps}>
-                  <HomeIcon color="purple">
+                  <HomeIcon color="purple400">
                     <IconSupport size="lg" />
                   </HomeIcon>
                   {t('Support')}
@@ -311,10 +311,10 @@ type CenterableProps = {
 };
 
 const HomeLink = styled(Link)`
-  color: ${p => p.theme.purple};
+  color: ${p => p.theme.purple400};
 
   &:hover {
-    color: ${p => p.theme.purpleDark};
+    color: ${p => p.theme.purple400};
   }
 `;
 
@@ -329,10 +329,10 @@ const ExternalHomeLink = styled(
     <ExternalLink {...omit(props, 'isCentered')} />
   )
 )<CenterableProps>`
-  color: ${p => p.theme.purple};
+  color: ${p => p.theme.purple400};
 
   &:hover {
-    color: ${p => p.theme.purpleDark};
+    color: ${p => p.theme.purple400};
   }
 
   ${p => p.isCentered && flexCenter};
