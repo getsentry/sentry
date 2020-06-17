@@ -20,6 +20,6 @@ const CHART_MAP = {
   [WIDGET_DISPLAY.PERCENTAGE_AREA_CHART]: PercentageAreaChart,
 };
 
-export function getChartComponent({type}) {
+export function getChartComponent({type}: {type: WIDGET_DISPLAY}) {
   return CHART_MAP[type];
 }
