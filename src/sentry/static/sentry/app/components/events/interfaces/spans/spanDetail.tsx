@@ -39,7 +39,6 @@ type Props = {
   event: Readonly<SentryTransactionEvent>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
-  eventView: EventView;
   trace: Readonly<ParsedTraceType>;
   totalNumberOfErrors: number;
   spanErrors: TableDataRow[];
