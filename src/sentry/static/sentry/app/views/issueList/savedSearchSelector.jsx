@@ -173,7 +173,7 @@ const MenuItem = styled('li')`
   display: flex;
 
   position: relative;
-  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.borderLight}` : null)};
+  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.gray300}` : null)};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 

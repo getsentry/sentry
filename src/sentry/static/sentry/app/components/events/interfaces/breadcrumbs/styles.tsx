@@ -19,10 +19,10 @@ const BreadCrumb = styled('li')<{hasError?: boolean}>`
     top: 0;
     bottom: 0;
     left: 32px;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     position: absolute;
   }
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
   :last-child:before {
     bottom: calc(100% - ${space(1)});
   }

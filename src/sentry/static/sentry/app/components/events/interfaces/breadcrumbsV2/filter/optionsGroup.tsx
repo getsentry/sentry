@@ -58,7 +58,7 @@ const Header = styled('div')`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.gray400};
 `;
 
 const List = styled('ul')`
@@ -73,7 +73,7 @@ const ListItem = styled('li')<{isChecked?: boolean; isDisabled?: boolean}>`
   grid-column-gap: ${space(1)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.gray400};
   cursor: ${p => (p.isDisabled ? 'not-allowed' : 'pointer')};
   :hover {
     background-color: ${p => p.theme.gray100};

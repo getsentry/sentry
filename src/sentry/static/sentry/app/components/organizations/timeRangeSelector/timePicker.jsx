@@ -68,7 +68,7 @@ const Input = styled('input')`
     width: 100%;
     padding-left: 5%;
     background: ${p => p.theme.gray100};
-    border: 1px solid ${p => p.theme.borderLight};
+    border: 1px solid ${p => p.theme.gray300};
     color: ${p => p.theme.gray500};
     box-shadow: none;
   }

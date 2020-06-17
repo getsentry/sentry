@@ -83,7 +83,7 @@ const CalendarMenu = styled('div')`
   background: white;
   position: absolute;
   left: 0;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.gray400};
   border-top: none;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
   margin-top: -1px;

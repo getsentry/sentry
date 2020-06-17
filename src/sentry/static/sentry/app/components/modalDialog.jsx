@@ -164,7 +164,7 @@ const ModalContainer = styled('div')`
   margin: ${space(3)};
   padding: ${space(3)};
 
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.gray300};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
 
@@ -178,7 +178,7 @@ const CircleButton = styled('button')`
   line-height: ${p => p.size * 0.4}px;
   height: ${p => p.size}px;
   box-shadow: ${p => p.theme.dropShadowLight};
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.gray400};
 
   position: absolute;
   top: -${p => p.size / 2 - 5}px;

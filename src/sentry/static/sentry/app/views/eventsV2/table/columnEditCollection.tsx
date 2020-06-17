@@ -377,7 +377,7 @@ const Ghost = styled('div')`
   position: absolute;
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.gray300};
   width: 600px;
   opacity: 0.8;
   cursor: grabbing;
@@ -393,7 +393,7 @@ const Ghost = styled('div')`
 
 const DragPlaceholder = styled('div')`
   margin: 0 ${space(4)} ${space(1)} ${space(4)};
-  border: 2px dashed ${p => p.theme.borderLight};
+  border: 2px dashed ${p => p.theme.gray300};
   border-radius: ${p => p.theme.borderRadius};
   height: 40px;
 `;

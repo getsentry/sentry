@@ -54,7 +54,7 @@ const Wrapper = styled('div')`
   display: flex;
   background-color: ${p => p.theme.gray100};
   padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.gray400};
   justify-content: flex-end;
 `;
 

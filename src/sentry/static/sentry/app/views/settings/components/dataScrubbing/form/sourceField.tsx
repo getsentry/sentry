@@ -448,7 +448,7 @@ const Suggestions = styled('ul')`
   list-style: none;
   margin-bottom: 0;
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.gray400};
   border-radius: 0 0 ${space(0.5)} ${space(0.5)};
   background: ${p => p.theme.white};
   top: 35px;
@@ -463,7 +463,7 @@ const Suggestion = styled('li')<{active: boolean}>`
   display: grid;
   grid-template-columns: auto 1fr max-content;
   grid-gap: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
   cursor: pointer;

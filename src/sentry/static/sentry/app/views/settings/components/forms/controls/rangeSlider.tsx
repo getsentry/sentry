@@ -260,7 +260,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border-radius: 3px;
     border: 0;
   }
@@ -269,7 +269,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border-radius: 3px;
     border: 0;
   }
@@ -278,7 +278,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border-radius: 3px;
     border: 0;
   }
@@ -323,13 +323,13 @@ const Slider = styled('input')<{hasLabel: boolean}>`
   }
 
   &::-ms-fill-lower {
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border: 0;
     border-radius: 50%;
   }
 
   &::-ms-fill-upper {
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     border: 0;
     border-radius: 50%;
   }
@@ -338,15 +338,15 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     outline: none;
 
     &::-webkit-slider-runnable-track {
-      background: ${p => p.theme.borderDark};
+      background: ${p => p.theme.gray400};
     }
 
     &::-ms-fill-upper {
-      background: ${p => p.theme.borderDark};
+      background: ${p => p.theme.gray400};
     }
 
     &::-ms-fill-lower {
-      background: ${p => p.theme.borderDark};
+      background: ${p => p.theme.gray400};
     }
   }
 

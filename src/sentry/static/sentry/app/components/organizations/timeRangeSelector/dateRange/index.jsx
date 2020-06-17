@@ -235,7 +235,7 @@ class DateRange extends React.Component {
 const StyledDateRange = styled(DateRange)`
   display: flex;
   flex-direction: column;
-  border-left: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.gray300};
 `;
 
 const StyledDateRangePicker = styled(DateRangePicker)`
@@ -333,7 +333,7 @@ const TimeAndUtcPicker = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.gray300};
 `;
 
 const UtcPicker = styled('div')`

@@ -43,7 +43,7 @@ export default class Resources extends React.Component {
 }
 
 const ResourcesWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.gray300};
   padding: 25px 30px 10px 30px;
 `;
 

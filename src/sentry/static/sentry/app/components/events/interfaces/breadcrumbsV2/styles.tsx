@@ -35,7 +35,7 @@ const GridCell = styled('div')<{
   isLastItem?: boolean;
 }>`
   position: relative;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
   margin-bottom: -1px;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -65,7 +65,7 @@ const GridCellLeft = styled(GridCell)`
     top: 0;
     bottom: 0;
     left: 21px;
-    background: ${p => (p.hasError ? '#fa4747' : p.theme.borderLight)};
+    background: ${p => (p.hasError ? '#fa4747' : p.theme.gray300)};
     position: absolute;
     @media (min-width: ${p => p.theme.breakpoints[0]}) {
       left: 29px;
@@ -74,7 +74,7 @@ const GridCellLeft = styled(GridCell)`
 `;
 
 const aroundContentStyle = css`
-  border: 1px solid ${theme.borderDark};
+  border: 1px solid ${theme.gray400};
   border-radius: ${theme.borderRadius};
   box-shadow: ${theme.dropShadowLightest};
 `;

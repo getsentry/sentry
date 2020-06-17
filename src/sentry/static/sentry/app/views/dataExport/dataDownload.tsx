@@ -276,7 +276,7 @@ class DataDownload extends AsyncView<Props, State> {
 }
 
 const Header = styled('header')`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
   padding: ${space(3)} 40px 0;
   h3 {
     font-size: 24px;

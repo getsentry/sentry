@@ -108,7 +108,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="redLight" />
+      <IconLock size="xs" color="red400" />
     </Tooltip>
   );
 
@@ -173,7 +173,7 @@ const Description = styled('p')`
 
 const ActionBar = styled('div')`
   height: 40px;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.gray300};
   margin: ${space(3)} -${space(3)} -${space(3)};
   display: flex;
   justify-content: space-between;

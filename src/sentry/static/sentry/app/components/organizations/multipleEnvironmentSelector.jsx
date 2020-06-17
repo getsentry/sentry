@@ -292,7 +292,7 @@ const StyledHeaderItem = styled(HeaderItem)`
 
 const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   background: #fff;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.gray400};
   position: absolute;
   top: 100%;
   box-shadow: ${p => p.theme.dropShadowLight};

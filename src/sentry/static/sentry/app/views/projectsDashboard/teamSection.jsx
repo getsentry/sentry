@@ -53,7 +53,7 @@ const ProjectCards = styled('div')`
 `;
 
 const TeamSectionWrapper = styled('div')`
-  border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
+  border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.gray300 : 0)};
 
   &:last-child {
     ${ProjectCards} {

@@ -199,7 +199,7 @@ const Input = styled('div')<{
 }>`
   min-width: 40px;
   margin: 0;
-  border: 1px solid ${p => (p.isHovering ? p.theme.borderDark : 'transparent')};
+  border: 1px solid ${p => (p.isHovering ? p.theme.gray400 : 'transparent')};
   outline: none;
 
   line-height: inherit;

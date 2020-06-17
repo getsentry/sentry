@@ -120,7 +120,7 @@ const IncidentList = styled('ul')`
 `;
 
 const IncidentItem = styled('li')`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
   margin-bottom: ${space(3)};
   padding-bottom: ${space(0.75)};
 `;

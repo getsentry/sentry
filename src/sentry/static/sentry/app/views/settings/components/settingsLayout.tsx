@@ -64,7 +64,7 @@ const SidebarWrapper = styled('div')`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
   background: ${p => p.theme.white};
-  border-right: 1px solid ${p => p.theme.borderLight};
+  border-right: 1px solid ${p => p.theme.gray300};
   padding: ${space(4)};
   padding-right: ${space(2)};
 `;

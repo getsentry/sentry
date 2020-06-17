@@ -270,7 +270,7 @@ const StyledEventUserFeedback = styled(EventUserFeedback)`
   box-shadow: none;
   padding: 20px 30px 0 40px;
   border: 0;
-  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : '')}
+  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.gray300};` : '')}
   margin: 0;
 `;
 

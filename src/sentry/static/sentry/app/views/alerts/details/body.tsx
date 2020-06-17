@@ -309,7 +309,7 @@ const Sidebar = styled(PageContent)`
     width: 100%;
     padding-top: ${space(3)};
     margin-bottom: 0;
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.gray300};
   }
 `;
 
@@ -362,7 +362,7 @@ const ChartParameters = styled('div')`
     display: block;
     height: 70%;
     width: 1px;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     position: absolute;
     right: -${space(2)};
     top: 15%;

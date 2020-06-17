@@ -106,13 +106,13 @@ const StyledSelect = styled(SelectPicker)`
   font-size: 15px;
 
   .Select-control {
-    border: 1px solid ${p => p.theme.borderDark};
+    border: 1px solid ${p => p.theme.gray400};
     height: ${p => p.height}px;
     overflow: visible;
   }
 
   &.Select.is-focused > .Select-control {
-    border: 1px solid ${p => p.theme.borderDark};
+    border: 1px solid ${p => p.theme.gray400};
     border-color: ${p => p.theme.gray};
     box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
   }

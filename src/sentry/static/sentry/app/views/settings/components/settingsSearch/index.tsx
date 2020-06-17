@@ -74,7 +74,7 @@ const SearchInput = styled('input')`
   width: 260px;
   line-height: 1;
   padding: 5px 8px 4px 28px;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.gray400};
   border-radius: 30px;
   height: 28px;
 

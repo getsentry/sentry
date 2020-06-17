@@ -43,7 +43,7 @@ export const ResultViewActions = styled('div')`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
   margin-bottom: ${space(3)};
 
   @media (max-width: ${theme.breakpoints[1]}) {
@@ -77,7 +77,7 @@ export const DownloadCsvButton = styled(Button)`
 export const Sidebar = styled('div')`
   display: flex;
   flex-direction: column;
-  border-right: 1px solid ${p => p.theme.borderDark};
+  border-right: 1px solid ${p => p.theme.gray400};
   background: #fff;
   min-width: 320px;
   position: relative;
@@ -90,7 +90,7 @@ export const Sidebar = styled('div')`
 export const DocsSeparator = styled('div')`
   flex-grow: 1;
   margin: ${space(3)} ${space(3)} 0;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
 `;
 
 export const DocsLink = styled(ExternalLink)`
@@ -204,9 +204,9 @@ export const ButtonSpinner = styled('div')`
   width: 14px;
   height: 14px;
   border-radius: 14px;
-  border-top: 2px solid ${p => p.theme.borderLight};
-  border-right: 2px solid ${p => p.theme.borderLight};
-  border-bottom: 2px solid ${p => p.theme.borderLight};
+  border-top: 2px solid ${p => p.theme.gray300};
+  border-right: 2px solid ${p => p.theme.gray300};
+  border-bottom: 2px solid ${p => p.theme.gray300};
   border-left: 2px solid ${p => p.theme.purple400};
   margin-left: 4px;
 `;
@@ -282,7 +282,7 @@ export const QueryPanelContainer = styled('div')`
   height: calc(100% - ${HEADER_HEIGHT}px);
   background-color: white;
   top: ${HEADER_HEIGHT}px;
-  border-right: 1px solid ${p => p.theme.borderLight};
+  border-right: 1px solid ${p => p.theme.gray300};
   animation: ${slideInLeft} 0.2s ease-in;
   overflow-y: scroll;
 `;
@@ -293,7 +293,7 @@ export const QueryPanelTitle = styled('div')`
   align-items: center;
   padding: 0 ${space(4)};
   height: ${HEADER_HEIGHT}px;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
 `;
 
 export const QueryPanelCloseLink = styled(Link)`

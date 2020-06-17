@@ -208,7 +208,7 @@ const ReleaseHealth = ({
 };
 
 const StyledPanelHeader = styled(PanelHeader)`
-  border-top: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.gray400};
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   color: ${p => p.theme.gray500};

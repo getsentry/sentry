@@ -15,7 +15,7 @@ const inputStyles = (props: Props) =>
     display: block;
     width: 100%;
     background: #fff;
-    border: 1px solid ${props.theme.borderDark};
+    border: 1px solid ${props.theme.gray400};
     border-radius: ${props.theme.borderRadius};
     box-shadow: inset ${props.theme.dropShadowLight};
     padding: 0.5em;
@@ -47,7 +47,7 @@ const inputStyles = (props: Props) =>
     &[disabled] {
       background: ${props.theme.gray100};
       color: ${props.theme.gray500};
-      border: 1px solid ${props.theme.borderDark};
+      border: 1px solid ${props.theme.gray400};
       cursor: not-allowed;
 
       &::placeholder {

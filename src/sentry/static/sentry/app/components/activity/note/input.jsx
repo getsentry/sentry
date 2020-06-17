@@ -328,7 +328,7 @@ const getNoteInputErrorStyles = p => {
       height: 0;
       border-top: 7px solid transparent;
       border-bottom: 7px solid transparent;
-      border-right: 7px solid ${p.theme.red};
+      border-right: 7px solid ${p.theme.red400};
       position: absolute;
       left: -7px;
       top: 12px;
@@ -363,7 +363,7 @@ const NoteInputBody = styled('div')`
 
 const Footer = styled('div')`
   display: flex;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.gray300};
   justify-content: space-between;
   transition: opacity 0.2s ease-in-out;
   padding-left: ${space(1.5)};
@@ -394,7 +394,7 @@ const ErrorMessage = styled('span')`
 
 const NoteInputNavTabs = styled(NavTabs)`
   padding: ${space(1)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
   margin-bottom: 0;
 `;
 

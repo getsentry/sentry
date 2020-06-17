@@ -127,6 +127,6 @@ const StickyWrapper = styled('div')`
   top: 69px; /* Height of settings breadcrumb 69px */
   z-index: ${p => p.theme.zIndex.dropdown - 1};
   padding: ${space(2)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
   background: rgba(255, 255, 255, 0.9);
 `;

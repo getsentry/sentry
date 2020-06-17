@@ -94,7 +94,7 @@ const ListItem = styled('li')`
   grid-column-gap: ${space(1)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.gray400};
   &:hover {
     background-color: ${p => p.theme.gray100};
   }

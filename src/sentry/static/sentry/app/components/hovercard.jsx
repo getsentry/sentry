@@ -205,7 +205,7 @@ const StyledHovercard = styled('div')`
   z-index: ${p => p.theme.zIndex.hovercard};
   white-space: initial;
   color: ${p => p.theme.gray800};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.gray300};
   background: #fff;
   background-clip: padding-box;
   box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
@@ -230,7 +230,7 @@ const StyledHovercard = styled('div')`
 const Header = styled('div')`
   font-size: 14px;
   background: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.gray300};
   border-radius: 4px 4px 0 0;
   font-weight: 600;
   word-wrap: break-word;
@@ -272,7 +272,7 @@ const HovercardArrow = styled('span')`
   &::before {
     top: 1px;
     border: 10px solid transparent;
-    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.borderLight};
+    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.gray300};
 
     ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
     ${p => (p.placement === 'left' ? 'top: 0; left: 1px;' : '')};

@@ -138,7 +138,7 @@ const ProjectCardWrapper = styled(Box)`
 
 const StyledProjectCard = styled('div')`
   background-color: white;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.gray400};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
 `;

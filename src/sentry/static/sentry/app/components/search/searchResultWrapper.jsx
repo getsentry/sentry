@@ -17,7 +17,7 @@ const SearchResultWrapper = styled(props => <div {...omit(props, 'highlighted')}
     `};
 
   &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.borderLight};
+    border-top: 1px solid ${p => p.theme.gray300};
   }
 `;
 

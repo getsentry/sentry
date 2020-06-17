@@ -88,8 +88,8 @@ const PillValue = styled(PillName)<PillValueProps>`
         `;
       case 'negative':
         return `
-          background: ${p.theme.redLightest};
-          border: 1px solid ${p.theme.red};
+          background: ${p.theme.red100};
+          border: 1px solid ${p.theme.red400};
           margin: -1px;
         `;
       default:

@@ -141,7 +141,7 @@ const Content = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.gray400};
   padding: ${space(1)} ${space(2)};
   :last-child {
     border-bottom: 0;
@@ -170,7 +170,7 @@ const PanelAction = styled('div')`
   grid-gap: ${space(1)};
   grid-template-columns: auto auto;
   justify-content: flex-end;
-  border-top: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.gray400};
 `;
 
 const Name = styled('h4')`
