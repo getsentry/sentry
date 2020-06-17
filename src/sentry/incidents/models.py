@@ -170,6 +170,7 @@ class Incident(Model):
     date_closed = models.DateTimeField(null=True)
     amazing_text = models.TextField()
     amazinger_text = models.TextField()
+    amazingest_text = models.TextField()
 
     class Meta:
         app_label = "sentry"
