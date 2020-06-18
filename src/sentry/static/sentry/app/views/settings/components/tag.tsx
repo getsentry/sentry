@@ -7,7 +7,7 @@ import {Theme} from 'app/utils/theme';
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   priority?: keyof Theme['badge'] | keyof Theme['alert'];
   size?: string;
-  icon?: string;
+  icon?: string | React.ReactNode;
   border?: boolean;
   inline?: boolean;
 };
@@ -42,7 +42,7 @@ const Tag = styled(
     ...props
   }: Props) => (
     <div {...props}>
-      {icon && <StyledInlineSvg src={icon} size="12px" />}
+      {typeof icon === 'string' ? <StyledInlineSvg src={icon} size="12px" /> : icon}
       {children}
     </div>
   )
