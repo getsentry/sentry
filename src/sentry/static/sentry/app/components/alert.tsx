@@ -13,6 +13,11 @@ export type Props = {
   iconSize?: string;
   icon?: string | React.ReactNode;
   system?: boolean;
+  /**
+   * Visually center the icon. Useful when the alert contains something other than
+   * just 22px line height text.
+   */
+  iconCenter?: boolean;
 };
 
 type AlertProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
@@ -70,13 +75,14 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: any})
   ${system && getSystemAlertColorStyles(theme.alert[type])};
 `;
 
-const IconWrapper = styled('span')`
+const IconWrapper = styled('span')<{center?: boolean}>`
   display: flex;
   margin-right: ${space(1)};
 
-  /* Give the wrapper an explicit height so icons are line height with the
-   * (common) line height. */
-  height: 22px;
+  ${p =>
+    // Give the wrapper an explicit height so icons are line height with the
+    // (common) line height.
+    !p.center && `height: 22px;`};
   align-items: center;
 `;
 
@@ -92,6 +98,7 @@ const Alert = styled(
     type,
     icon,
     iconSize,
+    iconCenter,
     children,
     className,
     system: _system, // don't forward to `div`
@@ -99,7 +106,7 @@ const Alert = styled(
   }: AlertProps) => (
     <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
       {icon && (
-        <IconWrapper>
+        <IconWrapper center={iconCenter}>
           {typeof icon === 'string' ? <InlineSvg src={icon} size={iconSize!} /> : icon}
         </IconWrapper>
       )}

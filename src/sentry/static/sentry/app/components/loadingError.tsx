@@ -36,7 +36,7 @@ class LoadingError extends React.Component<Props> {
   render() {
     const {message, onRetry} = this.props;
     return (
-      <Alert type="error" icon={<IconInfo size="lg" />}>
+      <Alert type="error" iconCenter icon={<IconInfo size="lg" />}>
         <Content>
           <div data-test-id="loading-error-message">{message}</div>
           {onRetry && (
