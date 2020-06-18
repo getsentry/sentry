@@ -154,7 +154,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     const currentView = location.query.view as FilterViews;
     if (Object.values(FilterViews).includes(currentView)) {
       return currentView;
-    } 
+    }
     return FilterViews.ALL_TRANSACTIONS;
   }
 
