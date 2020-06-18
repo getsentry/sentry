@@ -16,9 +16,10 @@ from sentry.integrations import (
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
-from sentry.models import Project
+from sentry.models import Project, User, SentryAppInstallation, SentryAppInstallationForProvider
 from sentry.utils.compat import map
 from sentry.shared_integrations.exceptions import IntegrationError, ApiError
+from sentry.mediators.sentry_apps import InternalCreator
 
 from .client import VercelClient
 
@@ -47,6 +48,8 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
     aspects={},
 )
+
+internal_integration_overview = "This internal integration was auto-generated during the installation process of your Vercel integration. It is needed to provide the token used to create a release. If this integration is deleted, your Vercel integration will stop working!"
 
 
 class VercelIntegration(IntegrationInstallation):
@@ -150,6 +153,35 @@ class VercelIntegrationProvider(IntegrationProvider):
                 "installation_type": installation_type,
                 "webhook_id": webhook["id"],
             },
+            "post_install_data": {"user_id": state["user_id"]},
         }
 
         return integration
+
+    def post_install(self, integration, organization, extra=None):
+        # check if we have an installation already
+        if SentryAppInstallationForProvider.objects.filter(
+            organization=organization, provider="vercel"
+        ).exists():
+            logger.info(
+                "vercel.post_install.installation_exists",
+                extra={"organization_id": organization.id},
+            )
+            return
+
+        user = User.objects.get(id=extra.get("user_id"))
+        data = {
+            "name": "Vercel Internal Integration",
+            "organization": organization,
+            "overview": internal_integration_overview.strip(),
+            "user": user,
+            "scopes": ["project:releases"],
+        }
+        # create the internal integration and link it to the join table
+        sentry_app = InternalCreator.run(**data)
+        sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
+        SentryAppInstallationForProvider.objects.create(
+            sentry_app_installation=sentry_app_installation,
+            organization=organization,
+            provider="vercel",
+        )

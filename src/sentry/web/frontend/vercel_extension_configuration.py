@@ -28,5 +28,6 @@ class VercelExtensionConfigurationView(BaseView):
 
         pipeline.initialize()
         pipeline.bind_state("vercel", params)
+        pipeline.bind_state("user_id", request.user.id)
 
         return pipeline
