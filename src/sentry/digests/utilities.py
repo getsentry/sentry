@@ -27,15 +27,20 @@ def get_digest_metadata(digest):
     return start, end, counts
 
 
-def get_personalized_digests(project_id, digest, user_ids):
+def get_personalized_digests(target_type, project_id, digest, user_ids):
     """
     get_personalized_digests(project_id: Int, digest: Digest, user_ids: Set[Int]) -> Iterator[user_id: Int, digest: Digest]
     """
+    from sentry.mail.adapter import ActionTargetType
+
     # TODO(LB): I Know this is inefficient.
     # In the case that ProjectOwnership does exist, I do the same query twice.
     # Once with this statement and again with the call to ProjectOwnership.get_actors()
     # Will follow up with another PR to reduce the number of queries.
-    if ProjectOwnership.objects.filter(project_id=project_id).exists():
+    if (
+        target_type == ActionTargetType.ISSUE_OWNERS
+        and ProjectOwnership.objects.filter(project_id=project_id).exists()
+    ):
         events = get_event_from_groups_in_digest(digest)
         events_by_actor = build_events_by_actor(project_id, events, user_ids)
         events_by_user = convert_actors_to_users(events_by_actor, user_ids)

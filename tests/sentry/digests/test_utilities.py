@@ -9,6 +9,7 @@ from sentry.digests.utilities import (
     get_personalized_digests,
     team_actors_to_user_ids,
 )
+from sentry.mail.adapter import ActionTargetType
 from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
 from sentry.ownership.grammar import Rule, Owner, Matcher, dump_schema
 from sentry.testutils import SnubaTestCase, TestCase
@@ -205,7 +206,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         self.team2_matcher = Matcher("path", "*.cbl")
         self.user4_matcher = Matcher("url", "*.org")
 
-        ProjectOwnership.objects.create(
+        self.project_ownership = ProjectOwnership.objects.create(
             project_id=self.project.id,
             schema=dump_schema(
                 [
@@ -232,9 +233,13 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             events.append(event)
         return events
 
-    def assert_get_personalized_digests(self, project, digest, user_ids, expected_result):
+    def assert_get_personalized_digests(
+        self, project, digest, user_ids, expected_result, target_type=ActionTargetType.ISSUE_OWNERS
+    ):
         result_user_ids = []
-        for user_id, user_digest in get_personalized_digests(project.id, digest, user_ids):
+        for user_id, user_digest in get_personalized_digests(
+            target_type, project.id, digest, user_ids
+        ):
             assert user_id in expected_result
             assert set([e.event_id for e in get_event_from_groups_in_digest(user_digest)]) == set(
                 [e.event_id for e in expected_result[user_id]]
@@ -270,6 +275,17 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         }
         self.assert_get_personalized_digests(self.project, digest, self.user_ids, expected_result)
 
+    def test_direct_email(self):
+        self.project_ownership.update(fallthrough=False)
+        rule = self.project.rule_set.all()[0]
+        records = [event_to_record(event, (rule,)) for event in self.team1_events]
+        digest = build_digest(self.project, sort_records(records))
+
+        expected_result = {self.user1.id: set(self.team1_events)}
+        self.assert_get_personalized_digests(
+            self.project, digest, [self.user1.id], expected_result, ActionTargetType.MEMBER
+        )
+
     def test_team_without_members(self):
         team = self.create_team()
         project = self.create_project(teams=[team], fire_project_created=True)
@@ -288,7 +304,9 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         digest = build_digest(project, sort_records(records))
         user_ids = [member.user_id for member in team.member_set]
         assert not user_ids
-        for user_id, user_digest in get_personalized_digests(project.id, digest, user_ids):
+        for user_id, user_digest in get_personalized_digests(
+            ActionTargetType.ISSUE_OWNERS, project.id, digest, user_ids
+        ):
             assert False  # no users in this team no digests should be processed
 
     def test_only_everyone(self):
