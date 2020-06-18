@@ -30,7 +30,7 @@ class TestInternalCreator(TestCase):
 
     def test_creates_internal_sentry_app(self):
         sentry_app = self.creator.call()
-        assert sentry_app.authr == self.org.name
+        assert sentry_app.author == self.org.name
         assert SentryApp.objects.filter(slug=sentry_app.slug).exists()
 
     def test_installs_to_org(self):
