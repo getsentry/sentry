@@ -9,7 +9,6 @@ import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
-import EventView from 'app/utils/discover/eventView';
 import {TableDataRow} from 'app/views/eventsV2/table/types';
 
 import {
@@ -188,7 +187,6 @@ type SpanBarProps = {
   isRoot?: boolean;
   toggleSpanTree: () => void;
   isCurrentSpanFilteredOut: boolean;
-  eventView: EventView;
   totalNumberOfErrors: number;
   spanErrors: TableDataRow[];
 };
@@ -235,7 +233,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       orgId,
       organization,
       isRoot,
-      eventView,
       trace,
       totalNumberOfErrors,
       spanErrors,
@@ -249,7 +246,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         organization={organization}
         event={event}
         isRoot={!!isRoot}
-        eventView={eventView}
         trace={trace}
         totalNumberOfErrors={totalNumberOfErrors}
         spanErrors={spanErrors}

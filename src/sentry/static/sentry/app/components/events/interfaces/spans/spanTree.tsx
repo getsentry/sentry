@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {SentryTransactionEvent, Organization} from 'app/types';
 import {t} from 'app/locale';
-import EventView from 'app/utils/discover/eventView';
 import {TableData} from 'app/views/eventsV2/table/types';
 
 import {
@@ -43,7 +42,6 @@ type RenderedSpanTree = {
 type PropType = {
   orgId: string;
   organization: Organization;
-  eventView: EventView;
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
@@ -142,7 +140,7 @@ class SpanTree extends React.Component<PropType> {
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, eventView, event, spansWithErrors, organization} = this.props;
+    const {orgId, event, spansWithErrors, organization} = this.props;
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
@@ -249,7 +247,6 @@ class SpanTree extends React.Component<PropType> {
     const spanGapComponent =
       isValidGap && isSpanDisplayed ? (
         <SpanGroup
-          eventView={eventView}
           orgId={orgId}
           organization={organization}
           event={event}
@@ -278,7 +275,6 @@ class SpanTree extends React.Component<PropType> {
           {infoMessage}
           {spanGapComponent}
           <SpanGroup
-            eventView={eventView}
             orgId={orgId}
             organization={organization}
             event={event}

@@ -12,6 +12,7 @@ import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import EventMetadata from 'app/components/events/eventMetadata';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
+import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import Button from 'app/components/button';
 import LoadingError from 'app/components/loadingError';
 import NotFound from 'app/components/errors/notFound';
@@ -22,10 +23,10 @@ import TagsTable from 'app/components/tagsTable';
 import Projects from 'app/utils/projects';
 import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 import Breadcrumb from 'app/views/performance/breadcrumb';
-import EventView from 'app/utils/discover/eventView';
 import {decodeScalar, appendTagCondition} from 'app/utils/queryString';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
+import {getTransactionDetailsUrl} from '../utils';
 
 type Props = {
   organization: Organization;
@@ -120,26 +121,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const transactionName = event.title;
     const query = decodeScalar(location.query.query) || '';
 
-    // Build a new event view so span details links will go to useful results.
-    const eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: undefined,
-        name: 'Related events',
-        fields: [
-          'transaction',
-          'project',
-          'trace.span',
-          'transaction.duration',
-          'timestamp',
-        ],
-        orderby: '-timestamp',
-        version: 2,
-        projects: [],
-        query: appendTagCondition(query, 'transaction', transactionName),
-      },
-      location
-    );
-
     return (
       <React.Fragment>
         <HeaderBox>
@@ -160,16 +141,28 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
-                <BorderlessEventEntries
-                  api={api}
-                  organization={organization}
-                  event={event}
-                  project={projects[0]}
-                  location={location}
-                  showExampleCommit={false}
-                  showTagSummary={false}
-                  eventView={eventView}
-                />
+                <SpanEntryContext.Provider
+                  value={{
+                    getViewChildTransactionTarget: childTransactionProps => {
+                      return getTransactionDetailsUrl(
+                        organization,
+                        childTransactionProps.eventSlug,
+                        childTransactionProps.transaction,
+                        location.query
+                      );
+                    },
+                  }}
+                >
+                  <BorderlessEventEntries
+                    api={api}
+                    organization={organization}
+                    event={event}
+                    project={projects[0]}
+                    location={location}
+                    showExampleCommit={false}
+                    showTagSummary={false}
+                  />
+                </SpanEntryContext.Provider>
               )}
             </Projects>
           </div>
