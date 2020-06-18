@@ -2,7 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {Organization, Project, SourceMapsArchive} from 'app/types';
@@ -18,6 +18,7 @@ import {
   addSuccessMessage,
   addErrorMessage,
 } from 'app/actionCreators/indicator';
+import ExternalLink from 'app/components/links/externalLink';
 
 import SourceMapsArchiveRow from './sourceMapsArchiveRow';
 
@@ -125,9 +126,14 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
         <SettingsPageHeader title={t('Source Maps')} />
 
         <TextBlock>
-          {t(
-            `Source Maps lets you view source code context obtained from stack traces in their original un-transformed form, which is particularly useful for debugging minified code, or transpiled code from a higher-level language.
-            `
+          {tct(
+            `Source Maps lets you view source code context obtained from stack traces in their original un-transformed form, which is particularly useful for debugging minified/transpiled code. Learn more about this functionality in our [link:documentation].
+            `,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+              ),
+            }
           )}
         </TextBlock>
 

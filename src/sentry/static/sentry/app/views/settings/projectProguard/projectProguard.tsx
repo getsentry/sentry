@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {PanelTable} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -16,6 +16,7 @@ import SearchBar from 'app/components/searchBar';
 // TODO(android-mappings): use own components once we decide how this should look like
 import DebugFileRow from 'app/views/settings/projectDebugFiles/debugFileRow';
 import {DebugFile} from 'app/views/settings/projectDebugFiles/types';
+import ExternalLink from 'app/components/links/externalLink';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -133,8 +134,13 @@ class ProjectProguard extends AsyncView<Props, State> {
         <SettingsPageHeader title={t('ProGuard Mappings')} />
 
         <TextBlock>
-          {t(
-            `ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format.`
+          {tct(
+            `ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. Learn more about this functionality in our [link:documentation].`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/workflow/debug-files/#proguard-mappings" />
+              ),
+            }
           )}
         </TextBlock>
 

@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import {PanelTable} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectDebugFiles';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -18,6 +18,7 @@ import routeTitleGen from 'app/utils/routeTitle';
 import Checkbox from 'app/components/checkbox';
 import SearchBar from 'app/components/searchBar';
 import ProjectActions from 'app/actions/projectActions';
+import ExternalLink from 'app/components/links/externalLink';
 
 import {DebugFile, BuiltinSymbolSource} from './types';
 import DebugFileRow from './debugFileRow';
@@ -159,11 +160,16 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         <SettingsPageHeader title={t('Debug Information Files')} />
 
         <TextBlock>
-          {t(`
+          {tct(
+            `
             Debug information files are used to convert addresses and minified
             function names from native crash reports into function names and
-            locations.
-          `)}
+            locations. Learn more about this functionality in our [link:documentation].
+          `,
+            {
+              link: <ExternalLink href="https://docs.sentry.io/workflow/debug-files/" />,
+            }
+          )}
         </TextBlock>
 
         {features.includes('symbol-sources') && (
