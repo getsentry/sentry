@@ -660,7 +660,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 3
+        assert len(response.data["data"]) == 2
         assert [{"count": 2}] in [attrs for time, attrs in response.data["data"]]
 
     @patch("django.utils.timezone.now")
