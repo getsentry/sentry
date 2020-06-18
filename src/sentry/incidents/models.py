@@ -298,8 +298,12 @@ class AlertRuleManager(BaseManager):
             .exclude(status=AlertRuleStatus.SNAPSHOT.value)
         )
 
-    def fetch_for_organization(self, organization):
-        return self.filter(organization=organization)
+    def fetch_for_organization(self, organization, projects=None):
+        queryset = self.filter(organization=organization)
+        if projects is not None:
+            queryset = queryset.filter(snuba_query__subscriptions__project__in=projects)
+
+        return queryset
 
     def fetch_for_project(self, project):
         return self.filter(snuba_query__subscriptions__project=project)
@@ -565,15 +569,15 @@ class AlertRuleTriggerAction(Model):
         else:
             metrics.incr("alert_rule_trigger.unhandled_type.{}".format(self.type))
 
-    def fire(self, incident, project):
+    def fire(self, incident, project, metric_value):
         handler = self.build_handler(incident, project)
         if handler:
-            return handler.fire()
+            return handler.fire(metric_value)
 
-    def resolve(self, incident, project):
+    def resolve(self, incident, project, metric_value):
         handler = self.build_handler(incident, project)
         if handler:
-            return handler.resolve()
+            return handler.resolve(metric_value)
 
     @classmethod
     def register_type(cls, slug, type, supported_target_types, integration_provider=None):

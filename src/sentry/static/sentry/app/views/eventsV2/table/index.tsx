@@ -80,6 +80,10 @@ class Table extends React.PureComponent<TableProps, TableState> {
     if (!eventView.isValid()) {
       return;
     }
+
+    // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
+    // the API payload response
+
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
@@ -88,6 +92,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     this.setState({isLoading: true, tableFetchID});
     metric.mark({name: `discover-events-start-${apiPayload.query}`});
 
+    this.props.api.clear();
     this.props.api
       .requestPromise(url, {
         method: 'GET',

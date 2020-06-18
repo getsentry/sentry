@@ -251,12 +251,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                       direction="down"
                                                       size="10px"
                                                     >
-                                                      <ForwardRef
+                                                      <IconChevron
                                                         className="css-17f1s2z-StyledChevron eenpoef0"
                                                         direction="down"
                                                         size="10px"
                                                       >
                                                         <EmotionCssPropInternal
+                                                          __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
                                                           __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                                             Object {
                                                               "$$typeof": Symbol(react.forward_ref),
@@ -297,7 +298,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                             </svg>
                                                           </ForwardRef(SvgIcon)>
                                                         </EmotionCssPropInternal>
-                                                      </ForwardRef>
+                                                      </IconChevron>
                                                     </StyledChevron>
                                                   </span>
                                                 </ButtonLabel>
@@ -329,7 +330,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             withPadding={false}
           >
             <div
-              className="css-1ehogmz-FlexBox e1vnwt6f0"
+              className="css-1nto0rx-FlexBox e1vnwt6f0"
             >
               <StyledPanelItem
                 key="2"

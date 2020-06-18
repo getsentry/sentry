@@ -6,32 +6,6 @@ import {Panel, PanelHeader, PanelItem} from 'app/components/panels';
 
 export const TableChart = styled(
   class TableChartComponent extends React.Component {
-    static propTypes = {
-      data: PropTypes.arrayOf(PropTypes.any),
-      /**
-       * The column index where your data starts.
-       * This is used to calculate totals.
-       *
-       * Will not work if you have mixed string/number columns
-       */
-      dataStartIndex: PropTypes.number,
-      widths: PropTypes.arrayOf(PropTypes.number),
-      // Height of body
-      bodyHeight: PropTypes.string,
-      getValue: PropTypes.func,
-      renderTableHeader: PropTypes.func,
-      renderBody: PropTypes.func,
-      renderHeaderCell: PropTypes.func,
-      renderDataCell: PropTypes.func,
-      shadeRowPercentage: PropTypes.bool,
-      showRowTotal: PropTypes.bool,
-      showColumnTotal: PropTypes.bool,
-      rowTotalLabel: PropTypes.string,
-      columnTotalLabel: PropTypes.string,
-      // props to pass to PanelHeader
-      headerProps: PropTypes.object,
-    };
-
     static get defaultProps() {
       // Default renderer for Table Header
       const defaultRenderTableHeader = ({
@@ -219,6 +193,32 @@ export const TableChart = styled(
         rowTotalWidth: 120,
       };
     }
+
+    static propTypes = {
+      data: PropTypes.arrayOf(PropTypes.any),
+      /**
+       * The column index where your data starts.
+       * This is used to calculate totals.
+       *
+       * Will not work if you have mixed string/number columns
+       */
+      dataStartIndex: PropTypes.number,
+      widths: PropTypes.arrayOf(PropTypes.number),
+      // Height of body
+      bodyHeight: PropTypes.string,
+      getValue: PropTypes.func,
+      renderTableHeader: PropTypes.func,
+      renderBody: PropTypes.func,
+      renderHeaderCell: PropTypes.func,
+      renderDataCell: PropTypes.func,
+      shadeRowPercentage: PropTypes.bool,
+      showRowTotal: PropTypes.bool,
+      showColumnTotal: PropTypes.bool,
+      rowTotalLabel: PropTypes.string,
+      columnTotalLabel: PropTypes.string,
+      // props to pass to PanelHeader
+      headerProps: PropTypes.object,
+    };
 
     // TODO(billy): memoize?
     getTotals(rows) {

@@ -414,6 +414,28 @@ describe('getExpandedResults()', function() {
     const result = getExpandedResults(view, {trace: 'abc123'}, event);
     expect(result.query).toEqual('event.type:error title:bogus trace:abc123');
   });
+
+  it('applies project as condition if present', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'project'}],
+    });
+    const event = {project: 'whoosh'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('project:whoosh');
+  });
+
+  it('applies project name as condition if present', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'project.name'}],
+    });
+    const event = {'project.name': 'whoosh'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('project.name:whoosh');
+  });
 });
 
 describe('getDiscoverLandingUrl', function() {
@@ -461,6 +483,7 @@ describe('downloadAsCsv', function() {
   it('handles the user column', function() {
     const result = {
       data: [
+        {message: 'test 0', user: 'baz'},
         {message: 'test 1', 'user.name': 'foo'},
         {message: 'test 2', 'user.name': 'bar', 'user.ip': '127.0.0.1'},
         {message: 'test 3', 'user.email': 'foo@example.com', 'user.username': 'foo'},
@@ -469,7 +492,7 @@ describe('downloadAsCsv', function() {
     };
     expect(downloadAsCsv(result, [messageColumn, userColumn])).toContain(
       encodeURIComponent(
-        'message,user\r\ntest 1,foo\r\ntest 2,bar\r\ntest 3,foo@example.com\r\ntest 4,127.0.0.1'
+        'message,user\r\ntest 0,baz\r\ntest 1,foo\r\ntest 2,bar\r\ntest 3,foo@example.com\r\ntest 4,127.0.0.1'
       )
     );
   });

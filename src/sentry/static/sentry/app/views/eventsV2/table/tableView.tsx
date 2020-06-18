@@ -3,11 +3,14 @@ import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {Organization, OrganizationSummary} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  COL_WIDTH_MINIMUM,
+} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
-import {IconEvent, IconStack} from 'app/icons';
+import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {openModal} from 'app/actionCreators/modal';
 import Link from 'app/components/links/link';
@@ -20,17 +23,21 @@ import EventView, {
 import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
+import withProjects from 'app/utils/withProjects';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
-import CellAction from './cellAction';
+import CellAction, {Actions} from './cellAction';
 import TableActions from './tableActions';
 
 export type TableViewProps = {
   location: Location;
   organization: Organization;
+  projects: Project[];
 
   isLoading: boolean;
   error: string | null;
@@ -80,29 +87,68 @@ class TableView extends React.Component<TableViewProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {organization, eventView} = this.props;
+    const {organization, eventView, tableData, location} = this.props;
     const hasAggregates = eventView.getAggregateFields().length > 0;
+
     if (isHeader) {
+      if (!hasAggregates) {
+        return [
+          <PrependHeader key="header-event-id">
+            <SortLink
+              align="left"
+              title={t('Id')}
+              direction={undefined}
+              canSort={false}
+              generateSortLink={() => undefined}
+            />
+          </PrependHeader>,
+        ];
+      }
+
       return [
-        <HeaderIcon key="header-icon">
-          {hasAggregates ? <IconStack size="sm" /> : <IconEvent size="sm" />}
-        </HeaderIcon>,
+        <PrependHeader key="header-icon">
+          <IconStack size="sm" />
+        </PrependHeader>,
       ];
     }
 
-    const eventSlug = generateEventSlug(dataRow);
+    if (!hasAggregates) {
+      let value = dataRow.id;
 
-    const target = eventDetailsRouteWithEventView({
-      orgSlug: organization.slug,
-      eventSlug,
-      eventView,
-    });
+      if (tableData && tableData.meta) {
+        const fieldRenderer = getFieldRenderer('id', tableData.meta);
+        value = fieldRenderer(dataRow, {organization, location});
+      }
+
+      const eventSlug = generateEventSlug(dataRow);
+
+      const target = eventDetailsRouteWithEventView({
+        orgSlug: organization.slug,
+        eventSlug,
+        eventView,
+      });
+
+      return [
+        <Tooltip key={`eventlink${rowIndex}`} title={t('View Event')}>
+          <StyledLink data-test-id="view-event" to={target}>
+            {value}
+          </StyledLink>
+        </Tooltip>,
+      ];
+    }
+
+    const nextView = getExpandedResults(eventView, {}, dataRow);
+
+    const target = {
+      pathname: location.pathname,
+      query: nextView.generateQueryStringObject(),
+    };
 
     return [
-      <Tooltip key={`eventlink${rowIndex}`} title={t('View Details')}>
-        <IconLink to={target} data-test-id="view-events">
-          {hasAggregates ? <IconStack size="sm" /> : <IconEvent size="sm" />}
-        </IconLink>
+      <Tooltip key={`eventlink${rowIndex}`} title={t('Open Stack')}>
+        <Link to={target} data-test-id="open-stack">
+          <StyledIcon size="sm" />
+        </Link>
       </Tooltip>,
     ];
   };
@@ -149,47 +195,18 @@ class TableView extends React.Component<TableViewProps> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode => {
-    const {location, organization, tableData, eventView} = this.props;
+    const {location, organization, tableData} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
     const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
-    const aggregation =
-      column.column.kind === 'function' ? column.column.function[0] : undefined;
 
-    // Aggregation columns offer drilldown behavior
-    if (aggregation) {
-      return (
-        <ExpandAggregateRow
-          organization={organization}
-          eventView={eventView}
-          column={column}
-          dataRow={dataRow}
-          location={location}
-          tableMeta={tableData.meta}
-        >
-          <CellAction
-            organization={organization}
-            eventView={eventView}
-            column={column}
-            dataRow={dataRow}
-            tableMeta={tableData.meta}
-          >
-            {fieldRenderer(dataRow, {organization, location})}
-          </CellAction>
-        </ExpandAggregateRow>
-      );
-    }
-
-    // Scalar fields offer cell actions to build queries.
     return (
       <CellAction
-        organization={organization}
-        eventView={eventView}
         column={column}
         dataRow={dataRow}
-        tableMeta={tableData.meta}
+        handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
       >
         {fieldRenderer(dataRow, {organization, location})}
       </CellAction>
@@ -211,6 +228,124 @@ class TableView extends React.Component<TableViewProps> {
       ),
       {modalCss}
     );
+  };
+
+  handleCellAction = (
+    dataRow: TableDataRow,
+    column: TableColumn<keyof TableDataRow>,
+    tableMeta: MetaType
+  ) => {
+    return (action: Actions, value: React.ReactText) => {
+      const {eventView, organization, projects} = this.props;
+
+      const query = tokenizeSearch(eventView.query);
+
+      let nextView = eventView.clone();
+
+      trackAnalyticsEvent({
+        eventKey: 'discover_v2.results.cellaction',
+        eventName: 'Discoverv2: Cell Action Clicked',
+        organization_id: parseInt(organization.id, 10),
+        action,
+      });
+
+      switch (action) {
+        case Actions.ADD:
+          // Remove exclusion if it exists.
+          delete query[`!${column.name}`];
+          query[column.name] = [`${value}`];
+          break;
+        case Actions.EXCLUDE:
+          // Remove positive if it exists.
+          delete query[column.name];
+          // Negations should stack up.
+          const negation = `!${column.name}`;
+          if (!query.hasOwnProperty(negation)) {
+            query[negation] = [];
+          }
+          query[negation].push(`${value}`);
+          break;
+        case Actions.SHOW_GREATER_THAN: {
+          // Remove query token if it already exists
+          delete query[column.name];
+          query[column.name] = [`>${value}`];
+          const field = {field: column.name, width: column.width};
+
+          // sort descending order
+          nextView = nextView.sortOnField(field, tableMeta, 'desc');
+
+          break;
+        }
+        case Actions.SHOW_LESS_THAN: {
+          // Remove query token if it already exists
+          delete query[column.name];
+          query[column.name] = [`<${value}`];
+          const field = {field: column.name, width: column.width};
+
+          // sort ascending order
+          nextView = nextView.sortOnField(field, tableMeta, 'asc');
+
+          break;
+        }
+        case Actions.TRANSACTION: {
+          const maybeProject = projects.find(project => project.slug === dataRow.project);
+
+          const projectID = maybeProject ? [maybeProject.id] : undefined;
+
+          const next = transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: String(value),
+            projectID,
+            query: {},
+          });
+
+          browserHistory.push(next);
+          return;
+        }
+        case Actions.RELEASE: {
+          const maybeProject = projects.find(project => {
+            return project.slug === dataRow.project;
+          });
+
+          browserHistory.push({
+            pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
+              value
+            )}/`,
+            query: {
+              ...nextView.getGlobalSelection(),
+
+              project: maybeProject ? maybeProject.id : undefined,
+            },
+          });
+
+          return;
+        }
+        case Actions.DRILLDOWN: {
+          // count_unique(column) drilldown
+
+          trackAnalyticsEvent({
+            eventKey: 'discover_v2.results.drilldown',
+            eventName: 'Discoverv2: Click aggregate drilldown',
+            organization_id: parseInt(organization.id, 10),
+          });
+
+          // Drilldown into each distinct value and get a count() for each value.
+          nextView = getExpandedResults(nextView, {}, dataRow).withNewColumn({
+            kind: 'function',
+            function: ['count', '', undefined],
+          });
+
+          browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+
+          return;
+        }
+        default:
+          throw new Error(`Unknown action type. ${action}`);
+      }
+      nextView.query = stringifyQueryObject(query);
+
+      browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+    };
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
@@ -260,6 +395,11 @@ class TableView extends React.Component<TableViewProps> {
     const columnOrder = eventView.getColumns();
     const columnSortBy = eventView.getSorts();
 
+    const hasAggregates = eventView.getAggregateFields().length > 0;
+    const prependColumnWidths = hasAggregates
+      ? ['40px']
+      : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
+
     return (
       <GridEditable
         isLoading={isLoading}
@@ -273,7 +413,7 @@ class TableView extends React.Component<TableViewProps> {
           renderBodyCell: this._renderGridBodyCell as any,
           onResizeColumn: this._resizeColumn as any,
           renderPrependColumns: this._renderPrependColumns as any,
-          prependColumnWidths: ['40px'],
+          prependColumnWidths,
         }}
         headerButtons={this.renderHeaderButtons}
         location={location}
@@ -282,78 +422,18 @@ class TableView extends React.Component<TableViewProps> {
   }
 }
 
-function ExpandAggregateRow(props: {
-  organization: OrganizationSummary;
-  children: React.ReactNode;
-  eventView: EventView;
-  column: TableColumn<keyof TableDataRow>;
-  dataRow: TableDataRow;
-  location: Location;
-  tableMeta: MetaType;
-}) {
-  const {children, column, dataRow, eventView, location, organization} = props;
-  const aggregation =
-    column.column.kind === 'function' ? column.column.function[0] : undefined;
+const PrependHeader = styled('span')`
+  color: ${p => p.theme.gray600};
+`;
 
-  function handleClick() {
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.results.drilldown',
-      eventName: 'Discoverv2: Click aggregate drilldown',
-      organization_id: parseInt(organization.id, 10),
-    });
-  }
-
-  // count(column) drilldown
-  if (aggregation === 'count') {
-    const nextView = getExpandedResults(eventView, {}, dataRow);
-
-    const target = {
-      pathname: location.pathname,
-      query: nextView.generateQueryStringObject(),
-    };
-
-    return (
-      <Link data-test-id="expand-count" to={target} onClick={handleClick}>
-        {children}
-      </Link>
-    );
-  }
-
-  // count_unique(column) drilldown
-  if (aggregation === 'count_unique') {
-    // Drilldown into each distinct value and get a count() for each value.
-    const nextView = getExpandedResults(eventView, {}, dataRow).withNewColumn({
-      kind: 'function',
-      function: ['count', '', undefined],
-    });
-
-    const target = {
-      pathname: location.pathname,
-      query: nextView.generateQueryStringObject(),
-    };
-
-    return (
-      <Link data-test-id="expand-count-unique" to={target} onClick={handleClick}>
-        {children}
-      </Link>
-    );
-  }
-
-  return <React.Fragment>{children}</React.Fragment>;
-}
-
-const HeaderIcon = styled('span')`
-  & > svg {
-    vertical-align: top;
-    color: ${p => p.theme.gray600};
+const StyledLink = styled(Link)`
+  > div {
+    display: inline;
   }
 `;
 
-// Fudge the icon down so it is center aligned with the table contents.
-const IconLink = styled(Link)`
-  position: relative;
-  display: inline-block;
-  top: 3px;
+const StyledIcon = styled(IconStack)`
+  vertical-align: middle;
 `;
 
-export default TableView;
+export default withProjects(TableView);

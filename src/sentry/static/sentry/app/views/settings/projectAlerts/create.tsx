@@ -9,6 +9,7 @@ import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withProject from 'app/utils/withProject';
+import EventView from 'app/utils/discover/eventView';
 
 import AlertTypeChooser from './alertTypeChooser';
 
@@ -21,16 +22,19 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
   hasMetricAlerts: boolean;
+  hasCreateFromDiscover: boolean;
 };
 
 type AlertType = 'metric' | 'issue' | null;
 
 type State = {
   alertType: AlertType;
+  eventView: EventView | undefined;
 };
 
 class Create extends React.Component<Props, State> {
   state: State = {
+    eventView: undefined,
     alertType: this.props.location.pathname.includes('/alerts/rules/')
       ? 'issue'
       : this.props.location.pathname.includes('/alerts/metric-rules/')
@@ -39,7 +43,7 @@ class Create extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, project} = this.props;
+    const {organization, project, hasCreateFromDiscover, location} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
@@ -47,6 +51,12 @@ class Create extends React.Component<Props, State> {
       organization_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
     });
+
+    if (hasCreateFromDiscover && location.query.createFromDiscover) {
+      const eventView = EventView.fromLocation(location);
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({alertType: 'metric', eventView});
+    }
   }
 
   handleChangeAlertType = (alertType: AlertType) => {
@@ -57,7 +67,7 @@ class Create extends React.Component<Props, State> {
   render() {
     const {hasMetricAlerts, organization} = this.props;
     const {projectId} = this.props.params;
-    const {alertType} = this.state;
+    const {alertType, eventView} = this.state;
 
     const shouldShowAlertTypeChooser = hasMetricAlerts;
     const title = t('New Alert');
@@ -78,7 +88,7 @@ class Create extends React.Component<Props, State> {
         {(!hasMetricAlerts || alertType === 'issue') && <IssueEditor {...this.props} />}
 
         {hasMetricAlerts && alertType === 'metric' && (
-          <IncidentRulesCreate {...this.props} />
+          <IncidentRulesCreate {...this.props} eventView={eventView} />
         )}
       </React.Fragment>
     );

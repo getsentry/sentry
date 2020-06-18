@@ -26,6 +26,9 @@ function defaultNameFormatter(value) {
 }
 
 function getSeriesValue(series, offset) {
+  if (!series.data) {
+    return undefined;
+  }
   if (Array.isArray(series.data)) {
     return series.data[offset];
   }
