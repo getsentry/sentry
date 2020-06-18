@@ -122,7 +122,7 @@ const badge = {
 const aliases = {
   textColor: colors.gray800,
   success: colors.green400,
-  error: colors.red,
+  error: colors.red400,
   disabled: colors.gray400,
 } as const;
 
