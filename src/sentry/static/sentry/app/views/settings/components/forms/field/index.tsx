@@ -81,7 +81,7 @@ class Field extends React.Component<Props> {
     disabledReason: PropTypes.string,
 
     /**
-     * Describes the field (displays in tooltip)
+     * Describes the field (displays in tooltip), requires a label to also be set.
      */
     description: PropTypes.string,
 
