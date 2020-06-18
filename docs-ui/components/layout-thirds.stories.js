@@ -136,7 +136,7 @@ storiesOf('Layouts|Thirds', module)
 
 const Container = styled('div')`
   background: ${p => p.theme.gray200};
-  margin: 16px;
+  margin: ${space(2)};
   border: 1px solid ${p => p.theme.gray400};
 `;
 
