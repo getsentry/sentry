@@ -47,7 +47,7 @@ class IntegrationExtensionConfigurationView(BaseView):
         organization = None
         if request.user.get_orgs().count() == 1:
             organization = request.user.get_orgs()[0]
-        # if we have an org slug in the query param, use that
+        # if we have an org slug in the query param, use that org
         elif "orgSlug" in request.GET:
             organization = Organization.objects.get(slug=request.GET["orgSlug"])
 
