@@ -73,7 +73,6 @@ class EventEntries extends React.Component {
     isShare: PropTypes.bool,
     showExampleCommit: PropTypes.bool,
     showTagSummary: PropTypes.bool,
-    eventView: PropTypes.object,
   };
 
   static defaultProps = {
