@@ -91,29 +91,29 @@ exports[`ProjectPlugins renders 1`] = `
                 type="warning"
               >
                 <Component
-                  className="css-hizmuq-PanelAlert e1cszazt0"
+                  className="css-148v945-PanelAlert e1cszazt0"
                   type="warning"
                 >
                   <Alert
-                    className="css-hizmuq-PanelAlert e1cszazt0"
+                    className="css-148v945-PanelAlert e1cszazt0"
                     icon="icon-circle-exclamation"
                     iconSize="20px"
                     system={true}
                     type="warning"
                   >
                     <Component
-                      className="e1cszazt0 css-1l2bl4n-Alert-PanelAlert ejthpj82"
+                      className="e1cszazt0 css-1gcvjb3-Alert-PanelAlert ejthpj82"
                       icon="icon-circle-exclamation"
                       iconSize="20px"
                       system={true}
                       type="warning"
                     >
                       <div
-                        className="ref-warning e1cszazt0 css-1l2bl4n-Alert-PanelAlert ejthpj82"
+                        className="ref-warning e1cszazt0 css-1gcvjb3-Alert-PanelAlert ejthpj82"
                       >
                         <IconWrapper>
                           <span
-                            className="css-wdumsi-IconWrapper ejthpj80"
+                            className="css-gv6q30-IconWrapper ejthpj80"
                           >
                             <InlineSvg
                               size="20px"
