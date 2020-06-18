@@ -168,7 +168,6 @@ class Incident(Model):
     date_detected = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     date_closed = models.DateTimeField(null=True)
-    amazing_text = models.TextField()
 
     class Meta:
         app_label = "sentry"
