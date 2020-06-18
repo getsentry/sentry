@@ -43,6 +43,22 @@ describe('PanelTable', function() {
     expect(wrapper.find('LoadingIndicator')).toBeDefined();
   });
 
+  it('renders custom loader', function() {
+    const wrapper = createWrapper({
+      isLoading: true,
+      loader: <span data-test-id="custom-loader">loading</span>,
+    });
+
+    // Does not render content
+    expect(wrapper.find('[data-test-id="cell"]')).toHaveLength(0);
+
+    // no default loader
+    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+
+    // has custom loader
+    expect(wrapper.find('[data-test-id="custom-loader"]')).toHaveLength(1);
+  });
+
   it('ignores empty state when loading', function() {
     const wrapper = createWrapper({isLoading: true, isEmpty: true});
 
