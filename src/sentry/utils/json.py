@@ -9,10 +9,10 @@ import six
 import decimal
 
 from bitfield.types import BitHandler
-from django.utils.timezone import is_aware
-from django.utils.html import mark_safe
-from django.utils.functional import Promise
 from django.utils.encoding import force_text
+from django.utils.functional import Promise
+from django.utils.html import mark_safe
+from django.utils.timezone import is_aware
 
 
 def better_default_encoder(o):

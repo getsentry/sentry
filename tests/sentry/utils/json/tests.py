@@ -5,8 +5,8 @@ from __future__ import absolute_import
 import datetime
 import uuid
 
-from enum import Enum
 from django.utils.translation import ugettext_lazy as _
+from enum import Enum
 
 from unittest import TestCase
 from sentry.utils import json
