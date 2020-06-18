@@ -30,6 +30,11 @@ export const Body = styled('div')`
 export const HeaderContent = styled('div')`
   display: flex;
   justify-content: space-between;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column;
+    justify-content: normal;
+  }
 `;
 
 /**
