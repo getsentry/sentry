@@ -73,6 +73,10 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: any})
 const IconWrapper = styled('span')`
   display: flex;
   margin-right: ${space(1)};
+
+  /* Minor adjustment to vertically align the icon, without using align-items
+   * which would vertically align it for multi-line alerts. */
+  padding-top: 1px;
 `;
 
 const StyledTextBlock = styled('span')`
