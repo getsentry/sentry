@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import InlineSvg from 'app/components/inlineSvg';
 import {Theme} from 'app/utils/theme';
+import space from 'app/styles/space';
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   priority?: keyof Theme['badge'] | keyof Theme['alert'];
@@ -42,7 +43,15 @@ const Tag = styled(
     ...props
   }: Props) => (
     <div {...props}>
-      {typeof icon === 'string' ? <StyledInlineSvg src={icon} size="12px" /> : icon}
+      {icon && (
+        <IconWrapper>
+          {typeof icon === 'string' ? (
+            <InlineSvg src={icon} size="12px" />
+          ) : (
+            React.cloneElement(icon, {size: 'xs'})
+          )}
+        </IconWrapper>
+      )}
       {children}
     </div>
   )
@@ -55,7 +64,7 @@ const Tag = styled(
   color: ${p => (p.priority ? '#fff' : p.theme.gray800)};
   text-align: center;
   white-space: nowrap;
-  vertical-align: middle;
+  align-items: center;
   border-radius: ${p => (p.size === 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
   font-weight: ${p => (p.size === 'small' ? 'bold' : 'normal')};
@@ -64,8 +73,8 @@ const Tag = styled(
   ${p => getMarginLeft(p)};
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: 4px;
+const IconWrapper = styled('span')`
+  margin-right: ${space(0.5)};
 `;
 
 export default Tag;
