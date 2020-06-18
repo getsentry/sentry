@@ -177,7 +177,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   size="small"
                   to={transactionSummaryTarget}
                 >
-                  {t('Go to summary')}
+                  {t('Go to Summary')}
                 </StyledButton>
               )}
             </ButtonBar>
