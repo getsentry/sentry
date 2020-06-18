@@ -681,11 +681,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=6),
         "options": {"expires": 60 * 25},
     },
-    # "process_pending_incident_snapshots": {
-    #     "task": "sentry.incidents.tasks.process_pending_incident_snapshots",
-    #     "schedule": timedelta(hours=1),
-    #     "options": {"expires": 3600, "queue": "incidents"},
-    # },
+    "process_pending_incident_snapshots": {
+        "task": "sentry.incidents.tasks.process_pending_incident_snapshots",
+        "schedule": timedelta(hours=1),
+        "options": {"expires": 3600, "queue": "incidents"},
+    },
 }
 
 BGTASKS = {
