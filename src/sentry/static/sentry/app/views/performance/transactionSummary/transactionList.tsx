@@ -252,7 +252,7 @@ class TransactionTable extends React.PureComponent<Props> {
       tableData && tableData.data && tableData.meta && tableData.data.length > 0;
 
     // Custom set the height so we don't have layout shift when results are loaded.
-    const loader = <LoadingIndicator style={{margin: '71px auto'}} />;
+    const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
       <React.Fragment>
