@@ -92,40 +92,39 @@ const colors = {
 } as const;
 
 const warning = {
-  backgroundLight: colors.yellow100,
   background: colors.yellow500,
-  border: colors.yellow500,
+  backgroundLight: colors.yellow100,
+  border: colors.yellow400,
   iconColor: colors.yellow500,
 } as const;
 
 const alert = {
   muted: {
-    backgroundLight: colors.gray100,
     background: colors.gray400,
-    iconColor: 'inherit',
+    backgroundLight: colors.gray100,
     border: colors.gray400,
+    iconColor: 'inherit',
   },
   info: {
-    backgroundLight: colors.blue100,
-    border: colors.blue300,
-    iconColor: colors.blue400,
     background: colors.blue400,
+    backgroundLight: colors.blue100,
+    border: colors.blue200,
+    iconColor: colors.blue400,
   },
   warning,
-  //alias warn to warning
   warn: warning,
   success: {
-    backgroundLight: colors.green100,
-    border: colors.green400,
-    iconColor: colors.green500,
     background: colors.green400,
+    backgroundLight: colors.green100,
+    border: colors.green300,
+    iconColor: colors.green500,
   },
   error: {
-    backgroundLight: colors.redLightest,
-    border: colors.redLight,
-    textLight: colors.redLight,
-    iconColor: colors.red,
-    background: colors.red,
+    background: colors.red400,
+    backgroundLight: colors.red100,
+    border: colors.red200,
+    iconColor: colors.red400,
+    textLight: colors.red200,
   },
 } as const;
 
