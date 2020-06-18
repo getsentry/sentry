@@ -187,9 +187,9 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
         )
 
 
-@instrumented_task(
-    name="sentry.incidents.tasks.process_pending_incident_snapshots", queue="incident_snapshots"
-)
+# @instrumented_task(
+#     name="sentry.incidents.tasks.process_pending_incident_snapshots", queue="incident_snapshots"
+# )
 def process_pending_incident_snapshots():
     """
     Processes PendingIncidentSnapshots and creates a snapshot for any snapshot that
