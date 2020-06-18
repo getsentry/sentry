@@ -11,6 +11,8 @@ import decimal
 from bitfield.types import BitHandler
 from django.utils.timezone import is_aware
 from django.utils.html import mark_safe
+from django.utils.functional import Promise
+from django.utils.encoding import force_text
 
 
 def better_default_encoder(o):
@@ -37,6 +39,8 @@ def better_default_encoder(o):
         return int(o)
     elif callable(o):
         return "<function>"
+    elif isinstance(o, Promise):
+        return force_text(o)
     raise TypeError(repr(o) + " is not JSON serializable")
 
 

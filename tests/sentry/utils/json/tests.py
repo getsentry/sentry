@@ -6,6 +6,7 @@ import datetime
 import uuid
 
 from enum import Enum
+from django.utils.translation import ugettext_lazy as _
 
 from unittest import TestCase
 from sentry.utils import json
@@ -48,3 +49,6 @@ class JSONTest(TestCase):
         enum = Enum("foo", "a b c")
         res = enum.a
         self.assertEquals(json.dumps(res), "1")
+
+    def test_translation(self):
+        self.assertEquals(json.dumps(_("word")), u'"word"')
