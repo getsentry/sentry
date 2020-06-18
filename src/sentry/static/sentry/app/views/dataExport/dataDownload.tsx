@@ -209,10 +209,10 @@ class DataDownload extends AsyncView<Props, State> {
             {this.renderDate(dateExpired)}
           </p>
           {this.renderOpenInDiscover()}
-          <small>
-            <strong>SHA1:{checksum}</strong>
-          </small>
           <p>
+            <small>
+              <strong>SHA1:{checksum}</strong>
+            </small>
             {tct('Need help verifying? [link].', {
               link: (
                 <a
