@@ -3,6 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import {IconClock} from 'app/icons';
 import RepoLabel from 'app/components/repoLabel';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
@@ -55,16 +56,14 @@ const ReleaseRepoLabel = styled(RepoLabel)`
 
 const TimeWithIcon = styled(({date, ...props}) => (
   <span {...props}>
-    <ClockIcon className="icon icon-clock" />
-    <TimeSince date={date} />
+    <IconClock size="11px" /> <TimeSince date={date} />
   </span>
 ))`
   display: inline-flex;
   align-items: center;
   color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const ClockIcon = styled('span')`
-  margin-right: ${space(0.25)};
+  & > svg {
+    margin-right: ${space(0.25)};
+  }
 `;
