@@ -89,7 +89,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                         className="css-8m01f9-MenuItemLabelWithIcon ev3suul1"
                       >
                         <StyledIconAdd>
-                          <ForwardRef
+                          <IconAdd
                             className="css-4qjexj-StyledIconAdd ev3suul0"
                           >
                             <ForwardRef(SvgIcon)
@@ -107,7 +107,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                                 />
                               </svg>
                             </ForwardRef(SvgIcon)>
-                          </ForwardRef>
+                          </IconAdd>
                         </StyledIconAdd>
                         <span>
                           Create a new organization
@@ -2062,7 +2062,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           <h4
                             className="css-1i5djvw-Heading eky05z30"
                           >
-                            <ForwardRef
+                            <IconLightning
                               size="xs"
                             >
                               <ForwardRef(SvgIcon)
@@ -2079,7 +2079,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   />
                                 </svg>
                               </ForwardRef(SvgIcon)>
-                            </ForwardRef>
+                            </IconLightning>
                             Complete now
                           </h4>
                         </PoseElement>
@@ -3457,7 +3457,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         onMouseEnter={[Function]}
                                         onMouseLeave={[Function]}
                                       >
-                                        <ForwardRef
+                                        <IconLock
                                           size="xs"
                                         >
                                           <ForwardRef(SvgIcon)
@@ -3480,7 +3480,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               />
                                             </svg>
                                           </ForwardRef(SvgIcon)>
-                                        </ForwardRef>
+                                        </IconLock>
                                       </span>
                                     </Container>
                                   </InnerReference>
@@ -4141,7 +4141,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -4166,7 +4166,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>
@@ -4930,7 +4930,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -4955,7 +4955,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>
@@ -5725,7 +5725,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -5750,7 +5750,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>
@@ -6521,7 +6521,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -6546,7 +6546,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>
@@ -7215,7 +7215,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -7240,7 +7240,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>

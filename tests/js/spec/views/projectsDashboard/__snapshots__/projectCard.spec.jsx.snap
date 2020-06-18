@@ -416,7 +416,7 @@ exports[`ProjectCard renders 1`] = `
                                                 size={18}
                                               >
                                                 <StyledPlatformIcon
-                                                  key="javascript"
+                                                  key="javascript0"
                                                   platform="javascript"
                                                   size={18}
                                                 >

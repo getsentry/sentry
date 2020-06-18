@@ -25,7 +25,7 @@ from sentry.utils.distutils import (
 )
 
 
-VERSION = "10.1.0.dev0"
+VERSION = "20.7.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 

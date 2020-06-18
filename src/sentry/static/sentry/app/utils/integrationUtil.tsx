@@ -149,10 +149,15 @@ export const trackIntegrationEvent = (
     );
   }
 
+  //Amplitude has it's own referrer which intefers with our custom referrer
+  const {referrer: custom_referrer} = analyticsParams;
+  delete analyticsParams.referrer;
+
   const params = {
     analytics_session_id: sessionId,
     organization_id: org?.id,
     role: org?.role,
+    custom_referrer,
     ...features,
     ...analyticsParams,
   };
