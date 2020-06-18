@@ -126,7 +126,7 @@ class DataExport extends React.Component<Props, State> {
 const NewButton = ({children, ...buttonProps}) => (
   <Button {...buttonProps}>
     {children}
-    <FeatureBadge type="new" />
+    <FeatureBadge type="new" noTooltip />
   </Button>
 );
 
