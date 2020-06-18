@@ -417,7 +417,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const chart = (
       <TriggersChart
-        api={this.api}
         organization={organization}
         projects={this.state.projects}
         triggers={triggers}
