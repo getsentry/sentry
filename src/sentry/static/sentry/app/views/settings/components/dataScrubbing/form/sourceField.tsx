@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import TextField from 'app/components/forms/textField';
+import Input from 'app/views/settings/components/forms/controls/input';
 import TextOverflow from 'app/components/textOverflow';
 import {defined} from 'app/utils';
 
@@ -379,7 +379,8 @@ class SourceField extends React.Component<Props, State> {
 
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
-        <StyledTextField
+        <StyledInput
+          type="text"
           name="source"
           placeholder={t('Enter a custom attribute, variable or header name')}
           onChange={this.handleChange}
@@ -432,13 +433,7 @@ const Wrapper = styled('div')<{hideCaret?: boolean}>`
   ${p => p.hideCaret && `caret-color: transparent;`}
 `;
 
-const StyledTextField = styled(TextField)`
-  width: 100%;
-  height: 40px;
-  input {
-    height: 40px;
-  }
-
+const StyledInput = styled(Input)`
   z-index: 1002;
   :focus {
     outline: none;

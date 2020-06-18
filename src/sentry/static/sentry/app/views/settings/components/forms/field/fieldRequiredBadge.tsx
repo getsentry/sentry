@@ -11,7 +11,11 @@ const FieldRequiredBadge = styled('div')`
   border-radius: 5px;
   text-indent: -9999em;
   vertical-align: super;
+<<<<<<< HEAD
   margin-left: ${space(0.5)};
+=======
+  margin-left: ${space(0.25)};
+>>>>>>> wip
 `;
 
 export default FieldRequiredBadge;

@@ -4,7 +4,7 @@ import sortBy from 'lodash/sortBy';
 
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-import TextField from 'app/components/forms/textField';
+import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
 import EventIdField from './eventIdField';
@@ -41,6 +41,13 @@ const Form = ({
   onValidate,
 }: Props<Rule, KeysOfUnion<Rule>>) => {
   const {source, type, method} = rule;
+
+  const handleChange = <K extends KeysOfUnion<Rule>>(field: K) => (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    onChange(field, event.target.value);
+  };
+
   return (
     <React.Fragment>
       <GroupField hasTwoColumns={rule.method === MethodType.REPLACE}>
@@ -72,12 +79,11 @@ const Form = ({
             stacked
             showHelpInTooltip
           >
-            <StyledTextField
+            <Input
+              type="text"
               name="placeholder"
               placeholder={`[${t('Filtered')}]`}
-              onChange={(value: string) => {
-                onChange('placeholder', value);
-              }}
+              onChange={handleChange('placeholder')}
               value={rule.placeholder}
             />
           </Field>
@@ -110,20 +116,19 @@ const Form = ({
             label={t('Regex matches')}
             help={t('Custom Perl-style regex (PCRE)')}
             inline={false}
+            error={errors?.pattern}
             flexibleControlStateSize
             stacked
             required
             showHelpInTooltip
           >
             <RegularExpression
+              type="text"
               name="pattern"
               placeholder={t('[a-zA-Z0-9]+')}
-              onChange={(value: string) => {
-                onChange('pattern', value);
-              }}
+              onChange={handleChange('pattern')}
               value={rule.pattern}
               onBlur={onValidate('pattern')}
-              error={errors?.pattern}
             />
           </Field>
         )}
@@ -167,18 +172,7 @@ const GroupField = styled('div')<{hasTwoColumns: boolean}>`
   }
 `;
 
-const StyledTextField = styled(TextField)<{error?: string}>`
-  height: 40px;
-  input {
-    height: 40px;
-  }
-  ${p => !p.error && `margin-bottom: 0;`}
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    margin-bottom: 0;
-  }
-`;
-
-const RegularExpression = styled(StyledTextField)`
+const RegularExpression = styled(Input)`
   font-size: ${p => p.theme.fontSizeSmall};
   input {
     font-family: ${p => p.theme.text.familyMono};
