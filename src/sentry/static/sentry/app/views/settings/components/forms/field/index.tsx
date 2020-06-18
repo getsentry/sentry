@@ -221,8 +221,10 @@ class Field extends React.Component<Props> {
           <FieldDescription inline={inline} htmlFor={id}>
             {label && (
               <FieldLabel disabled={isDisabled}>
-                <span>{label}</span>
-                {required && <FieldRequiredBadge />}
+                <span>
+                  {label}
+                  {required && <FieldRequiredBadge />}
+                </span>
                 {description && (
                   <FieldQuestion>
                     <QuestionTooltip position="top" size="sm" title={description} />
