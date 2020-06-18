@@ -8,6 +8,7 @@ from sentry.models import Organization
 from sentry.web.frontend.base import BaseView
 
 
+# TODO(Steve): use IntegrationExtensionConfigurationView
 class VstsExtensionConfigurationView(BaseView):
     auth_required = False
 
