@@ -174,6 +174,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             return
 
         user = User.objects.get(id=extra.get("user_id"))
+        # TODO(Steve): Add author info
         data = {
             "name": "Vercel Internal Integration",
             "organization": organization,
