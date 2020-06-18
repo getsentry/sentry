@@ -2,12 +2,14 @@ from __future__ import absolute_import
 
 import responses
 
-from six.moves.urllib.parse import parse_qs, urlencode
+from six.moves.urllib.parse import parse_qs
 
 from sentry.integrations.vercel import VercelIntegrationProvider
 from sentry.models import (
     Integration,
     OrganizationIntegration,
+    SentryAppInstallationForProvider,
+    SentryAppInstallation,
 )
 from sentry.testutils import IntegrationTestCase
 
@@ -15,9 +17,12 @@ from sentry.testutils import IntegrationTestCase
 class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 
+    def setUp(self):
+        super(VercelIntegrationTest, self).setUp()
+        # OrganizationMember.objects.create(user=self.user, organization=self.organization)
+
     def assert_setup_flow(self, is_team=False):
         responses.reset()
-
         access_json = {
             "user_id": "my_user_id",
             "access_token": "my_access_token",
@@ -56,7 +61,13 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"id": "webhook-id"},
         )
 
-        resp = self.client.get(u"{}?{}".format(self.setup_path, urlencode({"code": "oauth-code"}),))
+        params = {
+            "configurationId": "config_id",
+            "code": "oauth-code",
+            "next": "https://example.com",
+        }
+        self.pipeline.bind_state("user_id", self.user.id)
+        resp = self.client.get(self.setup_path, params)
 
         mock_request = responses.calls[0].request
         req_params = parse_qs(mock_request.body)
@@ -86,6 +97,9 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization
         )
+        assert SentryAppInstallationForProvider.objects.get(
+            organization=self.organization, provider="vercel"
+        )
 
     @responses.activate
     def test_team_flow(self):
@@ -94,3 +108,17 @@ class VercelIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_user_flow(self):
         self.assert_setup_flow(is_team=False)
+
+    @responses.activate
+    def test_use_existing_installation(self):
+        sentry_app = self.create_internal_integration(
+            webhook_url=None, name="Vercel Internal Integration", organization=self.organization,
+        )
+        sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
+        SentryAppInstallationForProvider.objects.create(
+            organization=self.organization,
+            provider="vercel",
+            sentry_app_installation=sentry_app_installation,
+        )
+        self.assert_setup_flow(is_team=False)
+        assert SentryAppInstallation.objects.count() == 1
