@@ -772,7 +772,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       withPadding={false}
                                     >
                                       <div
-                                        className="e1ueudyh4 css-orfn1j-FlexBox-StyledPanelBody e1vnwt6f0"
+                                        className="e1ueudyh4 css-1nbu7cr-FlexBox-StyledPanelBody e1vnwt6f0"
                                       >
                                         <div
                                           dangerouslySetInnerHTML={

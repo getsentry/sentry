@@ -81,18 +81,21 @@ class Results extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {api, location, organization, selection} = this.props;
     const {eventView} = this.state;
-    if (
-      !isEqual(prevProps.selection.projects, selection.projects) ||
-      !isEqual(prevProps.selection.datetime, selection.datetime)
-    ) {
-      loadOrganizationTags(api, organization.slug, selection);
-    }
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
     if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
+      api.clear();
       this.fetchTotalCount();
+      if (
+        !isEqual(prevQuery.statsPeriod, currentQuery.statsPeriod) ||
+        !isEqual(prevQuery.start, currentQuery.start) ||
+        !isEqual(prevQuery.end, currentQuery.end) ||
+        !isEqual(prevQuery.project, currentQuery.project)
+      ) {
+        loadOrganizationTags(api, organization.slug, selection);
+      }
     }
   }
 
@@ -254,7 +257,7 @@ class Results extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, location, router, api} = this.props;
+    const {organization, location, router} = this.props;
     const {eventView, error, errorCode, totalValues, showTags} = this.state;
     const query = decodeScalar(location.query.query) || '';
     const title = this.getDocumentTitle();
@@ -280,7 +283,6 @@ class Results extends React.Component<Props, State> {
                   onSearch={this.handleSearch}
                 />
                 <ResultsChart
-                  api={api}
                   router={router}
                   organization={organization}
                   eventView={eventView}

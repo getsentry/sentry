@@ -43,23 +43,27 @@ const textStyles = () => css`
   }
 
   h1 {
-    font-size: 2em;
+    font-size: 3.2rem;
   }
 
   h2 {
-    font-size: 1.75em;
+    font-size: 2.8rem;
   }
 
   h3 {
-    font-size: 1.5em;
+    font-size: 2.4rem;
   }
 
   h4 {
-    font-size: 1.25em;
+    font-size: 2rem;
   }
 
   h5 {
-    font-size: 1em;
+    font-size: 1.6rem;
+  }
+
+  h6 {
+    font-size: 1.4rem;
   }
 
   pre {

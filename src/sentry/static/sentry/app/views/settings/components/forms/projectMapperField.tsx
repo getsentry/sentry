@@ -132,7 +132,13 @@ export class RenderField extends React.Component<RenderProps> {
             options={mappedItemsToShow}
             ref={this.mappedRef}
           />
-          <Button size="small" label={t('Add')} icon={<IconAdd />} onClick={handleAdd} />
+          <Button
+            type="button"
+            size="small"
+            label={t('Add')}
+            icon={<IconAdd />}
+            onClick={handleAdd}
+          />
         </SelectContainer>
       </Wrapper>
     );

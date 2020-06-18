@@ -59,8 +59,8 @@ def transactions_query(**kwargs):
 
 
 def generate_transaction():
-    start_datetime = before_now(minutes=1)
-    end_datetime = before_now(minutes=1, milliseconds=500)
+    start_datetime = before_now(minutes=1, milliseconds=500)
+    end_datetime = before_now(minutes=1)
     event_data = load_data("transaction", timestamp=end_datetime, start_timestamp=start_datetime)
     event_data.update({"event_id": "a" * 32})
 
