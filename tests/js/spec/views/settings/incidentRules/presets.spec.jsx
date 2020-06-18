@@ -1,5 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {DisplayModes} from 'app/utils/discover/types';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
 import {getIncidentDiscoverUrl} from 'app/views/alerts/utils';
@@ -62,7 +63,7 @@ describe('Incident Presets', function() {
         incident,
         stats: mockStats,
         extraQueryParams: {
-          display: 'top5',
+          display: DisplayModes.TOP5,
         },
       });
 
@@ -99,7 +100,7 @@ describe('Incident Presets', function() {
         incident,
         stats: mockStats,
         extraQueryParams: {
-          display: 'top5',
+          display: DisplayModes.TOP5,
         },
       });
 
@@ -138,7 +139,7 @@ describe('Incident Presets', function() {
           incident,
           stats: mockStats,
           extraQueryParams: {
-            display: 'top5',
+            display: DisplayModes.TOP5,
             fields: ['transaction', 'count()', 'p95()'],
             orderby: '-count',
           },
@@ -217,7 +218,7 @@ describe('Incident Presets', function() {
           incident,
           stats: mockStats,
           extraQueryParams: {
-            display: 'top5',
+            display: DisplayModes.TOP5,
             fields: ['transaction', 'count()', 'apdex(300)'],
             orderby: '-count',
           },
@@ -296,7 +297,7 @@ describe('Incident Presets', function() {
           incident,
           stats: mockStats,
           extraQueryParams: {
-            display: 'top5',
+            display: DisplayModes.TOP5,
             fields: ['transaction', 'count()'],
             orderby: '-count',
           },
@@ -373,7 +374,7 @@ describe('Incident Presets', function() {
           incident,
           stats: mockStats,
           extraQueryParams: {
-            display: 'top5',
+            display: DisplayModes.TOP5,
             fields: ['transaction', 'failure_rate()'],
             orderby: '-failure_rate',
           },
@@ -412,7 +413,7 @@ describe('Incident Presets', function() {
           incident,
           stats: mockStats,
           extraQueryParams: {
-            display: 'top5',
+            display: DisplayModes.TOP5,
             fields: ['transaction.status', 'count()'],
             orderby: '-count',
           },
