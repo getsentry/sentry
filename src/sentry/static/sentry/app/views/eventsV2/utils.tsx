@@ -1,6 +1,5 @@
 import Papa from 'papaparse';
 import {Location, Query} from 'history';
-import isEmpty from 'lodash/isEmpty';
 import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
@@ -272,7 +271,7 @@ export function getExpandedResults(
       const {parameters = []} = AGGREGATIONS[exploded.function[0]] ?? {};
       if (
         !field ||
-        (!isEmpty(parameters) &&
+        (parameters.length > 0 &&
           parameters.every(parameter => parameter.kind !== 'column'))
       ) {
         // This is a function with no field alias. We delete this column as it'll add a blank column in the drilldown.
