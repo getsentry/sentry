@@ -1,5 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
+import styled from '@emotion/styled';
 
 import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
@@ -81,7 +82,7 @@ class ResultsHeader extends React.Component<Props, State> {
     );
 
     return (
-      <HeaderBox>
+      <StyledHeaderBox>
         <DiscoverBreadcrumb
           eventView={eventView}
           organization={organization}
@@ -111,9 +112,21 @@ class ResultsHeader extends React.Component<Props, State> {
             )}
           </Feature>
         </HeaderTopControls>
-      </HeaderBox>
+      </StyledHeaderBox>
     );
   }
 }
 
 export default withApi(ResultsHeader);
+
+// TODO(scttcper): The buttons are taking up a lot of space on this page
+const StyledHeaderBox = styled(HeaderBox)`
+  /* On results page header, break to new line sooner */
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
+  }
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    display: grid;
+    grid-template-columns: minmax(100px, auto) 475px;
+  }
+`;
