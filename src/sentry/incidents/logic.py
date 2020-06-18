@@ -109,7 +109,12 @@ def create_incident(
 
 
 def update_incident_status(
-    incident, status, user=None, comment=None, status_method=IncidentStatusMethod.RULE_TRIGGERED
+    incident,
+    status,
+    user=None,
+    comment=None,
+    status_method=IncidentStatusMethod.RULE_TRIGGERED,
+    date_closed=None,
 ):
     """
     Updates the status of an Incident and write an IncidentActivity row to log
@@ -135,7 +140,7 @@ def update_incident_status(
 
         kwargs = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
-            kwargs["date_closed"] = timezone.now()
+            kwargs["date_closed"] = date_closed if date_closed else timezone.now()
         elif status == IncidentStatus.OPEN:
             # If we're moving back out of closed status then unset the closed
             # date

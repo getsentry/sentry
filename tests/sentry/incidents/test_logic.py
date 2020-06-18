@@ -135,7 +135,9 @@ class UpdateIncidentStatus(TestCase):
         )
         assert incident.status == IncidentStatus.WARNING.value
 
-    def run_test(self, incident, status, expected_date_closed, user=None, comment=None):
+    def run_test(
+        self, incident, status, expected_date_closed, user=None, comment=None, date_closed=None
+    ):
         prev_status = incident.status
         self.record_event.reset_mock()
         update_incident_status(
@@ -144,6 +146,7 @@ class UpdateIncidentStatus(TestCase):
             user=user,
             comment=comment,
             status_method=IncidentStatusMethod.RULE_TRIGGERED,
+            date_closed=date_closed,
         )
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status.value
@@ -178,6 +181,21 @@ class UpdateIncidentStatus(TestCase):
             after=True,
         ):
             self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
+
+    def test_closed_specify_date(self):
+        incident = self.create_incident(
+            self.organization,
+            title="Test",
+            date_started=timezone.now() - timedelta(days=5),
+            projects=[self.project],
+        )
+        with self.assertChanges(
+            lambda: PendingIncidentSnapshot.objects.filter(incident=incident).exists(),
+            before=False,
+            after=True,
+        ):
+            date_closed = timezone.now() - timedelta(days=1)
+            self.run_test(incident, IncidentStatus.CLOSED, date_closed, date_closed=date_closed)
 
     def test_pending_snapshot_management(self):
         # Test to verify PendingIncidentSnapshot's are created on close, and deleted on open
