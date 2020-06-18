@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import six
 
+from datetime import datetime
+
 from rest_framework import serializers, status
 from uuid import uuid4
 
@@ -15,7 +17,12 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
+from sentry.api.serializers.rest_framework.base import snake_to_camel_case, convert_dict_key_case
+from sentry.constants import (
+    LEGACY_RATE_LIMIT_OPTIONS,
+    RESERVED_ORGANIZATION_SLUGS,
+    TRUSTED_RELAYS_DEFAULT,
+)
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_DEFAULT, convert_crashreport_count
 from sentry.models import (
@@ -90,7 +97,6 @@ ORG_OPTIONS = (
         org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
     ("relayPiiConfig", "sentry:relay_pii_config", six.text_type, None),
-    ("trustedRelays", "sentry:trusted-relays", list, org_serializers.TRUSTED_RELAYS_DEFAULT),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
 )
 
@@ -114,6 +120,29 @@ def update_organization_scenario(runner):
             path="/organizations/%s/" % org.slug,
             data={"name": "Impeccably Designated", "slug": "impeccably-designated"},
         )
+
+
+class TrustedRelaySerializer(serializers.Serializer):
+    def to_representation(self, instance):
+        return convert_dict_key_case(instance, snake_to_camel_case)
+
+    def to_internal_value(self, data):
+        try:
+            ret_val = {
+                u"public_key": data.get(u"publicKey"),
+                u"name": data.get(u"name"),
+                u"description": data.get(u"description"),
+            }
+
+            return ret_val
+        except Exception:
+            return {}
+
+    # Note: 'created' and 'lastModified' are only returned by the API,
+    # their values are controlled by the server and are never consumed by the api as inputs
+    publicKey = serializers.CharField(required=True, allow_null=False, allow_blank=False)
+    name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -146,7 +175,7 @@ class OrganizationSerializer(serializers.Serializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
-    trustedRelays = ListField(child=serializers.CharField(), required=False)
+    trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
@@ -248,6 +277,55 @@ class OrganizationSerializer(serializers.Serializer):
                 )
         return attrs
 
+    def save_trusted_relays(self, incoming, changed_data, organization):
+        timestamp_now = (
+            datetime.utcnow().isoformat() + "Z"
+        )  # make it utc relative with set timezone
+        option_key = "sentry:trusted-relays"
+        try:
+            # get what we already have
+            existing = OrganizationOption.objects.get(organization=organization, key=option_key)
+            if existing is not None:
+                key_dict = {val.get("public_key"): val for val in existing.value}
+            else:
+                key_dict = {}
+        except OrganizationOption.DoesNotExist:
+            key_dict = {}  # we don't have anything set
+            existing = None
+
+        modified = False
+        for option in incoming:
+            public_key = option.get("public_key")
+            existing_info = key_dict.get(public_key, {})
+
+            option["created"] = existing_info.get("created", timestamp_now)
+            option["last_modified"] = existing_info.get("last_modified")
+
+            # check if we modified the current public_key info and update last_modified if we did
+            if (
+                existing_info.get("public_key") is None
+                or existing_info.get("name") != option.get("name")
+                or existing_info.get("description") != option.get("description")
+            ):
+                option["last_modified"] = timestamp_now
+                modified = True
+
+        if modified:
+            # we have some modifications create a log message
+            if existing is not None:
+                # generate an update log message
+                changed_data["trustedRelays"] = u"from {} to {}".format(existing, incoming)
+                existing.value = incoming
+                existing.save()
+            else:
+                # first time we set trusted relays, generate a create log message
+                changed_data["trustedRelays"] = u"to {}".format(incoming)
+                OrganizationOption.objects.set_value(
+                    organization=organization, key=option_key, value=incoming
+                )
+
+        return incoming
+
     def save(self):
         org = self.context["organization"]
         changed_data = {}
@@ -271,6 +349,10 @@ class OrganizationSerializer(serializers.Serializer):
                     old_val = option_inst.old_value("value")
                     changed_data[key] = u"from {} to {}".format(old_val, option_inst.value)
                 option_inst.save()
+
+        trusted_realy_info = self.validated_data.get("trustedRelays")
+        if trusted_realy_info is not None:
+            self.save_trusted_relays(trusted_realy_info, changed_data, org)
 
         if "openMembership" in self.initial_data:
             org.flags.allow_joinleave = self.initial_data["openMembership"]
@@ -364,6 +446,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             else org_serializers.DetailedOrganizationSerializer
         )
         context = serialize(organization, request.user, serializer(), access=request.access)
+        trusted_relays_raw = (
+            organization.get_option("sentry:trusted-relays", TRUSTED_RELAYS_DEFAULT) or []
+        )
+        # serialize trusted relays info into their external form
+        context["trustedRelays"] = [TrustedRelaySerializer(raw).data for raw in trusted_relays_raw]
+
         return self.respond(context)
 
     @attach_scenarios([update_organization_scenario])

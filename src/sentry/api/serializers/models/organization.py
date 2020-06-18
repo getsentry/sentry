@@ -17,7 +17,6 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
-    TRUSTED_RELAYS_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
 )
@@ -204,8 +203,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "scrapeJavaScript": bool(
                     obj.get_option("sentry:scrape_javascript", SCRAPE_JAVASCRIPT_DEFAULT)
                 ),
-                "trustedRelays": obj.get_option("sentry:trusted-relays", TRUSTED_RELAYS_DEFAULT)
-                or [],
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),

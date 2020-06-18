@@ -31,5 +31,21 @@ class Relay(Model):
         # Internal relays always have access
         if self.is_internal:
             return True
+
+        trusted_relays = org.get_option("sentry:trusted-relays", [])
+        trusted_keys = [
+            key
+            for relay_info in trusted_relays
+            if relay_info is not None
+            for key in [relay_info.get("public_key")]
+            if key is not None and len(key) > 0
+        ]
         # Use the normalized form of the public key for the check
-        return six.text_type(self.public_key_object) in org.get_option("sentry:trusted-relays", [])
+        return six.text_type(self.public_key_object) in trusted_keys
+
+    @staticmethod
+    def for_keys(keys):
+        """
+        Returns all the relays that are configured with one of the specified keys
+        """
+        return Relay.objects.filter(public_key__in=keys)
