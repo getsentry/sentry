@@ -25,8 +25,6 @@ type Params = {
    * enable the arrow on the menu
    */
   menuWithArrow?: boolean;
-
-  theme: Theme;
 };
 
 /**
@@ -40,7 +38,7 @@ const getMenuBorderRadius = ({
   alignMenu,
   width,
   theme,
-}: Params) => {
+}: Params & {theme: Theme}) => {
   const radius = theme.borderRadius;
   if (!blendCorner) {
     return css`
