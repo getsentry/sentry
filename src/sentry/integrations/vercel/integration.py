@@ -49,7 +49,11 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
-internal_integration_overview = "This internal integration was auto-generated during the installation process of your Vercel integration. It is needed to provide the token used to create a release. If this integration is deleted, your Vercel integration will stop working!"
+internal_integration_overview = (
+    "This internal integration was auto-generated during the installation process of your Vercel"
+    " integration. It is needed to provide the token used to create a release. If this integration is "
+    "deleted, your Vercel integration will stop working!"
+)
 
 
 class VercelIntegration(IntegrationInstallation):
