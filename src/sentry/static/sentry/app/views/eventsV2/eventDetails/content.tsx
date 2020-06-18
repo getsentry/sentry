@@ -16,7 +16,7 @@ import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
+import Feature from 'app/components/acl/feature';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
@@ -26,7 +26,12 @@ import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
-import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
+import {
+  ContentBox,
+  HeaderBox,
+  HeaderTopControls,
+  HeaderBottomControls,
+} from 'app/utils/discover/styles';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {generateTitle, getExpandedResults} from '../utils';
@@ -165,22 +170,26 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             organization={organization}
             location={location}
           />
+          {transactionSummaryTarget && (
+            <Feature organization={organization} features={['performance-view']}>
+              {({hasFeature}) => (
+                <HeaderTopControls>
+                  <StyledButton
+                    disabled={!hasFeature}
+                    priority="primary"
+                    to={transactionSummaryTarget}
+                  >
+                    {t('Go to Summary')}
+                  </StyledButton>
+                </HeaderTopControls>
+              )}
+            </Feature>
+          )}
           <EventHeader event={event} />
           <HeaderBottomControls>
-            <ButtonBar gap={1}>
-              <StyledButton size="small" onClick={this.toggleSidebar}>
-                {isSidebarVisible ? t('Hide Details') : t('Show Details')}
-              </StyledButton>
-              {transactionSummaryTarget && (
-                <StyledButton
-                  priority="primary"
-                  size="small"
-                  to={transactionSummaryTarget}
-                >
-                  {t('Go to Summary')}
-                </StyledButton>
-              )}
-            </ButtonBar>
+            <StyledButton onClick={this.toggleSidebar}>
+              {isSidebarVisible ? t('Hide Details') : t('Show Details')}
+            </StyledButton>
           </HeaderBottomControls>
         </HeaderBox>
         <ContentBox>
@@ -313,7 +322,6 @@ const StyledButton = styled(Button)`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: block;
-    min-width: 110px;
   }
 `;
 
