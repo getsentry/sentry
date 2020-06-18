@@ -4,7 +4,21 @@ import styled from '@emotion/styled';
 
 import theme from 'app/utils/theme';
 
-class ScoreBar extends React.Component {
+type DefaultProps = {
+  size: number;
+  thickness: number;
+  radius: number;
+  palette: Readonly<string[]>;
+};
+
+type Props = DefaultProps & {
+  vertical: boolean;
+  score: number;
+  paletteClassNames: string[];
+  className?: string;
+};
+
+class ScoreBar extends React.Component<Props> {
   static propTypes = {
     vertical: PropTypes.bool,
     score: PropTypes.number.isRequired,
@@ -17,7 +31,7 @@ class ScoreBar extends React.Component {
     radius: PropTypes.number,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     size: 40,
     thickness: 4,
     radius: 3,
@@ -64,7 +78,16 @@ const StyledScoreBar = styled(ScoreBar)`
       : 'min-width: 80px;'};
 `;
 
-const Bar = styled('div')`
+type BarProps = {
+  empty?: boolean;
+  color?: string;
+  vertical?: boolean;
+  thickness: number;
+  size: number;
+  radius: number;
+};
+
+const Bar = styled('div')<BarProps>`
   border-radius: ${p => p.radius}px;
   margin: 2px;
   ${p => p.empty && `background-color: ${p.theme.similarity.empty};`};
