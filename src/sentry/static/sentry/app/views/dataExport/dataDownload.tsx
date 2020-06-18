@@ -213,6 +213,7 @@ class DataDownload extends AsyncView<Props, State> {
             <small>
               <strong>SHA1:{checksum}</strong>
             </small>
+            <br />
             {tct('Need help verifying? [link].', {
               link: (
                 <a
