@@ -229,7 +229,8 @@ class SourceField extends React.Component<Props, State> {
     }
   };
 
-  handleChange = (newValue: string) => {
+  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
     this.loadFieldValues(newValue);
     this.props.onChange(newValue);
   };

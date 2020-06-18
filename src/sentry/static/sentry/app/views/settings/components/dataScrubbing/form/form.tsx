@@ -140,20 +140,18 @@ const Form = ({
         label={t('Source')}
         help={t('Where to look. In the simplest case this can be an attribute name.')}
         inline={false}
+        error={errors?.source}
         flexibleControlStateSize
         stacked
         required
         showHelpInTooltip
       >
         <SourceField
-          onChange={(value: string) => {
-            onChange('source', value);
-          }}
+          onChange={value => onChange('source', value)}
           value={source}
           onBlur={onValidate('source')}
           isRegExMatchesSelected={type === RuleType.PATTERN}
           suggestions={sourceSuggestions}
-          error={errors?.source}
         />
       </Field>
     </React.Fragment>
