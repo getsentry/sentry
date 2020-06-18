@@ -761,10 +761,10 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     >
                       <EmptyMessage>
                         <Component
-                          className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                          className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                         >
                           <div
-                            className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                            className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                             data-test-id="empty-message"
                           >
                             <Description

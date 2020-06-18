@@ -328,10 +328,10 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               >
                 <EmptyMessage>
                   <Component
-                    className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                    className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                   >
                     <div
-                      className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                      className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                       data-test-id="empty-message"
                     >
                       <Description
@@ -684,10 +684,10 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               >
                 <EmptyMessage>
                   <Component
-                    className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                    className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                   >
                     <div
-                      className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                      className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                       data-test-id="empty-message"
                     >
                       <Description

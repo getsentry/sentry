@@ -142,12 +142,12 @@ exports[`ExceptionStacktraceContent default behaviour 1`] = `
           title="No app only stacktrace has been found!"
         >
           <Component
-            className="css-13mk16x-EmptyMessage e1h3yfdx0"
+            className="css-4ypuko-EmptyMessage-EmptyMessage e1h3yfdx0"
             icon="icon-warning-sm"
             title="No app only stacktrace has been found!"
           >
             <div
-              className="css-13mk16x-EmptyMessage e1h3yfdx0"
+              className="css-4ypuko-EmptyMessage-EmptyMessage e1h3yfdx0"
               data-test-id="empty-message"
             >
               <IconWrapper>
