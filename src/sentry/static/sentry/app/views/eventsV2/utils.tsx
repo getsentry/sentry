@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import {Location, Query} from 'history';
+import isEmpty from 'lodash/isEmpty';
 import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
@@ -265,7 +266,15 @@ export function getExpandedResults(
         field = 'id';
       }
 
-      if (!field) {
+      // if at least one of the parameters to the function is an available column,
+      // then we should proceed to replace it with the column, however, for functions
+      // like apdex that takes a number as its parameter we should delete it
+      const {parameters = []} = AGGREGATIONS[exploded.function[0]] ?? {};
+      if (
+        !field ||
+        (!isEmpty(parameters) &&
+          parameters.every(parameter => parameter.kind !== 'column'))
+      ) {
         // This is a function with no field alias. We delete this column as it'll add a blank column in the drilldown.
         fieldsToDelete.push(indexToUpdate);
         return;
