@@ -261,83 +261,385 @@ export type Aggregation = {
   multiPlotType: PlotType;
 };
 
+export enum FieldKey {
+  CULPRIT = 'culprit',
+  DEVICE_ARCH = 'device.arch',
+  DEVICE_BATTERY_LEVEL = 'device.battery_level',
+  DEVICE_BRAND = 'device.brand',
+  DEVICE_CHARGING = 'device.charging',
+  DEVICE_LOCALE = 'device.locale',
+  DEVICE_NAME = 'device.name',
+  DEVICE_ONLINE = 'device.online',
+  DEVICE_ORIENTATION = 'device.orientation',
+  DEVICE_SIMULATOR = 'device.simulator',
+  DEVICE_UUID = 'device.uuid',
+  DIST = 'dist',
+  ENVIRONMENT = 'environment',
+  ERROR_HANDLED = 'error.handled',
+  ERROR_MECHANISM = 'error.mechanism',
+  ERROR_TYPE = 'error.type',
+  ERROR_VALUE = 'error.value',
+  EVENT_TYPE = 'event.type',
+  GEO_CITY = 'geo.city',
+  GEO_COUNTRY_CODE = 'geo.country_code',
+  GEO_REGION = 'geo.region',
+  HTTP_METHOD = 'http.method',
+  HTTP_URL = 'http.url',
+  ID = 'id',
+  ISSUE = 'issue',
+  LOCATION = 'location',
+  MESSAGE = 'message',
+  OS_BUILD = 'os.build',
+  OS_KERNEL_VERSION = 'os.kernel_version',
+  PLATFORM_NAME = 'platform.name',
+  PROJECT = 'project',
+  RELEASE = 'release',
+  SDK_NAME = 'sdk.name',
+  SDK_VERSION = 'sdk.version',
+  STACK_ABS_PATH = 'stack.abs_path',
+  STACK_COLNO = 'stack.colno',
+  STACK_FILENAME = 'stack.filename',
+  STACK_FUNCTION = 'stack.function',
+  STACK_IN_APP = 'stack.in_app',
+  STACK_LINENO = 'stack.lineno',
+  STACK_MODULE = 'stack.module',
+  STACK_PACKAGE = 'stack.package',
+  STACK_STACK_LEVEL = 'stack.stack_level',
+  TIME = 'time',
+  TIMESTAMP = 'timestamp',
+  TITLE = 'title',
+  TRACE = 'trace',
+  TRACE_PARENT_SPAN = 'trace.parent_span',
+  TRACE_SPAN = 'trace.span',
+  TRANSACTION = 'transaction',
+  TRANSACTION_DURATION = 'transaction.duration',
+  TRANSACTION_OP = 'transaction.op',
+  TRANSACTION_STATUS = 'transaction.status',
+  USER = 'user',
+  USER_EMAIL = 'user.email',
+  USER_ID = 'user.id',
+  USER_IP = 'user.ip',
+  USER_USERNAME = 'user.username',
+}
+
 /**
  * Refer to src/sentry/snuba/events.py, search for Columns
  */
 export const FIELDS = {
-  id: 'string',
+  [FieldKey.ID]: 'string',
   // issue.id and project.id are omitted on purpose.
   // Customers should use `issue` and `project` instead.
-  timestamp: 'date',
-  time: 'date',
+  [FieldKey.TIMESTAMP]: 'date',
+  [FieldKey.TIME]: 'date',
 
-  culprit: 'string',
-  location: 'string',
-  message: 'string',
-  'platform.name': 'string',
-  environment: 'string',
-  release: 'string',
-  dist: 'string',
-  title: 'string',
-  'event.type': 'string',
+  [FieldKey.CULPRIT]: 'string',
+  [FieldKey.LOCATION]: 'string',
+  [FieldKey.MESSAGE]: 'string',
+  [FieldKey.PLATFORM_NAME]: 'string',
+  [FieldKey.ENVIRONMENT]: 'string',
+  [FieldKey.RELEASE]: 'string',
+  [FieldKey.DIST]: 'string',
+  [FieldKey.TITLE]: 'string',
+  [FieldKey.EVENT_TYPE]: 'string',
   // tags.key and tags.value are omitted on purpose as well.
 
-  transaction: 'string',
-  user: 'string',
-  'user.id': 'string',
-  'user.email': 'string',
-  'user.username': 'string',
-  'user.ip': 'string',
-  'sdk.name': 'string',
-  'sdk.version': 'string',
-  'http.method': 'string',
-  'http.url': 'string',
-  'os.build': 'string',
-  'os.kernel_version': 'string',
-  'device.name': 'string',
-  'device.brand': 'string',
-  'device.locale': 'string',
-  'device.uuid': 'string',
-  'device.arch': 'string',
-  'device.battery_level': 'number',
-  'device.orientation': 'string',
-  'device.simulator': 'boolean',
-  'device.online': 'boolean',
-  'device.charging': 'boolean',
-  'geo.country_code': 'string',
-  'geo.region': 'string',
-  'geo.city': 'string',
-  'error.type': 'string',
-  'error.value': 'string',
-  'error.mechanism': 'string',
-  'error.handled': 'boolean',
-  'stack.abs_path': 'string',
-  'stack.filename': 'string',
-  'stack.package': 'string',
-  'stack.module': 'string',
-  'stack.function': 'string',
-  'stack.in_app': 'boolean',
-  'stack.colno': 'number',
-  'stack.lineno': 'number',
-  'stack.stack_level': 'number',
+  [FieldKey.TRANSACTION]: 'string',
+  [FieldKey.USER]: 'string',
+  [FieldKey.USER_ID]: 'string',
+  [FieldKey.USER_EMAIL]: 'string',
+  [FieldKey.USER_USERNAME]: 'string',
+  [FieldKey.USER_IP]: 'string',
+  [FieldKey.SDK_NAME]: 'string',
+  [FieldKey.SDK_VERSION]: 'string',
+  [FieldKey.HTTP_METHOD]: 'string',
+  [FieldKey.HTTP_URL]: 'string',
+  [FieldKey.OS_BUILD]: 'string',
+  [FieldKey.OS_KERNEL_VERSION]: 'string',
+  [FieldKey.DEVICE_NAME]: 'string',
+  [FieldKey.DEVICE_BRAND]: 'string',
+  [FieldKey.DEVICE_LOCALE]: 'string',
+  [FieldKey.DEVICE_UUID]: 'string',
+  [FieldKey.DEVICE_ARCH]: 'string',
+  [FieldKey.DEVICE_BATTERY_LEVEL]: 'number',
+  [FieldKey.DEVICE_ORIENTATION]: 'string',
+  [FieldKey.DEVICE_SIMULATOR]: 'boolean',
+  [FieldKey.DEVICE_ONLINE]: 'boolean',
+  [FieldKey.DEVICE_CHARGING]: 'boolean',
+  [FieldKey.GEO_COUNTRY_CODE]: 'string',
+  [FieldKey.GEO_REGION]: 'string',
+  [FieldKey.GEO_CITY]: 'string',
+  [FieldKey.ERROR_TYPE]: 'string',
+  [FieldKey.ERROR_VALUE]: 'string',
+  [FieldKey.ERROR_MECHANISM]: 'string',
+  [FieldKey.ERROR_HANDLED]: 'boolean',
+  [FieldKey.STACK_ABS_PATH]: 'string',
+  [FieldKey.STACK_FILENAME]: 'string',
+  [FieldKey.STACK_PACKAGE]: 'string',
+  [FieldKey.STACK_MODULE]: 'string',
+  [FieldKey.STACK_FUNCTION]: 'string',
+  [FieldKey.STACK_IN_APP]: 'boolean',
+  [FieldKey.STACK_COLNO]: 'number',
+  [FieldKey.STACK_LINENO]: 'number',
+  [FieldKey.STACK_STACK_LEVEL]: 'number',
   // contexts.key and contexts.value omitted on purpose.
 
   // Transaction event fields.
-  'transaction.duration': 'duration',
-  'transaction.op': 'string',
-  'transaction.status': 'string',
+  [FieldKey.TRANSACTION_DURATION]: 'duration',
+  [FieldKey.TRANSACTION_OP]: 'string',
+  [FieldKey.TRANSACTION_STATUS]: 'string',
 
-  trace: 'string',
-  'trace.span': 'string',
-  'trace.parent_span': 'string',
+  [FieldKey.TRACE]: 'string',
+  [FieldKey.TRACE_SPAN]: 'string',
+  [FieldKey.TRACE_PARENT_SPAN]: 'string',
 
   // Field alises defined in src/sentry/api/event_search.py
-  project: 'string',
-  issue: 'string',
+  [FieldKey.PROJECT]: 'string',
+  [FieldKey.ISSUE]: 'string',
 } as const;
-assert(FIELDS as Readonly<{[key in keyof typeof FIELDS]: ColumnType}>);
+assert(FIELDS as Readonly<Record<FieldKey, ColumnType>>);
 
-export type FieldKey = keyof typeof FIELDS | string | '';
+export type FieldTag = {
+  key: FieldKey;
+  name: FieldKey;
+};
+
+export const FIELD_TAGS = Object.freeze({
+  [FieldKey.ID]: {
+    key: 'id',
+    name: 'id',
+  },
+  [FieldKey.TIMESTAMP]: {
+    key: 'timestamp',
+    name: 'timestamp',
+  },
+  [FieldKey.TIME]: {
+    key: 'time',
+    name: 'time',
+  },
+  [FieldKey.CULPRIT]: {
+    key: 'culprit',
+    name: 'culprit',
+  },
+  [FieldKey.LOCATION]: {
+    key: 'location',
+    name: 'location',
+  },
+  [FieldKey.MESSAGE]: {
+    key: 'message',
+    name: 'message',
+  },
+  [FieldKey.PLATFORM_NAME]: {
+    key: 'platform.name',
+    name: 'platform.name',
+  },
+  [FieldKey.ENVIRONMENT]: {
+    key: 'environment',
+    name: 'environment',
+  },
+  [FieldKey.RELEASE]: {
+    key: 'release',
+    name: 'release',
+  },
+  [FieldKey.DIST]: {
+    key: 'dist',
+    name: 'dist',
+  },
+  [FieldKey.TITLE]: {
+    key: 'title',
+    name: 'title',
+  },
+  [FieldKey.EVENT_TYPE]: {
+    key: 'event.type',
+    name: 'event.type',
+  },
+  [FieldKey.TRANSACTION]: {
+    key: 'transaction',
+    name: 'transaction',
+  },
+  [FieldKey.USER]: {
+    key: 'user',
+    name: 'user',
+  },
+  [FieldKey.USER_ID]: {
+    key: 'user.id',
+    name: 'user.id',
+  },
+  [FieldKey.USER_EMAIL]: {
+    key: 'user.email',
+    name: 'user.email',
+  },
+  [FieldKey.USER_USERNAME]: {
+    key: 'user.username',
+    name: 'user.username',
+  },
+  [FieldKey.USER_IP]: {
+    key: 'user.ip',
+    name: 'user.ip',
+  },
+  [FieldKey.SDK_NAME]: {
+    key: 'sdk.name',
+    name: 'sdk.name',
+  },
+  [FieldKey.SDK_VERSION]: {
+    key: 'sdk.version',
+    name: 'sdk.version',
+  },
+  [FieldKey.HTTP_METHOD]: {
+    key: 'http.method',
+    name: 'http.method',
+  },
+  [FieldKey.HTTP_URL]: {
+    key: 'http.url',
+    name: 'http.url',
+  },
+  [FieldKey.OS_BUILD]: {
+    key: 'os.build',
+    name: 'os.build',
+  },
+  [FieldKey.OS_KERNEL_VERSION]: {
+    key: 'os.kernel_version',
+    name: 'os.kernel_version',
+  },
+  [FieldKey.DEVICE_NAME]: {
+    key: 'device.name',
+    name: 'device.name',
+  },
+  [FieldKey.DEVICE_BRAND]: {
+    key: 'device.brand',
+    name: 'device.brand',
+  },
+  [FieldKey.DEVICE_LOCALE]: {
+    key: 'device.locale',
+    name: 'device.locale',
+  },
+  [FieldKey.DEVICE_UUID]: {
+    key: 'device.uuid',
+    name: 'device.uuid',
+  },
+  [FieldKey.DEVICE_ARCH]: {
+    key: 'device.arch',
+    name: 'device.arch',
+  },
+  [FieldKey.DEVICE_BATTERY_LEVEL]: {
+    key: 'device.battery_level',
+    name: 'device.battery_level',
+  },
+  [FieldKey.DEVICE_ORIENTATION]: {
+    key: 'device.orientation',
+    name: 'device.orientation',
+  },
+  [FieldKey.DEVICE_SIMULATOR]: {
+    key: 'device.simulator',
+    name: 'device.simulator',
+  },
+  [FieldKey.DEVICE_ONLINE]: {
+    key: 'device.online',
+    name: 'device.online',
+  },
+  [FieldKey.DEVICE_CHARGING]: {
+    key: 'device.charging',
+    name: 'device.charging',
+  },
+  [FieldKey.GEO_COUNTRY_CODE]: {
+    key: 'geo.country_code',
+    name: 'geo.country_code',
+  },
+  [FieldKey.GEO_REGION]: {
+    key: 'geo.region',
+    name: 'geo.region',
+  },
+  [FieldKey.GEO_CITY]: {
+    key: 'geo.city',
+    name: 'geo.city',
+  },
+  [FieldKey.ERROR_TYPE]: {
+    key: 'error.type',
+    name: 'error.type',
+  },
+  [FieldKey.ERROR_VALUE]: {
+    key: 'error.value',
+    name: 'error.value',
+  },
+  [FieldKey.ERROR_MECHANISM]: {
+    key: 'error.mechanism',
+    name: 'error.mechanism',
+  },
+  [FieldKey.ERROR_HANDLED]: {
+    key: 'error.handled',
+    name: 'error.handled',
+  },
+  [FieldKey.STACK_ABS_PATH]: {
+    key: 'stack.abs_path',
+    name: 'stack.abs_path',
+  },
+  [FieldKey.STACK_FILENAME]: {
+    key: 'stack.filename',
+    name: 'stack.filename',
+  },
+  [FieldKey.STACK_PACKAGE]: {
+    key: 'stack.package',
+    name: 'stack.package',
+  },
+  [FieldKey.STACK_MODULE]: {
+    key: 'stack.module',
+    name: 'stack.module',
+  },
+  [FieldKey.STACK_FUNCTION]: {
+    key: 'stack.function',
+    name: 'stack.function',
+  },
+  [FieldKey.STACK_IN_APP]: {
+    key: 'stack.in_app',
+    name: 'stack.in_app',
+  },
+  [FieldKey.STACK_COLNO]: {
+    key: 'stack.colno',
+    name: 'stack.colno',
+  },
+  [FieldKey.STACK_LINENO]: {
+    key: 'stack.lineno',
+    name: 'stack.lineno',
+  },
+  [FieldKey.STACK_STACK_LEVEL]: {
+    key: 'stack.stack_level',
+    name: 'stack.stack_level',
+  },
+  [FieldKey.TRANSACTION_DURATION]: {
+    key: 'transaction.duration',
+    name: 'transaction.duration',
+  },
+  [FieldKey.TRANSACTION_OP]: {
+    key: 'transaction.op',
+    name: 'transaction.op',
+  },
+  [FieldKey.TRANSACTION_STATUS]: {
+    key: 'transaction.status',
+    name: 'transaction.status',
+  },
+  [FieldKey.TRACE]: {
+    key: 'trace',
+    name: 'trace',
+  },
+  [FieldKey.TRACE_SPAN]: {
+    key: 'trace.span',
+    name: 'trace.span',
+  },
+  [FieldKey.TRACE_PARENT_SPAN]: {
+    key: 'trace.parent_span',
+    name: 'trace.parent_span',
+  },
+  [FieldKey.PROJECT]: {
+    key: 'project',
+    name: 'project',
+  },
+  [FieldKey.ISSUE]: {
+    key: 'issue',
+    name: 'issue',
+  },
+}) as Readonly<Record<FieldKey, FieldTag>>;
+
+// Allows for a less strict field key definition in cases we are returning custom strings as fields
+export type LooseFieldKey = FieldKey | string | '';
 
 // This list should be removed with the tranaction-events feature flag.
 export const TRACING_FIELDS = [
