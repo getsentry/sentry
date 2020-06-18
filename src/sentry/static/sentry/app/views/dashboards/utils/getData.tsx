@@ -1,11 +1,13 @@
 import {t} from 'app/locale';
+import {Widget} from 'app/types';
+import {SnubaResult} from 'app/views/discover/types';
 
 import {WIDGET_DISPLAY} from '../constants';
 import {getChartDataFunc} from './getChartDataFunc';
 import {isTimeSeries} from './isTimeSeries';
 
 // TODO(billy): Currently only supports discover queries
-export function getData(results, widget) {
+export function getData(results: SnubaResult[], widget: Widget) {
   const {type, queries, yAxisMapping} = widget;
   const isTable = type === WIDGET_DISPLAY.TABLE;
   const [chartDataFunc, chartDataFuncArgs] = getChartDataFunc(widget);
@@ -36,7 +38,7 @@ export function getData(results, widget) {
 
   // Has 2 y axes
   if (hasYAxes) {
-    yAxisMapping.forEach((mappings, yAxisIndex) => {
+    yAxisMapping?.forEach((mappings, yAxisIndex) => {
       mappings.forEach(seriesIndex => {
         if (typeof series[seriesIndex] === 'undefined') {
           return;

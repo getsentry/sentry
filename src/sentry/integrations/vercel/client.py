@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.integrations.client import ApiClient
+from sentry.utils.http import absolute_uri
 
 
 class VercelClient(ApiClient):
@@ -11,6 +12,7 @@ class VercelClient(ApiClient):
     TEAMS_URL = "/v1/teams/%s"
     USER_URL = "/www/user"
     PROJECTS_URL = "/v4/projects/"
+    WEBHOOK_URL = "/v1/integrations/webhooks"
 
     def __init__(self, access_token, team_id=None):
         super(VercelClient, self).__init__()
@@ -35,3 +37,12 @@ class VercelClient(ApiClient):
     def get_projects(self):
         # TODO: we will need pagination since we are limited to 20
         return self.get(self.PROJECTS_URL)["projects"]
+
+    def create_deploy_webhook(self):
+        data = {
+            "name": "Sentry webhook",
+            "url": absolute_uri("/extensions/vercel/webhook/"),
+            "events": ["deployment"],
+        }
+        response = self.post(self.WEBHOOK_URL, data=data)
+        return response

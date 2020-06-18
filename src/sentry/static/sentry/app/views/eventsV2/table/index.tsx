@@ -95,6 +95,7 @@ class Table extends React.PureComponent<TableProps, TableState> {
     this.setState({isLoading: true, tableFetchID});
     metric.mark({name: `discover-events-start-${apiPayload.query}`});
 
+    this.props.api.clear();
     this.props.api
       .requestPromise(url, {
         method: 'GET',

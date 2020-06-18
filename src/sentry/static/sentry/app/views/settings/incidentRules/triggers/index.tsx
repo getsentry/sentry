@@ -176,7 +176,7 @@ const CriticalIndicator = styled(CircleIndicator)`
 `;
 
 const WarningIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.yellowDark};
+  background: ${p => p.theme.yellow500};
 `;
 
 export default withProjects(Triggers);
