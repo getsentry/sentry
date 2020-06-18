@@ -9,10 +9,10 @@ import EventsRequest from 'app/components/charts/eventsRequest';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
 import {IncidentRule, TimeWindow, Trigger} from '../../types';
 import ThresholdsChart from './thresholdsChart';
-import withApi from 'app/utils/withApi';
 
 type Props = {
   api: Client;
