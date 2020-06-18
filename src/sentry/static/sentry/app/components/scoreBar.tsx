@@ -12,9 +12,9 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  vertical: boolean;
+  vertical?: boolean;
   score: number;
-  paletteClassNames: string[];
+  paletteClassNames?: string[];
   className?: string;
 };
 
