@@ -85,7 +85,7 @@ class ProjectAlertRules extends AsyncView<Props, State> {
     return (
       <React.Fragment>
         <SettingsPageHeader
-          title={t('Alerts')}
+          title={t('Alert Rules')}
           action={
             <HeaderActions>
               <Button to={`${basePath}settings/`} size="small" icon={<IconSettings />}>
