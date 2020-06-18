@@ -35,12 +35,12 @@ exports[`ConfirmDelete renders 1`] = `
             type="error"
           >
             <Component
-              className="css-1vh5f4n-Alert ejthpj82"
+              className="css-1f91eup-Alert ejthpj82"
               iconSize="20px"
               type="error"
             >
               <div
-                className="ref-error css-1vh5f4n-Alert ejthpj82"
+                className="ref-error css-1f91eup-Alert ejthpj82"
               >
                 <StyledTextBlock>
                   <span

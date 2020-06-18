@@ -53,13 +53,13 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
               type="info"
             >
               <Component
-                className="css-22gnn3-Alert ejthpj82"
+                className="css-17b0bb9-Alert ejthpj82"
                 icon="icon-upgrade"
                 iconSize="20px"
                 type="info"
               >
                 <div
-                  className="ref-info css-22gnn3-Alert ejthpj82"
+                  className="ref-info css-17b0bb9-Alert ejthpj82"
                 >
                   <IconWrapper>
                     <span
