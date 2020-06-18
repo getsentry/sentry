@@ -1,8 +1,5 @@
 import {t} from 'app/locale';
-import pinIcon from 'app/../images/graph/icon-location-filled.svg';
 import {NewQuery} from 'app/types';
-
-export const PIN_ICON = `image://${pinIcon}`;
 
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   id: undefined,

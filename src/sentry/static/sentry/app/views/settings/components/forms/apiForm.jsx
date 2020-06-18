@@ -41,8 +41,12 @@ export default class ApiForm extends React.Component {
   };
 
   render() {
-    // eslint-disable-next-line no-unused-vars
-    const {onSubmit, apiMethod, apiEndpoint, ...otherProps} = this.props;
+    const {
+      onSubmit: _onSubmit,
+      apiMethod: _apiMethod,
+      apiEndpoint: _apiEndpoint,
+      ...otherProps
+    } = this.props;
 
     return <Form onSubmit={this.onSubmit} {...otherProps} />;
   }

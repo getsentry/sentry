@@ -144,7 +144,8 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
         // This needs to match the order done in the userBadge component
         if (col === 'user') {
           return disableMacros(
-            row['user.name'] ||
+            row.user ||
+              row['user.name'] ||
               row['user.email'] ||
               row['user.username'] ||
               row['user.ip']
@@ -177,7 +178,7 @@ const TRANSFORM_AGGREGATES = {
   apdex: '',
   impact: '',
   user_misery: '',
-  error_rate: '',
+  failure_rate: '',
 } as const;
 
 function transformAggregate(fieldName: string): string {
@@ -401,10 +402,6 @@ function generateExpandedConditions(
     const column = explodeFieldString(key);
     // Skip aggregates as they will be invalid.
     if (column.kind === 'function') {
-      continue;
-    }
-    // Skip project name
-    if (key === 'project' || key === 'project.name') {
       continue;
     }
     parsedQuery[key] = [conditions[key]];

@@ -6,12 +6,15 @@ export const PERFORMANCE_TERMS: Record<string, string> = {
     'Apdex is the ratio of both satisfactory and tolerable response times to all response times.'
   ),
   tpm: t('TPM is the number of recorded transaction events per minute.'),
-  errorRate: t(
-    'Error rate is the percentage of recorded transactions that had a known and unsuccessful status.'
+  failureRate: t(
+    'Failure rate is the percentage of recorded transactions that had a known and unsuccessful status.'
   ),
   p50: t('p50 indicates the duration that 50% of transactions are faster than.'),
   p95: t('p95 indicates the duration that 95% of transactions are faster than.'),
   p99: t('p99 indicates the duration that 99% of transactions are faster than.'),
+  userMisery: t(
+    'User misery is the percentage of users who are experiencing load times 4x the base apdex rate of 300ms.'
+  ),
 };
 
 export const TOP_TRANSACTION_LIMIT = 5;
@@ -50,9 +53,9 @@ export const AXIS_OPTIONS: TooltipOption[] = [
     label: t('Transactions Per Minute'),
   },
   {
-    tooltip: PERFORMANCE_TERMS.errorRate,
-    value: 'error_rate()',
-    label: t('Error Rate'),
+    tooltip: PERFORMANCE_TERMS.failureRate,
+    value: 'failure_rate()',
+    label: t('Failure Rate'),
   },
   {
     tooltip: PERFORMANCE_TERMS.p50,

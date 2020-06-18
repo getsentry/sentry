@@ -22,6 +22,7 @@ from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelector
 from .endpoints.debug_files import (
     AssociateDSymFilesEndpoint,
     DebugFilesEndpoint,
+    SourceMapsEndpoint,
     DifAssembleEndpoint,
     UnknownDebugFilesEndpoint,
 )
@@ -130,6 +131,9 @@ from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
+from .endpoints.organization_release_previous_commits import (
+    OrganizationReleasePreviousCommitsEndpoint,
+)
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
@@ -1014,6 +1018,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-release-commits",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/previous-with-commits/$",
+                    OrganizationReleasePreviousCommitsEndpoint.as_view(),
+                    name="sentry-api-0-organization-release-previous-with-commits",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/user-feedback/$",
                     OrganizationUserReportsEndpoint.as_view(),
                     name="sentry-api-0-organization-user-feedback",
@@ -1255,6 +1264,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$",
                     DebugFilesEndpoint.as_view(),
                     name="sentry-api-0-dsym-files",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/source-maps/$",
+                    SourceMapsEndpoint.as_view(),
+                    name="sentry-api-0-source-maps",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$",

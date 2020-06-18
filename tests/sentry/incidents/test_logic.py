@@ -135,7 +135,9 @@ class UpdateIncidentStatus(TestCase):
         )
         assert incident.status == IncidentStatus.WARNING.value
 
-    def run_test(self, incident, status, expected_date_closed, user=None, comment=None):
+    def run_test(
+        self, incident, status, expected_date_closed, user=None, comment=None, date_closed=None
+    ):
         prev_status = incident.status
         self.record_event.reset_mock()
         update_incident_status(
@@ -144,6 +146,7 @@ class UpdateIncidentStatus(TestCase):
             user=user,
             comment=comment,
             status_method=IncidentStatusMethod.RULE_TRIGGERED,
+            date_closed=date_closed,
         )
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status.value
@@ -178,6 +181,21 @@ class UpdateIncidentStatus(TestCase):
             after=True,
         ):
             self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
+
+    def test_closed_specify_date(self):
+        incident = self.create_incident(
+            self.organization,
+            title="Test",
+            date_started=timezone.now() - timedelta(days=5),
+            projects=[self.project],
+        )
+        with self.assertChanges(
+            lambda: PendingIncidentSnapshot.objects.filter(incident=incident).exists(),
+            before=False,
+            after=True,
+        ):
+            date_closed = timezone.now() - timedelta(days=1)
+            self.run_test(incident, IncidentStatus.CLOSED, date_closed, date_closed=date_closed)
 
     def test_pending_snapshot_management(self):
         # Test to verify PendingIncidentSnapshot's are created on close, and deleted on open
@@ -218,7 +236,7 @@ class BaseIncidentsTest(SnubaTestCase):
 
     @cached_property
     def now(self):
-        return timezone.now().replace(microsecond=0)
+        return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 class BaseIncidentEventStatsTest(BaseIncidentsTest):
@@ -248,8 +266,8 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
         # Duration of 300s, but no alert rule
         time_window = incident.alert_rule.snuba_query.time_window if incident.alert_rule else 60
         assert result.rollup == time_window
-        expected_start = start if start else incident.date_started - timedelta(minutes=1)
-        expected_end = end if end else incident.current_end_date + timedelta(minutes=1)
+        expected_start = start if start else incident.date_started - timedelta(seconds=time_window)
+        expected_end = end if end else incident.current_end_date + timedelta(seconds=time_window)
 
         if windowed_stats:
             now = timezone.now()
@@ -270,6 +288,18 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
 
 @freeze_time()
 class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
+    @fixture
+    def bucket_incident(self):
+        incident_start = self.now - timedelta(minutes=23)
+        self.create_event(incident_start + timedelta(seconds=1))
+        self.create_event(incident_start + timedelta(minutes=2))
+        self.create_event(incident_start + timedelta(minutes=6))
+        self.create_event(incident_start + timedelta(minutes=9, seconds=59))
+        self.create_event(incident_start + timedelta(minutes=14))
+        self.create_event(incident_start + timedelta(minutes=16))
+        alert_rule = self.create_alert_rule(time_window=10)
+        return self.create_incident(date_started=incident_start, query="", alert_rule=alert_rule)
+
     def run_test(self, incident, expected_results, start=None, end=None, windowed_stats=False):
         kwargs = {}
         if start is not None:
@@ -298,6 +328,23 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
             end=self.now - timedelta(minutes=1, seconds=59),
             windowed_stats=True,
         )
+
+    def test_start_bucket(self):
+        self.run_test(self.bucket_incident, [2, 4, 2, 2])
+
+    def test_buckets_already_aligned(self):
+        self.bucket_incident.update(
+            date_started=self.now - timedelta(minutes=30), date_closed=self.now
+        )
+        self.run_test(self.bucket_incident, [2, 2, 2])
+
+    def test_start_and_end_bucket(self):
+        self.create_event(self.bucket_incident.date_started + timedelta(minutes=19))
+
+        self.bucket_incident.update(
+            date_closed=self.bucket_incident.date_started + timedelta(minutes=18)
+        )
+        self.run_test(self.bucket_incident, [2, 4, 2, 3, 1])
 
     def test_with_transactions(self):
         incident = self.project_incident

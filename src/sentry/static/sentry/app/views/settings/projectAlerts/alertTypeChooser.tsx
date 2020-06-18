@@ -9,11 +9,21 @@ import textStyles from 'app/styles/text';
 import BulletList from 'app/styles/bulletList';
 import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
+import {Panel, PanelHeader} from 'app/components/panels';
+import RadioField from 'app/views/settings/components/forms/radioField';
 import Feature from 'app/components/acl/feature';
+import ExternalLink from 'app/components/links/externalLink';
+import withExperiment from 'app/utils/withExperiment';
+import {ExperimentAssignment} from 'app/types/experiments';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+
+type AlertType = 'metric' | 'issue' | null;
 
 type Props = {
+  organization: Organization;
   selected?: string | null;
-  onChange: (type: string) => void;
+  onChange: (type: AlertType) => void;
 };
 
 const MetricsTooltip = ({children}: {children?: React.ReactNode}) => (
@@ -30,112 +40,219 @@ const MetricsTooltip = ({children}: {children?: React.ReactNode}) => (
 const IssuesTooltip = ({children}: {children?: React.ReactNode}) => (
   <Tooltip
     title={t(
-      `An Issue is a unique error in Sentry, created by grouping error events
-       based on stack trace and other factors.`
+      `Sentry groups similar events into an Issue based on their stack trace
+       and other factors.`
     )}
   >
     <abbr>{children}</abbr>
   </Tooltip>
 );
 
-const AlertTypeChooser = ({selected, onChange}: Props) => (
-  <Container>
-    <TypeCard interactive onClick={() => onChange('metric')}>
-      <RadioLabel>
-        <Radio
-          aria-label="metric"
-          checked={selected === 'metric'}
-          onChange={() => onChange('metric')}
-        />
-        {t('Metric Alert')}
-        <FeatureBadge type="beta" />
-      </RadioLabel>
-      <Feature
-        requireAll
-        features={[
-          'organizations:transaction-events',
-          'organizations:incidents-performance',
-        ]}
-      >
-        {({hasFeature}) =>
-          hasFeature ? (
-            <React.Fragment>
-              <p>
-                {tct(`Notifies you when a [tooltip:metric] exceeds a threshold.`, {
-                  tooltip: <MetricsTooltip />,
-                })}
-              </p>
-              {!selected && (
-                <React.Fragment>
-                  <ExampleHeading>{t('For Example:')}</ExampleHeading>
-                  <BulletList>
-                    <li>{t('Performance metrics like latency and apdex')}</li>
-                    <li>
-                      {t(
-                        `Frequency of error events or users affected in the
+const TypeChooserCards = ({onChange, organization, selected}: Props) => {
+  const trackedOnChange = (type: AlertType) => {
+    trackAnalyticsEvent({
+      eventKey: 'alert_chooser_cards.select',
+      eventName: 'Alert Chooser Cards: Select',
+      organization_id: organization.id,
+      type,
+    });
+
+    onChange(type);
+  };
+
+  return (
+    <Container>
+      <TypeCard interactive onClick={() => trackedOnChange('metric')}>
+        <RadioLabel>
+          <Radio
+            aria-label="metric"
+            checked={selected === 'metric'}
+            onChange={() => trackedOnChange('metric')}
+          />
+          {t('Metric Alert')}
+          <FeatureBadge type="beta" />
+        </RadioLabel>
+        <Feature
+          requireAll
+          features={[
+            'organizations:transaction-events',
+            'organizations:incidents-performance',
+          ]}
+        >
+          {({hasFeature}) =>
+            hasFeature ? (
+              <React.Fragment>
+                <p>
+                  {tct(`Notifies you when a [tooltip:metric] exceeds a threshold.`, {
+                    tooltip: <MetricsTooltip />,
+                  })}
+                </p>
+                {!selected && (
+                  <React.Fragment>
+                    <ExampleHeading>{t('For Example:')}</ExampleHeading>
+                    <BulletList>
+                      <li>{t('Performance metrics like latency and apdex')}</li>
+                      <li>
+                        {t(
+                          `Frequency of error events or users affected in the
                        project`
-                      )}
-                    </li>
-                  </BulletList>
-                </React.Fragment>
-              )}
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              <p>
-                {tct(
-                  `Notifies you when a [tooltip:metric] like frequency of events or users affected in
-                   the project exceeds a threshold.`,
-                  {tooltip: <MetricsTooltip />}
+                        )}
+                      </li>
+                    </BulletList>
+                  </React.Fragment>
                 )}
-              </p>
-              {!selected && (
-                <React.Fragment>
-                  <ExampleHeading>{t('For Example:')}</ExampleHeading>
-                  <BulletList>
-                    <li>{t('Total events in the project exceed 1000/minute')}</li>
-                    <li>
-                      {tct(
-                        'Events with tag [code:database] and "API" in the title exceed 100/minute',
-                        {code: <code />}
-                      )}
-                    </li>
-                  </BulletList>
-                </React.Fragment>
-              )}
-            </React.Fragment>
-          )
-        }
-      </Feature>
-    </TypeCard>
-    <TypeCard interactive onClick={() => onChange('issue')}>
-      <RadioLabel>
-        <Radio
-          aria-label="issue"
-          checked={selected === 'issue'}
-          onChange={() => onChange('issue')}
-        />
-        {t('Issue Alert')}
-      </RadioLabel>
-      <p>
-        {tct(
-          `Notifies you when individual [tooltip:Sentry Issues] trigger your
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <p>
+                  {tct(
+                    `Notifies you when a [tooltip:metric] like frequency of events or users affected in
+                   the project exceeds a threshold.`,
+                    {tooltip: <MetricsTooltip />}
+                  )}
+                </p>
+                {!selected && (
+                  <React.Fragment>
+                    <ExampleHeading>{t('For Example:')}</ExampleHeading>
+                    <BulletList>
+                      <li>{t('Total events in the project exceed 1000/minute')}</li>
+                      <li>
+                        {tct(
+                          'Events with tag [code:database] and "API" in the title exceed 100/minute',
+                          {code: <code />}
+                        )}
+                      </li>
+                    </BulletList>
+                  </React.Fragment>
+                )}
+              </React.Fragment>
+            )
+          }
+        </Feature>
+      </TypeCard>
+      <TypeCard interactive onClick={() => trackedOnChange('issue')}>
+        <RadioLabel>
+          <Radio
+            aria-label="issue"
+            checked={selected === 'issue'}
+            onChange={() => trackedOnChange('issue')}
+          />
+          {t('Issue Alert')}
+        </RadioLabel>
+        <p>
+          {tct(
+            `Notifies you when individual [tooltip:Sentry Issues] trigger your
            alerting criteria.`,
-          {tooltip: <IssuesTooltip />}
+            {tooltip: <IssuesTooltip />}
+          )}
+        </p>
+        {!selected && (
+          <React.Fragment>
+            <ExampleHeading>{t('For Example:')}</ExampleHeading>
+            <BulletList>
+              <li>{t('New Issues or regressions')}</li>
+              <li>{t('Frequency of individual Issues exceeds 100/minute')}</li>
+            </BulletList>
+          </React.Fragment>
         )}
-      </p>
-      {!selected && (
-        <React.Fragment>
-          <ExampleHeading>{t('For Example:')}</ExampleHeading>
-          <BulletList>
-            <li>{t('New Issues or regressions')}</li>
-            <li>{t('Frequency of individual Issues exceeds 100/minute')}</li>
-          </BulletList>
-        </React.Fragment>
-      )}
-    </TypeCard>
-  </Container>
-);
+      </TypeCard>
+    </Container>
+  );
+};
+
+type State = {
+  type?: 'frequency' | 'issues';
+  granularity?: 'project' | 'issue';
+};
+
+class TypeChooserFlow extends React.Component<Props, State> {
+  state: State = {};
+
+  update = (state: Partial<State>) =>
+    this.setState(state, () => {
+      const {type, granularity} = this.state;
+      const {organization, onChange} = this.props;
+
+      const selectMetricAlerts = type === 'frequency' && granularity === 'project';
+
+      const selectIssueAlerts =
+        type === 'issues' || (type === 'frequency' && granularity === 'issue');
+
+      trackAnalyticsEvent({
+        eventKey: 'alert_chooser_flow.select',
+        eventName: 'Alert Chooser Flow: Select',
+        organization_id: organization.id,
+        type,
+        granularity,
+      });
+
+      onChange(selectMetricAlerts ? 'metric' : selectIssueAlerts ? 'issue' : null);
+    });
+
+  render() {
+    const {type, granularity} = this.state;
+
+    return (
+      <Panel>
+        <PanelHeader>{t('Alert details')}</PanelHeader>
+        <RadioField
+          label={t('Alert type')}
+          help={tct(
+            'Remember that Sentry groups similar events into an Issue based on their stack trace and other factors. [learnMore:Learn more]',
+            {
+              learnMore: (
+                <ExternalLink href="https://docs.sentry.io/data-management/event-grouping/" />
+              ),
+            }
+          )}
+          onChange={value => this.update({type: value})}
+          value={type}
+          choices={[
+            ['frequency', t('Frequency of events or users affected increasing')],
+            ['issues', t('New issues and regressions')],
+          ]}
+        />
+        {type === 'frequency' && (
+          <RadioField
+            label={t('Granularity')}
+            help={t(
+              'Frequency thresholds can be set per Issue or for the entire project.'
+            )}
+            onChange={value => this.update({granularity: value})}
+            value={granularity}
+            choices={[
+              [
+                'project',
+                t('Frequency of events in entire project'),
+                <React.Fragment key="list">
+                  <Example>{t('Total events in the project exceed 1000/minute')}</Example>
+                  <Example>
+                    {t(
+                      'Events with tag `database` and API in the title exceed 100/minute'
+                    )}
+                  </Example>
+                </React.Fragment>,
+              ],
+              [
+                'issue',
+                t('Frequency of individual Issues'),
+
+                <React.Fragment key="list">
+                  <Example>
+                    {t(
+                      `Any single Issue on the checkout page happens more than
+                       100 times in a minute.`
+                    )}
+                  </Example>
+                </React.Fragment>,
+              ],
+            ]}
+          />
+        )}
+      </Panel>
+    );
+  }
+}
 
 const RadioLabel = styled('label')`
   cursor: pointer;
@@ -155,6 +272,11 @@ const ExampleHeading = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
+const Example = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+`;
+
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -168,4 +290,16 @@ const TypeCard = styled(Card)`
   ${textStyles};
 `;
 
-export default AlertTypeChooser;
+type ExperimentProps = {
+  experimentAssignment: ExperimentAssignment['MetricAlertsTypeChooser'];
+};
+
+export default withExperiment(
+  ({experimentAssignment, ...props}: Props & ExperimentProps) =>
+    experimentAssignment === 'flowChoice' ? (
+      <TypeChooserFlow {...props} />
+    ) : (
+      <TypeChooserCards {...props} />
+    ),
+  {experiment: 'MetricAlertsTypeChooser'}
+);

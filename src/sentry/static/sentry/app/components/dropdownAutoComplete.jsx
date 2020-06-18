@@ -25,11 +25,7 @@ class DropdownAutoComplete extends React.Component {
       <DropdownAutoCompleteMenu {...props}>
         {renderProps => {
           // Don't pass `onClick` from `getActorProps`
-          const {
-            //eslint-disable-next-line no-unused-vars
-            onClick,
-            ...actorProps
-          } = renderProps.getActorProps();
+          const {onClick: _onClick, ...actorProps} = renderProps.getActorProps();
 
           return (
             <Actor

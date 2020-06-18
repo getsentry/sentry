@@ -5,7 +5,7 @@ import space from 'app/styles/space';
 const TableLayout = styled('div')<{status: 'open' | 'closed'}>`
   display: grid;
   grid-template-columns: ${p =>
-    p.status === 'open' ? '4fr 2fr 1fr 2fr' : '3fr 2fr 2fr 1fr 2fr'};
+    p.status === 'open' ? '4fr 1fr 2fr' : '3fr 2fr 2fr 1fr 2fr'};
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;

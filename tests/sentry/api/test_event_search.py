@@ -49,7 +49,7 @@ def test_get_json_meta_type():
     assert get_json_meta_type("p99", "number") == "duration"
     assert get_json_meta_type("p100", "number") == "duration"
     assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
-    assert get_json_meta_type("error_rate", "number") == "percentage"
+    assert get_json_meta_type("failure_rate", "number") == "percentage"
     assert get_json_meta_type("impact_300", "number") == "number"
     assert get_json_meta_type("user_misery_300", "number") == "number"
     assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
@@ -1312,6 +1312,22 @@ class GetSnubaQueryArgsTest(TestCase):
         assert [[["isNull", ["user.ip"]], "=", 1], ["user.ip", "!=", "123"]] == conditions[2]
         assert [[["isNull", ["user.id"]], "=", 1], ["user.id", "!=", "123"]] == conditions[3]
 
+    def test_function_negation(self):
+        result = get_filter("!p95():5s")
+        assert result.having == [["p95", "!=", 5000.0]]
+
+        result = get_filter("!p95():>5s")
+        assert result.having == [["p95", "<=", 5000.0]]
+
+        result = get_filter("!p95():>=5s")
+        assert result.having == [["p95", "<", 5000.0]]
+
+        result = get_filter("!p95():<5s")
+        assert result.having == [["p95", ">=", 5000.0]]
+
+        result = get_filter("!p95():<=5s")
+        assert result.having == [["p95", ">", 5000.0]]
+
     def test_function_with_default_arguments(self):
         result = get_filter("epm():>100", {"start": before_now(minutes=5), "end": before_now()})
         assert result.having == [["epm", ">", 100]]
@@ -1335,6 +1351,22 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_function_with_date_arguments(self):
         result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
         assert result.having == [["last_seen", "=", 1585769692]]
+
+    def test_function_with_date_negation(self):
+        result = get_filter("!last_seen():2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "!=", 1585769692]]
+
+        result = get_filter("!last_seen():>2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "<=", 1585769692]]
+
+        result = get_filter("!last_seen():>=2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "<", 1585769692]]
+
+        result = get_filter("!last_seen():<2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", ">=", 1585769692]]
+
+        result = get_filter("!last_seen():<=2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", ">", 1585769692]]
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
@@ -1388,7 +1420,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 None,
                 "impact_300",
             ],
-            ["uniqIf(user, duration > 1200)", None, "user_misery_300"],
+            ["uniqIf(user, greater(duration, 1200))", None, "user_misery_300"],
             ["quantile(0.75)", "transaction.duration", "percentile_transaction_duration_0_75"],
             ["quantile(0.95)", "transaction.duration", "percentile_transaction_duration_0_95"],
             ["quantile(0.99)", "transaction.duration", "percentile_transaction_duration_0_99"],

@@ -433,7 +433,26 @@ function routes() {
           )
         }
         component={errorHandler(LazyLoad)}
-      />
+      >
+        <IndexRoute
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ProjectSourceMapsList" */ 'app/views/settings/projectSourceMaps/list'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path=":version/"
+          name={t('Archive')}
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ProjectSourceMapsDetail" */ 'app/views/settings/projectSourceMaps/detail'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
       <Route
         path="processing-issues/"
         name="Processing Issues"
@@ -1011,6 +1030,15 @@ function routes() {
           getComponent={(_loc, cb) =>
             import(
               /* webpackChunkName: "VSTSOrganizationLink" */ 'app/views/vstsOrganizationLink'
+            ).then(lazyLoad(cb))
+          }
+        />
+
+        <Route
+          path="/extensions/:integrationSlug/link/"
+          getComponent={(_loc, cb) =>
+            import(
+              /* webpackChunkName: "IntegrationOrganizationLink" */ 'app/views/integrationOrganizationLink'
             ).then(lazyLoad(cb))
           }
         />
@@ -1624,6 +1652,24 @@ function routes() {
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "PerformanceTransactionSummary" */ 'app/views/performance/transactionSummary'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
+            path="/organizations/:orgId/performance/:eventSlug/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "PerformanceContainer" */ 'app/views/performance'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "PerformanceTransactionDetails" */ 'app/views/performance/transactionDetails'
                 )
               }
               component={errorHandler(LazyLoad)}

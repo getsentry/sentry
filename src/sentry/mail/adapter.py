@@ -59,6 +59,8 @@ class MailAdapter(object):
             "event_id": event.event_id,
             "group_id": event.group_id,
             "is_from_mail_action_adapter": True,
+            "target_type": target_type.value,
+            "target_identifier": target_identifier,
         }
         log_event = "dispatched"
         for future in futures:
@@ -276,12 +278,19 @@ class MailAdapter(object):
     def notify(self, notification, target_type, target_identifier=None, **kwargs):
         metrics.incr("mail_adapter.notify")
         event = notification.event
-
         environment = event.get_tag("environment")
-
         group = event.group
         project = group.project
         org = group.organization
+        logger.info(
+            "mail.adapter.notify",
+            extra={
+                "target_type": target_type.value,
+                "target_identifier": target_identifier,
+                "group": group.id,
+                "project_id": project.id,
+            },
+        )
 
         subject = event.get_email_subject()
 
@@ -365,6 +374,17 @@ class MailAdapter(object):
             target_identifier=target_identifier,
             event=event,
         ):
+            logger.info(
+                "mail.adapter.notify.mail_user",
+                extra={
+                    "target_type": target_type,
+                    "target_identifier": target_identifier,
+                    "group": group.id,
+                    "project_id": project.id,
+                    "user_id": user_id,
+                },
+            )
+
             self.add_unsubscribe_link(context, user_id, project, "alert_email")
             self._send_mail(
                 subject=subject,
@@ -389,7 +409,16 @@ class MailAdapter(object):
     def notify_digest(self, project, digest, target_type, target_identifier=None):
         metrics.incr("mail_adapter.notify_digest")
         user_ids = self.get_send_to(project, target_type, target_identifier)
-        for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
+        logger.info(
+            "mail.adapter.notify_digest",
+            extra={
+                "project_id": project.id,
+                "target_type": target_type.value,
+                "target_identifier": target_identifier,
+                "user_ids": user_ids,
+            },
+        )
+        for user_id, digest in get_personalized_digests(target_type, project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
 
             # If there is only one group in this digest (regardless of how many

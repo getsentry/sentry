@@ -35,6 +35,7 @@ type ChartProps = {
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
   showDaily?: boolean;
+  interval?: string;
   yAxis: string;
 };
 
@@ -201,6 +202,10 @@ type Props = {
    */
   field?: string[];
   /**
+   * The interval resolution for a chart e.g. 1m, 5m, 1d
+   */
+  interval?: string;
+  /**
    * Order condition when showing topEvents
    */
   orderby?: string;
@@ -263,6 +268,7 @@ class EventsChart extends React.Component<Props> {
       currentSeriesName: currentName,
       previousSeriesName: previousName,
       field,
+      interval,
       showDaily,
       topEvents,
       orderby,
@@ -292,9 +298,7 @@ class EventsChart extends React.Component<Props> {
         }
       },
     };
-    const interval = showDaily
-      ? '1d'
-      : router?.location?.query?.interval || getInterval(this.props, true);
+    const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, true);
 
     let chartImplementation = ({
       zoomRenderProps,
@@ -341,7 +345,14 @@ class EventsChart extends React.Component<Props> {
     if (!disableReleases) {
       const previousChart = chartImplementation;
       chartImplementation = chartProps => (
-        <ReleaseSeries utc={utc} api={api} projects={projects}>
+        <ReleaseSeries
+          utc={utc}
+          period={period}
+          start={start}
+          end={end}
+          api={api}
+          projects={projects}
+        >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>
       );
@@ -365,7 +376,7 @@ class EventsChart extends React.Component<Props> {
             environment={environments}
             start={start}
             end={end}
-            interval={interval}
+            interval={intervalVal}
             query={query}
             includePrevious={includePrevious}
             currentSeriesName={currentSeriesName}

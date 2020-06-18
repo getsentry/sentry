@@ -44,7 +44,7 @@ exports[`SettingsIndex renders 1`] = `
             <AvatarContainer>
               <UserAvatar
                 gravatar={false}
-                size={76}
+                size={56}
                 user={
                   Object {
                     "email": "foo@example.com",
@@ -136,7 +136,7 @@ exports[`SettingsIndex renders 1`] = `
                     "teams": Array [],
                   }
                 }
-                size={76}
+                size={56}
               />
             </AvatarContainer>
             <OrganizationName>
@@ -184,11 +184,10 @@ exports[`SettingsIndex renders 1`] = `
             isCentered={true}
           >
             <HomeIcon
-              color="orange"
+              color="orange400"
             >
-              <InlineSvg
-                size="48px"
-                src="icon-docs"
+              <IconDocs
+                size="lg"
               />
             </HomeIcon>
           </ExternalHomeLink>
@@ -241,9 +240,8 @@ exports[`SettingsIndex renders 1`] = `
             <HomeIcon
               color="purple"
             >
-              <InlineSvg
-                size="48px"
-                src="icon-support"
+              <IconSupport
+                size="lg"
               />
             </HomeIcon>
             Support
@@ -289,9 +287,8 @@ exports[`SettingsIndex renders 1`] = `
             to="/settings/account/api/"
           >
             <HomeIcon>
-              <InlineSvg
-                size="48px"
-                src="icon-lock"
+              <IconLock
+                size="lg"
               />
             </HomeIcon>
             API Keys

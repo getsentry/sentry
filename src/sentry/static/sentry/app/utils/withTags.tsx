@@ -4,9 +4,7 @@ import createReactClass from 'create-react-class';
 
 import getDisplayName from 'app/utils/getDisplayName';
 import TagStore from 'app/stores/tagStore';
-import {Tag} from 'app/types';
-
-type TagCollection = {[key: string]: Tag};
+import {TagCollection} from 'app/types';
 
 type InjectedTagsProps = {
   tags: TagCollection;

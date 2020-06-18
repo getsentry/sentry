@@ -58,31 +58,6 @@ const colors = {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Old Colors
-  blue: '#3B6ECC',
-  blueLight: '#628BD6',
-  blueLightest: '#F5FAFE',
-  blueDark: '#2F58A3',
-
-  green: '#57be8c',
-  greenLight: '#71D8A6',
-  greenLightest: '#f8fcf7',
-  greenDark: '#3EA573',
-  greenTransparent: 'rgba(87, 190, 140, 0.5)',
-
-  yellow: '#ecc844',
-  yellowLightest: '#FFFDF7',
-  yellowLight: '#FFF15E',
-  yellowDark: '#e6bc23',
-  yellowDarkest: '#ecbb08',
-
-  yellowOrange: '#f9a66d',
-  yellowOrangeLight: '#FFC087',
-  yellowOrangeDark: '#E08D54',
-
-  orange: '#ec5e44',
-  orangeLight: '#FF785E',
-  orangeDark: '#D3452B',
-
   red: '#e03e2f',
   redLight: '#FA5849',
   redLightest: '#FDF6F5',
@@ -117,10 +92,10 @@ const colors = {
 } as const;
 
 const warning = {
-  backgroundLight: colors.yellowLightest,
-  background: colors.yellowDarkest,
-  border: colors.yellowDark,
-  iconColor: colors.yellowDark,
+  backgroundLight: colors.yellow100,
+  background: colors.yellow500,
+  border: colors.yellow500,
+  iconColor: colors.yellow500,
 } as const;
 
 const alert = {
@@ -156,8 +131,8 @@ const alert = {
 
 const badge = {
   alpha: {
-    background: `linear-gradient(90deg, ${colors.orangeLight}, ${colors.orangeDark})`,
-    indicatorColor: colors.orange,
+    background: `linear-gradient(90deg, ${colors.orange300}, ${colors.orange500})`,
+    indicatorColor: colors.orange400,
   },
   beta: {
     background: `linear-gradient(90deg, ${colors.pink}, ${colors.purple})`,
@@ -307,7 +282,8 @@ const theme = {
     toast: 10001,
 
     // tooltips and hovercards can be inside modals sometimes.
-    tooltip: 10002,
+    hovercard: 10002,
+    tooltip: 10003,
   },
 
   grid: 8,

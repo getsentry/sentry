@@ -5,7 +5,6 @@ import {defined} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
 import TextOverflow from 'app/components/textOverflow';
-import space from 'app/styles/space';
 
 import {getFormattedTimestamp} from './utils';
 
@@ -27,7 +26,7 @@ const Time = React.memo(({timestamp, relativeTime, displayRelativeTime}: Props) 
   );
 
   return (
-    <Wrapper displayRelativeTime={displayRelativeTime}>
+    <Wrapper>
       <Tooltip
         title={
           <div>
@@ -50,8 +49,7 @@ const Time = React.memo(({timestamp, relativeTime, displayRelativeTime}: Props) 
 
 export default Time;
 
-const Wrapper = styled('div')<{displayRelativeTime?: boolean}>`
+const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray700};
-  ${p => p.displayRelativeTime && `padding-left: ${space(3)};`}
 `;

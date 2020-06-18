@@ -138,7 +138,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     </SearchEventTypeNote>
                   </Tooltip>
                 }
-                help={t('Choose which metric to trigger on')}
                 omitTags={['event.type']}
                 disabled={disabled}
                 useFormWrapper={false}
