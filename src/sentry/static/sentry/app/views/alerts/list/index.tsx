@@ -180,7 +180,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         action={
           <ButtonBar gap={1}>
             <Button size="small" external href={DOCS_URL}>
-              View Features
+              {t('View Features')}
             </Button>
             <AddAlertRuleButton {...this.props} />
           </ButtonBar>
