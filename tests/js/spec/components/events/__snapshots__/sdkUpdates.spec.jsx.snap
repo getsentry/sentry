@@ -62,7 +62,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
                 >
                   <IconWrapper>
                     <span
-                      className="css-gv6q30-IconWrapper ejthpj80"
+                      className="css-1vsw7fz-IconWrapper ejthpj80"
                     >
                       <InlineSvg
                         size="20px"
