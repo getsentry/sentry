@@ -17,10 +17,6 @@ from sentry.testutils import IntegrationTestCase
 class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 
-    def setUp(self):
-        super(VercelIntegrationTest, self).setUp()
-        # OrganizationMember.objects.create(user=self.user, organization=self.organization)
-
     def assert_setup_flow(self, is_team=False):
         responses.reset()
         access_json = {
