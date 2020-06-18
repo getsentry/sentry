@@ -4,7 +4,7 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
 import MarkLine from 'app/components/charts/components/markLine';
 import SentryTypes from 'app/sentryTypes';
@@ -19,8 +19,12 @@ import {formatVersion} from 'app/utils/formatters';
 function getOrganizationReleases(api, organization, conditions = null) {
   const query = {};
   Object.keys(conditions).forEach(key => {
-    if (conditions[key]) {
-      query[key] = conditions[key];
+    let value = conditions[key];
+    if (value && (key === 'start' || key === 'end')) {
+      value = getUtcDateString(value);
+    }
+    if (value) {
+      query[key] = value;
     }
   });
   return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
