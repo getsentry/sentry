@@ -193,7 +193,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             },
         )
         with self.feature("organizations:discover-basic"):
-            response = self.client.get(url, format="json",)
+            response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         trace = response.data["contexts"]["trace"]
