@@ -12,6 +12,7 @@ import space from 'app/styles/space';
 
 import {IncidentRule, TimeWindow, Trigger} from '../../types';
 import ThresholdsChart from './thresholdsChart';
+import withApi from 'app/utils/withApi';
 
 type Props = {
   api: Client;
@@ -86,7 +87,7 @@ class TriggersChart extends React.PureComponent<Props> {
   }
 }
 
-export default TriggersChart;
+export default withApi(TriggersChart);
 
 const TIME_WINDOW_TO_PERIOD: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: '12h',
