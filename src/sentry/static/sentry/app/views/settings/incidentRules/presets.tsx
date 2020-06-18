@@ -247,6 +247,13 @@ export function makeDefaultCta({
   incident,
   stats,
 }: PresetCtaOpts): PresetCta {
+  if (!incident) {
+    return {
+      buttonText: t('Open in Discover'),
+      to: '',
+    };
+  }
+
   const extraQueryParams = {
     display: 'top5',
   };
