@@ -132,6 +132,9 @@ class Results extends React.Component<Props, State> {
         confirmedQuery = false;
       }
     }
+    // Once confirmed, a change of project or datetime will happen before this can set it to false,
+    // this means a query will still happen even if the new conditions need confirmation
+    // using a state callback to return this to false
     this.setState({needConfirmation, confirmedQuery}, () => {
       this.setState({confirmedQuery: false});
     });

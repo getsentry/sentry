@@ -140,7 +140,8 @@ type EventsRequestPartialProps = {
    */
   orderby?: string;
   /**
-   * Discover needs confirmation to run >30 day >10 project queries
+   * Discover needs confirmation to run >30 day >10 project queries,
+   * optional and when not passed confirmation is not required.
    */
   confirmedQuery?: boolean;
 };

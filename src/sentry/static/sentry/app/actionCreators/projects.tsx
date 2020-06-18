@@ -338,6 +338,12 @@ export function loadDocs(
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }
 
-export async function fetchProjectsCount(api: Client, orgId: string) {
-  return await api.requestPromise(`/organizations/${orgId}/projects-count/`);
+/**
+ * Load the counts of my projects and all projects for the current user
+ *
+ * @param api API Client
+ * @param orgSlug Organization Slug
+ */
+export function fetchProjectsCount(api: Client, orgSlug: string) {
+  return api.requestPromise(`/organizations/${orgSlug}/projects-count/`);
 }
