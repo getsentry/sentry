@@ -91,44 +91,44 @@ exports[`ProjectPlugins renders 1`] = `
                 type="warning"
               >
                 <Component
-                  className="css-14tfigf-PanelAlert e1cszazt0"
+                  className="css-hizmuq-PanelAlert e1cszazt0"
                   type="warning"
                 >
                   <Alert
-                    className="css-14tfigf-PanelAlert e1cszazt0"
+                    className="css-hizmuq-PanelAlert e1cszazt0"
                     icon="icon-circle-exclamation"
-                    iconSize="24px"
+                    iconSize="20px"
                     system={true}
                     type="warning"
                   >
                     <Component
-                      className="e1cszazt0 css-1xqi65p-Alert-PanelAlert ejthpj82"
+                      className="e1cszazt0 css-1l2bl4n-Alert-PanelAlert ejthpj82"
                       icon="icon-circle-exclamation"
-                      iconSize="24px"
+                      iconSize="20px"
                       system={true}
                       type="warning"
                     >
                       <div
-                        className="ref-warning e1cszazt0 css-1xqi65p-Alert-PanelAlert ejthpj82"
+                        className="ref-warning e1cszazt0 css-1l2bl4n-Alert-PanelAlert ejthpj82"
                       >
                         <IconWrapper>
                           <span
-                            className="css-dhrf1z-IconWrapper ejthpj80"
+                            className="css-wdumsi-IconWrapper ejthpj80"
                           >
                             <InlineSvg
-                              size="24px"
+                              size="20px"
                               src="icon-circle-exclamation"
                             >
                               <ForwardRef
                                 className="css-tbsmsq-InlineSvg enyz4ql0"
-                                size="24px"
+                                size="20px"
                                 src="icon-circle-exclamation"
                               >
                                 <svg
                                   className="css-tbsmsq-InlineSvg enyz4ql0"
-                                  height="24px"
+                                  height="20px"
                                   viewBox={Object {}}
-                                  width="24px"
+                                  width="20px"
                                 >
                                   <use
                                     href="#test"

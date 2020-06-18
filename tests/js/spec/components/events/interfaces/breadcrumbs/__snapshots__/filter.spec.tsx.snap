@@ -420,16 +420,16 @@ exports[`Filter default render 1`] = `
                   Object {
                     "alert": Object {
                       "error": Object {
-                        "background": "#e03e2f",
-                        "backgroundLight": "#FDF6F5",
-                        "border": "#FA5849",
-                        "iconColor": "#e03e2f",
-                        "textLight": "#FA5849",
+                        "background": "#FA4747",
+                        "backgroundLight": "#FFF5F7",
+                        "border": "#F4B1BB",
+                        "iconColor": "#FA4747",
+                        "textLight": "#F4B1BB",
                       },
                       "info": Object {
                         "background": "#3D74DB",
                         "backgroundLight": "#F5F9FF",
-                        "border": "#7199DD",
+                        "border": "#AFC7EE",
                         "iconColor": "#3D74DB",
                       },
                       "muted": Object {
@@ -441,19 +441,19 @@ exports[`Filter default render 1`] = `
                       "success": Object {
                         "background": "#4DC771",
                         "backgroundLight": "#F5FFFB",
-                        "border": "#4DC771",
+                        "border": "#8FE7BF",
                         "iconColor": "#1C8952",
                       },
                       "warn": Object {
                         "background": "#E2A301",
                         "backgroundLight": "#FFFDF5",
-                        "border": "#E2A301",
+                        "border": "#FFC227",
                         "iconColor": "#E2A301",
                       },
                       "warning": Object {
                         "background": "#E2A301",
                         "backgroundLight": "#FFFDF5",
-                        "border": "#E2A301",
+                        "border": "#FFC227",
                         "iconColor": "#E2A301",
                       },
                     },
