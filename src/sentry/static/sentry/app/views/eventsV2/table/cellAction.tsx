@@ -120,7 +120,11 @@ class CellAction extends React.Component<Props, State> {
       }
     }
 
-    if (column.type !== 'duration') {
+    if (
+      column.type !== 'duration' &&
+      column.type !== 'number' &&
+      column.type !== 'percentage'
+    ) {
       addMenuItem(
         Actions.ADD,
         <ActionItem
