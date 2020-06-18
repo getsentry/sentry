@@ -2486,7 +2486,11 @@ exports[`ExternalIssueForm link renders 1`] = `
                                 Issue
                                 <FieldRequiredBadge>
                                   <div
+<<<<<<< HEAD
                                     className="css-dp3tuo-FieldRequiredBadge e1uclnuk0"
+=======
+                                    className="css-z6v0fv-FieldRequiredBadge e1uclnuk0"
+>>>>>>> wip
                                   />
                                 </FieldRequiredBadge>
                               </span>
