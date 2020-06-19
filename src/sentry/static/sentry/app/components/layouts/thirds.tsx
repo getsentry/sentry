@@ -39,8 +39,8 @@ export const HeaderActions = styled('div')`
   flex-direction: column;
   justify-content: normal;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    width: min-content;
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    width: max-content;
     margin-bottom: ${space(2)};
   }
 `;
@@ -63,7 +63,7 @@ export const Header = styled('div')`
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.borderDark};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: column;
   }
 `;
