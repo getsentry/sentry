@@ -402,7 +402,7 @@ class Sidebar extends React.Component<Props, State> {
                     </Feature>
                   )}
                   <Feature
-                    hookName="feature-disabled:discover2-sidebar-item"
+                    hookName="feature-disabled:performance-sidebar-item"
                     features={['performance-view']}
                     organization={organization}
                   >
