@@ -30,7 +30,9 @@ storiesOf('Layouts|Thirds', module)
     withInfo('Two column layout with header & sidebar')(() => (
       <Container>
         <Layout.Header>
-          <Heading>Some heading content</Heading>
+          <Layout.HeaderContent>
+            <Heading>Some heading content</Heading>
+          </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>
@@ -46,20 +48,20 @@ storiesOf('Layouts|Thirds', module)
   )
   .add(
     '66/33 with header controls',
-    withInfo('Two column layout with header controls')(() => (
+    withInfo('Two column layout with header actions')(() => (
       <Container>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
-            <Button>Top button</Button>
-          </Layout.HeaderContent>
-          <Layout.HeaderContent>
             <Heading>Some heading content</Heading>
-            <ButtonBar gap={1}>
-              <Button size="small">clicker</Button>
-              <Button size="small">clicker</Button>
-            </ButtonBar>
           </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <Button>Save</Button>
+              <Button>Delete</Button>
+              <Button>Update</Button>
+            </ButtonBar>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>
@@ -80,10 +82,13 @@ storiesOf('Layouts|Thirds', module)
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
-            <Button>Top button</Button>
-          </Layout.HeaderContent>
-          <Layout.HeaderContent>
             <Heading>Heading text</Heading>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <MarginedButtonBar gap={1}>
+              <Button size="small">Save</Button>
+              <Button size="small">Update</Button>
+            </MarginedButtonBar>
             <ButtonBar gap={1}>
               <Button size="small">rollup</Button>
               <Button size="small">modify</Button>
@@ -91,7 +96,7 @@ storiesOf('Layouts|Thirds', module)
               <Button size="small">update</Button>
               <Button size="small">delete</Button>
             </ButtonBar>
-          </Layout.HeaderContent>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main>
@@ -112,15 +117,14 @@ storiesOf('Layouts|Thirds', module)
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
-            <Button>Top button</Button>
-          </Layout.HeaderContent>
-          <Layout.HeaderContent>
             <Heading>Some heading content</Heading>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <Button size="small">clicker</Button>
               <Button size="small">clicker</Button>
             </ButtonBar>
-          </Layout.HeaderContent>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body fullWidth>
           <Layout.Main fullWidth>
@@ -143,4 +147,8 @@ const Container = styled('div')`
 
 const Heading = styled('h2')`
   margin: 0;
+`;
+
+const MarginedButtonBar = styled(ButtonBar)`
+  margin-bottom: ${space(1)};
 `;

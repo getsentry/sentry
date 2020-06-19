@@ -29,29 +29,42 @@ export const Body = styled('div')`
  */
 export const HeaderContent = styled('div')`
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: normal;
+  margin-bottom: ${space(2)};
+`;
+
+export const HeaderActions = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: normal;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    flex-direction: column;
-    justify-content: normal;
+    width: min-content;
+    margin-bottom: ${space(2)};
   }
 `;
 
 /**
- * Header container for breadcrumbs and toolbars.
+ * Header container for header content and header actions.
+ *
+ * Uses a horizontal layout in wide viewports to put space between
+ * the headings and the actions container. In narrow viewports these elements
+ * are stacked vertically.
  */
 export const Header = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-grow: 0;
+  justify-content: space-between;
+  padding: ${space(2)} ${space(4)} 0 ${space(4)};
+  margin: 0;
+
   background-color: transparent;
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  padding: ${space(2)} ${space(4)};
-  margin: 0;
-  flex-grow: 0;
 
-  & > ${/* sc-selector */ HeaderContent} {
-    margin-bottom: ${space(1)};
-  }
-  & > ${/* sc-selector */ HeaderContent}:last-child {
-    margin: 0;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column;
   }
 `;
 
