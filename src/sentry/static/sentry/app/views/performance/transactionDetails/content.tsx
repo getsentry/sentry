@@ -21,9 +21,10 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import TagsTable from 'app/components/tagsTable';
 import Projects from 'app/utils/projects';
-import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
+import * as Layout from 'app/components/layouts/thirds';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {decodeScalar, appendTagCondition} from 'app/utils/queryString';
+import space from 'app/styles/space';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getTransactionDetailsUrl} from '../utils';
@@ -123,22 +124,24 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        <HeaderBox>
-          <Breadcrumb
-            organization={organization}
-            location={location}
-            transactionName={transactionName}
-            eventSlug={eventSlug}
-          />
-          <StyledTitle data-test-id="event-header">{event.title}</StyledTitle>
-          <HeaderBottomControls>
-            <StyledButton size="small" onClick={this.toggleSidebar}>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumb
+              organization={organization}
+              location={location}
+              transactionName={transactionName}
+              eventSlug={eventSlug}
+            />
+            <StyledTitle data-test-id="event-header">{event.title}</StyledTitle>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <Button onClick={this.toggleSidebar}>
               {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-            </StyledButton>
-          </HeaderBottomControls>
-        </HeaderBox>
-        <ContentBox>
-          <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
+            </Button>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
                 <SpanEntryContext.Provider
@@ -165,17 +168,19 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 </SpanEntryContext.Provider>
               )}
             </Projects>
-          </div>
-          <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
-            <EventMetadata
-              event={event}
-              organization={organization}
-              projectId={this.projectId}
-            />
-            <OpsBreakdown event={event} />
-            <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
-          </div>
-        </ContentBox>
+          </Layout.Main>
+          {isSidebarVisible && (
+            <Layout.Side>
+              <EventMetadata
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+              />
+              <OpsBreakdown event={event} />
+              <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
+            </Layout.Side>
+          )}
+        </Layout.Body>
       </React.Fragment>
     );
   }
@@ -218,19 +223,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 }
 
-const StyledButton = styled(Button)`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: block;
-    width: 110px;
-  }
-`;
-
-const StyledTitle = styled('span')`
+const StyledTitle = styled('h2')`
   color: ${p => p.theme.gray700};
   font-size: ${p => p.theme.headerFontSize};
-  grid-column: 1 / 2;
+  font-weight: normal;
+  /* TODO(bootstrap) remove !important when bootstrap is removed */
+  margin: ${space(3)} 0 0 0 !important;
 `;
 
 export default withApi(EventDetailsContent);

@@ -159,9 +159,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <EventHeader event={event} />
           </Layout.HeaderContent>
           <StyledHeaderActions>
-            <StyledButton size="small" onClick={this.toggleSidebar}>
+            <Button onClick={this.toggleSidebar}>
               {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-            </StyledButton>
+            </Button>
           </StyledHeaderActions>
         </Layout.Header>
         <Layout.Body>
@@ -304,10 +304,6 @@ const EventHeader = (props: {event: Event}) => {
     </StyledEventHeader>
   );
 };
-
-const StyledButton = styled(Button)`
-  width: 110px;
-`;
 
 const StyledHeaderActions = styled(Layout.HeaderActions)`
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
