@@ -1,13 +1,11 @@
 import 'zrender/lib/svg/svg';
 
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import echarts from 'echarts/lib/echarts';
+import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
 import styled from '@emotion/styled';
 
-import {callIfFunction} from 'app/utils/callIfFunction';
-import SentryTypes from 'app/sentryTypes';
+import {Series} from 'app/types/echarts';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
@@ -19,152 +17,208 @@ import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 
 // If dimension is a number convert it to pixels, otherwise use dimension without transform
-const getDimensionValue = dimension => {
+const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
   if (typeof dimension === 'number') {
     return `${dimension}px`;
+  }
+
+  if (dimension === null) {
+    return undefined;
   }
 
   return dimension;
 };
 
-class BaseChart extends React.Component {
-  static propTypes = {
-    // TODO: Pull out props from generic `options` object
-    //       so that we can better document them in prop types
-    //       see: https://ecomfe.github.io/echarts-doc/public/en/option.html
-    //
-    // NOTE: [!!] If you use an option that requires a specific echart module,
-    //       you WILL NEED to IMPORT that module to have it registered in
-    //       echarts. IT WILL FAIL SILENTLY IF YOU DONT.
-    options: PropTypes.object,
+type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
+type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
 
-    // Chart Series
-    // This is different than the interface to higher level charts, these need to be
-    // an array of ECharts "Series" components.
-    series: SentryTypes.EChartsSeries,
+type EChartEventHandler<P> = (params: P, instance: ECharts) => void;
 
-    // Array of color codes to use in charts
-    colors: PropTypes.arrayOf(PropTypes.string),
+/**
+ * Used for soem properties that can be truncated
+ */
+type Truncateable = {
+  /**
+   * Truncate the label / value some number of characters
+   */
+  truncate?: number;
+};
 
-    // Must be explicitly `null` to disable xAxis
-    xAxis: SentryTypes.EChartsXAxis,
-
-    // Must be explicitly `null` to disable yAxis
-    yAxis: SentryTypes.EChartsYAxis,
-
-    // Pass `true` to have 2 y-axes with default properties
-    // Can pass an array of objects to customize yAxis properties
-    yAxes: PropTypes.oneOfType([
-      PropTypes.bool,
-      PropTypes.arrayOf(SentryTypes.EChartsYAxis),
-    ]),
-
-    // Pass `true` to have 2 x-axes with default properties
-    // Can pass an array of multiple objects to customize xAxis properties
-    xAxes: PropTypes.oneOfType([
-      PropTypes.bool,
-      PropTypes.arrayOf(SentryTypes.EChartsXAxis),
-    ]),
-
-    // Tooltip options
-    tooltip: SentryTypes.EChartsTooltip,
-
-    // DataZoom (allows for zooming of chart)
-    dataZoom: PropTypes.oneOfType([
-      SentryTypes.EChartsDataZoom,
-      PropTypes.arrayOf(SentryTypes.EChartsDataZoom),
-    ]),
-
-    // Axis pointer options
-    axisPointer: SentryTypes.EChartsAxisPointer,
-
-    toolBox: SentryTypes.EChartsToolBox,
-
-    graphic: SentryTypes.EchartsGraphic,
-
-    // ECharts Grid options
-    // multiple grids allow multiple sub-graphs.
-    grid: PropTypes.oneOfType([
-      SentryTypes.EChartsGrid,
-      PropTypes.arrayOf(SentryTypes.EChartsGrid),
-    ]),
-
-    // Chart legend
-    legend: SentryTypes.EChartsLegend,
-
-    // Chart height
-    height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-
-    // Chart width
-    width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-
-    // Use `canvas` when dealing with large datasets
-    // See: https://ecomfe.github.io/echarts-doc/public/en/tutorial.html#Render%20by%20Canvas%20or%20SVG
-    renderer: PropTypes.oneOf(['canvas', 'svg']),
-
-    devicePixelRatio: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-
-    // theme name
-    // example theme: https://github.com/apache/incubator-echarts/blob/master/theme/dark.js
-    theme: PropTypes.string,
-
-    // states whether or not to merge with previous `option`
-    notMerge: PropTypes.bool,
-
-    // states whether not to prevent triggering events when calling setOption
-    silent: PropTypes.bool,
-
-    // states whether not to update chart immediately
-    lazyUpdate: PropTypes.bool,
-
-    // eCharts Event Handlers
-    // callback when chart is ready
-    onChartReady: PropTypes.func,
-    onHighlight: PropTypes.func,
-    onMouseOver: PropTypes.func,
-    onClick: PropTypes.func,
-
-    // Zoom on chart
-    onDataZoom: PropTypes.func,
-
-    // One example of when this is called is restoring chart from zoom levels
-    onRestore: PropTypes.func,
-
-    onFinished: PropTypes.func,
-
-    onLegendSelectChanged: PropTypes.func,
-
-    // Forwarded Ref
-    forwardedRef: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
-
-    // Custom chart props that are implemented by us (and not a feature of eCharts)
+type Props = {
+  options?: EChartOption;
+  /**
+   * Chart Series
+   * This is different than the interface to higher level charts, these need to
+   * be an array of ECharts "Series" components.
+   */
+  series?: EChartOption.Series[];
+  /**
+   * Array of color codes to use in charts
+   */
+  colors?: string[];
+  /**
+   * Must be explicitly `null` to disable xAxis
+   *
+   * Additionally a `truncate` option
+   */
+  xAxis?: EChartOption.XAxis & Truncateable;
+  /**
+   * Must be explicitly `null` to disable yAxis
+   */
+  yAxis?: EChartOption.YAxis;
+  /**
+   * Pass `true` to have 2 y-axes with default properties. Can pass an array of
+   * objects to customize yAxis properties
+   */
+  yAxes?: true | Props['yAxis'][];
+  /**
+   * Pass `true` to have 2 x-axes with default properties.  Can pass an array
+   * of multiple objects to customize xAxis properties
+   */
+  xAxes?: true | Props['xAxis'][];
+  /**
+   * Tooltip options
+   */
+  tooltip?: EChartOption.Tooltip &
+    Truncateable & {
+      filter?: (value: number) => number;
+      formatAxisLabel?: (
+        value: number,
+        isTimestamp: boolean,
+        utc: boolean,
+        showTimeInTooltip: boolean
+      ) => string;
+      valueFormatter?: (value: number, label?: string) => string | number;
+      nameFormatter?: (name: string) => string;
+    };
+  /**
+   * DataZoom (allows for zooming of chart)
+   */
+  dataZoom?: EChartOption['dataZoom'];
+  /**
+   * Axis pointer options
+   */
+  axisPointer?: EChartOption.AxisPointer;
+  /**
+   * Toolbox options
+   */
+  toolBox?: EChartOption['toolbox'];
+  /**
+   * Graphic options
+   */
+  graphic?: EChartOption['graphic'];
+  /**
+   * ECharts Grid options. multiple grids allow multiple sub-graphs.
+   */
+  grid?: EChartOption.Grid | EChartOption.Grid[];
+  /**
+   * Chart legend
+   */
+  legend?: EChartOption.Legend & Truncateable;
+  /**
+   * Chart height
+   */
+  height?: ReactEChartOpts['height'];
+  /**
+   * Chart width
+   */
+  width?: ReactEChartOpts['width'];
+  /**
+   * Use `canvas` when dealing with large datasets
+   * See: https://ecomfe.github.io/echarts-doc/public/en/tutorial.html#Render%20by%20Canvas%20or%20SVG
+   */
+  renderer?: ReactEChartOpts['renderer'];
+  devicePixelRatio?: ReactEChartOpts['devicePixelRatio'];
+  /**
+   * theme name
+   * example theme: https://github.com/apache/incubator-echarts/blob/master/theme/dark.js
+   */
+  theme?: ReactEchartProps['theme'];
+  /**
+   * states whether or not to merge with previous `option`
+   */
+  notMerge?: boolean;
+  /**
+   * states whether not to update chart immediately
+   */
+  lazyUpdate?: boolean;
+  onChartReady?: (instance: ECharts) => void;
+  onHighlight?: EChartEventHandler<any>;
+  onMouseOver?: EChartEventHandler<any>;
+  onClick?: EChartEventHandler<any>;
+  onDataZoom?: EChartEventHandler<{
+    type: 'datazoom';
     /**
-     * Display previous period as a LineSeries
+     * percentage of zoom start position, 0 - 100
      */
-    previousPeriod: PropTypes.arrayOf(SentryTypes.SeriesUnit),
-
-    // If data is grouped by date, then apply default date formatting to
-    // x-axis and tooltips.
-    isGroupedByDate: PropTypes.bool,
-
+    start: number;
     /**
-     * Format timestamp with date AND time
+     * percentage of zoom finish position, 0 - 100
      */
-    showTimeInTooltip: PropTypes.bool,
+    end: number;
+    /**
+     * data value of zoom start position; only exists in zoom event of
+     * triggered by toolbar
+     */
+    startValue?: number;
+    /**
+     * data value of zoom finish position; only exists in zoom event of
+     * triggered by toolbar
+     */
+    endValue?: number;
+  }>;
+  /**
+   * One example of when this is called is restoring chart from zoom levels
+   */
+  onRestore?: EChartEventHandler<{type: 'restore'}>;
+  onFinished?: EChartEventHandler<{}>;
+  onLegendSelectChanged: EChartEventHandler<{}>;
+  /**
+   * Forwarded Ref
+   */
+  forwardedRef?: React.Ref<ReactEchartsCore>;
+  /**
+   * Custom chart props that are implemented by us (and not a feature of eCharts)
+   *
+   * Display previous period as a LineSeries
+   */
+  previousPeriod?: Series[];
+  /**
+   * If data is grouped by date; then apply default date formatting to x-axis
+   * and tooltips.
+   */
+  isGroupedByDate?: boolean;
+  /**
+   * Format timestamp with date AND time
+   */
+  showTimeInTooltip?: boolean;
+  /**
+   * Use short date formatting for xAxis
+   */
+  useShortDate?: boolean;
+  /**
+   * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
+   */
+  start?: Date;
+  /**
+   * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
+   */
+  end?: Date;
+  /**
+   * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
+   */
+  period?: string;
+  /**
+   * Formats dates as UTC?
+   */
+  utc?: boolean;
+  /**
+   * Inline styles
+   */
+  style?: React.CSSProperties;
+};
 
-    // Use short date formatting for xAxis
-    useShortDate: PropTypes.bool,
-
-    // These are optional and are used to determine how xAxis is formatted
-    // if `isGroupedByDate == true`
-    start: PropTypes.instanceOf(Date),
-    end: PropTypes.instanceOf(Date),
-    period: PropTypes.string,
-
-    // Formats dates as UTC?
-    utc: PropTypes.bool,
-  };
-
+class BaseChart extends React.Component<Props> {
   static defaultProps = {
     height: 200,
     width: 'auto',
@@ -180,25 +234,22 @@ class BaseChart extends React.Component {
     isGroupedByDate: false,
   };
 
-  getEventsMap = {
-    click: (...args) => {
-      this.handleClick(...args);
-      callIfFunction(this.props.onClick, ...args);
+  getEventsMap: ReactEchartProps['onEvents'] = {
+    click: (props, instance) => {
+      this.handleClick(props, instance);
+      this.props.onClick?.(props, instance);
     },
-    highlight: (...args) => callIfFunction(this.props.onHighlight, ...args),
-    mouseover: (...args) => callIfFunction(this.props.onMouseOver, ...args),
-    datazoom: (...args) => callIfFunction(this.props.onDataZoom, ...args),
-    restore: (...args) => callIfFunction(this.props.onRestore, ...args),
-    finished: (...args) => callIfFunction(this.props.onFinished, ...args),
-    legendselectchanged: (...args) =>
-      callIfFunction(this.props.onLegendSelectChanged, ...args),
+    highlight: (props, instance) => this.props.onHighlight?.(props, instance),
+    mouseover: (props, instance) => this.props.onMouseOver?.(props, instance),
+    datazoom: (props, instance) => this.props.onDataZoom?.(props, instance),
+    restore: (props, instance) => this.props.onRestore?.(props, instance),
+    finished: (props, instance) => this.props.onFinished?.(props, instance),
+    legendselectchanged: (props, instance) =>
+      this.props.onLegendSelectChanged?.(props, instance),
   };
 
-  handleChartReady = (...args) => {
-    const {onChartReady} = this.props;
-    onChartReady(...args);
-  };
-
+  // TODO(ts): What is the series type? EChartOption.Series's data cannot have
+  // `onClick` since it's typically an array.
   /**
    * Handle series item clicks (e.g. Releases mark line or a single series item)
    * This is different than when you hover over an "axis" line on a chart (e.g.
@@ -206,19 +257,21 @@ class BaseChart extends React.Component {
    *
    * Calls "onClick" inside of series data
    */
-  handleClick = (series, chart) => {
+  handleClick = (series: any, instance: ECharts) => {
     if (series.data) {
-      callIfFunction(series.data.onClick, series, chart);
+      series.data.onClick?.(series, instance);
     }
   };
 
-  getColorPalette = () => {
+  getColorPalette() {
     const {series} = this.props;
 
-    return series && series.length
+    const palette = series?.length
       ? theme.charts.getColorPalette(series.length)
       : theme.charts.colors;
-  };
+
+    return (palette as unknown) as string[];
+  }
 
   render() {
     const {
@@ -252,15 +305,15 @@ class BaseChart extends React.Component {
       renderer,
       notMerge,
       lazyUpdate,
-      silent,
       style,
       forwardedRef,
+      onChartReady,
     } = this.props;
 
     const yAxisOrCustom = !yAxes
       ? yAxis !== null
         ? YAxis(yAxis)
-        : null
+        : undefined
       : Array.isArray(yAxes)
       ? yAxes.map(YAxis)
       : [YAxis(), YAxis()];
@@ -275,7 +328,7 @@ class BaseChart extends React.Component {
             isGroupedByDate,
             utc,
           })
-        : null
+        : undefined
       : Array.isArray(xAxes)
       ? xAxes.map(axis =>
           XAxis({...axis, useShortDate, start, end, period, isGroupedByDate, utc})
@@ -289,9 +342,8 @@ class BaseChart extends React.Component {
           echarts={echarts}
           notMerge={notMerge}
           lazyUpdate={lazyUpdate}
-          silent={silent}
           theme={this.props.theme}
-          onChartReady={this.handleChartReady}
+          onChartReady={onChartReady}
           onEvents={this.getEventsMap}
           opts={{
             height,
@@ -312,8 +364,8 @@ class BaseChart extends React.Component {
             tooltip:
               tooltip !== null
                 ? Tooltip({showTimeInTooltip, isGroupedByDate, utc, ...tooltip})
-                : null,
-            legend: legend ? Legend({...legend}) : null,
+                : undefined,
+            legend: legend ? Legend({...legend}) : undefined,
             yAxis: yAxisOrCustom,
             xAxis: xAxisOrCustom,
             series: !previousPeriod
@@ -351,14 +403,14 @@ const ChartContainer = styled('div')`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {
-    color: ${theme.gray500};
-    font-family: ${theme.text.family};
-    background: ${theme.gray800};
+    color: ${p => p.theme.gray500};
+    font-family: ${p => p.theme.text.family};
+    background: ${p => p.theme.gray800};
     padding: ${space(1)} ${space(2)};
-    border-radius: ${theme.borderRadius} ${theme.borderRadius} 0 0;
+    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   }
   .tooltip-series-solo {
-    border-radius: ${theme.borderRadius};
+    border-radius: ${p => p.theme.borderRadius};
   }
   .tooltip-label {
     margin-right: ${space(1)};
@@ -373,11 +425,11 @@ const ChartContainer = styled('div')`
     align-items: baseline;
   }
   .tooltip-date {
-    border-top: 1px solid ${theme.gray600};
+    border-top: 1px solid ${p => p.theme.gray600};
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: ${theme.borderRadiusBottom};
+    border-radius: ${p => p.theme.borderRadiusBottom};
   }
   .tooltip-arrow {
     top: 100%;
@@ -388,7 +440,7 @@ const ChartContainer = styled('div')`
     width: 0;
     position: absolute;
     pointer-events: none;
-    border-top-color: ${theme.gray800};
+    border-top-color: ${p => p.theme.gray800};
     border-width: 8px;
     margin-left: -8px;
   }
@@ -398,7 +450,7 @@ const ChartContainer = styled('div')`
   }
 `;
 
-const BaseChartRef = React.forwardRef((props, ref) => (
+const BaseChartRef = React.forwardRef<ReactEchartsCore, Props>((props, ref) => (
   <BaseChart forwardedRef={ref} {...props} />
 ));
 BaseChartRef.displayName = 'forwardRef(BaseChart)';
