@@ -1,6 +1,5 @@
 import React from 'react';
 import {Location} from 'history';
-import styled from '@emotion/styled';
 
 import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
@@ -11,7 +10,7 @@ import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import EventView from 'app/utils/discover/eventView';
-import {HeaderBox, HeaderTopControls} from 'app/utils/discover/styles';
+import * as Layout from 'app/components/layouts/thirds';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
@@ -82,18 +81,20 @@ class ResultsHeader extends React.Component<Props, State> {
     );
 
     return (
-      <StyledHeaderBox>
-        <DiscoverBreadcrumb
-          eventView={eventView}
-          organization={organization}
-          location={location}
-        />
-        <EventInputName
-          savedQuery={savedQuery}
-          organization={organization}
-          eventView={eventView}
-        />
-        <HeaderTopControls>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <DiscoverBreadcrumb
+            eventView={eventView}
+            organization={organization}
+            location={location}
+          />
+          <EventInputName
+            savedQuery={savedQuery}
+            organization={organization}
+            eventView={eventView}
+          />
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
           <Feature
             organization={organization}
             features={['discover-query']}
@@ -111,22 +112,10 @@ class ResultsHeader extends React.Component<Props, State> {
               />
             )}
           </Feature>
-        </HeaderTopControls>
-      </StyledHeaderBox>
+        </Layout.HeaderActions>
+      </Layout.Header>
     );
   }
 }
 
 export default withApi(ResultsHeader);
-
-// TODO(scttcper): The buttons are taking up a lot of space on this page
-const StyledHeaderBox = styled(HeaderBox)`
-  /* On results page header, break to new line sooner */
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: block;
-  }
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    display: grid;
-    grid-template-columns: minmax(100px, auto) 475px;
-  }
-`;
