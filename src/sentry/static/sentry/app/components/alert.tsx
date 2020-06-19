@@ -74,9 +74,10 @@ const IconWrapper = styled('span')`
   display: flex;
   margin-right: ${space(1)};
 
-  /* Minor adjustment to vertically align the icon, without using align-items
-   * which would vertically align it for multi-line alerts. */
-  padding-top: 1px;
+  /* Give the wrapper an explicit height so icons are line height with the
+   * (common) line height. */
+  height: 22px;
+  align-items: center;
 `;
 
 const StyledTextBlock = styled('span')`
