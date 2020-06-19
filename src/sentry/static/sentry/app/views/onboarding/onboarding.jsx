@@ -310,7 +310,7 @@ const OnboardingStep = styled(PosedOnboardingStep)`
     height: 30px;
     top: -5px;
     left: -30px;
-    background-color: ${p => (p.active ? Theme.colors.pink400 : p.theme.gray500)};
+    background-color: ${p => (p.active ? p.theme.pink400 : p.theme.gray500)};
     border-radius: 50%;
     color: #fff;
     font-size: 1.5rem;
