@@ -27,7 +27,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
-import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
+import * as Layout from 'app/components/layouts/thirds';
 
 import {generateTitle, getExpandedResults} from '../utils';
 import LinkedIssue from './linkedIssue';
@@ -148,22 +148,24 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        <HeaderBox>
-          <DiscoverBreadcrumb
-            eventView={eventView}
-            event={event}
-            organization={organization}
-            location={location}
-          />
-          <EventHeader event={event} />
-          <HeaderBottomControls>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <DiscoverBreadcrumb
+              eventView={eventView}
+              event={event}
+              organization={organization}
+              location={location}
+            />
+            <EventHeader event={event} />
+          </Layout.HeaderContent>
+          <StyledHeaderActions>
             <StyledButton size="small" onClick={this.toggleSidebar}>
               {isSidebarVisible ? 'Hide Details' : 'Show Details'}
             </StyledButton>
-          </HeaderBottomControls>
-        </HeaderBox>
-        <ContentBox>
-          <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
+          </StyledHeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
                 <SpanEntryContext.Provider
@@ -193,24 +195,26 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 </SpanEntryContext.Provider>
               )}
             </Projects>
-          </div>
-          <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
-            <EventMetadata
-              event={event}
-              organization={organization}
-              projectId={this.projectId}
-            />
-            <OpsBreakdown event={event} />
-            {event.groupID && (
-              <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
-            )}
-            <TagsTable
-              generateUrl={this.generateTagUrl}
-              event={event}
-              query={eventView.query}
-            />
-          </div>
-        </ContentBox>
+          </Layout.Main>
+          {isSidebarVisible && (
+            <Layout.Side>
+              <EventMetadata
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+              />
+              <OpsBreakdown event={event} />
+              {event.groupID && (
+                <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
+              )}
+              <TagsTable
+                generateUrl={this.generateTagUrl}
+                event={event}
+                query={eventView.query}
+              />
+            </Layout.Side>
+          )}
+        </Layout.Body>
       </React.Fragment>
     );
   }
@@ -302,19 +306,21 @@ const EventHeader = (props: {event: Event}) => {
 };
 
 const StyledButton = styled(Button)`
-  display: none;
+  width: 110px;
+`;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: block;
-    width: 110px;
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
   }
 `;
 
 const StyledEventHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
+  line-height: 1.2;
   color: ${p => p.theme.gray500};
-  grid-column: 1/2;
   align-self: center;
+  margin-top: ${space(3)};
   ${overflowEllipsis};
 `;
 

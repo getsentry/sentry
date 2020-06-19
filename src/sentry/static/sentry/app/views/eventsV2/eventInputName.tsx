@@ -10,6 +10,7 @@ import withApi from 'app/utils/withApi';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import InlineInput from 'app/components/inputInline';
 import EventView from 'app/utils/discover/eventView';
+import space from 'app/styles/space';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
@@ -91,7 +92,7 @@ class EventInputName extends React.Component<Props> {
 const StyledListHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray700};
-  grid-column: 1/2;
+  margin-top: ${space(3)};
   min-height: 30px;
   ${overflowEllipsis};
 `;
