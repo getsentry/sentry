@@ -32,7 +32,8 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
           convertedRules.push({
             id,
             method: method as RuleDefault['method'],
-            type: type as RuleDefault['type'], source
+            type: type as RuleDefault['type'],
+            source,
           });
         }
         continue;
