@@ -6,6 +6,7 @@ import {css} from '@emotion/core';
 import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {DataSection} from 'app/components/events/styles';
+import {IconAnchor} from 'app/icons/iconAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import space from 'app/styles/space';
@@ -78,9 +79,9 @@ class EventDataSection extends React.Component<Props> {
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
             <Permalink href={'#' + type} className="permalink">
-              <em className="icon-anchor" />
+              <StyledIconAnchor />
+              {titleNode}
             </Permalink>
-            {titleNode}
             {type === 'extra' && (
               <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
                 <Button
@@ -108,22 +109,26 @@ class EventDataSection extends React.Component<Props> {
   }
 }
 
-const Permalink = styled('a')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 27px;
+const StyledIconAnchor = styled(IconAnchor)`
   display: none;
   position: absolute;
-  top: -1.5px;
+  top: 4px;
   left: -22px;
-  color: ${p => p.theme.gray400};
-  padding: ${space(0.25)} 5px;
+`;
+
+const Permalink = styled('a')`
+  position: relative;
+  flex-grow: 1;
+
+  :hover ${StyledIconAnchor} {
+    display: block;
+    color: ${p => p.theme.gray500};
+  }
 `;
 
 const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  position: relative;
   margin-bottom: ${space(3)};
 
   & h3,
@@ -155,10 +160,6 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     color: ${p => p.theme.gray700};
     border-bottom: 1px dotted ${p => p.theme.gray400};
     font-weight: normal;
-  }
-
-  &:hover ${Permalink} {
-    display: block;
   }
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) {

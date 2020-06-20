@@ -43,7 +43,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
       >
         <SectionContents>
           <div
-            className="css-16dhebx-SectionContents e1fbjd862"
+            className="css-16dhebx-SectionContents e1fbjd863"
           >
             <Alert
               icon="icon-upgrade"
