@@ -21,7 +21,7 @@ const EventIdFieldStatusIcon = ({status, onClickIconClose}: Props) => {
       return (
         <CloseIcon onClick={onClickIconClose}>
           <Tooltip title={t('Clear Event ID')}>
-            <IconClose color="red" />
+            <StyledIconClose size="xs" />
           </Tooltip>
         </CloseIcon>
       );
@@ -37,8 +37,15 @@ const EventIdFieldStatusIcon = ({status, onClickIconClose}: Props) => {
 export default EventIdFieldStatusIcon;
 
 const CloseIcon = styled('div')`
-  cursor: pointer;
   :first-child {
     line-height: 0;
   }
+`;
+
+const StyledIconClose = styled(IconClose)`
+  color: ${p => p.theme.gray400};
+  :hover {
+    color: ${p => p.theme.gray500};
+  }
+  cursor: pointer;
 `;
