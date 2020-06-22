@@ -62,14 +62,14 @@ if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
     urlpatterns += debug_urls
 
 # Special favicon in debug mode
-# if settings.DEBUG:
-#     urlpatterns += [
-#         url(
-#             r"^_static/[^/]+/[^/]+/images/favicon\.ico$",
-#             generic.dev_favicon,
-#             name="sentry-dev-favicon",
-#         )
-#     ]
+if settings.DEBUG:
+    urlpatterns += [
+        url(
+            r"^_static/[^/]+/[^/]+/images/favicon\.(ico|png)$",
+            generic.dev_favicon,
+            name="sentry-dev-favicon",
+        )
+    ]
 
 urlpatterns += [
     # Store endpoints first since they are the most active

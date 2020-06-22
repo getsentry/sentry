@@ -140,32 +140,32 @@ const render = (Component: React.ComponentType) => {
   }
 };
 
-function prefersDark() {
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
-function changeFavicon(theme) {
+function changeFavicon(theme: 'dark' | 'light'): void {
   const n = document.querySelector<HTMLLinkElement>('.js-site-favicon[type="image/png"]');
-  // const s = document.querySelector<HTMLLinkElement>(
-  //   '.js-site-favicon[type="image/x-icon"]'
-  // );
   if (!n) {
     return;
   }
 
   if (theme === 'dark') {
     n.href = '/_static/sentry/images/favicon-dark.png';
-    // s.href = '/_static/sentry/images/favicon-dark.ico';
   } else {
     n.href = '/_static/sentry/images/favicon.png';
-    // s.href = '/_static/sentry/images/favicon.ico';
   }
 }
-prefersDark() && changeFavicon('dark');
 
-window.matchMedia('(prefers-color-scheme: dark)').addListener(() => {
-  changeFavicon(prefersDark() ? 'dark' : 'light');
-});
+function prefersDark(): boolean {
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+if (process.env.NODE_ENV === 'production') {
+  // Set favicon to light/dark on load
+  prefersDark() && changeFavicon('dark');
+
+  window.matchMedia('(prefers-color-scheme: dark)').addListener(() => {
+    // Watch for changes in preferred color scheme
+    changeFavicon(prefersDark() ? 'dark' : 'light');
+  });
+}
 
 // The password strength component is very heavyweight as it includes the
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load
