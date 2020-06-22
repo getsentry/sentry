@@ -10,19 +10,6 @@ describe('UserMisery', function() {
 
   afterEach(function() {});
 
-  it('renders', function() {
-    const wrapper = shallow(
-      <UserMisery
-        bars={10}
-        barHeight={20}
-        miseryLimit={300}
-        miserableUsers={75}
-        totalUsers={100}
-      />
-    );
-    expect(wrapper).toMatchSnapshot();
-  });
-
   it('renders no bars when miserable users is zero', function() {
     const wrapper = shallow(
       <UserMisery
@@ -34,7 +21,6 @@ describe('UserMisery', function() {
       />
     );
     expect(wrapper.find(ScoreBar).props().score).toEqual(0);
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders one bar when miserable users are close to zero', function() {
@@ -48,6 +34,5 @@ describe('UserMisery', function() {
       />
     );
     expect(wrapper.find(ScoreBar).props().score).toEqual(1);
-    expect(wrapper).toMatchSnapshot();
   });
 });
