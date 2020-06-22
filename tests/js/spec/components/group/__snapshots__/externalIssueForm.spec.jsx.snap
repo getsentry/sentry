@@ -505,6 +505,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                   onSelectResetsInput={false}
                   placeholder="--"
                   required={true}
+                  showHelpInTooltip={false}
                   small={false}
                   stacked={true}
                   type="select"
@@ -532,15 +533,16 @@ exports[`ExternalIssueForm link renders 1`] = `
                             disabled={false}
                           >
                             <div
-                              className="css-1c18lg-FieldLabel e16ushrl0"
+                              className="css-wufuns-FieldLabel e16ushrl0"
                             >
-                              GitHub Repository
-                               
-                              <FieldRequiredBadge>
-                                <div
-                                  className="css-z6v0fv-FieldRequiredBadge e1uclnuk0"
-                                />
-                              </FieldRequiredBadge>
+                              <span>
+                                GitHub Repository
+                                <FieldRequiredBadge>
+                                  <div
+                                    className="css-dp3tuo-FieldRequiredBadge e1uclnuk0"
+                                  />
+                                </FieldRequiredBadge>
+                              </span>
                             </div>
                           </FieldLabel>
                         </label>
@@ -2451,6 +2453,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                   onSelectResetsInput={false}
                   placeholder="--"
                   required={true}
+                  showHelpInTooltip={false}
                   small={false}
                   stacked={true}
                   type="select"
@@ -2477,15 +2480,16 @@ exports[`ExternalIssueForm link renders 1`] = `
                             disabled={false}
                           >
                             <div
-                              className="css-1c18lg-FieldLabel e16ushrl0"
+                              className="css-wufuns-FieldLabel e16ushrl0"
                             >
-                              Issue
-                               
-                              <FieldRequiredBadge>
-                                <div
-                                  className="css-z6v0fv-FieldRequiredBadge e1uclnuk0"
-                                />
-                              </FieldRequiredBadge>
+                              <span>
+                                Issue
+                                <FieldRequiredBadge>
+                                  <div
+                                    className="css-dp3tuo-FieldRequiredBadge e1uclnuk0"
+                                  />
+                                </FieldRequiredBadge>
+                              </span>
                             </div>
                           </FieldLabel>
                         </label>
@@ -4256,6 +4260,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                   label="Comment"
                   name="comment"
                   required={false}
+                  showHelpInTooltip={false}
                   stacked={true}
                   type="textarea"
                   visible={true}
@@ -4280,10 +4285,11 @@ exports[`ExternalIssueForm link renders 1`] = `
                             disabled={false}
                           >
                             <div
-                              className="css-1c18lg-FieldLabel e16ushrl0"
+                              className="css-wufuns-FieldLabel e16ushrl0"
                             >
-                              Comment
-                               
+                              <span>
+                                Comment
+                              </span>
                             </div>
                           </FieldLabel>
                           <FieldHelp

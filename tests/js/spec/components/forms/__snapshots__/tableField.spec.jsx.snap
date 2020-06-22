@@ -153,6 +153,7 @@ exports[`TableField renders renders with form context 1`] = `
                 inline={true}
                 name="fieldName"
                 required={false}
+                showHelpInTooltip={false}
                 visible={true}
               >
                 <FieldWrapper
@@ -601,6 +602,7 @@ exports[`TableField renders renders without form context 1`] = `
           inline={true}
           name="fieldName"
           required={false}
+          showHelpInTooltip={false}
           visible={true}
         >
           <FieldWrapper

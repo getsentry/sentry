@@ -5,8 +5,8 @@ import isEqual from 'lodash/isEqual';
 import TextField from 'app/components/forms/textField';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import Field from 'app/views/settings/components/forms/field';
 
-import FormField from './formField';
 import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
 import {EventIdStatus, EventId} from '../types';
 
@@ -106,11 +106,15 @@ class EventIdField extends React.Component<Props, State> {
     const {value, status} = this.state;
 
     return (
-      <FormField
+      <Field
         label={t('Event ID (Optional)')}
-        tooltipInfo={t(
+        help={t(
           'Providing an event ID will automatically provide you a list of suggested sources'
         )}
+        inline={false}
+        flexibleControlStateSize
+        stacked
+        showHelpInTooltip
       >
         <FieldWrapper>
           <StyledTextField
@@ -131,7 +135,7 @@ class EventIdField extends React.Component<Props, State> {
             />
           </Status>
         </FieldWrapper>
-      </FormField>
+      </Field>
     );
   }
 }
