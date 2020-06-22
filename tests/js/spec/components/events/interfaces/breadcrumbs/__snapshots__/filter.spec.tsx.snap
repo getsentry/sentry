@@ -1679,11 +1679,11 @@ exports[`Filter default render 1`] = `
                                   color="blue400"
                                 >
                                   <Component
-                                    className="css-alnj6v-Tag-StyledTag eio8trv0"
+                                    className="css-1dx7owx-Tag-StyledTag eio8trv0"
                                     color="blue400"
                                   >
                                     <div
-                                      className="css-alnj6v-Tag-StyledTag eio8trv0"
+                                      className="css-1dx7owx-Tag-StyledTag eio8trv0"
                                       color="blue400"
                                     >
                                       info
@@ -1765,11 +1765,11 @@ exports[`Filter default render 1`] = `
                                   color="red400"
                                 >
                                   <Component
-                                    className="css-1qvqycp-Tag-StyledTag eio8trv0"
+                                    className="css-eius55-Tag-StyledTag eio8trv0"
                                     color="red400"
                                   >
                                     <div
-                                      className="css-1qvqycp-Tag-StyledTag eio8trv0"
+                                      className="css-eius55-Tag-StyledTag eio8trv0"
                                       color="red400"
                                     >
                                       error
