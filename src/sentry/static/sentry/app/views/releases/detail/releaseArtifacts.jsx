@@ -65,7 +65,7 @@ class ReleaseArtifacts extends React.Component {
     this.props.api.request(this.getFilesEndpoint(), {
       method: 'GET',
       // We need to omit global selection header url params because they are not supported
-      data: omit(this.props.location.query, Object.values(URL_PARAM)),
+      data: omit(this.props.location.query, [...Object.values(URL_PARAM), 'query']),
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
