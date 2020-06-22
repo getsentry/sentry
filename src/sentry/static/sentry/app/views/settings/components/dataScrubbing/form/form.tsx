@@ -5,9 +5,9 @@ import sortBy from 'lodash/sortBy';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
+import Field from 'app/views/settings/components/forms/field';
 
 import EventIdField from './eventIdField';
-import FormField from './formField';
 import SelectField from './selectField';
 import SourceField from './sourceField';
 import {getRuleLabel, getMethodLabel} from '../utils';
@@ -42,9 +42,16 @@ const Form = ({
 }: Props<Rule, KeysOfUnion<Rule>>) => {
   const {source, type, method} = rule;
   return (
-    <Wrapper>
+    <React.Fragment>
       <GroupField hasTwoColumns={rule.method === MethodType.REPLACE}>
-        <FormField label={t('Method')} tooltipInfo={t('What to do')}>
+        <Field
+          label={t('Method')}
+          help={t('What to do')}
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          showHelpInTooltip
+        >
           <SelectField
             placeholder={t('Select method')}
             name="method"
@@ -55,11 +62,15 @@ const Form = ({
             value={method}
             onChange={({value}) => onChange('method', value)}
           />
-        </FormField>
+        </Field>
         {rule.method === MethodType.REPLACE && (
-          <FormField
+          <Field
             label={t('Custom Placeholder (Optional)')}
-            tooltipInfo={t('It will replace the default placeholder [Filtered]')}
+            help={t('It will replace the default placeholder [Filtered]')}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            showHelpInTooltip
           >
             <StyledTextField
               name="placeholder"
@@ -69,15 +80,19 @@ const Form = ({
               }}
               value={rule.placeholder}
             />
-          </FormField>
+          </Field>
         )}
       </GroupField>
       <GroupField hasTwoColumns={rule.type === RuleType.PATTERN}>
-        <FormField
+        <Field
           label={t('Data Type')}
-          tooltipInfo={t(
+          help={t(
             'What to look for. Use an existing pattern or define your own using regular expressions.'
           )}
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          showHelpInTooltip
         >
           <SelectField
             placeholder={t('Select type')}
@@ -89,11 +104,16 @@ const Form = ({
             value={type}
             onChange={({value}) => onChange('type', value)}
           />
-        </FormField>
+        </Field>
         {rule.type === RuleType.PATTERN && (
-          <FormField
+          <Field
             label={t('Regex matches')}
-            tooltipInfo={t('Custom Perl-style regex (PCRE)')}
+            help={t('Custom Perl-style regex (PCRE)')}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            required
+            showHelpInTooltip
           >
             <RegularExpression
               name="pattern"
@@ -105,17 +125,20 @@ const Form = ({
               onBlur={onValidate('pattern')}
               error={errors?.pattern}
             />
-          </FormField>
+          </Field>
         )}
       </GroupField>
       {onUpdateEventId && (
         <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
       )}
-      <FormField
+      <Field
         label={t('Source')}
-        tooltipInfo={t(
-          'Where to look. In the simplest case this can be an attribute name.'
-        )}
+        help={t('Where to look. In the simplest case this can be an attribute name.')}
+        inline={false}
+        flexibleControlStateSize
+        stacked
+        required
+        showHelpInTooltip
       >
         <SourceField
           onChange={(value: string) => {
@@ -127,23 +150,20 @@ const Form = ({
           suggestions={sourceSuggestions}
           error={errors?.source}
         />
-      </FormField>
-    </Wrapper>
+      </Field>
+    </React.Fragment>
   );
 };
 
 export default Form;
 
-const Wrapper = styled('div')`
-  display: grid;
-  grid-row-gap: ${space(2)};
-`;
-
 const GroupField = styled('div')<{hasTwoColumns: boolean}>`
   display: grid;
-  grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-gap: ${space(2)};
     ${p => p.hasTwoColumns && `grid-template-columns: 1fr 1fr;`}
+    margin-bottom: ${p => (p.hasTwoColumns ? 0 : space(2))};
   }
 `;
 

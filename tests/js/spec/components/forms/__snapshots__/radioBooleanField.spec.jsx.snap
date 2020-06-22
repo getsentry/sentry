@@ -30,6 +30,7 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
         name="fieldName"
         noLabel="No"
         required={false}
+        showHelpInTooltip={false}
         visible={true}
         yesLabel="Yes"
       >

@@ -59,7 +59,6 @@ class SelectField extends React.Component<Props> {
           ),
         }}
         openOnFocus
-        required
       />
     );
   }
