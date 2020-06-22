@@ -290,9 +290,17 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
   get inviteButtonLabel() {
     if (this.invites.length > 0) {
-      return this.willInvite
-        ? tn('Send invite', 'Send invites (%s)', this.invites.length)
-        : tn('Send invite request', 'Send invite requests (%s)', this.invites.length);
+      const numberInvites = this.invites.length;
+
+      // Note we use `t()` here because `tn()` expects the same # of string formatters
+      const inviteText =
+        numberInvites === 1 ? t('Send invite') : t('Send invites (%s)', numberInvites);
+      const requestText =
+        numberInvites === 1
+          ? t('Send invite request')
+          : t('Send invite requests (%s)', numberInvites);
+
+      return this.willInvite ? inviteText : requestText;
     }
 
     return this.willInvite ? t('Send invite') : t('Send invite request');

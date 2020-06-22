@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {IconClock} from 'app/icons';
 import {t} from 'app/locale';
 import Count from 'app/components/count';
 import ExternalLink from 'app/components/links/externalLink';
@@ -59,7 +60,7 @@ export default class ReleaseHeader extends React.Component {
               </div>
             )}
             <div className="release-meta">
-              <span className="icon icon-clock" />{' '}
+              <IconClock size="11px" />
               <TimeSince date={release.dateCreated} />
             </div>
           </div>

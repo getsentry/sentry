@@ -218,7 +218,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
 
 const RelativeBox = styled('div')`
   position: relative;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const ChartTitle = styled(SectionHeading)<{top: string}>`

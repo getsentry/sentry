@@ -116,6 +116,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               label="Data source"
               orientInline
               required
+              disabled={disabled}
               choices={[
                 [Dataset.ERRORS, t('Errors')],
                 [Dataset.TRANSACTIONS, t('Transactions')],
@@ -138,7 +139,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     </SearchEventTypeNote>
                   </Tooltip>
                 }
-                help={t('Choose which metric to trigger on')}
                 omitTags={['event.type']}
                 disabled={disabled}
                 useFormWrapper={false}

@@ -48,8 +48,8 @@ function getBreadcrumbDetails(breadcrumb: Breadcrumb): Partial<Output> {
     }
     case BreadcrumbType.WARNING: {
       return {
-        color: 'yellowOrange',
-        borderColor: 'yellowOrangeDark',
+        color: 'orange300',
+        borderColor: 'orange500',
         icon: <IconWarning />,
         renderer: <ErrorRenderer breadcrumb={breadcrumb} />,
       };
@@ -65,7 +65,7 @@ function getBreadcrumbDetails(breadcrumb: Breadcrumb): Partial<Output> {
     }
     case BreadcrumbType.HTTP: {
       return {
-        color: 'green',
+        color: 'green400',
         icon: <IconRefresh />,
         renderer: <HttpRenderer breadcrumb={breadcrumb} />,
       };

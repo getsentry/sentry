@@ -13,14 +13,15 @@ import EventView from 'app/utils/discover/eventView';
 import {ContentBox, HeaderBox, Main, Side} from 'app/utils/discover/styles';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
+import {decodeScalar} from 'app/utils/queryString';
 
 import TransactionList from './transactionList';
-import Breadcrumb from './breadcrumb';
 import UserStats from './userStats';
 import KeyTransactionButton from './keyTransactionButton';
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
+import Breadcrumb from '../breadcrumb';
 
 type Props = {
   location: Location;
@@ -72,7 +73,7 @@ class SummaryContent extends React.Component<Props> {
 
   render() {
     const {transactionName, location, eventView, organization, totalValues} = this.props;
-    const query = location.query.query || '';
+    const query = decodeScalar(location.query.query) || '';
 
     return (
       <React.Fragment>
@@ -81,7 +82,6 @@ class SummaryContent extends React.Component<Props> {
             <Breadcrumb
               organization={organization}
               location={location}
-              eventView={eventView}
               transactionName={transactionName}
             />
           </div>
@@ -107,6 +107,7 @@ class SummaryContent extends React.Component<Props> {
             />
             <TransactionList
               organization={organization}
+              transactionName={transactionName}
               location={location}
               eventView={eventView}
             />

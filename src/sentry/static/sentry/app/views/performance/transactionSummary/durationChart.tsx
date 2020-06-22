@@ -154,7 +154,14 @@ class DurationChart extends React.Component<Props> {
                   : [];
 
                 return (
-                  <ReleaseSeries utc={utc} api={api} projects={project}>
+                  <ReleaseSeries
+                    start={start}
+                    end={end}
+                    period={statsPeriod}
+                    utc={utc}
+                    api={api}
+                    projects={project}
+                  >
                     {({releaseSeries}) => (
                       <TransitionChart loading={loading} reloading={reloading}>
                         <TransparentLoadingMask visible={reloading} />
@@ -168,6 +175,9 @@ class DurationChart extends React.Component<Props> {
                                 showSymbol: false,
                               }}
                               tooltip={tooltip}
+                              toolBox={{
+                                show: false,
+                              }}
                               grid={{
                                 left: '10px',
                                 right: '10px',

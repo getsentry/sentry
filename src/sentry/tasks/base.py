@@ -54,9 +54,9 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
     return wrapped
 
 
-def retry(func=None, on=(Exception,), exclude=()):
+def retry(func=None, on=(Exception,), exclude=(), ignore=()):
     """
-    >>> @retry(on=(Exception,), exclude=(AnotherException,))
+    >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
     >>> def my_task():
     >>>     ...
     """
@@ -69,6 +69,8 @@ def retry(func=None, on=(Exception,), exclude=()):
         def wrapped(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
+            except ignore:
+                return
             except exclude:
                 raise
             except on as exc:

@@ -79,7 +79,7 @@ def find_reference_event(reference_event):
     try:
         project_slug, event_id = reference_event.slug.split(":")
     except ValueError:
-        raise InvalidSearchQuery("Invalid reference event")
+        raise InvalidSearchQuery("Invalid reference event format")
 
     column_names = [
         resolve_discover_column(col) for col in reference_event.fields if is_real_column(col)
@@ -95,7 +95,7 @@ def find_reference_event(reference_event):
             status=ProjectStatus.VISIBLE,
         )
     except Project.DoesNotExist:
-        raise InvalidSearchQuery("Invalid reference event")
+        raise InvalidSearchQuery("Invalid reference event project")
 
     start = None
     end = None
@@ -117,7 +117,7 @@ def find_reference_event(reference_event):
         referrer="discover.find_reference_event",
     )
     if "error" in event or len(event["data"]) != 1:
-        raise InvalidSearchQuery("Invalid reference event")
+        raise InvalidSearchQuery("Unable to find reference event")
 
     return event["data"][0]
 
@@ -626,6 +626,7 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
         orderby=orderby,
         referrer=referrer,
         conditions=key_transaction_conditions(queryset),
+        use_aggregate_conditions=True,
     )
 
 

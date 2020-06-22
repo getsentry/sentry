@@ -153,6 +153,7 @@ exports[`TableField renders renders with form context 1`] = `
                 inline={true}
                 name="fieldName"
                 required={false}
+                showHelpInTooltip={false}
                 visible={true}
               >
                 <FieldWrapper
@@ -251,7 +252,7 @@ exports[`TableField renders renders with form context 1`] = `
                                       <forwardRef<Button>
                                         disabled={false}
                                         icon={
-                                          <ForwardRef
+                                          <ForwardRef(IconAdd)
                                             isCircled={true}
                                             size="xs"
                                           />
@@ -264,7 +265,7 @@ exports[`TableField renders renders with form context 1`] = `
                                           disabled={false}
                                           forwardRef={null}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconAdd)
                                               isCircled={true}
                                               size="xs"
                                             />
@@ -313,7 +314,7 @@ exports[`TableField renders renders with form context 1`] = `
                                                         className="css-1hbuack-Icon edwq9my2"
                                                         size="xsmall"
                                                       >
-                                                        <ForwardRef
+                                                        <IconAdd
                                                           isCircled={true}
                                                           size="xs"
                                                         >
@@ -337,7 +338,7 @@ exports[`TableField renders renders with form context 1`] = `
                                                               />
                                                             </svg>
                                                           </ForwardRef(SvgIcon)>
-                                                        </ForwardRef>
+                                                        </IconAdd>
                                                       </span>
                                                     </Icon>
                                                     Add Thing
@@ -601,6 +602,7 @@ exports[`TableField renders renders without form context 1`] = `
           inline={true}
           name="fieldName"
           required={false}
+          showHelpInTooltip={false}
           visible={true}
         >
           <FieldWrapper
@@ -674,7 +676,7 @@ exports[`TableField renders renders without form context 1`] = `
                                 <forwardRef<Button>
                                   disabled={false}
                                   icon={
-                                    <ForwardRef
+                                    <ForwardRef(IconAdd)
                                       isCircled={true}
                                       size="xs"
                                     />
@@ -687,7 +689,7 @@ exports[`TableField renders renders without form context 1`] = `
                                     disabled={false}
                                     forwardRef={null}
                                     icon={
-                                      <ForwardRef
+                                      <ForwardRef(IconAdd)
                                         isCircled={true}
                                         size="xs"
                                       />
@@ -736,7 +738,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                   className="css-1hbuack-Icon edwq9my2"
                                                   size="xsmall"
                                                 >
-                                                  <ForwardRef
+                                                  <IconAdd
                                                     isCircled={true}
                                                     size="xs"
                                                   >
@@ -760,7 +762,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                         />
                                                       </svg>
                                                     </ForwardRef(SvgIcon)>
-                                                  </ForwardRef>
+                                                  </IconAdd>
                                                 </span>
                                               </Icon>
                                               Add Item

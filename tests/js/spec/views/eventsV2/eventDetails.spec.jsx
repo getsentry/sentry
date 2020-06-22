@@ -103,9 +103,6 @@ describe('EventsV2 > EventDetails', function() {
     );
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
-
-    const graph = wrapper.find('LineGraph');
-    expect(graph).toHaveLength(0);
   });
 
   it('renders a 404', function() {
@@ -137,9 +134,6 @@ describe('EventsV2 > EventDetails', function() {
 
     const content = wrapper.find('EventHeader');
     expect(content.text()).toContain('Oh no something bad');
-
-    const graph = wrapper.find('LineGraph');
-    expect(graph).toHaveLength(1);
   });
 
   it('renders an alert when linked issues are missing', function() {
