@@ -64,6 +64,7 @@ const Tag = styled(
   color: ${p => (p.priority ? '#fff' : p.theme.gray800)};
   text-align: center;
   white-space: nowrap;
+  vertical-align: middle;
   align-items: center;
   border-radius: ${p => (p.size === 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
