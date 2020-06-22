@@ -37,6 +37,7 @@ from sentry.models import (
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import memoize
+from sentry_relay import PublicKey, RelayError
 
 ERR_DEFAULT_ORG = u"You cannot remove the default organization."
 ERR_NO_USER = u"This request requires an authenticated user."
@@ -127,22 +128,41 @@ class TrustedRelaySerializer(serializers.Serializer):
         return convert_dict_key_case(instance, snake_to_camel_case)
 
     def to_internal_value(self, data):
+
+        key_name = "{unknown}"
         try:
+            key_name = data.get(u"name")
+            public_key = data.get(u"publicKey")
+
+            PublicKey.parse(public_key)
+
+            if key_name is None:
+                raise serializers.ValidationError("missing relay key name")
+
+            key_name = key_name.strip()
+
+            if len(key_name) == 0:
+                raise serializers.ValidationError(
+                    "invalid relay key name, must be non empty string"
+                )
+
             ret_val = {
-                u"public_key": data.get(u"publicKey"),
-                u"name": data.get(u"name"),
+                u"public_key": public_key,
+                u"name": key_name,
                 u"description": data.get(u"description"),
             }
 
             return ret_val
-        except Exception:
-            return {}
-
-    # Note: 'created' and 'lastModified' are only returned by the API,
-    # their values are controlled by the server and are never consumed by the api as inputs
-    publicKey = serializers.CharField(required=True, allow_null=False, allow_blank=False)
-    name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+        except serializers.ValidationError:
+            raise
+        except RelayError as e:
+            raise serializers.ValidationError(
+                "Invalid relay key for trusted relay:{}, e:{}".format(key_name, e)
+            )
+        except Exception as e:
+            raise serializers.ValidationError(
+                "Could not serialize trusted relay:{}, e:{}".format(key_name, e)
+            )
 
 
 class OrganizationSerializer(serializers.Serializer):

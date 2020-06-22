@@ -30,6 +30,14 @@ from sentry.models import (
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
+# some relay keys
+_VALID_RELAY_KEYS = [
+    u"IbXZDWy8DcGLVoT_Z6-ODALEnsyhKiC_i-0r3azaztQ",
+    u"CZa3eDblYqBVoxK3O_4fr5WBbUmUVwc6FrRXbOQTPfk",
+    u"gyKnK-__yfEOweJ95sB1JoqAh6VlS4c_uIwsrrQ4G7E",
+    u"kSdr7ozq2T3gLg7FehJro2PH_NnNMJrrCslleKGZQd8",
+]
+
 
 class OrganizationDetailsTest(APITestCase):
     def test_simple(self):
@@ -144,8 +152,16 @@ class OrganizationDetailsTest(APITestCase):
         url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
         trusted_relays = [
-            {u"publicKey": u"key1", u"name": u"name1", u"description": u"description1"},
-            {u"publicKey": u"key2", u"name": u"name2", u"description": u"description2"},
+            {
+                u"publicKey": _VALID_RELAY_KEYS[0],
+                u"name": u"name1",
+                u"description": u"description1",
+            },
+            {
+                u"publicKey": _VALID_RELAY_KEYS[1],
+                u"name": u"name2",
+                u"description": u"description2",
+            },
         ]
 
         data = {"trustedRelays": trusted_relays}
@@ -304,7 +320,12 @@ class OrganizationUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
-        data = {"trustedRelays": [u"key1", u"key2"]}
+        data = {
+            "trustedRelays": [
+                {u"publicKey": _VALID_RELAY_KEYS[0], u"name": "name1"},
+                {u"publicKey": _VALID_RELAY_KEYS[1], u"name": "name2"},
+            ]
+        }
 
         response = self.client.put(url, data=data)
         assert response.status_code == 400
@@ -317,8 +338,16 @@ class OrganizationUpdateTest(APITestCase):
         url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
         trusted_relays = [
-            {u"publicKey": u"key1", u"name": u"name1", u"description": u"description1"},
-            {u"publicKey": u"key2", u"name": u"name2", u"description": u"description2"},
+            {
+                u"publicKey": _VALID_RELAY_KEYS[0],
+                u"name": u"name1",
+                u"description": u"description1",
+            },
+            {
+                u"publicKey": _VALID_RELAY_KEYS[1],
+                u"name": u"name2",
+                u"description": u"description2",
+            },
         ]
 
         data = {"trustedRelays": trusted_relays}
@@ -364,23 +393,43 @@ class OrganizationUpdateTest(APITestCase):
         url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
 
         initial_trusted_relays = [
-            {u"publicKey": u"key1", u"name": u"name1", u"description": u"description1"},
-            {u"publicKey": u"key2", u"name": u"name2", u"description": u"description2"},
-            {u"publicKey": u"key3", u"name": u"name3", u"description": u"description3"},
+            {
+                u"publicKey": _VALID_RELAY_KEYS[0],
+                u"name": u"name1",
+                u"description": u"description1",
+            },
+            {
+                u"publicKey": _VALID_RELAY_KEYS[1],
+                u"name": u"name2",
+                u"description": u"description2",
+            },
+            {
+                u"publicKey": _VALID_RELAY_KEYS[2],
+                u"name": u"name3",
+                u"description": u"description3",
+            },
         ]
 
         modified_trusted_relays = [
             # key1 was removed
             # key2 is not modified
-            {u"publicKey": u"key2", u"name": u"name2", u"description": u"description2"},
+            {
+                u"publicKey": _VALID_RELAY_KEYS[1],
+                u"name": u"name2",
+                u"description": u"description2",
+            },
             # key3 modified name & desc
             {
-                u"publicKey": u"key3",
+                u"publicKey": _VALID_RELAY_KEYS[2],
                 u"name": u"name3 modified",
                 u"description": u"description3 modified",
             },
             # key4 is new
-            {u"publicKey": u"key4", u"name": u"name4", u"description": u"description4"},
+            {
+                u"publicKey": _VALID_RELAY_KEYS[3],
+                u"name": u"name4",
+                u"description": u"description4",
+            },
         ]
 
         initial_settings = {"trustedRelays": initial_trusted_relays}
@@ -410,15 +459,15 @@ class OrganizationUpdateTest(APITestCase):
             created = dateutil.parser.parse(actual[i][u"created"])
             key = modified_trusted_relays[i][u"publicKey"]
 
-            if key == u"key2":
+            if key == _VALID_RELAY_KEYS[1]:
                 # key2 should have not been modified
                 assert start_time < created < after_initial
                 assert start_time < last_modified < after_initial
-            elif key == u"key3":
+            elif key == _VALID_RELAY_KEYS[2]:
                 # key3 should have been updated
                 assert start_time < created < after_initial
                 assert after_initial < last_modified < after_final
-            elif key == u"key4":
+            elif key == _VALID_RELAY_KEYS[3]:
                 # key4 is new
                 assert after_initial < created < after_final
                 assert after_initial < last_modified < after_final
@@ -775,7 +824,7 @@ from sentry.api.endpoints.organization_details import TrustedRelaySerializer
 def test_trusted_relays_option_serialization():
     # incoming raw data
     data = {
-        u"publicKey": u"key1",
+        u"publicKey": _VALID_RELAY_KEYS[0],
         u"name": u"Relay1",
         u"description": u"the description",
         u"lastModified": u"2020-05-20T20:21:22",
@@ -785,13 +834,29 @@ def test_trusted_relays_option_serialization():
     assert serializer.is_valid()
 
     expected_incoming = {
-        u"public_key": u"key1",
+        u"public_key": _VALID_RELAY_KEYS[0],
         u"name": u"Relay1",
         u"description": u"the description",
     }
 
     # check incoming deserialization (data will be further completed with date info the by server)
     assert serializer.validated_data == expected_incoming
+
+
+def test_trusted_relay_serializer_validation():
+    """
+        Tests that the public key is validated
+    """
+    # incoming raw data
+    data = {
+        u"publicKey": u"some_invalid_key",
+        u"name": u"Relay1",
+        u"description": u"the description",
+        u"lastModified": u"2020-05-20T20:21:22",
+        u"created": u"2020-01-17T11:12:13",
+    }
+    serializer = TrustedRelaySerializer(data=data)
+    assert not serializer.is_valid()
 
 
 def test_trusted_relays_option_deserialization():
