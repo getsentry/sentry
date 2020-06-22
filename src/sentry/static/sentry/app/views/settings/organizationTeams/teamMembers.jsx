@@ -17,7 +17,7 @@ import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IdBadge from 'app/components/idBadge';
-import {IconSubtract} from 'app/icons';
+import {IconSubtract, IconUser} from 'app/icons';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -298,7 +298,7 @@ class TeamMembers extends React.Component {
             );
           })
         ) : (
-          <EmptyMessage icon="icon-user" size="large">
+          <EmptyMessage icon={<IconUser size="xl" />} size="large">
             {t('This team has no members')}
           </EmptyMessage>
         )}

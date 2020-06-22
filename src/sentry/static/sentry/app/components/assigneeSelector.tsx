@@ -25,7 +25,7 @@ import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconChevron, IconUser} from 'app/icons';
 
 type Props = {
   id: string | null;
@@ -298,9 +298,9 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                 {assignedTo ? (
                   <ActorAvatar actor={assignedTo} className="avatar" size={24} />
                 ) : (
-                  <IconUser src="icon-user" />
+                  <StyledIconUser size="20px" color="gray600" />
                 )}
-                <StyledChevron src="icon-chevron-down" />
+                <StyledChevron direction="down" size="xs" />
               </DropdownButton>
             )}
           </DropdownAutoComplete>
@@ -350,11 +350,7 @@ const getSvgStyle = () => `
   opacity: 0.3;
 `;
 
-const IconUser = styled(InlineSvg)`
-  color: ${p => p.theme.gray600};
-  height: 20px;
-  width: 20px;
-
+const StyledIconUser = styled(IconUser)`
   /* We need this to center with Avatar */
   margin-right: 2px;
 `;
@@ -402,10 +398,8 @@ const InviteMemberIcon = styled(props => <IconAdd {...props} size="xs" isCircled
   ${getSvgStyle};
 `;
 
-const StyledChevron = styled(InlineSvg)`
+const StyledChevron = styled(IconChevron)`
   margin-left: ${space(1)};
-  width: 12px;
-  height: 12px;
 `;
 
 const DropdownButton = styled('div')`
