@@ -13,6 +13,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
+from sentry import options
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
@@ -38,6 +39,18 @@ FEATURES = [
     ),
 ]
 
+INSTALL_NOTICE_TEXT = (
+    "Visit the Vercel Marketplace to install this integration. After installing the"
+    " Sentry integration, you'll be redirected back to Sentry to finish syncing Vercel and Sentry projects."
+)
+
+
+external_install = {
+    "url": u"https://vercel.com/integrations/%s/add" % options.get("vercel.integration-slug"),
+    "buttonText": _("Vercel Marketplace"),
+    "noticeText": _(INSTALL_NOTICE_TEXT),
+}
+
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
@@ -46,7 +59,7 @@ metadata = IntegrationMetadata(
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=Vercel%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
-    aspects={},
+    aspects={"externalInstall": external_install},
 )
 
 internal_integration_overview = (
@@ -100,6 +113,7 @@ class VercelIntegrationProvider(IntegrationProvider):
     key = "vercel"
     name = "Vercel"
     requires_feature_flag = True
+    can_add = False
     metadata = metadata
     integration_cls = VercelIntegration
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
