@@ -138,13 +138,16 @@ class Results extends React.Component<Props, State> {
     this.setState({needConfirmation, confirmedQuery}, () => {
       this.setState({confirmedQuery: false});
     });
+    if (needConfirmation) {
+      this.openConfirm();
+    }
     this.fetchTotalCount(confirmedQuery);
   };
 
-  openConfirmModal = ({open}) => {
-    if (this.state.needConfirmation) {
-      open();
-    }
+  openConfirm = () => {};
+
+  setOpenFunction = ({open}) => {
+    this.openConfirm = open;
     return null;
   };
 
@@ -402,7 +405,7 @@ class Results extends React.Component<Props, State> {
                 </p>
               }
             >
-              {this.openConfirmModal}
+              {this.setOpenFunction}
             </Confirm>
           </LightWeightNoProjectMessage>
         </StyledPageContent>
