@@ -30,7 +30,6 @@ type Props = {
   visible?: boolean | ((props) => boolean);
   disabled?: boolean | ((props) => boolean);
   disabledReason?: string;
-  description?: string;
   flexibleControlStateSize?: boolean;
   label?: React.ReactNode;
   help?: React.ReactNode | React.ReactElement | Function;
