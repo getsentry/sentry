@@ -87,7 +87,7 @@ class Results extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {api, location, organization, selection} = this.props;
-    const {eventView} = this.state;
+    const {eventView, confirmedQuery} = this.state;
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
@@ -104,6 +104,8 @@ class Results extends React.Component<Props, State> {
         loadOrganizationTags(api, organization.slug, selection);
       }
     }
+
+    if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
   }
 
   canLoadEvents = async () => {
@@ -141,7 +143,6 @@ class Results extends React.Component<Props, State> {
     if (needConfirmation) {
       this.openConfirm();
     }
-    this.fetchTotalCount(confirmedQuery);
   };
 
   openConfirm = () => {};
@@ -155,22 +156,17 @@ class Results extends React.Component<Props, State> {
     this.setState({needConfirmation: false, confirmedQuery: true}, () => {
       this.setState({confirmedQuery: false});
     });
-    this.fetchTotalCount(true);
   };
 
   handleCancelled = () => {
     this.setState({needConfirmation: false, confirmedQuery: false});
   };
 
-  async fetchTotalCount(confirmedQuery: boolean) {
+  async fetchTotalCount() {
     const {api, organization, location} = this.props;
-    const {eventView} = this.state;
+    const {eventView, confirmedQuery} = this.state;
 
-    if (!confirmedQuery) {
-      this.setState({totalValues: null});
-      return;
-    }
-    if (!eventView.isValid()) {
+    if (confirmedQuery === false || !eventView.isValid()) {
       return;
     }
 
