@@ -51,6 +51,22 @@ storiesOf('Other|ScoreBar/UserMisery', module)
     ))
   )
   .add(
+    'near empty',
+    withInfo('Nearly empty state will still show 1 bar if there are any miserable users')(
+      () => (
+        <Container>
+          <UserMisery
+            bars={10}
+            barHeight={20}
+            miseryLimit={300}
+            miserableUsers={1}
+            totalUsers={1000}
+          />
+        </Container>
+      )
+    )
+  )
+  .add(
     'full',
     withInfo('Full state')(() => (
       <Container>
