@@ -17,6 +17,7 @@ import {getMessage, getTitle} from 'app/utils/events';
 import {Organization, Event, EventTag} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
+import Feature from 'app/components/acl/feature';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import EventMetadata from 'app/components/events/eventMetadata';
 import LoadingError from 'app/components/loadingError';
@@ -26,8 +27,14 @@ import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
+import {
+  ContentBox,
+  HeaderBox,
+  HeaderTopControls,
+  HeaderBottomControls,
+} from 'app/utils/discover/styles';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
-import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 
 import {generateTitle, getExpandedResults} from '../utils';
 import LinkedIssue from './linkedIssue';
@@ -135,6 +142,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
   renderContent(event: Event) {
     const {api, organization, location, eventView} = this.props;
+    const {isSidebarVisible} = this.state;
 
     // metrics
     trackAnalyticsEvent({
@@ -144,7 +152,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       organization_id: parseInt(organization.id, 10),
     });
 
-    const {isSidebarVisible} = this.state;
+    const transactionName = event.tags.find(tag => tag.key === 'transaction')?.value;
+    const transactionSummaryTarget =
+      event.type === 'transaction' && transactionName
+        ? transactionSummaryRouteWithQuery({
+            orgSlug: organization.slug,
+            transaction: transactionName,
+            projectID: event.projectID,
+            query: location.query,
+          })
+        : null;
 
     return (
       <React.Fragment>
@@ -155,10 +172,25 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             organization={organization}
             location={location}
           />
+          {transactionSummaryTarget && (
+            <Feature organization={organization} features={['performance-view']}>
+              {({hasFeature}) => (
+                <HeaderTopControls>
+                  <StyledButton
+                    disabled={!hasFeature}
+                    priority="primary"
+                    to={transactionSummaryTarget}
+                  >
+                    {t('Go to Summary')}
+                  </StyledButton>
+                </HeaderTopControls>
+              )}
+            </Feature>
+          )}
           <EventHeader event={event} />
           <HeaderBottomControls>
-            <StyledButton size="small" onClick={this.toggleSidebar}>
-              {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+            <StyledButton onClick={this.toggleSidebar}>
+              {isSidebarVisible ? t('Hide Details') : t('Show Details')}
             </StyledButton>
           </HeaderBottomControls>
         </HeaderBox>
@@ -215,7 +247,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
   }
 
-  renderError(error) {
+  renderError(error: Error) {
     const notFound = Object.values(this.state.errors).find(
       resp => resp && resp.status === 404
     );
@@ -239,6 +271,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return this.renderWrapper(super.renderLoading());
   }
 
+  // TODO(mark) convert this its sibling in performance to use renderComponent() provided by asynccomponent.
   renderWrapper(children: React.ReactNode) {
     const {organization, location, eventView} = this.props;
     const {event} = this.state;
@@ -306,7 +339,6 @@ const StyledButton = styled(Button)`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: block;
-    width: 110px;
   }
 `;
 
