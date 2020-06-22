@@ -377,6 +377,52 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         assert data[0]["transaction"] == event_data["transaction"]
 
     @patch("django.utils.timezone.now")
+    def test_get_transaction_with_aggregate_query(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+
+        transactions = [
+            ("127.0.0.1", "/foo_transaction/", 2),
+            ("192.168.0.1", "/blah_transaction/", 3),
+        ]
+
+        for ip_address, transaction, count in transactions:
+            event_data["transaction"] = transaction
+            event_data["user"]["ip_address"] = ip_address
+            for _ in range(count):
+                self.store_event(data=event_data, project_id=self.project.id)
+            KeyTransaction.objects.create(
+                owner=self.user,
+                organization=self.org,
+                transaction=event_data["transaction"],
+                project=self.project,
+            )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.get(
+                url,
+                {
+                    "project": [self.project.id],
+                    "orderby": "transaction",
+                    "query": "count():>2",
+                    "field": [
+                        "transaction",
+                        "transaction_status",
+                        "project",
+                        "count()",
+                        "failure_rate()",
+                        "percentile(transaction.duration, 0.95)",
+                    ],
+                },
+            )
+
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["transaction"] == event_data["transaction"]
+
+    @patch("django.utils.timezone.now")
     def test_get_transaction_with_backslash_and_quotes(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
