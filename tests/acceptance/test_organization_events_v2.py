@@ -385,11 +385,12 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             # Click on the 6th one as a missing instrumentation span is inserted.
             self.browser.find_elements_by_css_selector('[data-test-id="span-row"]')[6].click()
 
-            # Click on the child transaction.
+            # Wait until the child event loads.
             child_button = '[data-test-id="view-child-transaction"]'
             self.browser.wait_until(child_button)
             self.browser.snapshot("events-v2 - transactions event detail view")
 
+            # Click on the child transaction.
             self.browser.click(child_button)
             self.wait_until_loaded()
 
