@@ -358,23 +358,30 @@ class OrganizationUpdateTest(APITestCase):
             end_time = datetime.utcnow().replace(tzinfo=dateutil.tz.UTC)
 
             assert response.status_code == 200
+            response_data = response.data.get("trustedRelays")
 
         (option,) = OrganizationOption.objects.filter(organization=org, key="sentry:trusted-relays")
 
         actual = option.value
 
         assert len(actual) == len(trusted_relays)
+        assert len(response_data) == len(trusted_relays)
 
         for i in range(len(actual)):
             assert actual[i][u"public_key"] == trusted_relays[i][u"publicKey"]
             assert actual[i][u"name"] == trusted_relays[i][u"name"]
             assert actual[i][u"description"] == trusted_relays[i][u"description"]
+            assert response_data[i][u"publicKey"] == trusted_relays[i][u"publicKey"]
+            assert response_data[i][u"name"] == trusted_relays[i][u"name"]
+            assert response_data[i][u"description"] == trusted_relays[i][u"description"]
             # check that last_modified is in the correct range
             last_modified = dateutil.parser.parse(actual[i][u"last_modified"])
             assert start_time < last_modified < end_time
+            assert response_data[i][u"lastModified"] == actual[i][u"last_modified"]
             # check that created is in the correct range
             created = dateutil.parser.parse(actual[i][u"created"])
             assert start_time < created < end_time
+            assert response_data[i][u"created"] == actual[i][u"created"]
 
         log = AuditLogEntry.objects.get(organization=org)
         trusted_relay_log = log.data["trustedRelays"]
@@ -489,6 +496,35 @@ class OrganizationUpdateTest(APITestCase):
         # check that we have the new public keys somewhere in the modify operation log message
         for i in range(len(modified_trusted_relays)):
             assert modified_trusted_relays[i][u"publicKey"] in modif_log
+
+    def test_deleting_trusted_relays(self):
+        org = self.create_organization(owner=self.user)
+        AuditLogEntry.objects.filter(organization=org).delete()
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+
+        initial_trusted_relays = [
+            {
+                u"publicKey": _VALID_RELAY_KEYS[0],
+                u"name": u"name1",
+                u"description": u"description1",
+            },
+        ]
+
+        initial_settings = {"trustedRelays": initial_trusted_relays}
+
+        with self.feature("organizations:relay"):
+            self.client.put(url, data=initial_settings)
+            response = self.client.put(url, data={"trustedRelays": []})
+
+            assert response.status_code == 200
+            response_data = response.data.get("trustedRelays")
+
+        (option,) = OrganizationOption.objects.filter(organization=org, key="sentry:trusted-relays")
+        actual = option.value
+
+        assert len(actual) == 0
+        assert len(response_data) == 0
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)

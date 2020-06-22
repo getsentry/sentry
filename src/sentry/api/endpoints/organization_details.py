@@ -330,6 +330,9 @@ class OrganizationSerializer(serializers.Serializer):
                 option["last_modified"] = timestamp_now
                 modified = True
 
+        if len(incoming) == 0 and len(key_dict) != 0:
+            modified = True  # we have removed all keys
+
         if modified:
             # we have some modifications create a log message
             if existing is not None:
