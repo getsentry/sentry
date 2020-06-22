@@ -24,6 +24,7 @@ import withApi from 'app/utils/withApi';
 
 import {ProcessedSpanType, RawSpanType, ParsedTraceType, rawSpanKeys} from './types';
 import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
+import * as SpanEntryContext from './context';
 
 type TransactionResult = {
   'project.name': string;
@@ -38,7 +39,6 @@ type Props = {
   event: Readonly<SentryTransactionEvent>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
-  eventView: EventView;
   trace: Readonly<ParsedTraceType>;
   totalNumberOfErrors: number;
   spanErrors: TableDataRow[];
@@ -127,25 +127,36 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
-    const {span, orgId, trace, eventView, event, organization} = this.props;
+    const {span, orgId, trace, event, organization} = this.props;
 
     assert(!isGapSpan(span));
 
     if (this.state.transactionResults.length === 1) {
-      const parentTransactionLink = eventDetailsRoute({
-        eventSlug: generateSlug(this.state.transactionResults[0]),
-        orgSlug: this.props.orgId,
-      });
-
-      const to = {
-        pathname: parentTransactionLink,
-        query: eventView.generateQueryStringObject(),
-      };
+      const eventSlug = generateSlug(this.state.transactionResults[0]);
 
       return (
-        <StyledDiscoverButton data-test-id="view-child-transaction" size="xsmall" to={to}>
-          {t('View Child')}
-        </StyledDiscoverButton>
+        <SpanEntryContext.Consumer>
+          {({getViewChildTransactionTarget}) => {
+            const to = getViewChildTransactionTarget({
+              ...this.state.transactionResults![0],
+              eventSlug,
+            });
+
+            if (!to) {
+              return null;
+            }
+
+            return (
+              <StyledDiscoverButton
+                data-test-id="view-child-transaction"
+                size="xsmall"
+                to={to}
+              >
+                {t('View Child')}
+              </StyledDiscoverButton>
+            );
+          }}
+        </SpanEntryContext.Consumer>
       );
     }
 
