@@ -45,11 +45,11 @@ const Tag = styled(
     <div {...props}>
       {icon && (
         <IconWrapper>
-          {typeof icon === 'string' ? (
-            <InlineSvg src={icon} size="12px" />
-          ) : (
+          {React.isValidElement(icon) ? (
             React.cloneElement(icon, {size: 'xs'})
-          )}
+          ) : typeof icon === 'string' ? (
+            <InlineSvg src={icon} size="12px" />
+          ) : null}
         </IconWrapper>
       )}
       {children}
