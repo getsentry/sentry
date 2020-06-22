@@ -325,7 +325,7 @@ enum FieldKey {
 /**
  * Refer to src/sentry/snuba/events.py, search for Columns
  */
-export const FIELDS = {
+export const FIELDS: Readonly<Record<FieldKey, ColumnType>> = {
   [FieldKey.ID]: 'string',
   // issue.id and project.id are omitted on purpose.
   // Customers should use `issue` and `project` instead.
@@ -395,8 +395,7 @@ export const FIELDS = {
   // Field alises defined in src/sentry/api/event_search.py
   [FieldKey.PROJECT]: 'string',
   [FieldKey.ISSUE]: 'string',
-} as const;
-assert(FIELDS as Readonly<Record<FieldKey, ColumnType>>);
+};
 
 export type FieldTag = {
   key: FieldKey;
