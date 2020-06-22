@@ -27,7 +27,7 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
         if (rule[0] === '@') {
           const typeAndMethod = rule.slice(1).split(':');
           let [type] = typeAndMethod;
-          const [,method] = typeAndMethod;
+          const [, method] = typeAndMethod;
           if (type === 'urlauth') type = 'url_auth';
           if (type === 'usssn') type = 'us_ssn';
 
