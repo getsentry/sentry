@@ -5,15 +5,18 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization, SavedQuery} from 'app/types';
+import {Organization, SavedQuery, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
-import {IconBookmark, IconDelete} from 'app/icons';
+import {IconBookmark, IconDelete, IconSiren} from 'app/icons';
+import Feature from 'app/components/acl/feature';
 import EventView from 'app/utils/discover/eventView';
+import withProjects from 'app/utils/withProjects';
+import Tooltip from 'app/components/tooltip';
 
 import {getDiscoverLandingUrl} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
@@ -37,6 +40,7 @@ type Props = DefaultProps & {
   eventView: EventView;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
+  projects: Project[];
 };
 
 type State = {
@@ -286,9 +290,55 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     );
   }
 
+  renderButtonCreateAlert() {
+    const {eventView, organization, projects} = this.props;
+    // Must have exactly one project selected and not -1 (all projects)
+    const hasProjectError = eventView.project.length !== 1 || eventView.project[0] === -1;
+    // Must have one or zero environments
+    const hasEnvironmentError = eventView.environment.length > 1;
+    // Must have event.type of error or transaction
+    const hasEventTypeError =
+      !eventView.query.includes('event.type:error') &&
+      !eventView.query.includes('event.type:transaction');
+    const project = projects.find(p => p.id === String(eventView.project[0]));
+    const isDisabled = hasProjectError || hasEnvironmentError || hasEventTypeError;
+
+    // TODO(scttcper): Implement real design for errors
+    let errorText = '';
+    if (hasProjectError) {
+      errorText = 'One project must be selected';
+    } else if (hasEnvironmentError) {
+      errorText = 'One or all environments is required';
+    } else if (hasEventTypeError) {
+      errorText = 'Either event.type:error or event.type:transaction is required';
+    }
+
+    return (
+      <Feature features={['create-from-discover']} organization={organization}>
+        <Tooltip title={errorText} disabled={!isDisabled}>
+          <Button
+            disabled={isDisabled || project === undefined}
+            to={{
+              pathname: `/settings/${organization.slug}/projects/${project?.slug}/alerts/new/`,
+              query: {
+                ...eventView.generateQueryStringObject(),
+                createFromDiscover: true,
+              },
+            }}
+            icon={<IconSiren />}
+            data-test-id="discover2-create-from-discover"
+          >
+            {t('Create alert')}
+          </Button>
+        </Tooltip>
+      </Feature>
+    );
+  }
+
   render() {
     return (
       <ButtonGroup>
+        {this.renderButtonCreateAlert()}
         {this.renderButtonDelete()}
         {this.renderButtonSaveAs()}
         {this.renderButtonUpdate()}
@@ -341,4 +391,4 @@ const IconUpdate = styled('div')`
   background-color: ${p => p.theme.yellow500};
 `;
 
-export default withApi(SavedQueryButtonGroup);
+export default withProjects(withApi(SavedQueryButtonGroup));

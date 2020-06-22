@@ -155,5 +155,53 @@ describe('Discover -> CellAction', function() {
         '2020-06-09T01:46:25+00:00'
       );
     });
+
+    it('show appropriate actions for string cells', function() {
+      wrapper = makeWrapper(view, handleCellAction, 0);
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
+      ).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
+      ).toBeFalsy();
+      expect(
+        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
+      ).toBeFalsy();
+    });
+
+    it('show appropriate actions for number cells', function() {
+      wrapper = makeWrapper(view, handleCellAction, 1);
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeFalsy();
+      expect(
+        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
+      ).toBeFalsy();
+      expect(
+        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
+      ).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
+      ).toBeTruthy();
+    });
+
+    it('show appropriate actions for date cells', function() {
+      wrapper = makeWrapper(view, handleCellAction, 2);
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
+      ).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
+      ).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="show-values-less-than"]').exists()
+      ).toBeTruthy();
+    });
   });
 });
