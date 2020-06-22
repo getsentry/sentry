@@ -25,7 +25,9 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
         //   method: "remove"
         // }
         if (rule[0] === '@') {
-          let [type, method] = rule.slice(1).split(':');
+          const typeAndMethod = rule.slice(1).split(':');
+          let [type] = typeAndMethod;
+          const [,method] = typeAndMethod;
           if (type === 'urlauth') type = 'url_auth';
           if (type === 'usssn') type = 'us_ssn';
 
