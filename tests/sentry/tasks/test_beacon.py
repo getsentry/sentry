@@ -113,18 +113,34 @@ class SendBeaconTest(TestCase):
         with self.settings():
             send_beacon()
 
+        assert Broadcast.objects.count() == 1
+
         broadcast = Broadcast.objects.get(upstream_id=broadcast_id)
 
         assert broadcast.title == "Hello!"
         assert broadcast.message == "Hello world"
         assert broadcast.is_active
 
+        # ensure we arent duplicating the broadcast
+        with self.settings():
+            send_beacon()
+
+        assert Broadcast.objects.count() == 1
+
+        broadcast = Broadcast.objects.get(upstream_id=broadcast_id)
+
+        assert broadcast.title == "Hello!"
+        assert broadcast.message == "Hello world"
+        assert broadcast.is_active
+
+        # now remove it and it should become inactive
         safe_urlread.return_value = json.dumps({"notices": [], "version": {"stable": "1.0.0"}})
 
         with self.settings():
             send_beacon()
 
-        # test explicit disable
+        assert Broadcast.objects.count() == 1
+
         broadcast = Broadcast.objects.get(upstream_id=broadcast_id)
 
         assert not broadcast.is_active
