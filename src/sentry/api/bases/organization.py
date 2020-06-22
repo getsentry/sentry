@@ -22,7 +22,7 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
-from sentry.utils.sdk import bind_organization_context
+from sentry.utils.sdk import bind_organization_context, configure_scope
 from sentry.utils.compat import map
 
 
@@ -257,6 +257,9 @@ class OrganizationEndpoint(Endpoint):
         # from the request
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
+            if start and end:
+                with configure_scope() as scope:
+                    scope.set_tag("query.period", (end - start).total_seconds())
         except InvalidParams as e:
             raise ParseError(detail=u"Invalid date range: {}".format(e))
 
