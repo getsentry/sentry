@@ -66,10 +66,11 @@ export enum IncidentType {
 }
 
 export enum IncidentActivityType {
-  CREATED,
-  DETECTED,
-  STATUS_CHANGE,
-  COMMENT,
+  CREATED = 0,
+  DETECTED = 1,
+  STATUS_CHANGE = 2,
+  COMMENT = 3,
+  STARTED = 4,
 }
 
 export enum IncidentStatus {
