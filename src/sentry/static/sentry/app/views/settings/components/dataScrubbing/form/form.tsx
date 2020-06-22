@@ -46,10 +46,11 @@ const Form = ({
       <GroupField hasTwoColumns={rule.method === MethodType.REPLACE}>
         <Field
           label={t('Method')}
-          description={t('What to do')}
+          help={t('What to do')}
           inline={false}
           flexibleControlStateSize
           stacked
+          showHelpInTooltip
         >
           <SelectField
             placeholder={t('Select method')}
@@ -65,10 +66,11 @@ const Form = ({
         {rule.method === MethodType.REPLACE && (
           <Field
             label={t('Custom Placeholder (Optional)')}
-            description={t('It will replace the default placeholder [Filtered]')}
+            help={t('It will replace the default placeholder [Filtered]')}
             inline={false}
             flexibleControlStateSize
             stacked
+            showHelpInTooltip
           >
             <StyledTextField
               name="placeholder"
@@ -84,12 +86,13 @@ const Form = ({
       <GroupField hasTwoColumns={rule.type === RuleType.PATTERN}>
         <Field
           label={t('Data Type')}
-          description={t(
+          help={t(
             'What to look for. Use an existing pattern or define your own using regular expressions.'
           )}
           inline={false}
           flexibleControlStateSize
           stacked
+          showHelpInTooltip
         >
           <SelectField
             placeholder={t('Select type')}
@@ -105,11 +108,12 @@ const Form = ({
         {rule.type === RuleType.PATTERN && (
           <Field
             label={t('Regex matches')}
-            description={t('Custom Perl-style regex (PCRE)')}
+            help={t('Custom Perl-style regex (PCRE)')}
             inline={false}
             flexibleControlStateSize
             stacked
             required
+            showHelpInTooltip
           >
             <RegularExpression
               name="pattern"
@@ -129,13 +133,12 @@ const Form = ({
       )}
       <Field
         label={t('Source')}
-        description={t(
-          'Where to look. In the simplest case this can be an attribute name.'
-        )}
+        help={t('Where to look. In the simplest case this can be an attribute name.')}
         inline={false}
         flexibleControlStateSize
         stacked
         required
+        showHelpInTooltip
       >
         <SourceField
           onChange={(value: string) => {

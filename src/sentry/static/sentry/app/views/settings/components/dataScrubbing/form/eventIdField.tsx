@@ -108,12 +108,13 @@ class EventIdField extends React.Component<Props, State> {
     return (
       <Field
         label={t('Event ID (Optional)')}
-        description={t(
+        help={t(
           'Providing an event ID will automatically provide you a list of suggested sources'
         )}
         inline={false}
         flexibleControlStateSize
         stacked
+        showHelpInTooltip
       >
         <FieldWrapper>
           <StyledTextField

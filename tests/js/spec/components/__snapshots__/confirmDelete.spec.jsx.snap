@@ -67,6 +67,7 @@ exports[`ConfirmDelete renders 1`] = `
               ]
             }
             required={false}
+            showHelpInTooltip={false}
             visible={true}
           >
             <FieldWrapper

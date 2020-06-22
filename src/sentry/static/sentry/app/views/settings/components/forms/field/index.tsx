@@ -30,10 +30,10 @@ type Props = {
   visible?: boolean | ((props) => boolean);
   disabled?: boolean | ((props) => boolean);
   disabledReason?: string;
-  description?: string;
   flexibleControlStateSize?: boolean;
   label?: React.ReactNode;
   help?: React.ReactNode | React.ReactElement | Function;
+  showHelpInTooltip?: boolean;
   id?: string;
   children?: React.ReactNode | ChildrenFunction;
   controlClassName?: string;
@@ -81,9 +81,9 @@ class Field extends React.Component<Props> {
     disabledReason: PropTypes.string,
 
     /**
-     * Describes the field (displays in tooltip), requires a label to also be set.
+     * Displays the help element in the tooltip
      */
-    description: PropTypes.string,
+    showHelpInTooltip: PropTypes.bool,
 
     /**
      * Error message
@@ -150,6 +150,7 @@ class Field extends React.Component<Props> {
     disabled: false,
     required: false,
     visible: true,
+    showHelpInTooltip: false,
   };
 
   render() {
@@ -173,7 +174,7 @@ class Field extends React.Component<Props> {
       stacked,
       children,
       style,
-      description,
+      showHelpInTooltip,
     } = otherProps;
     const isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     const isVisible = typeof visible === 'function' ? visible(this.props) : visible;
@@ -225,14 +226,14 @@ class Field extends React.Component<Props> {
                   {label}
                   {required && <FieldRequiredBadge />}
                 </span>
-                {description && (
+                {helpElement && showHelpInTooltip && (
                   <FieldQuestion>
-                    <QuestionTooltip position="top" size="sm" title={description} />
+                    <QuestionTooltip position="top" size="sm" title={helpElement} />
                   </FieldQuestion>
                 )}
               </FieldLabel>
             )}
-            {helpElement && (
+            {helpElement && !showHelpInTooltip && (
               <FieldHelp stacked={stacked} inline={inline}>
                 {helpElement}
               </FieldHelp>
@@ -245,4 +246,5 @@ class Field extends React.Component<Props> {
     );
   }
 }
+
 export default Field;
