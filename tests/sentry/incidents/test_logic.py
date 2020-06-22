@@ -83,7 +83,7 @@ class CreateIncidentTest(TestCase):
     def test_simple(self):
         incident_type = IncidentType.ALERT_TRIGGERED
         title = "hello"
-        date_started = timezone.now()
+        date_started = timezone.now() - timedelta(minutes=5)
         alert_rule = create_alert_rule(
             self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
@@ -107,6 +107,12 @@ class CreateIncidentTest(TestCase):
         assert IncidentProject.objects.filter(
             incident=incident, project__in=[self.project]
         ).exists()
+        assert (
+            IncidentActivity.objects.filter(
+                incident=incident, type=IncidentActivityType.STARTED.value, date_added=date_started
+            ).count()
+            == 1
+        )
         assert (
             IncidentActivity.objects.filter(
                 incident=incident, type=IncidentActivityType.DETECTED.value
