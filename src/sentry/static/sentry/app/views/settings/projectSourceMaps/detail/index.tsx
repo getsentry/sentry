@@ -15,17 +15,18 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {IconReleases, IconChevron} from 'app/icons';
+import {IconReleases, IconChevron, IconDelete} from 'app/icons';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {decodeScalar} from 'app/utils/queryString';
+import Confirm from 'app/components/confirm';
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
-type RouteParams = {orgId: string; projectId: string; version: string};
+type RouteParams = {orgId: string; projectId: string; name: string};
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -38,9 +39,9 @@ type State = AsyncView['state'] & {
 
 class ProjectSourceMaps extends AsyncView<Props, State> {
   getTitle() {
-    const {projectId, version} = this.props.params;
+    const {projectId, name} = this.props.params;
 
-    return routeTitleGen(t('Source Maps %s', formatVersion(version)), projectId, false);
+    return routeTitleGen(t('Source Maps %s', formatVersion(name)), projectId, false);
   }
 
   getDefaultState(): State {
@@ -55,11 +56,9 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   }
 
   getArtifactsUrl() {
-    const {orgId, projectId, version} = this.props.params;
+    const {orgId, projectId, name} = this.props.params;
 
-    return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-      version
-    )}/files/`;
+    return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(name)}/files/`;
   }
 
   handleSearch = (query: string) => {
@@ -71,7 +70,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     });
   };
 
-  handleDelete = async (id: string) => {
+  handleArtifactDelete = async (id: string) => {
     addLoadingMessage(t('Removing artifact\u2026'));
 
     try {
@@ -82,6 +81,27 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
       addSuccessMessage(t('Artifact removed.'));
     } catch {
       addErrorMessage(t('Unable to remove artifact. Please try again.'));
+    }
+  };
+
+  handleArchiveDelete = async () => {
+    const {router, params} = this.props;
+    const {orgId, projectId, name} = params;
+
+    addLoadingMessage(t('Removing archive\u2026'));
+
+    try {
+      await this.api.requestPromise(
+        `/projects/${orgId}/${projectId}/files/source-maps/`,
+        {
+          method: 'DELETE',
+          query: {name},
+        }
+      );
+      addSuccessMessage(t('Archive removed.'));
+      router.replace(`/settings/${orgId}/projects/${projectId}/source-maps/`);
+    } catch {
+      addErrorMessage(t('Unable to remove archive. Please try again.'));
     }
   };
 
@@ -116,7 +136,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
         <SourceMapsArtifactRow
           key={artifact.id}
           artifact={artifact}
-          onDelete={this.handleDelete}
+          onDelete={this.handleArtifactDelete}
           downloadUrl={`${artifactApiUrl}${artifact.id}/?download=1`}
         />
       );
@@ -125,13 +145,13 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
   renderBody() {
     const {loading, artifacts, artifactsPageLinks} = this.state;
-    const {version, orgId, projectId} = this.props.params;
+    const {name, orgId, projectId} = this.props.params;
     const {project} = this.props;
 
     return (
       <React.Fragment>
         <SettingsPageHeader
-          title={t('Source Maps Archive %s', formatVersion(version))}
+          title={t('Source Maps Archive %s', formatVersion(name))}
           action={
             <ButtonBar gap={1}>
               <Button
@@ -144,12 +164,22 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
               <Button
                 size="small"
                 to={`/organizations/${orgId}/releases/${encodeURIComponent(
-                  version
+                  name
                 )}/?project=${project.id}`}
                 icon={<IconReleases size="xs" />}
               >
                 {t('View Release')}
               </Button>
+              <Confirm
+                message={t(
+                  'Are you sure you want to remove all artifacts in this archive?'
+                )}
+                onConfirm={this.handleArchiveDelete}
+              >
+                <Button size="small" icon={<IconDelete size="xs" />}>
+                  {t('Delete Archive')}
+                </Button>
+              </Confirm>
             </ButtonBar>
           }
         />
@@ -164,11 +194,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
         </Wrapper>
 
         <StyledPanelTable
-          headers={[
-            t('Artifact'),
-            t('Size'),
-            <Actions key="actions">{t('Actions')}</Actions>,
-          ]}
+          headers={[t('Artifact'), t('Size'), '']}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={artifacts.length === 0}
           isLoading={loading}
@@ -183,10 +209,6 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr 100px 150px;
-`;
-
-const Actions = styled('div')`
-  text-align: right;
 `;
 
 const Wrapper = styled('div')`

@@ -442,16 +442,16 @@ class SourceMapsEndpoint(ProjectEndpoint):
                                             archive belongs to.
         :pparam string project_slug: the slug of the project to delete the
                                         archive of.
-        :qparam string id: The id of the archive to delete.
+        :qparam string name: The name of the archive to delete.
         :auth: required
         """
 
-        archive_id = request.GET.get("id")
+        archive_name = request.GET.get("name")
 
-        if archive_id:
+        if archive_name:
             with transaction.atomic():
                 release = Release.objects.get(
-                    organization_id=project.organization_id, projects=project, id=archive_id
+                    organization_id=project.organization_id, projects=project, version=archive_name
                 )
                 if release is not None:
                     release_files = ReleaseFile.objects.filter(release=release)

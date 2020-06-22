@@ -9,7 +9,7 @@ import {IconClock, IconDelete, IconDownload} from 'app/icons';
 import ButtonBar from 'app/components/buttonBar';
 import FileSize from 'app/components/fileSize';
 import {Artifact} from 'app/types';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import Confirm from 'app/components/confirm';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
 
@@ -54,23 +54,25 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
                 disabled={hasAccess}
               >
                 <Button
-                  size="xsmall"
+                  size="small"
                   icon={<IconDownload size="xs" />}
                   disabled={!hasAccess}
                   href={downloadUrl}
-                >
-                  {t('Download')}
-                </Button>
+                  title={t('Download Artifact')}
+                />
               </Tooltip>
             )}
           </Access>
-          <LinkWithConfirmation
-            title={t('Delete artifact')}
+          <Confirm
             message={t('Are you sure you want to remove this artifact?')}
             onConfirm={handleDeleteClick}
           >
-            <Button size="xsmall" icon={<IconDelete size="xs" />} priority="danger" />
-          </LinkWithConfirmation>
+            <Button
+              size="small"
+              icon={<IconDelete size="xs" />}
+              title={t('Delete Artifact')}
+            />
+          </Confirm>
         </ButtonBar>
       </RightColumn>
     </React.Fragment>

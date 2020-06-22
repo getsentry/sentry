@@ -63,12 +63,12 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     });
   };
 
-  handleDelete = async (id: number) => {
+  handleDelete = async (name: string) => {
     addLoadingMessage(t('Removing archive\u2026'));
     try {
       await this.api.requestPromise(this.getArchivesUrl(), {
         method: 'DELETE',
-        query: {id},
+        query: {name},
       });
       this.fetchData();
       addSuccessMessage(t('Archive removed.'));
@@ -142,11 +142,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
         </Wrapper>
 
         <StyledPanelTable
-          headers={[
-            t('Archive'),
-            t('Artifacts'),
-            <Actions key="actions">{t('Actions')}</Actions>,
-          ]}
+          headers={[t('Archive'), t('Date Created'), t('Artifacts'), '']}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={archives.length === 0}
           isLoading={loading}
@@ -160,11 +156,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 100px 150px;
-`;
-
-const Actions = styled('div')`
-  text-align: right;
+  grid-template-columns: 1fr 1fr 0.5fr 100px;
 `;
 
 const Wrapper = styled('div')`
