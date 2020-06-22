@@ -40,7 +40,7 @@ FEATURES = [
 
 INSTALL_NOTICE_TEXT = (
     "Visit the Vercel Marketplace to install this integration. After installing the"
-    " Sentry integration, you'll be redirected to adding projects."
+    " Sentry integration, you'll be redirected back to Sentry to finish syncing Vercel and Sentry projects."
 )
 
 
