@@ -1,13 +1,9 @@
 from __future__ import absolute_import
 
-import six
-
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
 
-from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
+from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry import eventstore
-from sentry.snuba import discover
 from sentry.models.project import Project, ProjectStatus
 from sentry.api.serializers import serialize
 
@@ -18,16 +14,12 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_filter_params(request, organization)
-        except NoProjects:
-            return Response(status=404)
-
-        try:
             project = Project.objects.get(
                 slug=project_slug, organization_id=organization.id, status=ProjectStatus.VISIBLE
             )
         except Project.DoesNotExist:
             return Response(status=404)
+
         # Check access to the project as this endpoint doesn't use membership checks done
         # get_filter_params().
         if not request.access.has_project_access(project):
@@ -40,32 +32,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
-        reference = None
-        fields = [
-            field for field in request.query_params.getlist("field") if not field.strip() == ""
-        ]
-        if fields:
-            event_slug = u"{}:{}".format(project.slug, event_id)
-            reference = discover.ReferenceEvent(
-                organization, event_slug, fields, event.datetime, event.datetime
-            )
-        try:
-            pagination = discover.get_pagination_ids(
-                event=event,
-                query=request.query_params.get("query"),
-                params=params,
-                organization=organization,
-                reference_event=reference,
-                referrer="api.organization-event-details",
-            )
-        except discover.InvalidSearchQuery as err:
-            raise ParseError(detail=six.text_type(err))
-
         data = serialize(event)
-        data["nextEventID"] = pagination.next
-        data["previousEventID"] = pagination.previous
-        data["oldestEventID"] = pagination.oldest
-        data["latestEventID"] = pagination.latest
         data["projectSlug"] = project_slug
 
         return Response(data)
