@@ -611,6 +611,8 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         try:
             body = json.loads(response.data)
         except ValueError:
+            if response.status != 200:
+                raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(
                 u"Could not decode JSON response: {}".format(response.data)
             )
