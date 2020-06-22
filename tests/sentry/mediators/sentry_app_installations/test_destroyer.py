@@ -14,6 +14,7 @@ from sentry.models import (
     ApiToken,
     SentryAppInstallation,
     ServiceHook,
+    SentryAppInstallationForProvider,
 )
 from sentry.testutils import TestCase
 
@@ -81,6 +82,16 @@ class TestDestroyer(TestCase):
         destroyer.call()
 
         assert not ApiToken.objects.filter(pk=api_token.id).exists()
+
+    @responses.activate
+    def test_deletes_installation_provider(self):
+        SentryAppInstallationForProvider.objects.create(
+            sentry_app_installation=self.install, organization=self.org, provider="vercel"
+        )
+        responses.add(responses.POST, "https://example.com/webhook")
+        self.destroyer.call()
+
+        assert not SentryAppInstallationForProvider.objects.filter()
 
     @responses.activate
     @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")

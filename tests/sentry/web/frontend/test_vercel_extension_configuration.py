@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import responses
 from six.moves.urllib.parse import parse_qs
-from django.core.urlresolvers import reverse
 
 from sentry.testutils import TestCase
 from sentry.models import OrganizationMember
@@ -11,7 +10,7 @@ from sentry.models import OrganizationMember
 class VercelExtensionConfigurationTest(TestCase):
     @property
     def path(self):
-        return reverse("vercel-extension-configuration")
+        return u"/extensions/vercel/configure/"
 
     def setUp(self):
         self.user = self.create_user()

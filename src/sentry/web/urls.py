@@ -42,7 +42,6 @@ from sentry.web.frontend.unsubscribe_incident_notifications import (
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.vsts_extension_configuration import VstsExtensionConfigurationView
-from sentry.web.frontend.vercel_extension_configuration import VercelExtensionConfigurationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.project_event import ProjectEventRedirect
 
@@ -597,12 +596,6 @@ urlpatterns += [
         r"^extensions/vsts/configure/$",
         VstsExtensionConfigurationView.as_view(),
         name="vsts-extension-configuration",
-    ),
-    # vercel Marketplace extension install flow
-    url(
-        r"^extensions/vercel/configure/$",
-        VercelExtensionConfigurationView.as_view(),
-        name="vercel-extension-configuration",
     ),
     # Generic
     url(r"^$", HomeView.as_view(), name="sentry"),

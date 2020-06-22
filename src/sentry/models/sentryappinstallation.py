@@ -8,11 +8,25 @@ from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel, Model
-from sentry.models import Project
+from sentry.models import Project, DefaultFieldsModel
 
 
 def default_uuid():
     return six.text_type(uuid.uuid4())
+
+
+# connects a sentry app installation to an organization and a provider
+class SentryAppInstallationForProvider(DefaultFieldsModel):
+    __core__ = False
+
+    sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")
+    organization = FlexibleForeignKey("sentry.Organization")
+    provider = models.CharField(max_length=64)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_sentryappinstallationforprovider"
+        unique_together = (("provider", "organization"),)
 
 
 class SentryAppInstallationToken(Model):
