@@ -47,7 +47,7 @@ class Dialog extends React.Component<Props, State> {
       method: MethodType.MASK,
       source: DEFAULT_RULE_SOURCE_VALUE,
     },
-    isNewRule: defined(this.props.rule?.id),
+    isNewRule: !defined(this.props.rule?.id),
     isFormValid: false,
     errors: {},
   };

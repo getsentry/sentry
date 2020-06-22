@@ -1,4 +1,7 @@
+import React from 'react';
+
 import {t} from 'app/locale';
+import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'app/icons';
 
 import {ItemType, SearchGroup, SearchItem} from './types';
 
@@ -36,26 +39,26 @@ function getTitleForType(type: ItemType) {
 
 function getIconForTypeAndTag(type: ItemType, tagName: string) {
   if (type === 'recent-search') {
-    return 'icon-clock';
+    return <IconClock size="xs" />;
   }
 
   if (type === 'default') {
-    return 'icon-star-outline';
+    return <IconStar size="xs" />;
   }
 
   // Change based on tagName and default to "icon-tag"
   switch (tagName) {
     case 'is':
-      return 'icon-toggle';
+      return <IconToggle size="xs" />;
     case 'assigned':
     case 'bookmarks':
-      return 'icon-user';
+      return <IconUser size="xs" />;
     case 'firstSeen':
     case 'lastSeen':
     case 'event.timestamp':
-      return 'icon-av_timer';
+      return <IconClock size="xs" />;
     default:
-      return 'icon-tag';
+      return <IconTag size="xs" />;
   }
 }
 
@@ -82,7 +85,7 @@ export function createSearchGroups(
   const recentSearchGroup: SearchGroup | undefined = recentSearchItems && {
     title: t('Recent Searches'),
     type: 'header',
-    icon: 'icon-clock',
+    icon: <IconClock size="xs" />,
     children: [...recentSearchItems],
   };
 

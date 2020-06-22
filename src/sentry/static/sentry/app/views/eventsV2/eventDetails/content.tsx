@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
+import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -25,6 +26,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
+import {eventDetailsRoute} from 'app/utils/discover/urls';
 import {ContentBox, HeaderBox, HeaderBottomControls} from 'app/utils/discover/styles';
 
 import {generateTitle, getExpandedResults} from '../utils';
@@ -164,16 +166,31 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
-                <BorderlessEventEntries
-                  api={api}
-                  organization={organization}
-                  event={event}
-                  project={projects[0]}
-                  location={location}
-                  showExampleCommit={false}
-                  showTagSummary={false}
-                  eventView={eventView}
-                />
+                <SpanEntryContext.Provider
+                  value={{
+                    getViewChildTransactionTarget: childTransactionProps => {
+                      const childTransactionLink = eventDetailsRoute({
+                        eventSlug: childTransactionProps.eventSlug,
+                        orgSlug: organization.slug,
+                      });
+
+                      return {
+                        pathname: childTransactionLink,
+                        query: eventView.generateQueryStringObject(),
+                      };
+                    },
+                  }}
+                >
+                  <BorderlessEventEntries
+                    api={api}
+                    organization={organization}
+                    event={event}
+                    project={projects[0]}
+                    location={location}
+                    showExampleCommit={false}
+                    showTagSummary={false}
+                  />
+                </SpanEntryContext.Provider>
               )}
             </Projects>
           </div>
