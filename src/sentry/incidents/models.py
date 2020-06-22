@@ -219,7 +219,7 @@ class TimeSeriesSnapshot(Model):
 
     start = models.DateTimeField()
     end = models.DateTimeField()
-    values = ArrayField(of=ArrayField(models.IntegerField()))
+    values = ArrayField(of=ArrayField(models.FloatField()))
     period = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -234,7 +234,15 @@ class TimeSeriesSnapshot(Model):
         and 'count' keys.
         :return:
         """
-        return {"data": [{"time": time, "count": count} for time, count in self.values]}
+        # We store the values here as floats so that we can support percentage stats.
+        # We don't want to return the time as a float, and to keep things consistent
+        # with what Snuba returns we cast floats to ints when they're whole numbers.
+        return {
+            "data": [
+                {"time": int(time), "count": count if not count.is_integer() else int(count)}
+                for time, count in self.values
+            ]
+        }
 
 
 class IncidentActivityType(Enum):
