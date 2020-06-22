@@ -119,6 +119,11 @@ describe('OrganizationContext', function() {
     await tick();
     await tick();
     wrapper.update();
+
+    if (!wrapper.find('LoadingError').length) {
+      console.log(wrapper.debug()); // eslint-disable-line no-console
+    }
+
     expect(wrapper.find('LoadingError')).toHaveLength(1);
     console.error.mockRestore(); // eslint-disable-line no-console
   });
