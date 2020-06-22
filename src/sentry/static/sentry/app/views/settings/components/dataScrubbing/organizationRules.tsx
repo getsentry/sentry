@@ -60,7 +60,7 @@ class OrganizationRules extends React.Component<Props, State> {
         <Header onClick={this.handleToggleCollapsed}>
           <div>{t('Organization Rules')}</div>
           <Button
-            label={
+            title={
               isCollapsed
                 ? t('Expand Organization Rules')
                 : t('Collapse Organization Rules')
