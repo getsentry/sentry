@@ -1669,40 +1669,16 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <StyledScoreBar
-                                palette={
-                                  Array [
-                                    "#ec5e44",
-                                    "#f38259",
-                                    "#f9a66d",
-                                    "#98b480",
-                                    "#57be8c",
-                                  ]
-                                }
-                                radius={3}
                                 score={4}
-                                size={40}
-                                thickness={4}
                                 vertical={true}
                               >
                                 <ScoreBar
-                                  className="css-tics7q-StyledScoreBar eecxaw40"
-                                  palette={
-                                    Array [
-                                      "#ec5e44",
-                                      "#f38259",
-                                      "#f9a66d",
-                                      "#98b480",
-                                      "#57be8c",
-                                    ]
-                                  }
-                                  radius={3}
+                                  className="css-tics7q-StyledScoreBar e1h9dyli0"
                                   score={4}
-                                  size={40}
-                                  thickness={4}
                                   vertical={true}
                                 >
                                   <div
-                                    className="css-tics7q-StyledScoreBar eecxaw40"
+                                    className="css-tics7q-StyledScoreBar e1h9dyli0"
                                   >
                                     <Bar
                                       color="#98b480"
@@ -1713,7 +1689,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-1gui0xz-Bar eecxaw41"
+                                        className="css-1gui0xz-Bar e1h9dyli1"
                                         color="#98b480"
                                         radius={3}
                                         size={40}
@@ -1728,7 +1704,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-1gui0xz-Bar eecxaw41"
+                                        className="css-1gui0xz-Bar e1h9dyli1"
                                         color="#98b480"
                                         radius={3}
                                         size={40}
@@ -1743,7 +1719,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-1gui0xz-Bar eecxaw41"
+                                        className="css-1gui0xz-Bar e1h9dyli1"
                                         color="#98b480"
                                         radius={3}
                                         size={40}
@@ -1758,7 +1734,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-1gui0xz-Bar eecxaw41"
+                                        className="css-1gui0xz-Bar e1h9dyli1"
                                         color="#98b480"
                                         radius={3}
                                         size={40}
@@ -1773,7 +1749,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
                                         radius={3}
                                         size={40}
                                       />
@@ -1807,40 +1783,16 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <StyledScoreBar
-                                palette={
-                                  Array [
-                                    "#ec5e44",
-                                    "#f38259",
-                                    "#f9a66d",
-                                    "#98b480",
-                                    "#57be8c",
-                                  ]
-                                }
-                                radius={3}
                                 score={0}
-                                size={40}
-                                thickness={4}
                                 vertical={true}
                               >
                                 <ScoreBar
-                                  className="css-tics7q-StyledScoreBar eecxaw40"
-                                  palette={
-                                    Array [
-                                      "#ec5e44",
-                                      "#f38259",
-                                      "#f9a66d",
-                                      "#98b480",
-                                      "#57be8c",
-                                    ]
-                                  }
-                                  radius={3}
+                                  className="css-tics7q-StyledScoreBar e1h9dyli0"
                                   score={0}
-                                  size={40}
-                                  thickness={4}
                                   vertical={true}
                                 >
                                   <div
-                                    className="css-tics7q-StyledScoreBar eecxaw40"
+                                    className="css-tics7q-StyledScoreBar e1h9dyli0"
                                   >
                                     <Bar
                                       empty={true}
@@ -1851,7 +1803,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
                                         radius={3}
                                         size={40}
                                       />
@@ -1865,7 +1817,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
                                         radius={3}
                                         size={40}
                                       />
@@ -1879,7 +1831,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
                                         radius={3}
                                         size={40}
                                       />
@@ -1893,7 +1845,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
                                         radius={3}
                                         size={40}
                                       />
@@ -1907,7 +1859,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
                                         radius={3}
                                         size={40}
                                       />
