@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import {SourceMapsArchive} from 'app/types';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import {IconDelete, IconEdit} from 'app/icons';
+import {IconDelete} from 'app/icons';
 import ButtonBar from 'app/components/buttonBar';
 import Version from 'app/components/version';
 import Count from 'app/components/count';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
+import Link from 'app/components/links/link';
 
 type Props = {
   archive: SourceMapsArchive;
@@ -27,7 +28,9 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
     <React.Fragment>
       <Column>
         <Name>
-          <Version version={name} anchor={false} truncate />
+          <Link to={archiveLink}>
+            <Version version={name} anchor={false} truncate />
+          </Link>
         </Name>
       </Column>
       <Column>
@@ -38,12 +41,6 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
       </Column>
       <ActionsColumn>
         <ButtonBar gap={0.5}>
-          <Button
-            size="small"
-            icon={<IconEdit size="xs" />}
-            to={archiveLink}
-            title={t('Edit Archive')}
-          />
           <Confirm
             onConfirm={() => onDelete(name)}
             message={t('Are you sure you want to remove all artifacts in this archive?')}
