@@ -25,11 +25,18 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
         //   method: "remove"
         // }
         if (rule[0] === '@') {
-          const [type, method] = rule.slice(1).split(':') as [
-            RuleDefault['type'],
-            RuleDefault['method']
-          ];
-          convertedRules.push({id, method, type, source});
+          const typeAndMethod = rule.slice(1).split(':');
+          let [type] = typeAndMethod;
+          const [, method] = typeAndMethod;
+          if (type === 'urlauth') type = 'url_auth';
+          if (type === 'usssn') type = 'us_ssn';
+
+          convertedRules.push({
+            id,
+            method: method as RuleDefault['method'],
+            type: type as RuleDefault['type'],
+            source,
+          });
         }
         continue;
       }
