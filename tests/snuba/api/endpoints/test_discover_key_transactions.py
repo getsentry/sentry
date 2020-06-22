@@ -615,7 +615,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 3
+        assert len(response.data["data"]) == 2
         assert [{"count": 3}] in [attrs for time, attrs in response.data["data"]]
 
     @patch("django.utils.timezone.now")
@@ -689,9 +689,8 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 3
+        assert len(response.data["data"]) == 2
         assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 0}],
             [{"count": 0}],
             [{"count": 0}],
         ]
@@ -730,8 +729,8 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert len(response.data["epm()"]["data"]) == 3
-        assert len(response.data["eps()"]["data"]) == 3
+        assert len(response.data["epm()"]["data"]) == 2
+        assert len(response.data["eps()"]["data"]) == 2
         assert [{"count": 3.0 / (3600.0 / 60.0)}] in [
             attrs for time, attrs in response.data["epm()"]["data"]
         ]
@@ -767,15 +766,13 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert len(response.data["epm()"]["data"]) == 3
-        assert len(response.data["eps()"]["data"]) == 3
+        assert len(response.data["epm()"]["data"]) == 2
+        assert len(response.data["eps()"]["data"]) == 2
         assert [attrs for time, attrs in response.data["epm()"]["data"]] == [
-            [{"count": 0}],
             [{"count": 0}],
             [{"count": 0}],
         ]
         assert [attrs for time, attrs in response.data["eps()"]["data"]] == [
-            [{"count": 0}],
             [{"count": 0}],
             [{"count": 0}],
         ]
