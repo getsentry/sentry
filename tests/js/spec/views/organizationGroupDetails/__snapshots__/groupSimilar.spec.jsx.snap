@@ -1669,36 +1669,12 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <StyledScoreBar
-                                palette={
-                                  Array [
-                                    "#ec5e44",
-                                    "#f38259",
-                                    "#f9a66d",
-                                    "#98b480",
-                                    "#57be8c",
-                                  ]
-                                }
-                                radius={3}
                                 score={4}
-                                size={40}
-                                thickness={4}
                                 vertical={true}
                               >
                                 <ScoreBar
                                   className="css-tics7q-StyledScoreBar e1h9dyli0"
-                                  palette={
-                                    Array [
-                                      "#ec5e44",
-                                      "#f38259",
-                                      "#f9a66d",
-                                      "#98b480",
-                                      "#57be8c",
-                                    ]
-                                  }
-                                  radius={3}
                                   score={4}
-                                  size={40}
-                                  thickness={4}
                                   vertical={true}
                                 >
                                   <div
@@ -1807,36 +1783,12 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <StyledScoreBar
-                                palette={
-                                  Array [
-                                    "#ec5e44",
-                                    "#f38259",
-                                    "#f9a66d",
-                                    "#98b480",
-                                    "#57be8c",
-                                  ]
-                                }
-                                radius={3}
                                 score={0}
-                                size={40}
-                                thickness={4}
                                 vertical={true}
                               >
                                 <ScoreBar
                                   className="css-tics7q-StyledScoreBar e1h9dyli0"
-                                  palette={
-                                    Array [
-                                      "#ec5e44",
-                                      "#f38259",
-                                      "#f9a66d",
-                                      "#98b480",
-                                      "#57be8c",
-                                    ]
-                                  }
-                                  radius={3}
                                   score={0}
-                                  size={40}
-                                  thickness={4}
                                   vertical={true}
                                 >
                                   <div
