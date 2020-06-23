@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
 describe('handleXhrErrorResponse', function() {
