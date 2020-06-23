@@ -129,7 +129,7 @@ class JsonForm extends React.Component<Props, State> {
     }
   }
 
-  displayFormPanel = (fields: FieldObject[]) => {
+  shouldDisplayForm = (fields: FieldObject[]) => {
     const fieldsWithVisibleProp = fields.filter(
       field => typeof field !== 'function' && defined(field?.visible)
     ) as Array<Omit<Field, 'visible'> & Required<Pick<Field, 'visible'>>>;
@@ -150,7 +150,7 @@ class JsonForm extends React.Component<Props, State> {
     return true;
   };
 
-  renderFields = ({
+  renderForm = ({
     fields,
     formPanelProps,
     title,
@@ -168,9 +168,9 @@ class JsonForm extends React.Component<Props, State> {
       Pick<State, 'highlighted'>;
     title?: React.ReactNode;
   }) => {
-    const displayFormPanel = this.displayFormPanel(fields);
+    const shouldDisplayForm = this.shouldDisplayForm(fields);
 
-    if (!displayFormPanel) {
+    if (!shouldDisplayForm) {
       return null;
     }
 
@@ -207,12 +207,12 @@ class JsonForm extends React.Component<Props, State> {
         {typeof forms !== 'undefined' &&
           forms.map((formGroup, i) => (
             <React.Fragment key={i}>
-              {this.renderFields({formPanelProps, ...formGroup})}
+              {this.renderForm({formPanelProps, ...formGroup})}
             </React.Fragment>
           ))}
         {typeof forms === 'undefined' &&
           typeof fields !== 'undefined' &&
-          this.renderFields({fields, formPanelProps, title})}
+          this.renderForm({fields, formPanelProps, title})}
       </Box>
     );
   }
