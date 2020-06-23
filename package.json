@@ -22,6 +22,7 @@
     "@emotion/styled": "^10.0.27",
     "@sentry/apm": "5.18.0",
     "@sentry/integrations": "5.18.0",
+    "@sentry/react": "5.18.0",
     "@sentry/release-parser": "^0.6.0",
     "@sentry/rrweb": "^0.1.1",
     "@sentry/utils": "5.18.0",
