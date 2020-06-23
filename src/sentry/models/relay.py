@@ -33,15 +33,12 @@ class Relay(Model):
             return True
 
         trusted_relays = org.get_option("sentry:trusted-relays", [])
-        trusted_keys = [
-            key
-            for relay_info in trusted_relays
-            if relay_info is not None
-            for key in [relay_info.get("public_key")]
-            if key is not None and len(key) > 0
-        ]
-        # Use the normalized form of the public key for the check
-        return six.text_type(self.public_key_object) in trusted_keys
+        key = six.text_type(self.public_key_object)
+        keys = filter(
+            lambda info: info is not None and info.get(u"public_key") == key, trusted_relays
+        )
+
+        return len(keys) > 0
 
     @staticmethod
     def for_keys(keys):

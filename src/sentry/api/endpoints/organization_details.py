@@ -5,6 +5,7 @@ import six
 
 from datetime import datetime
 
+from dateutil.tz import UTC
 from rest_framework import serializers, status
 from uuid import uuid4
 
@@ -129,38 +130,30 @@ class TrustedRelaySerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
 
-        key_name = "{unknown}"
         try:
             key_name = data.get(u"name")
-
-            if key_name is None:
-                raise serializers.ValidationError("missing-name")
-
-            key_name = key_name.strip()
-
-            if len(key_name) == 0:
-                raise serializers.ValidationError("empty-name")
-
             public_key = data.get(u"publicKey", "")
+            description = data.get(u"description")
+        except AttributeError:
+            raise serializers.ValidationError("invalid-message")
 
-            if len(public_key) == 0:
-                raise serializers.ValidationError("missing-publiKey:{}".format(key_name))
+        if key_name is None:
+            raise serializers.ValidationError("missing-name")
 
+        key_name = key_name.strip()
+
+        if len(key_name) == 0:
+            raise serializers.ValidationError("empty-name")
+
+        if len(public_key) == 0:
+            raise serializers.ValidationError("missing-publicKey:{}".format(key_name))
+
+        try:
             PublicKey.parse(public_key)
-
-            ret_val = {
-                u"public_key": public_key,
-                u"name": key_name,
-                u"description": data.get(u"description"),
-            }
-
-            return ret_val
-        except serializers.ValidationError:
-            raise
         except RelayError:
             raise serializers.ValidationError("invalid-publicKey:{}".format(key_name))
-        except Exception:
-            raise serializers.ValidationError("invalid-message")
+
+        return {u"public_key": public_key, u"name": key_name, u"description": description}
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -296,9 +289,7 @@ class OrganizationSerializer(serializers.Serializer):
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
-        timestamp_now = (
-            datetime.utcnow().isoformat() + "Z"
-        )  # make it utc relative with set timezone
+        timestamp_now = datetime.utcnow().replace(tzinfo=UTC).isoformat()
         option_key = "sentry:trusted-relays"
         try:
             # get what we already have
@@ -320,7 +311,7 @@ class OrganizationSerializer(serializers.Serializer):
 
             # check if we modified the current public_key info and update last_modified if we did
             if (
-                existing_info.get("public_key") is None
+                not existing_info
                 or existing_info.get("name") != option.get("name")
                 or existing_info.get("description") != option.get("description")
             ):
