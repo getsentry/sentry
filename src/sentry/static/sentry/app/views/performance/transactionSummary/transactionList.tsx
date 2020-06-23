@@ -3,10 +3,11 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import DiscoverButton from 'app/components/discoverButton';
+import CreateAlertButton from 'app/components/createAlertButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
@@ -21,6 +22,7 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import withProjects from 'app/utils/withProjects';
 import {
   TOP_TRANSACTION_LIMIT,
   TOP_TRANSACTION_FILTERS,
@@ -34,9 +36,20 @@ type WrapperProps = {
   location: Location;
   organization: Organization;
   transactionName: string;
+  projects: Project[];
 };
 
-class TransactionList extends React.PureComponent<WrapperProps> {
+type State = {
+  incompatibleQuery:
+    | Parameters<React.ComponentProps<typeof CreateAlertButton>['onIncompatibleQuery']>[0]
+    | null;
+};
+
+class TransactionList extends React.Component<WrapperProps, State> {
+  state: State = {
+    incompatibleQuery: null,
+  };
+
   getTransactionSort(location: Location) {
     const urlParam = decodeScalar(location.query.showTransactions) || 'slowest';
     const option =
@@ -60,6 +73,25 @@ class TransactionList extends React.PureComponent<WrapperProps> {
     browserHistory.push(target);
   };
 
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = incompatibleQuery => {
+    this.setState({incompatibleQuery});
+  };
+
+  handleAlertClose = () => {
+    this.setState({incompatibleQuery: null});
+  };
+
+  handleCreateAlertClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.create_alert',
+      eventName: 'Performance Views: Create Alert from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
   handleDiscoverViewClick = () => {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -70,7 +102,8 @@ class TransactionList extends React.PureComponent<WrapperProps> {
   };
 
   render() {
-    const {eventView, location, organization, transactionName} = this.props;
+    const {eventView, location, organization, transactionName, projects} = this.props;
+    const {incompatibleQuery} = this.state;
     const activeFilter = this.getTransactionSort(location);
     const sortedEventView = eventView.withSorts([activeFilter.sort]);
 
@@ -102,8 +135,18 @@ class TransactionList extends React.PureComponent<WrapperProps> {
             >
               {t('Open in Discover')}
             </DiscoverButton>
+            <CreateAlertButton
+              eventView={eventView}
+              organization={organization}
+              projects={projects}
+              onIncompatibleQuery={this.handleIncompatibleQuery}
+              onSuccess={this.handleCreateAlertClick}
+              onClose={this.handleAlertClose}
+              size="small"
+            />
           </HeaderButtonContainer>
         </Header>
+        {incompatibleQuery}
         <DiscoverQuery
           location={location}
           eventView={sortedEventView}
@@ -281,6 +324,10 @@ const Header = styled('div')`
 const HeaderButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
+
+  > *:not(:last-child) {
+    margin-right: ${space(1)};
+  }
 `;
 
-export default TransactionList;
+export default withProjects(TransactionList);
