@@ -158,7 +158,7 @@ export const trackIntegrationEvent = (
       //Amplitude has it's own referrer which intefers with our custom referrer
       custom_referrer = referrer;
     }
-  } catch (_err) {
+  } catch {
     // ignore if this fails to parse
     // this can happen if we have an invalid query string
     // e.g. unencoded "%"
