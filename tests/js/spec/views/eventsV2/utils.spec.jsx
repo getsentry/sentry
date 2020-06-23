@@ -196,8 +196,8 @@ describe('getExpandedResults()', function() {
     let view = new EventView(state);
 
     let result = getExpandedResults(view, {}, {});
+    // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
-      {field: 'id', width: -1}, // expect count() to be converted to id
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
@@ -217,8 +217,8 @@ describe('getExpandedResults()', function() {
     });
 
     result = getExpandedResults(view, {}, {});
+    // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
-      {field: 'id', width: -1}, // expect count() to be converted to id
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
@@ -251,7 +251,6 @@ describe('getExpandedResults()', function() {
     result = getExpandedResults(view, {}, {});
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
-      {field: 'id', width: -1},
       {field: 'title'},
       {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
