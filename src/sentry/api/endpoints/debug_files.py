@@ -7,7 +7,7 @@ import logging
 import posixpath
 
 from django.db import transaction
-from django.db.models import Q, Count, Exists, OuterRef
+from django.db.models import Q, Count
 from django.http import StreamingHttpResponse, HttpResponse, Http404
 from rest_framework.response import Response
 from symbolic import normalize_debug_id, SymbolicError
@@ -382,13 +382,8 @@ class SourceMapsEndpoint(ProjectEndpoint):
         try:
             queryset = (
                 Release.objects.filter(projects=project, organization_id=project.organization_id)
-                .annotate(
-                    has_file=Exists(
-                        ReleaseFile.objects.filter(release=OuterRef("id")).values_list("id")
-                    )
-                )
-                .values("id", "version", "date_added")
-                .filter(has_file=True)
+                .annotate(file_count=Count("releasefile"))
+                .values("id", "version", "date_added", "file_count")
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
@@ -402,25 +397,14 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
             queryset = queryset.filter(query_q)
 
-        def expose_release(release, count):
+        def expose_release(release):
             return {
                 "type": "release",
                 "id": release["id"],
                 "name": release["version"],
                 "date": release["date_added"],
-                "fileCount": count,
+                "fileCount": release["file_count"],
             }
-
-        def serialize_results(results):
-            file_counts = (
-                Release.objects.filter(id__in=[r["id"] for r in results])
-                .annotate(count=Count("releasefile"))
-                .values("count", "id")
-            )
-            file_count_map = {r["id"]: r["count"] for r in file_counts}
-            return serialize(
-                [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
-            )
 
         return self.paginate(
             request=request,
@@ -428,7 +412,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
             default_per_page=10,
-            on_results=serialize_results,
+            on_results=lambda releases: serialize(
+                [expose_release(r) for r in releases], request.user
+            ),
         )
 
     def delete(self, request, project):
