@@ -41,6 +41,7 @@ type Props = DefaultProps & {
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
   projects: Project[];
+  updateCallback: () => void;
 };
 
 type State = {
@@ -162,12 +163,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView} = this.props;
+    const {api, organization, eventView, updateCallback} = this.props;
 
     handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
       const view = EventView.fromSavedQuery(savedQuery);
       this.setState({queryName: ''});
       browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
+      updateCallback();
     });
   };
 
