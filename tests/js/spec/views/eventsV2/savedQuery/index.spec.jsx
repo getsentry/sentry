@@ -27,6 +27,7 @@ function generateWrappedComponent(
       eventView={eventView}
       savedQuery={savedQuery}
       disabled={disabled}
+      updateCallback={() => {}}
     />,
     TestStubs.routerContext()
   );
