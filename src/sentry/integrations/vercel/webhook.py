@@ -63,6 +63,11 @@ class VercelWebhookEndpoint(Endpoint):
 
         logging_params = {"external_id": external_id, "vercel_project_id": vercel_project_id}
 
+        if payload["target"] != "production":
+            logger.info(
+                "Ignoring deployment for environment: %s" % payload["target"], extra=logging_params
+            )
+
         # Steps:
         # 1. find all og integrtions that match the external id
         # 2. search the configs to find one that matches the vercel project of the webhook
@@ -148,6 +153,7 @@ class VercelWebhookEndpoint(Endpoint):
                     logger.info("No commit sha", extra=logging_params)
                     return self.respond({"detail": "No commit sha"}, status=400)
 
+                # it would be great to use the URL of the deployment but it fails the validation check :(
                 data = {
                     "version": commit_sha,
                     "projects": [project.slug],
@@ -157,6 +163,7 @@ class VercelWebhookEndpoint(Endpoint):
                 logging_params["commit_sha"] = commit_sha
 
                 # hit the org releases endpoint using the authentication for the internal integration
+                json_error = None
                 try:
                     session = http.build_session()
                     resp = session.post(
@@ -168,11 +175,14 @@ class VercelWebhookEndpoint(Endpoint):
                             % sentry_app_installation_token.api_token.token,
                         },
                     )
+                    json_error = resp.json()
                     resp.raise_for_status()
                 except (ConnectionError, Timeout, HTTPError) as e:
                     # errors here should be uncommon but we should be aware of them
                     logger.error(
-                        "Error creating release: %s" % e, extra=logging_params, exc_info=True
+                        "Error creating release: %s - %s" % (e, json_error),
+                        extra=logging_params,
+                        exc_info=True,
                     )
                     # 400 probably isn't the right status code but oh well
                     return self.respond({"detail": "Error creating release: %s" % e}, status=400)
