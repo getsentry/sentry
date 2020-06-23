@@ -116,6 +116,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               label="Data source"
               orientInline
               required
+              disabled={disabled}
               choices={[
                 [Dataset.ERRORS, t('Errors')],
                 [Dataset.TRANSACTIONS, t('Transactions')],

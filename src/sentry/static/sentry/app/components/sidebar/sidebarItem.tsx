@@ -104,9 +104,10 @@ const SidebarItem = ({
       <StyledSidebarItem
         data-test-id={props['data-test-id']}
         active={isActive ? 'true' : undefined}
-        to={(to ? to : href) || ''}
+        to={(to ? to : href) || '#'}
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
+          !(to || href) && event.preventDefault();
           typeof onClick === 'function' && onClick(id, event);
           showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}

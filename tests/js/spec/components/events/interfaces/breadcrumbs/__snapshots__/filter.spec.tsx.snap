@@ -420,16 +420,16 @@ exports[`Filter default render 1`] = `
                   Object {
                     "alert": Object {
                       "error": Object {
-                        "background": "#e03e2f",
-                        "backgroundLight": "#FDF6F5",
-                        "border": "#FA5849",
-                        "iconColor": "#e03e2f",
-                        "textLight": "#FA5849",
+                        "background": "#FA4747",
+                        "backgroundLight": "#FFF5F7",
+                        "border": "#F4B1BB",
+                        "iconColor": "#FA4747",
+                        "textLight": "#F4B1BB",
                       },
                       "info": Object {
                         "background": "#3D74DB",
                         "backgroundLight": "#F5F9FF",
-                        "border": "#7199DD",
+                        "border": "#AFC7EE",
                         "iconColor": "#3D74DB",
                       },
                       "muted": Object {
@@ -441,19 +441,19 @@ exports[`Filter default render 1`] = `
                       "success": Object {
                         "background": "#4DC771",
                         "backgroundLight": "#F5FFFB",
-                        "border": "#4DC771",
+                        "border": "#8FE7BF",
                         "iconColor": "#1C8952",
                       },
                       "warn": Object {
                         "background": "#E2A301",
                         "backgroundLight": "#FFFDF5",
-                        "border": "#E2A301",
+                        "border": "#FFC227",
                         "iconColor": "#E2A301",
                       },
                       "warning": Object {
                         "background": "#E2A301",
                         "backgroundLight": "#FFFDF5",
-                        "border": "#E2A301",
+                        "border": "#FFC227",
                         "iconColor": "#E2A301",
                       },
                     },
@@ -716,6 +716,7 @@ exports[`Filter default render 1`] = `
                       "globalSelectionHeader": 1009,
                       "header": 1000,
                       "hovercard": 10002,
+                      "initial": 1,
                       "modal": 10000,
                       "orgAndUserMenu": 1030,
                       "sentryErrorEmbed": 1090,
@@ -1679,11 +1680,11 @@ exports[`Filter default render 1`] = `
                                   color="blue400"
                                 >
                                   <Component
-                                    className="css-1f6oxrn-Tag-StyledTag eio8trv0"
+                                    className="css-1dx7owx-Tag-StyledTag eio8trv0"
                                     color="blue400"
                                   >
                                     <div
-                                      className="css-1f6oxrn-Tag-StyledTag eio8trv0"
+                                      className="css-1dx7owx-Tag-StyledTag eio8trv0"
                                       color="blue400"
                                     >
                                       info
@@ -1765,11 +1766,11 @@ exports[`Filter default render 1`] = `
                                   color="red400"
                                 >
                                   <Component
-                                    className="css-1muivxw-Tag-StyledTag eio8trv0"
+                                    className="css-eius55-Tag-StyledTag eio8trv0"
                                     color="red400"
                                   >
                                     <div
-                                      className="css-1muivxw-Tag-StyledTag eio8trv0"
+                                      className="css-eius55-Tag-StyledTag eio8trv0"
                                       color="red400"
                                     >
                                       error

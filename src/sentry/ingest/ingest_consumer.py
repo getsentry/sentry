@@ -16,7 +16,7 @@ from django.core.cache import cache
 import sentry_sdk
 
 from sentry import eventstore, features, options
-from sentry.cache import default_cache
+
 from sentry.models import Project, File, EventAttachment
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
@@ -30,6 +30,7 @@ from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attach
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.event_manager import save_transaction_events
+from sentry.eventstore.processing import event_processing_store
 
 logger = logging.getLogger(__name__)
 
@@ -191,8 +192,7 @@ def _do_process_event(message, projects):
     # which assumes that data passed in is a raw dictionary.
     data = json.loads(payload)
 
-    cache_key = cache_key_for_event(data)
-    default_cache.set(cache_key, data, CACHE_TIMEOUT)
+    cache_key = event_processing_store.store(data)
 
     if attachments:
         attachment_objects = [
