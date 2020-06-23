@@ -171,7 +171,7 @@ class JsonForm extends React.Component<Props, State> {
     const displayFormPanel = this.displayFormPanel(fields);
 
     if (!displayFormPanel) {
-      return undefined;
+      return null;
     }
 
     return <FormPanel title={title} fields={fields} {...formPanelProps} />;
