@@ -20,14 +20,13 @@ class ZeroFillTest(unittest.TestCase):
         ]
         expected = buckets + zerofilled_buckets
         expected.sort(key=sort_key)
-
         assert zerofill(buckets, start, end, int(rollup.total_seconds())) == expected
 
     def test_missing_buckets(self):
         start = timezone.now().replace(minute=0, second=0, microsecond=0)
         rollup = timedelta(minutes=10)
         self.run_test(
-            [(0, [0]), (1, [1])], [], start, start + timedelta(minutes=60), rollup, [2, 3, 4, 5, 6]
+            [(0, [0]), (1, [1])], [], start, start + timedelta(minutes=60), rollup, [2, 3, 4, 5]
         )
         self.run_test(
             [(0, [0]), (2, [1]), (4, [4])],
@@ -35,7 +34,7 @@ class ZeroFillTest(unittest.TestCase):
             start,
             start + timedelta(minutes=60),
             rollup,
-            [1, 3, 5, 6],
+            [1, 3, 5],
         )
 
     def test_non_rollup_buckets(self):
@@ -50,5 +49,5 @@ class ZeroFillTest(unittest.TestCase):
             start=start,
             end=start + timedelta(minutes=60),
             rollup=rollup,
-            zerofilled_buckets=[2, 3, 4, 5, 6],
+            zerofilled_buckets=[2, 3, 4, 5],
         )

@@ -87,12 +87,14 @@ class QuerySubscriptionConsumer(object):
                 else:
                     updated_offset = partition.offset
                 self.offsets[partition.partition] = updated_offset
+            logger.info("query-subscription-consumer.on_assign", extra={"offsets": self.offsets})
 
         def on_revoke(consumer, partitions):
             partition_numbers = [partition.partition for partition in partitions]
             self.commit_offsets(partition_numbers)
             for partition_number in partition_numbers:
                 self.offsets.pop(partition_number, None)
+            logger.info("query-subscription-consumer.on_revoke", extra={"offsets": self.offsets})
 
         self.consumer = Consumer(conf)
         self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
@@ -131,6 +133,11 @@ class QuerySubscriptionConsumer(object):
         self.shutdown()
 
     def commit_offsets(self, partitions=None):
+        logger.info(
+            "query-subscription-consumer.commit_offsets",
+            extra={"offsets": self.offsets, "partitions": partitions},
+        )
+
         if self.offsets and self.consumer:
             if partitions is None:
                 partitions = self.offsets.keys()

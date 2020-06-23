@@ -5,10 +5,12 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {User} from 'app/types';
+import {IconShow} from 'app/icons';
 import {userDisplayName} from 'app/utils/formatters';
 import AvatarList from 'app/components/avatar/avatarList';
 import ConfigStore from 'app/stores/configStore';
 import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 
 type Props = {
   // Avatar size
@@ -62,7 +64,7 @@ const SeenByList = ({
       />
       <IconWrapper iconPosition={iconPosition}>
         <Tooltip title={iconTooltip}>
-          <EyeIcon className="icon-eye" />
+          <IconShow size="sm" color="gray400" />
         </Tooltip>
       </IconWrapper>
     </SeenByWrapper>
@@ -80,16 +82,11 @@ const IconWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
   background-color: transparent;
   color: ${p => p.theme.gray700};
   height: 28px;
-  width: 28px;
+  width: 24px;
   line-height: 26px;
   text-align: center;
+  padding-top: ${space(0.5)};
   ${p => (p.iconPosition === 'left' ? 'margin-right: 10px' : '')};
-`;
-
-const EyeIcon = styled('span')`
-  opacity: 0.4;
-  position: relative;
-  top: 2px;
 `;
 
 export default SeenByList;

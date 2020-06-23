@@ -59,7 +59,6 @@ class IntegrationExtensionConfigurationView(BaseView):
             # TODO(steve): we probably should check the user has permissions and show an error page if not
             pipeline = self.init_pipeline(request, organization, request.GET.dict())
             return pipeline.current_step()
-
         return self.redirect(
             u"/extensions/{}/link/?{}".format(self.provider, urlencode(request.GET.dict()))
         )
@@ -71,6 +70,7 @@ class IntegrationExtensionConfigurationView(BaseView):
 
         pipeline.initialize()
         pipeline.bind_state(self.provider, self.map_params_to_state(params))
+        pipeline.bind_state("user_id", request.user.id)
 
         return pipeline
 
