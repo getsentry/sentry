@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron} from 'app/icons';
 
 const StyledDivider = styled('span')`
   display: inline-block;
@@ -20,7 +20,7 @@ const StyledDivider = styled('span')`
       : ''};
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledIconChevron = styled(IconChevron)`
   display: block;
 `;
 
@@ -37,7 +37,7 @@ class Divider extends React.Component {
 
     return (
       <StyledDivider isHover={isHover}>
-        <StyledInlineSvg src="icon-chevron-right" size="14px" />
+        <StyledIconChevron direction="right" size="14px" />
       </StyledDivider>
     );
   }

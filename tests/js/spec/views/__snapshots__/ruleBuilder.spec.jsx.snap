@@ -536,24 +536,53 @@ exports[`RuleBuilder renders 1`] = `
         />
       </BuilderInput>
       <Divider
-        src="icon-chevron-right"
+        direction="right"
       >
-        <ForwardRef
-          className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
-          src="icon-chevron-right"
+        <IconChevron
+          className="css-15osf6z-Divider e1hyuoc79"
+          direction="right"
         >
-          <svg
-            className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
-            height="1em"
-            viewBox={Object {}}
-            width="1em"
+          <EmotionCssPropInternal
+            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+              Object {
+                "$$typeof": Symbol(react.forward_ref),
+                "propTypes": Object {
+                  "color": [Function],
+                  "size": [Function],
+                  "viewBox": [Function],
+                },
+                "render": [Function],
+              }
+            }
+            className="css-15osf6z-Divider e1hyuoc79"
+            css={
+              Object {
+                "map": undefined,
+                "name": "72rehw-IconChevron",
+                "next": undefined,
+                "styles": "transform:rotate(90deg);;label:IconChevron;",
+                "toString": [Function],
+              }
+            }
           >
-            <use
-              href="#test"
-              xlinkHref="#test"
-            />
-          </svg>
-        </ForwardRef>
+            <ForwardRef(SvgIcon)
+              className="e1hyuoc79 css-3y5g3p-IconChevron-Divider"
+            >
+              <svg
+                className="e1hyuoc79 css-3y5g3p-IconChevron-Divider"
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </ForwardRef(SvgIcon)>
+          </EmotionCssPropInternal>
+        </IconChevron>
       </Divider>
       <SelectOwnersWrapper>
         <div
@@ -1941,24 +1970,53 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         />
       </BuilderInput>
       <Divider
-        src="icon-chevron-right"
+        direction="right"
       >
-        <ForwardRef
-          className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
-          src="icon-chevron-right"
+        <IconChevron
+          className="css-15osf6z-Divider e1hyuoc79"
+          direction="right"
         >
-          <svg
-            className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
-            height="1em"
-            viewBox={Object {}}
-            width="1em"
+          <EmotionCssPropInternal
+            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+              Object {
+                "$$typeof": Symbol(react.forward_ref),
+                "propTypes": Object {
+                  "color": [Function],
+                  "size": [Function],
+                  "viewBox": [Function],
+                },
+                "render": [Function],
+              }
+            }
+            className="css-15osf6z-Divider e1hyuoc79"
+            css={
+              Object {
+                "map": undefined,
+                "name": "72rehw-IconChevron",
+                "next": undefined,
+                "styles": "transform:rotate(90deg);;label:IconChevron;",
+                "toString": [Function],
+              }
+            }
           >
-            <use
-              href="#test"
-              xlinkHref="#test"
-            />
-          </svg>
-        </ForwardRef>
+            <ForwardRef(SvgIcon)
+              className="e1hyuoc79 css-3y5g3p-IconChevron-Divider"
+            >
+              <svg
+                className="e1hyuoc79 css-3y5g3p-IconChevron-Divider"
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </ForwardRef(SvgIcon)>
+          </EmotionCssPropInternal>
+        </IconChevron>
       </Divider>
       <SelectOwnersWrapper>
         <div

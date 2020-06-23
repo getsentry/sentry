@@ -6,7 +6,7 @@ import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 import Badge from 'app/components/badge';
-import {IconDocs} from 'app/icons';
+import {IconChevron, IconDocs} from 'app/icons';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import Aggregations from '../aggregations';
@@ -16,7 +16,6 @@ import {
   PlaceholderText,
   SidebarLabel,
   DocsSeparator,
-  StyledInlineSvg,
   DiscoverDocs,
   DocsLabel,
   DocsLink,
@@ -161,13 +160,17 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
           <DiscoverDocs>
             <IconDocs size="sm" />
             <DocsLabel>{t('Discover Documentation')}</DocsLabel>
-            <StyledInlineSvg src="icon-chevron-right" size="1em" />
+            <StyledIconChevron direction="right" size="1em" />
           </DiscoverDocs>
         </DocsLink>
       </div>
     );
   }
 }
+
+const StyledIconChevron = styled(IconChevron)`
+  justify-content: flex-end;
+`;
 
 const Option = styled('div')`
   display: flex;
