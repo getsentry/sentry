@@ -380,11 +380,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
         query = request.GET.get("query")
 
         try:
-            queryset = (
-                Release.objects.filter(projects=project, organization_id=project.organization_id)
-                .annotate(file_count=Count("releasefile"))
-                .values("id", "version", "date_added", "file_count")
-            )
+            queryset = Release.objects.filter(
+                projects=project, organization_id=project.organization_id
+            ).values("id", "version", "date_added")
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -397,14 +395,25 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
             queryset = queryset.filter(query_q)
 
-        def expose_release(release):
+        def expose_release(release, count):
             return {
                 "type": "release",
                 "id": release["id"],
                 "name": release["version"],
                 "date": release["date_added"],
-                "fileCount": release["file_count"],
+                "fileCount": count,
             }
+
+        def serialize_results(results):
+            file_counts = (
+                Release.objects.filter(id__in=[r["id"] for r in results])
+                .annotate(count=Count("releasefile"))
+                .values("count", "id")
+            )
+            file_count_map = {r["id"]: r["count"] for r in file_counts}
+            return serialize(
+                [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
+            )
 
         return self.paginate(
             request=request,
@@ -412,9 +421,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
             default_per_page=10,
-            on_results=lambda releases: serialize(
-                [expose_release(r) for r in releases], request.user
-            ),
+            on_results=serialize_results,
         )
 
     def delete(self, request, project):
