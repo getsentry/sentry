@@ -311,7 +311,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
       expect(buttonCreateAlert.exists()).toBe(true);
-      expect(buttonCreateAlert.first().props().disabled).toBe(true);
     });
   });
 });

@@ -12,11 +12,12 @@ import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
-import {IconBookmark, IconDelete, IconSiren} from 'app/icons';
+import {IconBookmark, IconDelete} from 'app/icons';
 import Feature from 'app/components/acl/feature';
 import EventView from 'app/utils/discover/eventView';
 import withProjects from 'app/utils/withProjects';
-import Tooltip from 'app/components/tooltip';
+import CreateAlertButton from 'app/components/createAlertButton';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import {getDiscoverLandingUrl} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
@@ -41,6 +42,8 @@ type Props = DefaultProps & {
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
   projects: Project[];
+  handleIncompatibleAlertClose: () => void;
+  handleIncompatibleQuery: (alert: React.ReactNode) => void;
 };
 
 type State = {
@@ -185,6 +188,15 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     });
   };
 
+  handleCreateAlertSuccess = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.create_alert',
+      eventName: 'Discoverv2: Create alert from saved query',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
   renderButtonSaveAs() {
     const {disabled} = this.props;
     const {isNewQuery, isEditingQuery, queryName} = this.state;
@@ -291,46 +303,25 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {eventView, organization, projects} = this.props;
-    // Must have exactly one project selected and not -1 (all projects)
-    const hasProjectError = eventView.project.length !== 1 || eventView.project[0] === -1;
-    // Must have one or zero environments
-    const hasEnvironmentError = eventView.environment.length > 1;
-    // Must have event.type of error or transaction
-    const hasEventTypeError =
-      !eventView.query.includes('event.type:error') &&
-      !eventView.query.includes('event.type:transaction');
-    const project = projects.find(p => p.id === String(eventView.project[0]));
-    const isDisabled = hasProjectError || hasEnvironmentError || hasEventTypeError;
-
-    // TODO(scttcper): Implement real design for errors
-    let errorText = '';
-    if (hasProjectError) {
-      errorText = 'One project must be selected';
-    } else if (hasEnvironmentError) {
-      errorText = 'One or all environments is required';
-    } else if (hasEventTypeError) {
-      errorText = 'Either event.type:error or event.type:transaction is required';
-    }
+    const {
+      eventView,
+      organization,
+      projects,
+      handleIncompatibleQuery,
+      handleIncompatibleAlertClose,
+    } = this.props;
 
     return (
       <Feature features={['create-from-discover']} organization={organization}>
-        <Tooltip title={errorText} disabled={!isDisabled}>
-          <Button
-            disabled={isDisabled || project === undefined}
-            to={{
-              pathname: `/settings/${organization.slug}/projects/${project?.slug}/alerts/new/`,
-              query: {
-                ...eventView.generateQueryStringObject(),
-                createFromDiscover: true,
-              },
-            }}
-            icon={<IconSiren />}
-            data-test-id="discover2-create-from-discover"
-          >
-            {t('Create alert')}
-          </Button>
-        </Tooltip>
+        <CreateAlertButton
+          eventView={eventView}
+          organization={organization}
+          projects={projects}
+          onIncompatibleQuery={handleIncompatibleQuery}
+          onSuccess={this.handleCreateAlertSuccess}
+          onClose={handleIncompatibleAlertClose}
+          data-test-id="discover2-create-from-discover"
+        />
       </Feature>
     );
   }

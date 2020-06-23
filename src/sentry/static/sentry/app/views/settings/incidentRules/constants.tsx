@@ -48,10 +48,7 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
       .slice()
       .replace(/event\.type:(transaction|error)/, '')
       .trim(),
-    aggregate:
-      eventView.yAxis === 'count_unique(user)'
-        ? 'count_unique(tags[sentry:user])'
-        : DEFAULT_AGGREGATE,
+    aggregate: eventView.getYAxis(),
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }

@@ -23,6 +23,8 @@ type Props = {
   location: Location;
   errorCode: number;
   eventView: EventView;
+  handleIncompatibleAlertClose: () => void;
+  handleIncompatibleQuery: (alert: React.ReactNode) => void;
 };
 
 type State = {
@@ -63,7 +65,14 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location, errorCode, eventView} = this.props;
+    const {
+      organization,
+      location,
+      errorCode,
+      eventView,
+      handleIncompatibleAlertClose,
+      handleIncompatibleQuery,
+    } = this.props;
     const {savedQuery, loading} = this.state;
 
     const renderDisabled = p => (
@@ -108,6 +117,8 @@ class ResultsHeader extends React.Component<Props, State> {
                 savedQuery={savedQuery}
                 savedQueryLoading={loading}
                 disabled={!hasFeature || (errorCode >= 400 && errorCode < 500)}
+                handleIncompatibleAlertClose={handleIncompatibleAlertClose}
+                handleIncompatibleQuery={handleIncompatibleQuery}
               />
             )}
           </Feature>

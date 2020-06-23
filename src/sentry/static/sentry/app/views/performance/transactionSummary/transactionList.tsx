@@ -23,6 +23,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import withProjects from 'app/utils/withProjects';
+import Feature from 'app/components/acl/feature';
 import {
   TOP_TRANSACTION_LIMIT,
   TOP_TRANSACTION_FILTERS,
@@ -40,9 +41,7 @@ type WrapperProps = {
 };
 
 type State = {
-  incompatibleQuery:
-    | Parameters<React.ComponentProps<typeof CreateAlertButton>['onIncompatibleQuery']>[0]
-    | null;
+  incompatibleQuery: React.ReactNode;
 };
 
 class TransactionList extends React.Component<WrapperProps, State> {
@@ -73,9 +72,7 @@ class TransactionList extends React.Component<WrapperProps, State> {
     browserHistory.push(target);
   };
 
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
-  >['onIncompatibleQuery'] = incompatibleQuery => {
+  handleIncompatibleQuery = (incompatibleQuery: React.ReactNode) => {
     this.setState({incompatibleQuery});
   };
 
@@ -83,7 +80,7 @@ class TransactionList extends React.Component<WrapperProps, State> {
     this.setState({incompatibleQuery: null});
   };
 
-  handleCreateAlertClick = () => {
+  handleCreateAlertSuccess = () => {
     const {organization} = this.props;
     trackAnalyticsEvent({
       eventKey: 'performance_views.summary.create_alert',
@@ -135,15 +132,17 @@ class TransactionList extends React.Component<WrapperProps, State> {
             >
               {t('Open in Discover')}
             </DiscoverButton>
-            <CreateAlertButton
-              eventView={eventView}
-              organization={organization}
-              projects={projects}
-              onIncompatibleQuery={this.handleIncompatibleQuery}
-              onSuccess={this.handleCreateAlertClick}
-              onClose={this.handleAlertClose}
-              size="small"
-            />
+            <Feature features={['internal-catchall']}>
+              <CreateAlertButton
+                eventView={eventView}
+                organization={organization}
+                projects={projects}
+                onIncompatibleQuery={this.handleIncompatibleQuery}
+                onSuccess={this.handleCreateAlertSuccess}
+                onClose={this.handleAlertClose}
+                size="small"
+              />
+            </Feature>
           </HeaderButtonContainer>
         </Header>
         {incompatibleQuery}

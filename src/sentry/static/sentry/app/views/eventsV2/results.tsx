@@ -49,6 +49,7 @@ type State = {
   errorCode: number;
   totalValues: null | number;
   showTags: boolean;
+  incompatibleQuery: React.ReactNode;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -63,12 +64,13 @@ class Results extends React.Component<Props, State> {
     return {...prevState, eventView};
   }
 
-  state = {
+  state: State = {
     eventView: EventView.fromLocation(this.props.location),
     error: '',
     errorCode: 200,
     totalValues: null,
     showTags: readShowTagsState(),
+    incompatibleQuery: null,
   };
 
   componentDidMount() {
@@ -241,6 +243,14 @@ class Results extends React.Component<Props, State> {
     return url;
   };
 
+  handleIncompatibleQuery = (incompatibleQuery: React.ReactNode) => {
+    this.setState({incompatibleQuery});
+  };
+
+  handleIncompatibleAlertClose = () => {
+    this.setState({incompatibleQuery: null});
+  };
+
   renderError(error: string) {
     if (!error) {
       return null;
@@ -258,7 +268,14 @@ class Results extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router} = this.props;
-    const {eventView, error, errorCode, totalValues, showTags} = this.state;
+    const {
+      eventView,
+      error,
+      errorCode,
+      totalValues,
+      showTags,
+      incompatibleQuery,
+    } = this.state;
     const query = decodeScalar(location.query.query) || '';
     const title = this.getDocumentTitle();
 
@@ -271,9 +288,12 @@ class Results extends React.Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
+              handleIncompatibleQuery={this.handleIncompatibleQuery}
+              handleIncompatibleAlertClose={this.handleIncompatibleAlertClose}
             />
             <ContentBox>
               <Top>
+                {incompatibleQuery}
                 {this.renderError(error)}
                 <StyledSearchBar
                   organization={organization}

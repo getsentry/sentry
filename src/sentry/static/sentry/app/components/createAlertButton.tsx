@@ -8,6 +8,7 @@ import Button from 'app/components/button';
 import EventView from 'app/utils/discover/eventView';
 import Alert from 'app/components/alert';
 import space from 'app/styles/space';
+import {explodeFieldString} from 'app/utils/discover/fields';
 
 /**
  * Discover query supports more features than alert rules
@@ -34,6 +35,7 @@ type AlertProps = {
    * Called when the eventView does not meet the requirements of alert rules
    */
   incompatibleQuery: IncompatibleQueryProperties;
+  eventView: EventView;
   /**
    * Dismiss alert
    */
@@ -43,7 +45,7 @@ type AlertProps = {
 /**
  * Displays messages to the user on what needs to change in their query
  */
-function IncompatibleQueryAlert({incompatibleQuery, onClose}: AlertProps) {
+function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertProps) {
   const {
     hasProjectError,
     hasEnvironmentError,
@@ -59,10 +61,10 @@ function IncompatibleQueryAlert({incompatibleQuery, onClose}: AlertProps) {
         <React.Fragment>
           {hasProjectError && t('Select one project to create a new alert.')}
           {hasEnvironmentError &&
-            t('Select one or all Environments to create a new alert.')}
+            t('Select one or all environments to create a new alert.')}
           {hasEventTypeError &&
             tct(
-              'Select either [errors:event.type:error] or [transactions:event.type.transactions] to create a new alert.',
+              'Select either [errors:event.type:error] or [transactions:event.type:transaction] to create a new alert.',
               {
                 errors: <StyledCode />,
                 transactions: <StyledCode />,
@@ -70,10 +72,9 @@ function IncompatibleQueryAlert({incompatibleQuery, onClose}: AlertProps) {
             )}
           {hasYAxisError &&
             tct(
-              '[unique:count_unique(user)] on [transactions:event.type:transaction] is not supported by alerts just yet. Select a different metric below and try again.',
+              '[yAxis] is not supported by alerts just yet. Select a different metric below and try again.',
               {
-                unique: <StyledCode />,
-                transactions: <StyledCode />,
+                yAxis: <StyledCode>{eventView.getYAxis()}</StyledCode>,
               }
             )}
         </React.Fragment>
@@ -89,7 +90,7 @@ function IncompatibleQueryAlert({incompatibleQuery, onClose}: AlertProps) {
             {hasEventTypeError && (
               <li>
                 {tct(
-                  'Either [errors:event.type:error] or [transactions:event.type.transactions] is required',
+                  'Either [errors:event.type:error] or [transactions:event.type:transaction] is required',
                   {
                     errors: <StyledCode />,
                     transactions: <StyledCode />,
@@ -100,10 +101,9 @@ function IncompatibleQueryAlert({incompatibleQuery, onClose}: AlertProps) {
             {hasYAxisError && (
               <li>
                 {tct(
-                  '[unique:count_unique(user)] on [transactions:event.type:transaction] is not supported by alerts just yet. Select a different metric below and try again.',
+                  '[yAxis] is not supported by alerts just yet. Select a different metric below and try again.',
                   {
-                    unique: <StyledCode />,
-                    transactions: <StyledCode />,
+                    yAxis: <StyledCode>{eventView.getYAxis()}</StyledCode>,
                   }
                 )}
               </li>
@@ -125,6 +125,9 @@ function IncompatibleQueryAlert({incompatibleQuery, onClose}: AlertProps) {
 type Props = React.ComponentProps<typeof Button> & {
   className?: string;
   projects: Project[];
+  /**
+   * Discover query used to create the alert
+   */
   eventView: EventView;
   organization: Organization;
   /**
@@ -132,85 +135,112 @@ type Props = React.ComponentProps<typeof Button> & {
    */
   onIncompatibleQuery: (incompatibleQuery: React.ReactNode) => void;
   /**
+   * Called when the alert close button is clicked
+   */
+  onClose: () => void;
+  /**
    * Called when the user is redirected to the alert builder
    */
   onSuccess: () => void;
-  onClose: () => void;
 };
+
+const ALLOWED_AGGREGATE_FUNCTIONS = [
+  'count',
+  'count_unique',
+  'avg',
+  'percentile',
+  'failure_rate',
+  'apdex',
+  'count',
+  'p50',
+  'p75',
+  'p95',
+  'p99',
+  'p100',
+];
+
+const ALLOWED_AGGREGATE_ARGUMENTS = ['', 'user', 'transaction.duration'];
 
 /**
  * Provide a button that can create an alert from an event view.
  * Emits incompatible query issues on click
  */
-class CreateAlertButton extends React.Component<Props> {
-  render() {
-    const {
-      projects,
-      eventView,
-      organization,
-      onIncompatibleQuery,
-      onSuccess,
-      onClose,
-      ...buttonProps
-    } = this.props;
-    // Must have exactly one project selected and not -1 (all projects)
-    const hasProjectError = eventView.project.length !== 1 || eventView.project[0] === -1;
-    // Must have one or zero environments
-    const hasEnvironmentError = eventView.environment.length > 1;
-    // Must have event.type of error or transaction
-    const hasEventTypeError =
-      !eventView.query.includes('event.type:error') &&
-      !eventView.query.includes('event.type:transaction');
-    const project = projects.find(p => p.id === String(eventView.project[0]));
-    const errors: IncompatibleQueryProperties = {
-      hasProjectError,
-      hasEnvironmentError,
-      hasEventTypeError,
-      // TODO(scttcper): yAxis errors
-      hasYAxisError: false,
-    };
-    const hasErrors = Object.values(errors).some(x => x);
-    const to = hasErrors
-      ? undefined
-      : {
-          pathname: `/settings/${organization.slug}/projects/${project?.slug}/alerts/new/`,
-          query: {
-            ...eventView.generateQueryStringObject(),
-            createFromDiscover: true,
-          },
-        };
+function CreateAlertButton({
+  projects,
+  eventView,
+  organization,
+  onIncompatibleQuery,
+  onSuccess,
+  onClose,
+  ...buttonProps
+}: Props) {
+  // Must have exactly one project selected and not -1 (all projects)
+  const hasProjectError = eventView.project.length !== 1 || eventView.project[0] === -1;
+  // Must have one or zero environments
+  const hasEnvironmentError = eventView.environment.length > 1;
+  // Must have event.type of error or transaction
+  const hasEventTypeError =
+    !eventView.query.includes('event.type:error') &&
+    !eventView.query.includes('event.type:transaction');
+  // Only some yAxis selections work in alert rules
+  const column = explodeFieldString(eventView.getYAxis());
+  // yAxis must be a function and enabled on alerts
+  const hasYAxisError =
+    column.kind === 'field' ||
+    !ALLOWED_AGGREGATE_FUNCTIONS.includes(column.function[0]) ||
+    !ALLOWED_AGGREGATE_ARGUMENTS.includes(column.function[1]);
+  const errors: IncompatibleQueryProperties = {
+    hasProjectError,
+    hasEnvironmentError,
+    hasEventTypeError,
+    hasYAxisError,
+  };
+  const project = projects.find(p => p.id === String(eventView.project[0]));
+  const hasErrors = Object.values(errors).some(x => x);
+  const to = hasErrors
+    ? undefined
+    : {
+        pathname: `/settings/${organization.slug}/projects/${project?.slug}/alerts/new/`,
+        query: {
+          ...eventView.generateQueryStringObject(),
+          createFromDiscover: true,
+        },
+      };
 
-    const handleClick = (event: React.MouseEvent) => {
-      if (hasErrors) {
-        event.preventDefault();
-        onIncompatibleQuery(
-          <IncompatibleQueryAlert incompatibleQuery={errors} onClose={onClose} />
-        );
-        return;
-      }
+  const handleClick = (event: React.MouseEvent) => {
+    if (hasErrors) {
+      event.preventDefault();
+      onIncompatibleQuery(
+        <IncompatibleQueryAlert
+          incompatibleQuery={errors}
+          eventView={eventView}
+          onClose={onClose}
+        />
+      );
+      return;
+    }
 
-      onSuccess();
-    };
+    onSuccess();
+  };
 
-    return (
-      <Button
-        type="button"
-        icon={<IconSiren />}
-        to={to}
-        onClick={handleClick}
-        {...buttonProps}
-      >
-        {t('Create alert')}
-      </Button>
-    );
-  }
+  return (
+    <Button
+      type="button"
+      icon={<IconSiren />}
+      to={to}
+      onClick={handleClick}
+      {...buttonProps}
+    >
+      {t('Create alert')}
+    </Button>
+  );
 }
 
 export default CreateAlertButton;
 
 const StyledAlert = styled(Alert)`
   color: ${p => p.theme.gray700};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledUnorderedList = styled('ul')`
