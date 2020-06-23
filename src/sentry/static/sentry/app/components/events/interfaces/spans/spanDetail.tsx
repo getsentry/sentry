@@ -371,10 +371,10 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Span ID" extra={this.renderTraversalButton()}>
                 {span.span_id}
               </Row>
+              <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               <Row title="Trace ID" extra={this.renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               <Row title="Description">{span?.description ?? ''}</Row>
               <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
