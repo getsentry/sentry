@@ -132,19 +132,21 @@ class TrustedRelaySerializer(serializers.Serializer):
         key_name = "{unknown}"
         try:
             key_name = data.get(u"name")
-            public_key = data.get(u"publicKey")
-
-            PublicKey.parse(public_key)
 
             if key_name is None:
-                raise serializers.ValidationError("missing relay key name")
+                raise serializers.ValidationError("missing-name")
 
             key_name = key_name.strip()
 
             if len(key_name) == 0:
-                raise serializers.ValidationError(
-                    "invalid relay key name, must be non empty string"
-                )
+                raise serializers.ValidationError("empty-name")
+
+            public_key = data.get(u"publicKey", "")
+
+            if len(public_key) == 0:
+                raise serializers.ValidationError("missing-publiKey:{}".format(key_name))
+
+            PublicKey.parse(public_key)
 
             ret_val = {
                 u"public_key": public_key,
@@ -155,14 +157,10 @@ class TrustedRelaySerializer(serializers.Serializer):
             return ret_val
         except serializers.ValidationError:
             raise
-        except RelayError as e:
-            raise serializers.ValidationError(
-                "Invalid relay key for trusted relay:{}, e:{}".format(key_name, e)
-            )
-        except Exception as e:
-            raise serializers.ValidationError(
-                "Could not serialize trusted relay:{}, e:{}".format(key_name, e)
-            )
+        except RelayError:
+            raise serializers.ValidationError("invalid-publicKey:{}".format(key_name))
+        except Exception:
+            raise serializers.ValidationError("invalid-message")
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -304,11 +302,10 @@ class OrganizationSerializer(serializers.Serializer):
         option_key = "sentry:trusted-relays"
         try:
             # get what we already have
-            existing = OrganizationOption.objects.get(organization=organization, key=option_key)
-            if existing is not None:
-                key_dict = {val.get("public_key"): val for val in existing.value}
-            else:
-                key_dict = {}
+            existing = (
+                OrganizationOption.objects.get(organization=organization, key=option_key) or {}
+            )
+            key_dict = {val.get("public_key"): val for val in existing.value}
         except OrganizationOption.DoesNotExist:
             key_dict = {}  # we don't have anything set
             existing = None
