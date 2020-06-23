@@ -612,11 +612,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                [
-                    "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
-                    None,
-                    "failure_rate",
-                ],
+                ["failure_rate()", None, "failure_rate"],
                 ["argMax", ["event_id", "timestamp"], "latest_event"],
                 ["argMax", ["project_id", "timestamp"], "projectid"],
                 [
