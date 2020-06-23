@@ -157,7 +157,7 @@ class ProjectGeneralSettings extends AsyncView {
       newData.groupingConfig = latestGroupingConfig.id;
     }
     if (latestEnhancementsBase) {
-      newData.groupingEnhancementBases = latestEnhancementsBase.id;
+      newData.groupingEnhancementsBase = latestEnhancementsBase.id;
     }
 
     let riskNote;
