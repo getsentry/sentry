@@ -6,7 +6,6 @@ import omit from 'lodash/omit';
 
 import {Organization} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
@@ -84,7 +83,7 @@ class SummaryContent extends React.Component<Props> {
               location={location}
               transactionName={transactionName}
             />
-            <StyledTitleHeader>{transactionName}</StyledTitleHeader>
+            <Layout.Title>{transactionName}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>{this.renderKeyTransactionButton()}</Layout.HeaderActions>
         </Layout.Header>
@@ -138,17 +137,6 @@ class SummaryContent extends React.Component<Props> {
     );
   }
 }
-
-const StyledTitleHeader = styled('h2')`
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.gray700};
-  align-self: center;
-  min-height: 30px;
-  /* TODO(bootstrap) Remove !important when bootstrap is removed */
-  margin: ${space(3)} 0 0 0 !important;
-  ${overflowEllipsis};
-`;
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};

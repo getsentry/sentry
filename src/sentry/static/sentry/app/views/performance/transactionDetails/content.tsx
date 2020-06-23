@@ -1,7 +1,6 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
-import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
@@ -24,7 +23,6 @@ import Projects from 'app/utils/projects';
 import * as Layout from 'app/components/layouts/thirds';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 import {decodeScalar, appendTagCondition} from 'app/utils/queryString';
-import space from 'app/styles/space';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getTransactionDetailsUrl} from '../utils';
@@ -132,7 +130,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               transactionName={transactionName}
               eventSlug={eventSlug}
             />
-            <StyledTitle data-test-id="event-header">{event.title}</StyledTitle>
+            <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <Button onClick={this.toggleSidebar}>
@@ -222,13 +220,5 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
   }
 }
-
-const StyledTitle = styled('h2')`
-  color: ${p => p.theme.gray700};
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  /* TODO(bootstrap) remove !important when bootstrap is removed */
-  margin: ${space(3)} 0 0 0 !important;
-`;
 
 export default withApi(EventDetailsContent);

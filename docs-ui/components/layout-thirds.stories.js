@@ -31,7 +31,7 @@ storiesOf('Layouts|Thirds', module)
       <Container>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Heading>Some heading content</Heading>
+            <Layout.Title>Some heading content</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
         <Layout.Body>
@@ -53,7 +53,7 @@ storiesOf('Layouts|Thirds', module)
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
-            <Heading>Some heading content</Heading>
+            <Layout.Title>Some heading content</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -82,7 +82,7 @@ storiesOf('Layouts|Thirds', module)
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
-            <Heading>Heading text</Heading>
+            <Layout.Title>Heading text</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <MarginedButtonBar gap={1}>
@@ -117,7 +117,7 @@ storiesOf('Layouts|Thirds', module)
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
-            <Heading>Some heading content</Heading>
+            <Layout.Title>Some heading content</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -143,10 +143,6 @@ const Container = styled('div')`
   background: ${p => p.theme.gray200};
   margin: ${space(2)};
   border: 1px solid ${p => p.theme.gray400};
-`;
-
-const Heading = styled('h2')`
-  margin: 0;
 `;
 
 const MarginedButtonBar = styled(ButtonBar)`

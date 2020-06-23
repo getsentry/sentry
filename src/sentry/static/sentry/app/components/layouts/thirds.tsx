@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 /**
  * Base container for 66/33 containers.
@@ -32,17 +33,46 @@ export const HeaderContent = styled('div')`
   flex-direction: column;
   justify-content: normal;
   margin-bottom: ${space(2)};
-  overflow: auto;
+  overflow: hidden;
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: ${space(1)};
+  }
 `;
 
+/**
+ * Container for action buttons and secondary information that
+ * flows on the top right of the header.
+ */
 export const HeaderActions = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: normal;
+  min-width: max-content;
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     width: max-content;
     margin-bottom: ${space(2)};
+  }
+`;
+
+/**
+ * Heading container that includes margins.
+ */
+export const Title = styled('h2')`
+  font-size: ${p => p.theme.headerFontSize};
+  font-weight: normal;
+  line-height: 1.2;
+  color: ${p => p.theme.gray700};
+  margin-top: ${space(3)};
+  /* TODO(bootstrap) Remove important when bootstrap headings are removed */
+  margin-bottom: 0 !important;
+  min-height: 30px;
+  align-self: center;
+  ${overflowEllipsis};
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    margin-top: ${space(1)};
   }
 `;
 

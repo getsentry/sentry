@@ -8,7 +8,6 @@ import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
@@ -324,13 +323,13 @@ const EventHeader = (props: {event: Event}) => {
   const message = getMessage(props.event);
 
   return (
-    <StyledEventHeader data-test-id="event-header">
-      <StyledTitle>
+    <Layout.Title data-test-id="event-header">
+      <span>
         {title}
         {message && message.length > 0 ? ':' : null}
-      </StyledTitle>
-      <span>{getMessage(props.event)}</span>
-    </StyledEventHeader>
+      </span>
+      <EventSubheading>{getMessage(props.event)}</EventSubheading>
+    </Layout.Title>
   );
 };
 
@@ -340,19 +339,9 @@ const StyledHeaderActions = styled(Layout.HeaderActions)`
   }
 `;
 
-const StyledEventHeader = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: 1.2;
+const EventSubheading = styled('span')`
   color: ${p => p.theme.gray500};
-  align-self: center;
-  margin-top: ${space(3)};
-  ${overflowEllipsis};
-`;
-
-const StyledTitle = styled('span')`
-  color: ${p => p.theme.gray700};
-  margin-right: ${space(1)};
-  align-self: center;
+  margin-left: ${space(1)};
 `;
 
 export default withApi(EventDetailsContent);
