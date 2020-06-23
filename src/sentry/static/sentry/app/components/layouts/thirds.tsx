@@ -32,6 +32,7 @@ export const HeaderContent = styled('div')`
   flex-direction: column;
   justify-content: normal;
   margin-bottom: ${space(2)};
+  overflow: auto;
 `;
 
 export const HeaderActions = styled('div')`
