@@ -5,26 +5,26 @@ import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
 
 import theme from 'app/utils/theme';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconChevron, IconClose} from 'app/icons';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
 import SelectControlLegacy from './selectControlLegacy';
 
 const ClearIndicator = props => (
   <selectComponents.ClearIndicator {...props}>
-    <InlineSvg src="icon-close" size="10px" />
+    <IconClose size="10px" />
   </selectComponents.ClearIndicator>
 );
 
 const DropdownIndicator = props => (
   <selectComponents.DropdownIndicator {...props}>
-    <InlineSvg src="icon-chevron-down" size="14px" />
+    <IconChevron direction="down" size="14px" />
   </selectComponents.DropdownIndicator>
 );
 
 const MultiValueRemove = props => (
   <selectComponents.MultiValueRemove {...props}>
-    <InlineSvg src="icon-close" size="8px" />
+    <IconClose size="8px" />
   </selectComponents.MultiValueRemove>
 );
 
