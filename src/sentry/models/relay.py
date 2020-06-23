@@ -34,11 +34,12 @@ class Relay(Model):
 
         trusted_relays = org.get_option("sentry:trusted-relays", [])
         key = six.text_type(self.public_key_object)
-        keys = filter(
-            lambda info: info is not None and info.get(u"public_key") == key, trusted_relays
-        )
 
-        return len(keys) > 0
+        for relay_info in trusted_relays:
+            if relay_info is not None and relay_info.get(u"public_key") == key:
+                return True
+
+        return False
 
     @staticmethod
     def for_keys(keys):

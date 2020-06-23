@@ -230,10 +230,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "projectId") == default_project.id
     assert safe.get_path(cfg, "slug") == default_project.slug
     assert safe.get_path(cfg, "rev") is not None
-
-    trusted_relay = safe.get_path(cfg, "config", "trustedRelays")
-    public_keys = [relay_info.get("public_key") for relay_info in trusted_relay]
-    assert public_keys == [relay.public_key]
+    assert safe.get_path(cfg, "config", "trustedRelays") == [relay.public_key]
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubData") is not None

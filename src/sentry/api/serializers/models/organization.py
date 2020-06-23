@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 
 import six
+from rest_framework import serializers
+
+from sentry_relay.auth import PublicKey
+from sentry_relay.exceptions import RelayError
 
 from sentry import roles
 from sentry.app import quotas
@@ -35,6 +39,58 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
+
+
+class TrustedRelaySerializer(serializers.Serializer):
+    internal_external = (
+        (u"name", u"name"),
+        (u"description", u"description"),
+        (u"public_key", u"publicKey"),
+        (u"created", u"created"),
+        (u"last_modified", u"lastModified"),
+    )
+
+    def to_representation(self, instance):
+        ret_val = {}
+        for internal_key, external_key in TrustedRelaySerializer.internal_external:
+            val = instance.get(internal_key)
+            if val is not None:
+                ret_val[external_key] = val
+        return ret_val
+
+    def to_internal_value(self, data):
+        try:
+            key_name = data.get(u"name")
+            public_key = data.get(u"publicKey") or ""
+            description = data.get(u"description")
+        except AttributeError:
+            raise serializers.ValidationError("Bad structure received for Trusted Relays")
+
+        if key_name is None:
+            raise serializers.ValidationError("Relay key info with missing name in Trusted Relays")
+
+        key_name = key_name.strip()
+
+        if len(key_name) == 0:
+            raise serializers.ValidationError("Relay key info with empty name in Trusted Relays")
+
+        if len(public_key) == 0:
+            raise serializers.ValidationError(
+                "Missing public key for relay key info with name:'{}' in Trusted Relays".format(
+                    key_name
+                )
+            )
+
+        try:
+            PublicKey.parse(public_key)
+        except RelayError:
+            raise serializers.ValidationError(
+                "Invalid public key for relay key info with name:'{}' in Trusted Relays".format(
+                    key_name
+                )
+            )
+
+        return {u"public_key": public_key, u"name": key_name, u"description": description}
 
 
 @register(Organization)
@@ -210,6 +266,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 or None,
             }
         )
+
+        trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
+        # serialize trusted relays info into their external form
+        context["trustedRelays"] = [TrustedRelaySerializer(raw).data for raw in trusted_relays_raw]
+
         context["access"] = access.scopes
         if access.role is not None:
             context["role"] = access.role
