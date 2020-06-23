@@ -55,14 +55,24 @@ class VercelWebhookEndpoint(Endpoint):
             return self.respond(status=401)
 
         data = request.data
-        external_id = data.get("teamId") or data["userId"]
-
         payload = data["payload"]
         meta = payload["deployment"]["meta"]
+
+        external_id = data.get("teamId") or data["userId"]
         vercel_project_id = payload["projectId"]
 
         logging_params = {"external_id": external_id, "vercel_project_id": vercel_project_id}
 
+        # Steps:
+        # 1. find all og integrtions that match the external id
+        # 2. search the configs to find one that matches the vercel project of the webhook
+        # 3. Look up the Sentry project that matches
+        # 4. Look up the connected internal integration
+        # 5. find the token associated with that installation
+        # 6. Determine the commit sha and repo based on what provider is used
+        # 7. Hit the releases endpoint using the token we found earlier
+
+        # find all og integrtions that match the external id
         try:
             org_integrations = OrganizationIntegration.objects.select_related(
                 "organization"
@@ -71,6 +81,7 @@ class VercelWebhookEndpoint(Endpoint):
             logger.info("Integration not found", extra=logging_params)
             return self.respond({"detail": "Integration not found"}, status=404)
 
+        # for each org integration, search the configs to find one that matches the vercel project of the webhook
         for org_integration in org_integrations:
             project_mappings = org_integration.config.get("project_mappings") or []
             matched_mappings = filter(lambda x: x[1] == vercel_project_id, project_mappings)
@@ -80,6 +91,7 @@ class VercelWebhookEndpoint(Endpoint):
 
                 logging_params["sentry_project_id"] = sentry_project_id
 
+                # look up the project so we can get the slug
                 try:
                     project = Project.objects.get(id=sentry_project_id)
                 except Project.DoesNotExist:
@@ -88,6 +100,7 @@ class VercelWebhookEndpoint(Endpoint):
 
                 logging_params["organization_id"] = organization.id
 
+                # find the connected sentry app installation
                 try:
                     installation_for_provider = SentryAppInstallationForProvider.objects.select_related(
                         "sentry_app_installation"
@@ -101,6 +114,7 @@ class VercelWebhookEndpoint(Endpoint):
 
                 logging_params["sentry_app_installation_id"] = sentry_app_installation.id
 
+                # find a token associated with the installation so we can use it for authentication
                 try:
                     sentry_app_installation_token = (
                         SentryAppInstallationToken.objects.select_related("api_token")
@@ -111,13 +125,14 @@ class VercelWebhookEndpoint(Endpoint):
                     logger.info("Token not found", extra=logging_params)
                     return self.respond({"detail": "Token not found"}, status=404)
 
-                # TODO: add other proviers
+                # find the commmit sha so we can  use it as as the release
                 commit_sha = (
                     meta.get("githubCommitSha")
                     or meta.get("gitlabCommitSha")
                     or meta.get("bitbucketCommitSha")
                 )
 
+                # contruct the repo depeding what provider we use
                 if meta.get("githubCommitSha"):
                     # There is also githubRepo and githubRepo
                     repository = u"%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
@@ -130,7 +145,7 @@ class VercelWebhookEndpoint(Endpoint):
                 elif meta.get("bitbucketCommitSha"):
                     repository = u"%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
                 else:
-                    logger.info("Token not found", extra=logging_params)
+                    logger.info("No commit sha", extra=logging_params)
                     return self.respond({"detail": "No commit sha"}, status=400)
 
                 data = {
@@ -141,18 +156,18 @@ class VercelWebhookEndpoint(Endpoint):
                 logging_params["repository"] = repository
                 logging_params["commit_sha"] = commit_sha
 
-                session = http.build_session()
-                resp = session.post(
-                    absolute_uri("/api/0/organizations/%s/releases/" % organization.slug),
-                    json=data,
-                    headers={
-                        "Accept": "application/json",
-                        "Authorization": "Bearer %s"
-                        % sentry_app_installation_token.api_token.token,
-                    },
-                )
-
+                # hit the org releases endpoint using the authentication for the internal integration
                 try:
+                    session = http.build_session()
+                    resp = session.post(
+                        absolute_uri("/api/0/organizations/%s/releases/" % organization.slug),
+                        json=data,
+                        headers={
+                            "Accept": "application/json",
+                            "Authorization": "Bearer %s"
+                            % sentry_app_installation_token.api_token.token,
+                        },
+                    )
                     resp.raise_for_status()
                 except (ConnectionError, Timeout, HTTPError) as e:
                     # errors here should be uncommon but we should be aware of them
@@ -162,5 +177,6 @@ class VercelWebhookEndpoint(Endpoint):
                     # 400 probably isn't the right status code but oh well
                     return self.respond({"detail": "Error creating release: %s" % e}, status=400)
 
+                # we are going to quit after the first project match as there shouldn't be multiple matches
                 return self.respond(201)
-        return
+        return self.respond(202)
