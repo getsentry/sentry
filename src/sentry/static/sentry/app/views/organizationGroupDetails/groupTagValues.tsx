@@ -123,25 +123,26 @@ class GroupTagValues extends AsyncComponent<
     return (
       <React.Fragment>
         <Header>
-          {tag.key === 'user' ? t('Affected Users') : tag.name}
-          <BrowserExportButton
-            size="small"
-            priority="default"
-            href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
-          >
-            {t('Export Page to CSV')}
-          </BrowserExportButton>
-          <a />
-          <DataExport
-            payload={{
-              queryType: ExportQueryType.IssuesByTag,
-              queryInfo: {
-                project: group.project.id,
-                group: group.id,
-                key: tagKey,
-              },
-            }}
-          />
+          <HeaderTitle>{tag.key === 'user' ? t('Affected Users') : tag.name}</HeaderTitle>
+          <HeaderButtons>
+            <BrowserExportButton
+              size="small"
+              priority="default"
+              href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
+            >
+              {t('Export Page to CSV')}
+            </BrowserExportButton>
+            <DataExport
+              payload={{
+                queryType: ExportQueryType.IssuesByTag,
+                queryInfo: {
+                  project: group.project.id,
+                  group: group.id,
+                  key: tagKey,
+                },
+              }}
+            />
+          </HeaderButtons>
         </Header>
         <table className="table table-striped">
           <thead>
@@ -163,13 +164,28 @@ class GroupTagValues extends AsyncComponent<
     );
   }
 }
-const Header = styled('h3')`
+const Header = styled('div')`
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  margin: 0 0 20px;
+`;
+
+const HeaderTitle = styled('h3')`
+  margin: 0;
+`;
+
+const HeaderButtons = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
+  justify-items: end;
+  margin: 0px ${space(1.5)};
 `;
 
 const BrowserExportButton = styled(Button)`
-  margin: 0 ${space(1.5)};
+  display: flex;
+  align-items: center;
 `;
 
 const TableHeader = styled('th')<{width: number}>`
