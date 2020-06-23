@@ -1282,8 +1282,6 @@ def get_function_alias_with_columns(function_name, columns):
 
 
 def format_column_arguments(column, arguments):
-    if len(column) == 1:
-        return
     args = column[1]
     for i in range(len(args)):
         if isinstance(args[i], (list, tuple)):
