@@ -217,6 +217,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["id"] == "b" * 32
         assert data[0]["project.id"] == project.id
         assert data[0]["user.email"] == "foo@example.com"
+        assert "project.name" not in data[0], "project.id does not auto select name"
+        assert "project" not in data[0]
+
         meta = response.data["meta"]
         assert meta["id"] == "string"
         assert meta["user.email"] == "string"

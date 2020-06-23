@@ -1451,8 +1451,6 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     columns = []
     groupby = []
     project_key = ""
-    # Which column to map to project names
-    project_column = "project_id"
 
     # If project is requested, we need to map ids to their names since snuba only has ids
     if "project" in fields:
@@ -1485,7 +1483,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             columns.append("id")
         if not aggregations and "project.id" not in columns:
             columns.append("project.id")
-            project_column = "project_id"
+            project_key = PROJECT_NAME_ALIAS
 
     if project_key:
         # Check to see if there's a condition on project ID already, to avoid unnecessary lookups
@@ -1500,7 +1498,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
         aggregations.append(
             [
                 u"transform({}, array({}), array({}), '')".format(
-                    project_column,
+                    "project_id",
                     # Need to use join like this so we don't get a list including Ls which confuses clickhouse
                     ",".join([six.text_type(project["id"]) for project in projects]),
                     # Can't just format a list since we'll get u"string" instead of a plain 'string'
