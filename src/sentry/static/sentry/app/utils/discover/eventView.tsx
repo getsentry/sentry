@@ -536,20 +536,18 @@ class EventView {
 
   getDays(): number {
     const statsPeriod = decodeScalar(this.statsPeriod);
-    const start = decodeScalar(this.start);
-    const end = decodeScalar(this.end);
 
     if (statsPeriod && statsPeriod.endsWith('d')) {
       return parseInt(statsPeriod.slice(0, -1), 10);
     } else if (statsPeriod && statsPeriod.endsWith('h')) {
       return parseInt(statsPeriod.slice(0, -1), 10) / 24;
-    } else if (start && end) {
+    } else if (this.start && this.end) {
       return (
-        (new Date(end).getTime() - new Date(start).getTime()) / (24 * 60 * 60 * 1000)
+        (new Date(this.end).getTime() - new Date(this.start).getTime()) /
+        (24 * 60 * 60 * 1000)
       );
-    } else {
-      return 0;
     }
+    return 0;
   }
 
   clone(): EventView {

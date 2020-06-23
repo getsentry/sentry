@@ -123,10 +123,14 @@ class Results extends React.Component<Props, State> {
         projectLength === 0 ||
         (projectLength === 1 && currentQuery.project[0] === '-1')
       ) {
-        const results = await fetchProjectsCount(api, organization.slug);
+        try {
+          const results = await fetchProjectsCount(api, organization.slug);
 
-        if (projectLength === 0) projectLength = results.myProjects;
-        else projectLength = results.allProjects;
+          if (projectLength === 0) projectLength = results.myProjects;
+          else projectLength = results.allProjects;
+        } catch (err) {
+          // do nothing, so the length is 0 or 1 and the query is assumed safe
+        }
       }
 
       if (projectLength > 10) {
