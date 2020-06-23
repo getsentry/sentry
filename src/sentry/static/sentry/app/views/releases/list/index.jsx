@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 import styled from '@emotion/styled';
-
 import {withProfiler} from '@sentry/react';
+
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody} from 'app/components/panels';

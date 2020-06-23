@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+
 import ReleaseActions from 'app/actions/releaseActions';
 import {Client} from 'app/api';
 import ReleaseStore, {getReleaseStoreKey} from 'app/stores/releaseStore';

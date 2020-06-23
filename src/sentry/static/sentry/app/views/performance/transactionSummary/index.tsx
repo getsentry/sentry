@@ -4,8 +4,8 @@ import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-
 import * as Sentry from '@sentry/react';
+
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {fetchTotalCount} from 'app/actionCreators/events';

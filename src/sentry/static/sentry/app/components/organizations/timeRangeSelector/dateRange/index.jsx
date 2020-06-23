@@ -6,8 +6,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
-
 import * as Sentry from '@sentry/react';
+
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
 import {

@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
-
 import * as Sentry from '@sentry/react';
+
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';

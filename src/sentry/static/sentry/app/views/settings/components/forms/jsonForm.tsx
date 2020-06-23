@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import scrollToElement from 'scroll-to-element';
 import {Location} from 'history';
-
 import * as Sentry from '@sentry/react';
+
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 
 import {FieldObject, JsonFormObject} from './type';

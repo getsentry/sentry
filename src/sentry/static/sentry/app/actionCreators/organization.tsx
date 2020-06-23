@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {setActiveOrganization} from 'app/actionCreators/organizations';

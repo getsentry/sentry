@@ -4,7 +4,6 @@ import {Link as RouterLink} from 'react-router';
 import {Location, LocationDescriptor} from 'history';
 import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
-
 import * as Sentry from '@sentry/react';
 
 type AnchorProps = React.HTMLProps<HTMLAnchorElement>;

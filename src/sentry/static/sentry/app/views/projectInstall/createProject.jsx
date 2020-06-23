@@ -2,8 +2,8 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-
 import * as Sentry from '@sentry/react';
+
 import {inputStyles} from 'app/styles/input';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';

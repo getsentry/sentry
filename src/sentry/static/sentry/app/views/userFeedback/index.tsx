@@ -3,8 +3,8 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
-
 import {withProfiler} from '@sentry/react';
+
 import {Organization, UserReport} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {Panel, PanelBody} from 'app/components/panels';
