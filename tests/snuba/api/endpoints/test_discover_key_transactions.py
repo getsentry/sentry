@@ -632,7 +632,9 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     def test_key_transaction_stats(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         data = load_data(
-            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
+            "transaction",
+            timestamp=before_now(hours=1, minutes=30),
+            start_timestamp=before_now(hours=1, minutes=31),
         )
         event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
@@ -673,8 +675,8 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             "spans": [],
             "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
             "tags": {"important": "yes"},
-            "timestamp": iso_format(before_now(minutes=30)),
-            "start_timestamp": iso_format(before_now(minutes=31)),
+            "timestamp": iso_format(before_now(hours=1, minutes=30)),
+            "start_timestamp": iso_format(before_now(hours=1, minutes=31)),
         }
         fixtures = (("d" * 32, "yes"), ("e" * 32, "no"), ("f" * 32, "yes"))
         for fixture in fixtures:
@@ -713,7 +715,9 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     def test_key_transaction_stats_with_no_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         data = load_data(
-            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
+            "transaction",
+            timestamp=before_now(hours=1, minutes=30),
+            start_timestamp=before_now(hours=1, minutes=31),
         )
         event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
@@ -745,7 +749,9 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     def test_key_transaction_stats_with_multi_yaxis(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         data = load_data(
-            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
+            "transaction",
+            timestamp=before_now(hours=1, minutes=30),
+            start_timestamp=before_now(hours=1, minutes=31),
         )
         event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
@@ -788,7 +794,9 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     def test_key_transaction_stats_with_multi_yaxis_no_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         data = load_data(
-            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
+            "transaction",
+            timestamp=before_now(hours=1, minutes=30),
+            start_timestamp=before_now(hours=1, minutes=31),
         )
         event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
