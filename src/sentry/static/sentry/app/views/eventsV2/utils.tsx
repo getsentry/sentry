@@ -174,7 +174,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 // A map between aggregate function names and its un-aggregated form
 const TRANSFORM_AGGREGATES = {
   last_seen: 'timestamp',
-  latest_event: 'id',
+  latest_event: '',
   apdex: '',
   impact: '',
   user_misery: '',
@@ -226,7 +226,8 @@ export function getExpandedResults(
     let fieldNameAlias: string = '';
     if (exploded.kind === 'function' && isTransformAggregate(exploded.function[0])) {
       fieldNameAlias = exploded.function[0];
-    } else if (exploded.kind === 'field') {
+    } else if (exploded.kind === 'field' && exploded.field !== 'id') {
+      // Skip id fields as they are implicitly part of all non-aggregate results.
       fieldNameAlias = exploded.field;
     }
 
@@ -259,10 +260,12 @@ export function getExpandedResults(
     }
 
     if (exploded.kind === 'function') {
-      let field = exploded.function[1];
-      // edge case: transform count() into id
-      if (exploded.function[0] === 'count') {
-        field = 'id';
+      const field = exploded.function[1];
+
+      // Remove count an aggregates on id, as results have an implicit id in them.
+      if (exploded.function[0] === 'count' || field === 'id') {
+        fieldsToDelete.push(indexToUpdate);
+        return;
       }
 
       // if at least one of the parameters to the function is an available column,
@@ -278,7 +281,6 @@ export function getExpandedResults(
         fieldsToDelete.push(indexToUpdate);
         return;
       }
-
       transformedFields.add(field);
 
       const updatedColumn: Column = {
