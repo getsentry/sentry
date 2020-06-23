@@ -1282,6 +1282,8 @@ def get_function_alias_with_columns(function_name, columns):
 
 
 def format_column_arguments(column, arguments):
+    if len(column) == 1:
+        return
     args = column[1]
     for i in range(len(args)):
         if isinstance(args[i], (list, tuple)):
@@ -1404,7 +1406,11 @@ def resolve_orderby(orderby, fields, aggregations):
             validated.append(prefix + bare_column)
             continue
 
-        if bare_column in FIELD_ALIASES and FIELD_ALIASES[bare_column].get("column_alias"):
+        if (
+            bare_column in FIELD_ALIASES
+            and FIELD_ALIASES[bare_column].get("column_alias")
+            and bare_column != PROJECT_ALIAS
+        ):
             prefix = "-" if column.startswith("-") else ""
             validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
             continue
@@ -1495,8 +1501,6 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
         if aggregations and "project.id" not in columns:
             aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])
             project_column = "projectid"
-        if project_key == "":
-            project_key = PROJECT_NAME_ALIAS
 
     if project_key:
         # Check to see if there's a condition on project ID already, to avoid unnecessary lookups
@@ -1508,17 +1512,20 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
 
         project_ids = filtered_project_ids or snuba_filter.filter_keys.get("project_id", [])
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
-        aggregations.append(
+        columns.append(
             [
-                u"transform({}, array({}), array({}), '')".format(
-                    project_column,
-                    # Need to use join like this so we don't get a list including Ls which confuses clickhouse
-                    ",".join([six.text_type(project["id"]) for project in projects]),
-                    # Can't just format a list since we'll get u"string" instead of a plain 'string'
-                    ",".join([u"'{}'".format(project["slug"]) for project in projects]),
-                ),
-                None,
-                project_key,
+                "transform",
+                [
+                    # This is a workaround since having the column by itself currently is being treated as a function
+                    ["toString", [project_column]],
+                    ["array", [u"'{}'".format(project["id"]) for project in projects]],
+                    ["array", [u"'{}'".format(project["slug"]) for project in projects]],
+                    # Default case, what to do if a project id without a slug is found
+                    "''",
+                ],
+                # Need to explicitly state this is a column with backticks.
+                # Otherwise clickhouse can't parse project.name
+                "`{}`".format(project_key),
             ]
         )
 
@@ -1534,7 +1541,11 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     if aggregations:
         for column in columns:
             if isinstance(column, (list, tuple)):
-                groupby.append(column[2])
+                if column[0] == "transform":
+                    # Remove the backticks from the project transform alias
+                    groupby.append(column[2].strip("`"))
+                else:
+                    groupby.append(column[2])
             else:
                 groupby.append(column)
 
