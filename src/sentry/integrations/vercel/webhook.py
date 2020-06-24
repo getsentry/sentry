@@ -202,5 +202,5 @@ class VercelWebhookEndpoint(Endpoint):
                     return self.respond({"detail": "Error setting refs: %s" % e}, status=400)
 
                 # we are going to quit after the first project match as there shouldn't be multiple matches
-                return self.respond(400)
+                return self.respond(201)
         return self.respond(202)
