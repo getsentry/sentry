@@ -52,10 +52,10 @@ describe('PercentageTableChart', function() {
 
       expect(
         wrapper
-          .find('TableChartRow CountColumn DeltaCaret')
+          .find('TableChartRow CountColumn IconChevron')
           .at(0)
           .prop('direction')
-      ).toBeGreaterThan(0);
+      ).toEqual('up');
 
       expect(
         wrapper
@@ -73,10 +73,10 @@ describe('PercentageTableChart', function() {
 
       expect(
         wrapper
-          .find('TableChartRow CountColumn DeltaCaret')
+          .find('TableChartRow CountColumn IconChevron')
           .at(1)
           .prop('direction')
-      ).toBeLessThan(0);
+      ).toEqual('down');
 
       expect(
         wrapper

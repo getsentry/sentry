@@ -7,8 +7,7 @@ import memberListStore from 'app/stores/memberListStore';
 import Button from 'app/components/button';
 import SelectField from 'app/components/forms/selectField';
 import TextOverflow from 'app/components/textOverflow';
-import InlineSvg from 'app/components/inlineSvg';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconChevron} from 'app/icons';
 import Input from 'app/views/settings/components/forms/controls/input';
 import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -170,7 +169,7 @@ class RuleBuilder extends React.Component {
             disabled={disabled}
             placeholder={getMatchPlaceholder(type)}
           />
-          <Divider src="icon-chevron-right" />
+          <Divider direction="right" />
           <SelectOwnersWrapper>
             <SelectOwners
               organization={organization}
@@ -249,7 +248,7 @@ const BuilderTagNameInput = styled(Input)`
   width: 200px;
 `;
 
-const Divider = styled(InlineSvg)`
+const Divider = styled(IconChevron)`
   color: ${p => p.theme.borderDark};
   flex-shrink: 0;
   margin-right: 5px;
