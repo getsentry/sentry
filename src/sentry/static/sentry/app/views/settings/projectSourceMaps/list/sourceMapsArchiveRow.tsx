@@ -11,6 +11,8 @@ import Count from 'app/components/count';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
+import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
 
 type Props = {
   archive: SourceMapsArchive;
@@ -27,17 +29,17 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
   return (
     <React.Fragment>
       <Column>
-        <Name>
+        <TextOverflow>
           <Link to={archiveLink}>
-            <Version version={name} anchor={false} truncate />
+            <Version version={name} anchor={false} />
           </Link>
-        </Name>
+        </TextOverflow>
       </Column>
+      <ArtifactsColumn>
+        <Count value={fileCount} />
+      </ArtifactsColumn>
       <Column>
         <DateTime date={date} />
-      </Column>
-      <Column>
-        <Count value={fileCount} />
       </Column>
       <ActionsColumn>
         <ButtonBar gap={0.5}>
@@ -45,11 +47,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
             onConfirm={() => onDelete(name)}
             message={t('Are you sure you want to remove all artifacts in this archive?')}
           >
-            <Button
-              size="small"
-              icon={<IconDelete size="xs" />}
-              title={t('Delete Archive')}
-            />
+            <Button size="small" icon={<IconDelete size="sm" />} />
           </Confirm>
         </ButtonBar>
       </ActionsColumn>
@@ -59,20 +57,18 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
 
 const Column = styled('div')`
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const ActionsColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
   align-items: center;
+  overflow: hidden;
 `;
 
-const Name = styled('div')`
-  max-width: 100%;
+const ArtifactsColumn = styled(Column)`
+  padding-right: ${space(4)};
+  text-align: right;
+  justify-content: flex-end;
+`;
+
+const ActionsColumn = styled(Column)`
+  justify-content: flex-end;
 `;
 
 export default SourceMapsArchiveRow;
