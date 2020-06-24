@@ -65,16 +65,16 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   };
 
   handleDelete = async (name: string) => {
-    addLoadingMessage(t('Removing archive\u2026'));
+    addLoadingMessage(t('Removing artifacts\u2026'));
     try {
       await this.api.requestPromise(this.getArchivesUrl(), {
         method: 'DELETE',
         query: {name},
       });
       this.fetchData();
-      addSuccessMessage(t('Archive removed.'));
+      addSuccessMessage(t('Artifacts removed.'));
     } catch {
-      addErrorMessage(t('Unable to remove archive. Please try again.'));
+      addErrorMessage(t('Unable to remove artifacts. Please try again.'));
     }
   };
 

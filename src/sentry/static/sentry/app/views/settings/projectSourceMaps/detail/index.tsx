@@ -83,10 +83,9 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   };
 
   handleArchiveDelete = async () => {
-    const {router, params} = this.props;
-    const {orgId, projectId, name} = params;
+    const {orgId, projectId, name} = this.props.params;
 
-    addLoadingMessage(t('Removing archive\u2026'));
+    addLoadingMessage(t('Removing artifacts\u2026'));
 
     try {
       await this.api.requestPromise(
@@ -96,10 +95,10 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
           query: {name},
         }
       );
-      addSuccessMessage(t('Archive removed.'));
-      router.replace(`/settings/${orgId}/projects/${projectId}/source-maps/`);
+      this.fetchData();
+      addSuccessMessage(t('Artifacts removed.'));
     } catch {
-      addErrorMessage(t('Unable to remove archive. Please try again.'));
+      addErrorMessage(t('Unable to remove artifacts. Please try again.'));
     }
   };
 
@@ -165,7 +164,10 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
                 )}
                 onConfirm={this.handleArchiveDelete}
               >
-                <Button icon={<IconDelete size="sm" />} />
+                <Button
+                  icon={<IconDelete size="sm" />}
+                  title={t('Remove All Artifacts')}
+                />
               </Confirm>
               <SearchBar
                 placeholder={t('Filter artifacts')}

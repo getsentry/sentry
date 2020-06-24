@@ -47,7 +47,11 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
             onConfirm={() => onDelete(name)}
             message={t('Are you sure you want to remove all artifacts in this archive?')}
           >
-            <Button size="small" icon={<IconDelete size="sm" />} />
+            <Button
+              size="small"
+              icon={<IconDelete size="sm" />}
+              title={t('Remove All Artifacts')}
+            />
           </Confirm>
         </ButtonBar>
       </ActionsColumn>
