@@ -1193,7 +1193,7 @@ FUNCTIONS = {
     "failure_rate": {
         "name": "failure_rate",
         "args": [],
-        "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
+        "transform": "failure_rate()",
         "result_type": "percentage",
     },
     # The user facing signature for this function is histogram(<column>, <num_buckets>)
@@ -1455,8 +1455,6 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     columns = []
     groupby = []
     project_key = ""
-    # Which column to map to project names
-    project_column = "project_id"
 
     # If project is requested, we need to map ids to their names since snuba only has ids
     if "project" in fields:
@@ -1484,21 +1482,11 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     if not rollup and auto_fields:
         # Ensure fields we require to build a functioning interface
         # are present. We don't add fields when using a rollup as the additional fields
-        # would be aggregated away. When there are aggregations
-        # we use argMax to get the latest event/projectid so we can create links.
-        # The `projectid` output name is not a typo, using `project_id` triggers
-        # generates invalid queries.
+        # would be aggregated away.
         if not aggregations and "id" not in columns:
             columns.append("id")
         if not aggregations and "project.id" not in columns:
             columns.append("project.id")
-            project_column = "project_id"
-        if aggregations and "latest_event" not in map(lambda a: a[-1], aggregations):
-            _, aggregates = resolve_function("latest_event()")
-            aggregations.extend(aggregates)
-        if aggregations and "project.id" not in columns:
-            aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])
-            project_column = "projectid"
 
     if project_key:
         # Check to see if there's a condition on project ID already, to avoid unnecessary lookups
@@ -1515,7 +1503,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
                 "transform",
                 [
                     # This is a workaround since having the column by itself currently is being treated as a function
-                    ["toString", [project_column]],
+                    ["toString", ["project_id"]],
                     ["array", [u"'{}'".format(project["id"]) for project in projects]],
                     ["array", [u"'{}'".format(project["slug"]) for project in projects]],
                     # Default case, what to do if a project id without a slug is found
