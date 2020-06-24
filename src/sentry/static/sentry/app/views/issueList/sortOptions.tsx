@@ -6,43 +6,28 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-class IssueListSortOptions extends React.PureComponent {
+type Props = {
+  sort?: string;
+  onSelect?: (sort: string) => void;
+};
+
+class IssueListSortOptions extends React.PureComponent<Props> {
   static propTypes = {
     sort: PropTypes.string,
     onSelect: PropTypes.func,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      sortKey: this.props.sort || 'date',
-    };
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    this.setState({
-      sortKey: nextProps.sort || 'date',
-    });
-  }
-
-  getMenuItem = key => (
-    <DropdownItem
-      onSelect={this.onSelect}
-      eventKey={key}
-      isActive={this.state.sortKey === key}
-    >
+  getMenuItem = (key: string, sortKey: string): React.ReactNode => (
+    <DropdownItem onSelect={this.onSelect} eventKey={key} isActive={sortKey === key}>
       {this.getSortLabel(key)}
     </DropdownItem>
   );
 
-  onSelect = sort => {
-    this.setState({sortKey: sort});
-    if (this.props.onSelect) {
-      this.props.onSelect(sort);
-    }
+  onSelect = (sort: string) => {
+    this.props.onSelect?.(sort);
   };
 
-  getSortLabel = key => {
+  getSortLabel = (key: string) => {
     switch (key) {
       case 'new':
         return t('First Seen');
@@ -59,17 +44,19 @@ class IssueListSortOptions extends React.PureComponent {
   };
 
   render() {
+    const sortKey = this.props.sort || 'date';
+
     return (
       <Container>
         <DropdownControl
           buttonProps={{prefix: t('Sort by')}}
-          label={this.getSortLabel(this.state.sortKey)}
+          label={this.getSortLabel(sortKey)}
         >
-          {this.getMenuItem('priority')}
-          {this.getMenuItem('date')}
-          {this.getMenuItem('new')}
-          {this.getMenuItem('freq')}
-          {this.getMenuItem('user')}
+          {this.getMenuItem('priority', sortKey)}
+          {this.getMenuItem('date', sortKey)}
+          {this.getMenuItem('new', sortKey)}
+          {this.getMenuItem('freq', sortKey)}
+          {this.getMenuItem('user', sortKey)}
         </DropdownControl>
       </Container>
     );
