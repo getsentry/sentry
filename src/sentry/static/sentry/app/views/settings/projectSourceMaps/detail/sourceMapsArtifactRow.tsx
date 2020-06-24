@@ -30,7 +30,7 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
 
   return (
     <React.Fragment>
-      <Column>
+      <NameColumn>
         <Name>{name || `(${t('empty')})`}</Name>
         <TimeAndDistWrapper>
           <TimeWrapper>
@@ -39,11 +39,11 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
           </TimeWrapper>
           {dist && <Tag inline>{dist}</Tag>}
         </TimeAndDistWrapper>
-      </Column>
-      <Column>
+      </NameColumn>
+      <SizeColumn>
         <FileSize bytes={size} />
-      </Column>
-      <RightColumn>
+      </SizeColumn>
+      <ActionsColumn>
         <ButtonBar gap={0.5}>
           <Access access={['project:write']}>
             {({hasAccess}) => (
@@ -55,10 +55,9 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
               >
                 <Button
                   size="small"
-                  icon={<IconDownload size="xs" />}
+                  icon={<IconDownload size="sm" />}
                   disabled={!hasAccess}
                   href={downloadUrl}
-                  title={t('Download Artifact')}
                 />
               </Tooltip>
             )}
@@ -67,31 +66,29 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
             message={t('Are you sure you want to remove this artifact?')}
             onConfirm={handleDeleteClick}
           >
-            <Button
-              size="small"
-              icon={<IconDelete size="xs" />}
-              title={t('Delete Artifact')}
-            />
+            <Button size="small" icon={<IconDelete size="sm" />} />
           </Confirm>
         </ButtonBar>
-      </RightColumn>
+      </ActionsColumn>
     </React.Fragment>
   );
 };
 
-const Column = styled('div')`
+const NameColumn = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const RightColumn = styled('div')`
+const SizeColumn = styled('div')`
   display: flex;
   justify-content: flex-end;
+  text-align: right;
   align-items: center;
 `;
+
+const ActionsColumn = styled(SizeColumn)``;
 
 const Name = styled('div')`
   padding-right: ${space(4)};

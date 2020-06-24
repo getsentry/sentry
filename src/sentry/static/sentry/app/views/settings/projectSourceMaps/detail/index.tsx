@@ -9,13 +9,11 @@ import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
-import space from 'app/styles/space';
 import {formatVersion} from 'app/utils/formatters';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {IconReleases, IconChevron, IconDelete} from 'app/icons';
+import {IconDelete} from 'app/icons';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -116,7 +114,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
       return t('There are no artifacts that match your search.');
     }
 
-    return t('There are no artifacts for this release.');
+    return t('There are no artifacts in this archive.');
   }
 
   renderLoading() {
@@ -145,56 +143,45 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
   renderBody() {
     const {loading, artifacts, artifactsPageLinks} = this.state;
-    const {name, orgId, projectId} = this.props.params;
+    const {name, orgId} = this.props.params;
     const {project} = this.props;
 
     return (
       <React.Fragment>
         <SettingsPageHeader
-          title={t('Source Maps Archive %s', formatVersion(name))}
+          title={t('Archive %s', formatVersion(name))}
           action={
             <ButtonBar gap={1}>
-              <Button
-                size="small"
-                to={`/settings/${orgId}/projects/${projectId}/source-maps/`}
-                icon={<IconChevron size="xs" direction="left" />}
-              >
-                {t('All Archives')}
-              </Button>
-              <Button
-                size="small"
+              <ReleaseButton
                 to={`/organizations/${orgId}/releases/${encodeURIComponent(
                   name
                 )}/?project=${project.id}`}
-                icon={<IconReleases size="xs" />}
               >
-                {t('View Release')}
-              </Button>
+                {t('Go to Release')}
+              </ReleaseButton>
               <Confirm
                 message={t(
                   'Are you sure you want to remove all artifacts in this archive?'
                 )}
                 onConfirm={this.handleArchiveDelete}
               >
-                <Button size="small" icon={<IconDelete size="xs" />}>
-                  {t('Delete Archive')}
-                </Button>
+                <Button icon={<IconDelete size="sm" />} />
               </Confirm>
+              <SearchBar
+                placeholder={t('Filter artifacts')}
+                onSearch={this.handleSearch}
+                query={this.getQuery()}
+              />
             </ButtonBar>
           }
         />
 
-        <Wrapper>
-          <TextBlock noMargin>{t('Uploaded artifacts')}:</TextBlock>
-          <SearchBar
-            placeholder={t('Filter artifacts')}
-            onSearch={this.handleSearch}
-            query={this.getQuery()}
-          />
-        </Wrapper>
-
         <StyledPanelTable
-          headers={[t('Artifact'), t('Size'), '']}
+          headers={[
+            t('Artifact'),
+            <SizeColumn key="size">{t('File Size')}</SizeColumn>,
+            '',
+          ]}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={artifacts.length === 0}
           isLoading={loading}
@@ -208,19 +195,15 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 100px 150px;
+  grid-template-columns: 1fr max-content 120px;
 `;
 
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto minmax(200px, 400px);
-  grid-gap: ${space(4)};
-  align-items: center;
-  margin-bottom: ${space(1)};
-  margin-top: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: block;
-  }
+const ReleaseButton = styled(Button)`
+  white-space: nowrap;
+`;
+
+const SizeColumn = styled('div')`
+  text-align: right;
 `;
 
 export default ProjectSourceMaps;
