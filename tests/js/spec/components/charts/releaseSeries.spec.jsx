@@ -119,6 +119,30 @@ describe('ReleaseSeries', function() {
     );
   });
 
+  it('fetches on property updates', async function() {
+    const wrapper = mount(
+      <ReleaseSeries period="14d">{renderFunc}</ReleaseSeries>,
+      routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const cases = [
+      {period: '7d'},
+      {start: '2020-01-01', end: '2020-01-02'},
+      {projects: [1]},
+    ];
+    for (const scenario of cases) {
+      releasesMock.mockReset();
+
+      wrapper.setProps(scenario);
+      wrapper.update();
+      await tick();
+
+      expect(releasesMock).toHaveBeenCalled();
+    }
+  });
+
   it('generates an eCharts `markLine` series from releases', async function() {
     const wrapper = mount(<ReleaseSeries>{renderFunc}</ReleaseSeries>, routerContext);
 

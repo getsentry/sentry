@@ -27,6 +27,7 @@ function getOrganizationReleases(api, organization, conditions = null) {
       query[key] = value;
     }
   });
+  api.clear();
   return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
     method: 'GET',
     query,
@@ -67,14 +68,18 @@ class ReleaseSeries extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (!isEqual(prevProps.projects, this.props.projects)) {
+    if (
+      !isEqual(prevProps.projects, this.props.projects) ||
+      !isEqual(prevProps.start, this.props.start) ||
+      !isEqual(prevProps.end, this.props.end) ||
+      !isEqual(prevProps.period, this.props.period)
+    ) {
       this.fetchData();
     }
   }
 
   fetchData() {
     const {api, organization, projects, period, start, end} = this.props;
-
     const conditions = {start, end, project: projects, statsPeriod: period};
     getOrganizationReleases(api, organization, conditions)
       .then(releases => {
