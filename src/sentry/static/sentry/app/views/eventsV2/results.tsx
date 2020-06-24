@@ -250,6 +250,11 @@ class Results extends React.Component<Props, State> {
       query: newQuery,
     });
 
+    // Treat axis changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+
     trackAnalyticsEvent({
       eventKey: 'discover_v2.y_axis_change',
       eventName: "Discoverv2: Change chart's y axis",
@@ -270,6 +275,11 @@ class Results extends React.Component<Props, State> {
       pathname: location.pathname,
       query: newQuery,
     });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
   };
 
   getDocumentTitle(): string {
