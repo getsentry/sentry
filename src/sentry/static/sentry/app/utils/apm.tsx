@@ -27,7 +27,7 @@ export function normalizeTransactionName(
   Router.match(
     {
       routes: appRoutes,
-      location: createLocation(location.href),
+      location: createLocation(location.pathname),
     },
     (error, _redirectLocation, renderProps) => {
       if (error) {
