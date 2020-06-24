@@ -73,7 +73,7 @@ class VercelWebhookEndpoint(Endpoint):
 
         # contruct the repo depeding what provider we use
         if meta.get("githubCommitSha"):
-            # There is also githubRepo and githubRepo
+            # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
             repository = u"%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
         elif meta.get("gitlabCommitSha"):
             # gitlab repos are formatted with a space for some reason
@@ -172,7 +172,7 @@ class VercelWebhookEndpoint(Endpoint):
                 no_ref_payload = release_payload.copy()
                 del no_ref_payload["refs"]
                 try:
-                    resp = session.post(url, json=release_payload, headers=headers)
+                    resp = session.post(url, json=no_ref_payload, headers=headers)
                     json_error = resp.json()
                     resp.raise_for_status()
                 except RequestException as e:
