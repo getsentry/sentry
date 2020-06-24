@@ -22,8 +22,8 @@ type Props = {
   location: Location;
   errorCode: number;
   eventView: EventView;
-  handleIncompatibleAlertClose: () => void;
-  handleIncompatibleQuery: (alert: React.ReactNode) => void;
+  onIncompatibleAlertClose: () => void;
+  onIncompatibleQuery: (alert: React.ReactNode) => void;
 };
 
 type State = {
@@ -69,8 +69,8 @@ class ResultsHeader extends React.Component<Props, State> {
       location,
       errorCode,
       eventView,
-      handleIncompatibleAlertClose,
-      handleIncompatibleQuery,
+      onIncompatibleAlertClose,
+      onIncompatibleQuery,
     } = this.props;
     const {savedQuery, loading} = this.state;
 
@@ -119,8 +119,8 @@ class ResultsHeader extends React.Component<Props, State> {
                 savedQueryLoading={loading}
                 disabled={!hasFeature || (errorCode >= 400 && errorCode < 500)}
                 updateCallback={() => this.fetchData()}
-                handleIncompatibleAlertClose={handleIncompatibleAlertClose}
-                handleIncompatibleQuery={handleIncompatibleQuery}
+                onIncompatibleAlertClose={onIncompatibleAlertClose}
+                onIncompatibleQuery={onIncompatibleQuery}
               />
             )}
           </Feature>

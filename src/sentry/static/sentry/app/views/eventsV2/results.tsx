@@ -365,8 +365,8 @@ class Results extends React.Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              handleIncompatibleQuery={this.handleIncompatibleQuery}
-              handleIncompatibleAlertClose={this.handleIncompatibleAlertClose}
+              onIncompatibleQuery={this.handleIncompatibleQuery}
+              onIncompatibleAlertClose={this.handleIncompatibleAlertClose}
             />
             <Layout.Body>
               <Top fullWidth>

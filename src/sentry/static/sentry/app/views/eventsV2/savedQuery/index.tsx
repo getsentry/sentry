@@ -43,8 +43,8 @@ type Props = DefaultProps & {
   savedQueryLoading: boolean;
   projects: Project[];
   updateCallback: () => void;
-  handleIncompatibleAlertClose: () => void;
-  handleIncompatibleQuery: (alert: React.ReactNode) => void;
+  onIncompatibleAlertClose: () => void;
+  onIncompatibleQuery: (alert: React.ReactNode) => void;
 };
 
 type State = {
@@ -309,8 +309,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       eventView,
       organization,
       projects,
-      handleIncompatibleQuery,
-      handleIncompatibleAlertClose,
+      onIncompatibleQuery,
+      onIncompatibleAlertClose,
     } = this.props;
 
     return (
@@ -319,9 +319,9 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           eventView={eventView}
           organization={organization}
           projects={projects}
-          onIncompatibleQuery={handleIncompatibleQuery}
+          onIncompatibleQuery={onIncompatibleQuery}
           onSuccess={this.handleCreateAlertSuccess}
-          onClose={handleIncompatibleAlertClose}
+          onClose={onIncompatibleAlertClose}
           data-test-id="discover2-create-from-discover"
         />
       </Feature>
