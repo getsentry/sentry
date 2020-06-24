@@ -155,7 +155,7 @@ export const trackIntegrationEvent = (
     //pull the referrer from the query parameter of the page
     const {referrer} = qs.parse(window.location.search) || {};
     if (typeof referrer === 'string') {
-      //Amplitude has it's own referrer which intefers with our custom referrer
+      //Amplitude has its own referrer which intefers with our custom referrer
       custom_referrer = referrer;
     }
   } catch {
