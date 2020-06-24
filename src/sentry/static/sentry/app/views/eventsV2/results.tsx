@@ -271,15 +271,15 @@ class Results extends React.Component<Props, State> {
       display: value,
     };
 
-    // Treat axis changing like the user already confirmed the query
-    if (!this.state.needConfirmation) {
-      this.handleConfirmed();
-    }
-
     router.push({
       pathname: location.pathname,
       query: newQuery,
     });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
   };
 
   getDocumentTitle(): string {
