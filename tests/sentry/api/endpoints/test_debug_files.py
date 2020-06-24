@@ -327,6 +327,6 @@ class DebugFilesUploadTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.delete(url + "?id=1")
+        response = self.client.delete(url + "?name=1")
         assert response.status_code == 204
         assert not ReleaseFile.objects.filter(release=release).exists()
