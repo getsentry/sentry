@@ -15,6 +15,7 @@ const defaultProps = {
   wrapTitle: true,
   raw: false,
   isCentered: false,
+  showPermalink: true,
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
@@ -70,6 +71,7 @@ class EventDataSection extends React.Component<Props> {
       wrapTitle,
       actions,
       isCentered,
+      showPermalink,
     } = this.props;
 
     const titleNode = wrapTitle ? <h3>{title}</h3> : title;
@@ -78,10 +80,14 @@ class EventDataSection extends React.Component<Props> {
       <DataSection className={className || ''}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
-            <Permalink href={'#' + type} className="permalink">
-              <StyledIconAnchor />
-              {titleNode}
-            </Permalink>
+            {showPermalink ? (
+              <Permalink href={'#' + type} className="permalink">
+                <StyledIconAnchor />
+                {titleNode}
+              </Permalink>
+            ) : (
+              <div>{titleNode}</div>
+            )}
             {type === 'extra' && (
               <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
                 <Button
@@ -117,9 +123,6 @@ const StyledIconAnchor = styled(IconAnchor)`
 `;
 
 const Permalink = styled('a')`
-  position: relative;
-  flex-grow: 1;
-
   :hover ${StyledIconAnchor} {
     display: block;
     color: ${p => p.theme.gray500};
@@ -177,6 +180,11 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
         display: block;
       }
     `}
+
+  >*:first-child {
+    position: relative;
+    flex-grow: 1;
+  }
 `;
 
 const SectionContents = styled('div')`
