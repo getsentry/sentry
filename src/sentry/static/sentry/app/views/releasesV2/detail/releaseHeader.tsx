@@ -18,6 +18,7 @@ import {formatVersion, formatAbbreviatedNumber} from 'app/utils/formatters';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import DeployBadge from 'app/components/deployBadge';
 import Badge from 'app/components/badge';
+import * as Layout from 'app/components/layouts/thirds';
 
 import ReleaseStat from './releaseStat';
 import ReleaseActions from './releaseActions';
@@ -68,8 +69,8 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
   ];
 
   return (
-    <Header>
-      <Layout>
+    <StyledHeader>
+      <HeaderInfoContainer>
         <Breadcrumbs
           crumbs={[
             {
@@ -100,29 +101,31 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
           </ReleaseStat>
           <ReleaseActions version={version} orgId={orgId} hasHealthData={hasHealthData} />
         </StatsWrapper>
-      </Layout>
+      </HeaderInfoContainer>
 
-      <ReleaseName>
-        <Version version={version} anchor={false} />
+      <Layout.HeaderContent>
+        <ReleaseName>
+          <Version version={version} anchor={false} />
 
-        <IconWrapper>
-          <Clipboard value={version}>
-            <Tooltip title={version} containerDisplayMode="flex">
-              <IconCopy size="xs" />
-            </Tooltip>
-          </Clipboard>
-        </IconWrapper>
-
-        {!!url && (
           <IconWrapper>
-            <Tooltip title={url}>
-              <ExternalLink href={url}>
-                <IconOpen size="xs" />
-              </ExternalLink>
-            </Tooltip>
+            <Clipboard value={version}>
+              <Tooltip title={version} containerDisplayMode="flex">
+                <IconCopy size="xs" />
+              </Tooltip>
+            </Clipboard>
           </IconWrapper>
-        )}
-      </ReleaseName>
+
+          {!!url && (
+            <IconWrapper>
+              <Tooltip title={url}>
+                <ExternalLink href={url}>
+                  <IconOpen size="xs" />
+                </ExternalLink>
+              </Tooltip>
+            </IconWrapper>
+          )}
+        </ReleaseName>
+      </Layout.HeaderContent>
 
       <StyledNavTabs>
         {tabs.map(tab => (
@@ -135,16 +138,15 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
           </ListLink>
         ))}
       </StyledNavTabs>
-    </Header>
+    </StyledHeader>
   );
 };
 
-const Header = styled('div')`
-  padding: ${space(2)} ${space(4)} 0;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+const StyledHeader = styled(Layout.Header)`
+  flex-direction: column;
 `;
 
-const Layout = styled('div')`
+const HeaderInfoContainer = styled('div')`
   margin-bottom: ${space(1)};
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     display: grid;
@@ -182,7 +184,6 @@ const StyledDeployBadge = styled(DeployBadge)`
 const ReleaseName = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.gray700};
-  margin-bottom: ${space(2)};
   display: flex;
   align-items: center;
 `;

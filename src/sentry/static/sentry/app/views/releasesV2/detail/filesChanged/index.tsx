@@ -13,6 +13,7 @@ import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
 import {formatVersion} from 'app/utils/formatters';
 import {Panel, PanelBody} from 'app/components/panels';
+import {Main} from 'app/components/layouts/thirds';
 
 import {getFilesByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
@@ -63,7 +64,7 @@ class FilesChanged extends AsyncView<Props, State> {
     }
 
     return (
-      <ContentBox>
+      <React.Fragment>
         {fileList.length ? (
           Object.keys(filesByRepository).map(repository => (
             <RepositoryFileSummary
@@ -82,12 +83,16 @@ class FilesChanged extends AsyncView<Props, State> {
             </PanelBody>
           </Panel>
         )}
-      </ContentBox>
+      </React.Fragment>
     );
+  }
+
+  renderComponent() {
+    return <StyledMain fullWidth>{super.renderComponent()}</StyledMain>;
   }
 }
 
-const ContentBox = styled('div')`
+const StyledMain = styled(Main)`
   h5 {
     color: ${p => p.theme.gray600};
     font-size: ${p => p.theme.fontSizeMedium};

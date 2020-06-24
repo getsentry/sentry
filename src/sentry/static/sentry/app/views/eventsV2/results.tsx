@@ -23,10 +23,10 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {ContentBox, Main, Side} from 'app/utils/discover/styles';
 import {generateQueryWithTag} from 'app/utils';
 import localStorage from 'app/utils/localStorage';
 import {decodeScalar} from 'app/utils/queryString';
+import * as Layout from 'app/components/layouts/thirds';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
@@ -217,7 +217,7 @@ class Results extends React.Component<Props, State> {
     const {eventView, totalValues} = this.state;
 
     return (
-      <Side>
+      <Layout.Side>
         <Tags
           generateUrl={this.generateTagUrl}
           totalValues={totalValues}
@@ -225,7 +225,7 @@ class Results extends React.Component<Props, State> {
           organization={organization}
           location={location}
         />
-      </Side>
+      </Layout.Side>
     );
   }
 
@@ -272,8 +272,8 @@ class Results extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
             />
-            <ContentBox>
-              <Top>
+            <Layout.Body>
+              <Top fullWidth>
                 {this.renderError(error)}
                 <StyledSearchBar
                   organization={organization}
@@ -292,7 +292,7 @@ class Results extends React.Component<Props, State> {
                   total={totalValues}
                 />
               </Top>
-              <StyledMain isCollapsed={!!showTags}>
+              <Layout.Main fullWidth={!showTags}>
                 <Table
                   organization={organization}
                   eventView={eventView}
@@ -302,18 +302,15 @@ class Results extends React.Component<Props, State> {
                   onChangeShowTags={this.handleChangeShowTags}
                   showTags={showTags}
                 />
-              </StyledMain>
+              </Layout.Main>
               {showTags ? this.renderTagsTable() : null}
-            </ContentBox>
+            </Layout.Body>
           </LightWeightNoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );
   }
 }
-
-// These styled components are used in getsentry to create a paywall page.
-// Be careful changing their interfaces.
 
 export const StyledPageContent = styled(PageContent)`
   padding: 0;
@@ -323,13 +320,8 @@ export const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
 
-export const Top = styled('div')`
-  grid-column: 1/3;
+export const Top = styled(Layout.Main)`
   flex-grow: 0;
-`;
-
-export const StyledMain = styled(Main)<{isCollapsed: boolean}>`
-  grid-column: ${p => (p.isCollapsed ? '1/2' : '1/3')};
 `;
 
 function ResultsContainer(props: Props) {
