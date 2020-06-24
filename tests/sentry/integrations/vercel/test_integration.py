@@ -14,7 +14,7 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallation,
 )
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
 
 
