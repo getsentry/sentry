@@ -226,6 +226,14 @@ class Pipeline(object):
 
     def error(self, message):
         context = {"error": message}
+        extra = {
+            "organization_id": self.organization.id if self.organization else None,
+            "provider": self.provider.key,
+            "error": message,
+        }
+        logger = self.get_logger()
+        # log error
+        logger.error("pipeline error", extra=extra)
         return render_to_response("sentry/pipeline-error.html", context, self.request)
 
     def next_step(self, step_size=1):
