@@ -232,6 +232,7 @@ class Pipeline(object):
             "error": message,
         }
         logger = self.get_logger()
+        # log error
         logger.error("pipeline error", extra=extra)
         return render_to_response("sentry/pipeline-error.html", context, self.request)
 
