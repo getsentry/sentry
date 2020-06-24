@@ -262,8 +262,10 @@ class OrganizationSerializer(serializers.Serializer):
             existing = OrganizationOption.objects.get(organization=organization, key=option_key)
 
             key_dict = {val.get("public_key"): val for val in existing.value}
+            original_number_of_keys = len(existing.value)
         except OrganizationOption.DoesNotExist:
             key_dict = {}  # we don't have anything set
+            original_number_of_keys = 0
             existing = None
 
         modified = False
@@ -284,7 +286,7 @@ class OrganizationSerializer(serializers.Serializer):
                 modified = True
 
         # check to see if the only modifications were some deletions (which are not captured in the loop above)
-        if len(incoming) != len(key_dict):
+        if len(incoming) != original_number_of_keys:
             modified = True
 
         if modified:
