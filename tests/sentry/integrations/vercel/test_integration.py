@@ -148,7 +148,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             responses.GET,
             "https://api.vercel.com/v5/projects/%s/env"
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-            json={"envs": [],},
+            json={"envs": []},
         )
 
         for i, name in enumerate(secret_names):
@@ -156,12 +156,12 @@ class VercelIntegrationTest(IntegrationTestCase):
                 responses.POST,
                 "https://api.vercel.com/v4/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-                json={"value": "sec_%s" % i, "target": "production", "key": name,},
+                json={"value": "sec_%s" % i, "target": "production", "key": name},
             )
 
         org = self.organization
         data = {
-            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"],]
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
         enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
             public=True
@@ -177,7 +177,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             organization_id=org.id, integration_id=integration.id
         )
         assert org_integration.config == {
-            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"],]
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
         req_params = json.loads(responses.calls[5].request.body)
@@ -223,12 +223,10 @@ class VercelIntegrationTest(IntegrationTestCase):
         env_var_names = ["SENTRY_ORG", "SENTRY_PROJECT", "NEXT_PUBLIC_SENTRY_DSN"]
 
         for i, name in enumerate(secret_names):
-            print("secret: ", i)
-            print("name: ", name)
             responses.add(
                 responses.GET,
                 "https://api.vercel.com/v3/now/secrets/%s" % name,
-                json={"uid": "sec_%s" % i, "name": name,},
+                json={"uid": "sec_%s" % i, "name": name},
             )
 
         for i, env_var_name in enumerate(env_var_names):
@@ -237,14 +235,13 @@ class VercelIntegrationTest(IntegrationTestCase):
                 "https://api.vercel.com/v5/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={
-                    "envs": [{"value": "sec_%s" % i, "target": "production", "key": env_var_name,}],
+                    "envs": [{"value": "sec_%s" % i, "target": "production", "key": env_var_name}],
                 },
             )
 
-
         org = self.organization
         data = {
-            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"],]
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(org.id)
@@ -257,7 +254,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             organization_id=org.id, integration_id=integration.id
         )
         assert org_integration.config == {
-            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"],]
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
     @responses.activate
@@ -270,7 +267,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         project_id = self.project.id
         org = self.organization
         data = {
-            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"],]
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(org.id)

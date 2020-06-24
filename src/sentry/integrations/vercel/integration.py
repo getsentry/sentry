@@ -17,7 +17,13 @@ from sentry import options
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
-from sentry.models import Project, ProjectKey, User, SentryAppInstallation, SentryAppInstallationForProvider
+from sentry.models import (
+    Project,
+    ProjectKey,
+    User,
+    SentryAppInstallation,
+    SentryAppInstallationForProvider,
+)
 from sentry.utils.compat import map
 from sentry.shared_integrations.exceptions import IntegrationError, ApiError
 from sentry.mediators.sentry_apps import InternalCreator
