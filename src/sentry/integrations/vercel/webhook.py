@@ -114,6 +114,7 @@ class VercelWebhookEndpoint(Endpoint):
             logger.info(
                 "Ignoring deployment for environment: %s" % payload["target"], extra=logging_params
             )
+            return self.respond(202)
 
         # Steps:
         # 1. find all org integrations that match the external id
