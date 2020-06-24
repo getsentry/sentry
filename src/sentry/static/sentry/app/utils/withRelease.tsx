@@ -50,7 +50,10 @@ const withRelease = <P extends DependentProps>(
         DependentProps;
       const releaseData = ReleaseStore.get(projectSlug, releaseVersion);
 
-      if (!releaseData.release && !releaseData.releaseLoading) {
+      if (
+        (!releaseData.release && !releaseData.releaseLoading) ||
+        releaseData.releaseError
+      ) {
         getProjectRelease(api, {orgSlug, projectSlug, releaseVersion});
       }
     },
@@ -60,7 +63,10 @@ const withRelease = <P extends DependentProps>(
         DependentProps;
       const releaseData = ReleaseStore.get(projectSlug, releaseVersion);
 
-      if (!releaseData.deploys && !releaseData.deploysLoading) {
+      if (
+        (!releaseData.deploys && !releaseData.deploysLoading) ||
+        releaseData.deploysError
+      ) {
         getReleaseDeploys(api, {orgSlug, projectSlug, releaseVersion});
       }
     },
