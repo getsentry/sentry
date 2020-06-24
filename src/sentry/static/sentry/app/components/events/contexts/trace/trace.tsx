@@ -28,6 +28,7 @@ const InnerTrace = withOrganization(function({organization, event, data}: Props)
     <ErrorBoundary mini>
       <KeyValueList
         data={getTraceKnownData(data, traceKnownDataValues, event, organization)}
+        isSorted={false}
         raw={false}
       />
     </ErrorBoundary>
