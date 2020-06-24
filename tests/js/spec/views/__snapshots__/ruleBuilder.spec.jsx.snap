@@ -539,7 +539,7 @@ exports[`RuleBuilder renders 1`] = `
         direction="right"
       >
         <IconChevron
-          className="css-15osf6z-Divider e1hyuoc79"
+          className="css-1tfw4ao-Divider e1hyuoc79"
           direction="right"
         >
           <EmotionCssPropInternal
@@ -555,7 +555,7 @@ exports[`RuleBuilder renders 1`] = `
                 "render": [Function],
               }
             }
-            className="css-15osf6z-Divider e1hyuoc79"
+            className="css-1tfw4ao-Divider e1hyuoc79"
             css={
               Object {
                 "map": undefined,
@@ -567,10 +567,10 @@ exports[`RuleBuilder renders 1`] = `
             }
           >
             <ForwardRef(SvgIcon)
-              className="e1hyuoc79 css-3y5g3p-IconChevron-Divider"
+              className="e1hyuoc79 css-1uo1iiq-IconChevron-Divider"
             >
               <svg
-                className="e1hyuoc79 css-3y5g3p-IconChevron-Divider"
+                className="e1hyuoc79 css-1uo1iiq-IconChevron-Divider"
                 fill="currentColor"
                 height="16px"
                 viewBox="0 0 16 16"
@@ -1972,21 +1972,39 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       <Divider
         direction="right"
       >
-        <ForwardRef
-          className="css-nys6t0-InlineSvg-Divider e1hyuoc79"
-          src="icon-chevron-right"
+        <IconChevron
+          className="css-1tfw4ao-Divider e1hyuoc79"
+          direction="right"
         >
-          <svg
-            className="css-nys6t0-InlineSvg-Divider e1hyuoc79"
-            height="1em"
-            viewBox={Object {}}
-            width="1em"
+          <EmotionCssPropInternal
+            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+              Object {
+                "$$typeof": Symbol(react.forward_ref),
+                "propTypes": Object {
+                  "color": [Function],
+                  "size": [Function],
+                  "viewBox": [Function],
+                },
+                "render": [Function],
+              }
+            }
+            className="css-1tfw4ao-Divider e1hyuoc79"
+            css={
+              Object {
+                "map": undefined,
+                "name": "72rehw-IconChevron",
+                "next": undefined,
+                "styles": "transform:rotate(90deg);;label:IconChevron;",
+                "toString": [Function],
+              }
+            }
           >
             <ForwardRef(SvgIcon)
-              className="e1hyuoc79 css-3y5g3p-IconChevron-Divider"
+              className="e1hyuoc79 css-1uo1iiq-IconChevron-Divider"
             >
               <svg
-                className="e1hyuoc79 css-3y5g3p-IconChevron-Divider"
+                className="e1hyuoc79 css-1uo1iiq-IconChevron-Divider"
                 fill="currentColor"
                 height="16px"
                 viewBox="0 0 16 16"
