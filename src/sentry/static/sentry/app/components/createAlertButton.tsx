@@ -10,7 +10,6 @@ import Alert from 'app/components/alert';
 import space from 'app/styles/space';
 import {explodeFieldString} from 'app/utils/discover/fields';
 import {
-  Dataset,
   errorFieldConfig,
   transactionFieldConfig,
 } from 'app/views/settings/incidentRules/types';
@@ -161,8 +160,7 @@ function incompatibleYAxis(eventView: EventView): boolean {
   }
 
   const dataset = eventTypeMatch[1];
-  const yAxisConfig =
-    dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
+  const yAxisConfig = dataset === 'error' ? errorFieldConfig : transactionFieldConfig;
 
   const invalidFunction = !yAxisConfig.aggregations.includes(column.function[0]);
   // Allow empty parameters
