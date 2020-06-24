@@ -244,6 +244,13 @@ class Results extends React.Component<Props, State> {
   };
 
   handleIncompatibleQuery = (incompatibleQuery: React.ReactNode) => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.create_alert_incompatible',
+      eventName: 'Discoverv2: Creating an alert from discover was incompatible',
+      organization_id: parseInt(organization.id, 10),
+    });
+
     this.setState({incompatibleQuery});
   };
 

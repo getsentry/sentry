@@ -73,6 +73,13 @@ class TransactionList extends React.Component<WrapperProps, State> {
   };
 
   handleIncompatibleQuery = (incompatibleQuery: React.ReactNode) => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.create_alert_incompatible',
+      eventName:
+        'Performance Views: Creating an alert from transaction summary was incompatible',
+      organization_id: parseInt(organization.id, 10),
+    });
     this.setState({incompatibleQuery});
   };
 

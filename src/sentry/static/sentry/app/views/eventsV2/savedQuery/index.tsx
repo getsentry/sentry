@@ -194,7 +194,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {organization} = this.props;
     trackAnalyticsEvent({
       eventKey: 'discover_v2.create_alert',
-      eventName: 'Discoverv2: Create alert from saved query',
+      eventName: 'Discoverv2: Create alert from discover',
       organization_id: parseInt(organization.id, 10),
     });
   };
