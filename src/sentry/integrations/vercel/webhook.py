@@ -63,6 +63,8 @@ class VercelWebhookEndpoint(Endpoint):
             .filter(sentry_app_installation=sentry_app_installation)
             .first()
         )
+        if not sentry_app_installation_token:
+            raise SentryAppInstallationToken.DoesNotExist()
 
         # find the commmit sha so we can  use it as as the release
         commit_sha = (
@@ -117,21 +119,20 @@ class VercelWebhookEndpoint(Endpoint):
             return self.respond(status=202)
 
         # Steps:
-        # 1. find all org integrations that match the external id
-        # 2. search the configs to find one that matches the vercel project of the webhook
+        # 1. Find all org integrations that match the external id
+        # 2. Search the configs to find one that matches the vercel project of the webhook
         # 3. Look up the Sentry project that matches
         # 4. Look up the connected internal integration
-        # 5. find the token associated with that installation
+        # 5. Find the token associated with that installation
         # 6. Determine the commit sha and repo based on what provider is used
         # 7. Create the release using the token WITHOUT refs
         # 8. Update the release with refs
 
         # find all org integrations that match the external id
-        try:
-            org_integrations = OrganizationIntegration.objects.select_related(
-                "organization"
-            ).filter(integration__external_id=external_id, integration__provider=self.provider)
-        except OrganizationIntegration.DoesNotExist:
+        org_integrations = OrganizationIntegration.objects.select_related("organization").filter(
+            integration__external_id=external_id, integration__provider=self.provider
+        )
+        if not org_integrations:
             logger.info("Integration not found", extra=logging_params)
             return self.respond({"detail": "Integration not found"}, status=404)
 
@@ -186,14 +187,13 @@ class VercelWebhookEndpoint(Endpoint):
                     return self.respond({"detail": "Error creating release: %s" % e}, status=400)
 
                 # set the refs
-
                 try:
                     resp = session.post(url, json=release_payload, headers=headers,)
                     json_error = resp.json()
                     resp.raise_for_status()
                 except RequestException as e:
                     # errors will probably be common if the user doesn't have repos set up
-                    logger.log(
+                    logger.info(
                         "Error setting refs: %s - %s" % (e, json_error),
                         extra=logging_params,
                         exc_info=True,
