@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/browser';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
@@ -19,7 +20,6 @@ type State = {
   loading: boolean;
   html: string | undefined;
   link: string | undefined;
-  error: any | undefined;
 };
 
 class InlineDocs extends React.Component<Props, State> {
@@ -27,7 +27,6 @@ class InlineDocs extends React.Component<Props, State> {
     loading: true,
     html: undefined,
     link: undefined,
-    error: undefined,
   };
 
   componentDidMount() {
@@ -63,7 +62,8 @@ class InlineDocs extends React.Component<Props, State> {
       const {html, link} = await loadDocs(api, orgSlug, projectSlug, tracingPlatform);
       this.setState({html, link});
     } catch (error) {
-      this.setState({error});
+      Sentry.captureException(error);
+      this.setState({html: undefined, link: undefined});
     }
 
     this.setState({loading: false});
