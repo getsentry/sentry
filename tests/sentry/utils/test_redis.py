@@ -14,6 +14,7 @@ from sentry.utils.redis import (
     _RedisCluster,
     logger,
 )
+from django.utils.functional import SimpleLazyObject
 
 # Silence connection warnings
 logger.setLevel(logging.ERROR)
@@ -56,6 +57,22 @@ class ClusterManagerTestCase(TestCase):
         # becasue it is two hosts, without explicitly saying is_redis_cluster
         with pytest.raises(KeyError):
             manager.get("bar")
+
+    def test_multiple_retrieval_do_not_setup_lazy_object(self):
+        class TestClusterType:
+            def supports(self, config):
+                return True
+
+            def factory(self, **config):
+                def setupfunc():
+                    assert False, "setupfunc should not be called"
+
+                return SimpleLazyObject(setupfunc)
+
+        manager = make_manager(cluster_type=TestClusterType)
+        manager.get("foo")
+        # repeated retrieval should not trigger call to setupfunc
+        manager.get("foo")
 
 
 def test_get_cluster_from_options():
