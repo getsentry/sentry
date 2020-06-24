@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {IconChevron} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
-import InlineSvg from 'app/components/inlineSvg';
 import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
@@ -44,13 +44,13 @@ class PackageLink extends React.Component<Props> {
           <span>{'<unknown>'}</span>
         )}
         {children}
-        {isClickable && <LinkChevron src="icon-chevron-right" />}
+        {isClickable && <LinkChevron direction="right" size="sm" />}
       </Package>
     );
   }
 }
 
-const LinkChevron = styled(InlineSvg)`
+const LinkChevron = styled(IconChevron)`
   opacity: 0;
   transform: translateX(${space(0.25)});
   transition: all 0.2s ease-in-out;

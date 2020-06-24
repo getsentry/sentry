@@ -8,7 +8,6 @@ import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
@@ -27,14 +26,10 @@ import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
-import {
-  ContentBox,
-  HeaderBox,
-  HeaderTopControls,
-  HeaderBottomControls,
-} from 'app/utils/discover/styles';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
+import * as Layout from 'app/components/layouts/thirds';
+import ButtonBar from 'app/components/buttonBar';
 
 import {generateTitle, getExpandedResults} from '../utils';
 import LinkedIssue from './linkedIssue';
@@ -165,37 +160,39 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        <HeaderBox>
-          <DiscoverBreadcrumb
-            eventView={eventView}
-            event={event}
-            organization={organization}
-            location={location}
-          />
-          {transactionSummaryTarget && (
-            <Feature organization={organization} features={['performance-view']}>
-              {({hasFeature}) => (
-                <HeaderTopControls>
-                  <StyledButton
-                    disabled={!hasFeature}
-                    priority="primary"
-                    to={transactionSummaryTarget}
-                  >
-                    {t('Go to Summary')}
-                  </StyledButton>
-                </HeaderTopControls>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <DiscoverBreadcrumb
+              eventView={eventView}
+              event={event}
+              organization={organization}
+              location={location}
+            />
+            <EventHeader event={event} />
+          </Layout.HeaderContent>
+          <StyledHeaderActions>
+            <ButtonBar gap={1}>
+              <Button onClick={this.toggleSidebar}>
+                {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+              </Button>
+              {transactionSummaryTarget && (
+                <Feature organization={organization} features={['performance-view']}>
+                  {({hasFeature}) => (
+                    <Button
+                      disabled={!hasFeature}
+                      priority="primary"
+                      to={transactionSummaryTarget}
+                    >
+                      {t('Go to Summary')}
+                    </Button>
+                  )}
+                </Feature>
               )}
-            </Feature>
-          )}
-          <EventHeader event={event} />
-          <HeaderBottomControls>
-            <StyledButton onClick={this.toggleSidebar}>
-              {isSidebarVisible ? t('Hide Details') : t('Show Details')}
-            </StyledButton>
-          </HeaderBottomControls>
-        </HeaderBox>
-        <ContentBox>
-          <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
+            </ButtonBar>
+          </StyledHeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
                 <SpanEntryContext.Provider
@@ -225,24 +222,26 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 </SpanEntryContext.Provider>
               )}
             </Projects>
-          </div>
-          <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
-            <EventMetadata
-              event={event}
-              organization={organization}
-              projectId={this.projectId}
-            />
-            <OpsBreakdown event={event} />
-            {event.groupID && (
-              <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
-            )}
-            <TagsTable
-              generateUrl={this.generateTagUrl}
-              event={event}
-              query={eventView.query}
-            />
-          </div>
-        </ContentBox>
+          </Layout.Main>
+          {isSidebarVisible && (
+            <Layout.Side>
+              <EventMetadata
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+              />
+              <OpsBreakdown event={event} />
+              {event.groupID && (
+                <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
+              )}
+              <TagsTable
+                generateUrl={this.generateTagUrl}
+                event={event}
+                query={eventView.query}
+              />
+            </Layout.Side>
+          )}
+        </Layout.Body>
       </React.Fragment>
     );
   }
@@ -324,36 +323,25 @@ const EventHeader = (props: {event: Event}) => {
   const message = getMessage(props.event);
 
   return (
-    <StyledEventHeader data-test-id="event-header">
-      <StyledTitle>
+    <Layout.Title data-test-id="event-header">
+      <span>
         {title}
         {message && message.length > 0 ? ':' : null}
-      </StyledTitle>
-      <span>{getMessage(props.event)}</span>
-    </StyledEventHeader>
+      </span>
+      <EventSubheading>{getMessage(props.event)}</EventSubheading>
+    </Layout.Title>
   );
 };
 
-const StyledButton = styled(Button)`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: block;
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
   }
 `;
 
-const StyledEventHeader = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+const EventSubheading = styled('span')`
   color: ${p => p.theme.gray500};
-  grid-column: 1/2;
-  align-self: center;
-  ${overflowEllipsis};
-`;
-
-const StyledTitle = styled('span')`
-  color: ${p => p.theme.gray700};
-  margin-right: ${space(1)};
-  align-self: center;
+  margin-left: ${space(1)};
 `;
 
 export default withApi(EventDetailsContent);

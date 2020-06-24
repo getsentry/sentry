@@ -26,6 +26,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconInfo, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 import Alert from 'app/components/alert';
+import {Body} from 'app/components/layouts/thirds';
 
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
@@ -145,12 +146,11 @@ class ReleasesV2Detail extends AsyncView<Props, State> {
             project={project}
             releaseMeta={releaseMeta}
           />
-
-          <ContentBox>
+          <Body>
             <ReleaseContext.Provider value={{release, project, deploys, releaseMeta}}>
               {this.props.children}
             </ReleaseContext.Provider>
-          </ContentBox>
+          </Body>
         </StyledPageContent>
       </LightWeightNoProjectMessage>
     );
@@ -253,12 +253,6 @@ const ProjectsFooterMessage = styled('div')`
   align-items: center;
   grid-template-columns: min-content 1fr;
   grid-gap: ${space(1)};
-`;
-
-const ContentBox = styled('div')`
-  padding: ${space(4)};
-  flex: 1;
-  background-color: white;
 `;
 
 export {ReleasesV2DetailContainer, ReleaseContext};
