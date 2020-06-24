@@ -56,6 +56,14 @@ const colors = {
   pink400: '#E1567C',
   pink500: '#902D4C',
 
+  get borderLight() {
+    return colors.gray300;
+  },
+
+  get borderDark() {
+    return colors.gray400;
+  },
+
   borderRadius: '4px',
   borderRadiusBottom: '0 0 4px 4px',
   borderRadiusTop: '4px 4px 0 0',
