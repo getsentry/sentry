@@ -10,11 +10,11 @@ import {TraceKnownData, TraceKnownDataType} from './types';
 import getTraceKnownData from './getTraceKnownData';
 
 const traceKnownDataValues = [
+  TraceKnownDataType.STATUS,
   TraceKnownDataType.TRACE_ID,
   TraceKnownDataType.SPAN_ID,
   TraceKnownDataType.PARENT_SPAN_ID,
   TraceKnownDataType.OP_NAME,
-  TraceKnownDataType.STATUS,
 ];
 
 type Props = {
