@@ -8,6 +8,7 @@ import Button from 'app/components/button';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {TraceKnownData, TraceKnownDataType} from './types';
 
@@ -105,9 +106,31 @@ function getUserKnownDataDetails(
         return undefined;
       }
 
+      const transactionName = eventTag.value || '';
+
+      if (!transactionName) {
+        return undefined;
+      }
+
+      const to = transactionSummaryRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: transactionName,
+        projectID: event.projectID,
+        query: {},
+      });
+
       return {
         subject: t('transaction'),
-        value: eventTag.value || '',
+        value: (
+          <ButtonWrapper>
+            <pre className="val">
+              <span className="val-string">{transactionName}</span>
+            </pre>
+            <StyledButton size="xsmall" to={to}>
+              {t('View Summary')}
+            </StyledButton>
+          </ButtonWrapper>
+        ),
       };
     }
 
