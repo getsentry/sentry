@@ -16,6 +16,7 @@ from sentry.models import (
     SentryAppInstallationToken,
     Project,
 )
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.utils.compat import filter
 from sentry.web.decorators import transaction_start
@@ -42,6 +43,54 @@ class VercelWebhookEndpoint(Endpoint):
     def dispatch(self, request, *args, **kwargs):
         return super(VercelWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
+    # given the webhook payload and sentry_project_id, return
+    # the payload we use for generating the release with the token
+    def get_payload_and_token(self, payload, organization_id, sentry_project_id):
+        meta = payload["deployment"]["meta"]
+
+        # look up the project so we can get the slug
+        project = Project.objects.get(id=sentry_project_id)
+
+        # find the connected sentry app installation
+        installation_for_provider = SentryAppInstallationForProvider.objects.select_related(
+            "sentry_app_installation"
+        ).get(organization_id=organization_id, provider=self.provider)
+        sentry_app_installation = installation_for_provider.sentry_app_installation
+
+        # find a token associated with the installation so we can use it for authentication
+        sentry_app_installation_token = (
+            SentryAppInstallationToken.objects.select_related("api_token")
+            .filter(sentry_app_installation=sentry_app_installation)
+            .first()
+        )
+
+        # find the commmit sha so we can  use it as as the release
+        commit_sha = (
+            meta.get("githubCommitSha")
+            or meta.get("gitlabCommitSha")
+            or meta.get("bitbucketCommitSha")
+        )
+
+        # contruct the repo depeding what provider we use
+        if meta.get("githubCommitSha"):
+            # There is also githubRepo and githubRepo
+            repository = u"%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
+        elif meta.get("gitlabCommitSha"):
+            # gitlab repos are formatted with a space for some reason
+            repository = u"%s / %s" % (meta["gitlabProjectNamespace"], meta["gitlabProjectName"],)
+        elif meta.get("bitbucketCommitSha"):
+            repository = u"%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
+        else:
+            # this should really never happen
+            raise IntegrationError("No commit found")
+
+        release_payload = {
+            "version": commit_sha,
+            "projects": [project.slug],
+            "refs": [{"repository": repository, "commit": commit_sha}],
+        }
+        return [release_payload, sentry_app_installation_token.api_token.token]
+
     @transaction_start("VercelWebhookEndpoint")
     def post(self, request):
         if not request.META.get("HTTP_X_ZEIT_SIGNATURE"):
@@ -56,8 +105,6 @@ class VercelWebhookEndpoint(Endpoint):
 
         data = request.data
         payload = data["payload"]
-        meta = payload["deployment"]["meta"]
-
         external_id = data.get("teamId") or data["userId"]
         vercel_project_id = payload["projectId"]
 
@@ -95,81 +142,36 @@ class VercelWebhookEndpoint(Endpoint):
                 organization = org_integration.organization
                 sentry_project_id = matched_mappings[0][0]
 
-                logging_params["sentry_project_id"] = sentry_project_id
+                logging_params["organization_id"] = organization.id
+                logging_params["project_id"] = sentry_project_id
 
-                # look up the project so we can get the slug
                 try:
-                    project = Project.objects.get(id=sentry_project_id)
+                    [release_payload, token] = self.get_payload_and_token(
+                        payload, organization.id, sentry_project_id
+                    )
                 except Project.DoesNotExist:
                     logger.info("Project not found", extra=logging_params)
                     return self.respond({"detail": "Project not found"}, status=404)
-
-                logging_params["organization_id"] = organization.id
-
-                # find the connected sentry app installation
-                try:
-                    installation_for_provider = SentryAppInstallationForProvider.objects.select_related(
-                        "sentry_app_installation"
-                    ).get(
-                        organization_id=organization.id, provider=self.provider
-                    )
-                    sentry_app_installation = installation_for_provider.sentry_app_installation
                 except SentryAppInstallationForProvider.DoesNotExist:
                     logger.info("Installation not found", extra=logging_params)
                     return self.respond({"detail": "Installation not found"}, status=404)
-
-                logging_params["sentry_app_installation_id"] = sentry_app_installation.id
-
-                # find a token associated with the installation so we can use it for authentication
-                try:
-                    sentry_app_installation_token = (
-                        SentryAppInstallationToken.objects.select_related("api_token")
-                        .filter(sentry_app_installation=sentry_app_installation)
-                        .first()
-                    )
                 except SentryAppInstallationToken.DoesNotExist:
                     logger.info("Token not found", extra=logging_params)
                     return self.respond({"detail": "Token not found"}, status=404)
-
-                # find the commmit sha so we can  use it as as the release
-                commit_sha = (
-                    meta.get("githubCommitSha")
-                    or meta.get("gitlabCommitSha")
-                    or meta.get("bitbucketCommitSha")
-                )
-
-                # contruct the repo depeding what provider we use
-                if meta.get("githubCommitSha"):
-                    # There is also githubRepo and githubRepo
-                    repository = u"%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
-                elif meta.get("gitlabCommitSha"):
-                    # gitlab repos are formatted with a space for some reason
-                    repository = u"%s / %s" % (
-                        meta["gitlabProjectNamespace"],
-                        meta["gitlabProjectName"],
-                    )
-                elif meta.get("bitbucketCommitSha"):
-                    repository = u"%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
-                else:
-                    logger.info("No commit sha", extra=logging_params)
-                    return self.respond({"detail": "No commit sha"}, status=400)
-
-                data = {
-                    "version": commit_sha,
-                    "projects": [project.slug],
-                }
 
                 session = http.build_session()
                 url = absolute_uri("/api/0/organizations/%s/releases/" % organization.slug)
                 headers = {
                     "Accept": "application/json",
-                    "Authorization": "Bearer %s" % sentry_app_installation_token.api_token.token,
+                    "Authorization": "Bearer %s" % token,
                 }
                 json_error = None
 
-                # create the release
+                # create the basic release payload without refs
+                no_ref_payload = release_payload.copy()
+                del no_ref_payload["refs"]
                 try:
-                    resp = session.post(url, json=data, headers=headers,)
+                    resp = session.post(url, json=release_payload, headers=headers)
                     json_error = resp.json()
                     resp.raise_for_status()
                 except RequestException as e:
@@ -183,12 +185,9 @@ class VercelWebhookEndpoint(Endpoint):
                     return self.respond({"detail": "Error creating release: %s" % e}, status=400)
 
                 # set the refs
-                data["refs"] = [{"repository": repository, "commit": commit_sha}]
-                logging_params["repository"] = repository
-                logging_params["commit_sha"] = commit_sha
 
                 try:
-                    resp = session.post(url, json=data, headers=headers,)
+                    resp = session.post(url, json=release_payload, headers=headers,)
                     json_error = resp.json()
                     resp.raise_for_status()
                 except RequestException as e:
@@ -202,5 +201,5 @@ class VercelWebhookEndpoint(Endpoint):
                     return self.respond({"detail": "Error setting refs: %s" % e}, status=400)
 
                 # we are going to quit after the first project match as there shouldn't be multiple matches
-                return self.respond(201)
+                return self.respond(400)
         return self.respond(202)
