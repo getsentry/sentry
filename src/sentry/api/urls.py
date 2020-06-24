@@ -127,7 +127,10 @@ from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndp
 from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
-from .endpoints.organization_projects import OrganizationProjectsEndpoint
+from .endpoints.organization_projects import (
+    OrganizationProjectsEndpoint,
+    OrganizationProjectsCountEndpoint,
+)
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
@@ -940,6 +943,11 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/projects/$",
                     OrganizationProjectsEndpoint.as_view(),
+                    name="sentry-api-0-organization-projects",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/projects-count/$",
+                    OrganizationProjectsCountEndpoint.as_view(),
                     name="sentry-api-0-organization-projects",
                 ),
                 url(
