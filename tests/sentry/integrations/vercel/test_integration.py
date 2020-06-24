@@ -93,6 +93,13 @@ class VercelIntegrationTest(IntegrationTestCase):
             "installation_id": "my_config_id",
             "installation_type": installation_type,
             "webhook_id": "webhook-id",
+            "configurations": {
+                "my_config_id": {
+                    "access_token": "my_access_token",
+                    "webhook_id": "webhook-id",
+                    "organization_id": self.organization.id,
+                }
+            },
         }
         assert OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization
