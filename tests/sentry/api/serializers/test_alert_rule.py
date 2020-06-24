@@ -10,7 +10,7 @@ from sentry.api.serializers.models.alert_rule import (
     CombinedRuleSerializer,
 )
 from sentry.models import Rule
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
+from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
 from sentry.testutils import TestCase, APITestCase
 
@@ -70,9 +70,7 @@ class BaseAlertRuleSerializerTest(object):
 
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
-        alert_rule = create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
+        alert_rule = self.create_alert_rule()
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
 

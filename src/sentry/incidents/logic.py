@@ -530,6 +530,7 @@ def create_alert_rule(
     query,
     aggregate,
     time_window,
+    threshold_type,
     threshold_period,
     environment=None,
     include_all_projects=False,
@@ -548,6 +549,7 @@ def create_alert_rule(
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
     :param environment: An optional environment that this rule applies to
+    :param threshold_type: An AlertRuleThresholdType
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -575,6 +577,7 @@ def create_alert_rule(
             organization=organization,
             snuba_query=snuba_query,
             name=name,
+            threshold_type=threshold_type.value,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
         )
@@ -637,6 +640,7 @@ def update_alert_rule(
     aggregate=None,
     time_window=None,
     environment=None,
+    threshold_type=None,
     threshold_period=None,
     include_all_projects=None,
     excluded_projects=None,
@@ -653,6 +657,7 @@ def update_alert_rule(
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
     :param environment: An optional environment that this rule applies to
+    :param threshold_type: An AlertRuleThresholdType
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
     :param include_all_projects: Whether to include all current and future projects
@@ -679,6 +684,8 @@ def update_alert_rule(
         updated_query_fields["aggregate"] = aggregate
     if time_window:
         updated_query_fields["time_window"] = timedelta(minutes=time_window)
+    if threshold_type:
+        updated_fields["threshold_type"] = threshold_type.value
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
     if include_all_projects is not None:
