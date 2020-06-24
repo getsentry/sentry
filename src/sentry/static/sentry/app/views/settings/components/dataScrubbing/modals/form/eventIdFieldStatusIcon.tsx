@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
 import {IconClose, IconCheckmark} from 'app/icons';
 
-import {EventIdStatus} from '../types';
+import {EventIdStatus} from '../../types';
 
 type Props = {
   onClickIconClose: () => void;

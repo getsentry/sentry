@@ -1,19 +1,20 @@
 import {t} from 'app/locale';
 
-import {RequestError} from './types';
-
 type Error = {
-  type: RequestError;
+  type: 'unknown' | 'invalid-selector' | 'regex-parse';
   message: string;
 };
 
-// TODO(ts): define the correct error type
-function handleError(error: any): Error {
+type XhrError = {
+  responseJSON?: Record<string, Array<string>>;
+};
+
+function handleError(error: XhrError): Error {
   const errorMessage = error.responseJSON?.relayPiiConfig[0];
 
   if (!errorMessage) {
     return {
-      type: RequestError.Unknown,
+      type: 'unknown',
       message: t('Unknown error occurred while saving data scrubbing rule'),
     };
   }
@@ -23,7 +24,7 @@ function handleError(error: any): Error {
       if (line.startsWith('1 | ')) {
         const selector = line.slice(3);
         return {
-          type: RequestError.InvalidSelector,
+          type: 'invalid-selector',
           message: t('Invalid source value: %s', selector),
         };
       }
@@ -35,7 +36,7 @@ function handleError(error: any): Error {
       if (line.startsWith('error:')) {
         const regex = line.slice(6).replace(/at line \d+ column \d+/, '');
         return {
-          type: RequestError.RegexParse,
+          type: 'regex-parse',
           message: t('Invalid regex: %s', regex),
         };
       }
@@ -43,7 +44,7 @@ function handleError(error: any): Error {
   }
 
   return {
-    type: RequestError.Unknown,
+    type: 'unknown',
     message: t('An unknown error occurred while saving data scrubbing rule'),
   };
 }
