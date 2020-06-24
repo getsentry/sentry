@@ -5,6 +5,7 @@ import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 type Props = {
   api: Client;
@@ -76,7 +77,11 @@ class InlineDocs extends React.Component<Props, State> {
     }
 
     if (this.state.loading) {
-      return <div>loading</div>;
+      return (
+        <div>
+          <LoadingIndicator />
+        </div>
+      );
     }
 
     if (this.state.html) {
