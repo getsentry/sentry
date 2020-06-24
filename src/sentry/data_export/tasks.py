@@ -148,8 +148,8 @@ def assemble_download(
                 environment_id=environment_id,
             )
         else:
-            metrics.timing("dataexport.row_count", next_offset)
-            metrics.timing("dataexport.file_size", bytes_written)
+            metrics.timing("dataexport.row_count", next_offset, sample_rate=1.0)
+            metrics.timing("dataexport.file_size", bytes_written, sample_rate=1.0)
             merge_export_blobs.delay(data_export_id)
 
 
@@ -271,7 +271,7 @@ def merge_export_blobs(data_export_id, **kwargs):
             data_export.finalize_upload(file=file)
 
             time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
-            metrics.timing("dataexport.duration", time_elapsed)
+            metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)
             logger.info("dataexport.end", extra={"data_export_id": data_export_id})
             metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
     except Exception as error:
