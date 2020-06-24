@@ -122,6 +122,7 @@ register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
+register("slack.legacy-app", flags=FLAG_PRIORITIZE_DISK, type=Bool, default=True)
 
 # Slack V2 Integration
 register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
@@ -146,6 +147,7 @@ register("pagerduty.app-id", default="")
 # Vercel Integration
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("vercel.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("vercel.integration-slug", default="sentry")
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)

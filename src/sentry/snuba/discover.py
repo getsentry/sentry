@@ -626,6 +626,7 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
         orderby=orderby,
         referrer=referrer,
         conditions=key_transaction_conditions(queryset),
+        use_aggregate_conditions=True,
     )
 
 

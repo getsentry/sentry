@@ -388,7 +388,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                       withPadding={false}
                     >
                       <div
-                        className="css-13ovabz-FlexBox-OrganizationProjects e1vnwt6f0"
+                        className="css-ok1i83-FlexBox-OrganizationProjects e1vnwt6f0"
                       >
                         <GridPanelItem
                           key="2"

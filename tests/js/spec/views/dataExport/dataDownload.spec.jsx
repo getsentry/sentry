@@ -78,4 +78,34 @@ describe('DataDownload', function() {
     );
     expect(wrapper.find('DateTime').prop('date')).toEqual(new Date(dateExpired));
   });
+
+  it('should render the Open in Discover button when needed', function() {
+    const status = DownloadStatus.Valid;
+    getDataExportDetails({
+      dateExpired,
+      status,
+      query: {
+        type: ExportQueryType.Discover,
+        info: {},
+      },
+    });
+    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const buttonWrapper = wrapper.find('button[aria-label="Open in Discover"]');
+    expect(buttonWrapper.exists()).toBeTruthy();
+  });
+
+  it('should not render the Open in Discover button when not needed', function() {
+    const status = DownloadStatus.Valid;
+    getDataExportDetails({
+      dateExpired,
+      status,
+      query: {
+        type: ExportQueryType.IssuesByTag,
+        info: {},
+      },
+    });
+    const wrapper = mountWithTheme(<DataDownload params={mockRouteParams} />);
+    const buttonWrapper = wrapper.find('button[aria-label="Open in Discover"]');
+    expect(buttonWrapper.exists()).toBeFalsy();
+  });
 });

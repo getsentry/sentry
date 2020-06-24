@@ -15,6 +15,7 @@ import AsyncView from 'app/views/asyncView';
 import routeTitleGen from 'app/utils/routeTitle';
 import {formatVersion} from 'app/utils/formatters';
 import withOrganization from 'app/utils/withOrganization';
+import {Main} from 'app/components/layouts/thirds';
 
 import {getCommitsByRepository, CommitsByRepository} from '../utils';
 import ReleaseNoCommitData from '../releaseNoCommitData';
@@ -154,6 +155,10 @@ class ReleaseCommits extends AsyncView<Props, State> {
         )}
       </React.Fragment>
     );
+  }
+
+  renderComponent() {
+    return <Main fullWidth>{super.renderComponent()}</Main>;
   }
 }
 

@@ -10,7 +10,7 @@ import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import EventView from 'app/utils/discover/eventView';
-import {HeaderBox, HeaderTopControls} from 'app/utils/discover/styles';
+import * as Layout from 'app/components/layouts/thirds';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
@@ -81,18 +81,20 @@ class ResultsHeader extends React.Component<Props, State> {
     );
 
     return (
-      <HeaderBox>
-        <DiscoverBreadcrumb
-          eventView={eventView}
-          organization={organization}
-          location={location}
-        />
-        <EventInputName
-          savedQuery={savedQuery}
-          organization={organization}
-          eventView={eventView}
-        />
-        <HeaderTopControls>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <DiscoverBreadcrumb
+            eventView={eventView}
+            organization={organization}
+            location={location}
+          />
+          <EventInputName
+            savedQuery={savedQuery}
+            organization={organization}
+            eventView={eventView}
+          />
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
           <Feature
             organization={organization}
             features={['discover-query']}
@@ -107,11 +109,12 @@ class ResultsHeader extends React.Component<Props, State> {
                 savedQuery={savedQuery}
                 savedQueryLoading={loading}
                 disabled={!hasFeature || (errorCode >= 400 && errorCode < 500)}
+                updateCallback={() => this.fetchData()}
               />
             )}
           </Feature>
-        </HeaderTopControls>
-      </HeaderBox>
+        </Layout.HeaderActions>
+      </Layout.Header>
     );
   }
 }

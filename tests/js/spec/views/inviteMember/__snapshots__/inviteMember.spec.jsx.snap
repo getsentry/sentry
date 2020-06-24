@@ -205,7 +205,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                   withPadding={false}
                 >
                   <div
-                    className="css-1ehogmz-FlexBox e1vnwt6f0"
+                    className="css-1nto0rx-FlexBox e1vnwt6f0"
                   >
                     <EmotionCssPropInternal
                       __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
@@ -757,14 +757,14 @@ exports[`InviteMember should render roles when available and allowed, and handle
                     withPadding={false}
                   >
                     <div
-                      className="css-1ehogmz-FlexBox e1vnwt6f0"
+                      className="css-1nto0rx-FlexBox e1vnwt6f0"
                     >
                       <EmptyMessage>
                         <Component
-                          className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                          className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                         >
                           <div
-                            className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                            className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                             data-test-id="empty-message"
                           >
                             <Description

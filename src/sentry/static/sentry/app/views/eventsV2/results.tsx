@@ -7,15 +7,18 @@ import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
 
 import {Organization, GlobalSelection} from 'app/types';
+import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Client} from 'app/api';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {fetchProjectsCount} from 'app/actionCreators/projects';
 import Alert from 'app/components/alert';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import Confirm from 'app/components/confirm';
 import space from 'app/styles/space';
 import SearchBar from 'app/views/events/searchBar';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -23,10 +26,10 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {ContentBox, Main, Side} from 'app/utils/discover/styles';
 import {generateQueryWithTag} from 'app/utils';
 import localStorage from 'app/utils/localStorage';
 import {decodeScalar} from 'app/utils/queryString';
+import * as Layout from 'app/components/layouts/thirds';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import Table from './table';
@@ -49,6 +52,8 @@ type State = {
   errorCode: number;
   totalValues: null | number;
   showTags: boolean;
+  needConfirmation: boolean;
+  confirmedQuery: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -69,25 +74,27 @@ class Results extends React.Component<Props, State> {
     errorCode: 200,
     totalValues: null,
     showTags: readShowTagsState(),
+    needConfirmation: false,
+    confirmedQuery: false,
   };
 
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
     this.checkEventView();
-    this.fetchTotalCount();
+    this.canLoadEvents();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {api, location, organization, selection} = this.props;
-    const {eventView} = this.state;
+    const {eventView, confirmedQuery} = this.state;
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
     if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
       api.clear();
-      this.fetchTotalCount();
+      this.canLoadEvents();
       if (
         !isEqual(prevQuery.statsPeriod, currentQuery.statsPeriod) ||
         !isEqual(prevQuery.start, currentQuery.start) ||
@@ -97,12 +104,73 @@ class Results extends React.Component<Props, State> {
         loadOrganizationTags(api, organization.slug, selection);
       }
     }
+
+    if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
   }
+
+  canLoadEvents = async () => {
+    const {api, location, organization} = this.props;
+    const {eventView} = this.state;
+    let needConfirmation = false;
+    let confirmedQuery = true;
+    const currentQuery = eventView.getEventsAPIPayload(location);
+    const duration = eventView.getDays();
+
+    if (duration > 30 && currentQuery.project) {
+      let projectLength = currentQuery.project.length;
+
+      if (
+        projectLength === 0 ||
+        (projectLength === 1 && currentQuery.project[0] === '-1')
+      ) {
+        try {
+          const results = await fetchProjectsCount(api, organization.slug);
+
+          if (projectLength === 0) projectLength = results.myProjects;
+          else projectLength = results.allProjects;
+        } catch (err) {
+          // do nothing, so the length is 0 or 1 and the query is assumed safe
+        }
+      }
+
+      if (projectLength > 10) {
+        needConfirmation = true;
+        confirmedQuery = false;
+      }
+    }
+    // Once confirmed, a change of project or datetime will happen before this can set it to false,
+    // this means a query will still happen even if the new conditions need confirmation
+    // using a state callback to return this to false
+    this.setState({needConfirmation, confirmedQuery}, () => {
+      this.setState({confirmedQuery: false});
+    });
+    if (needConfirmation) {
+      this.openConfirm();
+    }
+  };
+
+  openConfirm = () => {};
+
+  setOpenFunction = ({open}) => {
+    this.openConfirm = open;
+    return null;
+  };
+
+  handleConfirmed = async () => {
+    this.setState({needConfirmation: false, confirmedQuery: true}, () => {
+      this.setState({confirmedQuery: false});
+    });
+  };
+
+  handleCancelled = () => {
+    this.setState({needConfirmation: false, confirmedQuery: false});
+  };
 
   async fetchTotalCount() {
     const {api, organization, location} = this.props;
-    const {eventView} = this.state;
-    if (!eventView.isValid()) {
+    const {eventView, confirmedQuery} = this.state;
+
+    if (confirmedQuery === false || !eventView.isValid()) {
       return;
     }
 
@@ -182,6 +250,11 @@ class Results extends React.Component<Props, State> {
       query: newQuery,
     });
 
+    // Treat axis changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+
     trackAnalyticsEvent({
       eventKey: 'discover_v2.y_axis_change',
       eventName: "Discoverv2: Change chart's y axis",
@@ -202,6 +275,11 @@ class Results extends React.Component<Props, State> {
       pathname: location.pathname,
       query: newQuery,
     });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
   };
 
   getDocumentTitle(): string {
@@ -214,18 +292,19 @@ class Results extends React.Component<Props, State> {
 
   renderTagsTable() {
     const {organization, location} = this.props;
-    const {eventView, totalValues} = this.state;
+    const {eventView, totalValues, confirmedQuery} = this.state;
 
     return (
-      <Side>
+      <Layout.Side>
         <Tags
           generateUrl={this.generateTagUrl}
           totalValues={totalValues}
           eventView={eventView}
           organization={organization}
           location={location}
+          confirmedQuery={confirmedQuery}
         />
-      </Side>
+      </Layout.Side>
     );
   }
 
@@ -258,7 +337,14 @@ class Results extends React.Component<Props, State> {
 
   render() {
     const {organization, location, router} = this.props;
-    const {eventView, error, errorCode, totalValues, showTags} = this.state;
+    const {
+      eventView,
+      error,
+      errorCode,
+      totalValues,
+      showTags,
+      confirmedQuery,
+    } = this.state;
     const query = decodeScalar(location.query.query) || '';
     const title = this.getDocumentTitle();
 
@@ -272,8 +358,8 @@ class Results extends React.Component<Props, State> {
               location={location}
               eventView={eventView}
             />
-            <ContentBox>
-              <Top>
+            <Layout.Body>
+              <Top fullWidth>
                 {this.renderError(error)}
                 <StyledSearchBar
                   organization={organization}
@@ -290,9 +376,10 @@ class Results extends React.Component<Props, State> {
                   onAxisChange={this.handleYAxisChange}
                   onDisplayChange={this.handleDisplayChange}
                   total={totalValues}
+                  confirmedQuery={confirmedQuery}
                 />
               </Top>
-              <StyledMain isCollapsed={!!showTags}>
+              <Layout.Main fullWidth={!showTags}>
                 <Table
                   organization={organization}
                   eventView={eventView}
@@ -301,19 +388,41 @@ class Results extends React.Component<Props, State> {
                   setError={this.setError}
                   onChangeShowTags={this.handleChangeShowTags}
                   showTags={showTags}
+                  confirmedQuery={confirmedQuery}
                 />
-              </StyledMain>
+              </Layout.Main>
               {showTags ? this.renderTagsTable() : null}
-            </ContentBox>
+              <Confirm
+                priority="primary"
+                header={<strong>{t('May lead to thumb twiddling')}</strong>}
+                confirmText={t('Do it')}
+                cancelText={t('Nevermind')}
+                onConfirm={this.handleConfirmed}
+                onCancel={this.handleCancelled}
+                message={
+                  <p>
+                    {tct(
+                      `You've created a query that will search for events made
+                      [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
+                      A lot has happened during that time, so this might take awhile.
+                      Are you sure you want to do this?`,
+                      {
+                        dayLimit: <strong />,
+                        projectLimit: <strong />,
+                      }
+                    )}
+                  </p>
+                }
+              >
+                {this.setOpenFunction}
+              </Confirm>
+            </Layout.Body>
           </LightWeightNoProjectMessage>
         </StyledPageContent>
       </SentryDocumentTitle>
     );
   }
 }
-
-// These styled components are used in getsentry to create a paywall page.
-// Be careful changing their interfaces.
 
 export const StyledPageContent = styled(PageContent)`
   padding: 0;
@@ -323,13 +432,8 @@ export const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
 
-export const Top = styled('div')`
-  grid-column: 1/3;
+export const Top = styled(Layout.Main)`
   flex-grow: 0;
-`;
-
-export const StyledMain = styled(Main)<{isCollapsed: boolean}>`
-  grid-column: ${p => (p.isCollapsed ? '1/2' : '1/3')};
 `;
 
 function ResultsContainer(props: Props) {

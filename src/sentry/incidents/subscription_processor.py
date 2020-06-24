@@ -163,6 +163,25 @@ class SubscriptionProcessor(object):
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
 
+    def calculate_event_date_from_update_date(self, update_date):
+        """
+        Calculates the date that an event actually happened based on the date that we
+        received the update. This takes into account time window and threshold period.
+        :return:
+        """
+        # Subscriptions label buckets by the end of the bucket, whereas discover
+        # labels them by the front. This causes us an off-by-one error with event dates,
+        # so to prevent this we subtract a bucket off of the date.
+        update_date -= timedelta(seconds=self.alert_rule.snuba_query.time_window)
+        # We want to also subtract `frequency * (threshold_period - 1)` from the date.
+        # This allows us to show the actual start of the event, rather than the date
+        # of the last update that we received.
+        return update_date - timedelta(
+            seconds=(
+                self.alert_rule.snuba_query.resolution * (self.alert_rule.threshold_period - 1)
+            )
+        )
+
     def trigger_alert_threshold(self, trigger, metric_value):
         """
         Called when a subscription update exceeds the value defined in the
@@ -177,17 +196,7 @@ class SubscriptionProcessor(object):
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
             # Only create a new incident if we don't already have an active one
             if not self.active_incident:
-                detected_at = self.last_update
-                # Subscriptions label buckets by the end of the bucket, whereas discover
-                # labels them by the front. This causes us an off-by-one error with
-                # alert start dates, so to prevent this we subtract a bucket off of the
-                # start date.
-                # We also multiply by threshold_period so that we can show when the
-                # alert actually started happening, rather than when we detected it.
-                detected_at -= timedelta(
-                    seconds=self.alert_rule.snuba_query.time_window
-                    * self.alert_rule.threshold_period
-                )
+                detected_at = self.calculate_event_date_from_update_date(self.last_update)
                 self.active_incident = create_incident(
                     self.alert_rule.organization,
                     IncidentType.ALERT_TRIGGERED,
@@ -195,6 +204,9 @@ class SubscriptionProcessor(object):
                     self.alert_rule.name,
                     alert_rule=self.alert_rule,
                     date_started=detected_at,
+                    # TODO: This should probably be either the current time or the
+                    # message time. Current time likely makes most sense, since this is
+                    # when we actually noticed the problem.
                     date_detected=detected_at,
                     projects=[self.subscription.project],
                 )
@@ -257,6 +269,7 @@ class SubscriptionProcessor(object):
                     self.active_incident,
                     IncidentStatus.CLOSED,
                     status_method=IncidentStatusMethod.RULE_TRIGGERED,
+                    date_closed=self.calculate_event_date_from_update_date(self.last_update),
                 )
                 self.active_incident = None
                 self.incident_triggers.clear()

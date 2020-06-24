@@ -377,6 +377,52 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         assert data[0]["transaction"] == event_data["transaction"]
 
     @patch("django.utils.timezone.now")
+    def test_get_transaction_with_aggregate_query(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+
+        transactions = [
+            ("127.0.0.1", "/foo_transaction/", 2),
+            ("192.168.0.1", "/blah_transaction/", 3),
+        ]
+
+        for ip_address, transaction, count in transactions:
+            event_data["transaction"] = transaction
+            event_data["user"]["ip_address"] = ip_address
+            for _ in range(count):
+                self.store_event(data=event_data, project_id=self.project.id)
+            KeyTransaction.objects.create(
+                owner=self.user,
+                organization=self.org,
+                transaction=event_data["transaction"],
+                project=self.project,
+            )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.get(
+                url,
+                {
+                    "project": [self.project.id],
+                    "orderby": "transaction",
+                    "query": "count():>2",
+                    "field": [
+                        "transaction",
+                        "transaction_status",
+                        "project",
+                        "count()",
+                        "failure_rate()",
+                        "percentile(transaction.duration, 0.95)",
+                    ],
+                },
+            )
+
+        assert response.status_code == 200
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["transaction"] == event_data["transaction"]
+
+    @patch("django.utils.timezone.now")
     def test_get_transaction_with_backslash_and_quotes(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -586,7 +632,9 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     def test_key_transaction_stats(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         data = load_data(
-            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
+            "transaction",
+            timestamp=before_now(hours=1, minutes=30),
+            start_timestamp=before_now(hours=1, minutes=31),
         )
         event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
@@ -615,7 +663,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 3
+        assert len(response.data["data"]) == 2
         assert [{"count": 3}] in [attrs for time, attrs in response.data["data"]]
 
     @patch("django.utils.timezone.now")
@@ -627,8 +675,8 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             "spans": [],
             "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
             "tags": {"important": "yes"},
-            "timestamp": iso_format(before_now(minutes=30)),
-            "start_timestamp": iso_format(before_now(minutes=31)),
+            "timestamp": iso_format(before_now(hours=1, minutes=30)),
+            "start_timestamp": iso_format(before_now(hours=1, minutes=31)),
         }
         fixtures = (("d" * 32, "yes"), ("e" * 32, "no"), ("f" * 32, "yes"))
         for fixture in fixtures:
@@ -660,14 +708,16 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 3
+        assert len(response.data["data"]) == 2
         assert [{"count": 2}] in [attrs for time, attrs in response.data["data"]]
 
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats_with_no_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         data = load_data(
-            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
+            "transaction",
+            timestamp=before_now(hours=1, minutes=30),
+            start_timestamp=before_now(hours=1, minutes=31),
         )
         event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
@@ -689,9 +739,8 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 3
+        assert len(response.data["data"]) == 2
         assert [attrs for time, attrs in response.data["data"]] == [
-            [{"count": 0}],
             [{"count": 0}],
             [{"count": 0}],
         ]
@@ -700,7 +749,9 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     def test_key_transaction_stats_with_multi_yaxis(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         data = load_data(
-            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
+            "transaction",
+            timestamp=before_now(hours=1, minutes=30),
+            start_timestamp=before_now(hours=1, minutes=31),
         )
         event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
@@ -730,8 +781,8 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert len(response.data["epm()"]["data"]) == 3
-        assert len(response.data["eps()"]["data"]) == 3
+        assert len(response.data["epm()"]["data"]) == 2
+        assert len(response.data["eps()"]["data"]) == 2
         assert [{"count": 3.0 / (3600.0 / 60.0)}] in [
             attrs for time, attrs in response.data["epm()"]["data"]
         ]
@@ -743,7 +794,9 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
     def test_key_transaction_stats_with_multi_yaxis_no_key_transactions(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
         data = load_data(
-            "transaction", timestamp=before_now(minutes=30), start_timestamp=before_now(minutes=31)
+            "transaction",
+            timestamp=before_now(hours=1, minutes=30),
+            start_timestamp=before_now(hours=1, minutes=31),
         )
         event_ids = ["d" * 32, "e" * 32, "f" * 32]
         for event_id in event_ids:
@@ -767,15 +820,13 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert len(response.data["epm()"]["data"]) == 3
-        assert len(response.data["eps()"]["data"]) == 3
+        assert len(response.data["epm()"]["data"]) == 2
+        assert len(response.data["eps()"]["data"]) == 2
         assert [attrs for time, attrs in response.data["epm()"]["data"]] == [
-            [{"count": 0}],
             [{"count": 0}],
             [{"count": 0}],
         ]
         assert [attrs for time, attrs in response.data["eps()"]["data"]] == [
-            [{"count": 0}],
             [{"count": 0}],
             [{"count": 0}],
         ]
