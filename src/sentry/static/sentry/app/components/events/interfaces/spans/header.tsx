@@ -42,11 +42,11 @@ class TraceViewHeader extends React.Component<PropType> {
     cursorGuideHeight,
     showCursorGuide,
     mouseLeft,
-  }): {
+  }: {
     cursorGuideHeight: number;
     showCursorGuide: boolean;
     mouseLeft: number | undefined;
-  } {
+  }) {
     if (!showCursorGuide || !mouseLeft) {
       return null;
     }
