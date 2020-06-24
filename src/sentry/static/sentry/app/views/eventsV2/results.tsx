@@ -250,6 +250,11 @@ class Results extends React.Component<Props, State> {
       query: newQuery,
     });
 
+    // Treat axis changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+
     trackAnalyticsEvent({
       eventKey: 'discover_v2.y_axis_change',
       eventName: "Discoverv2: Change chart's y axis",
@@ -265,6 +270,11 @@ class Results extends React.Component<Props, State> {
       ...location.query,
       display: value,
     };
+
+    // Treat axis changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
 
     router.push({
       pathname: location.pathname,
