@@ -581,9 +581,7 @@ class QueryTransformTest(TestCase):
         )
         mock_query.assert_called_with(
             selected_columns=["transaction"],
-            aggregations=[
-                ["failure_rate()", None, "failure_rate"],
-            ],
+            aggregations=[["failure_rate()", None, "failure_rate"]],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             groupby=["transaction"],
