@@ -4,6 +4,7 @@ import React from 'react';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {intcomma} from 'app/utils';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -95,6 +96,9 @@ class OrganizationStats extends React.Component {
           )}
         </div>
         <div>
+          <Alert type="info" icon="icon-circle-info">
+            {t('Transactions and attachments are not present in the graph currently.')}
+          </Alert>
           {statsLoading ? (
             <LoadingIndicator />
           ) : statsError ? (
