@@ -378,6 +378,8 @@ class AlertRule(Model):
     # Determines whether we include all current and future projects from this
     # organization in this rule.
     include_all_projects = models.BooleanField(default=False)
+    threshold_type = models.SmallIntegerField(null=True)
+    resolve_threshold = models.FloatField(null=True)
     threshold_period = models.IntegerField()
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)

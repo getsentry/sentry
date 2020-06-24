@@ -7,7 +7,7 @@ import logging
 import posixpath
 
 from django.db import transaction
-from django.db.models import Q, Count, Exists, OuterRef
+from django.db.models import Q, Count
 from django.http import StreamingHttpResponse, HttpResponse, Http404
 from rest_framework.response import Response
 from symbolic import normalize_debug_id, SymbolicError
@@ -380,16 +380,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
         query = request.GET.get("query")
 
         try:
-            queryset = (
-                Release.objects.filter(projects=project, organization_id=project.organization_id)
-                .annotate(
-                    has_file=Exists(
-                        ReleaseFile.objects.filter(release=OuterRef("id")).values_list("id")
-                    )
-                )
-                .values("id", "version", "date_added")
-                .filter(has_file=True)
-            )
+            queryset = Release.objects.filter(
+                projects=project, organization_id=project.organization_id
+            ).values("id", "version", "date_added")
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 

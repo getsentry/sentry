@@ -217,6 +217,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["id"] == "b" * 32
         assert data[0]["project.id"] == project.id
         assert data[0]["user.email"] == "foo@example.com"
+        assert "project.name" not in data[0], "project.id does not auto select name"
+        assert "project" not in data[0]
+
         meta = response.data["meta"]
         assert meta["id"] == "string"
         assert meta["user.email"] == "string"
@@ -551,47 +554,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0] == {
             "project.id": project.id,
-            "project.name": project.slug,
             "issue.id": event1.group_id,
             "count_id": 2,
-            "latest_event": event1.event_id,
         }
         assert data[1] == {
             "project.id": project.id,
-            "project.name": project.slug,
             "issue.id": event2.group_id,
             "count_id": 1,
-            "latest_event": event2.event_id,
         }
         meta = response.data["meta"]
         assert meta["count_id"] == "integer"
-
-    def test_automatic_id_and_project(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-        self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.two_min_ago, "fingerprint": ["group_1"]},
-            project_id=project.id,
-        )
-        event = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": self.min_ago, "fingerprint": ["group_1"]},
-            project_id=project.id,
-        )
-
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(self.url, format="json", data={"field": ["count(id)"]})
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0] == {
-            "project.name": project.slug,
-            "count_id": 2,
-            "latest_event": event.event_id,
-        }
-        meta = response.data["meta"]
-        assert meta["count_id"] == "integer"
-        assert meta["latest_event"] == "string"
 
     def test_orderby(self):
         self.login_as(user=self.user)
@@ -739,8 +711,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event1.group_id
         assert data[0]["count_id"] == 1
         assert data[0]["count_unique_user"] == 1
-        assert "latest_event" in data[0]
-        assert "project.name" in data[0]
         assert "projectid" not in data[0]
         assert "project.id" not in data[0]
         assert data[1]["issue.id"] == event2.group_id
@@ -794,8 +764,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event1.group_id
         assert data[0]["count_id"] == 1
         assert data[0]["count_unique_user_email"] == 1
-        assert "latest_event" in data[0]
-        assert "project.name" in data[0]
         assert "projectid" not in data[0]
         assert "project.id" not in data[0]
         assert data[1]["issue.id"] == event2.group_id
@@ -1436,9 +1404,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert data[0]["project.name"] == ""
         assert data[0]["count"] == 0
-        assert data[0]["latest_event"] == ""
 
     def test_reference_event(self):
         self.login_as(user=self.user)
@@ -1485,7 +1451,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert data[0]["transaction"] == "/example"
-        assert data[0]["latest_event"] == "b" * 32
 
     def test_stack_wildcard_condition(self):
         self.login_as(user=self.user)

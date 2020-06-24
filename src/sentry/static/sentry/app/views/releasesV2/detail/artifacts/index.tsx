@@ -10,6 +10,7 @@ import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
 import AlertLink from 'app/components/alertLink';
 import Feature from 'app/components/acl/feature';
+import {Main} from 'app/components/layouts/thirds';
 
 import {ReleaseContext} from '..';
 
@@ -39,7 +40,7 @@ class ReleaseArtifacts extends AsyncView<Props> {
     const {params, location, organization} = this.props;
 
     return (
-      <React.Fragment>
+      <Main fullWidth>
         <Feature features={['artifacts-in-settings']}>
           {({hasFeature}) =>
             hasFeature ? (
@@ -63,7 +64,7 @@ class ReleaseArtifacts extends AsyncView<Props> {
             )
           }
         </Feature>
-      </React.Fragment>
+      </Main>
     );
   }
 }

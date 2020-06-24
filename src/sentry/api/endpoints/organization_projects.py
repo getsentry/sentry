@@ -124,3 +124,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 on_results=serialize_on_result,
                 paginator_cls=OffsetPaginator,
             )
+
+
+class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    def get(self, request, organization):
+        queryset = Project.objects.filter(organization=organization)
+
+        all_projects = queryset.count()
+        my_projects = queryset.filter(teams__organizationmember__user=request.user).count()
+
+        return Response({"allProjects": all_projects, "myProjects": my_projects})
