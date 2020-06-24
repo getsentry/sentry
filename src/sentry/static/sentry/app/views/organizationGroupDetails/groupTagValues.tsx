@@ -9,6 +9,7 @@ import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import UserBadge from 'app/components/idBadge/userBadge';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import DeviceName from 'app/components/deviceName';
 import ExternalLink from 'app/components/links/externalLink';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
@@ -124,7 +125,7 @@ class GroupTagValues extends AsyncComponent<
       <React.Fragment>
         <Header>
           <HeaderTitle>{tag.key === 'user' ? t('Affected Users') : tag.name}</HeaderTitle>
-          <HeaderButtons>
+          <HeaderButtons gap={1}>
             <BrowserExportButton
               size="small"
               priority="default"
@@ -174,12 +175,8 @@ const HeaderTitle = styled('h3')`
   margin: 0;
 `;
 
-const HeaderButtons = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-auto-flow: column;
-  grid-auto-columns: auto;
-  justify-items: end;
+const HeaderButtons = styled(ButtonBar)`
+  align-items: stretch;
   margin: 0px ${space(1.5)};
 `;
 
