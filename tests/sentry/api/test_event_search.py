@@ -1461,7 +1461,6 @@ class ResolveFieldListTest(unittest.TestCase):
             "user.id",
             "message",
             "project.id",
-            "project",
         ]
 
     def test_aggregate_function_expansion(self):

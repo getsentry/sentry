@@ -483,7 +483,7 @@ class QueryTransformTest(TestCase):
                     "`project`",
                 ],
             ],
-            aggregations=[],
+            aggregations=[[u"quantile(0.99)", "duration", u"p99"]],
             filter_keys={"project_id": [project2.id]},
             dataset=Dataset.Discover,
             end=None,
