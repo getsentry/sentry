@@ -10,16 +10,8 @@ from sentry.testutils import APITestCase
 
 class OrganizationProjectsTest(APITestCase):
     @fixture
-    def org(self):
-        return self.create_organization(owner=self.user, name="baz")
-
-    @fixture
-    def team(self):
-        return self.create_team(organization=self.org)
-
-    @fixture
     def path(self):
-        return u"/api/0/organizations/{}/projects/".format(self.org.slug)
+        return u"/api/0/organizations/{}/projects/".format(self.organization.slug)
 
     def check_valid_response(self, response, expected_projects):
         assert response.status_code == 200, response.content
@@ -33,7 +25,7 @@ class OrganizationProjectsTest(APITestCase):
 
         response = self.client.get(self.path)
         self.check_valid_response(response, [project])
-        assert self.client.session["activeorg"] == self.org.slug
+        assert self.client.session["activeorg"] == self.organization.slug
 
     def test_with_stats(self):
         self.login_as(user=self.user)
@@ -127,7 +119,7 @@ class OrganizationProjectsTest(APITestCase):
 
     def test_team_filter(self):
         self.login_as(user=self.user)
-        other_team = self.create_team(organization=self.org)
+        other_team = self.create_team(organization=self.organization)
 
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
         project_foo = self.create_project(teams=[other_team], name="foo", slug="foo")
@@ -141,7 +133,7 @@ class OrganizationProjectsTest(APITestCase):
         self.check_valid_response(response, [project_baz, project_foo])
 
     def test_api_key(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["org:read"])
+        key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
 
         project = self.create_project(teams=[self.team])
 
@@ -152,7 +144,7 @@ class OrganizationProjectsTest(APITestCase):
 
     def test_all_projects(self):
         self.login_as(user=self.user)
-        other_team = self.create_team(organization=self.org)
+        other_team = self.create_team(organization=self.organization)
 
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
         project_foo = self.create_project(teams=[other_team], name="foo", slug="foo")
@@ -167,17 +159,43 @@ class OrganizationProjectsTest(APITestCase):
         self.foo_user = self.create_user("foo@example.com")
         self.login_as(user=self.foo_user)
 
-        other_team = self.create_team(organization=self.org)
+        other_team = self.create_team(organization=self.organization)
 
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
         self.create_project(teams=[other_team], name="foo", slug="foo")
         self.create_project(teams=[other_team], name="baz", slug="baz")
 
         # Make foo_user a part of the org and self.team
-        self.create_member(organization=self.org, user=self.foo_user, teams=[self.team])
+        self.create_member(organization=self.organization, user=self.foo_user, teams=[self.team])
 
         foo_user_projects = [project_bar]
 
         response = self.client.get(self.path + "?query=is_member:1")
         # Verify projects that were returned were foo_users projects
         self.check_valid_response(response, foo_user_projects)
+
+
+class OrganizationProjectsCountTest(APITestCase):
+    @fixture
+    def path(self):
+        return u"/api/0/organizations/{}/projects-count/".format(self.organization.slug)
+
+    def test_project_count(self):
+        self.foo_user = self.create_user("foo@example.com")
+        self.login_as(user=self.foo_user)
+
+        other_team = self.create_team(organization=self.organization)
+
+        self.create_project(teams=[self.team], name="bar", slug="bar")
+        self.create_project(teams=[self.team], name="bar1", slug="bar1")
+        self.create_project(teams=[self.team], name="bar2", slug="bar2")
+        self.create_project(teams=[self.team], name="bar3", slug="bar3")
+        self.create_project(teams=[other_team], name="foo", slug="foo")
+        self.create_project(teams=[other_team], name="baz", slug="baz")
+
+        # Make foo_user a part of the org and self.team
+        self.create_member(organization=self.organization, user=self.foo_user, teams=[self.team])
+
+        response = self.client.get(self.path + "?get_counts=1")
+        assert response.status_code == 200, response.content
+        assert response.data == {"allProjects": 6, "myProjects": 4}
