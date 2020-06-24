@@ -132,32 +132,8 @@ class SpanDetail extends React.Component<Props, State> {
     assert(!isGapSpan(span));
 
     if (this.state.transactionResults.length === 1) {
-      const eventSlug = generateSlug(this.state.transactionResults[0]);
-
-      return (
-        <SpanEntryContext.Consumer>
-          {({getViewChildTransactionTarget}) => {
-            const to = getViewChildTransactionTarget({
-              ...this.state.transactionResults![0],
-              eventSlug,
-            });
-
-            if (!to) {
-              return null;
-            }
-
-            return (
-              <StyledDiscoverButton
-                data-test-id="view-child-transaction"
-                size="xsmall"
-                to={to}
-              >
-                {t('View Child')}
-              </StyledDiscoverButton>
-            );
-          }}
-        </SpanEntryContext.Consumer>
-      );
+      // Note: This is rendered by this.renderSpanChild() as a dedicated row
+      return null;
     }
 
     const orgFeatures = new Set(organization.features);
@@ -193,6 +169,47 @@ class SpanDetail extends React.Component<Props, State> {
       >
         {t('View Children')}
       </StyledDiscoverButton>
+    );
+  }
+
+  renderSpanChild(): React.ReactNode {
+    if (!this.state.transactionResults || this.state.transactionResults.length !== 1) {
+      return null;
+    }
+
+    const eventSlug = generateSlug(this.state.transactionResults[0]);
+
+    const viewChildButton = (
+      <SpanEntryContext.Consumer>
+        {({getViewChildTransactionTarget}) => {
+          const to = getViewChildTransactionTarget({
+            ...this.state.transactionResults![0],
+            eventSlug,
+          });
+
+          if (!to) {
+            return null;
+          }
+
+          return (
+            <StyledDiscoverButton
+              data-test-id="view-child-transaction"
+              size="xsmall"
+              to={to}
+            >
+              {t('View Span')}
+            </StyledDiscoverButton>
+          );
+        }}
+      </SpanEntryContext.Consumer>
+    );
+
+    const results = this.state.transactionResults[0];
+
+    return (
+      <Row title="Child Span" extra={viewChildButton}>
+        {`${results['trace.span']} - ${results.transaction} (${results['project.name']})`}
+      </Row>
     );
   }
 
@@ -372,6 +389,7 @@ class SpanDetail extends React.Component<Props, State> {
                 {span.span_id}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
+              {this.renderSpanChild()}
               <Row title="Trace ID" extra={this.renderTraceButton()}>
                 {span.trace_id}
               </Row>
