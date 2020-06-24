@@ -17,7 +17,13 @@ from sentry import options
 from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
-from sentry.models import Project, User, SentryAppInstallation, SentryAppInstallationForProvider
+from sentry.models import (
+    Project,
+    ProjectKey,
+    User,
+    SentryAppInstallation,
+    SentryAppInstallationForProvider,
+)
 from sentry.utils.compat import map
 from sentry.shared_integrations.exceptions import IntegrationError, ApiError
 from sentry.mediators.sentry_apps import InternalCreator
@@ -107,6 +113,75 @@ class VercelIntegration(IntegrationInstallation):
         ]
 
         return fields
+
+    def update_organization_config(self, data):
+        # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
+
+        metadata = self.model.metadata
+        vercel_client = VercelClient(metadata["access_token"], metadata.get("team_id"))
+        config = self.org_integration.config
+        [sentry_project_id, vercel_project_id] = data["project_mappings"][
+            -1
+        ]  # TODO: update this to work in the case where a project is removed
+        sentry_project = Project.objects.get(id=sentry_project_id)
+        enabled_dsn = ProjectKey.get_default(project=sentry_project)
+        if not enabled_dsn:
+            raise IntegrationError("You must have an enabled DSN to continue!")
+        sentry_project_dsn = enabled_dsn.get_dsn(public=True)
+
+        org_secret = self.create_secret(
+            vercel_client, vercel_project_id, "SENTRY_ORG", sentry_project.organization.slug
+        )
+        project_secret = self.create_secret(
+            vercel_client,
+            vercel_project_id,
+            "SENTRY_PROJECT_%s" % sentry_project_id,
+            sentry_project.slug,
+        )
+        dsn_secret = self.create_secret(
+            vercel_client,
+            vercel_project_id,
+            "NEXT_PUBLIC_SENTRY_DSN_%s" % sentry_project_id,
+            sentry_project_dsn,
+        )
+
+        self.create_env_var(vercel_client, vercel_project_id, "SENTRY_ORG", org_secret)
+        self.create_env_var(vercel_client, vercel_project_id, "SENTRY_PROJECT", project_secret)
+        self.create_env_var(vercel_client, vercel_project_id, "NEXT_PUBLIC_SENTRY_DSN", dsn_secret)
+
+        config.update(data)
+        self.org_integration.update(config=config)
+
+    def get_env_vars(self, client, vercel_project_id):
+        return client.get_env_vars(vercel_project_id)
+
+    def get_secret(self, client, name):
+        try:
+            return client.get_secret(name)
+        except ApiError as e:
+            if e.code == 404:
+                return None
+            raise
+
+    def env_var_already_exists(self, client, vercel_project_id, name):
+        return any(
+            [
+                env_var
+                for env_var in self.get_env_vars(client, vercel_project_id)["envs"]
+                if env_var["key"] == name
+            ]
+        )
+
+    def create_secret(self, client, vercel_project_id, name, value):
+        secret = self.get_secret(client, name)
+        if secret:
+            return secret
+        else:
+            return client.create_secret(vercel_project_id, name, value)
+
+    def create_env_var(self, client, vercel_project_id, key, value):
+        if not self.env_var_already_exists(client, vercel_project_id, key):
+            client.create_env_variable(vercel_project_id, key, value)
 
 
 class VercelIntegrationProvider(IntegrationProvider):

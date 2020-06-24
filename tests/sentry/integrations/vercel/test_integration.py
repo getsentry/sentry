@@ -1,16 +1,20 @@
 from __future__ import absolute_import
 
 import responses
+import json
 
 from six.moves.urllib.parse import parse_qs
-
 from sentry.integrations.vercel import VercelIntegrationProvider
 from sentry.models import (
     Integration,
     OrganizationIntegration,
+    Project,
+    ProjectKey,
+    ProjectKeyStatus,
     SentryAppInstallationForProvider,
     SentryAppInstallation,
 )
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
 
 
@@ -118,3 +122,157 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         self.assert_setup_flow(is_team=False)
         assert SentryAppInstallation.objects.count() == 1
+
+    @responses.activate
+    def test_update_organization_config(self):
+        """Test that Vercel environment variables are created"""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        project_id = self.project.id
+        secret_names = [
+            "sentry_org",
+            "sentry_project_%s" % project_id,
+            "next_public_sentry_dsn_%s" % project_id,
+        ]
+
+        for i, name in enumerate(secret_names):
+            responses.add(
+                responses.GET, "https://api.vercel.com/v3/now/secrets/%s" % name, status=404
+            )
+            responses.add(
+                responses.POST, "https://api.vercel.com/v2/now/secrets", json={"uid": "sec_%s" % i},
+            )
+        # mock get envs for all
+        responses.add(
+            responses.GET,
+            "https://api.vercel.com/v5/projects/%s/env"
+            % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
+            json={"envs": []},
+        )
+
+        for i, name in enumerate(secret_names):
+            responses.add(
+                responses.POST,
+                "https://api.vercel.com/v4/projects/%s/env"
+                % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
+                json={"value": "sec_%s" % i, "target": "production", "key": name},
+            )
+
+        org = self.organization
+        data = {
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
+        }
+        enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
+            public=True
+        )
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config == {}
+        installation.update_organization_config(data)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config == {
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
+        }
+
+        req_params = json.loads(responses.calls[5].request.body)
+        assert req_params["name"] == "SENTRY_ORG"
+        assert req_params["value"] == org.slug
+
+        req_params = json.loads(responses.calls[7].request.body)
+        assert req_params["name"] == "SENTRY_PROJECT_%s" % project_id
+        assert req_params["value"] == self.project.slug
+
+        req_params = json.loads(responses.calls[9].request.body)
+        assert req_params["name"] == "NEXT_PUBLIC_SENTRY_DSN_%s" % project_id
+        assert req_params["value"] == enabled_dsn
+
+        req_params = json.loads(responses.calls[11].request.body)
+        assert req_params["key"] == "SENTRY_ORG"
+        assert req_params["value"] == "sec_0"
+        assert req_params["target"] == "production"
+
+        req_params = json.loads(responses.calls[13].request.body)
+        assert req_params["key"] == "SENTRY_PROJECT"
+        assert req_params["value"] == "sec_1"
+        assert req_params["target"] == "production"
+
+        req_params = json.loads(responses.calls[15].request.body)
+        assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
+        assert req_params["value"] == "sec_2"
+        assert req_params["target"] == "production"
+
+    @responses.activate
+    def test_update_org_config_vars_exist(self):
+        """Test the case wherein the secrets and env vars already exist"""
+
+        with self.tasks():
+            self.assert_setup_flow()
+
+        project_id = self.project.id
+        secret_names = [
+            "sentry_org",
+            "sentry_project_%s" % project_id,
+            "next_public_sentry_dsn_%s" % project_id,
+        ]
+        env_var_names = ["SENTRY_ORG", "SENTRY_PROJECT", "NEXT_PUBLIC_SENTRY_DSN"]
+
+        for i, name in enumerate(secret_names):
+            responses.add(
+                responses.GET,
+                "https://api.vercel.com/v3/now/secrets/%s" % name,
+                json={"uid": "sec_%s" % i, "name": name},
+            )
+
+        for i, env_var_name in enumerate(env_var_names):
+            responses.add(
+                responses.GET,
+                "https://api.vercel.com/v5/projects/%s/env"
+                % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
+                json={
+                    "envs": [{"value": "sec_%s" % i, "target": "production", "key": env_var_name}],
+                },
+            )
+
+        org = self.organization
+        data = {
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
+        }
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config == {}
+        installation.update_organization_config(data)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config == {
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
+        }
+
+    @responses.activate
+    def test_upgrade_org_config_no_dsn(self):
+        """Test that the function doesn't progress if there is no active DSN"""
+
+        with self.tasks():
+            self.assert_setup_flow()
+
+        project_id = self.project.id
+        org = self.organization
+        data = {
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
+        }
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+
+        dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
+        dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
+        with self.assertRaises(IntegrationError):
+            installation.update_organization_config(data)
