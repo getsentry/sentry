@@ -242,7 +242,7 @@ class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
     this.setState(prevState => ({
       showAddRuleModal,
       eventId:
-        prevState.eventId?.status === EventIdStatus.LOADED
+        prevState.eventId?.status !== EventIdStatus.LOADED
           ? {value: ''}
           : prevState.eventId,
     }));

@@ -582,11 +582,7 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                [
-                    "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
-                    None,
-                    "failure_rate",
-                ],
+                ["failure_rate()", None, "failure_rate"],
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,

@@ -108,6 +108,7 @@ class ResultsHeader extends React.Component<Props, State> {
                 savedQuery={savedQuery}
                 savedQueryLoading={loading}
                 disabled={!hasFeature || (errorCode >= 400 && errorCode < 500)}
+                updateCallback={() => this.fetchData()}
               />
             )}
           </Feature>
