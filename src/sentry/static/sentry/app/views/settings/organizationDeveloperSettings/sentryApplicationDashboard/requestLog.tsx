@@ -16,6 +16,7 @@ import Checkbox from 'app/components/checkbox';
 import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
+import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
 import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
 import {Theme} from 'app/utils/theme';
@@ -271,13 +272,13 @@ export default class RequestLog extends AsyncComponent<Props, State> {
 
         <PaginationButtons>
           <Button
-            icon="icon-chevron-left"
+            icon={<IconChevron direction="left" size="sm" />}
             onClick={this.handlePrevPage}
             disabled={!this.hasPrevPage}
             label={t('Previous page')}
           />
           <Button
-            icon="icon-chevron-right"
+            icon={<IconChevron direction="right" size="sm" />}
             onClick={this.handleNextPage}
             disabled={!this.hasNextPage}
             label={t('Next page')}

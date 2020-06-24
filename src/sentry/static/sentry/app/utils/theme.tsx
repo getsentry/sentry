@@ -241,6 +241,10 @@ const theme = {
 
   // Try to keep these ordered plz
   zIndex: {
+    // Generic z-index when you hope your component is isolated and
+    // does not need to battle others for z-index priority
+    initial: 1,
+
     breadcrumbs: {
       header: 2,
       gridCellError: 1,
