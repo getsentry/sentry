@@ -14,9 +14,15 @@ function getTraceKnownData(
 ): Array<KeyValueListData> {
   const knownData: Array<KeyValueListData> = [];
 
-  const dataKeys = traceKnownDataValues.filter(
-    traceKnownDataValue => data[traceKnownDataValue]
-  );
+  const dataKeys = traceKnownDataValues.filter(traceKnownDataValue => {
+    if (traceKnownDataValue === TraceKnownDataType.TRANSACTION_NAME) {
+      return event?.tags.find(tag => {
+        return tag.key === 'transaction';
+      });
+    }
+
+    return data[traceKnownDataValue];
+  });
 
   for (const key of dataKeys) {
     const knownDataDetails = getUserKnownDataDetails(data, key, event, organization);

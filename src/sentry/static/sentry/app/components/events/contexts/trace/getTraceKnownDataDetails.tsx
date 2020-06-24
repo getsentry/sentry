@@ -96,6 +96,21 @@ function getUserKnownDataDetails(
       };
     }
 
+    case TraceKnownDataType.TRANSACTION_NAME: {
+      const eventTag = event?.tags.find(tag => {
+        return tag.key === 'transaction';
+      });
+
+      if (!eventTag) {
+        return undefined;
+      }
+
+      return {
+        subject: t('transaction'),
+        value: eventTag.value || '',
+      };
+    }
+
     default:
       return undefined;
   }

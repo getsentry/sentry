@@ -4,6 +4,7 @@ export enum TraceKnownDataType {
   PARENT_SPAN_ID = 'parent_span_id',
   OP_NAME = 'op',
   STATUS = 'status',
+  TRANSACTION_NAME = 'transaction_name',
 }
 
 export type TraceKnownData = {

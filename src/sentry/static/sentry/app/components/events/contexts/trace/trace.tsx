@@ -14,6 +14,7 @@ const traceKnownDataValues = [
   TraceKnownDataType.TRACE_ID,
   TraceKnownDataType.SPAN_ID,
   TraceKnownDataType.PARENT_SPAN_ID,
+  TraceKnownDataType.TRANSACTION_NAME,
   TraceKnownDataType.OP_NAME,
 ];
 
