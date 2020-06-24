@@ -5,6 +5,7 @@ from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+import logging
 import functools
 import os
 import pytz
@@ -36,6 +37,9 @@ from sentry.utils.dates import to_timestamp
 from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
 from sentry.utils.compat import map
+
+
+logger = logging.getLogger(__name__)
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
@@ -611,6 +615,9 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         try:
             body = json.loads(response.data)
         except ValueError:
+            if response.status != 200:
+                logger.error("snuba.query.invalid-json")
+                raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(
                 u"Could not decode JSON response: {}".format(response.data)
             )

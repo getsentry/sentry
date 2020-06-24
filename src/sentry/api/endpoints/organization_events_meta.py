@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import re
 import sentry_sdk
-import six
 
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
@@ -15,7 +14,6 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.snuba import discover
-from sentry.utils import snuba
 
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
@@ -28,15 +26,13 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 return Response({"count": 0})
             params = self.quantize_date_params(request, params)
 
-        try:
+        with self.handle_query_errors():
             result = discover.query(
                 selected_columns=["count()"],
                 params=params,
                 query=request.query_params.get("query"),
                 referrer="api.organization-events-meta",
             )
-        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
-            raise ParseError(detail=six.text_type(error))
 
         return Response({"count": result["data"][0]["count"]})
 
@@ -66,7 +62,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                     status=400,
                 )
 
-        try:
+        with self.handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", description="filter_creation"):
                 projects = self.get_projects(request, organization)
                 query_kwargs = build_query_params_from_request(
@@ -87,8 +83,6 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
 
             with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
                 results = search.query(**query_kwargs)
-        except discover.InvalidSearchQuery as err:
-            raise ParseError(detail=six.text_type(err))
 
         with sentry_sdk.start_span(op="discover.endpoint", description="serialize_results") as span:
             results = list(results)
