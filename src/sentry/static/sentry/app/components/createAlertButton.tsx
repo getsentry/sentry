@@ -9,6 +9,11 @@ import EventView from 'app/utils/discover/eventView';
 import Alert from 'app/components/alert';
 import space from 'app/styles/space';
 import {explodeFieldString} from 'app/utils/discover/fields';
+import {
+  Dataset,
+  errorFieldConfig,
+  transactionFieldConfig,
+} from 'app/views/settings/incidentRules/types';
 
 /**
  * Discover query supports more features than alert rules
@@ -64,10 +69,10 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
             t('Select one or all environments to create a new alert.')}
           {hasEventTypeError &&
             tct(
-              'Select either [errors:event.type:error] or [transactions:event.type:transaction] to create a new alert.',
+              'Select either [error:event.type:error] or [transaction:event.type:transaction] to create a new alert.',
               {
-                errors: <StyledCode />,
-                transactions: <StyledCode />,
+                error: <StyledCode />,
+                transaction: <StyledCode />,
               }
             )}
           {hasYAxisError &&
@@ -90,10 +95,10 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
             {hasEventTypeError && (
               <li>
                 {tct(
-                  'Either [errors:event.type:error] or [transactions:event.type:transaction] is required',
+                  'Either [error:event.type:error] or [transaction:event.type:transaction] is required',
                   {
-                    errors: <StyledCode />,
-                    transactions: <StyledCode />,
+                    error: <StyledCode />,
+                    transaction: <StyledCode />,
                   }
                 )}
               </li>
@@ -144,22 +149,27 @@ type Props = React.ComponentProps<typeof Button> & {
   onSuccess: () => void;
 };
 
-const ALLOWED_AGGREGATE_FUNCTIONS = [
-  'count',
-  'count_unique',
-  'avg',
-  'percentile',
-  'failure_rate',
-  'apdex',
-  'count',
-  'p50',
-  'p75',
-  'p95',
-  'p99',
-  'p100',
-];
+function incompatibleYAxis(eventView: EventView): boolean {
+  const column = explodeFieldString(eventView.getYAxis());
+  if (column.kind === 'field') {
+    return true;
+  }
 
-const ALLOWED_AGGREGATE_ARGUMENTS = ['', 'user', 'transaction.duration'];
+  const eventTypeMatch = eventView.query.match(/event\.type:(transaction|error)/);
+  if (!eventTypeMatch) {
+    return false;
+  }
+
+  const dataset = eventTypeMatch[1];
+  const yAxisConfig =
+    dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
+
+  const invalidFunction = !yAxisConfig.aggregations.includes(column.function[0]);
+  // Allow empty parameters
+  const invalidParameter = !['', ...yAxisConfig.fields].includes(column.function[1]);
+
+  return invalidFunction || invalidParameter;
+}
 
 /**
  * Provide a button that can create an alert from an event view.
@@ -182,13 +192,8 @@ function CreateAlertButton({
   const hasEventTypeError =
     !eventView.query.includes('event.type:error') &&
     !eventView.query.includes('event.type:transaction');
-  // Only some yAxis selections work in alert rules
-  const column = explodeFieldString(eventView.getYAxis());
   // yAxis must be a function and enabled on alerts
-  const hasYAxisError =
-    column.kind === 'field' ||
-    !ALLOWED_AGGREGATE_FUNCTIONS.includes(column.function[0]) ||
-    !ALLOWED_AGGREGATE_ARGUMENTS.includes(column.function[1]);
+  const hasYAxisError = incompatibleYAxis(eventView);
   const errors: IncompatibleQueryProperties = {
     hasProjectError,
     hasEnvironmentError,
