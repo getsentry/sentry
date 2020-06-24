@@ -1528,8 +1528,8 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
         for column in columns:
             if isinstance(column, (list, tuple)):
                 if column[0] == "transform":
-                    # Remove the backticks from the project transform alias
-                    groupby.append(column[2].strip("`"))
+                    # When there's a project transform, we already group by project_id
+                    continue
                 else:
                     groupby.append(column[2])
             else:
