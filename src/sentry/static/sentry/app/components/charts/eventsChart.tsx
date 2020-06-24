@@ -353,7 +353,6 @@ class EventsChart extends React.Component<Props> {
           period={period}
           start={start}
           end={end}
-          api={api}
           projects={projects}
         >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
