@@ -7,7 +7,7 @@ import six
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import constant_time_compare
-from requests.exceptions import ConnectionError, HTTPError, Timeout
+from requests.exceptions import RequestException
 from sentry import http, options
 from sentry.api.base import Endpoint
 from sentry.models import (
@@ -69,15 +69,16 @@ class VercelWebhookEndpoint(Endpoint):
             )
 
         # Steps:
-        # 1. find all og integrtions that match the external id
+        # 1. find all org integrations that match the external id
         # 2. search the configs to find one that matches the vercel project of the webhook
         # 3. Look up the Sentry project that matches
         # 4. Look up the connected internal integration
         # 5. find the token associated with that installation
         # 6. Determine the commit sha and repo based on what provider is used
-        # 7. Hit the releases endpoint using the token we found earlier
+        # 7. Create the release using the token WITHOUT refs
+        # 8. Update the release with refs
 
-        # find all og integrtions that match the external id
+        # find all org integrations that match the external id
         try:
             org_integrations = OrganizationIntegration.objects.select_related(
                 "organization"
@@ -153,31 +154,25 @@ class VercelWebhookEndpoint(Endpoint):
                     logger.info("No commit sha", extra=logging_params)
                     return self.respond({"detail": "No commit sha"}, status=400)
 
-                # it would be great to use the URL of the deployment but it fails the validation check :(
                 data = {
                     "version": commit_sha,
                     "projects": [project.slug],
-                    "refs": [{"repository": repository, "commit": commit_sha}],
                 }
-                logging_params["repository"] = repository
-                logging_params["commit_sha"] = commit_sha
 
-                # hit the org releases endpoint using the authentication for the internal integration
+                session = http.build_session()
+                url = absolute_uri("/api/0/organizations/%s/releases/" % organization.slug)
+                headers = {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer %s" % sentry_app_installation_token.api_token.token,
+                }
                 json_error = None
+
+                # create the release
                 try:
-                    session = http.build_session()
-                    resp = session.post(
-                        absolute_uri("/api/0/organizations/%s/releases/" % organization.slug),
-                        json=data,
-                        headers={
-                            "Accept": "application/json",
-                            "Authorization": "Bearer %s"
-                            % sentry_app_installation_token.api_token.token,
-                        },
-                    )
+                    resp = session.post(url, json=data, headers=headers,)
                     json_error = resp.json()
                     resp.raise_for_status()
-                except (ConnectionError, Timeout, HTTPError) as e:
+                except RequestException as e:
                     # errors here should be uncommon but we should be aware of them
                     logger.error(
                         "Error creating release: %s - %s" % (e, json_error),
@@ -186,6 +181,25 @@ class VercelWebhookEndpoint(Endpoint):
                     )
                     # 400 probably isn't the right status code but oh well
                     return self.respond({"detail": "Error creating release: %s" % e}, status=400)
+
+                # set the refs
+                data["refs"] = [{"repository": repository, "commit": commit_sha}]
+                logging_params["repository"] = repository
+                logging_params["commit_sha"] = commit_sha
+
+                try:
+                    resp = session.post(url, json=data, headers=headers,)
+                    json_error = resp.json()
+                    resp.raise_for_status()
+                except RequestException as e:
+                    # errors will probably be common if the user doesn't have repos set up
+                    logger.log(
+                        "Error setting refs: %s - %s" % (e, json_error),
+                        extra=logging_params,
+                        exc_info=True,
+                    )
+                    # 400 probably isn't the right status code but oh well
+                    return self.respond({"detail": "Error setting refs: %s" % e}, status=400)
 
                 # we are going to quit after the first project match as there shouldn't be multiple matches
                 return self.respond(201)
