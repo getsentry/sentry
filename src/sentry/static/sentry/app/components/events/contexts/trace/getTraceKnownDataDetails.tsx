@@ -102,15 +102,10 @@ function getUserKnownDataDetails(
         return tag.key === 'transaction';
       });
 
-      if (!eventTag) {
+      if (!eventTag || !eventTag.value) {
         return undefined;
       }
-
-      const transactionName = eventTag.value || '';
-
-      if (!transactionName) {
-        return undefined;
-      }
+      const transactionName = eventTag.value;
 
       const to = transactionSummaryRouteWithQuery({
         orgSlug: organization.slug,
