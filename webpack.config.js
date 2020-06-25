@@ -387,6 +387,7 @@ if (IS_TEST || IS_STORYBOOK) {
     'tests/fixtures/integration-docs/_platforms.json'
   );
 } else {
+  console.log('IntegrationDocsFetchPlugin');
   const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
   appConfig.plugins.push(plugin);
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
