@@ -12,7 +12,7 @@ import {explodeFieldString} from 'app/utils/discover/fields';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'app/views/settings/incidentRules/types';
+} from 'app/views/settings/incidentRules/constants';
 
 /**
  * Discover query supports more features than alert rules

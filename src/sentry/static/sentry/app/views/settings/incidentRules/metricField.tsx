@@ -19,7 +19,8 @@ import {
   FIELDS,
 } from 'app/utils/discover/fields';
 
-import {Dataset, errorFieldConfig, transactionFieldConfig} from './types';
+import {errorFieldConfig, transactionFieldConfig} from './constants';
+import {Dataset} from './types';
 import {PRESET_AGGREGATES} from './presets';
 
 type Props = Omit<FormField['props'], 'children' | 'help'> & {

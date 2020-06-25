@@ -1,5 +1,3 @@
-import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
-
 export enum AlertRuleThreshold {
   INCIDENT,
   RESOLUTION,
@@ -164,36 +162,4 @@ export type UnsavedAction = {
    * The id of the integration, can be null (e.g. email) or undefined (server errors when posting w/ null value)
    */
   integrationId?: number | null;
-};
-
-type OptionConfig = {
-  aggregations: AggregationKey[];
-  fields: LooseFieldKey[];
-};
-
-/**
- * Allowed error aggregations for alerts
- */
-export const errorFieldConfig: OptionConfig = {
-  aggregations: ['count', 'count_unique'],
-  fields: ['user'],
-};
-
-/**
- * Allowed transaction aggregations for alerts
- */
-export const transactionFieldConfig: OptionConfig = {
-  aggregations: [
-    'avg',
-    'percentile',
-    'failure_rate',
-    'apdex',
-    'count',
-    'p50',
-    'p75',
-    'p95',
-    'p99',
-    'p100',
-  ],
-  fields: ['transaction.duration'],
 };
