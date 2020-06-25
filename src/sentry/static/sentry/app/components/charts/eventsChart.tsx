@@ -213,6 +213,7 @@ type Props = {
    * Overide the interval calculation and show daily results.
    */
   showDaily?: boolean;
+  confirmedQuery?: boolean;
 } & Pick<ChartProps, 'currentSeriesName' | 'previousSeriesName' | 'showLegend'>;
 
 type ChartDataProps = {
@@ -248,6 +249,7 @@ class EventsChart extends React.Component<Props> {
     field: PropTypes.arrayOf(PropTypes.string),
     showDaily: PropTypes.bool,
     orderby: PropTypes.string,
+    confirmedQuery: PropTypes.bool,
   };
 
   render() {
@@ -272,6 +274,7 @@ class EventsChart extends React.Component<Props> {
       showDaily,
       topEvents,
       orderby,
+      confirmedQuery,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -350,7 +353,6 @@ class EventsChart extends React.Component<Props> {
           period={period}
           start={start}
           end={end}
-          api={api}
           projects={projects}
         >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
@@ -385,6 +387,7 @@ class EventsChart extends React.Component<Props> {
             field={field}
             orderby={orderby}
             topEvents={topEvents}
+            confirmedQuery={confirmedQuery}
           >
             {eventData =>
               chartImplementation({

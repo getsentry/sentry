@@ -223,7 +223,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }));
   };
 
-  renderDetail = ({isVisible}: {isVisible: boolean}) => {
+  renderDetail({isVisible}: {isVisible: boolean}) {
     if (!this.state.showDetail || !isVisible) {
       return null;
     }
@@ -251,14 +251,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         spanErrors={spanErrors}
       />
     );
-  };
+  }
 
-  getBounds = (): {
+  getBounds(): {
     warning: undefined | string;
     left: undefined | number;
     width: undefined | number;
     isSpanVisibleInView: boolean;
-  } => {
+  } {
     const {span, generateBounds} = this.props;
 
     const bounds = generateBounds({
@@ -312,15 +312,16 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         return _exhaustiveCheck;
       }
     }
-  };
+  }
 
-  renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
+  renderSpanTreeConnector({hasToggler}: {hasToggler: boolean}) {
     const {
       isLast,
       isRoot,
       treeDepth: spanTreeDepth,
       continuingTreeDepths,
       span,
+      showSpanTree,
     } = this.props;
 
     const spanID = getSpanID(span);
@@ -359,7 +360,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       );
     });
 
-    if (hasToggler) {
+    if (hasToggler && showSpanTree) {
       // if there is a toggle button, we add a connector bar to create an attachment
       // between the toggle button and any connector bars below the toggle button
       connectorBars.push(
@@ -385,14 +386,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         {connectorBars}
       </SpanTreeConnector>
     );
-  };
+  }
 
-  renderSpanTreeToggler = ({left}: {left: number}) => {
-    const {numOfSpanChildren, isRoot} = this.props;
+  renderSpanTreeToggler({left}: {left: number}) {
+    const {numOfSpanChildren, isRoot, showSpanTree} = this.props;
 
-    const chevron = (
-      <StyledIconChevron direction={this.props.showSpanTree ? 'up' : 'down'} />
-    );
+    const chevron = <StyledIconChevron direction={showSpanTree ? 'up' : 'down'} />;
 
     if (numOfSpanChildren <= 0) {
       return (
@@ -409,7 +408,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         {this.renderSpanTreeConnector({hasToggler: true})}
         <SpanTreeToggler
           disabled={!!isRoot}
-          isExpanded={this.props.showSpanTree}
+          isExpanded={showSpanTree}
           onClick={event => {
             event.stopPropagation();
 
@@ -425,9 +424,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         </SpanTreeToggler>
       </SpanTreeTogglerContainer>
     );
-  };
+  }
 
-  renderTitle = () => {
+  renderTitle() {
     const {span, treeDepth, spanErrors} = this.props;
 
     const operationName = getSpanOperation(span) ? (
@@ -458,9 +457,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         </SpanBarTitle>
       </SpanBarTitleContainer>
     );
-  };
+  }
 
-  connectObservers = () => {
+  connectObservers() {
     if (!this.spanRowDOMRef.current) {
       return;
     }
@@ -622,41 +621,43 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
 
     this.intersectionObserver.observe(this.spanRowDOMRef.current);
-  };
+  }
 
-  disconnectObservers = () => {
+  disconnectObservers() {
     if (this.intersectionObserver) {
       this.intersectionObserver.disconnect();
     }
-  };
+  }
 
-  renderCursorGuide = () => (
-    <CursorGuideHandler.Consumer>
-      {({
-        showCursorGuide,
-        traceViewMouseLeft,
-      }: {
-        showCursorGuide: boolean;
-        traceViewMouseLeft: number | undefined;
-      }) => {
-        if (!showCursorGuide || !traceViewMouseLeft) {
-          return null;
-        }
+  renderCursorGuide() {
+    return (
+      <CursorGuideHandler.Consumer>
+        {({
+          showCursorGuide,
+          traceViewMouseLeft,
+        }: {
+          showCursorGuide: boolean;
+          traceViewMouseLeft: number | undefined;
+        }) => {
+          if (!showCursorGuide || !traceViewMouseLeft) {
+            return null;
+          }
 
-        return (
-          <CursorGuide
-            style={{
-              left: toPercent(traceViewMouseLeft),
-            }}
-          />
-        );
-      }}
-    </CursorGuideHandler.Consumer>
-  );
+          return (
+            <CursorGuide
+              style={{
+                left: toPercent(traceViewMouseLeft),
+              }}
+            />
+          );
+        }}
+      </CursorGuideHandler.Consumer>
+    );
+  }
 
-  renderDivider = (
+  renderDivider(
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-  ) => {
+  ) {
     if (this.state.showDetail) {
       // we would like to hide the divider lines when the span details
       // has been expanded
@@ -713,9 +714,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         />
       </React.Fragment>
     );
-  };
+  }
 
-  renderWarningText = ({warningText}: {warningText?: string} = {}) => {
+  renderWarningText({warningText}: {warningText?: string} = {}) {
     if (!warningText) {
       return null;
     }
@@ -725,11 +726,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <StyledIconWarning />
       </Tooltip>
     );
-  };
+  }
 
-  renderHeader = (
+  renderHeader(
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-  ) => {
+  ) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
@@ -783,7 +784,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         {this.renderDivider(dividerHandlerChildrenProps)}
       </SpanRowCellContainer>
     );
-  };
+  }
 
   render() {
     const {isCurrentSpanFilteredOut} = this.props;
