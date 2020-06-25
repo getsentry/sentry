@@ -25,7 +25,7 @@ class UserCreateSerializer(serializers.Serializer):
 
 
 class UserIndexEndpoint(Endpoint):
-    # permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserPermission,)
 
     def get(self, request):
         queryset = User.objects.distinct()
