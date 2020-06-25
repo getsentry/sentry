@@ -211,6 +211,7 @@ class ThreadsInterface extends React.Component {
         event={evt}
         type={this.props.type}
         title={title}
+        showPermalink={!threads.length > 1}
         wrapTitle={false}
       >
         <Thread

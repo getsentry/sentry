@@ -12,13 +12,11 @@ exports[`EventDataSection renders formatted 1`] = `
       className="permalink"
       href="#extra"
     >
-      <em
-        className="icon-anchor"
-      />
+      <StyledIconAnchor />
+      <h3>
+        Additional Data
+      </h3>
     </Permalink>
-    <h3>
-      Additional Data
-    </h3>
     <ButtonBar
       active="formatted"
       merged={true}
@@ -55,13 +53,11 @@ exports[`EventDataSection renders raw 1`] = `
       className="permalink"
       href="#extra"
     >
-      <em
-        className="icon-anchor"
-      />
+      <StyledIconAnchor />
+      <h3>
+        Additional Data
+      </h3>
     </Permalink>
-    <h3>
-      Additional Data
-    </h3>
     <ButtonBar
       active="raw"
       merged={true}
