@@ -35,6 +35,7 @@ from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
+from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
@@ -364,6 +365,7 @@ GROUP_URLS = [
         r"^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$",
         GroupIntegrationDetailsEndpoint.as_view(),
     ),
+    url(r"^(?P<issue_id>[^\/]+)/current-release/$", GroupCurrentReleaseEndpoint.as_view()),
     # Load plugin group urls
     url(r"^(?P<issue_id>[^\/]+)/plugins?/", include("sentry.plugins.base.group_api_urls")),
 ]

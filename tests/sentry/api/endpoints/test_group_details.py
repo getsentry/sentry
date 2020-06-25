@@ -15,7 +15,6 @@ from sentry.models import (
     GroupHash,
     GroupAssignee,
     GroupBookmark,
-    GroupRelease,
     GroupResolution,
     GroupSeen,
     GroupSnooze,
@@ -24,11 +23,9 @@ from sentry.models import (
     GroupTombstone,
     GroupMeta,
     Release,
-    ReleaseEnvironment,
     Integration,
 )
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import MockClock
 from sentry.plugins.base import plugins
 
 
@@ -97,83 +94,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
-
-    def _test_current_release(self, group_seen_on_latest_release):
-        clock = MockClock()
-
-        # Create several of everything, to exercise all filtering clauses.
-
-        def set_up_organization():
-            organization = self.create_organization()
-
-            team = self.create_team(organization=organization)
-            self.create_team_membership(team=team, user=self.user)
-
-            prod = self.create_environment(name="production", organization=organization)
-            dev = self.create_environment(name="development", organization=organization)
-            environments = (prod, dev)
-
-            def set_up_project():
-                project = self.create_project(organization=organization, teams=[team])
-                for environment in environments:
-                    environment.add_project(project)
-
-                def set_up_release():
-                    release = self.create_release(project=project)
-                    for environment in environments:
-                        ReleaseEnvironment.get_or_create(project, release, environment, clock())
-                    return release
-
-                groups = [self.create_group(project=project) for i in range(3)]
-                target_group = groups[1]
-
-                early_release = set_up_release()
-                later_release = set_up_release()
-
-                def seen_on(group, release, environment):
-                    return GroupRelease.get_or_create(group, release, environment, clock())
-
-                def set_up_group_releases(environment):
-                    for release in (early_release, later_release):
-                        for group in groups:
-                            if group != target_group:
-                                seen_on(group, release, environment)
-
-                    latest_seen = seen_on(target_group, early_release, environment)
-                    if group_seen_on_latest_release:
-                        latest_seen = seen_on(target_group, later_release, environment)
-                    return latest_seen
-
-                target_group_release = set_up_group_releases(prod)
-                set_up_group_releases(dev)
-
-                return project, target_group, target_group_release
-
-            set_up_project()
-            target_project, target_group, target_group_release = set_up_project()
-            set_up_project()
-
-            return organization, target_project, target_group, target_group_release
-
-        set_up_organization()
-        target_org, target_project, target_group, latest_seen = set_up_organization()
-        set_up_organization()
-
-        self.login_as(user=self.user)
-        url = u"/api/0/issues/{}/".format(target_group.id)
-        response = self.client.get(url, {"environment": "production"}, format="json")
-        assert response.status_code == 200
-        return response.data["currentRelease"], latest_seen
-
-    def test_current_release_has_group(self):
-        current_release, group_release = self._test_current_release(True)
-        assert current_release is not None
-        assert current_release["firstSeen"] == group_release.first_seen
-        assert current_release["lastSeen"] == group_release.last_seen
-
-    def test_current_release_is_later(self):
-        current_release, group_release = self._test_current_release(False)
-        assert current_release is None
 
     def test_pending_delete_pending_merge_excluded(self):
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)
