@@ -159,7 +159,7 @@ class SpanTree extends React.Component<PropType> {
 
     // hide gap spans (i.e. "missing instrumentation" spans) for browser js transactions,
     // since they're not useful to indicate
-    const shouldIncludeGap = !isJavaScriptSDK(event.sdk?.name);
+    const shouldIncludeGap = !isBrowserJavaScriptSDK(event.sdk?.name);
 
     const isValidGap =
       typeof previousSiblingEndTimestamp === 'number' &&
@@ -356,12 +356,14 @@ const TraceViewContainer = styled('div')`
   border-bottom-right-radius: 3px;
 `;
 
-function isJavaScriptSDK(sdkName?: string): boolean {
+function isBrowserJavaScriptSDK(sdkName?: string): boolean {
   if (!sdkName) {
     return false;
   }
   // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
-  return sdkName.toLowerCase() === 'sentry.javascript.browser';
+  return ['sentry.javascript.browser', 'sentry.javascript.react'].includes(
+    sdkName.toLowerCase()
+  );
 }
 
 export default SpanTree;

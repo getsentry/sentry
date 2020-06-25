@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import userFeedback from 'sentry-dreamy-components/dist/user-feedback.svg';
 
