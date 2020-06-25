@@ -120,7 +120,11 @@ class ExploreWidget extends React.Component {
     return (
       <ExploreAction
         to={flags.discover2 ? this.getExportToDiscover(query, true) : ''}
-        href={!flags.discover2 ? 'https://docs.sentry.io/performance/discover/' : ''}
+        href={
+          !flags.discover2
+            ? 'https://docs.sentry.io/performance-monitoring/discover-queries/'
+            : ''
+        }
         target={!flags.discover2 ? '_blank' : ''}
         title={
           flags.discover2
