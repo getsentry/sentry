@@ -565,6 +565,7 @@ CELERY_QUEUES = [
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("files.delete", routing_key="files.delete"),
     Queue("incidents", routing_key="incidents"),
+    Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
@@ -1072,6 +1073,10 @@ SENTRY_CACHE_OPTIONS = {}
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
 SENTRY_ATTACHMENTS_OPTIONS = {}
+
+# Events blobs processing backend
+SENTRY_EVENT_PROCESSING_STORE = "sentry.eventstore.processing.default.DefaultEventProcessingStore"
+SENTRY_EVENT_PROCESSING_STORE_OPTIONS = {}
 
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend

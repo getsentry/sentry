@@ -97,6 +97,9 @@ def create_incident(
                     sender=type(incident_project), instance=incident_project, created=True
                 )
 
+        create_incident_activity(
+            incident, IncidentActivityType.STARTED, user=user, date_added=date_started
+        )
         create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
         analytics.record(
             "incident.created",
@@ -109,7 +112,12 @@ def create_incident(
 
 
 def update_incident_status(
-    incident, status, user=None, comment=None, status_method=IncidentStatusMethod.RULE_TRIGGERED
+    incident,
+    status,
+    user=None,
+    comment=None,
+    status_method=IncidentStatusMethod.RULE_TRIGGERED,
+    date_closed=None,
 ):
     """
     Updates the status of an Incident and write an IncidentActivity row to log
@@ -135,7 +143,7 @@ def update_incident_status(
 
         kwargs = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
-            kwargs["date_closed"] = timezone.now()
+            kwargs["date_closed"] = date_closed if date_closed else timezone.now()
         elif status == IncidentStatus.OPEN:
             # If we're moving back out of closed status then unset the closed
             # date
@@ -195,11 +203,15 @@ def create_incident_activity(
     previous_value=None,
     comment=None,
     mentioned_user_ids=None,
+    date_added=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user)
     value = six.text_type(value) if value is not None else value
     previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
+    kwargs = {}
+    if date_added:
+        kwargs["date_added"] = date_added
     activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,
@@ -207,6 +219,7 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
+        **kwargs
     )
 
     if mentioned_user_ids:

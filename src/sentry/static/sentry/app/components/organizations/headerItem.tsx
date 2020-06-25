@@ -9,7 +9,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {IconInfo, IconSettings} from 'app/icons';
+import {IconChevron, IconInfo, IconSettings} from 'app/icons';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -100,7 +100,11 @@ class HeaderItem extends React.Component<Props> {
         )}
         {!locked && !loading && (
           <StyledChevron isOpen={isOpen}>
-            <InlineSvg src="icon-chevron-down" />
+            <IconChevron
+              direction="down"
+              color={isOpen ? 'gray700' : 'gray500'}
+              size="sm"
+            />
           </StyledChevron>
         )}
         {locked && (

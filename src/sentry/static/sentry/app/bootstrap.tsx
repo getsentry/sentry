@@ -35,6 +35,22 @@ if (process.env.NODE_ENV === 'development') {
   );
 }
 
+// App setup
+if (window.__initialData) {
+  ConfigStore.loadInitialData(window.__initialData);
+
+  if (window.__initialData.dsn_requests) {
+    initApiSentryClient(window.__initialData.dsn_requests);
+  }
+}
+
+// SDK INIT  --------------------------------------------------------
+const config = ConfigStore.getConfig();
+
+const tracesSampleRate = config ? config.apmSampling : 0;
+
+const appRoutes = Router.createRoutes(routes());
+
 function getSentryIntegrations(hasReplays: boolean = false) {
   const integrations = [
     new ExtraErrorData({
@@ -46,6 +62,9 @@ function getSentryIntegrations(hasReplays: boolean = false) {
       debug: {
         spanDebugTimingInfo: true,
         writeAsBreadcrumbs: true,
+      },
+      beforeNavigate: (location: Location) => {
+        return normalizeTransactionName(appRoutes, location);
       },
     }),
   ];
@@ -65,24 +84,8 @@ function getSentryIntegrations(hasReplays: boolean = false) {
   return integrations;
 }
 
-// App setup
-if (window.__initialData) {
-  ConfigStore.loadInitialData(window.__initialData);
-
-  if (window.__initialData.dsn_requests) {
-    initApiSentryClient(window.__initialData.dsn_requests);
-  }
-}
-
-// SDK INIT  --------------------------------------------------------
-const config = ConfigStore.getConfig();
-
-const tracesSampleRate = config ? config.apmSampling : 0;
-
 const hasReplays =
   window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!process.env.DISABLE_RR_WEB;
-
-const appRoutes = Router.createRoutes(routes());
 
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
@@ -96,10 +99,6 @@ Sentry.init({
     : window.__SENTRY__OPTIONS.whitelistUrls,
   integrations: getSentryIntegrations(hasReplays),
   tracesSampleRate,
-});
-
-Sentry.addGlobalEventProcessor(async event => {
-  return normalizeTransactionName(appRoutes, event);
 });
 
 if (window.__SENTRY__USER) {

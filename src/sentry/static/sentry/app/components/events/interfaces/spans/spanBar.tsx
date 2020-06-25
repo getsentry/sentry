@@ -8,9 +8,8 @@ import {defined, OmitHtmlDivProps} from 'app/utils';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
-import InlineSvg from 'app/components/inlineSvg';
-import EventView from 'app/utils/discover/eventView';
 import {TableDataRow} from 'app/views/eventsV2/table/types';
+import {IconChevron, IconWarning} from 'app/icons';
 
 import {
   toPercent,
@@ -188,7 +187,6 @@ type SpanBarProps = {
   isRoot?: boolean;
   toggleSpanTree: () => void;
   isCurrentSpanFilteredOut: boolean;
-  eventView: EventView;
   totalNumberOfErrors: number;
   spanErrors: TableDataRow[];
 };
@@ -235,7 +233,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       orgId,
       organization,
       isRoot,
-      eventView,
       trace,
       totalNumberOfErrors,
       spanErrors,
@@ -249,7 +246,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         organization={organization}
         event={event}
         isRoot={!!isRoot}
-        eventView={eventView}
         trace={trace}
         totalNumberOfErrors={totalNumberOfErrors}
         spanErrors={spanErrors}
@@ -394,8 +390,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderSpanTreeToggler = ({left}: {left: number}) => {
     const {numOfSpanChildren, isRoot} = this.props;
 
-    const chevronSrc = this.props.showSpanTree ? 'icon-chevron-up' : 'icon-chevron-down';
-    const chevron = <Chevron src={chevronSrc} />;
+    const chevron = (
+      <StyledIconChevron direction={this.props.showSpanTree ? 'up' : 'down'} />
+    );
 
     if (numOfSpanChildren <= 0) {
       return (
@@ -724,8 +721,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }
 
     return (
-      <Tooltip title={warningText}>
-        <WarningIcon src="icon-circle-exclamation" />
+      <Tooltip containerDisplayMode="flex" title={warningText}>
+        <StyledIconWarning />
       </Tooltip>
     );
   };
@@ -1072,12 +1069,12 @@ const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   ${getHatchPattern}
 `;
 
-const WarningIcon = styled(InlineSvg)`
+const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.25)};
   margin-bottom: ${space(0.25)};
 `;
 
-const Chevron = styled(InlineSvg)`
+const StyledIconChevron = styled(IconChevron)`
   width: 7px;
   margin-left: ${space(0.25)};
 `;

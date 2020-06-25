@@ -153,13 +153,16 @@ class DurationChart extends React.Component<Props> {
                       .reverse()
                   : [];
 
+                // Stack the toolbox under the legend.
+                // so all series names are clickable.
+                zoomRenderProps.toolBox.z = -1;
+
                 return (
                   <ReleaseSeries
                     start={start}
                     end={end}
                     period={statsPeriod}
                     utc={utc}
-                    api={api}
                     projects={project}
                   >
                     {({releaseSeries}) => (

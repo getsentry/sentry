@@ -6,6 +6,7 @@ import {withInfo} from '@storybook/addon-info';
 import space from 'app/styles/space';
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconInfo, IconCheckmark, IconWarning, IconNot} from 'app/icons';
 
 storiesOf('UI|Alerts/Alert', module)
   .add(
@@ -21,6 +22,29 @@ storiesOf('UI|Alerts/Alert', module)
         <Alert type="warning">Warning message</Alert>
 
         <Alert type="error">
+          Background workers haven't checked in recently. This can mean an issue with your
+          configuration or a serious backlog in tasks.
+        </Alert>
+      </Grid>
+    ))
+  )
+  .add(
+    'With icons',
+    withInfo('Inline alert messages')(() => (
+      <Grid>
+        <Alert type="info" icon={<IconInfo size="md" />}>
+          <ExternalLink href="#">Info message with a url</ExternalLink>
+        </Alert>
+
+        <Alert type="success" icon={<IconCheckmark size="md" />}>
+          Success message without a url
+        </Alert>
+
+        <Alert type="warning" icon={<IconWarning size="md" />}>
+          Warning message
+        </Alert>
+
+        <Alert type="error" icon={<IconNot size="md" />}>
           Background workers haven't checked in recently. This can mean an issue with your
           configuration or a serious backlog in tasks.
         </Alert>

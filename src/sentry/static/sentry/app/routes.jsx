@@ -443,7 +443,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          path=":version/"
+          path=":name/"
           name={t('Archive')}
           componentPromise={() =>
             import(
@@ -1030,6 +1030,15 @@ function routes() {
           getComponent={(_loc, cb) =>
             import(
               /* webpackChunkName: "VSTSOrganizationLink" */ 'app/views/vstsOrganizationLink'
+            ).then(lazyLoad(cb))
+          }
+        />
+
+        <Route
+          path="/extensions/:integrationSlug/link/"
+          getComponent={(_loc, cb) =>
+            import(
+              /* webpackChunkName: "IntegrationOrganizationLink" */ 'app/views/integrationOrganizationLink'
             ).then(lazyLoad(cb))
           }
         />
