@@ -12,6 +12,7 @@ from django.core import mail
 from sentry.utils.compat.mock import patch
 from exam import fixture
 from pprint import pprint
+import json
 
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -28,7 +29,7 @@ from sentry.models import (
     TotpInterface,
 )
 from sentry.signals import project_created
-from sentry.testutils import APITestCase, TwoFactorAPITestCase
+from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
 
 # some relay keys
 _VALID_RELAY_KEYS = [
@@ -330,6 +331,49 @@ class OrganizationUpdateTest(APITestCase):
         response = self.client.put(url, data=data)
         assert response.status_code == 400
         assert b"feature" in response.content
+
+    def test_setting_duplicate_trusted_keys(self):
+        """
+        Test that you cannot set duplicated keys
+
+        Try to put the same key twice and check we get an error
+        """
+        org = self.create_organization(owner=self.user)
+        AuditLogEntry.objects.filter(organization=org).delete()
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+
+        trusted_relays = [
+            {
+                u"publicKey": _VALID_RELAY_KEYS[0],
+                u"name": u"name1",
+                u"description": u"description1",
+            },
+            {
+                u"publicKey": _VALID_RELAY_KEYS[1],
+                u"name": u"name2",
+                u"description": u"description2",
+            },
+            {
+                u"publicKey": _VALID_RELAY_KEYS[0],
+                u"name": u"name1 2",
+                u"description": u"description1 2",
+            },
+        ]
+
+        data = {"trustedRelays": trusted_relays}
+
+        with self.feature("organizations:relay"):
+            response = self.client.put(url, data=data)
+
+        assert response.status_code == 400
+        response_data = response.data.get("trustedRelays")
+        assert response_data is not None
+        resp_str = json.dumps(response_data)
+        # check that we have the duplicate key specified somewhere in the error message
+        assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
+
+        print(response.data)
 
     def test_creating_trusted_relays(self):
         org = self.create_organization(owner=self.user)
@@ -879,14 +923,50 @@ def test_trusted_relays_option_serialization():
     assert serializer.validated_data == expected_incoming
 
 
-def test_trusted_relay_serializer_validation():
+invalid_payloads = [
+    {
+        u"publicKey": _VALID_RELAY_KEYS[0],
+        # no name
+        u"description": u"the description",
+    },
+    {
+        u"publicKey": _VALID_RELAY_KEYS[0],
+        u"name": "  ",  # empty name
+        u"description": u"the description",
+    },
+    {
+        u"publicKey": _VALID_RELAY_KEYS[0],
+        u"name": None,  # null name
+        u"description": u"the description",
+    },
+    {u"publicKey": "Bad Key", u"name": u"name", u"description": u"the description", },  # invalid key
+    {
+        # missing key
+        u"name": u"name",
+        u"description": u"the description",
+    },
+    {u"publicKey": None, u"name": u"name", u"description": u"the description", },  # null key
+    "Bad input",  # not an object
+]
+
+
+@pytest.mark.parametrize("invalid_data", invalid_payloads)
+def test_trusted_relay_serializer_validation(invalid_data):
+    """
+        Tests that the public key is validated
+    """
+    # incoming raw data
+    serializer = TrustedRelaySerializer(data=invalid_data)
+    assert not serializer.is_valid()
+
+
+def test_trusted_relay_serializer_public_name_validation():
     """
         Tests that the public key is validated
     """
     # incoming raw data
     data = {
         u"publicKey": u"some_invalid_key",
-        u"name": u"Relay1",
         u"description": u"the description",
         u"lastModified": u"2020-05-20T20:21:22",
         u"created": u"2020-01-17T11:12:13",
