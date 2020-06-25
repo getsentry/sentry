@@ -14,7 +14,7 @@ import {TraceKnownData, TraceKnownDataType} from './types';
 
 type Output = {
   subject: string;
-  value: React.ReactNode | string | null;
+  value: React.ReactNode;
 };
 
 function getUserKnownDataDetails(
