@@ -114,6 +114,13 @@ function getUserKnownDataDetails(
         query: {},
       });
 
+      if (!organization.features.includes('performance-view')) {
+        return {
+          subject: t('transaction'),
+          value: transactionName,
+        };
+      }
+
       return {
         subject: t('transaction'),
         value: (
