@@ -420,7 +420,9 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
               <Row title="Same Process as Parent">
-                {String(!!span.same_process_as_parent)}
+                {span.same_process_as_parent !== undefined
+                  ? String(span.same_process_as_parent)
+                  : null}
               </Row>
               <Tags span={span} />
               {map(span?.data ?? {}, (value, key) => (
@@ -475,7 +477,7 @@ const Row = ({
 }: {
   title: string;
   keep?: boolean;
-  children: JSX.Element | string;
+  children: JSX.Element | string | null;
   extra?: React.ReactNode;
 }) => {
   if (!keep && !children) {
