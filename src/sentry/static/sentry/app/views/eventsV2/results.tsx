@@ -98,14 +98,12 @@ class Results extends React.Component<Props, State> {
     if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
       api.clear();
       this.canLoadEvents();
-      if (
-        !isEqual(prevQuery.statsPeriod, currentQuery.statsPeriod) ||
-        !isEqual(prevQuery.start, currentQuery.start) ||
-        !isEqual(prevQuery.end, currentQuery.end) ||
-        !isEqual(prevQuery.project, currentQuery.project)
-      ) {
-        loadOrganizationTags(api, organization.slug, selection);
-      }
+    }
+    if (
+      !isEqual(prevProps.selection.datetime, selection.datetime) ||
+      !isEqual(prevProps.selection.projects, selection.projects)
+    ) {
+      loadOrganizationTags(api, organization.slug, selection);
     }
 
     if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
