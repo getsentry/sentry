@@ -119,7 +119,9 @@ def get_project_config(project, org_options=None, full_config=True, project_keys
             "publicKeys": public_keys,
             "config": {
                 "allowedDomains": list(get_origins(project)),
-                "trustedRelays": org_options.get("sentry:trusted-relays", []),
+                "trustedRelays": [
+                    r["public_key"] for r in org_options.get("sentry:trusted-relays", []) if r
+                ],
                 "piiConfig": _get_pii_config(project),
                 "datascrubbingSettings": _get_datascrubbing_settings(project, org_options),
             },
