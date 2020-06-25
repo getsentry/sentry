@@ -1693,6 +1693,12 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
         assert "Cannot order" in six.text_type(err)
 
+    def test_orderby_unselected_field_with_histogram(self):
+        fields = ["histogram(transaction.duration, 10, 1000, 0)", "message"]
+        with pytest.raises(InvalidSearchQuery) as err:
+            resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
+        assert "Cannot order" in six.text_type(err)
+
     def test_orderby_basic_field(self):
         fields = ["message"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-message"))
