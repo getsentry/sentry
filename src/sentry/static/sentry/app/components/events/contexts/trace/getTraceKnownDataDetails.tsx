@@ -31,6 +31,13 @@ function getUserKnownDataDetails(
         return undefined;
       }
 
+      if (!organization.features.includes('discover-basic')) {
+        return {
+          subject: t('trace_id'),
+          value: traceId,
+        };
+      }
+
       const dateCreated = moment(event.dateCreated).valueOf() / 1000;
       const pointInTime = event?.dateReceived
         ? moment(event.dateReceived).valueOf() / 1000
