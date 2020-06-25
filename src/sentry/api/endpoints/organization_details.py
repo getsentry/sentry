@@ -5,7 +5,7 @@ import six
 
 from datetime import datetime
 
-from dateutil.tz import UTC
+import pytz
 from rest_framework import serializers, status
 from uuid import uuid4
 
@@ -267,7 +267,7 @@ class OrganizationSerializer(serializers.Serializer):
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
-        timestamp_now = datetime.utcnow().replace(tzinfo=UTC).isoformat()
+        timestamp_now = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
         option_key = "sentry:trusted-relays"
         try:
             # get what we already have
