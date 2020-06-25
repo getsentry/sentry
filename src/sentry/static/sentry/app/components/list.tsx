@@ -10,76 +10,15 @@ export const List = styled('ul')`
   padding: 0;
   margin-bottom: ${space(2)};
 
-  li {
-    padding-left: 34px;
-    position: relative;
-    margin-bottom: ${space(0.5)};
-  }
-
-  li:before,
-  li > span {
-    position: absolute;
-    left: 0;
-  }
-
-  ul& {
-    li {
-      display: flex;
-      align-items: center;
-      color: ${theme.gray700};
-      &:before {
-        content: '';
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        margin-right: ${space(2)};
-        border: 1px solid ${theme.gray700};
-        background-color: transparent;
-        left: 6px;
-        top: 10px;
-      }
-    }
-  }
-
-  ul& li span {
-    top: 4px;
-  }
-
   ol& {
     counter-reset: numberedList;
-
-    li {
-      display: flex;
-      align-items: center;
-
-      &:before {
-        top: 3px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        width: 18px;
-        height: 18px;
-        font-size: 10px;
-        font-weight: 600;
-        border: 1px solid ${theme.gray700};
-        border-radius: 50%;
-        background-color: transparent;
-        margin-right: ${space(2)};
-        counter-increment: numberedList;
-        content: counter(numberedList);
-      }
-    }
-  }
-
-  .icons-wrapper:before {
-    content: none;
   }
 `;
 
 type ListItemProps = {
   icon?: string | React.ReactNode;
   children?: string | React.ReactNode;
+  className: string;
 };
 
 const IconWrapper = styled('span')`
@@ -92,8 +31,8 @@ const IconWrapper = styled('span')`
   align-items: center;
 `;
 
-export const ListItem = styled(({icon, children}: ListItemProps) => (
-  <li className={icon && 'icons-wrapper'}>
+export const ListItem = styled(({icon, className, children}: ListItemProps) => (
+  <li className={className}>
     {icon && (
       <IconWrapper>
         {typeof icon === 'string' ? <InlineSvg src={icon} /> : icon}
@@ -101,4 +40,63 @@ export const ListItem = styled(({icon, children}: ListItemProps) => (
     )}
     {children}
   </li>
-))<ListItemProps>``;
+))<ListItemProps>`
+  align-items: center;
+  position: relative;
+  padding-left: 34px;
+  margin-bottom: ${space(0.5)};
+  display: flex;
+
+  &:before,
+  & > span {
+    position: absolute;
+    left: 0;
+  }
+
+  ul & {
+    color: ${theme.gray700};
+    &:before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: ${space(2)};
+      border: 1px solid ${theme.gray700};
+      background-color: transparent;
+      left: 5px;
+      top: 10px;
+    }
+
+    span {
+      top: 4px;
+    }
+
+    ${p =>
+      p.icon &&
+      `
+      &:before {
+        content: none;
+      }
+    `}
+  }
+
+  ol & {
+    &:before {
+      counter-increment: numberedList;
+      content: counter(numberedList);
+      top: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      width: 18px;
+      height: 18px;
+      font-size: 10px;
+      font-weight: 600;
+      border: 1px solid ${theme.gray700};
+      border-radius: 50%;
+      background-color: transparent;
+      margin-right: ${space(2)};
+    }
+  }
+`;
