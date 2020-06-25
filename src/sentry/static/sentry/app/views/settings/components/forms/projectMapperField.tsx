@@ -62,7 +62,8 @@ export class RenderField extends React.Component<RenderProps> {
     const renderItem = (itemTuple: [number, any]) => {
       const [projectId, mappedValue] = itemTuple;
       const {slug} = sentryProjectsById[projectId];
-      const {label: itemLabel} = mappedItemsByValue[mappedValue];
+      // TODO: add special formatting if deleted
+      const {label: itemLabel} = mappedItemsByValue[mappedValue] || {label: 'Deleted'};
       return (
         <Item key={projectId}>
           <ItemValue>{slug}</ItemValue> <ItemValue>{itemLabel}</ItemValue>

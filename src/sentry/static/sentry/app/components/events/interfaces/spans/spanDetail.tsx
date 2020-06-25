@@ -24,6 +24,7 @@ import withApi from 'app/utils/withApi';
 
 import {ProcessedSpanType, RawSpanType, ParsedTraceType, rawSpanKeys} from './types';
 import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
+import * as SpanEntryContext from './context';
 
 type TransactionResult = {
   'project.name': string;
@@ -38,7 +39,6 @@ type Props = {
   event: Readonly<SentryTransactionEvent>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
-  eventView: EventView;
   trace: Readonly<ParsedTraceType>;
   totalNumberOfErrors: number;
   spanErrors: TableDataRow[];
@@ -127,26 +127,13 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
-    const {span, orgId, trace, eventView, event, organization} = this.props;
+    const {span, orgId, trace, event, organization} = this.props;
 
     assert(!isGapSpan(span));
 
     if (this.state.transactionResults.length === 1) {
-      const parentTransactionLink = eventDetailsRoute({
-        eventSlug: generateSlug(this.state.transactionResults[0]),
-        orgSlug: this.props.orgId,
-      });
-
-      const to = {
-        pathname: parentTransactionLink,
-        query: eventView.generateQueryStringObject(),
-      };
-
-      return (
-        <StyledDiscoverButton data-test-id="view-child-transaction" size="xsmall" to={to}>
-          {t('View Child')}
-        </StyledDiscoverButton>
-      );
+      // Note: This is rendered by this.renderSpanChild() as a dedicated row
+      return null;
     }
 
     const orgFeatures = new Set(organization.features);
@@ -182,6 +169,47 @@ class SpanDetail extends React.Component<Props, State> {
       >
         {t('View Children')}
       </StyledDiscoverButton>
+    );
+  }
+
+  renderSpanChild(): React.ReactNode {
+    if (!this.state.transactionResults || this.state.transactionResults.length !== 1) {
+      return null;
+    }
+
+    const eventSlug = generateSlug(this.state.transactionResults[0]);
+
+    const viewChildButton = (
+      <SpanEntryContext.Consumer>
+        {({getViewChildTransactionTarget}) => {
+          const to = getViewChildTransactionTarget({
+            ...this.state.transactionResults![0],
+            eventSlug,
+          });
+
+          if (!to) {
+            return null;
+          }
+
+          return (
+            <StyledDiscoverButton
+              data-test-id="view-child-transaction"
+              size="xsmall"
+              to={to}
+            >
+              {t('View Span')}
+            </StyledDiscoverButton>
+          );
+        }}
+      </SpanEntryContext.Consumer>
+    );
+
+    const results = this.state.transactionResults[0];
+
+    return (
+      <Row title="Child Span" extra={viewChildButton}>
+        {`${results['trace.span']} - ${results.transaction} (${results['project.name']})`}
+      </Row>
     );
   }
 
@@ -360,10 +388,11 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Span ID" extra={this.renderTraversalButton()}>
                 {span.span_id}
               </Row>
+              <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
+              {this.renderSpanChild()}
               <Row title="Trace ID" extra={this.renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               <Row title="Description">{span?.description ?? ''}</Row>
               <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
@@ -391,7 +420,9 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
               <Row title="Same Process as Parent">
-                {String(!!span.same_process_as_parent)}
+                {span.same_process_as_parent !== undefined
+                  ? String(span.same_process_as_parent)
+                  : null}
               </Row>
               <Tags span={span} />
               {map(span?.data ?? {}, (value, key) => (
@@ -446,7 +477,7 @@ const Row = ({
 }: {
   title: string;
   keep?: boolean;
-  children: JSX.Element | string;
+  children: JSX.Element | string | null;
   extra?: React.ReactNode;
 }) => {
   if (!keep && !children) {

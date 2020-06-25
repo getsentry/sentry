@@ -31,6 +31,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
   <EventDataSection
     isCentered={false}
     raw={false}
+    showPermalink={true}
     title={null}
     type="sdk-updates"
     wrapTitle={true}
@@ -43,41 +44,41 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
       >
         <SectionContents>
           <div
-            className="css-16dhebx-SectionContents e1fbjd862"
+            className="css-16dhebx-SectionContents e1fbjd863"
           >
             <Alert
               icon="icon-upgrade"
-              iconSize="24px"
+              iconSize="20px"
               key="{\\"enables\\":[{\\"enables\\":[],\\"type\\":\\"enableIntegration\\"}],\\"newSdkVersion\\":\\"0.9.0\\",\\"sdkName\\":\\"sentry.python\\",\\"sdkUrl\\":null,\\"type\\":\\"updateSdk\\"}"
               type="info"
             >
               <Component
-                className="css-6uh236-Alert ejthpj82"
+                className="css-22gnn3-Alert ejthpj82"
                 icon="icon-upgrade"
-                iconSize="24px"
+                iconSize="20px"
                 type="info"
               >
                 <div
-                  className="ref-info css-6uh236-Alert ejthpj82"
+                  className="ref-info css-22gnn3-Alert ejthpj82"
                 >
                   <IconWrapper>
                     <span
-                      className="css-dhrf1z-IconWrapper ejthpj80"
+                      className="css-1vsw7fz-IconWrapper ejthpj80"
                     >
                       <InlineSvg
-                        size="24px"
+                        size="20px"
                         src="icon-upgrade"
                       >
                         <ForwardRef
                           className="css-tbsmsq-InlineSvg enyz4ql0"
-                          size="24px"
+                          size="20px"
                           src="icon-upgrade"
                         >
                           <svg
                             className="css-tbsmsq-InlineSvg enyz4ql0"
-                            height="24px"
+                            height="20px"
                             viewBox={Object {}}
-                            width="24px"
+                            width="20px"
                           >
                             <use
                               href="#test"

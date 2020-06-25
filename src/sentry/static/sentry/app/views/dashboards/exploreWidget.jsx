@@ -8,8 +8,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
-import InlineSvg from 'app/components/inlineSvg';
-import {IconStack, IconTelescope} from 'app/icons';
+import {IconChevron, IconStack, IconTelescope} from 'app/icons';
 import {
   getDiscoverUrlPathFromDiscoverQuery,
   getDiscover2UrlPathFromDiscoverQuery,
@@ -107,7 +106,7 @@ class ExploreWidget extends React.Component {
             : t('You do not have access to Discover')
         }
       >
-        <InlineSvg src="icon-discover" />
+        <IconTelescope size="xs" />
       </ExploreAction>
     );
   }
@@ -121,7 +120,11 @@ class ExploreWidget extends React.Component {
     return (
       <ExploreAction
         to={flags.discover2 ? this.getExportToDiscover(query, true) : ''}
-        href={!flags.discover2 ? 'https://docs.sentry.io/performance/discover/' : ''}
+        href={
+          !flags.discover2
+            ? 'https://docs.sentry.io/performance-monitoring/discover-queries/'
+            : ''
+        }
         target={!flags.discover2 ? '_blank' : ''}
         title={
           flags.discover2
@@ -170,7 +173,11 @@ class ExploreWidget extends React.Component {
             <div {...getActorProps()}>
               <ExploreButton isOpen={isOpen}>
                 {t('Explore Data')}
-                <Chevron isOpen={isOpen} src="icon-chevron-right" />
+                <Chevron
+                  isOpen={isOpen}
+                  direction={isOpen ? 'down' : 'right'}
+                  size="xs"
+                />
               </ExploreButton>
             </div>
             <ExploreMenu {...getMenuProps({isOpen})}>
@@ -255,8 +262,8 @@ const QueryName = styled('span')`
   margin-right: ${space(2)};
 `;
 
-const Chevron = styled(InlineSvg)`
-  ${p => (p.isOpen ? 'transform: rotate(90deg);' : '')};
-  margin-left: ${p => (p.isOpen ? space(0.5) : 0)};
+const Chevron = styled(IconChevron, {shouldForwardProp: prop => prop !== 'isOpen'})`
+  ${p => (p.isOpen ? 'transform: rotate(180deg);' : '')};
+  margin-left: ${p => (p.isOpen ? space(0.5) : space(0.25))};
   transition: all 0.25s;
 `;

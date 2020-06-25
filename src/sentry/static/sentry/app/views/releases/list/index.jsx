@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
 import styled from '@emotion/styled';
+import {withProfiler} from '@sentry/react';
 
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -15,7 +16,6 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
-import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import Feature from 'app/components/acl/feature';

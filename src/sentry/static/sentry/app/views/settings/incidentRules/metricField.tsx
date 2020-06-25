@@ -16,7 +16,7 @@ import {
   explodeFieldString,
   generateFieldAsString,
   AggregationKey,
-  FieldKey,
+  LooseFieldKey,
   AGGREGATIONS,
   FIELDS,
 } from 'app/utils/discover/fields';
@@ -30,7 +30,7 @@ type Props = Omit<FormField['props'], 'children' | 'help'> & {
 
 type OptionConfig = {
   aggregations: AggregationKey[];
-  fields: FieldKey[];
+  fields: LooseFieldKey[];
 };
 
 const errorFieldConfig: OptionConfig = {

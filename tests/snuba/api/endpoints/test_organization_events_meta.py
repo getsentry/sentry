@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import mock
 
 from pytz import utc
+from rest_framework.exceptions import ParseError
 
 from django.core.urlresolvers import reverse
 
@@ -115,6 +116,14 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
                 },
             )
         assert response.status_code == 400
+
+    @mock.patch("sentry.snuba.discover.raw_query")
+    def test_handling_snuba_errors(self, mock_query):
+        mock_query.side_effect = ParseError("test")
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 400, response.content
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):

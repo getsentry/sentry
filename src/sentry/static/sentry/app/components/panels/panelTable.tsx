@@ -142,6 +142,9 @@ const Wrapper = styled(Panel, {
     border: none;
     grid-column: auto / span ${p => p.columns};
   }
+
+  /* safari needs an overflow value or the contents will spill out */
+  overflow: auto;
 `;
 
 export const PanelTableHeader = styled('div')`

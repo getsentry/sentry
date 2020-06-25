@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor} from 'history';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -25,6 +25,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   totalValues: null | number;
+  confirmedQuery?: boolean;
   generateUrl: (key: string, value: string) => LocationDescriptor;
 };
 
@@ -41,6 +42,7 @@ class Tags extends React.Component<Props, State> {
     organization: SentryTypes.Organization.isRequired,
     location: PropTypes.object.isRequired,
     eventView: PropTypes.object.isRequired,
+    confirmedQuery: PropTypes.bool,
   };
 
   state: State = {
@@ -55,7 +57,10 @@ class Tags extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.shouldRefetchData(prevProps)) {
+    if (
+      this.shouldRefetchData(prevProps) ||
+      prevProps.confirmedQuery !== this.props.confirmedQuery
+    ) {
       this.fetchData();
     }
   }
@@ -68,8 +73,12 @@ class Tags extends React.Component<Props, State> {
   };
 
   fetchData = async () => {
-    const {api, organization, eventView, location} = this.props;
+    const {api, organization, eventView, location, confirmedQuery} = this.props;
     this.setState({loading: true, error: '', tags: []});
+
+    if (confirmedQuery === false) {
+      return;
+    }
 
     try {
       const tags = await fetchTagFacets(
