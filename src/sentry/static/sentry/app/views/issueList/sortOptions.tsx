@@ -7,27 +7,14 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 type Props = {
-  sort?: string;
-  onSelect?: (sort: string) => void;
+  sort: string;
+  onSelect: (sort: string) => void;
 };
 
-class IssueListSortOptions extends React.PureComponent<Props> {
-  static propTypes = {
-    sort: PropTypes.string,
-    onSelect: PropTypes.func,
-  };
+const IssueListSortOptions = ({onSelect, sort}: Props) => {
+  const sortKey = sort || 'date';
 
-  getMenuItem = (key: string, sortKey: string): React.ReactNode => (
-    <DropdownItem onSelect={this.onSelect} eventKey={key} isActive={sortKey === key}>
-      {this.getSortLabel(key)}
-    </DropdownItem>
-  );
-
-  onSelect = (sort: string) => {
-    this.props.onSelect?.(sort);
-  };
-
-  getSortLabel = (key: string) => {
+  const getSortLabel = (key: string) => {
     switch (key) {
       case 'new':
         return t('First Seen');
@@ -43,25 +30,29 @@ class IssueListSortOptions extends React.PureComponent<Props> {
     }
   };
 
-  render() {
-    const sortKey = this.props.sort || 'date';
+  const getMenuItem = (key: string): React.ReactNode => (
+    <DropdownItem onSelect={onSelect} eventKey={key} isActive={sortKey === key}>
+      {getSortLabel(key)}
+    </DropdownItem>
+  );
 
-    return (
-      <Container>
-        <DropdownControl
-          buttonProps={{prefix: t('Sort by')}}
-          label={this.getSortLabel(sortKey)}
-        >
-          {this.getMenuItem('priority', sortKey)}
-          {this.getMenuItem('date', sortKey)}
-          {this.getMenuItem('new', sortKey)}
-          {this.getMenuItem('freq', sortKey)}
-          {this.getMenuItem('user', sortKey)}
-        </DropdownControl>
-      </Container>
-    );
-  }
-}
+  return (
+    <Container>
+      <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
+        {getMenuItem('priority')}
+        {getMenuItem('date')}
+        {getMenuItem('new')}
+        {getMenuItem('freq')}
+        {getMenuItem('user')}
+      </DropdownControl>
+    </Container>
+  );
+};
+
+IssueListSortOptions.propTypes = {
+  sort: PropTypes.string.isRequired,
+  onSelect: PropTypes.func.isRequired,
+};
 
 const Container = styled('div')`
   margin-right: ${space(0.5)};
