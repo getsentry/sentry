@@ -9,7 +9,7 @@ import {IconClock, IconDelete, IconDownload} from 'app/icons';
 import ButtonBar from 'app/components/buttonBar';
 import FileSize from 'app/components/fileSize';
 import {Artifact} from 'app/types';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import Confirm from 'app/components/confirm';
 import Access from 'app/components/acl/access';
 import Tooltip from 'app/components/tooltip';
 
@@ -30,7 +30,7 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
 
   return (
     <React.Fragment>
-      <Column>
+      <NameColumn>
         <Name>{name || `(${t('empty')})`}</Name>
         <TimeAndDistWrapper>
           <TimeWrapper>
@@ -39,11 +39,11 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
           </TimeWrapper>
           {dist && <Tag inline>{dist}</Tag>}
         </TimeAndDistWrapper>
-      </Column>
-      <Column>
+      </NameColumn>
+      <SizeColumn>
         <FileSize bytes={size} />
-      </Column>
-      <RightColumn>
+      </SizeColumn>
+      <ActionsColumn>
         <ButtonBar gap={0.5}>
           <Access access={['project:write']}>
             {({hasAccess}) => (
@@ -54,42 +54,46 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
                 disabled={hasAccess}
               >
                 <Button
-                  size="xsmall"
-                  icon={<IconDownload size="xs" />}
+                  size="small"
+                  icon={<IconDownload size="sm" />}
                   disabled={!hasAccess}
                   href={downloadUrl}
-                >
-                  {t('Download')}
-                </Button>
+                  title={t('Download Artifact')}
+                />
               </Tooltip>
             )}
           </Access>
-          <LinkWithConfirmation
-            title={t('Delete artifact')}
+          <Confirm
             message={t('Are you sure you want to remove this artifact?')}
             onConfirm={handleDeleteClick}
           >
-            <Button size="xsmall" icon={<IconDelete size="xs" />} priority="danger" />
-          </LinkWithConfirmation>
+            <Button
+              size="small"
+              icon={<IconDelete size="sm" />}
+              title={t('Remove Artifact')}
+            />
+          </Confirm>
         </ButtonBar>
-      </RightColumn>
+      </ActionsColumn>
     </React.Fragment>
   );
 };
 
-const Column = styled('div')`
+const NameColumn = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const RightColumn = styled('div')`
+const SizeColumn = styled('div')`
   display: flex;
   justify-content: flex-end;
+  text-align: right;
   align-items: center;
 `;
+
+const ActionsColumn = styled(SizeColumn)``;
 
 const Name = styled('div')`
   padding-right: ${space(4)};

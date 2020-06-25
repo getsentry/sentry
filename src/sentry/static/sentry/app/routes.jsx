@@ -443,7 +443,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          path=":version/"
+          path=":name/"
           name={t('Archive')}
           componentPromise={() =>
             import(
