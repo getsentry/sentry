@@ -5,7 +5,7 @@ import six
 
 from datetime import datetime
 
-from dateutil.tz import UTC
+from pytz import UTC
 from rest_framework import serializers, status
 from uuid import uuid4
 
