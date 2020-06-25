@@ -18,7 +18,7 @@ export const List = styled('ul')`
 type ListItemProps = {
   icon?: string | React.ReactNode;
   children?: string | React.ReactNode;
-  className: string;
+  className?: string;
 };
 
 const IconWrapper = styled('span')`
