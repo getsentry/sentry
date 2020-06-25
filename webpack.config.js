@@ -309,6 +309,7 @@ let appConfig = {
       'process.env': {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
         IS_PERCY: JSON.stringify(IS_PERCY),
+        IS_CI: JSON.stringify(IS_CI),
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
         SPA_DSN: JSON.stringify(env.SENTRY_SPA_DSN),
