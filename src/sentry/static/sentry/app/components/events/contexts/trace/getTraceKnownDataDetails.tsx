@@ -102,7 +102,7 @@ function getUserKnownDataDetails(
         return tag.key === 'transaction';
       });
 
-      if (!eventTag || !eventTag.value) {
+      if (!eventTag || typeof eventTag.value !== 'string') {
         return undefined;
       }
       const transactionName = eventTag.value;
