@@ -15,6 +15,7 @@ import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {fetchProjectsCount} from 'app/actionCreators/projects';
 import Alert from 'app/components/alert';
+import CreateAlertButton from 'app/components/createAlertButton';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -312,7 +313,9 @@ class Results extends React.Component<Props, State> {
     return url;
   };
 
-  handleIncompatibleQuery = (incompatibleAlertNotice: React.ReactNode) => {
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = incompatibleAlertNoticeFn => {
     const {organization} = this.props;
     trackAnalyticsEvent({
       eventKey: 'discover_v2.create_alert_incompatible',
@@ -320,11 +323,11 @@ class Results extends React.Component<Props, State> {
       organization_id: parseInt(organization.id, 10),
     });
 
-    this.setState({incompatibleAlertNotice});
-  };
+    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      this.setState({incompatibleAlertNotice: null})
+    );
 
-  handleIncompatibleAlertClose = () => {
-    this.setState({incompatibleAlertNotice: null});
+    this.setState({incompatibleAlertNotice});
   };
 
   renderError(error: string) {

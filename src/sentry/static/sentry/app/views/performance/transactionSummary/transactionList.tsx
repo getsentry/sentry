@@ -82,13 +82,10 @@ class TransactionList extends React.Component<WrapperProps, State> {
         'Performance Views: Creating an alert from transaction summary was incompatible',
       organization_id: organization.id,
     });
-    this.setState({
-      incompatibleAlertNotice: incompatibleAlertNoticeFn(this.handleAlertClose),
-    });
-  };
-
-  handleAlertClose = () => {
-    this.setState({incompatibleAlertNotice: null});
+    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      this.setState({incompatibleAlertNotice: null})
+    );
+    this.setState({incompatibleAlertNotice});
   };
 
   handleCreateAlertSuccess = () => {
