@@ -1384,7 +1384,16 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_blank_field_ignored(self):
         fields = ["", "title", "   "]
         result = resolve_field_list(fields, eventstore.Filter())
-        assert result["selected_columns"] == ["title", "id", "project.id"]
+        assert result["selected_columns"] == [
+            "title",
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
 
     def test_automatic_fields_no_aggregates(self):
         fields = ["event.type", "message"]
@@ -1394,6 +1403,11 @@ class ResolveFieldListTest(unittest.TestCase):
             "message",
             "id",
             "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
         ]
         assert result["aggregations"] == []
         assert result["groupby"] == []
@@ -1682,7 +1696,16 @@ class ResolveFieldListTest(unittest.TestCase):
     def test_orderby_basic_field(self):
         fields = ["message"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-message"))
-        assert result["selected_columns"] == ["message", "id", "project.id"]
+        assert result["selected_columns"] == [
+            "message",
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
         assert result["aggregations"] == []
         assert result["groupby"] == []
 
@@ -1700,7 +1723,16 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["issue"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-issue"))
         assert result["orderby"] == ["-issue.id"]
-        assert result["selected_columns"] == ["issue.id", "id", "project.id"]
+        assert result["selected_columns"] == [
+            "issue.id",
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
         assert result["aggregations"] == []
         assert result["groupby"] == []
 

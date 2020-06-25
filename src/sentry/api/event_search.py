@@ -1413,7 +1413,11 @@ def resolve_orderby(orderby, fields, aggregations):
             validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
             continue
 
-        found = [col[2] for col in fields if isinstance(col, (list, tuple))]
+        found = [
+            col[2]
+            for col in fields
+            if isinstance(col, (list, tuple)) and col[2].strip("`") == bare_column
+        ]
         if found:
             prefix = "-" if column.startswith("-") else ""
             validated.append(prefix + bare_column)
@@ -1487,6 +1491,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
             columns.append("id")
         if not aggregations and "project.id" not in columns:
             columns.append("project.id")
+            project_key = PROJECT_NAME_ALIAS
 
     if project_key:
         # Check to see if there's a condition on project ID already, to avoid unnecessary lookups

@@ -210,12 +210,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["project.id"] == self.project.id
         assert data[0]["user.email"] == "bruce@example.com"
         assert data[0]["release"] == "first-release"
+        assert data[0]["project.name"] == self.project.slug
 
-        assert len(result["meta"]) == 4
+        assert len(result["meta"]) == 5
         assert result["meta"][0] == {"name": "user.email", "type": "Nullable(String)"}
         assert result["meta"][1] == {"name": "release", "type": "Nullable(String)"}
         assert result["meta"][2] == {"name": "id", "type": "FixedString(32)"}
         assert result["meta"][3] == {"name": "project.id", "type": "UInt64"}
+        assert result["meta"][4] == {"name": "project.name", "type": "String"}
 
     def test_auto_fields_aggregates(self):
         result = discover.query(
