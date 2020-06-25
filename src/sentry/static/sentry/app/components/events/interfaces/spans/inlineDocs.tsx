@@ -108,9 +108,7 @@ class InlineDocs extends React.Component<Props, State> {
           {tct(
             `To manually instrument certain regions of your code, view [docLink:our documentation].`,
             {
-              docLink: (
-                <a href="https://docs.sentry.io/performance/distributed-tracing/#setting-up-tracing" />
-              ),
+              docLink: <a href="https://docs.sentry.io/performance-monitoring/setup/" />,
             }
           )}
         </p>
