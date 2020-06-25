@@ -2,7 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import {IconDelete} from 'app/icons/iconDelete';
+import {IconBusiness} from 'app/icons/iconBusiness';
 import {List, ListItem} from 'app/components/list';
 
 storiesOf('UI|List', module).add(
@@ -15,9 +15,9 @@ storiesOf('UI|List', module).add(
         <ListItem>Item 3</ListItem>
       </List>
       <List>
-        <ListItem icon={<IconDelete size="xs" />}>Item 1</ListItem>
-        <ListItem icon={<IconDelete size="xs" />}>Item 2</ListItem>
-        <ListItem icon={<IconDelete size="xs" />}>Item 3</ListItem>
+        <ListItem icon={<IconBusiness color="orange400" size="sm" />}>Item 1</ListItem>
+        <ListItem icon={<IconBusiness color="orange400" size="sm" />}>Item 2</ListItem>
+        <ListItem icon={<IconBusiness color="orange400" size="sm" />}>Item 3</ListItem>
       </List>
       <List as="ol">
         <ListItem>Item 1</ListItem>

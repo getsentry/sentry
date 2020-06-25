@@ -43,7 +43,6 @@ export const List = styled('ul')`
 
   ul& li span {
     top: 4px;
-    left: 3px;
   }
 
   ol& {
