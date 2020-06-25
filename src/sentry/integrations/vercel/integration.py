@@ -116,38 +116,44 @@ class VercelIntegration(IntegrationInstallation):
 
     def update_organization_config(self, data):
         # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
-
-        metadata = self.model.metadata
-        vercel_client = VercelClient(metadata["access_token"], metadata.get("team_id"))
+        vercel_client = self.get_client()
         config = self.org_integration.config
-        [sentry_project_id, vercel_project_id] = data["project_mappings"][
-            -1
-        ]  # TODO: update this to work in the case where a project is removed
-        sentry_project = Project.objects.get(id=sentry_project_id)
-        enabled_dsn = ProjectKey.get_default(project=sentry_project)
-        if not enabled_dsn:
-            raise IntegrationError("You must have an enabled DSN to continue!")
-        sentry_project_dsn = enabled_dsn.get_dsn(public=True)
 
-        org_secret = self.create_secret(
-            vercel_client, vercel_project_id, "SENTRY_ORG", sentry_project.organization.slug
-        )
-        project_secret = self.create_secret(
-            vercel_client,
-            vercel_project_id,
-            "SENTRY_PROJECT_%s" % sentry_project_id,
-            sentry_project.slug,
-        )
-        dsn_secret = self.create_secret(
-            vercel_client,
-            vercel_project_id,
-            "NEXT_PUBLIC_SENTRY_DSN_%s" % sentry_project_id,
-            sentry_project_dsn,
-        )
+        # raise IntegrationError("You must have an enabled DSN to continue!")
 
-        self.create_env_var(vercel_client, vercel_project_id, "SENTRY_ORG", org_secret)
-        self.create_env_var(vercel_client, vercel_project_id, "SENTRY_PROJECT", project_secret)
-        self.create_env_var(vercel_client, vercel_project_id, "NEXT_PUBLIC_SENTRY_DSN", dsn_secret)
+        new_mappings = data["project_mappings"]
+        old_mappings = self.org_integration.config.get("project_mappings") or []
+        for mapping in new_mappings:
+            # skip any mappings that already exist
+            if mapping in old_mappings:
+                continue
+            [sentry_project_id, vercel_project_id] = mapping
+
+            sentry_project = Project.objects.get(id=sentry_project_id)
+            enabled_dsn = ProjectKey.get_default(project=sentry_project)
+            if not enabled_dsn:
+                raise IntegrationError("You must have an enabled DSN to continue!")
+            sentry_project_dsn = enabled_dsn.get_dsn(public=True)
+
+            org_secret = self.create_secret(
+                vercel_client, vercel_project_id, "SENTRY_ORG", sentry_project.organization.slug
+            )
+            project_secret = self.create_secret(
+                vercel_client,
+                vercel_project_id,
+                "SENTRY_PROJECT_%s" % sentry_project_id,
+                sentry_project.slug,
+            )
+            dsn_secret = self.create_secret(
+                vercel_client,
+                vercel_project_id,
+                "NEXT_PUBLIC_SENTRY_DSN_%s" % sentry_project_id,
+                sentry_project_dsn,
+            )
+
+            self.create_env_var(vercel_client, vercel_project_id, "SENTRY_ORG", org_secret)
+            self.create_env_var(vercel_client, vercel_project_id, "SENTRY_PROJECT", project_secret)
+            self.create_env_var(vercel_client, vercel_project_id, "NEXT_PUBLIC_SENTRY_DSN", dsn_secret)
 
         config.update(data)
         self.org_integration.update(config=config)

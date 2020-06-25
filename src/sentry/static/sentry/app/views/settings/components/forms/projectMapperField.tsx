@@ -9,6 +9,14 @@ import IdBadge from 'app/components/idBadge';
 import Button from 'app/components/button';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
+import {
+  Panel,
+  PanelHeader,
+  PanelBody,
+  PanelItem,
+  PanelTable,
+} from 'app/components/panels';
+import {IconDelete} from 'app/icons/iconDelete';
 
 type Props = InputField['props'];
 type RenderProps = Props & ProjectMapperType;
@@ -27,6 +35,8 @@ export class RenderField extends React.Component<RenderProps> {
       mappedDropdown: {items: mappedDropdownItems},
     } = this.props;
     const existingValues: Array<[number, string | number]> = value || [];
+
+    console.log('existingValues', existingValues);
 
     // create maps by the project id for constant time lookups
     const sentryProjectsById = Object.fromEntries(
@@ -55,19 +65,40 @@ export class RenderField extends React.Component<RenderProps> {
       //add the new value to the list of existing values
       const projectMappings = [...existingValues, [sentryProjectId, mappedValue]];
       //trigger events so we save the value and show the check mark
+      // onChange?.(projectMappings, []);
+      onBlur?.(projectMappings, []);
+    };
+
+    const handleDelete = (index: number) => {
+      const projectMappings = existingValues
+        .slice(0, index)
+        .concat(existingValues.slice(index + 1));
+      //trigger events so we save the value and show the check mark
       onChange?.(projectMappings, []);
       onBlur?.(projectMappings, []);
     };
 
-    const renderItem = (itemTuple: [number, any]) => {
+    const renderItem = (itemTuple: [number, any], index: number) => {
       const [projectId, mappedValue] = itemTuple;
-      const {slug} = sentryProjectsById[projectId];
+      const project = sentryProjectsById[projectId];
       // TODO: add special formatting if deleted
       const {label: itemLabel} = mappedItemsByValue[mappedValue] || {label: 'Deleted'};
       return (
-        <Item key={projectId}>
-          <ItemValue>{slug}</ItemValue> <ItemValue>{itemLabel}</ItemValue>
-        </Item>
+        <PanelItem key={projectId}>
+          <IdBadge
+            project={project}
+            avatarSize={20}
+            displayName={project.slug}
+            avatarProps={{consistentWidth: true}}
+          />
+          <ItemValue>{itemLabel}</ItemValue>
+          <Button
+            onClick={() => handleDelete(index)}
+            icon={<IconDelete color="gray500" />}
+            borderless
+            type="button"
+          />
+        </PanelItem>
       );
     };
 
