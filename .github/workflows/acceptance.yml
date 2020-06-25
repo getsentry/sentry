@@ -8,6 +8,7 @@ on:
 jobs:
     acceptance:
       runs-on: ubuntu-16.04
+      continue-on-error: true
       strategy:
         matrix:
           instance: [0, 1, 2]
@@ -202,6 +203,7 @@ jobs:
             TEST_GROUP: ${{ matrix.instance }}
 
         - name: Save snapshots
+          if: always()
           uses: actions/upload-artifact@v2
           with:
             name: visual-snapshots
