@@ -12,7 +12,7 @@ type Props = {
 type WellProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
 
 const Well = styled('div')<WellProps>`
-  border: 1px solid ${p => p.theme.gray300};
+  border: 1px solid ${p => p.theme.borderLight};
   box-shadow: none;
   background: ${p => p.theme.gray100};
   padding: ${p => (p.hasImage ? '80px 30px' : '15px 20px')};

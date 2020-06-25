@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 const PanelFooter = styled('div')`
-  border-top: 1px solid ${p => p.theme.gray400};
+  border-top: 1px solid ${p => p.theme.borderDark};
   color: ${p => p.theme.gray600};
   font-size: 14px;
 `;

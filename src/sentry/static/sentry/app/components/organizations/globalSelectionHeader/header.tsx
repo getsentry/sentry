@@ -6,7 +6,7 @@ const Header = styled('div')`
   width: 100%;
   height: 60px;
 
-  border-bottom: 1px solid ${p => p.theme.gray400};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowLight};
   z-index: ${p => p.theme.zIndex.globalSelectionHeader};
 

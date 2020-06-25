@@ -86,7 +86,7 @@ const alert = {
   muted: {
     background: colors.gray400,
     backgroundLight: colors.gray100,
-    border: colors.gray400,
+    border: colors.borderDark,
     iconColor: 'inherit',
   },
   info: {
@@ -131,7 +131,7 @@ const aliases = {
   textColor: colors.gray800,
   success: colors.green400,
   error: colors.red400,
-  disabled: colors.gray400,
+  disabled: colors.borderDark,
 } as const;
 
 const button = {

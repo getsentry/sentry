@@ -173,7 +173,7 @@ const Description = styled('p')`
 
 const ActionBar = styled('div')`
   height: 40px;
-  border-top: 1px solid ${p => p.theme.gray300};
+  border-top: 1px solid ${p => p.theme.borderLight};
   margin: ${space(3)} -${space(3)} -${space(3)};
   display: flex;
   justify-content: space-between;

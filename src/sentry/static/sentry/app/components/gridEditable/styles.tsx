@@ -144,8 +144,8 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   }
 
   &:hover {
-    border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.gray400)};
-    border-right-color: ${p => p.theme.gray400};
+    border-left-color: ${p => (p.isFirst ? 'transparent' : p.theme.borderDark)};
+    border-right-color: ${p => p.theme.borderDark};
   }
 `;
 
@@ -181,7 +181,7 @@ export const GridBody = styled('tbody')`
   display: contents;
 
   > tr:first-child td {
-    border-top: 1px solid ${p => p.theme.gray400};
+    border-top: 1px solid ${p => p.theme.borderDark};
   }
 `;
 export const GridBodyCell = styled('td')`
@@ -195,7 +195,7 @@ export const GridBodyCell = styled('td')`
   padding: ${space(1)} ${space(2)};
 
   background-color: ${p => p.theme.white};
-  border-top: 1px solid ${p => p.theme.gray300};
+  border-top: 1px solid ${p => p.theme.borderLight};
 
   font-size: ${p => p.theme.fontSizeMedium};
 

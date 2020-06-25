@@ -153,10 +153,10 @@ const ActionColumn = styled('div')`
 const Controls = styled('div')`
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid ${p => p.theme.gray300};
+  border-top: 1px solid ${p => p.theme.borderLight};
   background-color: #f3f1f6;
   padding: ${space(0.5)} 0;
-  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.gray300}`};
+  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.borderLight}`};
 
   ${MergedGroup} {
     &:first-child & {
@@ -164,7 +164,7 @@ const Controls = styled('div')`
     }
     &:last-child & {
       border-top: none;
-      border-bottom: 1px solid ${p => p.theme.gray300};
+      border-bottom: 1px solid ${p => p.theme.borderLight};
     }
   }
 `;

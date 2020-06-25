@@ -309,7 +309,7 @@ const Sidebar = styled(PageContent)`
     width: 100%;
     padding-top: ${space(3)};
     margin-bottom: 0;
-    border-bottom: 1px solid ${p => p.theme.gray300};
+    border-bottom: 1px solid ${p => p.theme.borderLight};
   }
 `;
 

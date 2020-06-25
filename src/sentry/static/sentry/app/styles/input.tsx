@@ -15,7 +15,7 @@ const inputStyles = (props: Props) =>
     display: block;
     width: 100%;
     background: #fff;
-    border: 1px solid ${props.theme.gray400};
+    border: 1px solid ${props.theme.borderDark};
     border-radius: ${props.theme.borderRadius};
     box-shadow: inset ${props.theme.dropShadowLight};
     padding: 0.5em;
@@ -37,7 +37,7 @@ const inputStyles = (props: Props) =>
     &:hover,
     &:focus,
     &:active {
-      border: 1px solid ${props.theme.gray400};
+      border: 1px solid ${props.theme.borderDark};
     }
 
     &::placeholder {
@@ -47,7 +47,7 @@ const inputStyles = (props: Props) =>
     &[disabled] {
       background: ${props.theme.gray100};
       color: ${props.theme.gray500};
-      border: 1px solid ${props.theme.gray400};
+      border: 1px solid ${props.theme.borderDark};
       cursor: not-allowed;
 
       &::placeholder {

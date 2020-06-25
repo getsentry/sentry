@@ -48,17 +48,17 @@ const defaultStyles = {
     color: theme.gray800,
     display: 'flex',
     background: '#fff',
-    border: `1px solid ${theme.gray400}`,
+    border: `1px solid ${theme.borderDark}`,
     borderRadius: theme.borderRadius,
     boxShadow: `inset ${theme.dropShadowLight}`,
     transition: 'border 0.1s linear',
     alignItems: 'center',
     minHeight: '36px',
     '&:hover': {
-      borderColor: theme.gray400,
+      borderColor: theme.borderDark,
     },
     ...(state.isFocused && {
-      border: `1px solid ${theme.gray400}`,
+      border: `1px solid ${theme.borderDark}`,
       boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
     }),
     ...(state.menuIsOpen && {
@@ -67,7 +67,7 @@ const defaultStyles = {
       boxShadow: 'none',
     }),
     ...(state.isDisabled && {
-      borderColor: theme.gray400,
+      borderColor: theme.borderDark,
       background: theme.gray100,
       color: theme.gray500,
       cursor: 'not-allowed',
@@ -82,9 +82,9 @@ const defaultStyles = {
     zIndex: theme.zIndex.dropdown,
     marginTop: '-1px',
     background: '#fff',
-    border: `1px solid ${theme.gray400}`,
+    border: `1px solid ${theme.borderDark}`,
     borderRadius: `0 0 ${theme.borderRadius} ${theme.borderRadius}`,
-    borderTop: `1px solid ${theme.gray300}`,
+    borderTop: `1px solid ${theme.borderLight}`,
     boxShadow: theme.dropShadowLight,
   }),
   option: (provided, state) => ({

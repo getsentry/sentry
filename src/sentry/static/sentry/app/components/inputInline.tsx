@@ -199,7 +199,7 @@ const Input = styled('div')<{
 }>`
   min-width: 40px;
   margin: 0;
-  border: 1px solid ${p => (p.isHovering ? p.theme.gray400 : 'transparent')};
+  border: 1px solid ${p => (p.isHovering ? p.theme.borderDark : 'transparent')};
   outline: none;
 
   line-height: inherit;
@@ -208,7 +208,7 @@ const Input = styled('div')<{
 
   &:focus,
   &:active {
-    border: 1px solid ${p => (p.isDisabled ? 'transparent' : p.theme.gray300)};
+    border: 1px solid ${p => (p.isDisabled ? 'transparent' : p.theme.borderLight)};
     background-color: ${p => (p.isDisabled ? 'transparent' : p.theme.gray300)};
   }
 `;

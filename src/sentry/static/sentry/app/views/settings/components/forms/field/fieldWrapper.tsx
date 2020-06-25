@@ -45,7 +45,7 @@ const FieldWrapper = styled('div')<Props>`
   ${p =>
     !p.stacked &&
     css`
-      border-bottom: 1px solid ${p.theme.gray300};
+      border-bottom: 1px solid ${p.theme.borderLight};
     `}
 
   ${p =>

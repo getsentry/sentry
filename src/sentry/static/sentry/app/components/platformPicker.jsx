@@ -151,7 +151,7 @@ class PlatformPicker extends React.Component {
 }
 
 const NavContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.gray300};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
   margin-bottom: ${space(2)};
   display: grid;
   grid-template-columns: 1fr 300px;

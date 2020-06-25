@@ -38,7 +38,7 @@ const FrameRegisters = ({data}: Props) => {
 };
 
 const RegistersWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.gray300};
+  border-top: 1px solid ${p => p.theme.borderLight};
   padding-top: 10px;
 
   .traceback .frame .box-clippable:first-child > & {

@@ -63,7 +63,7 @@ const OpenInContainer = styled('div')<{columnQuantity: number}>`
   color: ${p => p.theme.gray600};
   background-color: ${p => p.theme.white};
   font-family: ${p => p.theme.text.family};
-  border-bottom: 1px solid ${p => p.theme.gray300};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
   padding: ${space(0.25)} ${space(3)};
   box-shadow: ${p => p.theme.dropShadowLightest};
   text-indent: initial;

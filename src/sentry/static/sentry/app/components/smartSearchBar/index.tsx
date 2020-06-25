@@ -94,7 +94,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.gray400}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.borderDark}`};
     border-radius: 0;
   }
 
@@ -1236,7 +1236,7 @@ export default withApi(withOrganization(SmartSearchBarContainer));
 export {SmartSearchBar, SearchType};
 
 const Container = styled('div')<{isOpen: boolean}>`
-  border: 1px solid ${p => (p.isOpen ? p.theme.gray400 : p.theme.gray300)};
+  border: 1px solid ${p => (p.isOpen ? p.theme.borderDark : p.theme.borderLight)};
   border-radius: ${p =>
     p.isOpen
       ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
@@ -1279,7 +1279,7 @@ const StyledInput = styled('input')`
     color: ${p => p.theme.gray400};
   }
   &:focus {
-    border-color: ${p => p.theme.gray400};
+    border-color: ${p => p.theme.borderDark};
     border-bottom-right-radius: 0;
   }
 

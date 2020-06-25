@@ -268,7 +268,7 @@ const ProgressStep = styled('div')`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 4px solid ${p => (p.active ? Theme.colors.pink400 : p.theme.gray300)};
+  border: 4px solid ${p => (p.active ? Theme.colors.pink400 : p.theme.borderLight)};
   background: #fff;
 `;
 
