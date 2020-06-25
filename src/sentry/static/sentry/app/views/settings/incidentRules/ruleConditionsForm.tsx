@@ -10,7 +10,7 @@ import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import FormField from 'app/views/settings/components/forms/formField';
 import SearchBar from 'app/views/events/searchBar';
-import RadioField from 'app/views/settings/components/forms/radioField';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -19,7 +19,7 @@ import Feature from 'app/components/acl/feature';
 
 import {TimeWindow, IncidentRule, Dataset} from './types';
 import MetricField from './metricField';
-import {DATASET_EVENT_TYPE_FILTERS} from './constants';
+import {DATASET_EVENT_TYPE_FILTERS, DEFAULT_AGGREGATE} from './constants';
 
 type TimeWindowMapType = {[key in TimeWindow]: string};
 
@@ -111,16 +111,28 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
               'organizations:incidents-performance',
             ]}
           >
-            <RadioField
-              name="dataset"
-              label="Data source"
-              orientInline
-              required
-              choices={[
-                [Dataset.ERRORS, t('Errors')],
-                [Dataset.TRANSACTIONS, t('Transactions')],
-              ]}
-            />
+            <FormField required name="dataset" label="Data source">
+              {({onChange, onBlur, value, model, label}) => (
+                <RadioGroup
+                  orientInline
+                  disabled={disabled}
+                  value={value}
+                  label={label}
+                  onChange={(id, e) => {
+                    onChange(id, e);
+                    onBlur(id, e);
+                    // Reset the aggregate to the default (which works across
+                    // datatypes), otherwise we may send snuba an invalid query
+                    // (transaction aggregate on events datasource = bad).
+                    model.setValue('aggregate', DEFAULT_AGGREGATE);
+                  }}
+                  choices={[
+                    [Dataset.ERRORS, t('Errors')],
+                    [Dataset.TRANSACTIONS, t('Transactions')],
+                  ]}
+                />
+              )}
+            </FormField>
           </Feature>
           {this.props.thresholdChart}
           <FormField name="query" inline={false}>
@@ -138,7 +150,6 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     </SearchEventTypeNote>
                   </Tooltip>
                 }
-                help={t('Choose which metric to trigger on')}
                 omitTags={['event.type']}
                 disabled={disabled}
                 useFormWrapper={false}

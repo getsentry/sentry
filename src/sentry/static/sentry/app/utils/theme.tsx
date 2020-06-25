@@ -58,31 +58,6 @@ const colors = {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Old Colors
-  blue: '#3B6ECC',
-  blueLight: '#628BD6',
-  blueLightest: '#F5FAFE',
-  blueDark: '#2F58A3',
-
-  green: '#57be8c',
-  greenLight: '#71D8A6',
-  greenLightest: '#f8fcf7',
-  greenDark: '#3EA573',
-  greenTransparent: 'rgba(87, 190, 140, 0.5)',
-
-  yellow: '#ecc844',
-  yellowLightest: '#FFFDF7',
-  yellowLight: '#FFF15E',
-  yellowDark: '#e6bc23',
-  yellowDarkest: '#ecbb08',
-
-  yellowOrange: '#f9a66d',
-  yellowOrangeLight: '#FFC087',
-  yellowOrangeDark: '#E08D54',
-
-  orange: '#ec5e44',
-  orangeLight: '#FF785E',
-  orangeDark: '#D3452B',
-
   red: '#e03e2f',
   redLight: '#FA5849',
   redLightest: '#FDF6F5',
@@ -117,47 +92,46 @@ const colors = {
 } as const;
 
 const warning = {
-  backgroundLight: colors.yellowLightest,
-  background: colors.yellowDarkest,
-  border: colors.yellowDark,
-  iconColor: colors.yellowDark,
+  background: colors.yellow500,
+  backgroundLight: colors.yellow100,
+  border: colors.yellow400,
+  iconColor: colors.yellow500,
 } as const;
 
 const alert = {
   muted: {
-    backgroundLight: colors.gray100,
     background: colors.gray400,
-    iconColor: 'inherit',
+    backgroundLight: colors.gray100,
     border: colors.gray400,
+    iconColor: 'inherit',
   },
   info: {
-    backgroundLight: colors.blue100,
-    border: colors.blue300,
-    iconColor: colors.blue400,
     background: colors.blue400,
+    backgroundLight: colors.blue100,
+    border: colors.blue200,
+    iconColor: colors.blue400,
   },
   warning,
-  //alias warn to warning
   warn: warning,
   success: {
-    backgroundLight: colors.green100,
-    border: colors.green400,
-    iconColor: colors.green500,
     background: colors.green400,
+    backgroundLight: colors.green100,
+    border: colors.green300,
+    iconColor: colors.green500,
   },
   error: {
-    backgroundLight: colors.redLightest,
-    border: colors.redLight,
-    textLight: colors.redLight,
-    iconColor: colors.red,
-    background: colors.red,
+    background: colors.red400,
+    backgroundLight: colors.red100,
+    border: colors.red200,
+    iconColor: colors.red400,
+    textLight: colors.red200,
   },
 } as const;
 
 const badge = {
   alpha: {
-    background: `linear-gradient(90deg, ${colors.orangeLight}, ${colors.orangeDark})`,
-    indicatorColor: colors.orange,
+    background: `linear-gradient(90deg, ${colors.orange300}, ${colors.orange500})`,
+    indicatorColor: colors.orange400,
   },
   beta: {
     background: `linear-gradient(90deg, ${colors.pink}, ${colors.purple})`,
@@ -267,6 +241,10 @@ const theme = {
 
   // Try to keep these ordered plz
   zIndex: {
+    // Generic z-index when you hope your component is isolated and
+    // does not need to battle others for z-index priority
+    initial: 1,
+
     breadcrumbs: {
       header: 2,
       gridCellError: 1,

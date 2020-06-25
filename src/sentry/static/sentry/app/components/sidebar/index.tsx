@@ -401,7 +401,11 @@ class Sidebar extends React.Component<Props, State> {
                       </GuideAnchor>
                     </Feature>
                   )}
-                  <Feature features={['performance-view']} organization={organization}>
+                  <Feature
+                    hookName="feature-disabled:performance-sidebar-item"
+                    features={['performance-view']}
+                    organization={organization}
+                  >
                     <SidebarItem
                       {...sidebarItemProps}
                       onClick={(_id, evt) =>

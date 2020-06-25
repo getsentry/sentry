@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
     queue="data_export",
     default_retry_delay=30,
     max_retries=3,
+    acks_late=True,
 )
 def assemble_download(
     data_export_id,
@@ -147,8 +148,8 @@ def assemble_download(
                 environment_id=environment_id,
             )
         else:
-            metrics.timing("dataexport.row_count", next_offset)
-            metrics.timing("dataexport.file_size", bytes_written)
+            metrics.timing("dataexport.row_count", next_offset, sample_rate=1.0)
+            metrics.timing("dataexport.file_size", bytes_written, sample_rate=1.0)
             merge_export_blobs.delay(data_export_id)
 
 
@@ -225,12 +226,14 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
         bytes_offset += blob.size
 
         # there is a maximum file size allowed, so we need to make sure we don't exceed it
-        if bytes_written + bytes_offset >= MAX_FILE_SIZE:
+        # NOTE: there seems to be issues with downloading files larger than 1 GB on slower
+        # networks, limit the export to 1 GB for now to improve reliability
+        if bytes_written + bytes_offset >= min(MAX_FILE_SIZE, 2 ** 30):
             transaction.set_rollback(True)
             return 0
 
 
-@instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export")
+@instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
 def merge_export_blobs(data_export_id, **kwargs):
     try:
         data_export = ExportedData.objects.get(id=data_export_id)
@@ -268,7 +271,7 @@ def merge_export_blobs(data_export_id, **kwargs):
             data_export.finalize_upload(file=file)
 
             time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
-            metrics.timing("dataexport.duration", time_elapsed)
+            metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)
             logger.info("dataexport.end", extra={"data_export_id": data_export_id})
             metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
     except Exception as error:

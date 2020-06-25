@@ -32,6 +32,13 @@ from sentry.utils.compat import zip
 from sentry.utils.compat import filter
 
 WILDCARD_CHARS = re.compile(r"[\*]")
+NEGATION_MAP = {
+    "=": "!=",
+    "<": ">=",
+    "<=": ">",
+    ">": "<=",
+    ">=": "<",
+}
 
 
 def translate(pat):
@@ -120,9 +127,9 @@ specific_time_filter = search_key sep (date_format / alt_date_format)
 # Numeric comparison filter
 numeric_filter       = search_key sep operator? numeric_value
 # Aggregate numeric filter
-aggregate_filter          = aggregate_key sep operator? (numeric_value / duration_format)
-aggregate_date_filter     = aggregate_key sep operator? (date_format / alt_date_format)
-aggregate_rel_date_filter = aggregate_key sep operator? rel_date_format
+aggregate_filter          = negation? aggregate_key sep operator? (numeric_value / duration_format)
+aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
+aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
 # has filter for not null type checks
 has_filter           = negation? "has" sep (search_key / search_value)
@@ -396,9 +403,15 @@ class SearchVisitor(NodeVisitor):
             )
             return self._handle_basic_filter(search_key, "=", search_value)
 
-    def visit_aggregate_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
+    def handle_negation(self, negation, operator):
         operator = operator[0] if not isinstance(operator, Node) else "="
+        if self.is_negated(negation):
+            return NEGATION_MAP.get(operator, "!=")
+        return operator
+
+    def visit_aggregate_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        operator = self.handle_negation(negation, operator)
         search_value = search_value[0] if not isinstance(search_value, RegexNode) else search_value
 
         try:
@@ -420,9 +433,9 @@ class SearchVisitor(NodeVisitor):
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
+        (negation, search_key, _, operator, search_value) = children
         search_value = search_value[0]
-        operator = operator[0] if not isinstance(operator, Node) else "="
+        operator = self.handle_negation(negation, operator)
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
         if is_date_aggregate:
             try:
@@ -435,8 +448,8 @@ class SearchVisitor(NodeVisitor):
             return AggregateFilter(search_key, "=", SearchValue(search_value))
 
     def visit_aggregate_rel_date_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
-        operator = operator[0] if not isinstance(operator, Node) else "="
+        (negation, search_key, _, operator, search_value) = children
+        operator = self.handle_negation(negation, operator)
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
         if is_date_aggregate:
             try:
@@ -1174,13 +1187,13 @@ FUNCTIONS = {
         "name": "user_misery",
         "args": [NumberRange("satisfaction", 0, None)],
         "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-        "transform": u"uniqIf(user, duration > {tolerated:g})",
+        "transform": u"uniqIf(user, greater(duration, {tolerated:g}))",
         "result_type": "number",
     },
     "failure_rate": {
         "name": "failure_rate",
         "args": [],
-        "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
+        "transform": "failure_rate()",
         "result_type": "percentage",
     },
     # The user facing signature for this function is histogram(<column>, <num_buckets>)
@@ -1438,8 +1451,6 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     columns = []
     groupby = []
     project_key = ""
-    # Which column to map to project names
-    project_column = "project_id"
 
     # If project is requested, we need to map ids to their names since snuba only has ids
     if "project" in fields:
@@ -1467,22 +1478,11 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     if not rollup and auto_fields:
         # Ensure fields we require to build a functioning interface
         # are present. We don't add fields when using a rollup as the additional fields
-        # would be aggregated away. When there are aggregations
-        # we use argMax to get the latest event/projectid so we can create links.
-        # The `projectid` output name is not a typo, using `project_id` triggers
-        # generates invalid queries.
+        # would be aggregated away.
         if not aggregations and "id" not in columns:
             columns.append("id")
         if not aggregations and "project.id" not in columns:
             columns.append("project.id")
-            project_column = "project_id"
-        if aggregations and "latest_event" not in map(lambda a: a[-1], aggregations):
-            _, aggregates = resolve_function("latest_event()")
-            aggregations.extend(aggregates)
-        if aggregations and "project.id" not in columns:
-            aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])
-            project_column = "projectid"
-        if project_key == "":
             project_key = PROJECT_NAME_ALIAS
 
     if project_key:
@@ -1498,7 +1498,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
         aggregations.append(
             [
                 u"transform({}, array({}), array({}), '')".format(
-                    project_column,
+                    "project_id",
                     # Need to use join like this so we don't get a list including Ls which confuses clickhouse
                     ",".join([six.text_type(project["id"]) for project in projects]),
                     # Can't just format a list since we'll get u"string" instead of a plain 'string'

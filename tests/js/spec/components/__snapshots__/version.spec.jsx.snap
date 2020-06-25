@@ -123,7 +123,7 @@ exports[`Version renders 1`] = `
               value="foo.bar.Baz@1.0.0+20200101"
             >
               <ForwardRef(render)>
-                <ForwardRef
+                <ForwardRef(IconCopy)
                   color="white"
                   size="xs"
                 />

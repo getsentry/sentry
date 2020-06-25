@@ -428,7 +428,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               styled={false}
                             >
                               <div
-                                className="css-120v9s3-Title e1uay4fd1"
+                                className="css-u2ls9d-Title e1uay4fd1"
                               >
                                 <HeaderTitle>
                                   <h4
@@ -772,7 +772,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                       withPadding={false}
                                     >
                                       <div
-                                        className="e1ueudyh4 css-orfn1j-FlexBox-StyledPanelBody e1vnwt6f0"
+                                        className="e1ueudyh4 css-1nbu7cr-FlexBox-StyledPanelBody e1vnwt6f0"
                                       >
                                         <div
                                           dangerouslySetInnerHTML={

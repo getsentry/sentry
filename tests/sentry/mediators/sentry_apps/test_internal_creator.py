@@ -16,7 +16,6 @@ class TestInternalCreator(TestCase):
         self.creator = InternalCreator(
             name="nulldb",
             user=self.user,
-            author="Sentry",
             organization=self.org,
             scopes=("project:read",),
             webhook_url="http://example.com",
@@ -31,6 +30,7 @@ class TestInternalCreator(TestCase):
 
     def test_creates_internal_sentry_app(self):
         sentry_app = self.creator.call()
+        assert sentry_app.author == self.org.name
         assert SentryApp.objects.filter(slug=sentry_app.slug).exists()
 
     def test_installs_to_org(self):
@@ -39,6 +39,11 @@ class TestInternalCreator(TestCase):
         assert SentryAppInstallation.objects.filter(
             organization=self.org, sentry_app=sentry_app
         ).exists()
+
+    def test_author(self):
+        self.creator.kwargs["author"] = "custom"
+        sentry_app = self.creator.call()
+        assert sentry_app.author == "custom"
 
     @patch("sentry.tasks.sentry_apps.installation_webhook.delay")
     def test_does_not_notify_service(self, delay):

@@ -92,6 +92,10 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
     viewWindowEnd: 1,
   };
 
+  componentWillUnmount() {
+    this.cleanUpListeners();
+  }
+
   previousUserSelect: UserSelectValues | null = null;
 
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
@@ -362,10 +366,6 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       window.removeEventListener('mouseup', this.onWindowSelectionDragEnd);
     }
   };
-
-  componentWillUnmount() {
-    this.cleanUpListeners();
-  }
 
   render() {
     const childrenProps = {

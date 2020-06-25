@@ -14,6 +14,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import EventView from 'app/utils/discover/eventView';
 import {DisplayModes} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
+import withApi from 'app/utils/withApi';
 
 import ChartFooter from './chartFooter';
 
@@ -23,6 +24,7 @@ type ResultsChartProps = {
   organization: Organization;
   eventView: EventView;
   location: Location;
+  confirmedQuery: boolean;
 };
 
 class ResultsChart extends React.Component<ResultsChartProps> {
@@ -38,7 +40,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
   }
 
   render() {
-    const {api, eventView, location, organization, router} = this.props;
+    const {api, eventView, location, organization, router, confirmedQuery} = this.props;
 
     const yAxisValue = eventView.getYAxis();
 
@@ -78,10 +80,12 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               disablePrevious={eventView.display !== DisplayModes.PREVIOUS}
               disableReleases={eventView.display !== DisplayModes.RELEASES}
               field={isTopEvents ? apiPayload.field : undefined}
+              interval={eventView.interval}
               showDaily={isDaily}
               topEvents={isTopEvents ? 5 : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
+              confirmedQuery={confirmedQuery}
             />
           ),
           fixed: 'events chart',
@@ -97,6 +101,7 @@ type ContainerProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  confirmedQuery: boolean;
 
   // chart footer props
   total: number | null;
@@ -109,7 +114,10 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
 
-    if (!eventView.isEqualTo(nextEventView)) {
+    if (
+      !eventView.isEqualTo(nextEventView) ||
+      this.props.confirmedQuery !== nextProps.confirmedQuery
+    ) {
       return true;
     }
 
@@ -126,6 +134,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
       onAxisChange,
       onDisplayChange,
       organization,
+      confirmedQuery,
     } = this.props;
 
     const yAxisValue = eventView.getYAxis();
@@ -151,6 +160,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
           location={location}
           organization={organization}
           router={router}
+          confirmedQuery={confirmedQuery}
         />
         <ChartFooter
           total={total}
@@ -166,7 +176,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
   }
 }
 
-export default ResultsChartContainer;
+export default withApi(ResultsChartContainer);
 
 export const StyledPanel = styled(Panel)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

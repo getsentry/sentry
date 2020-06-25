@@ -433,7 +433,26 @@ function routes() {
           )
         }
         component={errorHandler(LazyLoad)}
-      />
+      >
+        <IndexRoute
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ProjectSourceMapsList" */ 'app/views/settings/projectSourceMaps/list'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+        <Route
+          path=":name/"
+          name={t('Archive')}
+          componentPromise={() =>
+            import(
+              /* webpackChunkName: "ProjectSourceMapsDetail" */ 'app/views/settings/projectSourceMaps/detail'
+            )
+          }
+          component={errorHandler(LazyLoad)}
+        />
+      </Route>
       <Route
         path="processing-issues/"
         name="Processing Issues"
@@ -1011,6 +1030,15 @@ function routes() {
           getComponent={(_loc, cb) =>
             import(
               /* webpackChunkName: "VSTSOrganizationLink" */ 'app/views/vstsOrganizationLink'
+            ).then(lazyLoad(cb))
+          }
+        />
+
+        <Route
+          path="/extensions/:integrationSlug/link/"
+          getComponent={(_loc, cb) =>
+            import(
+              /* webpackChunkName: "IntegrationOrganizationLink" */ 'app/views/integrationOrganizationLink'
             ).then(lazyLoad(cb))
           }
         />

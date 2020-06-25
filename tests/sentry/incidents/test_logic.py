@@ -63,10 +63,12 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentProject,
     PendingIncidentSnapshot,
+    IncidentSnapshot,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
     IncidentType,
+    TimeSeriesSnapshot,
 )
 from sentry.snuba.models import QueryDatasets
 from sentry.models.integration import Integration
@@ -81,7 +83,7 @@ class CreateIncidentTest(TestCase):
     def test_simple(self):
         incident_type = IncidentType.ALERT_TRIGGERED
         title = "hello"
-        date_started = timezone.now()
+        date_started = timezone.now() - timedelta(minutes=5)
         alert_rule = create_alert_rule(
             self.organization, [self.project], "hello", "level:error", "count()", 10, 1
         )
@@ -105,6 +107,12 @@ class CreateIncidentTest(TestCase):
         assert IncidentProject.objects.filter(
             incident=incident, project__in=[self.project]
         ).exists()
+        assert (
+            IncidentActivity.objects.filter(
+                incident=incident, type=IncidentActivityType.STARTED.value, date_added=date_started
+            ).count()
+            == 1
+        )
         assert (
             IncidentActivity.objects.filter(
                 incident=incident, type=IncidentActivityType.DETECTED.value
@@ -135,7 +143,9 @@ class UpdateIncidentStatus(TestCase):
         )
         assert incident.status == IncidentStatus.WARNING.value
 
-    def run_test(self, incident, status, expected_date_closed, user=None, comment=None):
+    def run_test(
+        self, incident, status, expected_date_closed, user=None, comment=None, date_closed=None
+    ):
         prev_status = incident.status
         self.record_event.reset_mock()
         update_incident_status(
@@ -144,6 +154,7 @@ class UpdateIncidentStatus(TestCase):
             user=user,
             comment=comment,
             status_method=IncidentStatusMethod.RULE_TRIGGERED,
+            date_closed=date_closed,
         )
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status.value
@@ -178,6 +189,21 @@ class UpdateIncidentStatus(TestCase):
             after=True,
         ):
             self.run_test(incident, IncidentStatus.CLOSED, timezone.now())
+
+    def test_closed_specify_date(self):
+        incident = self.create_incident(
+            self.organization,
+            title="Test",
+            date_started=timezone.now() - timedelta(days=5),
+            projects=[self.project],
+        )
+        with self.assertChanges(
+            lambda: PendingIncidentSnapshot.objects.filter(incident=incident).exists(),
+            before=False,
+            after=True,
+        ):
+            date_closed = timezone.now() - timedelta(days=1)
+            self.run_test(incident, IncidentStatus.CLOSED, date_closed, date_closed=date_closed)
 
     def test_pending_snapshot_management(self):
         # Test to verify PendingIncidentSnapshot's are created on close, and deleted on open
@@ -218,7 +244,7 @@ class BaseIncidentsTest(SnubaTestCase):
 
     @cached_property
     def now(self):
-        return timezone.now().replace(microsecond=0)
+        return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 class BaseIncidentEventStatsTest(BaseIncidentsTest):
@@ -272,7 +298,7 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest):
 class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
     @fixture
     def bucket_incident(self):
-        incident_start = self.now.replace(minute=0, second=0, microsecond=0) - timedelta(minutes=23)
+        incident_start = self.now - timedelta(minutes=23)
         self.create_event(incident_start + timedelta(seconds=1))
         self.create_event(incident_start + timedelta(minutes=2))
         self.create_event(incident_start + timedelta(minutes=6))
@@ -293,28 +319,32 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         self.validate_result(incident, result, expected_results, start, end, windowed_stats)
 
     def test_project(self):
-        self.run_test(self.project_incident, [0, 2, 1])
-        self.run_test(self.project_incident, [0, 1], start=self.now - timedelta(minutes=1))
-        self.run_test(
-            self.project_incident, [0, 2], end=self.now - timedelta(minutes=1, seconds=59)
-        )
+        self.run_test(self.project_incident, [2, 1])
+        self.run_test(self.project_incident, [1], start=self.now - timedelta(minutes=1))
+        self.run_test(self.project_incident, [2], end=self.now - timedelta(minutes=1, seconds=59))
 
-        self.run_test(self.project_incident, [0, 2, 1], windowed_stats=True)
+        self.run_test(self.project_incident, [2, 1], windowed_stats=True)
         self.run_test(
             self.project_incident,
-            [0, 2, 1],
+            [2, 1],
             start=self.now - timedelta(minutes=1),
             windowed_stats=True,
         )
         self.run_test(
             self.project_incident,
-            [0, 2, 1],
+            [2, 1],
             end=self.now - timedelta(minutes=1, seconds=59),
             windowed_stats=True,
         )
 
     def test_start_bucket(self):
         self.run_test(self.bucket_incident, [2, 4, 2, 2])
+
+    def test_buckets_already_aligned(self):
+        self.bucket_incident.update(
+            date_started=self.now - timedelta(minutes=30), date_closed=self.now
+        )
+        self.run_test(self.bucket_incident, [2, 2, 2])
 
     def test_start_and_end_bucket(self):
         self.create_event(self.bucket_incident.date_started + timedelta(minutes=19))
@@ -341,7 +371,7 @@ class GetIncidentEventStatsTest(TestCase, BaseIncidentEventStatsTest):
         event_data["transaction"] = "/foo_transaction/"
         self.store_event(data=event_data, project_id=self.project.id)
 
-        self.run_test(incident, [0, 2, 1])
+        self.run_test(incident, [2, 1])
 
 
 class BaseIncidentAggregatesTest(BaseIncidentsTest):
@@ -374,13 +404,13 @@ class CreateEventStatTest(TestCase, BaseIncidentsTest):
         snapshot = create_event_stat_snapshot(incident, windowed_stats=False)
         assert snapshot.start == incident.date_started - timedelta(minutes=1)
         assert snapshot.end == incident.current_end_date + timedelta(minutes=1)
-        assert [row[1] for row in snapshot.values] == [0, 2, 1]
+        assert [row[1] for row in snapshot.values] == [2, 1]
 
         snapshot = create_event_stat_snapshot(incident, windowed_stats=True)
         expected_start, expected_end = calculate_incident_time_range(incident, windowed_stats=True)
         assert snapshot.start == expected_start
         assert snapshot.end == expected_end
-        assert [row[1] for row in snapshot.values] == [0, 2, 1]
+        assert [row[1] for row in snapshot.values] == [2, 1]
 
 
 @freeze_time()
@@ -595,6 +625,38 @@ class GetIncidentStatsTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
         )
         self.run_test(open_incident)
+
+    def test_floats(self):
+        alert_rule = self.create_alert_rule(
+            self.organization, dataset=QueryDatasets.TRANSACTIONS, aggregate="p75()"
+        )
+        incident = self.create_incident(
+            self.organization,
+            title="Hi",
+            date_started=timezone.now() - timedelta(days=30),
+            alert_rule=alert_rule,
+        )
+        update_incident_status(
+            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.RULE_TRIGGERED
+        )
+        time_series_values = [[0, 1], [1, 5], [2, 5.5]]
+        time_series_snapshot = TimeSeriesSnapshot.objects.create(
+            start=timezone.now() - timedelta(hours=1),
+            end=timezone.now(),
+            values=time_series_values,
+            period=3000,
+        )
+        IncidentSnapshot.objects.create(
+            incident=incident,
+            event_stats_snapshot=time_series_snapshot,
+            unique_users=1234,
+            total_events=4567,
+        )
+
+        incident_stats = get_incident_stats(incident, windowed_stats=True)
+        assert incident_stats["event_stats"].data["data"] == [
+            {"time": time, "count": count} for time, count in time_series_values
+        ]
 
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):

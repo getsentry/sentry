@@ -6,13 +6,13 @@ import omit from 'lodash/omit';
 
 import {Organization} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
-import {ContentBox, HeaderBox, Main, Side} from 'app/utils/discover/styles';
+import * as Layout from 'app/components/layouts/thirds';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
+import {decodeScalar} from 'app/utils/queryString';
 
 import TransactionList from './transactionList';
 import UserStats from './userStats';
@@ -72,25 +72,23 @@ class SummaryContent extends React.Component<Props> {
 
   render() {
     const {transactionName, location, eventView, organization, totalValues} = this.props;
-    const query = location.query.query || '';
+    const query = decodeScalar(location.query.query) || '';
 
     return (
       <React.Fragment>
-        <HeaderBox>
-          <div>
+        <Layout.Header>
+          <Layout.HeaderContent>
             <Breadcrumb
               organization={organization}
               location={location}
               transactionName={transactionName}
             />
-          </div>
-          <KeyTransactionContainer>
-            {this.renderKeyTransactionButton()}
-          </KeyTransactionContainer>
-          <StyledTitleHeader>{transactionName}</StyledTitleHeader>
-        </HeaderBox>
-        <ContentBox>
-          <StyledMain>
+            <Layout.Title>{transactionName}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>{this.renderKeyTransactionButton()}</Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main>
             <StyledSearchBar
               organization={organization}
               projectIds={eventView.project}
@@ -118,8 +116,8 @@ class SummaryContent extends React.Component<Props> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
             />
-          </StyledMain>
-          <Side>
+          </Layout.Main>
+          <Layout.Side>
             <UserStats
               organization={organization}
               location={location}
@@ -133,31 +131,12 @@ class SummaryContent extends React.Component<Props> {
               organization={organization}
               location={location}
             />
-          </Side>
-        </ContentBox>
+          </Layout.Side>
+        </Layout.Body>
       </React.Fragment>
     );
   }
 }
-
-const StyledTitleHeader = styled('span')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
-  grid-column: 1/2;
-  align-self: center;
-  min-height: 30px;
-  ${overflowEllipsis};
-`;
-
-// Allow overflow so chart tooltip and assignee dropdown display.
-const StyledMain = styled(Main)`
-  overflow: visible;
-`;
-
-const KeyTransactionContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
 
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};

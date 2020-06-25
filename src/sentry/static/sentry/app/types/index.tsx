@@ -8,7 +8,9 @@ import {
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
+import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
 import {Props as AlertProps} from 'app/components/alert';
+import {Query as DiscoverQuery} from 'app/views/discover/types';
 
 declare global {
   interface Window {
@@ -907,6 +909,7 @@ type ReleaseData = {
   owner?: any; // TODO(ts)
   newGroups: number;
   versionInfo: VersionInfo;
+  fileCount: number | null;
 };
 
 type BaseRelease = {
@@ -1135,6 +1138,8 @@ export type Tag = {
   predefined?: boolean;
 };
 
+export type TagCollection = {[key: string]: Tag};
+
 export type TagValue = {
   count: number;
   name: string;
@@ -1278,6 +1283,36 @@ export type EventGroupVariant = {
   values?: string;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
+};
+
+export type SourceMapsArchive = {
+  id: number;
+  type: 'release';
+  name: string;
+  date: string;
+  fileCount: number;
+};
+
+export type Artifact = {
+  dateCreated: string;
+  dist: string | null;
+  id: string;
+  name: string;
+  sha1: string;
+  size: number;
+  headers: {'Content-Type': string};
+};
+
+export type Widget = {
+  queries: {
+    discover: DiscoverQuery[];
+  };
+  title: React.ReactNode;
+  type: WIDGET_DISPLAY;
+  fieldLabelMap?: object;
+  yAxisMapping?: [number[], number[]];
+  includeReleases?: boolean;
+  includePreviousPeriod?: boolean;
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;

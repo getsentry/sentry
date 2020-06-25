@@ -41,7 +41,7 @@ class UserStats extends React.Component<Props> {
       },
       {
         kind: 'function',
-        function: ['count_unique', '', undefined],
+        function: ['count_unique', 'user', undefined],
       },
     ]);
 
@@ -55,7 +55,7 @@ class UserStats extends React.Component<Props> {
 
     if (stats) {
       const miserableUsers = Number(row[`user_misery_${userMiseryLimit}`]);
-      const totalUsers = Number(row.count_unique);
+      const totalUsers = Number(row.count_unique_user);
       if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
         userMisery = (
           <UserMisery

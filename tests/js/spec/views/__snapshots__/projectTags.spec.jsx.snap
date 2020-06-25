@@ -35,7 +35,7 @@ exports[`ProjectTags renders 1`] = `
                   styled={false}
                 >
                   <div
-                    className="css-120v9s3-Title e1uay4fd1"
+                    className="css-u2ls9d-Title e1uay4fd1"
                   >
                     <HeaderTitle>
                       <h4
@@ -217,7 +217,7 @@ exports[`ProjectTags renders 1`] = `
                 withPadding={false}
               >
                 <div
-                  className="css-1ehogmz-FlexBox e1vnwt6f0"
+                  className="css-1nto0rx-FlexBox e1vnwt6f0"
                 >
                   <WithOrganizationMockWrapper
                     access={
@@ -375,7 +375,7 @@ exports[`ProjectTags renders 1`] = `
                                           data-test-id="delete"
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconDelete)
                                               size="xs"
                                             />
                                           }
@@ -387,7 +387,7 @@ exports[`ProjectTags renders 1`] = `
                                             disabled={false}
                                             forwardRef={null}
                                             icon={
-                                              <ForwardRef
+                                              <ForwardRef(IconDelete)
                                                 size="xs"
                                               />
                                             }
@@ -434,7 +434,7 @@ exports[`ProjectTags renders 1`] = `
                                                           className="css-dm7gfi-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <ForwardRef
+                                                          <ForwardRef(IconDelete)
                                                             size="xs"
                                                           >
                                                             <ForwardRef(SvgIcon)
@@ -466,7 +466,7 @@ exports[`ProjectTags renders 1`] = `
                                                                 />
                                                               </svg>
                                                             </ForwardRef(SvgIcon)>
-                                                          </ForwardRef>
+                                                          </ForwardRef(IconDelete)>
                                                         </span>
                                                       </Icon>
                                                     </span>
@@ -589,7 +589,7 @@ exports[`ProjectTags renders 1`] = `
                                           data-test-id="delete"
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconDelete)
                                               size="xs"
                                             />
                                           }
@@ -601,7 +601,7 @@ exports[`ProjectTags renders 1`] = `
                                             disabled={false}
                                             forwardRef={null}
                                             icon={
-                                              <ForwardRef
+                                              <ForwardRef(IconDelete)
                                                 size="xs"
                                               />
                                             }
@@ -648,7 +648,7 @@ exports[`ProjectTags renders 1`] = `
                                                           className="css-dm7gfi-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <ForwardRef
+                                                          <ForwardRef(IconDelete)
                                                             size="xs"
                                                           >
                                                             <ForwardRef(SvgIcon)
@@ -680,7 +680,7 @@ exports[`ProjectTags renders 1`] = `
                                                                 />
                                                               </svg>
                                                             </ForwardRef(SvgIcon)>
-                                                          </ForwardRef>
+                                                          </ForwardRef(IconDelete)>
                                                         </span>
                                                       </Icon>
                                                     </span>
@@ -803,7 +803,7 @@ exports[`ProjectTags renders 1`] = `
                                           data-test-id="delete"
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconDelete)
                                               size="xs"
                                             />
                                           }
@@ -815,7 +815,7 @@ exports[`ProjectTags renders 1`] = `
                                             disabled={false}
                                             forwardRef={null}
                                             icon={
-                                              <ForwardRef
+                                              <ForwardRef(IconDelete)
                                                 size="xs"
                                               />
                                             }
@@ -862,7 +862,7 @@ exports[`ProjectTags renders 1`] = `
                                                           className="css-dm7gfi-Icon edwq9my2"
                                                           size="xsmall"
                                                         >
-                                                          <ForwardRef
+                                                          <ForwardRef(IconDelete)
                                                             size="xs"
                                                           >
                                                             <ForwardRef(SvgIcon)
@@ -894,7 +894,7 @@ exports[`ProjectTags renders 1`] = `
                                                                 />
                                                               </svg>
                                                             </ForwardRef(SvgIcon)>
-                                                          </ForwardRef>
+                                                          </ForwardRef(IconDelete)>
                                                         </span>
                                                       </Icon>
                                                     </span>
@@ -1038,7 +1038,7 @@ exports[`ProjectTags renders 1`] = `
                                                     data-test-id="delete"
                                                     disabled={true}
                                                     icon={
-                                                      <ForwardRef
+                                                      <ForwardRef(IconDelete)
                                                         size="xs"
                                                       />
                                                     }
@@ -1050,7 +1050,7 @@ exports[`ProjectTags renders 1`] = `
                                                       disabled={true}
                                                       forwardRef={null}
                                                       icon={
-                                                        <ForwardRef
+                                                        <ForwardRef(IconDelete)
                                                           size="xs"
                                                         />
                                                       }
@@ -1097,7 +1097,7 @@ exports[`ProjectTags renders 1`] = `
                                                                     className="css-dm7gfi-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
-                                                                    <ForwardRef
+                                                                    <ForwardRef(IconDelete)
                                                                       size="xs"
                                                                     >
                                                                       <ForwardRef(SvgIcon)
@@ -1129,7 +1129,7 @@ exports[`ProjectTags renders 1`] = `
                                                                           />
                                                                         </svg>
                                                                       </ForwardRef(SvgIcon)>
-                                                                    </ForwardRef>
+                                                                    </ForwardRef(IconDelete)>
                                                                   </span>
                                                                 </Icon>
                                                               </span>
@@ -1277,7 +1277,7 @@ exports[`ProjectTags renders 1`] = `
                                                     data-test-id="delete"
                                                     disabled={true}
                                                     icon={
-                                                      <ForwardRef
+                                                      <ForwardRef(IconDelete)
                                                         size="xs"
                                                       />
                                                     }
@@ -1289,7 +1289,7 @@ exports[`ProjectTags renders 1`] = `
                                                       disabled={true}
                                                       forwardRef={null}
                                                       icon={
-                                                        <ForwardRef
+                                                        <ForwardRef(IconDelete)
                                                           size="xs"
                                                         />
                                                       }
@@ -1336,7 +1336,7 @@ exports[`ProjectTags renders 1`] = `
                                                                     className="css-dm7gfi-Icon edwq9my2"
                                                                     size="xsmall"
                                                                   >
-                                                                    <ForwardRef
+                                                                    <ForwardRef(IconDelete)
                                                                       size="xs"
                                                                     >
                                                                       <ForwardRef(SvgIcon)
@@ -1368,7 +1368,7 @@ exports[`ProjectTags renders 1`] = `
                                                                           />
                                                                         </svg>
                                                                       </ForwardRef(SvgIcon)>
-                                                                    </ForwardRef>
+                                                                    </ForwardRef(IconDelete)>
                                                                   </span>
                                                                 </Icon>
                                                               </span>

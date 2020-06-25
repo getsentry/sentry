@@ -4,7 +4,6 @@ import pick from 'lodash/pick';
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import EventView from 'app/utils/discover/eventView';
 import {TableData} from 'app/views/eventsV2/table/types';
 import {SentryTransactionEvent, Organization} from 'app/types';
 
@@ -40,7 +39,6 @@ type Props = {
   event: Readonly<SentryTransactionEvent>;
   parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
-  eventView: EventView;
   spansWithErrors: TableData | null | undefined;
 };
 
@@ -49,8 +47,6 @@ type State = {
 };
 
 class TraceView extends React.PureComponent<Props, State> {
-  minimapInteractiveRef = React.createRef<HTMLDivElement>();
-
   constructor(props: Props) {
     super(props);
 
@@ -66,6 +62,8 @@ class TraceView extends React.PureComponent<Props, State> {
       this.filterOnSpans(this.props.searchQuery);
     }
   }
+
+  minimapInteractiveRef = React.createRef<HTMLDivElement>();
 
   async filterOnSpans(searchQuery: string | undefined) {
     if (!searchQuery) {
@@ -185,7 +183,7 @@ class TraceView extends React.PureComponent<Props, State> {
       );
     }
 
-    const {orgId, organization, eventView, spansWithErrors} = this.props;
+    const {orgId, organization, spansWithErrors} = this.props;
 
     return (
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
@@ -198,7 +196,6 @@ class TraceView extends React.PureComponent<Props, State> {
             {this.renderHeader(dragProps, parsedTrace)}
             <SpanTree
               event={event}
-              eventView={eventView}
               trace={parsedTrace}
               dragProps={dragProps}
               filterSpans={this.state.filterSpans}

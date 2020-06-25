@@ -44,7 +44,7 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
         </InnerCell>
       </GridCell>
       <GridCell>
-        <InnerCell color="blue">
+        <InnerCell color="blue400">
           <Tooltip title={label} position="top">
             <TextOverflow>{label}</TextOverflow>
           </Tooltip>
@@ -73,7 +73,7 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
               <IconFire color="red" />
             )
           ) : (
-            <IconCheckmark color="green" size="xs" />
+            <IconCheckmark color="green400" size="xs" />
           )}
         </InnerCell>
       </GridCell>

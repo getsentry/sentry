@@ -8,12 +8,12 @@ exports[`Tag renders 1`] = `
 >
   <Component
     border={true}
-    className="css-ppvxot-Tag e1glkkip0"
+    className="css-mpoebz-Tag e1glkkip0"
     priority="info"
     size="small"
   >
     <div
-      className="css-ppvxot-Tag e1glkkip0"
+      className="css-mpoebz-Tag e1glkkip0"
     >
       Text to Copy
     </div>

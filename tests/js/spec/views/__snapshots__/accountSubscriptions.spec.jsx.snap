@@ -65,7 +65,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     styled={false}
                   >
                     <div
-                      className="css-120v9s3-Title e1uay4fd1"
+                      className="css-u2ls9d-Title e1uay4fd1"
                     >
                       <HeaderTitle>
                         <h4
@@ -118,7 +118,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     withPadding={false}
                   >
                     <div
-                      className="css-1ehogmz-FlexBox e1vnwt6f0"
+                      className="css-1nto0rx-FlexBox e1vnwt6f0"
                     >
                       <PanelItem
                         alignItems="center"

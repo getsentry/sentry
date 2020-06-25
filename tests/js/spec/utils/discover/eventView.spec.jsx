@@ -561,6 +561,7 @@ describe('EventView.generateQueryStringObject()', function() {
       environment: ['staging'],
       yAxis: 'count()',
       display: 'releases',
+      interval: '1m',
     };
 
     const eventView = new EventView(state);
@@ -579,6 +580,7 @@ describe('EventView.generateQueryStringObject()', function() {
       environment: ['staging'],
       yAxis: 'count()',
       display: 'releases',
+      interval: '1m',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -1163,6 +1165,37 @@ describe('EventView.numOfColumns()', function() {
   });
 });
 
+describe('EventView.getDays()', function() {
+  it('returns the right number of days for statsPeriod', function() {
+    const eventView = new EventView({
+      statsPeriod: '14d',
+    });
+
+    expect(eventView.getDays()).toBe(14);
+
+    const eventView2 = new EventView({
+      statsPeriod: '12h',
+    });
+
+    expect(eventView2.getDays()).toBe(0.5);
+  });
+
+  it('returns the right number of days for start/end', function() {
+    const eventView = new EventView({
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+    });
+
+    expect(eventView.getDays()).toBe(1);
+
+    const eventView2 = new EventView({
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-15T00:00:00',
+    });
+    expect(eventView2.getDays()).toBe(14);
+  });
+});
+
 describe('EventView.clone()', function() {
   it('returns a unique instance', function() {
     const state = {
@@ -1176,6 +1209,7 @@ describe('EventView.clone()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      interval: '5m',
       display: 'releases',
     };
 

@@ -14,7 +14,7 @@ type Props = {
 const ReleaseNoCommitData = ({orgId}: Props) => (
   <StyledWell centered>
     <IconCommit size="xl" />
-    <h5>{t('Releases are better with commit data!')}</h5>
+    <h4>{t('Releases are better with commit data!')}</h4>
     <p>
       {t(
         'Connect a repository to see commit info, files changed, and authors involved in future releases.'

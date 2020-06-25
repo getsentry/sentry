@@ -219,7 +219,7 @@ class TimeSeriesSnapshot(Model):
 
     start = models.DateTimeField()
     end = models.DateTimeField()
-    values = ArrayField(of=ArrayField(models.IntegerField()))
+    values = ArrayField(of=ArrayField(models.FloatField()))
     period = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -234,13 +234,22 @@ class TimeSeriesSnapshot(Model):
         and 'count' keys.
         :return:
         """
-        return {"data": [{"time": time, "count": count} for time, count in self.values]}
+        # We store the values here as floats so that we can support percentage stats.
+        # We don't want to return the time as a float, and to keep things consistent
+        # with what Snuba returns we cast floats to ints when they're whole numbers.
+        return {
+            "data": [
+                {"time": int(time), "count": count if not count.is_integer() else int(count)}
+                for time, count in self.values
+            ]
+        }
 
 
 class IncidentActivityType(Enum):
     DETECTED = 1
     STATUS_CHANGE = 2
     COMMENT = 3
+    STARTED = 4
 
 
 class IncidentActivity(Model):
@@ -298,8 +307,12 @@ class AlertRuleManager(BaseManager):
             .exclude(status=AlertRuleStatus.SNAPSHOT.value)
         )
 
-    def fetch_for_organization(self, organization):
-        return self.filter(organization=organization)
+    def fetch_for_organization(self, organization, projects=None):
+        queryset = self.filter(organization=organization)
+        if projects is not None:
+            queryset = queryset.filter(snuba_query__subscriptions__project__in=projects)
+
+        return queryset
 
     def fetch_for_project(self, project):
         return self.filter(snuba_query__subscriptions__project=project)
@@ -365,6 +378,8 @@ class AlertRule(Model):
     # Determines whether we include all current and future projects from this
     # organization in this rule.
     include_all_projects = models.BooleanField(default=False)
+    threshold_type = models.SmallIntegerField(null=True)
+    resolve_threshold = models.FloatField(null=True)
     threshold_period = models.IntegerField()
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
@@ -565,15 +580,15 @@ class AlertRuleTriggerAction(Model):
         else:
             metrics.incr("alert_rule_trigger.unhandled_type.{}".format(self.type))
 
-    def fire(self, incident, project):
+    def fire(self, incident, project, metric_value):
         handler = self.build_handler(incident, project)
         if handler:
-            return handler.fire()
+            return handler.fire(metric_value)
 
-    def resolve(self, incident, project):
+    def resolve(self, incident, project, metric_value):
         handler = self.build_handler(incident, project)
         if handler:
-            return handler.resolve()
+            return handler.resolve(metric_value)
 
     @classmethod
     def register_type(cls, slug, type, supported_target_types, integration_provider=None):

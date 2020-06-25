@@ -89,7 +89,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                         className="css-8m01f9-MenuItemLabelWithIcon ev3suul1"
                       >
                         <StyledIconAdd>
-                          <ForwardRef
+                          <IconAdd
                             className="css-4qjexj-StyledIconAdd ev3suul0"
                           >
                             <ForwardRef(SvgIcon)
@@ -107,7 +107,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                                 />
                               </svg>
                             </ForwardRef(SvgIcon)>
-                          </ForwardRef>
+                          </IconAdd>
                         </StyledIconAdd>
                         <span>
                           Create a new organization
@@ -2062,7 +2062,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                           <h4
                             className="css-1i5djvw-Heading eky05z30"
                           >
-                            <ForwardRef
+                            <IconLightning
                               size="xs"
                             >
                               <ForwardRef(SvgIcon)
@@ -2079,7 +2079,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                   />
                                 </svg>
                               </ForwardRef(SvgIcon)>
-                            </ForwardRef>
+                            </IconLightning>
                             Complete now
                           </h4>
                         </PoseElement>
@@ -2313,25 +2313,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/projects/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/issues/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/releases/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/user-feedback/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/activity/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/stats/",
-                                        ],
-                                        Array [
-                                          "/settings/org-slug/",
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -2355,6 +2346,15 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
                                           "/organizations/org-slug/projects/",
                                         ],
                                         Array [
@@ -2374,6 +2374,45 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         ],
                                         Array [
                                           "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/projects/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/issues/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/releases/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/user-feedback/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/activity/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/stats/",
+                                        ],
+                                        Array [
+                                          "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -2399,8 +2438,81 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         Array [
                                           "https://forum.sentry.io/",
                                         ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
                                       ],
                                       "results": Array [
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
                                         Object {
                                           "type": "return",
                                           "value": undefined,
@@ -2865,25 +2977,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/projects/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/issues/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/releases/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/user-feedback/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/activity/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/stats/",
-                                        ],
-                                        Array [
-                                          "/settings/org-slug/",
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -2907,6 +3010,15 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
                                           "/organizations/org-slug/projects/",
                                         ],
                                         Array [
@@ -2926,6 +3038,45 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         ],
                                         Array [
                                           "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/projects/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/issues/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/releases/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/user-feedback/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/activity/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/stats/",
+                                        ],
+                                        Array [
+                                          "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -2951,8 +3102,81 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         Array [
                                           "https://forum.sentry.io/",
                                         ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
                                       ],
                                       "results": Array [
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
                                         Object {
                                           "type": "return",
                                           "value": undefined,
@@ -3457,7 +3681,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         onMouseEnter={[Function]}
                                         onMouseLeave={[Function]}
                                       >
-                                        <ForwardRef
+                                        <IconLock
                                           size="xs"
                                         >
                                           <ForwardRef(SvgIcon)
@@ -3480,7 +3704,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                               />
                                             </svg>
                                           </ForwardRef(SvgIcon)>
-                                        </ForwardRef>
+                                        </IconLock>
                                       </span>
                                     </Container>
                                   </InnerReference>
@@ -3800,25 +4024,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/projects/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/issues/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/releases/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/user-feedback/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/activity/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/stats/",
-                                        ],
-                                        Array [
-                                          "/settings/org-slug/",
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -3842,6 +4057,15 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
                                           "/organizations/org-slug/projects/",
                                         ],
                                         Array [
@@ -3861,6 +4085,45 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         ],
                                         Array [
                                           "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/projects/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/issues/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/releases/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/user-feedback/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/activity/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/stats/",
+                                        ],
+                                        Array [
+                                          "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -3886,8 +4149,81 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         Array [
                                           "https://forum.sentry.io/",
                                         ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
                                       ],
                                       "results": Array [
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
                                         Object {
                                           "type": "return",
                                           "value": undefined,
@@ -4141,7 +4477,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -4166,7 +4502,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>
@@ -4574,25 +4910,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/projects/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/issues/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/releases/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/user-feedback/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/activity/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/stats/",
-                                        ],
-                                        Array [
-                                          "/settings/org-slug/",
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -4616,6 +4943,15 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
                                           "/organizations/org-slug/projects/",
                                         ],
                                         Array [
@@ -4635,6 +4971,45 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         ],
                                         Array [
                                           "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/projects/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/issues/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/releases/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/user-feedback/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/activity/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/stats/",
+                                        ],
+                                        Array [
+                                          "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -4660,8 +5035,81 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         Array [
                                           "https://forum.sentry.io/",
                                         ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
                                       ],
                                       "results": Array [
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
                                         Object {
                                           "type": "return",
                                           "value": undefined,
@@ -4930,7 +5378,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -4955,7 +5403,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>
@@ -5368,25 +5816,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/projects/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/issues/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/releases/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/user-feedback/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/activity/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/stats/",
-                                        ],
-                                        Array [
-                                          "/settings/org-slug/",
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -5410,6 +5849,15 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
                                           "/organizations/org-slug/projects/",
                                         ],
                                         Array [
@@ -5429,6 +5877,45 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         ],
                                         Array [
                                           "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/projects/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/issues/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/releases/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/user-feedback/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/activity/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/stats/",
+                                        ],
+                                        Array [
+                                          "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -5454,8 +5941,81 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         Array [
                                           "https://forum.sentry.io/",
                                         ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
                                       ],
                                       "results": Array [
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
                                         Object {
                                           "type": "return",
                                           "value": undefined,
@@ -5725,7 +6285,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -5750,7 +6310,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>
@@ -6164,25 +6724,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/projects/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/issues/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/releases/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/user-feedback/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/activity/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/stats/",
-                                        ],
-                                        Array [
-                                          "/settings/org-slug/",
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -6206,6 +6757,15 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
                                           "/organizations/org-slug/projects/",
                                         ],
                                         Array [
@@ -6225,6 +6785,45 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         ],
                                         Array [
                                           "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/projects/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/issues/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/releases/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/user-feedback/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/activity/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/stats/",
+                                        ],
+                                        Array [
+                                          "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -6250,8 +6849,81 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         Array [
                                           "https://forum.sentry.io/",
                                         ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
                                       ],
                                       "results": Array [
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
                                         Object {
                                           "type": "return",
                                           "value": undefined,
@@ -6521,7 +7193,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -6546,7 +7218,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>
@@ -6875,25 +7547,16 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/projects/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/issues/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/releases/",
+                                          "#",
                                         ],
                                         Array [
-                                          "/organizations/org-slug/user-feedback/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/activity/",
-                                        ],
-                                        Array [
-                                          "/organizations/org-slug/stats/",
-                                        ],
-                                        Array [
-                                          "/settings/org-slug/",
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -6917,6 +7580,15 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                           "/settings/org-slug/",
                                         ],
                                         Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
                                           "/organizations/org-slug/projects/",
                                         ],
                                         Array [
@@ -6936,6 +7608,45 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         ],
                                         Array [
                                           "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/projects/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/issues/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/releases/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/user-feedback/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/activity/",
+                                        ],
+                                        Array [
+                                          "/organizations/org-slug/stats/",
+                                        ],
+                                        Array [
+                                          "/settings/org-slug/",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
                                         ],
                                         Array [
                                           "/organizations/org-slug/projects/",
@@ -6961,8 +7672,81 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                         Array [
                                           "https://forum.sentry.io/",
                                         ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
+                                        Array [
+                                          "#",
+                                        ],
                                       ],
                                       "results": Array [
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
+                                        Object {
+                                          "type": "return",
+                                          "value": undefined,
+                                        },
                                         Object {
                                           "type": "return",
                                           "value": undefined,
@@ -7215,7 +7999,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                     onMouseEnter={[Function]}
                                                     onMouseLeave={[Function]}
                                                   >
-                                                    <ForwardRef
+                                                    <IconLock
                                                       color="redLight"
                                                       size="xs"
                                                     >
@@ -7240,7 +8024,7 @@ exports[`Sidebar can have onboarding feature 1`] = `
                                                           />
                                                         </svg>
                                                       </ForwardRef(SvgIcon)>
-                                                    </ForwardRef>
+                                                    </IconLock>
                                                   </span>
                                                 </Container>
                                               </InnerReference>

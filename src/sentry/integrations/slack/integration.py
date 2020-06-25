@@ -387,11 +387,11 @@ def _get_channels_from_rules(organization, integration):
             rule_integration_id = rule_action.get("workspace")
             if rule_integration_id and rule_integration_id == six.text_type(integration.id):
 
-                channel_id = rule_action["channel_id"]
+                channel_id = rule_action.get("channel_id")
                 channel_name = rule_action["channel"]
 
-                # don't care if its a user
-                if channel_name[0] == "@":
+                # skip if its a user or if somehow channel_id is missing
+                if channel_name[0] == "@" or not channel_id:
                     continue
 
                 channels.add(Channel(channel_name, channel_id))
