@@ -154,7 +154,7 @@
     "enzyme": "3.10.0",
     "enzyme-adapter-react-16": "1.15.1",
     "enzyme-to-json": "3.4.3",
-    "eslint": "5.11.1",
+    "eslint": "^7.3.1",
     "eslint-config-sentry-app": "^1.43.0",
     "html-webpack-plugin": "^4.3.0",
     "jest": "24.9.0",
