@@ -18,7 +18,6 @@ function generateWrappedComponent(organization, eventView) {
       eventView={eventView}
       projects={[]}
       onIncompatibleQuery={onIncompatibleQueryMock}
-      onClose={onCloseMock}
       onSuccess={onSuccessMock}
     />,
     TestStubs.routerContext()
@@ -46,7 +45,9 @@ describe('CreateAlertButton', () => {
     const component = generateWrappedComponent(organization, eventView);
     component.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = mountWithTheme(onIncompatibleQueryMock.mock.calls[0][0]);
+    const errorsAlert = mountWithTheme(
+      onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
+    );
     expect(errorsAlert.text()).toBe('Select one project to create a new alert.');
   });
 
@@ -59,7 +60,9 @@ describe('CreateAlertButton', () => {
     const component = generateWrappedComponent(organization, eventView);
     component.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = mountWithTheme(onIncompatibleQueryMock.mock.calls[0][0]);
+    const errorsAlert = mountWithTheme(
+      onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
+    );
     expect(errorsAlert.text()).toBe('Select one project to create a new alert.');
   });
 
@@ -72,7 +75,9 @@ describe('CreateAlertButton', () => {
     const component = generateWrappedComponent(organization, eventView);
     component.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = mountWithTheme(onIncompatibleQueryMock.mock.calls[0][0]);
+    const errorsAlert = mountWithTheme(
+      onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
+    );
     expect(errorsAlert.text()).toBe(
       'Select either event.type:error or event.type:transaction to create a new alert.'
     );
@@ -89,7 +94,9 @@ describe('CreateAlertButton', () => {
     const component = generateWrappedComponent(organization, eventView);
     component.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = mountWithTheme(onIncompatibleQueryMock.mock.calls[0][0]);
+    const errorsAlert = mountWithTheme(
+      onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
+    );
     expect(errorsAlert.text()).toBe(
       'count_unique(issue.id) is not supported by alerts just yet. Select a different metric below and try again.'
     );
@@ -105,7 +112,9 @@ describe('CreateAlertButton', () => {
     const component = generateWrappedComponent(organization, eventView);
     component.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = mountWithTheme(onIncompatibleQueryMock.mock.calls[0][0]);
+    const errorsAlert = mountWithTheme(
+      onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
+    );
     expect(errorsAlert.text()).toContain(
       'The world is a cruel and unforgiving place and that button didn’t work because:'
     );
@@ -130,7 +139,9 @@ describe('CreateAlertButton', () => {
     const component = generateWrappedComponent(organization, eventView);
     component.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
-    const errorsAlert = mountWithTheme(onIncompatibleQueryMock.mock.calls[0][0]);
+    const errorsAlert = mountWithTheme(
+      onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
+    );
     errorsAlert
       .find('[aria-label="Close"]')
       .at(0)

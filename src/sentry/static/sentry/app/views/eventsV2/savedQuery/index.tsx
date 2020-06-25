@@ -43,8 +43,9 @@ type Props = DefaultProps & {
   savedQueryLoading: boolean;
   projects: Project[];
   updateCallback: () => void;
-  onIncompatibleAlertClose: () => void;
-  onIncompatibleQuery: (alert: React.ReactNode) => void;
+  onIncompatibleAlertQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'];
 };
 
 type State = {
@@ -305,13 +306,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {
-      eventView,
-      organization,
-      projects,
-      onIncompatibleQuery,
-      onIncompatibleAlertClose,
-    } = this.props;
+    const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
 
     return (
       <Feature features={['create-from-discover']} organization={organization}>
@@ -319,9 +314,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           eventView={eventView}
           organization={organization}
           projects={projects}
-          onIncompatibleQuery={onIncompatibleQuery}
+          onIncompatibleQuery={onIncompatibleAlertQuery}
           onSuccess={this.handleCreateAlertSuccess}
-          onClose={onIncompatibleAlertClose}
           data-test-id="discover2-create-from-discover"
         />
       </Feature>

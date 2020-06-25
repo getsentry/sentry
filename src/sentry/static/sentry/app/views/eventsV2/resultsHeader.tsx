@@ -11,6 +11,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import EventView from 'app/utils/discover/eventView';
 import * as Layout from 'app/components/layouts/thirds';
+import CreateAlertButton from 'app/components/createAlertButton';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
@@ -22,8 +23,9 @@ type Props = {
   location: Location;
   errorCode: number;
   eventView: EventView;
-  onIncompatibleAlertClose: () => void;
-  onIncompatibleQuery: (alert: React.ReactNode) => void;
+  onIncompatibleAlertQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'];
 };
 
 type State = {
@@ -69,8 +71,7 @@ class ResultsHeader extends React.Component<Props, State> {
       location,
       errorCode,
       eventView,
-      onIncompatibleAlertClose,
-      onIncompatibleQuery,
+      onIncompatibleAlertQuery,
     } = this.props;
     const {savedQuery, loading} = this.state;
 
@@ -119,8 +120,7 @@ class ResultsHeader extends React.Component<Props, State> {
                 savedQueryLoading={loading}
                 disabled={!hasFeature || (errorCode >= 400 && errorCode < 500)}
                 updateCallback={() => this.fetchData()}
-                onIncompatibleAlertClose={onIncompatibleAlertClose}
-                onIncompatibleQuery={onIncompatibleQuery}
+                onIncompatibleAlertQuery={onIncompatibleAlertQuery}
               />
             )}
           </Feature>

@@ -54,7 +54,7 @@ type State = {
   showTags: boolean;
   needConfirmation: boolean;
   confirmedQuery: boolean;
-  incompatibleQuery: React.ReactNode;
+  incompatibleAlertNotice: React.ReactNode;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -77,7 +77,7 @@ class Results extends React.Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
-    incompatibleQuery: null,
+    incompatibleAlertNotice: null,
   };
 
   componentDidMount() {
@@ -312,7 +312,7 @@ class Results extends React.Component<Props, State> {
     return url;
   };
 
-  handleIncompatibleQuery = (incompatibleQuery: React.ReactNode) => {
+  handleIncompatibleQuery = (incompatibleAlertNotice: React.ReactNode) => {
     const {organization} = this.props;
     trackAnalyticsEvent({
       eventKey: 'discover_v2.create_alert_incompatible',
@@ -320,11 +320,11 @@ class Results extends React.Component<Props, State> {
       organization_id: parseInt(organization.id, 10),
     });
 
-    this.setState({incompatibleQuery});
+    this.setState({incompatibleAlertNotice});
   };
 
   handleIncompatibleAlertClose = () => {
-    this.setState({incompatibleQuery: null});
+    this.setState({incompatibleAlertNotice: null});
   };
 
   renderError(error: string) {
@@ -350,7 +350,7 @@ class Results extends React.Component<Props, State> {
       errorCode,
       totalValues,
       showTags,
-      incompatibleQuery,
+      incompatibleAlertNotice,
       confirmedQuery,
     } = this.state;
     const query = decodeScalar(location.query.query) || '';
@@ -365,12 +365,11 @@ class Results extends React.Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              onIncompatibleQuery={this.handleIncompatibleQuery}
-              onIncompatibleAlertClose={this.handleIncompatibleAlertClose}
+              onIncompatibleAlertQuery={this.handleIncompatibleQuery}
             />
             <Layout.Body>
               <Top fullWidth>
-                {incompatibleQuery}
+                {incompatibleAlertNotice}
                 {this.renderError(error)}
                 <StyledSearchBar
                   organization={organization}

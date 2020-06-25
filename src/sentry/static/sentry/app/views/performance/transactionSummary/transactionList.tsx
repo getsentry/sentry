@@ -41,12 +41,12 @@ type WrapperProps = {
 };
 
 type State = {
-  incompatibleQuery: React.ReactNode;
+  incompatibleAlertNotice: React.ReactNode;
 };
 
 class TransactionList extends React.Component<WrapperProps, State> {
   state: State = {
-    incompatibleQuery: null,
+    incompatibleAlertNotice: null,
   };
 
   getTransactionSort(location: Location) {
@@ -72,19 +72,23 @@ class TransactionList extends React.Component<WrapperProps, State> {
     browserHistory.push(target);
   };
 
-  handleIncompatibleQuery = (incompatibleQuery: React.ReactNode) => {
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = incompatibleAlertNoticeFn => {
     const {organization} = this.props;
     trackAnalyticsEvent({
       eventKey: 'performance_views.summary.create_alert_incompatible',
       eventName:
         'Performance Views: Creating an alert from transaction summary was incompatible',
-      organization_id: parseInt(organization.id, 10),
+      organization_id: organization.id,
     });
-    this.setState({incompatibleQuery});
+    this.setState({
+      incompatibleAlertNotice: incompatibleAlertNoticeFn(this.handleAlertClose),
+    });
   };
 
   handleAlertClose = () => {
-    this.setState({incompatibleQuery: null});
+    this.setState({incompatibleAlertNotice: null});
   };
 
   handleCreateAlertSuccess = () => {
@@ -92,7 +96,7 @@ class TransactionList extends React.Component<WrapperProps, State> {
     trackAnalyticsEvent({
       eventKey: 'performance_views.summary.create_alert',
       eventName: 'Performance Views: Create Alert from Transaction Summary',
-      organization_id: parseInt(organization.id, 10),
+      organization_id: organization.id,
     });
   };
 
@@ -107,7 +111,7 @@ class TransactionList extends React.Component<WrapperProps, State> {
 
   render() {
     const {eventView, location, organization, transactionName, projects} = this.props;
-    const {incompatibleQuery} = this.state;
+    const {incompatibleAlertNotice} = this.state;
     const activeFilter = this.getTransactionSort(location);
     const sortedEventView = eventView.withSorts([activeFilter.sort]);
 
@@ -146,13 +150,12 @@ class TransactionList extends React.Component<WrapperProps, State> {
                 projects={projects}
                 onIncompatibleQuery={this.handleIncompatibleQuery}
                 onSuccess={this.handleCreateAlertSuccess}
-                onClose={this.handleAlertClose}
                 size="small"
               />
             </Feature>
           </HeaderButtonContainer>
         </Header>
-        {incompatibleQuery}
+        {incompatibleAlertNotice}
         <DiscoverQuery
           location={location}
           eventView={sortedEventView}

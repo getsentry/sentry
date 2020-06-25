@@ -132,13 +132,12 @@ type Props = React.ComponentProps<typeof Button> & {
   eventView: EventView;
   organization: Organization;
   /**
-   * Called when the eventView does not meet the requirements of alert rules
+   * Called when the current eventView does not meet the requirements of alert rules
+   * @returns a function that takes an alert close function argument
    */
-  onIncompatibleQuery: (incompatibleQuery: React.ReactNode) => void;
-  /**
-   * Called when the alert close button is clicked
-   */
-  onClose: () => void;
+  onIncompatibleQuery: (
+    incompatibleAlertNoticeFn: (onAlertClose: () => void) => React.ReactNode
+  ) => void;
   /**
    * Called when the user is redirected to the alert builder
    */
@@ -176,7 +175,6 @@ function CreateAlertButton({
   organization,
   onIncompatibleQuery,
   onSuccess,
-  onClose,
   ...buttonProps
 }: Props) {
   // Must have exactly one project selected and not -1 (all projects)
@@ -210,13 +208,13 @@ function CreateAlertButton({
   const handleClick = (event: React.MouseEvent) => {
     if (hasErrors) {
       event.preventDefault();
-      onIncompatibleQuery(
+      onIncompatibleQuery((onAlertClose: () => void) => (
         <IncompatibleQueryAlert
           incompatibleQuery={errors}
           eventView={eventView}
-          onClose={onClose}
+          onClose={onAlertClose}
         />
-      );
+      ));
       return;
     }
 
