@@ -268,8 +268,12 @@ class Factories(object):
     @staticmethod
     def create_environment(project, **kwargs):
         name = kwargs.get("name", petname.Generate(3, " ", letters=10)[:64])
+
+        organization = kwargs.get("organization")
+        organization_id = organization.id if organization else project.organization_id
+
         env = Environment.objects.create(
-            organization_id=project.organization_id, project_id=project.id, name=name
+            organization_id=organization_id, project_id=project.id, name=name
         )
         env.add_project(project, is_hidden=kwargs.get("is_hidden"))
         return env
