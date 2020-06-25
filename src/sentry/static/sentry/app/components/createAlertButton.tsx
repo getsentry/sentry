@@ -35,9 +35,6 @@ type IncompatibleQueryProperties = {
 };
 
 type AlertProps = {
-  /**
-   * Called when the eventView does not meet the requirements of alert rules
-   */
   incompatibleQuery: IncompatibleQueryProperties;
   eventView: EventView;
   /**
