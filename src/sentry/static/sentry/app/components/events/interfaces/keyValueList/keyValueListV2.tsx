@@ -42,10 +42,10 @@ const KeyValueList = ({
       <tbody>
         {getData().map(
           ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => {
-            const dataValue: React.ReactNode;
-            typeof value === 'object' && !React.isValidElement(value)
-              ? JSON.stringify(value, null, 2)
-              : value;
+            const dataValue: React.ReactNode =
+              typeof value === 'object' && !React.isValidElement(value)
+                ? JSON.stringify(value, null, 2)
+                : value;
 
             const valueIsReactRenderable: boolean =
               typeof dataValue !== 'string' && React.isValidElement(dataValue);
