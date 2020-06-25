@@ -145,10 +145,11 @@ function changeFavicon(theme: 'dark' | 'light'): void {
     return;
   }
 
+  const path = n.href.split('/sentry/')[0];
   if (theme === 'dark') {
-    n.href = '/_static/sentry/images/favicon-dark.png';
+    n.href = `${path}/sentry/images/favicon-dark.png`;
   } else {
-    n.href = '/_static/sentry/images/favicon.png';
+    n.href = `${path}/sentry/images/favicon.png`;
   }
 }
 
