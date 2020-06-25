@@ -3,7 +3,7 @@ import debounce from 'lodash/debounce';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';

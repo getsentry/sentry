@@ -39,7 +39,6 @@ describe('UserFeedback', function() {
       params: {
         orgId: organization.slug,
       },
-      finishProfile: jest.fn(),
     };
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

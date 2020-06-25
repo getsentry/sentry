@@ -1898,6 +1898,17 @@
     lru_map "^0.3.3"
     tslib "^1.9.3"
 
+"@sentry/react@5.18.0":
+  version "5.18.0"
+  resolved "https://registry.yarnpkg.com/@sentry/react/-/react-5.18.0.tgz#12677ac5a984273d1d51e88a77c05866c6c040da"
+  integrity sha512-nwEvCqGG2rp3RaK7aioWna7rgNjlCqtLkYWwTsxXxGIBHvmEScOe//3fiE0tYx8JvhzqcDCRCLTPAsMmBlljzg==
+  dependencies:
+    "@sentry/browser" "5.18.0"
+    "@sentry/types" "5.18.0"
+    "@sentry/utils" "5.18.0"
+    hoist-non-react-statics "^3.3.2"
+    tslib "^1.9.3"
+
 "@sentry/release-parser@^0.6.0":
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-0.6.0.tgz#d7f67fc32d130396a5d77d14b7d43c4a8aee57b4"
@@ -8075,7 +8086,7 @@ hoist-non-react-statics@^1.2.0:
   resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-1.2.0.tgz#aa448cf0986d55cc40773b17174b7dd066cb7cfb"
   integrity sha1-qkSM8JhtVcxAdzsXF0t90GbLfPs=
 
-hoist-non-react-statics@^3.0.0, hoist-non-react-statics@^3.1.0, hoist-non-react-statics@^3.3.0:
+hoist-non-react-statics@^3.0.0, hoist-non-react-statics@^3.1.0, hoist-non-react-statics@^3.3.0, hoist-non-react-statics@^3.3.2:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-3.3.2.tgz#ece0acaf71d62c2969c2ec59feff42a4b1a85b45"
   integrity sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==

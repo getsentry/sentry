@@ -1,7 +1,7 @@
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import * as Sentry from '@sentry/react';
 
 import {Organization} from 'app/types';
 import {t} from 'app/locale';

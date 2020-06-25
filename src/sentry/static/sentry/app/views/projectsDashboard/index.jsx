@@ -5,6 +5,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 import flatten from 'lodash/flatten';
+import {withProfiler} from '@sentry/react';
 
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
@@ -16,7 +17,6 @@ import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
-import withProfiler from 'app/utils/withProfiler';
 import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
@@ -31,18 +31,9 @@ class Dashboard extends React.Component {
   static propTypes = {
     teams: PropTypes.array,
     organization: SentryTypes.Organization,
-    finishProfile: PropTypes.func,
     loadingTeams: PropTypes.bool,
     error: PropTypes.instanceOf(Error),
   };
-
-  componentDidMount() {
-    const {finishProfile} = this.props;
-
-    if (finishProfile) {
-      finishProfile();
-    }
-  }
 
   componentWillUnmount() {
     ProjectsStatsStore.reset();

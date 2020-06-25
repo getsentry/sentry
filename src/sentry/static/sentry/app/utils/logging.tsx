@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 export function logException(ex: Error, context: any): void {
   Sentry.withScope(scope => {

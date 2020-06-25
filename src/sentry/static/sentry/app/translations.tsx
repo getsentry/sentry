@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language: string) {

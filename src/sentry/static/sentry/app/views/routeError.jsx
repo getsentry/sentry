@@ -2,7 +2,7 @@ import {withRouter} from 'react-router';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 

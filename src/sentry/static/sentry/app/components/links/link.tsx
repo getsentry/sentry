@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Link as RouterLink} from 'react-router';
 import {Location, LocationDescriptor} from 'history';
-import * as Sentry from '@sentry/browser';
 import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
+import * as Sentry from '@sentry/react';
 
 type AnchorProps = React.HTMLProps<HTMLAnchorElement>;
 
