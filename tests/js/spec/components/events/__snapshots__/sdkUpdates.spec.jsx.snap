@@ -31,6 +31,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
   <EventDataSection
     isCentered={false}
     raw={false}
+    showPermalink={true}
     title={null}
     type="sdk-updates"
     wrapTitle={true}

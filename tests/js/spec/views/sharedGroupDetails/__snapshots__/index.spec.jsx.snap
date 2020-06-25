@@ -571,6 +571,7 @@ exports[`SharedGroupDetails renders 1`] = `
                               }
                               isCentered={false}
                               raw={false}
+                              showPermalink={true}
                               title="Message"
                               type="message"
                               wrapTitle={true}
@@ -586,7 +587,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                     isCentered={false}
                                   >
                                     <div
-                                      className="css-1kv646v-SectionHeader e1fbjd862"
+                                      className="css-8d8cxx-SectionHeader e1fbjd862"
                                       id="message"
                                     >
                                       <Permalink
@@ -594,7 +595,7 @@ exports[`SharedGroupDetails renders 1`] = `
                                         href="#message"
                                       >
                                         <a
-                                          className="permalink css-1i32h4m-Permalink e1fbjd861"
+                                          className="permalink css-8q4au4-Permalink e1fbjd861"
                                           href="#message"
                                         >
                                           <StyledIconAnchor>
