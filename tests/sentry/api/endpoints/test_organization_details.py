@@ -373,8 +373,6 @@ class OrganizationUpdateTest(APITestCase):
         # check that we have the duplicate key specified somewhere in the error message
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 
-        print(response.data)
-
     def test_creating_trusted_relays(self):
         org = self.create_organization(owner=self.user)
         AuditLogEntry.objects.filter(organization=org).delete()
@@ -939,13 +937,13 @@ invalid_payloads = [
         u"name": None,  # null name
         u"description": u"the description",
     },
-    {u"publicKey": "Bad Key", u"name": u"name", u"description": u"the description", },  # invalid key
+    {u"publicKey": "Bad Key", u"name": u"name", u"description": u"the description"},  # invalid key
     {
         # missing key
         u"name": u"name",
         u"description": u"the description",
     },
-    {u"publicKey": None, u"name": u"name", u"description": u"the description", },  # null key
+    {u"publicKey": None, u"name": u"name", u"description": u"the description"},  # null key
     "Bad input",  # not an object
 ]
 
