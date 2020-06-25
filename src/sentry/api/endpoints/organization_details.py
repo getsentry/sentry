@@ -226,6 +226,18 @@ class OrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Organization does not have the relay feature enabled"
             )
+
+        # make sure we don't have multiple instances of one public key
+        public_keys = set()
+        if value is not None:
+            for key_info in value:
+                key = key_info.get("public_key")
+                if key in public_keys:
+                    raise serializers.ValidationError(
+                        "Duplicated key in Trusted Relays: '{}'".format(key)
+                    )
+                public_keys.add(key)
+
         return value
 
     def validate_accountRateLimit(self, value):
