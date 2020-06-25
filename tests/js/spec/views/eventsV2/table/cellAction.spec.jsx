@@ -11,6 +11,7 @@ function makeWrapper(eventView, handleCellAction, columnIndex = 0) {
     count: 19,
     timestamp: '2020-06-09T01:46:25+00:00',
     release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
+    nullValue: null,
   };
   return mountWithTheme(
     <CellAction
@@ -28,7 +29,7 @@ describe('Discover -> CellAction', function() {
     query: {
       id: '42',
       name: 'best query',
-      field: ['transaction', 'count()', 'timestamp', 'release'],
+      field: ['transaction', 'count()', 'timestamp', 'release', 'nullValue'],
       widths: ['437', '647', '416', '905'],
       sort: ['title'],
       query: 'event.type:transaction',
@@ -170,6 +171,16 @@ describe('Discover -> CellAction', function() {
       expect(
         wrapper.find('button[data-test-id="show-values-less-than"]').exists()
       ).toBeFalsy();
+    });
+
+    it('show appropriate actions for string cells with null values', function() {
+      wrapper = makeWrapper(view, handleCellAction, 4);
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
+      expect(
+        wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
+      ).toBeTruthy();
     });
 
     it('show appropriate actions for number cells', function() {
