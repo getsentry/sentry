@@ -1,25 +1,11 @@
 name: acceptance
-on: pull_request
+on:
+  push:
+    - master
+  pull_request:
 
 jobs:
-    percynonce:
-      name: Generate Percy ID
-      runs-on: ubuntu-latest
-      steps:
-        - name: Generate Percy nonce
-          if: always()
-          run: |
-            echo ${{ github.run_id }}.$(($(date +%s))) > nonce.txt
-
-        - name: Upload nonce as artifact
-          if: always()
-          uses: actions/upload-artifact@v1
-          with:
-            name: percy
-            path: nonce.txt
-
     acceptance:
-      needs: [percynonce]
       runs-on: ubuntu-16.04
       strategy:
         matrix:
@@ -50,12 +36,10 @@ jobs:
         # The hostname used to communicate with the PostgreSQL from sentry
         DATABASE_URL: postgresql://postgres:postgres@localhost/sentry
 
-        # Percy config
-        PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
-        PERCY_PROJECT: ${{ secrets.PERCY_PROJECT }}
-
         # Number of matrix instances
         TOTAL_TEST_GROUPS: ${{ strategy.job-total }}
+
+        VISUAL_SNAPSHOT_ENABLE: 1
 
       services:
         clickhouse:
@@ -121,11 +105,6 @@ jobs:
         # Install node
         - uses: volta-cli/action@v1
 
-        - name: Download percy nonce
-          uses: actions/download-artifact@v1
-          with:
-            name: percy
-
         # Yarn
         #   - See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
         # Python
@@ -142,7 +121,6 @@ jobs:
           run: |
             echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
             echo "::set-output name=python-version::2.7"
-            echo "::set-output name=percy-nonce::$(<percy/nonce.txt)"
             echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
 
         # yarn cache
@@ -215,13 +193,15 @@ jobs:
 
         - name: Run acceptance tests (#${{ steps.config.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
           if: always()
-          uses: percy/exec-action@v0.3.0
-          with:
-            command: "make run-acceptance"
+          run: |
+            mkdir -p .artifacts/visual-snapshots/acceptance
+            make run-acceptance
           env:
             USE_SNUBA: 1
             TEST_GROUP: ${{ matrix.instance }}
-            PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
-            PERCY_PROJECT: ${{ secrets.PERCY_PROJECT }}
-            PERCY_PARALLEL_TOTAL: ${{ env.TOTAL_TEST_GROUPS }}
-            PERCY_PARALLEL_NONCE: ${{ steps.config.outputs.percy-nonce }}
+
+        - name: Save snapshots
+          uses: actions/upload-artifact@v2
+          with:
+            name: visual-snapshots
+            path: .artifacts/visual-snapshots
