@@ -41,11 +41,11 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
     {children}
   </li>
 ))<ListItemProps>`
+  display: flex;
   align-items: center;
   position: relative;
   padding-left: 34px;
   margin-bottom: ${space(0.5)};
-  display: flex;
 
   &:before,
   & > span {
@@ -67,13 +67,13 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
       top: 10px;
     }
 
-    span {
-      top: 4px;
-    }
-
     ${p =>
       p.icon &&
       `
+      span {
+        top: 4px;
+      }
+
       &:before {
         content: none;
       }
