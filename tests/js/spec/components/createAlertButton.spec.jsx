@@ -48,7 +48,9 @@ describe('CreateAlertButton', () => {
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
-    expect(errorsAlert.text()).toBe('Select one project to create a new alert.');
+    expect(errorsAlert.text()).toBe(
+      'An alert can use data from only one Project. Select one and try again.'
+    );
   });
 
   it('should warn when all projects are selected (-1)', () => {
@@ -63,7 +65,9 @@ describe('CreateAlertButton', () => {
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
-    expect(errorsAlert.text()).toBe('Select one project to create a new alert.');
+    expect(errorsAlert.text()).toBe(
+      'An alert can use data from only one Project. Select one and try again.'
+    );
   });
 
   it('should warn when event.type is not specified', () => {
@@ -79,7 +83,7 @@ describe('CreateAlertButton', () => {
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
     expect(errorsAlert.text()).toBe(
-      'Select either event.type:error or event.type:transaction to create a new alert.'
+      'An alert needs a filter of event.type:error or event.type:transaction. Use one of these and try again.'
     );
   });
 
@@ -98,7 +102,7 @@ describe('CreateAlertButton', () => {
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
     expect(errorsAlert.text()).toBe(
-      'count_unique(issue.id) is not supported by alerts just yet. Select a different metric below and try again.'
+      'An alert can’t use the metric count_unique(issue.id) just yet. Select another metric and try again.'
     );
   });
 
@@ -115,9 +119,7 @@ describe('CreateAlertButton', () => {
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
-    expect(errorsAlert.text()).toContain(
-      'The world is a cruel and unforgiving place and that button didn’t work because:'
-    );
+    expect(errorsAlert.text()).toContain('Yikes! That button didn’t work.');
   });
 
   it('should trigger success callback', () => {

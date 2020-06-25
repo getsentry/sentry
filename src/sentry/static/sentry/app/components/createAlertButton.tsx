@@ -60,12 +60,15 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
     <StyledAlert type="warning" icon={<IconInfo color="yellow400" size="sm" />}>
       {totalErrors === 1 && (
         <React.Fragment>
-          {hasProjectError && t('Select one project to create a new alert.')}
+          {hasProjectError &&
+            t('An alert can use data from only one Project. Select one and try again.')}
           {hasEnvironmentError &&
-            t('Select one or all environments to create a new alert.')}
+            t(
+              'An alert supports data from a single Environment or All Environments. Pick one try again.'
+            )}
           {hasEventTypeError &&
             tct(
-              'Select either [error:event.type:error] or [transaction:event.type:transaction] to create a new alert.',
+              'An alert needs a filter of [error:event.type:error] or [transaction:event.type:transaction]. Use one of these and try again.',
               {
                 error: <StyledCode />,
                 transaction: <StyledCode />,
@@ -73,7 +76,7 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
             )}
           {hasYAxisError &&
             tct(
-              '[yAxis] is not supported by alerts just yet. Select a different metric below and try again.',
+              'An alert can’t use the metric [yAxis] just yet. Select another metric and try again.',
               {
                 yAxis: <StyledCode>{eventView.getYAxis()}</StyledCode>,
               }
@@ -82,16 +85,16 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
       )}
       {totalErrors > 1 && (
         <React.Fragment>
-          {t(
-            'The world is a cruel and unforgiving place and that button didn’t work because:'
-          )}
+          {t('Yikes! That button didn’t work. Please fix the following problems:')}
           <StyledUnorderedList>
-            {hasProjectError && <li>{t('One project must be selected')}</li>}
-            {hasEnvironmentError && <li>{t('One or All Environments is required')}</li>}
+            {hasProjectError && <li>{t('Select one Project.')}</li>}
+            {hasEnvironmentError && (
+              <li>{t('Select a single Environment or All Environments.')}</li>
+            )}
             {hasEventTypeError && (
               <li>
                 {tct(
-                  'Either [error:event.type:error] or [transaction:event.type:transaction] is required',
+                  'Use the filter [error:event.type:error] or [transaction:event.type:transaction].',
                   {
                     error: <StyledCode />,
                     transaction: <StyledCode />,
@@ -102,7 +105,7 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
             {hasYAxisError && (
               <li>
                 {tct(
-                  '[yAxis] is not supported by alerts just yet. Select a different metric below and try again.',
+                  'An alert can’t use the metric [yAxis] just yet. Select another metric and try again.',
                   {
                     yAxis: <StyledCode>{eventView.getYAxis()}</StyledCode>,
                   }
