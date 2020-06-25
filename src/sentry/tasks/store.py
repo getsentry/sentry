@@ -763,12 +763,11 @@ def _do_save_event(
             )
             return
 
-        event = None
         try:
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                event = manager.save(
+                manager.save(
                     project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
 
@@ -781,12 +780,7 @@ def _do_save_event(
                     event_processing_store.delete_by_key(cache_key)
 
                 with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
-                    # For the unlikely case that we did not manage to persist the
-                    # event we also delete the key always.
-                    if event is None or features.has(
-                        "organizations:event-attachments", event.project.organization, actor=None
-                    ):
-                        attachment_cache.delete(cache_key)
+                    attachment_cache.delete(cache_key)
 
             if start_time:
                 metrics.timing(
