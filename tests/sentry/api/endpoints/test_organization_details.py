@@ -958,21 +958,6 @@ def test_trusted_relay_serializer_validation(invalid_data):
     assert not serializer.is_valid()
 
 
-def test_trusted_relay_serializer_public_name_validation():
-    """
-        Tests that the public key is validated
-    """
-    # incoming raw data
-    data = {
-        u"publicKey": u"some_invalid_key",
-        u"description": u"the description",
-        u"lastModified": u"2020-05-20T20:21:22",
-        u"created": u"2020-01-17T11:12:13",
-    }
-    serializer = TrustedRelaySerializer(data=data)
-    assert not serializer.is_valid()
-
-
 def test_trusted_relays_option_deserialization():
     # internal data
     instance = {
