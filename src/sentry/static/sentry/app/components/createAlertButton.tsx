@@ -195,7 +195,7 @@ function CreateAlertButton({
     hasEventTypeError,
     hasYAxisError,
   };
-  const project = projects.find(p => p.id === String(eventView.project[0]));
+  const project = projects.find(p => p.id === `${eventView.project[0]}`);
   const hasErrors = Object.values(errors).some(x => x);
   const to = hasErrors
     ? undefined
