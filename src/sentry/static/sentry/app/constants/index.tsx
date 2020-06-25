@@ -249,4 +249,5 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
 };
 
 export const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
-export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/performance/discover/';
+export const DISCOVER2_DOCS_URL =
+  'https://docs.sentry.io/performance-monitoring/discover-queries/';

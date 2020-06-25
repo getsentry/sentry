@@ -118,7 +118,7 @@ GUIDES = {
                 "title": _("Event Pages have moved"),
                 "message": _(
                     "These are now in our powerful new query builder, Discover "
-                    '<a href="https://docs.sentry.io/performance/discover/" target="_blank">Learn more about its advanced features</a>. '
+                    '<a href="https://docs.sentry.io/performance-monitoring/discover-queries/" target="_blank">Learn more about its advanced features</a>. '
                 ),
                 "target": "discover_sidebar",
             }
