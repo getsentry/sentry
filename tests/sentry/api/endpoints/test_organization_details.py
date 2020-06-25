@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime
 
 import dateutil
-import pytz
+from pytz import UTC
 import six
 
 from base64 import b64encode
@@ -168,9 +168,9 @@ class OrganizationDetailsTest(APITestCase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=pytz.UTC)
+            start_time = datetime.utcnow().replace(tzinfo=UTC)
             response = self.client.put(url, data=data)
-            end_time = datetime.utcnow().replace(tzinfo=pytz.UTC)
+            end_time = datetime.utcnow().replace(tzinfo=UTC)
             assert response.status_code == 200
             response = self.client.get(url)
             assert response.status_code == 200
@@ -395,9 +395,9 @@ class OrganizationUpdateTest(APITestCase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=pytz.UTC)
+            start_time = datetime.utcnow().replace(tzinfo=UTC)
             response = self.client.put(url, data=data)
-            end_time = datetime.utcnow().replace(tzinfo=pytz.UTC)
+            end_time = datetime.utcnow().replace(tzinfo=UTC)
 
             assert response.status_code == 200
             response_data = response.data.get("trustedRelays")
@@ -485,11 +485,11 @@ class OrganizationUpdateTest(APITestCase):
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=pytz.UTC)
+            start_time = datetime.utcnow().replace(tzinfo=UTC)
             self.client.put(url, data=initial_settings)
-            after_initial = datetime.utcnow().replace(tzinfo=pytz.UTC)
+            after_initial = datetime.utcnow().replace(tzinfo=UTC)
             response = self.client.put(url, data=changed_settings)
-            after_final = datetime.utcnow().replace(tzinfo=pytz.UTC)
+            after_final = datetime.utcnow().replace(tzinfo=UTC)
 
             assert response.status_code == 200
 
