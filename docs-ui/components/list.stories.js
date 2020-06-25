@@ -10,16 +10,19 @@ storiesOf('UI|List', module).add(
   withInfo('Default message goes here')(() => (
     <React.Fragment>
       <List>
-        <ListItem>Lol</ListItem>
-        <ListItem>Lol</ListItem>
-        <ListItem>Lol</ListItem>
-        <ListItem>Lol</ListItem>
+        <ListItem>Item 1</ListItem>
+        <ListItem>Item 2</ListItem>
+        <ListItem>Item 3</ListItem>
       </List>
       <List>
-        <ListItem icon={<IconDelete size="xs" />}>Lol</ListItem>
+        <ListItem icon={<IconDelete size="xs" />}>Item 1</ListItem>
+        <ListItem icon={<IconDelete size="xs" />}>Item 2</ListItem>
+        <ListItem icon={<IconDelete size="xs" />}>Item 3</ListItem>
       </List>
       <List as="ol">
-        <ListItem>Lol</ListItem>
+        <ListItem>Item 1</ListItem>
+        <ListItem>Item 2</ListItem>
+        <ListItem>Item 3</ListItem>
       </List>
     </React.Fragment>
   ))
