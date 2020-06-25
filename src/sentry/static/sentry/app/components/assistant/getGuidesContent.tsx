@@ -111,7 +111,9 @@ export default function getGuidesContent(): GuidesContent {
             `These are now in our powerful new query builder, Discover.
             [link:Learn more about its advanced features].`,
             {
-              link: <ExternalLink href="https://docs.sentry.io/performance/discover/" />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/performance-monitoring/discover-queries/" />
+              ),
             }
           ),
         },
