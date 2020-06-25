@@ -33,7 +33,7 @@ function getUserKnownDataDetails(
 
       if (!organization.features.includes('discover-basic')) {
         return {
-          subject: t('trace_id'),
+          subject: t('Trace ID'),
           value: traceId,
         };
       }
@@ -59,7 +59,7 @@ function getUserKnownDataDetails(
         end,
       });
       return {
-        subject: t('trace_id'),
+        subject: t('Trace ID'),
         value: (
           <ButtonWrapper>
             <pre className="val">
@@ -78,28 +78,28 @@ function getUserKnownDataDetails(
 
     case TraceKnownDataType.SPAN_ID: {
       return {
-        subject: t('span_id'),
+        subject: t('Span ID'),
         value: data.span_id || '',
       };
     }
 
     case TraceKnownDataType.PARENT_SPAN_ID: {
       return {
-        subject: t('parent_span_id'),
+        subject: t('Parent Span ID'),
         value: data.parent_span_id || '',
       };
     }
 
     case TraceKnownDataType.OP_NAME: {
       return {
-        subject: t('op'),
+        subject: t('Operation Name'),
         value: data.op || '',
       };
     }
 
     case TraceKnownDataType.STATUS: {
       return {
-        subject: t('status'),
+        subject: t('Status'),
         value: data.status || '',
       };
     }
@@ -123,13 +123,13 @@ function getUserKnownDataDetails(
 
       if (!organization.features.includes('performance-view')) {
         return {
-          subject: t('transaction'),
+          subject: t('Transaction'),
           value: transactionName,
         };
       }
 
       return {
-        subject: t('transaction'),
+        subject: t('Transaction'),
         value: (
           <ButtonWrapper>
             <pre className="val">
