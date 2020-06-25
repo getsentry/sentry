@@ -91,7 +91,9 @@ def call_endpoint(client, relay, private_key, default_project):
 
 @pytest.fixture
 def add_org_key(default_organization, relay):
-    default_organization.update_option("sentry:trusted-relays", [relay.public_key])
+    default_organization.update_option(
+        "sentry:trusted-relays", [{"public_key": relay.public_key, "name": "main-relay"}]
+    )
 
 
 @pytest.mark.django_db
@@ -228,7 +230,6 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "projectId") == default_project.id
     assert safe.get_path(cfg, "slug") == default_project.slug
     assert safe.get_path(cfg, "rev") is not None
-
     assert safe.get_path(cfg, "config", "trustedRelays") == [relay.public_key]
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
