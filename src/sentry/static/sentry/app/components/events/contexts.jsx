@@ -14,6 +14,7 @@ const CONTEXT_TYPES = {
   runtime: require('app/components/events/contexts/runtime/runtime').default,
   user: require('app/components/events/contexts/user/user').default,
   gpu: require('app/components/events/contexts/gpu/gpu').default,
+  trace: require('app/components/events/contexts/trace/trace').default,
 };
 
 function getContextComponent(type) {
@@ -118,6 +119,8 @@ class ContextChunk extends React.Component {
         return t('Graphics Processing Unit');
       case 'runtime':
         return t('Runtime');
+      case 'trace':
+        return t('Trace Details');
       case 'default':
         return toTitleCase(alias);
       default:
@@ -164,7 +167,7 @@ class ContextChunk extends React.Component {
         type={`context-${alias}`}
         title={this.renderSectionTitle()}
       >
-        <Component alias={alias} data={value} />
+        <Component alias={alias} event={evt} data={value} />
       </EventDataSection>
     );
   }
