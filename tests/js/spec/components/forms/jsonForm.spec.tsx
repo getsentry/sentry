@@ -28,7 +28,7 @@ describe('JsonForm', function() {
       }
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false -  visible prop is of type boolean', function() {
+    it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', function() {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
         fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
@@ -41,7 +41,7 @@ describe('JsonForm', function() {
       expect(wrapper.find('FormPanel')).toHaveLength(0);
     });
 
-    it('should ALWAYS hide panel, if all fields have visible set to false -  visible prop is of type func', function() {
+    it('should ALWAYS hide panel, if all fields have visible set to false AND there is no renderHeader & renderFooter -  visible prop is of type func', function() {
       const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
         ...accountDetailsField,
         fields: accountDetailsField.fields.map(field => ({
@@ -65,6 +65,42 @@ describe('JsonForm', function() {
 
       expect(wrapper.find('FormPanel')).toHaveLength(1);
       expect(wrapper.find('input')).toHaveLength(1);
+    });
+
+    it('should NOT hide panel, if all fields have visible set to false AND a prop renderHeader is passed', function() {
+      const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
+        ...accountDetailsField,
+        fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
+      }));
+
+      const wrapper = mountWithTheme(
+        <JsonForm
+          forms={modifiedAccountDetails}
+          additionalFieldProps={{user}}
+          renderHeader={() => <div>this is a Header </div>}
+        />
+      );
+
+      expect(wrapper.find('FormPanel')).toHaveLength(1);
+      expect(wrapper.find('input')).toHaveLength(0);
+    });
+
+    it('should NOT hide panel, if all fields have visible set to false AND a prop renderFooter is passed', function() {
+      const modifiedAccountDetails = accountDetailsFields.map(accountDetailsField => ({
+        ...accountDetailsField,
+        fields: accountDetailsField.fields.map(field => ({...field, visible: false})),
+      }));
+
+      const wrapper = mountWithTheme(
+        <JsonForm
+          forms={modifiedAccountDetails}
+          additionalFieldProps={{user}}
+          renderFooter={() => <div>this is a Footer </div>}
+        />
+      );
+
+      expect(wrapper.find('FormPanel')).toHaveLength(1);
+      expect(wrapper.find('input')).toHaveLength(0);
     });
   });
 

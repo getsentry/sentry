@@ -170,7 +170,11 @@ class JsonForm extends React.Component<Props, State> {
   }) {
     const shouldDisplayForm = this.shouldDisplayForm(fields);
 
-    if (!shouldDisplayForm) {
+    if (
+      !shouldDisplayForm &&
+      !formPanelProps?.renderFooter &&
+      !formPanelProps?.renderHeader
+    ) {
       return null;
     }
 
