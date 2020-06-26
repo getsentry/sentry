@@ -865,6 +865,7 @@ class Factories(object):
         excluded_projects=None,
         date_added=None,
         dataset=QueryDatasets.EVENTS,
+        threshold_type=AlertRuleThresholdType.ABOVE,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -876,6 +877,7 @@ class Factories(object):
             query,
             aggregate,
             time_window,
+            threshold_type,
             threshold_period,
             dataset=dataset,
             environment=environment,

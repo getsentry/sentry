@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
 from sentry.testutils import APITestCase
 
@@ -74,9 +73,7 @@ class AlertRuleDetailsBase(object):
 
     @fixture
     def alert_rule(self):
-        return create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
+        return self.create_alert_rule(name="hello")
 
     def test_invalid_rule_id(self):
         self.create_member(
@@ -121,15 +118,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            "count_unique(tags[sentry:user])",
-            10,
-            1,
-        )
+        alert_rule = self.create_alert_rule(aggregate="count_unique(tags[sentry:user])")
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug, self.project.slug, alert_rule.id)
             assert resp.data["aggregate"] == "count_unique(user)"

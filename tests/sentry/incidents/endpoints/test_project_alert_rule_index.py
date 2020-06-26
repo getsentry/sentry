@@ -9,7 +9,6 @@ from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils import TestCase, APITestCase
@@ -36,9 +35,7 @@ class AlertRuleListEndpointTest(APITestCase):
 
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
+        alert_rule = self.create_alert_rule()
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):

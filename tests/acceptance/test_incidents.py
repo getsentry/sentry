@@ -5,7 +5,6 @@ import pytz
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.incidents.logic import create_alert_rule
 
 FEATURE_NAME = "organizations:incidents"
 
@@ -25,10 +24,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("incidents - empty state")
 
     def test_incidents_list(self):
-        alert_rule = create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
-
+        alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             self.organization,
             title="Incident #1",
