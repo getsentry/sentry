@@ -58,7 +58,7 @@ export default class WorldMapChart extends React.Component {
         itemStyle: {
           normal: {
             areaColor: theme.gray400,
-            borderColor: theme.gray100,
+            borderColor: theme.borderLighter,
           },
           emphasis: {
             areaColor: theme.orange300,
@@ -81,7 +81,7 @@ export default class WorldMapChart extends React.Component {
     return (
       <BaseChart
         options={{
-          backgroundColor: theme.gray100,
+          backgroundColor: theme.borderLighter,
           visualMap: VisualMap({
             left: 'right',
             min: 0,

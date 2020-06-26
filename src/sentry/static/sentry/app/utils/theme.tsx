@@ -56,6 +56,10 @@ const colors = {
   pink400: '#E1567C',
   pink500: '#902D4C',
 
+  get borderLighter() {
+    return colors.gray100;
+  },
+
   get borderLight() {
     return colors.gray300;
   },
