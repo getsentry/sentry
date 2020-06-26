@@ -123,7 +123,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                 }
               >
                 <div
-                  className="css-inoj98-Title e1uay4fd1"
+                  className="css-1n24dju-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
@@ -479,7 +479,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                 }
               >
                 <div
-                  className="css-inoj98-Title e1uay4fd1"
+                  className="css-1n24dju-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
@@ -835,7 +835,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 }
               >
                 <div
-                  className="css-inoj98-Title e1uay4fd1"
+                  className="css-1n24dju-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4

@@ -78,6 +78,7 @@ const Title = styled('div')<TitleProps & React.HTMLProps<HTMLDivElement>>`
       ? `${space(4)} ${space(2)} ${space(2)} 0`
       : `${space(4)} ${space(2)} ${space(4)} 0`};
   flex: 1;
+  min-width: 0;
 `;
 
 const Icon = styled('div')`

@@ -100,7 +100,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                       styled={false}
                     >
                       <div
-                        className="css-u2ls9d-Title e1uay4fd1"
+                        className="css-g5c5ux-Title e1uay4fd1"
                       >
                         <HeaderTitle>
                           <h4
