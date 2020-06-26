@@ -44,7 +44,7 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Security & Privacy')} />
+        <SettingsPageHeader title={t('Security & Privacy2')} />
         <Form
           data-test-id="organization-settings-security-and-privacy"
           apiMethod="PUT"

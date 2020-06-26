@@ -41,7 +41,6 @@ class Relays extends AsyncComponent<Props, State> {
   constructor(props: Props, context: AsyncComponent['context']) {
     super(props, context);
     this.setRelays = this.setRelays.bind(this);
-    this.successfullySaved = this.successfullySaved.bind(this);
     this.handleOpenAddDialog = this.handleOpenAddDialog.bind(this);
   }
 

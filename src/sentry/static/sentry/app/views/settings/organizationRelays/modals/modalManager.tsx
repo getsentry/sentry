@@ -38,13 +38,13 @@ class DialogManager<
   constructor(props: P) {
     super(props);
     this.handleSave = this.handleSave.bind(this);
-    this.clearError = this.clearError.bind(this);
-    this.convertErrorXhrResponse = this.convertErrorXhrResponse.bind(this);
     this.handleChange = this.handleChange.bind(this);
-    this.handleValidateForm = this.handleValidateForm.bind(this);
     this.handleValidate = this.handleValidate.bind(this);
     this.handleValidateKey = this.handleValidateKey.bind(this);
     this.setValidForm = this.setValidForm.bind(this);
+    this.clearError = this.clearError.bind(this);
+    this.convertErrorXhrResponse = this.convertErrorXhrResponse.bind(this);
+    this.handleValidateForm = this.handleValidateForm.bind(this);
     this.state = this.getDefaultState() as Readonly<S>;
   }
 
@@ -202,7 +202,7 @@ class DialogManager<
       });
     }
 
-    this.handleValidate('publicKey');
+    this.handleValidate('publicKey')();
   }
 
   render() {
