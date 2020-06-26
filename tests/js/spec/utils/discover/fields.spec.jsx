@@ -112,11 +112,11 @@ describe('aggregateOutputType', function() {
 
   it('handles percentage functions', function() {
     expect(aggregateOutputType('failure_rate()')).toEqual('percentage');
-    expect(aggregateOutputType('apdex()')).toEqual('percentage');
-    expect(aggregateOutputType('apdex(500)')).toEqual('percentage');
   });
 
   it('handles number functions', function() {
+    expect(aggregateOutputType('apdex()')).toEqual('number');
+    expect(aggregateOutputType('apdex(500)')).toEqual('number');
     expect(aggregateOutputType('user_misery(500)')).toEqual('number');
     expect(aggregateOutputType('impact()')).toEqual('number');
     expect(aggregateOutputType('eps()')).toEqual('number');
