@@ -23,7 +23,7 @@ function handleError(error: XhrError): Error {
   if (!errorMessage) {
     return {
       type: 'unknown',
-      message: t('An unknown error occurred while saving relay public key'),
+      message: t('An unknown error occurred while saving relay public key.'),
     };
   }
 
