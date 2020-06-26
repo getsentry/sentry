@@ -119,6 +119,8 @@ class ContextChunk extends React.Component {
         return t('Graphics Processing Unit');
       case 'runtime':
         return t('Runtime');
+      case 'trace':
+        return t('Trace Details');
       case 'default':
         return toTitleCase(alias);
       default:

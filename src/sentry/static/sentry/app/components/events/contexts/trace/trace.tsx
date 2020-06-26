@@ -40,8 +40,4 @@ const Trace = (props: Props) => {
   return <InnerTrace {...props} />;
 };
 
-Trace.getTitle = function() {
-  return t('Trace Details');
-};
-
 export default Trace;
