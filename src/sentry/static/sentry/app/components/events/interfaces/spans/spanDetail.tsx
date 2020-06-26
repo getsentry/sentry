@@ -77,7 +77,7 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   fetchSpanDescendents(spanID: string, traceID: string): Promise<any> {
-    const {api, organization, trace} = this.props;
+    const {api, organization, trace, event} = this.props;
 
     // Skip doing a request if the results will be behind a disabled button.
     if (!organization.features.includes('discover-basic')) {
@@ -99,6 +99,9 @@ class SpanDetail extends React.Component<Props, State> {
       field: ['transaction', 'id', 'trace.span'],
       sort: ['-id'],
       query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
+      project: organization.features.includes('global-views')
+        ? undefined
+        : [Number(event.projectID)],
       start,
       end,
     };
