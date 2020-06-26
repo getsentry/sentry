@@ -81,5 +81,5 @@ LoadingIndicator.propTypes = {
 };
 
 export default withProfiler(LoadingIndicator, {
-  hasUpdateSpan: false,
+  includeUpdates: false,
 });
