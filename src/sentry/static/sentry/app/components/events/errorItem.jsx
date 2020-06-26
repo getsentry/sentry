@@ -55,8 +55,13 @@ class EventErrorItem extends React.Component {
       data.image_path = path.length ? path.join(separator) + separator : '';
     }
 
-    if (typeof data.server_time == 'string' && typeof data.sdk_time == 'string') {
-      data.message = t('Adjusted timestamps by %s', moment.duration(moment.utc(data.server_time).diff(moment.utc(data.sdk_time))).humanize());
+    if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
+      data.message = t(
+        'Adjusted timestamps by %s',
+        moment
+          .duration(moment.utc(data.server_time).diff(moment.utc(data.sdk_time)))
+          .humanize()
+      );
     }
 
     return mapKeys(data, (_value, key) => t(keyMapping[key] || startCase(key)));
