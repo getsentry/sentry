@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';

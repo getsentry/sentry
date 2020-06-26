@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {browserHistory} from 'react-router';
 
 import ActivityAvatar from 'app/components/activity/item/avatar';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -24,12 +23,9 @@ type Props = {
 };
 
 class QueryCard extends React.PureComponent<Props> {
-  handleClick = (event: React.MouseEvent) => {
-    event.preventDefault();
-    const {onEventClick, to} = this.props;
-
+  handleClick = () => {
+    const {onEventClick} = this.props;
     callIfFunction(onEventClick);
-    browserHistory.push(to);
   };
 
   render() {
