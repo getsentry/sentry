@@ -973,7 +973,7 @@ const getTogglerTheme = ({
 
   if (disabled) {
     return `
-    background: ${buttonTheme.white};
+    background: ${buttonTheme.background};
     border: 1px solid ${theme.borderDark};
     color: ${buttonTheme.color};
     cursor: default;
@@ -981,7 +981,7 @@ const getTogglerTheme = ({
   }
 
   return `
-    background: ${buttonTheme.white};
+    background: ${buttonTheme.background};
     border: 1px solid ${theme.borderDark};
     color: ${buttonTheme.color};
   `;
