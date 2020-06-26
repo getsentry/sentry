@@ -203,16 +203,9 @@ class Onboarding extends React.Component {
   }
 }
 
-const Theme = {
-  colors: {
-    gray: ['#f6f6f8', '9093c1', '#584674'],
-    pink: '#e1567c',
-  },
-};
-
 const OnboardingWrapper = styled('main')`
   flex-grow: 1;
-  background: ${Theme.colors.gray[0]};
+  background: ${p => p.theme.gray100};
   padding-bottom: 50vh;
 `;
 
@@ -255,7 +248,7 @@ const ProgressBar = styled('div')`
     display: block;
     content: '';
     height: 4px;
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.borderLight};
     left: 2px;
     right: 2px;
     top: 50%;
@@ -268,7 +261,7 @@ const ProgressStep = styled('div')`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 4px solid ${p => (p.active ? Theme.colors.pink400 : p.theme.borderLight)};
+  border: 4px solid ${p => (p.active ? p.theme.pink400 : p.theme.borderLight)};
   background: #fff;
 `;
 
