@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import EventView from 'app/utils/discover/eventView';
 import Alert from 'app/components/alert';
 import space from 'app/styles/space';
-import {explodeFieldString} from 'app/utils/discover/fields';
+import {explodeFieldString, AGGREGATIONS, Aggregation} from 'app/utils/discover/fields';
 import {
   errorFieldConfig,
   transactionFieldConfig,
@@ -162,8 +162,13 @@ function incompatibleYAxis(eventView: EventView): boolean {
   const yAxisConfig = dataset === 'error' ? errorFieldConfig : transactionFieldConfig;
 
   const invalidFunction = !yAxisConfig.aggregations.includes(column.function[0]);
-  // Allow empty parameters
-  const invalidParameter = !['', ...yAxisConfig.fields].includes(column.function[1]);
+  // Allow empty parameters, allow all numeric parameters - eg. apdex(300)
+  const aggregation: Aggregation = AGGREGATIONS[column.function[0]];
+  const isNumericParameter = aggregation.parameters.some(
+    param => param.kind === 'value' && param.dataType === 'number'
+  );
+  const invalidParameter =
+    !isNumericParameter && !['', ...yAxisConfig.fields].includes(column.function[1]);
 
   return invalidFunction || invalidParameter;
 }
