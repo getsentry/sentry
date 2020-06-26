@@ -183,7 +183,9 @@ describe('EventsV2 > EventDetails', function() {
     // Should append tag value and other event attributes to results view query.
     const target = tagLink.props().to;
     expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
-    expect(target.query.query).toEqual('browser:Firefox title:"Oh no something bad"');
+    expect(target.query.query).toEqual(
+      'tags[browser]:Firefox title:"Oh no something bad"'
+    );
   });
 
   it('appends tag value to existing query when clicked', async function() {
@@ -216,7 +218,7 @@ describe('EventsV2 > EventDetails', function() {
     const target = tagLink.props().to;
     expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
     expect(target.query.query).toEqual(
-      'Dumpster browser:Firefox title:"Oh no something bad"'
+      'Dumpster tags[browser]:Firefox title:"Oh no something bad"'
     );
   });
 });
