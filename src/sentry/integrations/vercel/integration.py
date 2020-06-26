@@ -18,6 +18,7 @@ from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
 from sentry.models import (
+    Integration,
     Project,
     ProjectKey,
     User,
@@ -216,6 +217,19 @@ class VercelIntegrationProvider(IntegrationProvider):
 
         return [identity_pipeline_view]
 
+    def get_configuration_metadata(self, external_id):
+        # If a vercel team or user was already installed on another sentry org
+        # we want to make sure we don't overwrite the existing configurations. We
+        # keep all the configurations so that if one of them is deleted from vercel's
+        # side, the other sentry org will still have a working vercel integration.
+        try:
+            integration = Integration.objects.get(external_id=external_id, provider=self.key)
+        except Integration.DoesNotExist:
+            # first time setting up vercel team/user
+            return {}
+
+        return integration.metadata["configurations"]
+
     def build_integration(self, state):
         data = state["identity"]["data"]
         access_token = data["access_token"]
@@ -247,6 +261,8 @@ class VercelIntegrationProvider(IntegrationProvider):
             message = u"Could not create deployment webhook in Vercel: {}".format(details)
             raise IntegrationError(message)
 
+        configurations = self.get_configuration_metadata(external_id)
+
         integration = {
             "name": name,
             "external_id": external_id,
@@ -255,6 +271,7 @@ class VercelIntegrationProvider(IntegrationProvider):
                 "installation_id": data["installation_id"],
                 "installation_type": installation_type,
                 "webhook_id": webhook["id"],
+                "configurations": configurations,
             },
             "post_install_data": {"user_id": state["user_id"]},
         }
@@ -262,6 +279,16 @@ class VercelIntegrationProvider(IntegrationProvider):
         return integration
 
     def post_install(self, integration, organization, extra=None):
+        # add new configuration information to metadata
+        configurations = integration.metadata.get("configurations") or {}
+        configurations[integration.metadata["installation_id"]] = {
+            "access_token": integration.metadata["access_token"],
+            "webhook_id": integration.metadata["webhook_id"],
+            "organization_id": organization.id,
+        }
+        integration.metadata["configurations"] = configurations
+        integration.save()
+
         # check if we have an installation already
         if SentryAppInstallationForProvider.objects.filter(
             organization=organization, provider="vercel"

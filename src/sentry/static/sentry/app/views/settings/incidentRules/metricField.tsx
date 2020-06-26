@@ -15,43 +15,16 @@ import Tooltip from 'app/components/tooltip';
 import {
   explodeFieldString,
   generateFieldAsString,
-  AggregationKey,
-  LooseFieldKey,
   AGGREGATIONS,
   FIELDS,
 } from 'app/utils/discover/fields';
 
+import {errorFieldConfig, transactionFieldConfig} from './constants';
 import {Dataset} from './types';
 import {PRESET_AGGREGATES} from './presets';
 
 type Props = Omit<FormField['props'], 'children' | 'help'> & {
   organization: Organization;
-};
-
-type OptionConfig = {
-  aggregations: AggregationKey[];
-  fields: LooseFieldKey[];
-};
-
-const errorFieldConfig: OptionConfig = {
-  aggregations: ['count', 'count_unique'],
-  fields: ['user'],
-};
-
-const transactionFieldConfig: OptionConfig = {
-  aggregations: [
-    'avg',
-    'percentile',
-    'failure_rate',
-    'apdex',
-    'count',
-    'p50',
-    'p75',
-    'p95',
-    'p99',
-    'p100',
-  ],
-  fields: ['transaction.duration'],
 };
 
 const getFieldOptionConfig = (dataset: Dataset) => {

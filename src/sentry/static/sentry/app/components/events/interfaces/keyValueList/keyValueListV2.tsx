@@ -42,30 +42,42 @@ const KeyValueList = ({
       <tbody>
         {getData().map(
           ({key, subject, value = null, meta, subjectIcon, subjectDataTestId}) => {
-            const dataValue =
+            const dataValue: React.ReactNode =
               typeof value === 'object' && !React.isValidElement(value)
                 ? JSON.stringify(value, null, 2)
                 : value;
+
+            const valueIsReactRenderable: boolean =
+              typeof dataValue !== 'string' && React.isValidElement(dataValue);
+
+            let contentComponent: React.ReactNode = (
+              <pre className="val-string">
+                <AnnotatedText value={dataValue} meta={meta} />
+                {subjectIcon}
+              </pre>
+            );
+
+            if (isContextData) {
+              contentComponent = (
+                <ContextData
+                  data={!raw ? value : JSON.stringify(value)}
+                  meta={meta}
+                  withAnnotatedText
+                >
+                  {subjectIcon}
+                </ContextData>
+              );
+            } else if (valueIsReactRenderable) {
+              contentComponent = dataValue;
+            }
+
             return (
               <tr key={key}>
                 <TableSubject className="key" wide={longKeys}>
                   {subject}
                 </TableSubject>
                 <td className="val" data-test-id={subjectDataTestId}>
-                  {isContextData ? (
-                    <ContextData
-                      data={!raw ? value : JSON.stringify(value)}
-                      meta={meta}
-                      withAnnotatedText
-                    >
-                      {subjectIcon}
-                    </ContextData>
-                  ) : (
-                    <pre className="val-string">
-                      <AnnotatedText value={dataValue} meta={meta} />
-                      {subjectIcon}
-                    </pre>
-                  )}
+                  {contentComponent}
                 </td>
               </tr>
             );

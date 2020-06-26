@@ -35,12 +35,12 @@ describe('createRuleFromEventView()', () => {
     const rule = createRuleFromEventView(eventView);
     expect(rule.environment).toBe('beta');
   });
-  it('converts aggregate from EventView to alert rule', () => {
+  it('gets aggregate from EventView.yAxis', () => {
     const eventView = new EventView({
       yAxis: 'count_unique(user)',
     });
 
     const rule = createRuleFromEventView(eventView);
-    expect(rule.aggregate).toBe('count_unique(tags[sentry:user])');
+    expect(rule.aggregate).toBe(eventView.yAxis);
   });
 });

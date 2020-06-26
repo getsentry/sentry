@@ -17,7 +17,7 @@ function Onboarding() {
       <Button
         priority="primary"
         target="_blank"
-        href="https://docs.sentry.io/performance/distributed-tracing/#setting-up-tracing"
+        href="https://docs.sentry.io/performance-monitoring/setup/"
       >
         {t('Start Setup')}
       </Button>
