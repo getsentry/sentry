@@ -1535,8 +1535,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
                 if column[0] == "transform":
                     # When there's a project transform, we already group by project_id
                     continue
-                else:
-                    groupby.append(column[2])
+                groupby.append(column[2])
             else:
                 groupby.append(column)
 
