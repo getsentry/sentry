@@ -867,6 +867,7 @@ def top_events_timeseries(
             aggregations=snuba_filter.aggregations,
             conditions=snuba_filter.conditions,
             filter_keys=snuba_filter.filter_keys,
+            selected_columns=snuba_filter.selected_columns,
             start=snuba_filter.start,
             end=snuba_filter.end,
             rollup=rollup,

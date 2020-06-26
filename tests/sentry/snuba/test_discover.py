@@ -126,14 +126,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         other_project.delete()
 
         result = discover.query(
-            selected_columns=["project.name", "message", "project"],
+            selected_columns=["message", "project"],
             query="",
             params={"project_id": project_ids},
-            orderby="project.name",
+            orderby="project",
         )
         data = result["data"]
         assert len(data) == 3
-        assert [item["project.name"] for item in data] == ["", "a" * 32, "z" * 32]
+        assert [item["project"] for item in data] == ["", "a" * 32, "z" * 32]
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
@@ -210,7 +210,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["project.id"] == self.project.id
         assert data[0]["user.email"] == "bruce@example.com"
         assert data[0]["release"] == "first-release"
-        assert data[0]["project.name"] == self.project.slug, "should include project name for links"
+        assert data[0]["project.name"] == self.project.slug
 
         assert len(result["meta"]) == 5
         assert result["meta"][0] == {"name": "user.email", "type": "Nullable(String)"}
@@ -386,22 +386,30 @@ class QueryTransformTest(TestCase):
             selected_columns=["user", "project"], query="", params={"project_id": [self.project.id]}
         )
         mock_query.assert_called_with(
-            selected_columns=["email", "username", "ip_address", "user_id", "project_id"],
-            aggregations=[
+            selected_columns=[
+                "email",
+                "username",
+                "ip_address",
+                "user_id",
+                "project_id",
                 [
-                    "transform(project_id, array({}), array('{}'), '')".format(
-                        six.text_type(self.project.id), self.project.slug
-                    ),
-                    None,
-                    "project",
-                ]
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [u"'{}'".format(self.project.id)]],
+                        ["array", [u"'{}'".format(self.project.slug)]],
+                        "''",
+                    ],
+                    "`project`",
+                ],
             ],
+            aggregations=[],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
             end=None,
             start=None,
             conditions=[],
-            groupby=["email", "username", "ip_address", "user_id", "project_id"],
+            groupby=[],
             having=[],
             orderby=None,
             limit=50,
@@ -422,16 +430,62 @@ class QueryTransformTest(TestCase):
             params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
-            selected_columns=["title", "project_id"],
-            aggregations=[
+            selected_columns=[
+                "title",
+                "project_id",
                 [
-                    "transform(project_id, array({}), array('{}'), '')".format(
-                        six.text_type(project2.id), project2.slug
-                    ),
-                    None,
-                    "project",
-                ]
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [u"'{}'".format(project2.id)]],
+                        ["array", [u"'{}'".format(project2.slug)]],
+                        "''",
+                    ],
+                    "`project`",
+                ],
             ],
+            aggregations=[],
+            filter_keys={"project_id": [project2.id]},
+            dataset=Dataset.Discover,
+            end=None,
+            start=None,
+            conditions=[["project_id", "=", project2.id]],
+            groupby=[],
+            having=[],
+            orderby=None,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_project_with_aggregate_grouping(self, mock_query):
+        project2 = self.create_project(organization=self.organization)
+        mock_query.return_value = {
+            "meta": [{"name": "title"}, {"name": "project_id"}],
+            "data": [{"title": "stuff", "project_id": project2.id}],
+        }
+        discover.query(
+            selected_columns=["title", "project", "p99()"],
+            query="project:{}".format(project2.slug),
+            params={"project_id": [self.project.id, project2.id]},
+        )
+        mock_query.assert_called_with(
+            selected_columns=[
+                "title",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [u"'{}'".format(project2.id)]],
+                        ["array", [u"'{}'".format(project2.slug)]],
+                        "''",
+                    ],
+                    "`project`",
+                ],
+            ],
+            aggregations=[[u"quantile(0.99)", "duration", u"p99"]],
             filter_keys={"project_id": [project2.id]},
             dataset=Dataset.Discover,
             end=None,
