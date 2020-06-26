@@ -86,6 +86,24 @@ const Chart = (props: Props) => {
       ? criticalTrigger?.resolveThreshold
       : undefined;
 
+  const marklinePrecision = Math.max(
+    ...[
+      warningTriggerAlertThreshold,
+      warningTriggerResolveThreshold,
+      criticalTriggerAlertThreshold,
+      criticalTriggerResolveThreshold,
+    ].map(decimal => {
+      if (!decimal || !isFinite(decimal)) return 0;
+      let e = 1;
+      let p = 0;
+      while (Math.round(decimal * e) / e !== decimal) {
+        e *= 10;
+        p += 1;
+      }
+      return p;
+    })
+  );
+
   return (
     <LineChart
       isGroupedByDate
@@ -137,6 +155,7 @@ const Chart = (props: Props) => {
                   yAxis: warningTriggerAlertThreshold,
                 },
               ],
+              precision: marklinePrecision,
               label: {
                 show: true,
                 position: 'insideEndTop',
@@ -159,6 +178,7 @@ const Chart = (props: Props) => {
                   yAxis: warningTriggerResolveThreshold,
                 },
               ],
+              precision: marklinePrecision,
               label: {
                 show: true,
                 position: 'insideEndBottom',
@@ -181,6 +201,7 @@ const Chart = (props: Props) => {
                   yAxis: criticalTriggerAlertThreshold,
                 },
               ],
+              precision: marklinePrecision,
               label: {
                 show: true,
                 position: 'insideEndTop',
@@ -203,6 +224,7 @@ const Chart = (props: Props) => {
                   yAxis: criticalTriggerResolveThreshold,
                 },
               ],
+              precision: marklinePrecision,
               label: {
                 show: true,
                 position: 'insideEndBottom',
