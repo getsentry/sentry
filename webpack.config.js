@@ -381,13 +381,12 @@ let appConfig = {
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
-if (IS_TEST || IS_STORYBOOK) {
+if (IS_TEST || IS_CI || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = path.join(
     __dirname,
     'tests/fixtures/integration-docs/_platforms.json'
   );
 } else {
-  console.log('IntegrationDocsFetchPlugin');
   const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
   appConfig.plugins.push(plugin);
   appConfig.resolve.alias['integration-docs-platforms'] = plugin.modulePath;
