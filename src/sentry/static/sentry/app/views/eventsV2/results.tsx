@@ -381,8 +381,8 @@ class Results extends React.Component<Props, State> {
               onIncompatibleAlertQuery={this.handleIncompatibleQuery}
             />
             <Layout.Body>
+              {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
-                {incompatibleAlertNotice}
                 {this.renderError(error)}
                 <StyledSearchBar
                   organization={organization}
