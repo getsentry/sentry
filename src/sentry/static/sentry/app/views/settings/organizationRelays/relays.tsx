@@ -73,10 +73,10 @@ class Relays extends AsyncComponent<Props, State> {
             data: {trustedRelays},
           }
         );
-        addSuccessMessage('Successfully deleted relay public key');
+        addSuccessMessage('Successfully deleted Relay public key');
         this.setRelays(response.trustedRelays);
       } catch {
-        addErrorMessage('An unknown error occurred while deleting relay public key');
+        addErrorMessage('An unknown error occurred while deleting Relay public key');
       }
     };
   }
@@ -102,7 +102,7 @@ class Relays extends AsyncComponent<Props, State> {
           orgSlug={this.props.organization.slug}
           relay={editRelay}
           onSubmitSuccess={response => {
-            this.successfullySaved(response, t('Successfully updated relay public key'));
+            this.successfullySaved(response, t('Successfully updated Relay public key'));
           }}
         />
       ));
@@ -117,7 +117,7 @@ class Relays extends AsyncComponent<Props, State> {
         api={this.api}
         orgSlug={this.props.organization.slug}
         onSubmitSuccess={response => {
-          this.successfullySaved(response, t('Successfully added relay public key'));
+          this.successfullySaved(response, t('Successfully added Relay public key'));
         }}
       />
     ));
@@ -143,7 +143,7 @@ class Relays extends AsyncComponent<Props, State> {
         />
         <TextBlock>
           {tct(
-            `Relay is a relay service built by Sentry. You can run this on-premise for your SDKs or server to customize data scrubbing, buffering retries and more. You can generate relay keys for access. For more on how to set this up, read the [link:docs].`,
+            `Relay is a relay service built by Sentry. You can run this on-premise for your SDKs or server to customize data scrubbing, buffering retries and more. You can generate Relay keys for access. For more on how to set this up, read the [link:docs].`,
             {
               link: <ExternalLink href={RELAY_DOCS_LINK} />,
             }

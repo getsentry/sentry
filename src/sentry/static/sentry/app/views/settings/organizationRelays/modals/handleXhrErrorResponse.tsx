@@ -24,7 +24,7 @@ function handleError(error: XhrError): Error {
   if (!errorMessage) {
     return {
       type: 'unknown',
-      message: t('An unknown error occurred while saving relay public key.'),
+      message: t('An unknown error occurred while saving Relay public key.'),
     };
   }
 
@@ -49,14 +49,14 @@ function handleError(error: XhrError): Error {
     };
   }
 
-  if (errorMessage.startsWith('Missing public key for relay key info with name:')) {
+  if (errorMessage.startsWith('Missing public key for Relay key info with name:')) {
     return {
       type: 'missing-key',
       message: t('Field Required'),
     };
   }
 
-  if (errorMessage.startsWith('Invalid public key for relay key info with name:')) {
+  if (errorMessage.startsWith('Invalid public key for Relay key info with name:')) {
     return {
       type: 'invalid-key',
       message: t('Invalid Field'),
@@ -72,7 +72,7 @@ function handleError(error: XhrError): Error {
 
   return {
     type: 'unknown',
-    message: t('An unknown error occurred while saving relay public key.'),
+    message: t('An unknown error occurred while saving Relay public key.'),
   };
 }
 
