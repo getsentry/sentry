@@ -7,7 +7,6 @@ import {IconInfo, IconClose, IconSiren} from 'app/icons';
 import Button from 'app/components/button';
 import EventView from 'app/utils/discover/eventView';
 import Alert from 'app/components/alert';
-import space from 'app/styles/space';
 import {explodeFieldString, AGGREGATIONS, Aggregation} from 'app/utils/discover/fields';
 import {
   errorFieldConfig,
@@ -246,7 +245,7 @@ export default CreateAlertButton;
 
 const StyledAlert = styled(Alert)`
   color: ${p => p.theme.gray700};
-  margin-bottom: ${space(2)};
+  margin-bottom: 0;
 `;
 
 const StyledUnorderedList = styled('ul')`
