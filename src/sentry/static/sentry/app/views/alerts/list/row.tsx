@@ -111,7 +111,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
                 <IncidentLink
                   to={`/organizations/${orgId}/alerts/${incident.identifier}/`}
                 >
-                  #{incident.id}
+                  Alert #{incident.id}
                 </IncidentLink>
                 {incident.title}
               </Title>
