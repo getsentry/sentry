@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import theme from 'app/utils/theme';
-import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 export const List = styled('ul')`
@@ -16,7 +15,7 @@ export const List = styled('ul')`
 `;
 
 type ListItemProps = {
-  icon?: string | React.ReactNode;
+  icon?: React.ReactNode;
   children?: string | React.ReactNode;
   className?: string;
 };
@@ -33,11 +32,7 @@ const IconWrapper = styled('span')`
 
 export const ListItem = styled(({icon, className, children}: ListItemProps) => (
   <li className={className}>
-    {icon && (
-      <IconWrapper>
-        {typeof icon === 'string' ? <InlineSvg src={icon} /> : icon}
-      </IconWrapper>
-    )}
+    {icon && <IconWrapper>{icon}</IconWrapper>}
     {children}
   </li>
 ))<ListItemProps>`
@@ -48,7 +43,7 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
   margin-bottom: ${space(0.5)};
 
   &:before,
-  & > span {
+  & > span:first-of-type {
     position: absolute;
     left: 0;
   }
@@ -70,7 +65,7 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
     ${p =>
       p.icon &&
       `
-      span {
+      & > span:first-of-type {
         top: 4px;
       }
 
