@@ -54,7 +54,7 @@ exports[`InstallWizard renders 1`] = `
                 submitDisabled={false}
                 submitErrorMessage="There was an error saving your changes."
                 submitLabel="Continue"
-                submitLoadingMessage="Saving changes.."
+                submitLoadingMessage="Saving changes…"
               >
                 <StyledForm
                   className="form-stacked"
