@@ -309,6 +309,7 @@ let appConfig = {
       'process.env': {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
         IS_PERCY: JSON.stringify(IS_PERCY),
+        IS_CI: JSON.stringify(IS_CI),
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
         SPA_DSN: JSON.stringify(env.SENTRY_SPA_DSN),
@@ -380,7 +381,7 @@ let appConfig = {
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
-if (IS_TEST || IS_STORYBOOK) {
+if (IS_TEST || IS_CI || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = path.join(
     __dirname,
     'tests/fixtures/integration-docs/_platforms.json'

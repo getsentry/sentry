@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
+import * as Sentry from '@sentry/react';
 
 import {Organization, GlobalSelection} from 'app/types';
 import {t, tct} from 'app/locale';
@@ -250,6 +250,11 @@ class Results extends React.Component<Props, State> {
       query: newQuery,
     });
 
+    // Treat axis changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+
     trackAnalyticsEvent({
       eventKey: 'discover_v2.y_axis_change',
       eventName: "Discoverv2: Change chart's y axis",
@@ -270,6 +275,11 @@ class Results extends React.Component<Props, State> {
       pathname: location.pathname,
       query: newQuery,
     });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
   };
 
   getDocumentTitle(): string {

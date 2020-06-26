@@ -31,6 +31,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
   <EventDataSection
     isCentered={false}
     raw={false}
+    showPermalink={true}
     title={null}
     type="sdk-updates"
     wrapTitle={true}
@@ -43,7 +44,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
       >
         <SectionContents>
           <div
-            className="css-16dhebx-SectionContents e1fbjd862"
+            className="css-16dhebx-SectionContents e1fbjd863"
           >
             <Alert
               icon="icon-upgrade"
