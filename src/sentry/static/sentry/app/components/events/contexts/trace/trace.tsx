@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {Event, Organization} from 'app/types';
-import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
 import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
