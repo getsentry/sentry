@@ -132,7 +132,7 @@ base_postgres: &postgres_default
     - docker ps -a
   install:
     - python setup.py install_egg_info
-    - pip install --unstable-feature=resolver -U -e ".[dev]"
+    - pip install --unstable-feature=resolver ".[dev]"
   before_script:
     - psql -c 'create database sentry;' -U postgres
 
@@ -151,7 +151,7 @@ base_acceptance: &acceptance_default
   install:
     - *install_node_dependencies
     - python setup.py install_egg_info
-    - pip install --unstable-feature=resolver -U -e ".[dev]"
+    - pip install --unstable-feature=resolver ".[dev]"
     - |
       CHROME_MAJOR_VERSION="$(dpkg -s google-chrome-stable | sed -nr 's/Version: ([0-9]+).*/\1/p')"
       wget -N "https://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_MAJOR_VERSION})/chromedriver_linux64.zip" -P ~/
@@ -195,7 +195,7 @@ matrix:
         # XXX: ideally we don't have to install sentry in its entirety just to scan dependencies...
         # see the note in bin/scan on why this needs to be done for now.
         # Note that this will mostly noop because we pull in a cached venv from Travis.
-        - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install --unstable-feature=resolver -e .
+        - SENTRY_LIGHT_BUILD=1 SENTRY_PYTHON3=1 pip install --unstable-feature=resolver .
         - pip install --unstable-feature=resolver safety
         # XXX: fun fact, as of April 2020 travis preinstalls numpy 1.15.4 in their 3.7 environments
         # and the safety scanner won't like that (safety id 36810)
@@ -244,7 +244,7 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install --no-cache-dir 'pip==20.2b1'
-        - pip install --unstable-feature=resolver -U -e ".[dev]"
+        - pip install --unstable-feature=resolver ".[dev]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -285,7 +285,7 @@ matrix:
         - docker ps -a
       install:
         - python setup.py install_egg_info
-        - pip install --unstable-feature=resolver -U -e ".[dev]"
+        - pip install --unstable-feature=resolver ".[dev]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
@@ -306,7 +306,7 @@ matrix:
     #     - docker ps -a
     #   install:
     #     - python setup.py install_egg_info
-    #     - pip install --unstable-feature=resolver -U -e ".[dev]"
+    #     - pip install --unstable-feature=resolver ".[dev]"
     #     - pip uninstall -y rb
     #     - pip install --unstable-feature=resolver -e git+https://github.com/joshuarli/rb.git@505ad7665baba66c7c492b01b0e83d433ed2eb8e#egg=rb
     #   before_script:
