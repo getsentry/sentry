@@ -174,7 +174,7 @@ jobs:
           run: |
             python setup.py install_egg_info
             pip install wheel # GitHub Actions does not have this installed by default (unlike Travis)
-            pip install -U -e ".[dev]"
+            pip install ".[dev]"
             psql -c 'create database sentry;' -h localhost -U postgres
             sentry init
 
