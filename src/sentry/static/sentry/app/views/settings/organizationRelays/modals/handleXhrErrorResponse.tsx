@@ -7,7 +7,8 @@ type Error = {
     | 'missing-name'
     | 'empty-name'
     | 'missing-key'
-    | 'invalid-key';
+    | 'invalid-key'
+    | 'duplicated-key';
   message: string;
 };
 
@@ -30,7 +31,7 @@ function handleError(error: XhrError): Error {
   if (errorMessage === 'Bad structure received for Trusted Relays') {
     return {
       type: 'bad-structure',
-      message: t('An invalid structure was sent'),
+      message: t('An invalid structure was sent.'),
     };
   }
 
@@ -62,9 +63,16 @@ function handleError(error: XhrError): Error {
     };
   }
 
+  if (errorMessage.startsWith('Duplicated key in Trusted Relays:')) {
+    return {
+      type: 'duplicated-key',
+      message: t('Key already taken'),
+    };
+  }
+
   return {
     type: 'unknown',
-    message: t('An unknown error occurred while saving relay public key'),
+    message: t('An unknown error occurred while saving relay public key.'),
   };
 }
 

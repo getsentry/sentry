@@ -1,7 +1,6 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
-import {ClassNames} from '@emotion/core';
 import omit from 'lodash/omit';
 
 import theme from 'app/utils/theme';
@@ -24,6 +23,7 @@ import {defined} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import QuestionTooltip from 'app/components/questionTooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import withOrganization from 'app/utils/withOrganization';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
@@ -42,25 +42,15 @@ class Relays extends AsyncComponent<Props, State> {
   constructor(props: Props, context: AsyncComponent['context']) {
     super(props, context);
     this.setRelays = this.setRelays.bind(this);
-    this.handleDelete = this.handleDelete.bind(this);
     this.successfullySaved = this.successfullySaved.bind(this);
-    this.handleOpenEditDialog = this.handleOpenEditDialog.bind(this);
     this.handleOpenAddDialog = this.handleOpenAddDialog.bind(this);
   }
 
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      relays: [],
+      relays: this.props.organization.trustedRelays,
     };
-  }
-
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    return [['data', `/organizations/${this.props.organization.slug}/`]];
-  }
-
-  onRequestSuccess({data}: {data: Organization}) {
-    this.setRelays(data.trustedRelays);
   }
 
   setRelays(trustedRelays: Array<Relay>) {
@@ -161,73 +151,70 @@ class Relays extends AsyncComponent<Props, State> {
             }
           )}
         </TextBlock>
-        <ClassNames>
-          {({css}) => (
-            <PanelTable
-              isEmpty={relays.length === 0}
-              emptyMessage={t('No relays keys have been added yet.')}
-              headers={[t('Display Name'), t('Relay Key'), t('Date Created'), '']}
-              className={css`
-                grid-template-columns: repeat(3, auto) max-content;
-                > * {
-                  padding: ${space(1)};
-                  @media (min-width: ${theme.breakpoints[0]}) {
-                    padding: ${space(1)} ${space(2)};
-                  }
-                }
-              `}
-            >
-              {relays.map(({publicKey: key, name, created, description}) => {
-                const maskedKey = '*************************';
-                return (
-                  <React.Fragment key={key}>
-                    {description ? (
-                      <Name>
-                        <Text>{name}</Text>
-                        <QuestionTooltip position="top" size="sm" title={description} />
-                      </Name>
-                    ) : (
-                      <Text>{name}</Text>
-                    )}
-                    <KeyWrapper>
-                      <Key content={maskedKey}>{maskedKey}</Key>
-                      <IconWrapper>
-                        <Clipboard value={key}>
-                          <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
-                            <IconCopy color="gray500" />
-                          </Tooltip>
-                        </Clipboard>
-                      </IconWrapper>
-                    </KeyWrapper>
-                    <Text>
-                      {!defined(created) ? t('Unknown') : <DateTime date={created} />}
-                    </Text>
-                    <Actions>
-                      <StyledButton
-                        title={t('Edit Key')}
-                        label={t('Edit Key')}
-                        icon={<IconEdit />}
-                        onClick={this.handleOpenEditDialog(key)}
-                      />
-                      <StyledButton
-                        title={t('Delete Key')}
-                        label={t('Delete Key')}
-                        onClick={this.handleDelete(key)}
-                        icon={<IconDelete />}
-                      />
-                    </Actions>
-                  </React.Fragment>
-                );
-              })}
-            </PanelTable>
-          )}
-        </ClassNames>
+        <StyledPanelTable
+          isEmpty={relays.length === 0}
+          emptyMessage={t('No relays keys have been added yet.')}
+          headers={[t('Display Name'), t('Relay Key'), t('Date Created'), '']}
+        >
+          {relays.map(({publicKey: key, name, created, description}) => {
+            const maskedKey = '*************************';
+            return (
+              <React.Fragment key={key}>
+                {description ? (
+                  <Name>
+                    <Text>{name}</Text>
+                    <QuestionTooltip position="top" size="sm" title={description} />
+                  </Name>
+                ) : (
+                  <Text>{name}</Text>
+                )}
+                <KeyWrapper>
+                  <Key content={maskedKey}>{maskedKey}</Key>
+                  <IconWrapper>
+                    <Clipboard value={key}>
+                      <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
+                        <IconCopy color="gray500" />
+                      </Tooltip>
+                    </Clipboard>
+                  </IconWrapper>
+                </KeyWrapper>
+                <Text>
+                  {!defined(created) ? t('Unknown') : <DateTime date={created} />}
+                </Text>
+                <Actions>
+                  <StyledButton
+                    title={t('Edit Key')}
+                    label={t('Edit Key')}
+                    icon={<IconEdit />}
+                    onClick={this.handleOpenEditDialog(key)}
+                  />
+                  <StyledButton
+                    title={t('Delete Key')}
+                    label={t('Delete Key')}
+                    onClick={this.handleDelete(key)}
+                    icon={<IconDelete />}
+                  />
+                </Actions>
+              </React.Fragment>
+            );
+          })}
+        </StyledPanelTable>
       </React.Fragment>
     );
   }
 }
 
-export default Relays;
+export default withOrganization(Relays);
+
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: repeat(3, auto) max-content;
+  > * {
+    padding: ${space(1)};
+    @media (min-width: ${theme.breakpoints[0]}) {
+      padding: ${space(1)} ${space(2)};
+    }
+  }
+`;
 
 const KeyWrapper = styled('div')`
   display: grid;
