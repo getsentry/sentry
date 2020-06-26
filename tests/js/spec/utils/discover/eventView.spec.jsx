@@ -2273,8 +2273,8 @@ describe('EventView.getYAxisOptions()', function() {
       fields: generateFields([
         'ignored-field',
         'count_unique(issue)',
-        'last_seen',
-        'latest_event',
+        'last_seen()',
+        'latest_event()',
       ]),
     });
 

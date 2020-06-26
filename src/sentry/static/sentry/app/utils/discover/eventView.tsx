@@ -976,7 +976,8 @@ class EventView {
       this.getAggregateFields()
         // Exclude last_seen and latest_event as they don't produce useful graphs.
         .filter(
-          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
+          (field: Field) =>
+            ['last_seen()', 'latest_event()'].includes(field.field) === false
         )
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),
