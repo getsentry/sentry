@@ -6,10 +6,10 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import InlineSvg from 'app/components/inlineSvg';
+import {IconLock, IconChevron, IconInfo, IconSettings} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {IconChevron, IconInfo, IconSettings} from 'app/icons';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -109,7 +109,7 @@ class HeaderItem extends React.Component<Props> {
         )}
         {locked && (
           <Tooltip title={lockedMessage || 'This selection is locked'} position="bottom">
-            <StyledLock src="icon-lock" />
+            <StyledLock color="gray500" />
           </Tooltip>
         )}
       </StyledHeaderItem>
@@ -199,10 +199,7 @@ const SettingsIconLink = styled(Link)`
   }
 `;
 
-const StyledLock = styled(InlineSvg)`
-  color: ${p => p.theme.gray500};
-  width: ${space(2)};
-  height: ${space(2)};
+const StyledLock = styled(IconLock)`
   stroke-width: 1.5;
 `;
 
