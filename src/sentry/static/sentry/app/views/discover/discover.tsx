@@ -6,15 +6,18 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
+import {IconWarning} from 'app/icons';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import ConfigStore from 'app/stores/configStore';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
+import Link from 'app/components/links/link';
 import PageHeading from 'app/components/pageHeading';
 import {Organization} from 'app/types';
 import space from 'app/styles/space';
 import localStorage from 'app/utils/localStorage';
-import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 
 import {
   DiscoverContainer,
@@ -406,6 +409,7 @@ export default class Discover extends React.Component<Props, State> {
     } = this.props;
 
     const shouldDisplayResult = resultManager.shouldDisplayResult();
+    const discoverUrl = getDiscoverLandingUrl(organization);
 
     return (
       <DiscoverContainer>
@@ -473,6 +477,7 @@ export default class Discover extends React.Component<Props, State> {
                 savedQuery={savedQuery}
                 onToggleEdit={toggleEditMode}
                 onFetchPage={this.onFetchPage}
+                discover2Url={discoverUrl}
               />
             )}
             {!shouldDisplayResult && (
@@ -482,6 +487,11 @@ export default class Discover extends React.Component<Props, State> {
                     <PageHeading>{t('Discover')}</PageHeading>
                   </HeadingContainer>
                 </div>
+                <Alert type="warning" icon={<IconWarning size="sm" />}>
+                  This discover view is deprecated. Check out our new visualization and
+                  querying capabilities in <Link to={discoverUrl}>the new Discover</Link>{' '}
+                  today.
+                </Alert>
                 <Intro updateQuery={this.updateAndRunQuery} />
               </React.Fragment>
             )}

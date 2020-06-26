@@ -16,10 +16,10 @@ import {IconBookmark, IconDelete} from 'app/icons';
 import Feature from 'app/components/acl/feature';
 import EventView from 'app/utils/discover/eventView';
 import withProjects from 'app/utils/withProjects';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import CreateAlertButton from 'app/components/createAlertButton';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-import {getDiscoverLandingUrl} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
 type DefaultProps = {
