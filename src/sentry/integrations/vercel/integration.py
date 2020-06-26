@@ -215,8 +215,7 @@ class VercelIntegrationProvider(IntegrationProvider):
         try:
             integration = Integration.objects.get(external_id=external_id, provider=self.key)
         except Integration.DoesNotExist:
-            # not sure if we care to log this, maybe we should just log if
-            # we do find an existing integration
+            # first time setting up vercel team/user
             return {}
 
         return integration.metadata["configurations"]
@@ -264,13 +263,7 @@ class VercelIntegrationProvider(IntegrationProvider):
                 "webhook_id": webhook["id"],
                 "configurations": configurations,
             },
-            "post_install_data": {
-                "user_id": state["user_id"],
-                # new configuration data
-                "configuration_id": data["installation_id"],
-                "access_token": access_token,
-                "webhook_id": webhook["id"],
-            },
+            "post_install_data": {"user_id": state["user_id"]},
         }
 
         return integration
@@ -278,9 +271,9 @@ class VercelIntegrationProvider(IntegrationProvider):
     def post_install(self, integration, organization, extra=None):
         # add new configuration information to metadata
         configurations = integration.metadata.get("configurations") or {}
-        configurations[extra["configuration_id"]] = {
-            "access_token": extra["access_token"],
-            "webhook_id": extra["webhook_id"],
+        configurations[integration.metadata["installation_id"]] = {
+            "access_token": integration.metadata["access_token"],
+            "webhook_id": integration.metadata["webhook_id"],
             "organization_id": organization.id,
         }
         integration.metadata["configurations"] = configurations

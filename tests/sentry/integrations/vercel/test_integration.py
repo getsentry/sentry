@@ -21,7 +21,7 @@ from sentry.testutils import IntegrationTestCase
 class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 
-    def assert_setup_flow(self, is_team=False):
+    def assert_setup_flow(self, is_team=False, multi_config_org=None):
         responses.reset()
         access_json = {
             "user_id": "my_user_id",
@@ -88,18 +88,25 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         assert integration.external_id == external_id
         assert integration.name == name
+        configurations = {
+            "my_config_id": {
+                "access_token": "my_access_token",
+                "webhook_id": "webhook-id",
+                "organization_id": self.organization.id,
+            }
+        }
+        if multi_config_org:
+            configurations["orig_config_id"] = {
+                "access_token": "orig_access_token",
+                "webhook_id": "orig-webhook-id",
+                "organization_id": multi_config_org.id,
+            }
         assert integration.metadata == {
             "access_token": "my_access_token",
             "installation_id": "my_config_id",
             "installation_type": installation_type,
             "webhook_id": "webhook-id",
-            "configurations": {
-                "my_config_id": {
-                    "access_token": "my_access_token",
-                    "webhook_id": "webhook-id",
-                    "organization_id": self.organization.id,
-                }
-            },
+            "configurations": configurations,
         }
         assert OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization
@@ -129,6 +136,28 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         self.assert_setup_flow(is_team=False)
         assert SentryAppInstallation.objects.count() == 1
+
+    @responses.activate
+    def test_install_on_multiple_orgs(self):
+        orig_org = self.create_organization()
+        metadata = {
+            "access_token": "orig_access_token",
+            "installation_id": "orig_config_id",
+            "installation_type": "team",
+            "webhook_id": "orig-webhook-id",
+            "configurations": {
+                "orig_config_id": {
+                    "access_token": "orig_access_token",
+                    "webhook_id": "orig-webhook-id",
+                    "organization_id": orig_org.id,
+                }
+            },
+        }
+        Integration.objects.create(
+            provider="vercel", name="my_team_name", external_id="my_team_id", metadata=metadata
+        )
+
+        self.assert_setup_flow(is_team=True, multi_config_org=orig_org)
 
     @responses.activate
     def test_update_organization_config(self):
