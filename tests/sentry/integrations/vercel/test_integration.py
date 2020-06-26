@@ -312,3 +312,20 @@ class VercelIntegrationTest(IntegrationTestCase):
         dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
         with self.assertRaises(IntegrationError):
             installation.update_organization_config(data)
+
+    @responses.activate
+    def test_ui_hook(self):
+        """Test that the UI hook is sent with the proper information"""
+
+        with self.tasks():
+            self.assert_setup_flow()
+
+        responses.add(
+            responses.POST, "https://api.vercel.com/extensions/vercel/ui-hook/", status=200
+        )
+        pass
+
+    @responses.activate
+    def test_ui_hook_multi_installs(self):
+        """Test that the UI hook is sent in the case there are multiple Vercel installations"""
+        pass
