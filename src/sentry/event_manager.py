@@ -646,7 +646,7 @@ class EventManager(object):
 
         # Do this last to ensure signals get emitted even if connection to the
         # file store breaks temporarily.
-        save_attachments(attachments, job["event"])
+        save_attachments(attachments, job)
 
         metric_tags = {"from_relay": "_relay_processed" in job["data"]}
 
@@ -1286,12 +1286,18 @@ def get_attachments(cache_key, event):
     stored_reports = cached_reports
 
     for attachment in attachments:
+        # Relay can mark attachments as ``rate_limited``, in which case they
+        # should not be saved. They where only retained to allow event
+        # processing.
+        if attachment.rate_limited:
+            continue
+
         # If the attachment is a crash report (e.g. minidump), we need to honor
         # the store_crash_reports setting. Otherwise, we assume that the client
         # has already verified PII and just store the attachment.
         if attachment.type in CRASH_REPORT_TYPES:
             if crashreports_exceeded(stored_reports, max_crashreports):
-                continue
+                continue  # TODO: Refund quota
             stored_reports += 1
 
         filtered.append(attachment)
@@ -1306,13 +1312,15 @@ def get_attachments(cache_key, event):
     return filtered
 
 
-def save_attachments(attachments, event):
+def save_attachments(attachments, job):
     """
     Persists cached event attachments into the file store.
 
     :param attachments: A filtered list of attachments to save.
-    :param event:       The event model instance.
+    :param job:         The job context container.
     """
+    event = job["event"]
+
     for attachment in attachments:
         file = File.objects.create(
             name=attachment.name,
@@ -1327,6 +1335,18 @@ def save_attachments(attachments, event):
             group_id=event.group_id,
             name=attachment.name,
             file=file,
+        )
+
+        track_outcome(
+            org_id=event.project.organization_id,
+            project_id=job["project_id"],
+            key_id=job["key_id"],
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(job["start_time"]),
+            event_id=event.event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=len(attachment.data) or 1,
         )
 
 
