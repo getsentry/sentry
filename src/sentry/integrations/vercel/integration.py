@@ -106,7 +106,7 @@ class VercelIntegration(IntegrationInstallation):
                 "type": "project_mapper",
                 "mappedDropdown": {
                     "items": vercel_projects,
-                    "placeholder": "Select a Vercel Project",  # TOOD: add translation
+                    "placeholder": _("Choose Vercel project"),
                 },
                 "sentryProjects": sentry_projects,
             }
@@ -119,10 +119,12 @@ class VercelIntegration(IntegrationInstallation):
         vercel_client = self.get_client()
         config = self.org_integration.config
 
-        # raise IntegrationError("You must have an enabled DSN to continue!")
-
         new_mappings = data["project_mappings"]
-        old_mappings = self.org_integration.config.get("project_mappings") or []
+        old_mappings = config.get("project_mappings") or []
+
+        # if len(new_mappings) > 2:
+        #     raise IntegrationError("You must have an enabled DSN to continue!")
+
         for mapping in new_mappings:
             # skip any mappings that already exist
             if mapping in old_mappings:
@@ -153,7 +155,9 @@ class VercelIntegration(IntegrationInstallation):
 
             self.create_env_var(vercel_client, vercel_project_id, "SENTRY_ORG", org_secret)
             self.create_env_var(vercel_client, vercel_project_id, "SENTRY_PROJECT", project_secret)
-            self.create_env_var(vercel_client, vercel_project_id, "NEXT_PUBLIC_SENTRY_DSN", dsn_secret)
+            self.create_env_var(
+                vercel_client, vercel_project_id, "NEXT_PUBLIC_SENTRY_DSN", dsn_secret
+            )
 
         config.update(data)
         self.org_integration.update(config=config)
