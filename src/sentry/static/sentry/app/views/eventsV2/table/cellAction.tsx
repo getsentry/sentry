@@ -5,7 +5,6 @@ import * as PopperJS from 'popper.js';
 import {Manager, Reference, Popper} from 'react-popper';
 
 import {t} from 'app/locale';
-import {defined} from 'app/utils';
 import {IconEllipsis} from 'app/icons';
 import space from 'app/styles/space';
 import {getAggregateAlias} from 'app/utils/discover/fields';
@@ -148,7 +147,7 @@ class CellAction extends React.Component<Props, State> {
       );
     }
 
-    if (column.type !== 'string' && column.type !== 'boolean') {
+    if (['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type)) {
       addMenuItem(
         Actions.SHOW_GREATER_THAN,
         <ActionItem
@@ -295,15 +294,6 @@ class CellAction extends React.Component<Props, State> {
   render() {
     const {children} = this.props;
     const {isHovering} = this.state;
-
-    const {dataRow, column} = this.props;
-    const fieldAlias = getAggregateAlias(column.name);
-    const value = dataRow[fieldAlias];
-
-    if (!defined(value)) {
-      // per cell actions do not apply to values that are null
-      return <React.Fragment>{children}</React.Fragment>;
-    }
 
     return (
       <Container
