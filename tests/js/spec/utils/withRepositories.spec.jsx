@@ -64,4 +64,31 @@ describe('withRepositories HoC', function() {
     expect(Container.prototype.componentDidMount).toHaveBeenCalledTimes(3);
     // expect(Container.prototype.fetchRepositories).toHaveBeenCalledTimes(3);
   });
+
+  /**
+   * Same as 'prevents repeated calls', but with the async fetch/checks
+   * happening on same tick.
+   *
+   * Additionally, this test checks that withRepositories.fetchRepositories does
+   * not check for (store.orgSlug !== orgSlug) as the short-circuit does not
+   * change the value for orgSlug
+   */
+  it('prevents simultaneous calls', async () => {
+    const Component = () => null;
+    const Container = withRepositories(Component);
+
+    jest.spyOn(api, 'requestPromise');
+    jest.spyOn(Container.prototype, 'componentDidMount');
+
+    // Mount and run duplicates
+    mount(<Container api={api} orgSlug={orgSlug} />);
+    mount(<Container api={api} orgSlug={orgSlug} />);
+    mount(<Container api={api} orgSlug={orgSlug} />);
+
+    await tick();
+    await tick();
+
+    expect(api.requestPromise).toHaveBeenCalledTimes(1);
+    expect(Container.prototype.componentDidMount).toHaveBeenCalledTimes(3);
+  });
 });
