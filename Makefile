@@ -55,18 +55,18 @@ ensure-venv:
 	@./scripts/ensure-venv.sh
 
 ensure-pinned-pip: ensure-venv
-	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
+	$(PIP) install --no-cache-dir --upgrade "pip==20.2b1"
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always
 	@git config --local core.ignorecase false
 	@git config --local blame.ignoreRevsFile .git-blame-ignore-revs
 
-setup-git: ensure-venv setup-git-config
+setup-git: ensure-pinned-pip setup-git-config
 	@echo "--> Installing git hooks"
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
-	$(PIP) install "pre-commit==1.18.2" "virtualenv==20.0.23"
+	$(PIP) --unstable-feature=resolver install "pre-commit==1.18.2" "virtualenv==20.0.23"
 	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) pre-commit install --install-hooks
 	@echo ""
 
@@ -90,7 +90,7 @@ install-py-dev: ensure-pinned-pip
 	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
 	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
 	# and acceptance tests, which webpack automatically if run.
-	SENTRY_LIGHT_BUILD=1 $(PIP) install -e ".[dev]"
+	SENTRY_LIGHT_BUILD=1 $(PIP) --unstable-feature=resolver install -e ".[dev]"
 
 build-js-po: node-version-check
 	mkdir -p build
