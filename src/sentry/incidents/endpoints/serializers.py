@@ -303,6 +303,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "time_window",
             "environment",
             "threshold_type",
+            "resolve_threshold",
             "threshold_period",
             "aggregate",
             "projects",
@@ -314,6 +315,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "name": {"min_length": 1, "max_length": 64},
             "include_all_projects": {"default": False},
             "threshold_type": {"required": False},
+            "resolve_threshold": {"required": False},
         }
 
     def validate_aggregate(self, aggregate):
@@ -427,6 +429,23 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 )
             self._validate_trigger_thresholds(threshold_type, warning)
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
+
+        # Temporarily fetch resolve threshold from the triggers if one isn't explicitly
+        # passed to the alert rule.
+        if "resolve_threshold" not in data:
+            trigger_resolve_thresholds = [
+                trigger["resolve_threshold"]
+                for trigger in triggers
+                if trigger.get("resolve_threshold")
+            ]
+            if trigger_resolve_thresholds:
+                data["resolve_threshold"] = (
+                    min(trigger_resolve_thresholds)
+                    if threshold_type == AlertRuleThresholdType.ABOVE
+                    else max(trigger_resolve_thresholds)
+                )
+            else:
+                data["resolve_threshold"] = None
 
         # Triggers have passed checks. Check that all triggers have at least one action now.
         for trigger in triggers:

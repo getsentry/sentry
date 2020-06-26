@@ -662,6 +662,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         aggregate = "count(*)"
         time_window = 10
         threshold_type = AlertRuleThresholdType.ABOVE
+        resolve_threshold = 10
         threshold_period = 1
         alert_rule = create_alert_rule(
             self.organization,
@@ -672,6 +673,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window,
             threshold_type,
             threshold_period,
+            resolve_threshold=resolve_threshold,
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
@@ -683,6 +685,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.time_window == time_window * 60
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
         assert alert_rule.threshold_type == threshold_type.value
+        assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
     def test_include_all_projects(self):
