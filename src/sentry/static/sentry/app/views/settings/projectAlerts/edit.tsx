@@ -17,7 +17,6 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   hasMetricAlerts: boolean;
-  hasCreateFromDiscover: boolean;
 };
 
 function ProjectAlertsEditor(props: Props) {
