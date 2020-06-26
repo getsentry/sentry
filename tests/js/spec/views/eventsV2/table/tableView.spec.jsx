@@ -27,12 +27,12 @@ describe('TableView > CellActions', function() {
   const eventView = EventView.fromLocation(location);
   const tagKeys = ['size', 'shape', 'direction'];
 
-  function makeWrapper(context, tableData) {
+  function makeWrapper(context, tableData, view) {
     return mountWithTheme(
       <TableView
         organization={context.organization}
         location={location}
-        eventView={eventView}
+        eventView={view}
         tagKeys={tagKeys}
         isLoading={false}
         projects={context.organization.projects}
@@ -100,7 +100,7 @@ describe('TableView > CellActions', function() {
   it('handles add cell action on null value', function() {
     rows.data[0].title = null;
 
-    const wrapper = makeWrapper(initialData, rows);
+    const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 0);
     menu.find('button[data-test-id="add-to-filter"]').simulate('click');
 
@@ -112,21 +112,41 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles add cell action on string value', function() {
-    const wrapper = makeWrapper(initialData, rows);
+  it('handles add cell action on null value replace has condition', function() {
+    rows.data[0].title = null;
+    const view = eventView.clone();
+    view.query = 'tag:value has:title';
+
+    const wrapper = makeWrapper(initialData, rows, view);
     const menu = openContextMenu(wrapper, 0);
     menu.find('button[data-test-id="add-to-filter"]').simulate('click');
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
-        query: 'title:"some title"',
+        query: 'tag:value !has:title',
+      }),
+    });
+  });
+
+  it('handles add cell action on string value replace negation', function() {
+    const view = eventView.clone();
+    view.query = 'tag:value !title:nope';
+
+    const wrapper = makeWrapper(initialData, rows, view);
+    const menu = openContextMenu(wrapper, 0);
+    menu.find('button[data-test-id="add-to-filter"]').simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: location.pathname,
+      query: expect.objectContaining({
+        query: 'tag:value title:"some title"',
       }),
     });
   });
 
   it('handles exclude cell action on string value', function() {
-    const wrapper = makeWrapper(initialData, rows);
+    const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 0);
     menu.find('button[data-test-id="exclude-from-filter"]').simulate('click');
 
@@ -138,10 +158,26 @@ describe('TableView > CellActions', function() {
     });
   });
 
+  it('handles exclude cell action on string value replace inclusion', function() {
+    const view = eventView.clone();
+    view.query = 'tag:value title:nope';
+
+    const wrapper = makeWrapper(initialData, rows, view);
+    const menu = openContextMenu(wrapper, 0);
+    menu.find('button[data-test-id="exclude-from-filter"]').simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: location.pathname,
+      query: expect.objectContaining({
+        query: 'tag:value !title:"some title"',
+      }),
+    });
+  });
+
   it('handles exclude cell action on null value', function() {
     rows.data[0].title = null;
 
-    const wrapper = makeWrapper(initialData, rows);
+    const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 0);
     menu.find('button[data-test-id="exclude-from-filter"]').simulate('click');
 
@@ -153,8 +189,25 @@ describe('TableView > CellActions', function() {
     });
   });
 
+  it('handles exclude cell action on null value replace condition', function() {
+    const view = eventView.clone();
+    view.query = 'tag:value !has:title';
+    rows.data[0].title = null;
+
+    const wrapper = makeWrapper(initialData, rows, view);
+    const menu = openContextMenu(wrapper, 0);
+    menu.find('button[data-test-id="exclude-from-filter"]').simulate('click');
+
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: location.pathname,
+      query: expect.objectContaining({
+        query: 'tag:value has:title',
+      }),
+    });
+  });
+
   it('handles greater than cell action on number value', function() {
-    const wrapper = makeWrapper(initialData, rows);
+    const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 2);
     menu.find('button[data-test-id="show-values-greater-than"]').simulate('click');
 
@@ -167,7 +220,7 @@ describe('TableView > CellActions', function() {
   });
 
   it('handles less than cell action on number value', function() {
-    const wrapper = makeWrapper(initialData, rows);
+    const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 2);
     menu.find('button[data-test-id="show-values-less-than"]').simulate('click');
 
@@ -180,7 +233,7 @@ describe('TableView > CellActions', function() {
   });
 
   it('handles go to transaction', function() {
-    const wrapper = makeWrapper(initialData, rows);
+    const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 1);
     menu.find('button[data-test-id="transaction-summary"]').simulate('click');
 
@@ -193,7 +246,7 @@ describe('TableView > CellActions', function() {
   });
 
   it('handles go to release', function() {
-    const wrapper = makeWrapper(initialData, rows);
+    const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 4);
     menu.find('button[data-test-id="release"]').simulate('click');
 

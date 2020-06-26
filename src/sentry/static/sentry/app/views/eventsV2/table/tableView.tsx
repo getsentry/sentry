@@ -274,6 +274,10 @@ class TableView extends React.Component<TableViewProps> {
             if (!query.hasOwnProperty('has')) {
               query.has = [];
             }
+            // Remove exclusion if it exists.
+            if (Array.isArray(query['!has']) && query['!has'].length) {
+              query['!has'] = query['!has'].filter(item => item !== column.name);
+            }
             query.has.push(column.name);
           } else {
             // Remove positive if it exists.
