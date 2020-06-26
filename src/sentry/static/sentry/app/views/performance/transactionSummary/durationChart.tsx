@@ -1,5 +1,7 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
+import {Location} from 'history';
 
 import {OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
@@ -38,6 +40,7 @@ type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 type Props = ReactRouter.WithRouterProps &
   ViewProps & {
     api: Client;
+    location: Location;
     organization: OrganizationSummary;
   };
 
@@ -48,16 +51,44 @@ const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
  * percentiles over the past 7 days
  */
 class DurationChart extends React.Component<Props> {
+  handleLegendSelectChanged = (legendChange, _event) => {
+    const {location} = this.props;
+    const {selected} = legendChange;
+    const unselected = Object.keys(selected).filter(key => !selected[key]);
+
+    const to = {
+      ...location,
+      query: {
+        ...location.query,
+        unselectedSeries: unselected,
+      },
+    };
+    browserHistory.push(to);
+  };
+
   render() {
     const {
       api,
       project,
       environment,
+      location,
       organization,
       query,
       statsPeriod,
       router,
     } = this.props;
+
+    const {
+      query: {unselectedSeries = []},
+    } = location;
+    const seriesSelection = {};
+    if (typeof unselectedSeries === 'string') {
+      seriesSelection[unselectedSeries] = false;
+    } else {
+      for (const unselected of unselectedSeries) {
+        seriesSelection[unselected] = false;
+      }
+    }
 
     const start = this.props.start
       ? getUtcToLocalDateObject(this.props.start)
@@ -79,6 +110,7 @@ class DurationChart extends React.Component<Props> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
+      selected: seriesSelection,
     };
 
     const tooltip = {
@@ -173,6 +205,7 @@ class DurationChart extends React.Component<Props> {
                             <AreaChart
                               {...zoomRenderProps}
                               legend={legend}
+                              onLegendSelectChanged={this.handleLegendSelectChanged}
                               series={[...series, ...releaseSeries]}
                               seriesOptions={{
                                 showSymbol: false,
