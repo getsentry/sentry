@@ -10,6 +10,7 @@ import pytest
 
 from datetime import datetime
 from django.conf import settings
+from django.utils.text import slugify
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
@@ -218,6 +219,11 @@ class Browser(object):
                 tf.flush()
                 click.launch(tf.name)
                 time.sleep(1)
+
+        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") == "1":
+            self.save_screenshot(
+                u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
+            )
 
         self.percy.snapshot(name=name)
         return self

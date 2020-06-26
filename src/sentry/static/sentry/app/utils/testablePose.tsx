@@ -8,7 +8,7 @@ type PoseConfig = {[key: string]: any};
  *
  * This function simply sets delays and durations to 0.
  */
-const testablePose = !process.env.IS_PERCY
+const testablePose = !process.env.IS_CI
   ? (a: PoseConfig) => a
   : function(animation: PoseConfig) {
       Object.keys(animation).forEach(pose => {
