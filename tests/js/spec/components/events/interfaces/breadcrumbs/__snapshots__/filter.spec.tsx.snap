@@ -478,6 +478,7 @@ exports[`Filter default render 1`] = `
                     "blue500": "#194591",
                     "borderDark": "#C6BECF",
                     "borderLight": "#E7E1EC",
+                    "borderLighter": "#FAF9FB",
                     "borderRadius": "4px",
                     "borderRadiusBottom": "0 0 4px 4px",
                     "borderRadiusTop": "4px 4px 0 0",
