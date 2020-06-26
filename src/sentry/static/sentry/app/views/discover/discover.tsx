@@ -477,6 +477,7 @@ export default class Discover extends React.Component<Props, State> {
                 savedQuery={savedQuery}
                 onToggleEdit={toggleEditMode}
                 onFetchPage={this.onFetchPage}
+                discover2Url={discoverUrl}
               />
             )}
             {!shouldDisplayResult && (
