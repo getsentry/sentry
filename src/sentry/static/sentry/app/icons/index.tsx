@@ -87,6 +87,7 @@ export {IconToggle} from './iconToggle';
 export {IconUpgrade} from './iconUpgrade';
 export {IconUpload} from './iconUpload';
 export {IconUser} from './iconUser';
+export {IconVercel} from './iconVercel';
 export {IconVsts} from './iconVsts';
 export {IconWarning} from './iconWarning';
 export {IconWindow} from './iconWindow';
