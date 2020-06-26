@@ -23,7 +23,6 @@ import {defined} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import QuestionTooltip from 'app/components/questionTooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import withOrganization from 'app/utils/withOrganization';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
@@ -204,7 +203,7 @@ class Relays extends AsyncComponent<Props, State> {
   }
 }
 
-export default withOrganization(Relays);
+export default Relays;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(3, auto) max-content;
