@@ -6,39 +6,47 @@ import Button from 'app/components/button';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 
-import emptyState from '../../../images/spot/performance-empty-state.svg';
+import emptyStateImg from '../../../images/spot/performance-empty-state.svg';
 
 function Onboarding() {
   return (
-    <StyledOnboardingPanel>
+    <OnboardingPanel image={<PerfImage src={emptyStateImg} />}>
       <h3>{t('Pinpoint problems')}</h3>
       <p>
         {t(
-          "You've got this souped up plan. Now what? Get your software set up. We’ve got endpoints to track down."
+          "You've got this souped up plan. Now what? Get your software set up. We’ve got transactions to track down."
         )}
       </p>
       <ButtonList>
         <Button
           priority="default"
           target="_blank"
-          href="https://docs.sentry.io/performance-monitoring/setup/"
+          href="https://docs.sentry.io/performance-monitoring/performance/"
         >
-          {t('Take the tour')}
+          {t('Learn More')}
         </Button>
         <Button
           priority="primary"
           target="_blank"
           href="https://docs.sentry.io/performance-monitoring/setup/"
         >
-          {t('Step 1: Install')}
+          {t('Start Setup')}
         </Button>
       </ButtonList>
-    </StyledOnboardingPanel>
+    </OnboardingPanel>
   );
 }
 
-const StyledOnboardingPanel = styled(OnboardingPanel)`
-  background: url(${emptyState}) no-repeat left center !important;
+const PerfImage = styled('img')`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    position: absolute;
+    width: 450px;
+    top: 20%;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    width: 600px;
+  }
 `;
 
 const ButtonList = styled('div')`
