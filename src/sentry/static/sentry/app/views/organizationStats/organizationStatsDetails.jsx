@@ -4,7 +4,6 @@ import React from 'react';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {intcomma} from 'app/utils';
 import {t} from 'app/locale';
-import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -17,6 +16,7 @@ import {
   ProjectTableDataElement,
 } from 'app/views/organizationStats/projectTableLayout';
 import {PageContent} from 'app/styles/organization';
+import PerformanceAlert from 'app/views/organizationStats/performanceAlert';
 
 class OrganizationStats extends React.Component {
   static propTypes = {
@@ -80,11 +80,11 @@ class OrganizationStats extends React.Component {
             <TextBlock>
               {t(
                 `The chart below reflects events the system has received
-            across your entire organization. Events are broken down into
-            three categories: Accepted, Rate Limited, and Filtered. Rate
-            Limited events are entries that the system threw away due to quotas
-            being hit, and Filtered events are events that were blocked
-            due to your inbound data filter rules.`
+                across your entire organization. Events are broken down into
+                three categories: Accepted, Rate Limited, and Filtered. Rate
+                Limited events are entries that the system threw away due to quotas
+                being hit, and Filtered events are events that were blocked
+                due to your inbound data filter rules.`
               )}
             </TextBlock>
           </div>
@@ -96,9 +96,7 @@ class OrganizationStats extends React.Component {
           )}
         </div>
         <div>
-          <Alert type="info" icon="icon-circle-info">
-            {t('Transactions and attachments are not present in the graph currently.')}
-          </Alert>
+          <PerformanceAlert />
           {statsLoading ? (
             <LoadingIndicator />
           ) : statsError ? (
