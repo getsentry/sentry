@@ -146,6 +146,23 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project.id)
         self.run_test("project.id", expected=[])
 
+    def test_project_name(self):
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=self.project.id)
+        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id)
+        self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project.id)
+        self.run_test("project", expected=[(self.project.slug, 2)])
+
+    def test_project_name_with_query(self):
+        other_project = self.create_project(organization=self.org, name="test1")
+        other_project2 = self.create_project(organization=self.org, name="test2")
+        self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project.id)
+        self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=other_project.id)
+        self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project2.id)
+        self.run_test("project", qs_params={"query": "test"}, expected=[("test1", 2), ("test2", 1)])
+        self.run_test("project", qs_params={"query": "1"}, expected=[("test1", 2)])
+
     def test_array_column(self):
         for i in range(3):
             self.store_event(
