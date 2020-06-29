@@ -106,6 +106,20 @@ describe('CreateAlertButton', () => {
     );
   });
 
+  it('should allow yAxis with a number as the parameter', () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      query: 'event.type:transaction',
+      yAxis: 'apdex(300)',
+      fields: [...DEFAULT_EVENT_VIEW.fields, 'apdex(300)'],
+      projects: [2],
+    });
+    expect(eventView.getYAxis()).toBe('apdex(300)');
+    const component = generateWrappedComponent(organization, eventView);
+    component.simulate('click');
+    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
+  });
+
   it('should warn with multiple errors, missing event.type and project', () => {
     const eventView = EventView.fromSavedQuery({
       ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
