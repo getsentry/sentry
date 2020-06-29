@@ -20,7 +20,7 @@ class VercelUninstallEndpoint(Endpoint):
         return super(VercelUninstallEndpoint, self).dispatch(request, *args, **kwargs)
 
     @transaction_start("VercelUninstallEndpoint")
-    def post(self, request):
+    def delete(self, request):
         # userId should always be present
         external_id = request.data.get("teamId") or request.data.get("userId")
         configuration_id = request.data.get("configurationId")
@@ -49,7 +49,7 @@ class VercelUninstallEndpoint(Endpoint):
                 data={"provider": integration.provider, "name": integration.name},
             )
             integration.delete()
-            return self.respond(status=202)
+            return self.respond(status=204)
 
         configuration = integration.metadata["configurations"].pop(configuration_id)
         if configuration_id == integration.metadata["installation_id"]:
@@ -67,7 +67,7 @@ class VercelUninstallEndpoint(Endpoint):
                 organization_id=configuration["organization_id"], integration_id=integration.id
             ).delete()
         except OrganizationIntegration.DoesNotExist:
-            logger.info(
+            logger.error(
                 "vercel.uninstall.missing-org-integration",
                 extra={
                     "configuration_id": configuration_id,
@@ -93,4 +93,4 @@ class VercelUninstallEndpoint(Endpoint):
             data={"provider": integration.provider, "name": integration.name},
         )
 
-        return self.respond(status=202)
+        return self.respond(status=204)

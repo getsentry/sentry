@@ -67,7 +67,7 @@ class VercelUninstallTest(APITestCase):
 
         assert len(OrganizationIntegration.objects.all()) == 2
 
-        response = self.client.post(
+        response = self.client.delete(
             path=self.url, data=PRIMARY_UNINSTALL_RESPONSE, content_type="application/json",
         )
 
@@ -96,7 +96,7 @@ class VercelUninstallTest(APITestCase):
 
         assert len(OrganizationIntegration.objects.all()) == 2
 
-        response = self.client.post(
+        response = self.client.delete(
             path=self.url, data=NONPRIMARY_UNINSTALL_RESPONSE, content_type="application/json",
         )
 
@@ -143,7 +143,7 @@ class VercelUninstallTest(APITestCase):
         )
         integration.add_organization(org)
 
-        response = self.client.post(
+        response = self.client.delete(
             path=self.url, data=USERID_UNINSTALL_RESPONSE, content_type="application/json",
         )
 
