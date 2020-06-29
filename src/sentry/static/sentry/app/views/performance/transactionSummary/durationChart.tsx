@@ -51,7 +51,7 @@ const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
  * percentiles over the past 7 days
  */
 class DurationChart extends React.Component<Props> {
-  handleLegendSelectChanged = (legendChange, _event) => {
+  handleLegendSelectChanged = legendChange => {
     const {location} = this.props;
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);
@@ -78,17 +78,14 @@ class DurationChart extends React.Component<Props> {
       router,
     } = this.props;
 
-    const {
-      query: {unselectedSeries = []},
-    } = location;
-    const seriesSelection = {};
-    if (typeof unselectedSeries === 'string') {
-      seriesSelection[unselectedSeries] = false;
-    } else {
-      for (const unselected of unselectedSeries) {
-        seriesSelection[unselected] = false;
-      }
-    }
+    const unselectedSeries = location.query.unselectedSeries ?? [];
+    const unselectedMetrics = Array.isArray(unselectedSeries)
+      ? unselectedSeries
+      : [unselectedSeries];
+    const seriesSelection = unselectedMetrics.reduce((selection, metric) => {
+      selection[metric] = false;
+      return selection;
+    }, {});
 
     const start = this.props.start
       ? getUtcToLocalDateObject(this.props.start)
