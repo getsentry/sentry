@@ -62,7 +62,7 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
   renderGroupInfoSummary() {
     const {groupInfo} = this.state;
 
-    if (groupInfo === null) {
+    if (!groupInfo) {
       return null;
     }
 
