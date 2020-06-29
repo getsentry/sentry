@@ -19,9 +19,7 @@ type Props = DefaultProps & {
   message?: React.ReactNode;
 
   // To add context for better error reporting
-  errorTag?: Record<string, string>
-    [tag: string]: string;
-  };
+  errorTag?: Record<string, string>;
 };
 
 type State = {
