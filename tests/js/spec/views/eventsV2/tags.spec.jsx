@@ -55,6 +55,7 @@ describe('Tags', function() {
         selection={{projects: [], environments: [], datetime: {}}}
         location={{query: {}}}
         generateUrl={generateUrl}
+        confirmedQuery={false}
       />
     );
 
@@ -93,6 +94,7 @@ describe('Tags', function() {
         selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
         generateUrl={generateUrl}
+        confirmedQuery={false}
       />,
       initialData.routerContext
     );
