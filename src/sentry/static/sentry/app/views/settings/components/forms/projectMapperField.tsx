@@ -238,7 +238,7 @@ export class RenderField extends React.Component<RenderProps, State> {
             {t('Add Project')}
           </StyledAddProjectButton>
           {nextUrl && (
-            <StyledBackToVercelButton
+            <StyledNextButton
               type="button"
               size="small"
               priority="primary"
@@ -247,7 +247,7 @@ export class RenderField extends React.Component<RenderProps, State> {
               external
             >
               {nextButtonText}
-            </StyledBackToVercelButton>
+            </StyledNextButton>
           )}
         </Item>
       </div>
@@ -310,7 +310,7 @@ const StyledAddProjectButton = styled(Button)`
   margin-left: ${space(2)};
 `;
 
-const StyledBackToVercelButton = styled(Button)`
+const StyledNextButton = styled(Button)`
   margin-left: ${space(2)};
 `;
 
