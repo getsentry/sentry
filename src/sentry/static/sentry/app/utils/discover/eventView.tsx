@@ -1007,7 +1007,7 @@ class EventView {
     return defaultOption;
   }
 
-  getDisplayOptions() {
+  getDisplayOptions(): SelectValue<string>[] {
     if (!this.start && !this.end) {
       return DISPLAY_MODE_OPTIONS;
     }
@@ -1017,6 +1017,15 @@ class EventView {
       }
       return item;
     });
+  }
+
+  getDisplayMode() {
+    const displayOptions = this.getDisplayOptions();
+    const selectedOption = displayOptions.find(option => option.value === this.display);
+    if (selectedOption && !selectedOption.disabled) {
+      return this.display ?? DisplayModes.DEFAULT;
+    }
+    return DisplayModes.DEFAULT;
   }
 }
 

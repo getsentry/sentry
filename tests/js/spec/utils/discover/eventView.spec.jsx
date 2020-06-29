@@ -3,7 +3,11 @@ import EventView, {
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
-import {CHART_AXIS_OPTIONS, DISPLAY_MODE_OPTIONS} from 'app/utils/discover/types';
+import {
+  CHART_AXIS_OPTIONS,
+  DisplayModes,
+  DISPLAY_MODE_OPTIONS,
+} from 'app/utils/discover/types';
 
 const generateFields = fields =>
   fields.map(field => ({
@@ -2362,6 +2366,46 @@ describe('EventView.getDisplayOptions()', function() {
     const options = eventView.getDisplayOptions();
     expect(options[1].value).toEqual('previous');
     expect(options[1].disabled).toBeTruthy();
+  });
+});
+
+describe('EventView.getDisplayMode()', function() {
+  const state = {
+    fields: [],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  it('should have default', function() {
+    const eventView = new EventView({
+      ...state,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DEFAULT);
+  });
+
+  it('should return current mode when not disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      display: DisplayModes.TOP5,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.TOP5);
+  });
+
+  it('should return default mode when disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      // the existence of start and end will disable the PREVIOUS mode
+      end: '2020-04-13T12:13:14',
+      start: '2020-04-01T12:13:14',
+      display: DisplayModes.PREVIOUS,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DEFAULT);
   });
 });
 

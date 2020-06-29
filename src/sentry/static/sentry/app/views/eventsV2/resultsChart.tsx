@@ -168,7 +168,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
           yAxisOptions={eventView.getYAxisOptions()}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
-          displayMode={eventView.display || DisplayModes.DEFAULT}
+          displayMode={eventView.getDisplayMode()}
           onDisplayChange={onDisplayChange}
         />
       </StyledPanel>
