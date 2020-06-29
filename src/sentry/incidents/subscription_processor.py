@@ -9,6 +9,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import transaction
 
+from sentry import features
 from sentry.incidents.logic import create_incident, update_incident_status
 from sentry.incidents.endpoints.serializers import WARNING_TRIGGER_LABEL, CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import (
@@ -106,6 +107,11 @@ class SubscriptionProcessor(object):
         return incident_trigger is not None and incident_trigger.status == status.value
 
     def process_update(self, subscription_update):
+        if not features.has("organizations:incidents", self.subscription.project.organization):
+            # They have downgraded since these subscriptions have been created. So we just ignore updates for now.
+            metrics.incr("incidents.alert_rules.ignore_update_missing_feature")
+            return
+
         if not hasattr(self, "alert_rule"):
             # If the alert rule has been removed then just skip
             metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription")
