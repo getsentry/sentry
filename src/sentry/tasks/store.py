@@ -456,11 +456,7 @@ def _do_process_event(
     # We are fairly confident, however, that this should run *before*
     # re-normalization as it is hard to find sensitive data in partially
     # trimmed strings.
-    if (
-        has_changed
-        and options.get("processing.can-use-scrubbers")
-        and features.has("organizations:datascrubbers-v2", project.organization, actor=None)
-    ):
+    if has_changed and options.get("processing.can-use-scrubbers"):
         with sentry_sdk.start_span(op="task.store.datascrubbers.scrub"):
             with metrics.timer(
                 "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
@@ -471,7 +467,9 @@ def _do_process_event(
 
                 # XXX(markus): When datascrubbing is finally "totally stable", we might want
                 # to drop the event if it crashes to avoid saving PII
-                if new_data is not None:
+                if new_data is not None and features.has(
+                    "organizations:datascrubbers-v2", project.organization, actor=None
+                ):
                     data.data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
