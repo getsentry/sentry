@@ -48,7 +48,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
   {
     id: undefined,
     name: t('Errors by URL'),
-    fields: ['url', 'count()', 'count_unique(issue.id)'],
+    fields: ['url', 'count()', 'count_unique(issue)'],
     orderby: '-count',
     query: 'event.type:error has:url',
     projects: [],
