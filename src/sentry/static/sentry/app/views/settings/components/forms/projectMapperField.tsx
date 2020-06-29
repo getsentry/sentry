@@ -2,12 +2,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {components} from 'react-select';
 
+import space from 'app/styles/space';
 import InputField from 'app/views/settings/components/forms/inputField';
 import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
 import Button from 'app/components/button';
-import {IconJira, IconDelete} from 'app/icons';
+import {IconVercel, IconDelete, IconOpen} from 'app/icons';
+import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
 
 type MappedValue = string | number;
@@ -30,6 +32,7 @@ export class RenderField extends React.Component<RenderProps, State> {
       value: incomingValues,
       sentryProjects,
       mappedDropdown: {items: mappedDropdownItems, placeholder: mappedValuePlaceholder},
+      nextUrl,
     } = this.props;
     const existingValues: Array<[number, MappedValue]> = incomingValues || [];
 
@@ -107,6 +110,9 @@ export class RenderField extends React.Component<RenderProps, State> {
               <React.Fragment>
                 <StyledVercelIcon />
                 {mappedItem.label}
+                <StyledExternalLink href={mappedItem.url}>
+                  <IconOpen />
+                </StyledExternalLink>
               </React.Fragment>
             ) : (
               'Deleted'
@@ -147,7 +153,7 @@ export class RenderField extends React.Component<RenderProps, State> {
         return null;
       }
       return (
-        <components.Option {...projectProps}>
+        <components.Option padding={2} {...projectProps}>
           <IdBadge
             project={project}
             avatarSize={20}
@@ -186,7 +192,7 @@ export class RenderField extends React.Component<RenderProps, State> {
         {existingValues.map(renderItem)}
         <Item>
           <StyledSelectControl
-            placeholder={t('Choose Vercel ')}
+            placeholder={t('Choose Sentry project...')}
             name="project"
             openMenuOnFocus
             options={projectOptions}
@@ -218,6 +224,18 @@ export class RenderField extends React.Component<RenderProps, State> {
           >
             Add Project
           </StyledAddProjectButton>
+          {nextUrl && (
+            <StyledBackToVercelButton
+              type="button"
+              size="small"
+              priority="primary"
+              icon="icon-exit"
+              href={nextUrl}
+              external
+            >
+              Return to Vercel
+            </StyledBackToVercelButton>
+          )}
         </Item>
       </Wrapper>
     );
@@ -225,10 +243,11 @@ export class RenderField extends React.Component<RenderProps, State> {
 }
 
 const ProjectMapperField = (props: Props) => (
-  <InputField
+  <StyledInputField
     {...props}
     resetOnError
     inline={false}
+    stacked={false}
     field={(renderProps: RenderProps) => <RenderField {...renderProps} />}
   />
 );
@@ -236,14 +255,14 @@ const ProjectMapperField = (props: Props) => (
 export default ProjectMapperField;
 
 const StyledSelectControl = styled(SelectControl)`
-  width: 265px;
-  margin-left: 15px;
+  width: 272px;
+  margin-left: ${space(1.5)};
 `;
 
 const Wrapper = styled('div')``;
 
 const Item = styled('div')`
-  margin-top: -1px;
+  margin: -1px;
   border: 1px solid ${p => p.theme.gray400};
   display: flex;
   align-items: center;
@@ -251,29 +270,42 @@ const Item = styled('div')`
 `;
 
 const ItemValue = styled('div')`
-  padding: 5px;
-  margin-left: 20px;
+  padding: ${space(0.5)};
+  margin-left: ${space(2)};
 `;
 
 const MappedItemValue = styled('div')`
-  padding: 5px;
+  display: flex;
+  padding: ${space(0.5)};
   position: absolute;
   left: 300px;
 `;
 
 const DeleteButton = styled(Button)`
   position: absolute;
-  right: 20px;
+  right: ${space(2)};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
-  margin-left: 20px;
+  margin-left: ${space(3)};
 `;
 
-const StyledVercelIcon = styled(IconJira)`
-  margin-right: 8px;
+const StyledVercelIcon = styled(IconVercel)`
+  margin-right: ${space(0.5)};
 `;
 
 const StyledAddProjectButton = styled(Button)`
-  margin-left: 15px;
+  margin-left: ${space(2)};
+`;
+
+const StyledBackToVercelButton = styled(Button)`
+  margin-left: ${space(2)};
+`;
+
+const StyledInputField = styled(InputField)`
+  padding: 0px;
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  margin-left: ${space(0.5)};
 `;

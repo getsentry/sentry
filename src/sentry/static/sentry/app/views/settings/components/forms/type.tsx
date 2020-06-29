@@ -131,10 +131,11 @@ export type TableType = {
 export type ProjectMapperType = {
   type: 'project_mapper';
   mappedDropdown: {
-    items: Array<{value: string | number; label: string}>;
+    items: Array<{value: string | number; label: string; url: string}>;
     placeholder: string;
   };
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
+  nextUrl?: string;
 };
 
 export type Field = (

@@ -675,6 +675,9 @@ type IntegrationAspects = {
     buttonText: string;
     noticeText: string;
   };
+  configure_integration?: {
+    title: string;
+  };
 };
 
 type BaseIntegrationProvider = {

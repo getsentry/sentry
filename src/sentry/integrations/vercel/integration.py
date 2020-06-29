@@ -59,6 +59,8 @@ external_install = {
 }
 
 
+configure_integration = {"title": _("Connect Your Projects")}
+
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
@@ -66,7 +68,7 @@ metadata = IntegrationMetadata(
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=Vercel%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
-    aspects={"externalInstall": external_install},
+    aspects={"externalInstall": external_install, "configure_integration": configure_integration},
 )
 
 internal_integration_overview = (
@@ -77,19 +79,52 @@ internal_integration_overview = (
 
 
 class VercelIntegration(IntegrationInstallation):
+    @property
+    def metadata(self):
+        return self.model.metadata
+
     def get_client(self):
-        access_token = self.model.metadata["access_token"]
-        if self.model.metadata["installation_type"] == "team":
+        access_token = self.metadata["access_token"]
+        if self.metadata["installation_type"] == "team":
             return VercelClient(access_token, self.model.external_id)
 
         return VercelClient(access_token)
 
+    # note this could return a different integration if the user has multiple
+    # installations with the same organization
+    def get_configuration_id(self):
+        for configuration_id, data in self.metadata["configurations"].items():
+            if data["organization_id"] == self.organization_id:
+                return configuration_id
+        logger.error(
+            "could not find matching org",
+            extra={"organization_id": self.organization_id, "integration_id": self.model.id},
+        )
+        return None
+
+    def get_base_project_url(self):
+        client = self.get_client()
+        if self.metadata["installation_type"] == "team":
+            team = client.get_team()
+            slug = team["slug"]
+        else:
+            user = client.get_user()
+            slug = user["username"]
+        return u"https://vercel.com/%s" % slug
+
     def get_organization_config(self):
         vercel_client = self.get_client()
         # TODO: add try/catch if we get API failure
+        base_url = self.get_base_project_url()
         vercel_projects = [
-            {"value": p["id"], "label": p["name"]} for p in vercel_client.get_projects()
+            {"value": p["id"], "label": p["name"], "url": u"%s/%s" % (base_url, p["name"])}
+            for p in vercel_client.get_projects()
         ]
+
+        next_url = None
+        configuration_id = self.get_configuration_id()
+        if configuration_id:
+            next_url = u"https://vercel.com/dashboard/integrations/%s" % configuration_id
 
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
@@ -107,9 +142,10 @@ class VercelIntegration(IntegrationInstallation):
                 "type": "project_mapper",
                 "mappedDropdown": {
                     "items": vercel_projects,
-                    "placeholder": _("Choose Vercel project"),
+                    "placeholder": _("Choose Vercel project..."),
                 },
                 "sentryProjects": sentry_projects,
+                "nextUrl": next_url,
             }
         ]
 
