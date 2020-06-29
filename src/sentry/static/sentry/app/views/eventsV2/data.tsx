@@ -43,6 +43,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     projects: [],
     version: 2,
     range: '24h',
+    display: 'top5',
   },
   {
     id: undefined,
