@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-import responses
 import json
+import responses
+import six
 
 from six.moves.urllib.parse import parse_qs
 from sentry.integrations.vercel import VercelIntegrationProvider
@@ -315,12 +316,16 @@ class VercelIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_ui_hook_options(self):
+        """Test that the response to the UI hook CORS pre-flight OPTIONS request is handled correctly"""
+
         uihook_url = "/extensions/vercel/ui-hook/"
         resp = self.client.options(path=uihook_url)
         assert resp.status_code == 200
 
     @responses.activate
     def test_ui_hook_post(self):
+        """Test that the response to the UI hook POST request is handled correctly"""
+
         uihook_url = "/extensions/vercel/ui-hook/"
         with self.tasks():
             self.assert_setup_flow()
@@ -333,8 +338,14 @@ class VercelIntegrationTest(IntegrationTestCase):
                 }
             },
         )
-
         data = b"""{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}"""
 
         resp = self.client.post(path=uihook_url, data=data, content_type="application/json")
         assert resp.status_code == 200
+        assert (
+            six.binary_type(
+                "https://www.sentry.io/settings/%s/integrations/vercel/%s"
+                % (self.organization.slug, integration.id)
+            )
+            in resp.content
+        )
