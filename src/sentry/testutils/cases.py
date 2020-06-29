@@ -718,7 +718,7 @@ class AcceptanceTestCase(TransactionTestCase):
 
     def dismiss_assistant(self, which=None):
         if which is None:
-            which = ("discover_sidebar", "issue", "issue_stream")
+            which = ("issue", "issue_stream")
         if isinstance(which, six.string_types):
             which = [which]
 
