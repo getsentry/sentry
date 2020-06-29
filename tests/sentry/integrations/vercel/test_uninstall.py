@@ -118,6 +118,10 @@ class VercelUninstallTest(APITestCase):
         }
 
     def test_uninstall_single_configuration(self):
+        """
+        Test uninstalling an integration with only one organization
+        associated with it.
+        """
         org = self.create_organization(owner=self.user)
         metadata = {
             "access_token": "my_access_token",
