@@ -73,7 +73,7 @@ class Relays extends AsyncComponent<Props, State> {
         addSuccessMessage(t('Successfully deleted Relay public key'));
         this.setRelays(response.trustedRelays);
       } catch {
-        addErrorMessage('An unknown error occurred while deleting Relay public key');
+        addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
       }
     };
   }
