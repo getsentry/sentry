@@ -58,7 +58,10 @@ describe('EventsV2 > EventDetails', function() {
             data: {},
           },
         ],
-        tags: [{key: 'browser', value: 'Firefox'}],
+        tags: [
+          {key: 'browser', value: 'Firefox'},
+          {key: 'device.uuid', value: 'test-uuid'},
+        ],
       },
     });
     MockApiClient.addMockResponse({
@@ -178,12 +181,28 @@ describe('EventsV2 > EventDetails', function() {
     await wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
+    const browserTagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
 
     // Should append tag value and other event attributes to results view query.
-    const target = tagLink.props().to;
-    expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
-    expect(target.query.query).toEqual('browser:Firefox title:"Oh no something bad"');
+    const browserTagTarget = browserTagLink.props().to;
+    expect(browserTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(browserTagTarget.query.query).toEqual(
+      'browser:Firefox title:"Oh no something bad"'
+    );
+
+    // Get the second link
+    const deviceUUIDTagLink = wrapper.find('EventDetails TagsTable TagValue Link').at(2);
+
+    // Should append tag value wrapped with tags[] as device.uuid is part of our fields
+    const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
+    expect(deviceUUIDTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(deviceUUIDTagTarget.query.query).toEqual(
+      'tags[device.uuid]:test-uuid title:"Oh no something bad"'
+    );
   });
 
   it('appends tag value to existing query when clicked', async function() {
@@ -210,13 +229,27 @@ describe('EventsV2 > EventDetails', function() {
     await wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const tagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
+    const browserTagLink = wrapper.find('EventDetails TagsTable TagValue Link').first();
 
     // Should append tag value and other event attributes to results view query.
-    const target = tagLink.props().to;
-    expect(target.pathname).toEqual('/organizations/org-slug/discover/results/');
-    expect(target.query.query).toEqual(
+    const browserTagTarget = browserTagLink.props().to;
+    expect(browserTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(browserTagTarget.query.query).toEqual(
       'Dumpster browser:Firefox title:"Oh no something bad"'
+    );
+
+    // Get the second link
+    const deviceUUIDTagLink = wrapper.find('EventDetails TagsTable TagValue Link').at(2);
+
+    // Should append tag value wrapped with tags[] as device.uuid is part of our fields
+    const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
+    expect(deviceUUIDTagTarget.pathname).toEqual(
+      '/organizations/org-slug/discover/results/'
+    );
+    expect(deviceUUIDTagTarget.query.query).toEqual(
+      'Dumpster tags[device.uuid]:test-uuid title:"Oh no something bad"'
     );
   });
 });

@@ -30,6 +30,7 @@ import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactio
 import {eventDetailsRoute} from 'app/utils/discover/urls';
 import * as Layout from 'app/components/layouts/thirds';
 import ButtonBar from 'app/components/buttonBar';
+import {FIELD_TAGS} from 'app/utils/discover/fields';
 
 import {generateTitle, getExpandedResults} from '../utils';
 import LinkedIssue from './linkedIssue';
@@ -106,6 +107,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return this.props.eventSlug.split(':')[0];
   }
 
+  generateTagKey = (tag: EventTag) => {
+    // Some tags may be normalized from context, but not all of them are.
+    // This supports a user making a custom tag with the same name as one
+    // that comes from context as all of these are also tags.
+    if (tag.key in FIELD_TAGS) {
+      return `tags[${tag.key}]`;
+    }
+    return tag.key;
+  };
+
   generateTagUrl = (tag: EventTag) => {
     const {eventView, organization} = this.props;
     const {event} = this.state;
@@ -116,12 +127,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     if (eventReference.id) {
       delete eventReference.id;
     }
-
-    const nextView = getExpandedResults(
-      eventView,
-      {[tag.key]: tag.value},
-      eventReference
-    );
+    const tagKey = this.generateTagKey(tag);
+    const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
     return nextView.getResultsViewUrlTarget(organization.slug);
   };
 
