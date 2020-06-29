@@ -29,6 +29,8 @@ import plugins from 'app/plugins';
 import routes from 'app/routes';
 import {normalizeTransactionName} from 'app/utils/apm';
 
+import {setupFavicon} from './favicon';
+
 if (process.env.NODE_ENV === 'development') {
   import(
     /* webpackChunkName: "SilenceReactUnsafeWarnings" */ /* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings'
@@ -139,32 +141,8 @@ const render = (Component: React.ComponentType) => {
   }
 };
 
-function changeFavicon(theme: 'dark' | 'light'): void {
-  const n = document.querySelector<HTMLLinkElement>('[rel="icon"][type="image/png"]');
-  if (!n) {
-    return;
-  }
-
-  const path = n.href.split('/sentry/')[0];
-  if (theme === 'dark') {
-    n.href = `${path}/sentry/images/favicon-dark.png`;
-  } else {
-    n.href = `${path}/sentry/images/favicon.png`;
-  }
-}
-
-function prefersDark(): boolean {
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
 if (process.env.NODE_ENV === 'production') {
-  // Set favicon to light/dark on load
-  prefersDark() && changeFavicon('dark');
-
-  window.matchMedia('(prefers-color-scheme: dark)').addListener(() => {
-    // Watch for changes in preferred color scheme
-    changeFavicon(prefersDark() ? 'dark' : 'light');
-  });
+  setupFavicon();
 }
 
 // The password strength component is very heavyweight as it includes the
