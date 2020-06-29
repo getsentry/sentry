@@ -4,6 +4,9 @@ import {components} from 'react-select';
 
 import space from 'app/styles/space';
 import InputField from 'app/views/settings/components/forms/inputField';
+import FormFieldControlState from 'app/views/settings/components/forms/formField/controlState';
+import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
+import FormModel from 'app/views/settings/components/forms/model';
 import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
@@ -15,7 +18,7 @@ import {t} from 'app/locale';
 type MappedValue = string | number;
 
 type Props = InputField['props'];
-type RenderProps = Props & ProjectMapperType;
+type RenderProps = Props & ProjectMapperType & {model: FormModel};
 
 type State = {
   selectedSentryProjectId: number | null;
@@ -43,6 +46,9 @@ export class RenderField extends React.Component<RenderProps, State> {
       mappedDropdown: {items: mappedDropdownItems, placeholder: mappedValuePlaceholder},
       nextButton: {url: nextUrl, text: nextButtonText},
       iconType,
+      model,
+      id: formElementId,
+      error,
     } = this.props;
     const existingValues: Array<[number, MappedValue]> = incomingValues || [];
 
@@ -201,7 +207,7 @@ export class RenderField extends React.Component<RenderProps, State> {
     };
 
     return (
-      <div>
+      <Wrapper>
         {existingValues.map(renderItem)}
         <Item>
           <StyledSelectControl
@@ -230,18 +236,25 @@ export class RenderField extends React.Component<RenderProps, State> {
           />
           <StyledAddProjectButton
             disabled={!selectedSentryProjectId || !selectedMappedValue}
-            type="button"
             size="small"
             priority="primary"
             onClick={handleAdd}
           >
             {t('Add Project')}
           </StyledAddProjectButton>
+          <FieldControlWrapper>
+            {formElementId && (
+              <div>
+                <FormFieldControlState model={model} name={formElementId} />
+                {error ? <StyledFieldErrorReason>{error}</StyledFieldErrorReason> : null}
+              </div>
+            )}
+          </FieldControlWrapper>
           {nextUrl && (
             <StyledNextButton
               type="button"
               size="small"
-              priority="primary"
+              priority="default"
               icon="icon-exit"
               href={nextUrl}
               external
@@ -250,7 +263,7 @@ export class RenderField extends React.Component<RenderProps, State> {
             </StyledNextButton>
           )}
         </Item>
-      </div>
+      </Wrapper>
     );
   }
 }
@@ -261,6 +274,7 @@ const ProjectMapperField = (props: Props) => (
     resetOnError
     inline={false}
     stacked={false}
+    hideControlState
     field={(renderProps: RenderProps) => <RenderField {...renderProps} />}
   />
 );
@@ -311,7 +325,8 @@ const StyledAddProjectButton = styled(Button)`
 `;
 
 const StyledNextButton = styled(Button)`
-  margin-left: ${space(2)};
+  position: absolute;
+  right: ${space(2)};
 `;
 
 const StyledInputField = styled(InputField)`
@@ -325,4 +340,15 @@ const StyledExternalLink = styled(ExternalLink)`
 const OptionWrapper = styled('div')`
   align-items: center;
   display: flex;
+`;
+
+const Wrapper = styled('div')``;
+
+const FieldControlWrapper = styled('div')`
+  position: relative;
+  margin-left: ${space(2)};
+`;
+
+const StyledFieldErrorReason = styled(FieldErrorReason)`
+  width: 100px;
 `;

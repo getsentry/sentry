@@ -280,6 +280,7 @@ class FormField extends React.Component<Props> {
       saveMessage,
       saveMessageAlertType,
       selectionInfoFunction,
+      hideControlState,
 
       // Don't pass `defaultValue` down to input fields, will be handled in form model
       defaultValue: _defaultValue,
@@ -307,6 +308,7 @@ class FormField extends React.Component<Props> {
               inline={inline}
               alignRight={alignRight}
               flexibleControlStateSize={flexibleControlStateSize}
+              hideControlState={hideControlState}
               controlState={<FormFieldControlState model={model} name={name} />}
               errorState={
                 <Observer>
