@@ -155,14 +155,12 @@ class Relays extends AsyncComponent<Props, State> {
             const maskedKey = '*************************';
             return (
               <React.Fragment key={key}>
-                {description ? (
-                  <Name>
-                    <Text>{name}</Text>
-                    <QuestionTooltip position="top" size="sm" title={description} />
-                  </Name>
-                ) : (
+                <Name>
                   <Text>{name}</Text>
-                )}
+                  {description && (
+                    <QuestionTooltip position="top" size="sm" title={description} />
+                  )}
+                </Name>
                 <KeyWrapper>
                   <Key content={maskedKey}>{maskedKey}</Key>
                   <IconWrapper>
@@ -177,17 +175,19 @@ class Relays extends AsyncComponent<Props, State> {
                   {!defined(created) ? t('Unknown') : <DateTime date={created} />}
                 </Text>
                 <Actions>
-                  <StyledButton
+                  <Button
+                    size="small"
                     title={t('Edit Key')}
                     label={t('Edit Key')}
-                    icon={<IconEdit />}
+                    icon={<IconEdit size="sm" />}
                     onClick={this.handleOpenEditDialog(key)}
                   />
-                  <StyledButton
+                  <Button
+                    size="small"
                     title={t('Delete Key')}
                     label={t('Delete Key')}
                     onClick={this.handleDelete(key)}
-                    icon={<IconDelete />}
+                    icon={<IconDelete size="sm" />}
                   />
                 </Actions>
               </React.Fragment>
@@ -204,9 +204,8 @@ export default Relays;
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(3, auto) max-content;
   > * {
-    padding: ${space(1)};
-    @media (min-width: ${theme.breakpoints[0]}) {
-      padding: ${space(1)} ${space(2)};
+    @media (max-width: ${theme.breakpoints[0]}) {
+      padding: ${space(1)};
     }
   }
 `;
@@ -226,7 +225,7 @@ const IconWrapper = styled('div')`
 
 const Text = styled(TextOverflow)`
   color: ${p => p.theme.gray700};
-  line-height: 40px;
+  line-height: 30px;
 `;
 
 const Key = styled(Text)<{content: string}>`
@@ -247,10 +246,6 @@ const Actions = styled('div')`
   grid-template-columns: auto 1fr;
   grid-gap: ${space(1)};
   align-items: center;
-`;
-
-const StyledButton = styled(Button)`
-  width: 40px;
 `;
 
 const Name = styled(Actions)``;
