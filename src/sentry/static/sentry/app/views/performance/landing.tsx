@@ -239,9 +239,7 @@ class PerformanceLanding extends React.Component<Props, State> {
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
-                <div>
-                  {t('Performance')} <FeatureBadge type="beta" />
-                </div>
+                <div>{t('Performance')}</div>
                 {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
               </StyledPageHeader>
               {this.renderError()}
