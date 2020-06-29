@@ -19,7 +19,7 @@ type Props = DefaultProps & {
   message?: React.ReactNode;
 
   // To add context for better error reporting
-  errorTag?: {
+  errorTag?: Record<string, string>
     [tag: string]: string;
   };
 };
