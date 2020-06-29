@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';

@@ -13,11 +13,7 @@ from exam import fixture
 from freezegun import freeze_time
 
 from sentry.incidents.action_handlers import EmailActionHandler
-from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
-)
+from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -55,14 +51,8 @@ class HandleSnubaQueryUpdateTest(TestCase):
     @fixture
     def rule(self):
         with self.tasks():
-            rule = create_alert_rule(
-                self.organization,
-                [self.project],
-                "some rule",
-                query="",
-                aggregate="count()",
-                time_window=1,
-                threshold_period=1,
+            rule = self.create_alert_rule(
+                name="some rule", query="", aggregate="count()", time_window=1, threshold_period=1
             )
             trigger = create_alert_rule_trigger(
                 rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10

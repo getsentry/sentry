@@ -9,7 +9,7 @@ describe('utils/tokenizeSearch', function() {
         object: {query: [], is: ['unresolved']},
       },
       {
-        name: 'should convert qutoed strings',
+        name: 'should convert quoted strings',
         string: 'is:unresolved browser:"Chrome 36"',
         object: {query: [], is: ['unresolved'], browser: ['Chrome 36']},
       },
@@ -22,6 +22,16 @@ describe('utils/tokenizeSearch', function() {
         name: 'should tokenize the text query',
         string: 'python   exception',
         object: {query: ['python', 'exception']},
+      },
+      {
+        name: 'should tokenize has condition',
+        string: 'has:user has:browser',
+        object: {query: [], has: ['user', 'browser']},
+      },
+      {
+        name: 'should tokenize !has condition',
+        string: '!has:user has:browser',
+        object: {query: [], '!has': ['user'], has: ['browser']},
       },
       {
         name: 'should remove spaces in the query',

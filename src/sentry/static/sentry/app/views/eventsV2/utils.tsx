@@ -420,13 +420,6 @@ function generateExpandedConditions(
   return stringifyQueryObject(parsedQuery);
 }
 
-export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
-  if (organization.features.includes('discover-query')) {
-    return `/organizations/${organization.slug}/discover/queries/`;
-  }
-  return `/organizations/${organization.slug}/discover/results/`;
-}
-
 type FieldGeneratorOpts = {
   organization: OrganizationSummary;
   tagKeys?: string[] | null;
