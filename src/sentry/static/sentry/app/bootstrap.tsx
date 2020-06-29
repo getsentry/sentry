@@ -140,7 +140,7 @@ const render = (Component: React.ComponentType) => {
 };
 
 function changeFavicon(theme: 'dark' | 'light'): void {
-  const n = document.querySelector<HTMLLinkElement>('.js-site-favicon[type="image/png"]');
+  const n = document.querySelector<HTMLLinkElement>('[rel="icon"][type="image/png"]');
   if (!n) {
     return;
   }
