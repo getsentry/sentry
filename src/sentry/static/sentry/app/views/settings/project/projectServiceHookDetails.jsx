@@ -100,7 +100,7 @@ export default class ProjectServiceHookDetails extends AsyncView {
 
   onDelete = () => {
     const {orgId, projectId, hookId} = this.props.params;
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
     this.api.request(`/projects/${orgId}/${projectId}/hooks/${hookId}/`, {
       method: 'DELETE',
       success: () => {

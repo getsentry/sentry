@@ -159,7 +159,7 @@ const GroupDetailsActions = createReactClass({
 
   onDelete() {
     const {group, project, organization} = this.props;
-    addLoadingMessage(t('Delete event..'));
+    addLoadingMessage(t('Delete event\u2026'));
 
     this.props.api.bulkDelete(
       {
@@ -179,7 +179,7 @@ const GroupDetailsActions = createReactClass({
 
   onUpdate(data) {
     const {group, project, organization} = this.props;
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     this.props.api.bulkUpdate(
       {
@@ -232,7 +232,7 @@ const GroupDetailsActions = createReactClass({
   onDiscard() {
     const {group, project, organization} = this.props;
     const id = uniqueId();
-    addLoadingMessage(t('Discarding event..'));
+    addLoadingMessage(t('Discarding event\u2026'));
 
     GroupActions.discard(id, group.id);
 

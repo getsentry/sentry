@@ -236,7 +236,7 @@ const IssueListActions = createReactClass({
   handleUpdate(data) {
     const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
-      addLoadingMessage(t('Saving changes..'));
+      addLoadingMessage(t('Saving changes\u2026'));
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
@@ -268,7 +268,7 @@ const IssueListActions = createReactClass({
   handleDelete() {
     const {selection} = this.props;
 
-    addLoadingMessage(t('Removing events..'));
+    addLoadingMessage(t('Removing events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       this.props.api.bulkDelete(
@@ -292,7 +292,7 @@ const IssueListActions = createReactClass({
   handleMerge() {
     const {selection} = this.props;
 
-    addLoadingMessage(t('Merging events..'));
+    addLoadingMessage(t('Merging events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       this.props.api.merge(

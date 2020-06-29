@@ -92,7 +92,7 @@ class PluginComponentBase extends React.Component {
         state: FormState.SAVING,
       },
       () => {
-        addLoadingMessage(t('Saving changes..'));
+        addLoadingMessage(t('Saving changes\u2026'));
         callback && callback();
       }
     );
