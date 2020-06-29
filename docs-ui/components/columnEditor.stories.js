@@ -15,7 +15,7 @@ storiesOf('Discover|ColumnEditor', module).add(
   })(() => {
     const organization = {
       slug: 'test-org',
-      features: ['transaction-events'],
+      features: ['discover-query', 'performance-view'],
     };
     const tags = ['browser.name', 'custom-field', 'project'];
     const columns = [

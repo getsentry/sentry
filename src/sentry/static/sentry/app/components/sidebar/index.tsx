@@ -25,7 +25,6 @@ import {
   IconTelescope,
 } from 'app/icons';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {getDiscoverLandingUrl} from 'app/views/eventsV2/utils';
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
@@ -34,6 +33,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
 import localStorage from 'app/utils/localStorage';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';

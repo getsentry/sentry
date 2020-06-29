@@ -9,5 +9,5 @@ export default function getDynamicText<Value, Fixed = Value>({
   value: Value;
   fixed: Fixed;
 }): Value | Fixed {
-  return process.env.IS_PERCY || process.env.FIXED_DYNAMIC_CONTENT ? fixed : value;
+  return process.env.IS_CI || process.env.FIXED_DYNAMIC_CONTENT ? fixed : value;
 }

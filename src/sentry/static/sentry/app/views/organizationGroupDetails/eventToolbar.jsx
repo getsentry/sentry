@@ -14,7 +14,6 @@ import FileSize from 'app/components/fileSize';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 const formatDateDelta = (reference, observed) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -43,7 +42,6 @@ class GroupEventToolbar extends React.Component {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     location: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
   };
 
   shouldComponentUpdate(nextProps) {
@@ -79,43 +77,6 @@ class GroupEventToolbar extends React.Component {
           </React.Fragment>
         )}
       </dl>
-    );
-  }
-
-  renderRelatedTransactionButton() {
-    const {organization, event, orgId, location} = this.props;
-
-    const orgFeatures = new Set(organization.features);
-
-    if (!orgFeatures.has('performance-view')) {
-      return null;
-    }
-
-    const transactionTag = event?.tags?.find(tag => {
-      return tag?.key === 'transaction';
-    });
-
-    if (!transactionTag) {
-      return null;
-    }
-
-    const transactionName = transactionTag?.value;
-
-    if (typeof transactionName !== 'string' || !transactionName) {
-      return null;
-    }
-
-    const to = transactionSummaryRouteWithQuery({
-      orgSlug: orgId,
-      transaction: transactionName,
-      projectID: event.projectID,
-      query: location.query,
-    });
-
-    return (
-      <Button key="related-transaction" to={to} size="small">
-        {t('Related Transaction')}
-      </Button>
     );
   }
 
@@ -182,7 +143,6 @@ class GroupEventToolbar extends React.Component {
     return (
       <div className="event-toolbar">
         <NavigationButtons gap={1}>
-          {this.renderRelatedTransactionButton()}
           <ButtonBar merged>{eventNavNodes}</ButtonBar>
         </NavigationButtons>
         <h4>
