@@ -83,7 +83,7 @@ function ActivityItem({
         <StyledActivityAvatar type={author.type} user={author.user} size={avatarSize} />
       )}
 
-      <ActivityBubble {...bubbleProps}>
+      <StyledActivityBubble {...bubbleProps}>
         {header && isRenderFunc<ChildFunction>(header) && header()}
         {header && !isRenderFunc<ChildFunction>(header) && (
           <ActivityHeader>
@@ -103,7 +103,7 @@ function ActivityItem({
         {footer && !isRenderFunc<ChildFunction>(footer) && (
           <ActivityFooter>{footer}</ActivityFooter>
         )}
-      </ActivityBubble>
+      </StyledActivityBubble>
     </ActivityItemWrapper>
   );
 }
@@ -154,7 +154,6 @@ const ActivityFooter = styled(HeaderAndFooter)`
 
 const ActivityBody = styled('div')`
   padding: ${space(2)} ${space(2)};
-  word-break: break-all;
   ${textStyles}
 `;
 
@@ -168,6 +167,11 @@ const StyledTimeSince = styled(TimeSince)`
 
 const StyledDateTime = styled(DateTime)`
   color: ${p => p.theme.gray500};
+`;
+
+const StyledActivityBubble = styled(ActivityBubble)`
+  width: 75%;
+  overflow-wrap: break-word;
 `;
 
 export default ActivityItem;
