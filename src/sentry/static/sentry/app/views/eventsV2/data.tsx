@@ -15,7 +15,7 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
 export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
   {
     id: undefined,
-    name: t('Transactions'),
+    name: t('Transactions by Volume'),
     fields: [
       'transaction',
       'project',
