@@ -35,22 +35,15 @@ class DialogManager<
   P extends Props = Props,
   S extends State = State
 > extends React.Component<P, S> {
-  constructor(props: P) {
-    super(props);
-    this.handleValidate = this.handleValidate.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-    this.handleValidateKey = this.handleValidateKey.bind(this);
-    this.handleSave = this.handleSave.bind(this);
-    this.state = this.getDefaultState() as Readonly<S>;
-  }
+  state = this.getDefaultState();
 
   componentDidMount() {
-    this.handleValidateForm();
+    this.validateForm();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: S) {
     if (!isEqual(prevState.values, this.state.values)) {
-      this.handleValidateForm();
+      this.validateForm();
     }
     if (
       !isEqual(prevState.errors, this.state.errors) &&
@@ -84,6 +77,17 @@ class DialogManager<
     this.setState({isFormValid});
   }
 
+  validateForm() {
+    const {values, requiredValues, errors} = this.state;
+
+    const isFormValid = requiredValues.every(
+      requiredValue =>
+        !!values[requiredValue].replace(/\s/g, '') && !errors[requiredValue]
+    );
+
+    this.setValidForm(isFormValid);
+  }
+
   clearError<F extends keyof Values>(field: F) {
     this.setState(prevState => ({
       errors: omit(prevState.errors, field),
@@ -109,7 +113,7 @@ class DialogManager<
     }
   }
 
-  handleChange<F extends keyof Values>(field: F, value: Values[F]) {
+  handleChange = <F extends keyof Values>(field: F, value: Values[F]) => {
     this.setState(prevState => ({
       values: {
         ...prevState.values,
@@ -117,9 +121,9 @@ class DialogManager<
       },
       errors: omit(prevState.errors, field),
     }));
-  }
+  };
 
-  async handleSave() {
+  handleSave = async () => {
     const {onSubmitSuccess, closeModal, orgSlug, api} = this.props;
 
     const trustedRelays = this.getData().trustedRelays.map(trustedRelay =>
@@ -136,46 +140,33 @@ class DialogManager<
     } catch (error) {
       this.convertErrorXhrResponse(handleXhrErrorResponse(error));
     }
-  }
+  };
 
-  handleValidateForm() {
-    const {values, requiredValues, errors} = this.state;
+  handleValidate = <F extends keyof Values>(field: F) => () => {
+    const isFieldValueEmpty = !this.state.values[field].replace(/\s/g, '');
 
-    const isFormValid = requiredValues.every(
-      requiredValue =>
-        !!values[requiredValue].replace(/\s/g, '') && !errors[requiredValue]
-    );
+    const fieldErrorAlreadyExist = this.state.errors[field];
 
-    this.setValidForm(isFormValid);
-  }
+    if (isFieldValueEmpty && fieldErrorAlreadyExist) {
+      return;
+    }
 
-  handleValidate<F extends keyof Values>(field: F) {
-    return () => {
-      const isFieldValueEmpty = !this.state.values[field].replace(/\s/g, '');
+    if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
+      this.setState(prevState => ({
+        errors: {
+          ...prevState.errors,
+          [field]: t('Field Required'),
+        },
+      }));
+      return;
+    }
 
-      const fieldErrorAlreadyExist = this.state.errors[field];
+    if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
+      this.clearError(field);
+    }
+  };
 
-      if (isFieldValueEmpty && fieldErrorAlreadyExist) {
-        return;
-      }
-
-      if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
-        this.setState(prevState => ({
-          errors: {
-            ...prevState.errors,
-            [field]: t('Field Required'),
-          },
-        }));
-        return;
-      }
-
-      if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
-        this.clearError(field);
-      }
-    };
-  }
-
-  handleValidateKey() {
+  handleValidateKey = () => {
     const {savedRelays} = this.props;
     const {values, errors} = this.state;
     const isKeyAlreadyTaken = savedRelays.find(
@@ -199,7 +190,7 @@ class DialogManager<
     }
 
     this.handleValidate('publicKey')();
-  }
+  };
 
   render() {
     const {values, errors, title, isFormValid, disables} = this.state;

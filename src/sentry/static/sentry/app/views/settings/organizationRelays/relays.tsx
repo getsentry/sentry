@@ -38,11 +38,6 @@ type State = AsyncComponent['state'] & {
 };
 
 class Relays extends AsyncComponent<Props, State> {
-  constructor(props: Props, context: AsyncComponent['context']) {
-    super(props, context);
-    this.handleOpenAddDialog = this.handleOpenAddDialog.bind(this);
-  }
-
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -54,59 +49,55 @@ class Relays extends AsyncComponent<Props, State> {
     this.setState({relays: trustedRelays});
   }
 
-  handleDelete(publicKey: Relay['publicKey']) {
-    return async () => {
-      const {relays} = this.state;
+  handleDelete = (publicKey: Relay['publicKey']) => async () => {
+    const {relays} = this.state;
 
-      const trustedRelays = relays
-        .filter(relay => relay.publicKey !== publicKey)
-        .map(relay => omit(relay, ['created', 'lastModified']));
+    const trustedRelays = relays
+      .filter(relay => relay.publicKey !== publicKey)
+      .map(relay => omit(relay, ['created', 'lastModified']));
 
-      try {
-        const response = await this.api.requestPromise(
-          `/organizations/${this.props.organization.slug}/`,
-          {
-            method: 'PUT',
-            data: {trustedRelays},
-          }
-        );
-        addSuccessMessage(t('Successfully deleted Relay public key'));
-        this.setRelays(response.trustedRelays);
-      } catch {
-        addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
-      }
-    };
-  }
+    try {
+      const response = await this.api.requestPromise(
+        `/organizations/${this.props.organization.slug}/`,
+        {
+          method: 'PUT',
+          data: {trustedRelays},
+        }
+      );
+      addSuccessMessage(t('Successfully deleted Relay public key'));
+      this.setRelays(response.trustedRelays);
+    } catch {
+      addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
+    }
+  };
 
   successfullySaved(response: Organization, successMessage: string) {
     addSuccessMessage(successMessage);
     this.setRelays(response.trustedRelays);
   }
 
-  handleOpenEditDialog(publicKey: Relay['publicKey']) {
-    return () => {
-      const editRelay = this.state.relays.find(relay => relay.publicKey === publicKey);
+  handleOpenEditDialog = (publicKey: Relay['publicKey']) => () => {
+    const editRelay = this.state.relays.find(relay => relay.publicKey === publicKey);
 
-      if (!editRelay) {
-        return;
-      }
+    if (!editRelay) {
+      return;
+    }
 
-      openModal(modalProps => (
-        <Edit
-          {...modalProps}
-          savedRelays={this.state.relays}
-          api={this.api}
-          orgSlug={this.props.organization.slug}
-          relay={editRelay}
-          onSubmitSuccess={response => {
-            this.successfullySaved(response, t('Successfully updated Relay public key'));
-          }}
-        />
-      ));
-    };
-  }
+    openModal(modalProps => (
+      <Edit
+        {...modalProps}
+        savedRelays={this.state.relays}
+        api={this.api}
+        orgSlug={this.props.organization.slug}
+        relay={editRelay}
+        onSubmitSuccess={response => {
+          this.successfullySaved(response, t('Successfully updated Relay public key'));
+        }}
+      />
+    ));
+  };
 
-  handleOpenAddDialog() {
+  handleOpenAddDialog = () => {
     openModal(modalProps => (
       <Add
         {...modalProps}
@@ -118,7 +109,7 @@ class Relays extends AsyncComponent<Props, State> {
         }}
       />
     ));
-  }
+  };
 
   renderBody() {
     const {relays} = this.state;
