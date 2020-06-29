@@ -200,6 +200,7 @@ const SettingsIconLink = styled(Link)`
 `;
 
 const StyledLock = styled(IconLock)`
+  margin-top: ${space(0.75)};
   stroke-width: 1.5;
 `;
 
