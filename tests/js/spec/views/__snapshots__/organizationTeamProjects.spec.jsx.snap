@@ -1130,7 +1130,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           "hasProjectBeenRenamed": [Function],
         }
       }
-      className="css-yneqnx e1vkspke0"
+      className="css-1vzq2o e1vkspke0"
       location={
         Object {
           "query": Object {},
