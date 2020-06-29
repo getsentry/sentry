@@ -31,7 +31,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
       <Column>
         <TextOverflow>
           <Link to={archiveLink}>
-            <Version version={name} anchor={false} />
+            <Version version={name} anchor={false} tooltipRawVersion truncate />
           </Link>
         </TextOverflow>
       </Column>
