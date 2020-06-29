@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconChevron} from 'app/icons';
 import withOrganizations from 'app/utils/withOrganizations';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
@@ -40,7 +40,7 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
           {t('Switch organization')}
 
           <SubMenuCaret>
-            <i className="icon-arrow-right" />
+            <IconChevron size="xs" direction="right" />
           </SubMenuCaret>
         </SwitchOrganizationMenuActor>
 
