@@ -475,6 +475,14 @@ class EventManager(object):
         _get_or_create_release_many(jobs, projects)
         _get_event_user_many(jobs, projects)
 
+        job["project_key"] = None
+        if job["key_id"] is not None:
+            with metrics.timer("event_manager.load_project_key"):
+                try:
+                    job["project_key"] = ProjectKey.objects.get_from_cache(id=job["key_id"])
+                except ProjectKey.DoesNotExist:
+                    pass
+
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
             # clients did not set this appropriately so far.
@@ -531,19 +539,30 @@ class EventManager(object):
         if job["release"]:
             kwargs["first_release"] = job["release"]
 
+        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
+        _materialize_event_metrics(jobs)
+
+        # Load attachments first, but persist them at the very last after
+        # posting to eventstream to make sure all counters and eventstream are
+        # incremented for sure.
+        attachments = get_attachments_to_store(cache_key, job)
+        for attachment in attachments:
+            key = "bytes.stored.%s" % (attachment.type,)
+            old_bytes = job["event_metrics"].get(key) or 0
+            job["event_metrics"][key] = old_bytes + len(attachment.data)
+
         try:
             job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
                 event=job["event"], hashes=hashes, release=job["release"], **kwargs
             )
         except HashDiscarded:
-            project_key = None
-            if job["key_id"] is not None:
-                try:
-                    project_key = ProjectKey.objects.get_from_cache(id=job["key_id"])
-                except ProjectKey.DoesNotExist:
-                    pass
-
-            quotas.refund(project, key=project_key, timestamp=start_time)
+            quotas.refund(
+                project,
+                key=job["project_key"],
+                timestamp=start_time,
+                category=job["category"],
+                quantity=1,
+            )
 
             track_outcome(
                 org_id=project.organization_id,
@@ -555,6 +574,30 @@ class EventManager(object):
                 event_id=job["event"].event_id,
                 category=job["category"],
             )
+
+            attachment_quantity = 0
+            for attachment in attachments:
+                attachment_quantity += len(attachment.data)
+                track_outcome(
+                    org_id=project.organization_id,
+                    project_id=job["project_id"],
+                    key_id=job["key_id"],
+                    outcome=Outcome.FILTERED,
+                    reason=FilterStatKeys.DISCARDED_HASH,
+                    timestamp=to_datetime(job["start_time"]),
+                    event_id=job["event"].event_id,
+                    category=DataCategory.ATTACHMENT,
+                    quantity=len(attachment.data),
+                )
+
+            if attachment_quantity:
+                quotas.refund(
+                    project,
+                    key=job["project_key"],
+                    timestamp=job["start_time"],
+                    category=DataCategory.ATTACHMENT,
+                    quantity=attachment_quantity,
+                )
 
             metrics.incr(
                 "events.discarded",
@@ -596,24 +639,6 @@ class EventManager(object):
             UserReport.objects.filter(project=project, event_id=job["event"].event_id).update(
                 group=job["group"], environment=job["environment"]
             )
-
-        _materialize_event_metrics(jobs)
-
-        # Load attachments first, but persist them at the very last after
-        # posting to eventstream to make sure all counters and eventstream are
-        # incremented for sure.
-        attachments = []
-        for attachment in get_attachments(cache_key, job["event"]):
-            try:
-                attachment_data = attachment.data
-            except MissingAttachmentChunks:
-                logger.exception("Missing chunks for cache_key=%s", cache_key)
-            else:
-                key = "bytes.stored.%s" % (attachment.type,)
-                job["event_metrics"][key] = (job["event_metrics"].get(key) or 0) + len(
-                    attachment_data
-                )
-                attachments.append(attachment)
 
         _nodestore_save_many(jobs)
 
@@ -1240,7 +1265,7 @@ def _process_existing_aggregate(group, event, data, release):
     return is_regression
 
 
-def get_attachments(cache_key, event):
+def get_attachments_to_store(cache_key, job):
     """
     Computes a list of attachments that should be stored.
 
@@ -1259,6 +1284,7 @@ def get_attachments(cache_key, event):
     if cache_key is None:
         return filtered
 
+    event = job["event"]
     project = event.project
     if not features.has("organizations:event-attachments", project.organization, actor=None):
         return filtered
@@ -1285,11 +1311,29 @@ def get_attachments(cache_key, event):
         cached_reports = 0
     stored_reports = cached_reports
 
+    refund_quantity = 0
     for attachment in attachments:
         # Relay can mark attachments as ``rate_limited``, in which case they
         # should not be saved. They where only retained to allow event
         # processing.
         if attachment.rate_limited:
+            continue  # NB: Relay already tracked an outcome.
+
+        try:
+            data = attachment.data
+        except MissingAttachmentChunks:
+            track_outcome(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.INVALID,
+                reason="missing_chunks",
+                timestamp=to_datetime(job["start_time"]),
+                event_id=event.event_id,
+                category=DataCategory.ATTACHMENT,
+            )
+
+            logger.exception("Missing chunks for cache_key=%s", cache_key)
             continue
 
         # If the attachment is a crash report (e.g. minidump), we need to honor
@@ -1297,7 +1341,20 @@ def get_attachments(cache_key, event):
         # has already verified PII and just store the attachment.
         if attachment.type in CRASH_REPORT_TYPES:
             if crashreports_exceeded(stored_reports, max_crashreports):
-                continue  # TODO: Refund quota
+                track_outcome(
+                    org_id=event.project.organization_id,
+                    project_id=job["project_id"],
+                    key_id=job["key_id"],
+                    outcome=Outcome.FILTERED,
+                    reason=FilterStatKeys.CRASH_REPORT_LIMIT,
+                    timestamp=to_datetime(job["start_time"]),
+                    event_id=event.event_id,
+                    category=DataCategory.ATTACHMENT,
+                    quantity=len(attachment.data),
+                )
+
+                refund_quantity += len(data)
+                continue
             stored_reports += 1
 
         filtered.append(attachment)
@@ -1308,6 +1365,15 @@ def get_attachments(cache_key, event):
     # not changed, or otherwise re-fetch from the database.
     if crashreports_exceeded(stored_reports, max_crashreports) and stored_reports > cached_reports:
         cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
+
+    if refund_quantity:
+        quotas.refund(
+            project,
+            key=job["project_key"],
+            timestamp=job["start_time"],
+            category=DataCategory.ATTACHMENT,
+            quantity=refund_quantity,
+        )
 
     return filtered
 
