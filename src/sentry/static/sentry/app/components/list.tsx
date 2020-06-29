@@ -43,7 +43,7 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
   margin-bottom: ${space(0.5)};
 
   &:before,
-  & > span:first-of-type {
+  & > ${IconWrapper} {
     position: absolute;
     left: 0;
   }
@@ -65,7 +65,7 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
     ${p =>
       p.icon &&
       `
-      & > span:first-of-type {
+      & > ${IconWrapper} {
         top: 4px;
       }
 
