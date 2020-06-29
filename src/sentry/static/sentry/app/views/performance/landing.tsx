@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
-import FeatureBadge from 'app/components/featureBadge';
 import SearchBar from 'app/views/events/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
