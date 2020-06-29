@@ -148,6 +148,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if not data:
                 return {"data": [], "meta": {}}
 
+            import logging
+
+            logging.info("meta %s", results["meta"])
             meta = {
                 value["name"]: get_json_meta_type(value["name"], value["type"])
                 for value in results["meta"]
