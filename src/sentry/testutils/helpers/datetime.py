@@ -13,7 +13,7 @@ def iso_format(date):
 
 def before_now(**kwargs):
     date = datetime.utcnow() - timedelta(**kwargs)
-    return date.replace(microsecond=0)
+    return date - timedelta(microseconds=date.microsecond % 1000)
 
 
 def timestamp_format(datetime):
