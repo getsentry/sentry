@@ -39,12 +39,19 @@ function Onboarding() {
 
 const PerfImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    user-select: none;
     position: absolute;
     width: 450px;
     top: 20%;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    top: 25%;
+    width: 480px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    top: 20%;
     width: 600px;
   }
 `;
