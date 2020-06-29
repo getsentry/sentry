@@ -98,7 +98,7 @@ exports[`InviteMember should render roles when available and allowed, and handle
                 styled={false}
               >
                 <div
-                  className="css-g5c5ux-Title e1uay4fd1"
+                  className="css-u2ls9d-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4

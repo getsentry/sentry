@@ -149,7 +149,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader
+        <StyledSettingsPageHeader
           title={
             <Title>
               {t('Archive')}&nbsp;
@@ -204,6 +204,16 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     );
   }
 }
+
+const StyledSettingsPageHeader = styled(SettingsPageHeader)`
+  /*
+    ugly selector to make overflow ellipsis work
+    we can refactor this once we start making other settings more responsive
+  */
+  > div > div {
+    min-width: 0;
+  }
+`;
 
 const Title = styled('div')`
   display: flex;
