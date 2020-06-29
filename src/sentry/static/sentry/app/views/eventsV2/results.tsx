@@ -15,6 +15,7 @@ import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {fetchProjectsCount} from 'app/actionCreators/projects';
 import Alert from 'app/components/alert';
+import CreateAlertButton from 'app/components/createAlertButton';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -54,6 +55,7 @@ type State = {
   showTags: boolean;
   needConfirmation: boolean;
   confirmedQuery: boolean;
+  incompatibleAlertNotice: React.ReactNode;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -68,7 +70,7 @@ class Results extends React.Component<Props, State> {
     return {...prevState, eventView};
   }
 
-  state = {
+  state: State = {
     eventView: EventView.fromLocation(this.props.location),
     error: '',
     errorCode: 200,
@@ -76,6 +78,7 @@ class Results extends React.Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
+    incompatibleAlertNotice: null,
   };
 
   componentDidMount() {
@@ -95,14 +98,12 @@ class Results extends React.Component<Props, State> {
     if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
       api.clear();
       this.canLoadEvents();
-      if (
-        !isEqual(prevQuery.statsPeriod, currentQuery.statsPeriod) ||
-        !isEqual(prevQuery.start, currentQuery.start) ||
-        !isEqual(prevQuery.end, currentQuery.end) ||
-        !isEqual(prevQuery.project, currentQuery.project)
-      ) {
-        loadOrganizationTags(api, organization.slug, selection);
-      }
+    }
+    if (
+      !isEqual(prevProps.selection.datetime, selection.datetime) ||
+      !isEqual(prevProps.selection.projects, selection.projects)
+    ) {
+      loadOrganizationTags(api, organization.slug, selection);
     }
 
     if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
@@ -320,6 +321,23 @@ class Results extends React.Component<Props, State> {
     return url;
   };
 
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = incompatibleAlertNoticeFn => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.create_alert_incompatible',
+      eventName: 'Discoverv2: Creating an alert from discover was incompatible',
+      organization_id: parseInt(organization.id, 10),
+    });
+
+    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      this.setState({incompatibleAlertNotice: null})
+    );
+
+    this.setState({incompatibleAlertNotice});
+  };
+
   renderError(error: string) {
     if (!error) {
       return null;
@@ -343,6 +361,7 @@ class Results extends React.Component<Props, State> {
       errorCode,
       totalValues,
       showTags,
+      incompatibleAlertNotice,
       confirmedQuery,
     } = this.state;
     const query = decodeScalar(location.query.query) || '';
@@ -357,8 +376,10 @@ class Results extends React.Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
+              onIncompatibleAlertQuery={this.handleIncompatibleQuery}
             />
             <Layout.Body>
+              {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
                 {this.renderError(error)}
                 <StyledSearchBar

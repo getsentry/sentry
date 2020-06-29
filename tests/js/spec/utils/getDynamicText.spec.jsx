@@ -10,9 +10,9 @@ describe('getDynamicText', function() {
     ).toEqual('Dynamic Content');
   });
 
-  it('renders fixed content when `process.env.IS_PERCY` is true', function() {
+  it('renders fixed content when `process.env.IS_CI` is true', function() {
     // eslint-disable-next-line no-undef
-    process.env.IS_PERCY = true;
+    process.env.IS_CI = true;
     expect(
       getDynamicText({
         fixed: 'Text',
@@ -20,6 +20,6 @@ describe('getDynamicText', function() {
       })
     ).toEqual('Text');
     // eslint-disable-next-line no-undef
-    process.env.IS_PERCY = null;
+    process.env.IS_CI = null;
   });
 });

@@ -676,9 +676,52 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             className="css-1kppo88-Collapse e9r3vga4"
                             onClick={[Function]}
                           >
-                            <i
-                              className="icon-arrow-up"
-                            />
+                            <IconChevron
+                              direction="up"
+                              size="xs"
+                            >
+                              <EmotionCssPropInternal
+                                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                  Object {
+                                    "$$typeof": Symbol(react.forward_ref),
+                                    "propTypes": Object {
+                                      "color": [Function],
+                                      "size": [Function],
+                                      "viewBox": [Function],
+                                    },
+                                    "render": [Function],
+                                  }
+                                }
+                                css={
+                                  Object {
+                                    "map": undefined,
+                                    "name": "1n9vav3-IconChevron",
+                                    "next": undefined,
+                                    "styles": "transform:rotate(0deg);;label:IconChevron;",
+                                    "toString": [Function],
+                                  }
+                                }
+                                size="xs"
+                              >
+                                <ForwardRef(SvgIcon)
+                                  className="css-1n9vav3-IconChevron"
+                                  size="xs"
+                                >
+                                  <svg
+                                    className="css-1n9vav3-IconChevron"
+                                    fill="currentColor"
+                                    height="12px"
+                                    viewBox="0 0 16 16"
+                                    width="12px"
+                                  >
+                                    <path
+                                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                    />
+                                  </svg>
+                                </ForwardRef(SvgIcon)>
+                              </EmotionCssPropInternal>
+                            </IconChevron>
                           </span>
                         </Collapse>
                       </div>
@@ -1425,9 +1468,52 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
                             className="css-1kppo88-Collapse e9r3vga4"
                             onClick={[Function]}
                           >
-                            <i
-                              className="icon-arrow-up"
-                            />
+                            <IconChevron
+                              direction="up"
+                              size="xs"
+                            >
+                              <EmotionCssPropInternal
+                                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                  Object {
+                                    "$$typeof": Symbol(react.forward_ref),
+                                    "propTypes": Object {
+                                      "color": [Function],
+                                      "size": [Function],
+                                      "viewBox": [Function],
+                                    },
+                                    "render": [Function],
+                                  }
+                                }
+                                css={
+                                  Object {
+                                    "map": undefined,
+                                    "name": "1n9vav3-IconChevron",
+                                    "next": undefined,
+                                    "styles": "transform:rotate(0deg);;label:IconChevron;",
+                                    "toString": [Function],
+                                  }
+                                }
+                                size="xs"
+                              >
+                                <ForwardRef(SvgIcon)
+                                  className="css-1n9vav3-IconChevron"
+                                  size="xs"
+                                >
+                                  <svg
+                                    className="css-1n9vav3-IconChevron"
+                                    fill="currentColor"
+                                    height="12px"
+                                    viewBox="0 0 16 16"
+                                    width="12px"
+                                  >
+                                    <path
+                                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                    />
+                                  </svg>
+                                </ForwardRef(SvgIcon)>
+                              </EmotionCssPropInternal>
+                            </IconChevron>
                           </span>
                         </Collapse>
                       </div>
@@ -2013,7 +2099,7 @@ exports[`Issues -> Merged View renders with mocked data 1`] = `
           onCursor={[Function]}
         >
           <Pagination
-            className="css-yneqnx e1vkspke0"
+            className="css-1vzq2o e1vkspke0"
             onCursor={[Function]}
           />
         </Styled(Pagination)>

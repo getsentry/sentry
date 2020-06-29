@@ -36,7 +36,7 @@ type WrapperProps = {
   transactionName: string;
 };
 
-class TransactionList extends React.PureComponent<WrapperProps> {
+class TransactionList extends React.Component<WrapperProps> {
   getTransactionSort(location: Location) {
     const urlParam = decodeScalar(location.query.showTransactions) || 'slowest';
     const option =
