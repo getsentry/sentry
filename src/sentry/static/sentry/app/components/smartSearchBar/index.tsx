@@ -990,10 +990,9 @@ class SmartSearchBar extends React.Component<Props, State> {
       newQuery = `${query}${replaceText}`;
     } else {
       const last = terms.pop() ?? '';
-
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
-      const prefix = newQuery.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
+      const prefix = last.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
       const valuePrefix = newQuery.endsWith(SEARCH_WILDCARD) ? SEARCH_WILDCARD : '';
 
       // newQuery is "<term>:"
