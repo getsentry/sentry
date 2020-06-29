@@ -1015,19 +1015,39 @@ class EventManagerTest(TestCase):
         )
         GroupHash.objects.filter(group=group).update(group=None, group_tombstone_id=tombstone.id)
 
-        manager = EventManager(make_event(message="foo", event_id="b" * 32, fingerprint=["a" * 32]))
+        manager = EventManager(
+            make_event(message="foo", event_id="b" * 32, fingerprint=["a" * 32]),
+            project=self.project,
+        )
+        manager.normalize()
+
+        a1 = CachedAttachment(name="a1", data=b"hello")
+        a2 = CachedAttachment(name="a2", data=b"world")
+
+        cache_key = cache_key_for_event(manager.get_data())
+        attachment_cache.set(cache_key, attachments=[a1, a2])
 
         from sentry.utils.outcomes import track_outcome
 
         mock_track_outcome = mock.Mock(wraps=track_outcome)
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            with self.tasks():
-                with self.assertRaises(HashDiscarded):
-                    event = manager.save(1)
+            with self.feature("organizations:event-attachments"):
+                with self.tasks():
+                    with self.assertRaises(HashDiscarded):
+                        event = manager.save(1, cache_key=cache_key)
 
-        assert_mock_called_once_with_partial(
-            mock_track_outcome, outcome=Outcome.FILTERED, reason=FilterStatKeys.DISCARDED_HASH
-        )
+        assert mock_track_outcome.call_count == 3
+
+        for o in mock_track_outcome.mock_calls:
+            assert o.kwargs["outcome"] == Outcome.FILTERED
+            assert o.kwargs["reason"] == FilterStatKeys.DISCARDED_HASH
+
+        o = mock_track_outcome.mock_calls[0]
+        assert o.kwargs["category"] == DataCategory.DEFAULT
+
+        for o in mock_track_outcome.mock_calls[1:]:
+            assert o.kwargs["category"] == DataCategory.ATTACHMENT
+            assert o.kwargs["quantity"] == 5
 
         def query(model, key, **kwargs):
             return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
@@ -1054,7 +1074,7 @@ class EventManagerTest(TestCase):
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.DEFAULT
         )
 
-    def test_attachment_outcomes(self):
+    def test_attachment_accepted_outcomes(self):
         manager = EventManager(make_event(message="foo"), project=self.project)
         manager.normalize()
 
@@ -1081,6 +1101,42 @@ class EventManagerTest(TestCase):
 
         final = mock_track_outcome.mock_calls[2]
         assert final.kwargs["category"] == DataCategory.DEFAULT
+
+    def test_attachment_filtered_outcomes(self):
+        manager = EventManager(make_event(message="foo"), project=self.project)
+        manager.normalize()
+
+        # Disable storing all crash reports, which will drop the minidump but save the other
+        a1 = CachedAttachment(name="a1", data=b"minidump", type="event.minidump")
+        a2 = CachedAttachment(name="a2", data=b"limited", rate_limited=True)
+        a3 = CachedAttachment(name="a3", data=b"world")
+
+        cache_key = cache_key_for_event(manager.get_data())
+        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
+
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature("organizations:event-attachments"):
+                manager.save(1, cache_key=cache_key)
+
+        assert mock_track_outcome.call_count == 3
+
+        # First outcome is the rejection of the minidump
+        o = mock_track_outcome.mock_calls[0]
+        assert o.kwargs["outcome"] == Outcome.FILTERED
+        assert o.kwargs["category"] == DataCategory.ATTACHMENT
+        assert o.kwargs["reason"] == FilterStatKeys.CRASH_REPORT_LIMIT
+
+        # Second outcome is acceptance of the "a3" attachment
+        o = mock_track_outcome.mock_calls[1]
+        assert o.kwargs["outcome"] == Outcome.ACCEPTED
+        assert o.kwargs["category"] == DataCategory.ATTACHMENT
+        assert o.kwargs["quantity"] == 5
+
+        # Last outcome is the event
+        o = mock_track_outcome.mock_calls[2]
+        assert o.kwargs["outcome"] == Outcome.ACCEPTED
+        assert o.kwargs["category"] == DataCategory.DEFAULT
 
     def test_checksum_rehashed(self):
         checksum = "invalid checksum hash"
