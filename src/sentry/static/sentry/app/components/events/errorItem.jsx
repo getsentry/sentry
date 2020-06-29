@@ -1,4 +1,5 @@
 import mapKeys from 'lodash/mapKeys';
+import moment from 'moment';
 import startCase from 'lodash/startCase';
 import isEmpty from 'lodash/isEmpty';
 import React from 'react';
@@ -52,6 +53,15 @@ class EventErrorItem extends React.Component {
       const path = data.image_path.split(separator);
       data.image_name = path.splice(-1, 1)[0];
       data.image_path = path.length ? path.join(separator) + separator : '';
+    }
+
+    if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
+      data.message = t(
+        'Adjusted timestamps by %s',
+        moment
+          .duration(moment.utc(data.server_time).diff(moment.utc(data.sdk_time)))
+          .humanize()
+      );
     }
 
     return mapKeys(data, (_value, key) => t(keyMapping[key] || startCase(key)));
