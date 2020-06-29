@@ -101,7 +101,7 @@ class SummaryContent extends React.Component<Props, State> {
     const {eventView, organization, projects} = this.props;
 
     return (
-      <Feature features={['internal-catchall']}>
+      <Feature features={['organizations:incidents-performance']}>
         <CreateAlertButton
           eventView={eventView}
           organization={organization}

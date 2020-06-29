@@ -7,6 +7,7 @@ import {IconInfo, IconClose, IconSiren} from 'app/icons';
 import Button from 'app/components/button';
 import EventView from 'app/utils/discover/eventView';
 import Alert from 'app/components/alert';
+import Access from 'app/components/acl/access';
 import {explodeFieldString, AGGREGATIONS, Aggregation} from 'app/utils/discover/fields';
 import {
   errorFieldConfig,
@@ -229,15 +230,25 @@ function CreateAlertButton({
   };
 
   return (
-    <Button
-      type="button"
-      icon={<IconSiren />}
-      to={to}
-      onClick={handleClick}
-      {...buttonProps}
-    >
-      {t('Create alert')}
-    </Button>
+    <Access organization={organization} access={['project:write']}>
+      {({hasAccess}) => (
+        <Button
+          type="button"
+          disabled={!hasAccess}
+          title={
+            !hasAccess
+              ? t('Users with admin permission or higher can create alert rules.')
+              : undefined
+          }
+          icon={<IconSiren />}
+          to={to}
+          onClick={handleClick}
+          {...buttonProps}
+        >
+          {t('Create alert')}
+        </Button>
+      )}
+    </Access>
   );
 }
 
