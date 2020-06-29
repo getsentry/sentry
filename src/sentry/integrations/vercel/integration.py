@@ -145,7 +145,7 @@ class VercelIntegration(IntegrationInstallation):
                     "placeholder": _("Choose Vercel project..."),
                 },
                 "sentryProjects": sentry_projects,
-                "nextUrl": next_url,
+                "nextButton": {"url": next_url, "text": _("Return to Vercel")},
             }
         ]
 
@@ -158,9 +158,6 @@ class VercelIntegration(IntegrationInstallation):
 
         new_mappings = data["project_mappings"]
         old_mappings = config.get("project_mappings") or []
-
-        # if len(new_mappings) > 2:
-        #     raise IntegrationError("You must have an enabled DSN to continue!")
 
         for mapping in new_mappings:
             # skip any mappings that already exist

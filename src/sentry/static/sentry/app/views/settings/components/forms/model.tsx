@@ -379,12 +379,12 @@ class FormModel {
   @action
   undo() {
     // Always have initial data snapshot
-    if (this.snapshots.length < 1) {
+    if (this.snapshots.length < 2) {
       return null;
     }
 
-    this.fields.replace(this.snapshots[0]);
     this.snapshots.shift();
+    this.fields.replace(this.snapshots[0]);
 
     return true;
   }

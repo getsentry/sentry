@@ -32,7 +32,7 @@ export class RenderField extends React.Component<RenderProps, State> {
       value: incomingValues,
       sentryProjects,
       mappedDropdown: {items: mappedDropdownItems, placeholder: mappedValuePlaceholder},
-      nextUrl,
+      nextButton: {url: nextUrl, text: nextButtonText},
     } = this.props;
     const existingValues: Array<[number, MappedValue]> = incomingValues || [];
 
@@ -153,7 +153,7 @@ export class RenderField extends React.Component<RenderProps, State> {
         return null;
       }
       return (
-        <components.Option padding={2} {...projectProps}>
+        <components.Option {...projectProps}>
           <IdBadge
             project={project}
             avatarSize={20}
@@ -188,7 +188,7 @@ export class RenderField extends React.Component<RenderProps, State> {
     };
 
     return (
-      <Wrapper>
+      <div>
         {existingValues.map(renderItem)}
         <Item>
           <StyledSelectControl
@@ -233,11 +233,11 @@ export class RenderField extends React.Component<RenderProps, State> {
               href={nextUrl}
               external
             >
-              Return to Vercel
+              {nextButtonText}
             </StyledBackToVercelButton>
           )}
         </Item>
-      </Wrapper>
+      </div>
     );
   }
 }
@@ -258,8 +258,6 @@ const StyledSelectControl = styled(SelectControl)`
   width: 272px;
   margin-left: ${space(1.5)};
 `;
-
-const Wrapper = styled('div')``;
 
 const Item = styled('div')`
   margin: -1px;
@@ -303,7 +301,7 @@ const StyledBackToVercelButton = styled(Button)`
 `;
 
 const StyledInputField = styled(InputField)`
-  padding: 0px;
+  padding: 0;
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

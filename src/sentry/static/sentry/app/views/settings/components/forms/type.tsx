@@ -135,7 +135,10 @@ export type ProjectMapperType = {
     placeholder: string;
   };
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
-  nextUrl?: string;
+  nextButton: {
+    url: string | null;
+    buttonText: string;
+  };
 };
 
 export type Field = (
