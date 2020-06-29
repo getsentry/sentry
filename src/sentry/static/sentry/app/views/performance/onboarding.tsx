@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import OnboardingPanel from 'app/components/onboardingPanel';
 import Button from 'app/components/button';
-import space from 'app/styles/space';
+import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 
 import emptyStateImg from '../../../images/spot/performance-empty-state.svg';
@@ -14,10 +14,10 @@ function Onboarding() {
       <h3>{t('Pinpoint problems')}</h3>
       <p>
         {t(
-          "You've got this souped up plan. Now what? Get your software set up. We’ve got transactions to track down."
+          "You've got this souped up plan. Now what? Get your software set up. We've got transactions to track down."
         )}
       </p>
-      <ButtonList>
+      <ButtonList gap={1}>
         <Button
           priority="default"
           target="_blank"
@@ -49,10 +49,8 @@ const PerfImage = styled('img')`
   }
 `;
 
-const ButtonList = styled('div')`
-  display: grid;
+const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
-  grid-gap: ${space(1)};
 `;
 
 export default Onboarding;
