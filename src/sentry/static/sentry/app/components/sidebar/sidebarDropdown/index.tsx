@@ -76,7 +76,7 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
               <OrgAndUserWrapper>
                 <OrgOrUserName>
                   {hasOrganization ? org.name : user.name}{' '}
-                  <IconChevron color="white" size="xs" direction="down" />
+                  <StyledIconChevron color="white" size="xs" direction="down" />
                 </OrgOrUserName>
                 <UserNameOrEmail>
                   {hasOrganization ? user.name : user.email}
@@ -222,4 +222,8 @@ const OrgAndUserMenu = styled('div')`
   top: 42px;
   min-width: 180px;
   z-index: ${p => p.theme.zIndex.orgAndUserMenu};
+`;
+
+const StyledIconChevron = styled(IconChevron)`
+  margin-left: ${space(0.25)};
 `;
