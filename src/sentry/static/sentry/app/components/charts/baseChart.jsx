@@ -132,6 +132,8 @@ class BaseChart extends React.Component {
 
     onFinished: PropTypes.func,
 
+    onLegendSelectChanged: PropTypes.func,
+
     // Forwarded Ref
     forwardedRef: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
 
@@ -188,6 +190,8 @@ class BaseChart extends React.Component {
     datazoom: (...args) => callIfFunction(this.props.onDataZoom, ...args),
     restore: (...args) => callIfFunction(this.props.onRestore, ...args),
     finished: (...args) => callIfFunction(this.props.onFinished, ...args),
+    legendselectchanged: (...args) =>
+      callIfFunction(this.props.onLegendSelectChanged, ...args),
   };
 
   handleChartReady = (...args) => {
