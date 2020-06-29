@@ -14,6 +14,7 @@ import Button from 'app/components/button';
 import {IconVercel, IconGeneric, IconDelete, IconOpen} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
+import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 
 type MappedValue = string | number;
 
@@ -96,9 +97,7 @@ export class RenderField extends React.Component<RenderProps, State> {
     };
 
     const handleDelete = (index: number) => {
-      const projectMappings = existingValues
-        .slice(0, index)
-        .concat(existingValues.slice(index + 1));
+      const projectMappings = removeAtArrayIndex(existingValues, index);
       //trigger events so we save the value and show the check mark
       onChange?.(projectMappings, []);
       onBlur?.(projectMappings, []);
