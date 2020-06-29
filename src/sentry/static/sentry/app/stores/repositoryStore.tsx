@@ -4,9 +4,8 @@ import RepoActions from 'app/actions/repositoryActions';
 import {Repository} from 'app/types';
 
 type RepositoryStoreInterface = {
-  get(
-    orgSlug?: string
-  ): {
+  get(): {
+    orgSlug?: string;
     repositories?: Repository[];
     repositoriesLoading?: boolean;
     repositoriesError?: Error;
@@ -77,22 +76,8 @@ export const RepositoryStoreConfig: Reflux.StoreDefinition & RepositoryStoreInte
     this.trigger(this.state);
   },
 
-  /**
-   * `orgSlug` is optional. If present, method will run a check if data in the
-   * store originated from the same organization
-   */
-  get(orgSlug?: string) {
-    const {orgSlug: stateOrgSlug, ...data} = this.state;
-
-    if (orgSlug !== undefined && orgSlug !== stateOrgSlug) {
-      return {
-        repositories: undefined,
-        repositoriesLoading: undefined,
-        repositoriesError: undefined,
-      };
-    }
-
-    return {...data};
+  get() {
+    return {...this.state};
   },
 };
 

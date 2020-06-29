@@ -3,10 +3,11 @@ import {Location} from 'history';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import DiscoverButton from 'app/components/discoverButton';
+import CreateAlertButton from 'app/components/createAlertButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
@@ -21,6 +22,8 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import withProjects from 'app/utils/withProjects';
+import Feature from 'app/components/acl/feature';
 import {
   TOP_TRANSACTION_LIMIT,
   TOP_TRANSACTION_FILTERS,
@@ -34,9 +37,18 @@ type WrapperProps = {
   location: Location;
   organization: Organization;
   transactionName: string;
+  projects: Project[];
 };
 
-class TransactionList extends React.PureComponent<WrapperProps> {
+type State = {
+  incompatibleAlertNotice: React.ReactNode;
+};
+
+class TransactionList extends React.Component<WrapperProps, State> {
+  state: State = {
+    incompatibleAlertNotice: null,
+  };
+
   getTransactionSort(location: Location) {
     const urlParam = decodeScalar(location.query.showTransactions) || 'slowest';
     const option =
@@ -60,6 +72,31 @@ class TransactionList extends React.PureComponent<WrapperProps> {
     browserHistory.push(target);
   };
 
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = incompatibleAlertNoticeFn => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.create_alert_incompatible',
+      eventName:
+        'Performance Views: Creating an alert from transaction summary was incompatible',
+      organization_id: organization.id,
+    });
+    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      this.setState({incompatibleAlertNotice: null})
+    );
+    this.setState({incompatibleAlertNotice});
+  };
+
+  handleCreateAlertSuccess = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.create_alert',
+      eventName: 'Performance Views: Create Alert from Transaction Summary',
+      organization_id: organization.id,
+    });
+  };
+
   handleDiscoverViewClick = () => {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -70,7 +107,8 @@ class TransactionList extends React.PureComponent<WrapperProps> {
   };
 
   render() {
-    const {eventView, location, organization, transactionName} = this.props;
+    const {eventView, location, organization, transactionName, projects} = this.props;
+    const {incompatibleAlertNotice} = this.state;
     const activeFilter = this.getTransactionSort(location);
     const sortedEventView = eventView.withSorts([activeFilter.sort]);
 
@@ -102,8 +140,19 @@ class TransactionList extends React.PureComponent<WrapperProps> {
             >
               {t('Open in Discover')}
             </DiscoverButton>
+            <Feature features={['internal-catchall']}>
+              <CreateAlertButton
+                eventView={eventView}
+                organization={organization}
+                projects={projects}
+                onIncompatibleQuery={this.handleIncompatibleQuery}
+                onSuccess={this.handleCreateAlertSuccess}
+                size="small"
+              />
+            </Feature>
           </HeaderButtonContainer>
         </Header>
+        {incompatibleAlertNotice}
         <DiscoverQuery
           location={location}
           eventView={sortedEventView}
@@ -281,6 +330,10 @@ const Header = styled('div')`
 const HeaderButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
+
+  > *:not(:last-child) {
+    margin-right: ${space(1)};
+  }
 `;
 
-export default TransactionList;
+export default withProjects(TransactionList);

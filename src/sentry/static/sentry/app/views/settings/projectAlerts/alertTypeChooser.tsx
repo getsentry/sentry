@@ -75,7 +75,7 @@ const TypeChooserCards = ({onChange, organization, selected}: Props) => {
         <Feature
           requireAll
           features={[
-            'organizations:transaction-events',
+            'organizations:performance-view',
             'organizations:incidents-performance',
           ]}
         >

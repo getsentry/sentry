@@ -14,7 +14,8 @@ from time import time
 
 from sentry import nodestore
 from sentry.app import tsdb
-from sentry.constants import MAX_VERSION_LENGTH
+from sentry.attachments import attachment_cache, CachedAttachment
+from sentry.constants import DataCategory, MAX_VERSION_LENGTH
 from sentry.eventstore.models import Event
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
 from sentry.grouping.utils import hash_from_values
@@ -36,6 +37,7 @@ from sentry.models import (
     OrganizationIntegration,
     UserReport,
 )
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils.data_filters import FilterStatKeys
@@ -1048,7 +1050,37 @@ class EventManagerTest(TestCase):
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             manager.save(1)
 
-        assert_mock_called_once_with_partial(mock_track_outcome, outcome=Outcome.ACCEPTED)
+        assert_mock_called_once_with_partial(
+            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.DEFAULT
+        )
+
+    def test_attachment_outcomes(self):
+        manager = EventManager(make_event(message="foo"), project=self.project)
+        manager.normalize()
+
+        a1 = CachedAttachment(name="a1", data=b"hello")
+        a2 = CachedAttachment(name="a2", data=b"limited", rate_limited=True)
+        a3 = CachedAttachment(name="a3", data=b"world")
+
+        cache_key = cache_key_for_event(manager.get_data())
+        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
+
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature("organizations:event-attachments"):
+                manager.save(1, cache_key=cache_key)
+
+        assert mock_track_outcome.call_count == 3
+
+        for o in mock_track_outcome.mock_calls:
+            assert o.kwargs["outcome"] == Outcome.ACCEPTED
+
+        for o in mock_track_outcome.mock_calls[:2]:
+            assert o.kwargs["category"] == DataCategory.ATTACHMENT
+            assert o.kwargs["quantity"] == 5
+
+        final = mock_track_outcome.mock_calls[2]
+        assert final.kwargs["category"] == DataCategory.DEFAULT
 
     def test_checksum_rehashed(self):
         checksum = "invalid checksum hash"

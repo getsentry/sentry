@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/browser';
 import * as Router from 'react-router';
 import {createMemoryHistory} from 'history';
+import * as Sentry from '@sentry/react';
 
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 

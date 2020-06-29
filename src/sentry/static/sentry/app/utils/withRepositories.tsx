@@ -4,9 +4,10 @@ import createReactClass from 'create-react-class';
 
 import {Client} from 'app/api';
 import {Repository} from 'app/types';
-import getDisplayName from 'app/utils/getDisplayName';
-import RepositoryStore from 'app/stores/repositoryStore';
+import RepositoryActions from 'app/actions/repositoryActions';
 import {getRepositories} from 'app/actionCreators/repositories';
+import RepositoryStore from 'app/stores/repositoryStore';
+import getDisplayName from 'app/utils/getDisplayName';
 
 type DependentProps = {
   api: Client;
@@ -17,6 +18,12 @@ type InjectedProps = {
   repositories: Repository[] | undefined;
   repositoriesLoading: boolean | undefined;
   repositoriesError: Error | undefined;
+};
+
+const INITIAL_STATE: InjectedProps = {
+  repositories: undefined,
+  repositoriesLoading: undefined,
+  repositoriesError: undefined,
 };
 
 const withRepositories = <P extends DependentProps>(
@@ -31,14 +38,15 @@ const withRepositories = <P extends DependentProps>(
 
     getInitialState() {
       const {orgSlug} = this.props as P & DependentProps;
-      const repoData = RepositoryStore.get(orgSlug);
+      const repoData = RepositoryStore.get();
 
-      return {
-        repositories: undefined,
-        repositoriesLoading: undefined,
-        repositoriesError: undefined,
-        ...repoData,
-      };
+      if (repoData.orgSlug !== orgSlug) {
+        RepositoryActions.resetRepositories();
+      }
+
+      return repoData.orgSlug === orgSlug
+        ? {...INITIAL_STATE, ...repoData}
+        : {...INITIAL_STATE};
     },
 
     componentDidMount() {
@@ -49,17 +57,21 @@ const withRepositories = <P extends DependentProps>(
 
     fetchRepositories() {
       const {api, orgSlug} = this.props as P & DependentProps;
-      const repoData = RepositoryStore.get(orgSlug);
+      const repoData = RepositoryStore.get();
 
-      if (!repoData.repositories && !repoData.repositoriesLoading) {
+      // XXX(leedongwei): Do not check the orgSlug here. It would have been
+      // verified at `getInitialState`. The short-circuit hack in actionCreator
+      // does not update the orgSlug in the store.
+      if (
+        (!repoData.repositories && !repoData.repositoriesLoading) ||
+        repoData.repositoriesError
+      ) {
         getRepositories(api, {orgSlug});
       }
     },
 
     onStoreUpdate() {
-      const {orgSlug} = this.props as P & DependentProps;
-      const repoData = RepositoryStore.get(orgSlug);
-
+      const repoData = RepositoryStore.get();
       this.setState({...repoData});
     },
 

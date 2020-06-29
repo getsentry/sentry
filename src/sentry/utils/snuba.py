@@ -902,6 +902,9 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
+                if len(col) == 3 and col[0] == "transform":
+                    # Add the name from the project transform, and remove the backticks so its not treated as a new col
+                    derived_columns.add(col[2].strip("`"))
                 resolve_complex_column(col, resolve_func)
             else:
                 name = resolve_func(col)

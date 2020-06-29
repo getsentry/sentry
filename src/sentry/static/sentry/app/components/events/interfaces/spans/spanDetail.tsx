@@ -25,6 +25,7 @@ import withApi from 'app/utils/withApi';
 import {ProcessedSpanType, RawSpanType, ParsedTraceType, rawSpanKeys} from './types';
 import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
 import * as SpanEntryContext from './context';
+import InlineDocs from './inlineDocs';
 
 type TransactionResult = {
   'project.name': string;
@@ -76,7 +77,7 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   fetchSpanDescendents(spanID: string, traceID: string): Promise<any> {
-    const {api, organization, trace} = this.props;
+    const {api, organization, trace, event} = this.props;
 
     // Skip doing a request if the results will be behind a disabled button.
     if (!organization.features.includes('discover-basic')) {
@@ -98,6 +99,9 @@ class SpanDetail extends React.Component<Props, State> {
       field: ['transaction', 'id', 'trace.span'],
       sort: ['-id'],
       query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
+      project: organization.features.includes('global-views')
+        ? undefined
+        : [Number(event.projectID)],
       start,
       end,
     };
@@ -355,8 +359,20 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
-  render() {
-    const {span} = this.props;
+  renderSpanDetails() {
+    const {span, event, organization} = this.props;
+
+    if (isGapSpan(span)) {
+      return (
+        <SpanDetails>
+          <InlineDocs
+            platform={event.sdk?.name || ''}
+            orgSlug={organization.slug}
+            projectSlug={event.projectSlug}
+          />
+        </SpanDetails>
+      );
+    }
 
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
@@ -364,22 +380,12 @@ class SpanDetail extends React.Component<Props, State> {
     const duration = (endTimestamp - startTimestamp) * 1000;
     const durationString = `${duration.toFixed(3)}ms`;
 
-    if (isGapSpan(span)) {
-      return null;
-    }
-
     const unknownKeys = Object.keys(span).filter(key => {
       return !rawSpanKeys.has(key as any);
     });
 
     return (
-      <SpanDetailContainer
-        data-component="span-detail"
-        onClick={event => {
-          // prevent toggling the span detail
-          event.stopPropagation();
-        }}
-      >
+      <React.Fragment>
         {this.renderOrphanSpanMessage()}
         {this.renderSpanErrorMessage()}
         <SpanDetails>
@@ -420,7 +426,9 @@ class SpanDetail extends React.Component<Props, State> {
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
               <Row title="Same Process as Parent">
-                {String(!!span.same_process_as_parent)}
+                {span.same_process_as_parent !== undefined
+                  ? String(span.same_process_as_parent)
+                  : null}
               </Row>
               <Tags span={span} />
               {map(span?.data ?? {}, (value, key) => (
@@ -436,6 +444,20 @@ class SpanDetail extends React.Component<Props, State> {
             </tbody>
           </table>
         </SpanDetails>
+      </React.Fragment>
+    );
+  }
+
+  render() {
+    return (
+      <SpanDetailContainer
+        data-component="span-detail"
+        onClick={event => {
+          // prevent toggling the span detail
+          event.stopPropagation();
+        }}
+      >
+        {this.renderSpanDetails()}
       </SpanDetailContainer>
     );
   }
@@ -475,7 +497,7 @@ const Row = ({
 }: {
   title: string;
   keep?: boolean;
-  children: JSX.Element | string;
+  children: JSX.Element | string | null;
   extra?: React.ReactNode;
 }) => {
   if (!keep && !children) {

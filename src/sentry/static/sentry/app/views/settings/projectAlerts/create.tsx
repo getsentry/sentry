@@ -22,7 +22,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
   hasMetricAlerts: boolean;
-  hasCreateFromDiscover: boolean;
 };
 
 type AlertType = 'metric' | 'issue' | null;
@@ -43,7 +42,7 @@ class Create extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, project, hasCreateFromDiscover, location} = this.props;
+    const {organization, project, location} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
@@ -52,7 +51,7 @@ class Create extends React.Component<Props, State> {
       project_id: parseInt(project.id, 10),
     });
 
-    if (hasCreateFromDiscover && location.query.createFromDiscover) {
+    if (location?.query?.createFromDiscover) {
       const eventView = EventView.fromLocation(location);
       // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({alertType: 'metric', eventView});
