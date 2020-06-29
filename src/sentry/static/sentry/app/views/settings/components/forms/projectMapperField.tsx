@@ -8,7 +8,7 @@ import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
 import Button from 'app/components/button';
-import {IconVercel, IconDelete, IconOpen} from 'app/icons';
+import {IconVercel, IconGeneric, IconDelete, IconOpen} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
 
@@ -22,6 +22,15 @@ type State = {
   selectedMappedValue: MappedValue | null;
 };
 
+const getIcon = (iconType: string) => {
+  switch (iconType) {
+    case 'vercel':
+      return <IconVercel />;
+    default:
+      return <IconGeneric />;
+  }
+};
+
 export class RenderField extends React.Component<RenderProps, State> {
   state: State = {selectedSentryProjectId: null, selectedMappedValue: null};
 
@@ -33,6 +42,7 @@ export class RenderField extends React.Component<RenderProps, State> {
       sentryProjects,
       mappedDropdown: {items: mappedDropdownItems, placeholder: mappedValuePlaceholder},
       nextButton: {url: nextUrl, text: nextButtonText},
+      iconType,
     } = this.props;
     const existingValues: Array<[number, MappedValue]> = incomingValues || [];
 
@@ -103,19 +113,19 @@ export class RenderField extends React.Component<RenderProps, State> {
               avatarProps={{consistentWidth: true}}
             />
           ) : (
-            <ItemValue>Deleted</ItemValue>
+            <ItemValue>{t('Deleted')}</ItemValue>
           )}
           <MappedItemValue>
             {mappedItem ? (
               <React.Fragment>
-                <StyledVercelIcon />
+                <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
                 {mappedItem.label}
                 <StyledExternalLink href={mappedItem.url}>
                   <IconOpen />
                 </StyledExternalLink>
               </React.Fragment>
             ) : (
-              'Deleted'
+              t('Deleted')
             )}
           </MappedItemValue>
           <DeleteButton
@@ -123,6 +133,7 @@ export class RenderField extends React.Component<RenderProps, State> {
             icon={<IconDelete color="gray500" />}
             size="small"
             type="button"
+            aria-label={t('Delete')}
           />
         </Item>
       );
@@ -172,7 +183,7 @@ export class RenderField extends React.Component<RenderProps, State> {
       }
       return (
         <components.ValueContainer {...containerProps}>
-          <StyledVercelIcon />
+          <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
           {mappedValue.label}
         </components.ValueContainer>
       );
@@ -181,8 +192,10 @@ export class RenderField extends React.Component<RenderProps, State> {
     const customOptionMappedValue = optionProps => {
       return (
         <components.Option {...optionProps}>
-          <StyledVercelIcon />
-          {optionProps.label}
+          <OptionWrapper>
+            <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
+            {optionProps.label}
+          </OptionWrapper>
         </components.Option>
       );
     };
@@ -222,7 +235,7 @@ export class RenderField extends React.Component<RenderProps, State> {
             priority="primary"
             onClick={handleAdd}
           >
-            Add Project
+            {t('Add Project')}
           </StyledAddProjectButton>
           {nextUrl && (
             <StyledBackToVercelButton
@@ -288,8 +301,9 @@ const StyledIdBadge = styled(IdBadge)`
   margin-left: ${space(3)};
 `;
 
-const StyledVercelIcon = styled(IconVercel)`
+const IntegrationIconWrapper = styled('span')`
   margin-right: ${space(0.5)};
+  display: flex;
 `;
 
 const StyledAddProjectButton = styled(Button)`
@@ -306,4 +320,9 @@ const StyledInputField = styled(InputField)`
 
 const StyledExternalLink = styled(ExternalLink)`
   margin-left: ${space(0.5)};
+`;
+
+const OptionWrapper = styled('div')`
+  align-items: center;
+  display: flex;
 `;

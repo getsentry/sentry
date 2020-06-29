@@ -146,6 +146,7 @@ class VercelIntegration(IntegrationInstallation):
                 },
                 "sentryProjects": sentry_projects,
                 "nextButton": {"url": next_url, "text": _("Return to Vercel")},
+                "iconType": "vercel",
             }
         ]
 

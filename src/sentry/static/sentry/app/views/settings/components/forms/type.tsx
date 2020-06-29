@@ -137,8 +137,9 @@ export type ProjectMapperType = {
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   nextButton: {
     url: string | null;
-    buttonText: string;
+    text: string;
   };
+  iconType: string;
 };
 
 export type Field = (
