@@ -40,7 +40,6 @@ type State = AsyncComponent['state'] & {
 class Relays extends AsyncComponent<Props, State> {
   constructor(props: Props, context: AsyncComponent['context']) {
     super(props, context);
-    this.setRelays = this.setRelays.bind(this);
     this.handleOpenAddDialog = this.handleOpenAddDialog.bind(this);
   }
 
@@ -52,9 +51,7 @@ class Relays extends AsyncComponent<Props, State> {
   }
 
   setRelays(trustedRelays: Array<Relay>) {
-    this.setState({
-      relays: trustedRelays,
-    });
+    this.setState({relays: trustedRelays});
   }
 
   handleDelete(publicKey: Relay['publicKey']) {

@@ -56,17 +56,17 @@ function handleError(error: XhrError): Error {
     };
   }
 
-  if (errorMessage.startsWith('Invalid public key for Relay key info with name:')) {
+  if (errorMessage.startsWith('Invalid public key for relay key info with name:')) {
     return {
       type: 'invalid-key',
-      message: t('Invalid Field'),
+      message: t('Invalid Relay key'),
     };
   }
 
   if (errorMessage.startsWith('Duplicated key in Trusted Relays:')) {
     return {
       type: 'duplicated-key',
-      message: t('Key already taken'),
+      message: t('Relay key already taken'),
     };
   }
 
