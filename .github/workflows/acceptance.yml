@@ -221,7 +221,7 @@ jobs:
         - name: Diff snapshots
           if: ${{ github.ref != 'refs/heads/master' }}
           id: visual-snapshots-diff
-          uses: getsentry/action-visual-snapshot@v1-alpha
+          uses: getsentry/action-visual-snapshot@v1
           with:
             githubToken: ${{ secrets.GITHUB_TOKEN }}
             snapshot-path: .artifacts/visual-snapshots
