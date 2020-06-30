@@ -418,7 +418,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 critical.get("threshold_type", AlertRuleThresholdType.ABOVE.value)
             ),
         )
-        self._validate_trigger_thresholds(threshold_type, critical)
+        self._validate_trigger_thresholds(threshold_type, critical, data.get("resolve_threshold"))
 
         if len(triggers) == 2:
             warning = triggers[1]
@@ -427,7 +427,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "Must have matching threshold types (i.e. critical and warning "
                     "triggers must both be an upper or lower bound)"
                 )
-            self._validate_trigger_thresholds(threshold_type, warning)
+            self._validate_trigger_thresholds(
+                threshold_type, warning, data.get("resolve_threshold")
+            )
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
 
         # Temporarily fetch resolve threshold from the triggers if one isn't explicitly
@@ -446,6 +448,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 )
             else:
                 data["resolve_threshold"] = None
+        else:
+            for trigger in triggers:
+                trigger["resolve_threshold"] = data["resolve_threshold"]
 
         # Triggers have passed checks. Check that all triggers have at least one action now.
         for trigger in triggers:
@@ -457,8 +462,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         return data
 
-    def _validate_trigger_thresholds(self, threshold_type, trigger):
-        if trigger.get("resolve_threshold") is None:
+    def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
+        resolve_threshold = (
+            resolve_threshold if resolve_threshold is not None else trigger.get("resolve_threshold")
+        )
+        if resolve_threshold is None:
             return
         # Since we're comparing non-inclusive thresholds here (>, <), we need
         # to modify the values when we compare. An example of why:
@@ -470,9 +478,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         else:
             alert_op, alert_add, resolve_add = operator.gt, -1, 1
 
-        if alert_op(
-            trigger["alert_threshold"] + alert_add, trigger["resolve_threshold"] + resolve_add
-        ):
+        if alert_op(trigger["alert_threshold"] + alert_add, resolve_threshold + resolve_add):
             raise serializers.ValidationError(
                 "{} alert threshold must be above resolution threshold".format(trigger["label"])
             )
