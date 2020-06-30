@@ -107,9 +107,18 @@ class SubscriptionProcessor(object):
         return incident_trigger is not None and incident_trigger.status == status.value
 
     def process_update(self, subscription_update):
-        if not features.has("organizations:incidents", self.subscription.project.organization):
+        dataset = self.subscription.snuba_query.dataset
+        if dataset == "events" and not features.has(
+            "organizations:incidents", self.subscription.project.organization
+        ):
             # They have downgraded since these subscriptions have been created. So we just ignore updates for now.
-            metrics.incr("incidents.alert_rules.ignore_update_missing_feature")
+            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents")
+            return
+        elif dataset == "transactions" and not features.has(
+            "organizations:incidents-performance", self.subscription.project.organization
+        ):
+            # They have downgraded since these subscriptions have been created. So we just ignore updates for now.
+            metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")
             return
 
         if not hasattr(self, "alert_rule"):
