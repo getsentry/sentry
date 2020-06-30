@@ -258,8 +258,8 @@ type SentryEventBase = {
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
-  packages?: {[key: string]: string};
   device?: {[key: string]: any};
+  packages?: {[key: string]: string};
   user: EventUser;
   message: string;
   platform?: PlatformKey;
