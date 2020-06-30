@@ -1,3 +1,4 @@
+/* global process */
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
@@ -133,7 +134,7 @@ class Onboarding extends React.Component {
     const step = this.activeStep;
     scrollToElement(`#onboarding_step_${step.id}`, {
       align: 'middle',
-      duration: 300,
+      duration: process.env.IS_CI ? 0 : 300,
     });
   };
 
