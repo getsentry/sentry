@@ -12,12 +12,14 @@ function prefersDark(): boolean {
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-const updateFavicon = () => changeFavicon(prefersDark() ? 'dark' : 'light');
+function updateFavicon(): void {
+  changeFavicon(prefersDark() ? 'dark' : 'light');
+}
 
 export function setupFavicon() {
   // Set favicon to dark on load
   if (prefersDark()) {
-    updateFavicon();
+    changeFavicon('dark');
   }
 
   // Watch for changes in preferred color scheme
