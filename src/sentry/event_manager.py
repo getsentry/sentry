@@ -543,7 +543,8 @@ class EventManager(object):
         # posting to eventstream to make sure all counters and eventstream are
         # incremented for sure. Also wait for grouping to remove attachments
         # based on the group counter.
-        attachments = get_attachments(cache_key, job)
+        with metrics.timer("event_manager.get_attachments"):
+            attachments = get_attachments(cache_key, job)
 
         try:
             job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
@@ -590,7 +591,9 @@ class EventManager(object):
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
         _materialize_event_metrics(jobs)
 
-        attachments = filter_attachments_for_group(attachments, job)
+        with metrics.timer("event_manager.filter_attachments_for_group"):
+            attachments = filter_attachments_for_group(attachments, job)
+
         for attachment in attachments:
             key = "bytes.stored.%s" % (attachment.type,)
             old_bytes = job["event_metrics"].get(key) or 0
@@ -627,7 +630,8 @@ class EventManager(object):
 
         # Do this last to ensure signals get emitted even if connection to the
         # file store breaks temporarily.
-        save_attachments(cache_key, attachments, job)
+        with metrics.timer("event_manager.save_attachments"):
+            save_attachments(cache_key, attachments, job)
 
         metric_tags = {"from_relay": "_relay_processed" in job["data"]}
 
