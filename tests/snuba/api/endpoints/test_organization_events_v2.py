@@ -1865,6 +1865,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert "string" == meta["count_diff"], "tags should not be counted as integers"
             assert "string" == meta["message"]
             assert "integer" == meta["count"]
+            assert 1 == len(response.data["data"])
+            data = response.data["data"][0]
+            assert "99" == data["count_diff"]
+            assert "Failure state" == data["message"]
+            assert 1 == data["count"]
 
     def test_aggregate_negation(self):
         self.login_as(user=self.user)
