@@ -742,7 +742,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const durationDisplay = getDurationDisplay(bounds);
 
     return (
-      <SpanRowCellContainer>
+      <SpanRowCellContainer showDetail={this.state.showDetail}>
         <SpanRowCell
           showDetail={this.state.showDetail}
           style={{
@@ -847,12 +847,11 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
   color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
 `;
 
-const SpanRowCellContainer = styled('div')`
+const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
   :hover > div {
-    color: ${p => p.theme.white};
-    background-color: ${p => p.theme.gray800};
+    background-color: ${p => (p.showDetail ? p.theme.gray800 : p.theme.gray200)};
   }
 `;
 
