@@ -17,7 +17,6 @@ import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
 import EventView, {
   isFieldSortable,
-  MetaType,
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {Column} from 'app/utils/discover/fields';
@@ -206,7 +205,7 @@ class TableView extends React.Component<TableViewProps> {
       <CellAction
         column={column}
         dataRow={dataRow}
-        handleCellAction={this.handleCellAction(dataRow, column, tableData.meta)}
+        handleCellAction={this.handleCellAction(dataRow, column)}
       >
         {fieldRenderer(dataRow, {organization, location})}
       </CellAction>
@@ -230,11 +229,7 @@ class TableView extends React.Component<TableViewProps> {
     );
   };
 
-  handleCellAction = (
-    dataRow: TableDataRow,
-    column: TableColumn<keyof TableDataRow>,
-    tableMeta: MetaType
-  ) => {
+  handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, organization, projects} = this.props;
 
@@ -294,22 +289,12 @@ class TableView extends React.Component<TableViewProps> {
           // Remove query token if it already exists
           delete query[column.name];
           query[column.name] = [`>${value}`];
-          const field = {field: column.name, width: column.width};
-
-          // sort descending order
-          nextView = nextView.sortOnField(field, tableMeta, 'desc');
-
           break;
         }
         case Actions.SHOW_LESS_THAN: {
           // Remove query token if it already exists
           delete query[column.name];
           query[column.name] = [`<${value}`];
-          const field = {field: column.name, width: column.width};
-
-          // sort ascending order
-          nextView = nextView.sortOnField(field, tableMeta, 'asc');
-
           break;
         }
         case Actions.TRANSACTION: {
