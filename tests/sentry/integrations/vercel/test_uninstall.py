@@ -71,7 +71,7 @@ class VercelUninstallTest(APITestCase):
             path=self.url, data=PRIMARY_UNINSTALL_RESPONSE, content_type="application/json",
         )
 
-        assert response.status_code == 202
+        assert response.status_code == 204
         assert len(OrganizationIntegration.objects.all()) == 1
 
         integration = Integration.objects.get(id=self.integration.id)
@@ -100,7 +100,7 @@ class VercelUninstallTest(APITestCase):
             path=self.url, data=NONPRIMARY_UNINSTALL_RESPONSE, content_type="application/json",
         )
 
-        assert response.status_code == 202
+        assert response.status_code == 204
         assert len(OrganizationIntegration.objects.all()) == 1
 
         integration = Integration.objects.get(id=self.integration.id)
@@ -147,7 +147,7 @@ class VercelUninstallTest(APITestCase):
             path=self.url, data=USERID_UNINSTALL_RESPONSE, content_type="application/json",
         )
 
-        assert response.status_code == 202
+        assert response.status_code == 204
         assert not Integration.objects.filter(id=integration.id).exists()
         assert not OrganizationIntegration.objects.filter(
             integration_id=integration.id, organization_id=org.id

@@ -39,7 +39,7 @@ class VercelUninstallEndpoint(Endpoint):
         if len(orgs) == 1:
             create_audit_entry(
                 request=request,
-                organization=integration.organizations.all()[0],
+                organization=orgs[0],
                 target_object=integration.id,
                 event=AuditLogEntryEvent.INTEGRATION_REMOVE,
                 # TODO(meredith): If we create vercel identities from the userId
