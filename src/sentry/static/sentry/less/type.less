@@ -1,0 +1,104 @@
+/**
+ * Variables
+ * ============================================================================
+ */
+
+@font-family-base: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+@font-family-code: Monaco, Consolas, 'Courier New', monospace;
+
+/**
+ * Links
+ * ============================================================================
+ */
+
+a {
+  color: @link-color;
+  text-decoration: none;
+  .transition(color linear 0.2s);
+  cursor: pointer;
+
+  &:hover {
+    color: @link-color-hover;
+    text-decoration: none;
+  }
+
+  &:focus {
+    text-decoration: none;
+  }
+}
+
+/**
+ * Alignment
+ * ============================================================================
+ */
+
+.align-left {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.align-center {
+  text-align: center;
+  justify-content: center;
+}
+
+.align-right {
+  text-align: right;
+  justify-content: flex-end;
+}
+
+hr {
+  border-top: 1px solid @trim;
+}
+
+/**
+ * Icons
+ * ============================================================================
+ */
+
+.icon-arrow-right,
+.icon-arrow-left {
+  font-size: 16px !important;
+  position: relative;
+  top: 2px;
+}
+
+/**
+* Code
+* ============================================================================
+*/
+
+pre,
+code,
+kbd,
+sample {
+  font-family: @font-family-code;
+}
+
+pre,
+code {
+  border: 0;
+  background-color: @white-darker;
+  color: @gray-darker;
+  border-radius: 3px;
+
+  &.small {
+    font-size: 12px;
+  }
+}
+
+pre {
+  word-break: break-all;
+  white-space: pre-wrap;
+  padding: 10px;
+}
+
+/**
+* Page header
+* ============================================================================
+*/
+
+.page-header {
+  margin: 0 0 20px;
+  border-bottom: 1px solid @trim;
+}
