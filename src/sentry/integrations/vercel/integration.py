@@ -142,7 +142,7 @@ class VercelIntegration(IntegrationInstallation):
                 "type": "project_mapper",
                 "mappedDropdown": {
                     "items": vercel_projects,
-                    "placeholder": _("Choose Vercel project\u2026"),
+                    "placeholder": _("Choose Vercel project..."),
                 },
                 "sentryProjects": sentry_projects,
                 "nextButton": {"url": next_url, "text": _("Return to Vercel")},
