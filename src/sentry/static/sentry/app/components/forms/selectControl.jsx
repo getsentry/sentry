@@ -55,10 +55,10 @@ const defaultStyles = {
     alignItems: 'center',
     minHeight: '36px',
     '&:hover': {
-      borderColor: theme.gray400,
+      borderColor: theme.borderDark,
     },
     ...(state.isFocused && {
-      border: `1px solid ${theme.gray400}`,
+      border: `1px solid ${theme.borderDark}`,
       boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
     }),
     ...(state.menuIsOpen && {
@@ -100,7 +100,7 @@ const defaultStyles = {
     backgroundColor: state.isFocused
       ? theme.gray200
       : state.isSelected
-      ? theme.purple
+      ? theme.purple400
       : 'transparent',
     '&:active': {
       backgroundColor: theme.gray200,

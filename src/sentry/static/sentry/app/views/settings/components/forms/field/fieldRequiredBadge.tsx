@@ -4,7 +4,7 @@ import space from 'app/styles/space';
 
 const FieldRequiredBadge = styled('div')`
   display: inline-block;
-  background: ${p => p.theme.redLight};
+  background: ${p => p.theme.red400};
   opacity: 0.6;
   width: 5px;
   height: 5px;

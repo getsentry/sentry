@@ -224,7 +224,7 @@ exports[`SelectField deprecatedSelectControl renders without form context 1`] = 
                 <SelectPicker
                   arrowRenderer={[Function]}
                   backspaceRemoves={true}
-                  className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                  className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                   clearable={true}
                   deleteRemoves={true}
                   disabled={false}
@@ -254,7 +254,7 @@ exports[`SelectField deprecatedSelectControl renders without form context 1`] = 
                     autosize={true}
                     backspaceRemoves={true}
                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                    className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                    className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                     clearAllText="Clear all"
                     clearRenderer={[Function]}
                     clearValueText="Clear value"
@@ -314,7 +314,7 @@ exports[`SelectField deprecatedSelectControl renders without form context 1`] = 
                     valueKey="value"
                   >
                     <div
-                      className="Select e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-clearable is-searchable Select--single"
+                      className="Select e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-clearable is-searchable Select--single"
                     >
                       <input
                         disabled={false}

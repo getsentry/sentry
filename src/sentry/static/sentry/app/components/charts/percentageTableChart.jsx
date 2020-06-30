@@ -40,7 +40,11 @@ const StyledDelta = styled('div')`
   margin-right: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p =>
-    p.direction > 0 ? p.theme.green400 : p.direction < 0 ? p.theme.red : p.theme.gray500};
+    p.direction > 0
+      ? p.theme.green400
+      : p.direction < 0
+      ? p.theme.red400
+      : p.theme.gray500};
 `;
 
 class PercentageTableChart extends React.Component {
