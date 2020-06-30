@@ -21,6 +21,8 @@ import {
 } from 'app/actionCreators/indicator';
 import {decodeScalar} from 'app/utils/queryString';
 import Confirm from 'app/components/confirm';
+import Version from 'app/components/version';
+import TextOverflow from 'app/components/textOverflow';
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
@@ -39,7 +41,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   getTitle() {
     const {projectId, name} = this.props.params;
 
-    return routeTitleGen(t('Source Maps %s', formatVersion(name)), projectId, false);
+    return routeTitleGen(t('Archive %s', formatVersion(name)), projectId, false);
   }
 
   getDefaultState(): State {
@@ -147,8 +149,15 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader
-          title={t('Archive %s', formatVersion(name))}
+        <StyledSettingsPageHeader
+          title={
+            <Title>
+              {t('Archive')}&nbsp;
+              <TextOverflow>
+                <Version version={name} tooltipRawVersion anchor={false} truncate />
+              </TextOverflow>
+            </Title>
+          }
           action={
             <ButtonBar gap={1}>
               <ReleaseButton
@@ -195,6 +204,21 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     );
   }
 }
+
+const StyledSettingsPageHeader = styled(SettingsPageHeader)`
+  /*
+    ugly selector to make overflow ellipsis work
+    we can refactor this once we start making other settings more responsive
+  */
+  > div > div {
+    min-width: 0;
+  }
+`;
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+`;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr max-content 120px;

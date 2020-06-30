@@ -73,7 +73,7 @@ export default class ProjectServiceHooks extends AsyncView {
   onToggleActive = hook => {
     const {orgId, projectId} = this.props.params;
 
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     this.api.request(`/projects/${orgId}/${projectId}/hooks/${hook.id}/`, {
       method: 'PUT',

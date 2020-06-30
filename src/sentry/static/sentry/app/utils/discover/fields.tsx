@@ -198,7 +198,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    outputType: 'percentage',
+    outputType: 'number',
     isSortable: true,
     multiPlotType: 'line',
   },

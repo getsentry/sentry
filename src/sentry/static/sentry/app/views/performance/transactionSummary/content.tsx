@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
@@ -13,6 +13,11 @@ import * as Layout from 'app/components/layouts/thirds';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
 import {decodeScalar} from 'app/utils/queryString';
+import CreateAlertButton from 'app/components/createAlertButton';
+import withProjects from 'app/utils/withProjects';
+import ButtonBar from 'app/components/buttonBar';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import Feature from 'app/components/acl/feature';
 
 import TransactionList from './transactionList';
 import UserStats from './userStats';
@@ -28,9 +33,18 @@ type Props = {
   transactionName: string;
   organization: Organization;
   totalValues: number | null;
+  projects: Project[];
 };
 
-class SummaryContent extends React.Component<Props> {
+type State = {
+  incompatibleAlertNotice: React.ReactNode;
+};
+
+class SummaryContent extends React.Component<Props, State> {
+  state: State = {
+    incompatibleAlertNotice: null,
+  };
+
   handleSearch = (query: string) => {
     const {location} = this.props;
 
@@ -58,6 +72,47 @@ class SummaryContent extends React.Component<Props> {
     };
   };
 
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = incompatibleAlertNoticeFn => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.create_alert_incompatible',
+      eventName:
+        'Performance Views: Creating an alert from transaction summary was incompatible',
+      organization_id: organization.id,
+    });
+    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      this.setState({incompatibleAlertNotice: null})
+    );
+    this.setState({incompatibleAlertNotice});
+  };
+
+  handleCreateAlertSuccess = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.create_alert',
+      eventName: 'Performance Views: Create Alert from Transaction Summary',
+      organization_id: organization.id,
+    });
+  };
+
+  renderCreateAlertButton() {
+    const {eventView, organization, projects} = this.props;
+
+    return (
+      <Feature features={['organizations:incidents-performance']}>
+        <CreateAlertButton
+          eventView={eventView}
+          organization={organization}
+          projects={projects}
+          onIncompatibleQuery={this.handleIncompatibleQuery}
+          onSuccess={this.handleCreateAlertSuccess}
+        />
+      </Feature>
+    );
+  }
+
   renderKeyTransactionButton() {
     const {eventView, organization, transactionName} = this.props;
 
@@ -72,6 +127,7 @@ class SummaryContent extends React.Component<Props> {
 
   render() {
     const {transactionName, location, eventView, organization, totalValues} = this.props;
+    const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
 
     return (
@@ -85,9 +141,17 @@ class SummaryContent extends React.Component<Props> {
             />
             <Layout.Title>{transactionName}</Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions>{this.renderKeyTransactionButton()}</Layout.HeaderActions>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              {this.renderCreateAlertButton()}
+              {this.renderKeyTransactionButton()}
+            </ButtonBar>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
+          {incompatibleAlertNotice && (
+            <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+          )}
           <Layout.Main>
             <StyledSearchBar
               organization={organization}
@@ -142,4 +206,4 @@ const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};
 `;
 
-export default SummaryContent;
+export default withProjects(SummaryContent);

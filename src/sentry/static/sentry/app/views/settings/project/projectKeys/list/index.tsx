@@ -50,7 +50,7 @@ class ProjectKeys extends AsyncView<Props, State> {
   handleRemoveKey = async (data: ProjectKey) => {
     const oldKeyList = [...this.state.keyList];
 
-    addLoadingMessage(t('Revoking key..'));
+    addLoadingMessage(t('Revoking key\u2026'));
 
     this.setState(state => ({
       keyList: state.keyList.filter(key => key.id !== data.id),
@@ -74,7 +74,7 @@ class ProjectKeys extends AsyncView<Props, State> {
   handleToggleKey = async (isActive: boolean, data: ProjectKey) => {
     const oldKeyList = [...this.state.keyList];
 
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     this.setState(state => {
       const keyList = state.keyList.map(key => {

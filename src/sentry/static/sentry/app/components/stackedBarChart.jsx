@@ -426,7 +426,7 @@ const CircleSvg = styled('svg')`
   left: ${p => p.left}%;
 
   &:hover circle {
-    fill: ${p => p.theme.purple};
+    fill: ${p => p.theme.purple400};
   }
 `;
 

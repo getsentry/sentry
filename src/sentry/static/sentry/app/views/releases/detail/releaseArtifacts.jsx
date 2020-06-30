@@ -84,7 +84,7 @@ class ReleaseArtifacts extends React.Component {
   };
 
   handleRemove(id) {
-    addLoadingMessage(t('Removing artifact..'));
+    addLoadingMessage(t('Removing artifact\u2026'));
 
     this.props.api.request(this.getFilesEndpoint() + `${id}/`, {
       method: 'DELETE',

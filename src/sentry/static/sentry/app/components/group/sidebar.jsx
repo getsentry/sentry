@@ -111,7 +111,7 @@ class GroupSidebar extends React.Component {
 
   toggleSubscription() {
     const {api, group, project, organization} = this.props;
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     api.bulkUpdate(
       {
