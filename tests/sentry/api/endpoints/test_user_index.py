@@ -96,8 +96,8 @@ class UserCreateTest(APITestCase):
                 "email": "user@example.com",
                 "password": "password",
                 "is_superuser": True,
-                "force_update": True
-            }
+                "force_update": True,
+            },
         )
         assert resp.status_code == 201, resp.content
         assert json.loads(resp.content)["email"] == "user@example.com"
@@ -114,8 +114,8 @@ class UserCreateTest(APITestCase):
                 "email": "foo@example.com",
                 "password": "",
                 "is_superuser": True,
-                "force_update": True
-            }
+                "force_update": True,
+            },
         )
         assert resp.status_code == 400
 
@@ -123,12 +123,7 @@ class UserCreateTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         url = reverse("sentry-api-0-user-index")
         resp = self.client.post(
-            url,
-            data={
-                "email": "foo@example.com",
-                "is_superuser": True,
-                "force_update": True
-            }
+            url, data={"email": "foo@example.com", "is_superuser": True, "force_update": True}
         )
         assert resp.status_code == 400
 
@@ -137,12 +132,7 @@ class UserCreateTest(APITestCase):
         url = reverse("sentry-api-0-user-index")
         resp = self.client.post(
             url,
-            data={
-                "email": "",
-                "password": "password",
-                "is_superuser": True,
-                "force_update": True
-            }
+            data={"email": "", "password": "password", "is_superuser": True, "force_update": True},
         )
         assert resp.status_code == 400
 
@@ -150,12 +140,7 @@ class UserCreateTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         url = reverse("sentry-api-0-user-index")
         resp = self.client.post(
-            url,
-            data={
-                "password": "password",
-                "is_superuser": True,
-                "force_update": True
-            }
+            url, data={"password": "password", "is_superuser": True, "force_update": True}
         )
         assert resp.status_code == 400
 
@@ -168,8 +153,8 @@ class UserCreateTest(APITestCase):
                 "email": "foo@example.com",
                 "password": "password",
                 "is_superuser": True,
-                "force_update": True
-            }
+                "force_update": True,
+            },
         )
         assert resp.status_code == 201, resp.content
         assert json.loads(resp.content)["email"] == "foo@example.com"
@@ -181,12 +166,7 @@ class UserCreateTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         url = reverse("sentry-api-0-user-index")
         resp = self.client.post(
-            url,
-            data={
-                "email": "foo@example.com",
-                "password": "password",
-                "is_superuser": True
-            }
+            url, data={"email": "foo@example.com", "password": "password", "is_superuser": True}
         )
         assert resp.status_code == 400
 
@@ -194,12 +174,7 @@ class UserCreateTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         url = reverse("sentry-api-0-user-index")
         resp = self.client.post(
-            url,
-            data={
-                "email": "foo@example.com",
-                "password": "password",
-                "force_update": True
-            }
+            url, data={"email": "foo@example.com", "password": "password", "force_update": True}
         )
         assert resp.status_code == 201, resp.content
         assert json.loads(resp.content)["email"] == "foo@example.com"
