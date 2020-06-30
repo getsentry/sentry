@@ -539,17 +539,10 @@ class EventManager(object):
         if job["release"]:
             kwargs["first_release"] = job["release"]
 
-        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
-        _materialize_event_metrics(jobs)
-
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
         # incremented for sure.
         attachments = get_attachments_to_store(cache_key, job)
-        for attachment in attachments:
-            key = "bytes.stored.%s" % (attachment.type,)
-            old_bytes = job["event_metrics"].get(key) or 0
-            job["event_metrics"][key] = old_bytes + len(attachment.data)
 
         try:
             job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
@@ -577,7 +570,9 @@ class EventManager(object):
 
             attachment_quantity = 0
             for attachment in attachments:
-                attachment_quantity += len(attachment.data)
+                # Quotas are counted with at least ``1`` for attachments.
+                attachment_quantity += attachment.size or 1
+
                 track_outcome(
                     org_id=project.organization_id,
                     project_id=job["project_id"],
@@ -587,7 +582,7 @@ class EventManager(object):
                     timestamp=to_datetime(job["start_time"]),
                     event_id=job["event"].event_id,
                     category=DataCategory.ATTACHMENT,
-                    quantity=len(attachment.data),
+                    quantity=attachment.size,
                 )
 
             if attachment_quantity:
@@ -640,6 +635,14 @@ class EventManager(object):
                 group=job["group"], environment=job["environment"]
             )
 
+        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
+        _materialize_event_metrics(jobs)
+
+        for attachment in attachments:
+            key = "bytes.stored.%s" % (attachment.type,)
+            old_bytes = job["event_metrics"].get(key) or 0
+            job["event_metrics"][key] = old_bytes + attachment.size
+
         _nodestore_save_many(jobs)
 
         if job["release"]:
@@ -671,7 +674,7 @@ class EventManager(object):
 
         # Do this last to ensure signals get emitted even if connection to the
         # file store breaks temporarily.
-        save_attachments(attachments, job)
+        save_attachments(cache_key, attachments, job)
 
         metric_tags = {"from_relay": "_relay_processed" in job["data"]}
 
@@ -1319,23 +1322,6 @@ def get_attachments_to_store(cache_key, job):
         if attachment.rate_limited:
             continue  # NB: Relay already tracked an outcome.
 
-        try:
-            data = attachment.data
-        except MissingAttachmentChunks:
-            track_outcome(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.INVALID,
-                reason="missing_chunks",
-                timestamp=to_datetime(job["start_time"]),
-                event_id=event.event_id,
-                category=DataCategory.ATTACHMENT,
-            )
-
-            logger.exception("Missing chunks for cache_key=%s", cache_key)
-            continue
-
         # If the attachment is a crash report (e.g. minidump), we need to honor
         # the store_crash_reports setting. Otherwise, we assume that the client
         # has already verified PII and just store the attachment.
@@ -1350,10 +1336,11 @@ def get_attachments_to_store(cache_key, job):
                     timestamp=to_datetime(job["start_time"]),
                     event_id=event.event_id,
                     category=DataCategory.ATTACHMENT,
-                    quantity=len(attachment.data),
+                    quantity=attachment.size,
                 )
 
-                refund_quantity += len(data)
+                # Quotas are counted with at least ``1`` for attachments.
+                refund_quantity += attachment.size or 1
                 continue
             stored_reports += 1
 
@@ -1378,7 +1365,7 @@ def get_attachments_to_store(cache_key, job):
     return filtered
 
 
-def save_attachments(attachments, job):
+def save_attachments(cache_key, attachments, job):
     """
     Persists cached event attachments into the file store.
 
@@ -1388,12 +1375,29 @@ def save_attachments(attachments, job):
     event = job["event"]
 
     for attachment in attachments:
+        try:
+            data = attachment.data
+        except MissingAttachmentChunks:
+            track_outcome(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.INVALID,
+                reason="missing_chunks",
+                timestamp=to_datetime(job["start_time"]),
+                event_id=event.event_id,
+                category=DataCategory.ATTACHMENT,
+            )
+
+            logger.exception("Missing chunks for cache_key=%s", cache_key)
+            continue
+
         file = File.objects.create(
             name=attachment.name,
             type=attachment.type,
             headers={"Content-Type": attachment.content_type},
         )
-        file.putfile(six.BytesIO(attachment.data))
+        file.putfile(six.BytesIO(data))
 
         EventAttachment.objects.create(
             event_id=event.event_id,
@@ -1412,7 +1416,7 @@ def save_attachments(attachments, job):
             timestamp=to_datetime(job["start_time"]),
             event_id=event.event_id,
             category=DataCategory.ATTACHMENT,
-            quantity=len(attachment.data) or 1,
+            quantity=attachment.size or 1,
         )
 
 

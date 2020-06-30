@@ -30,6 +30,7 @@ class CachedAttachment(object):
         chunks=None,
         cache=None,
         rate_limited=None,
+        size=None,
         **kwargs
     ):
         self.key = key
@@ -40,6 +41,13 @@ class CachedAttachment(object):
         self.type = type or "event.attachment"
         assert isinstance(self.type, string_types), self.type
         self.rate_limited = rate_limited
+
+        if size is not None:
+            self.size = size
+        elif data is not None:
+            self.size = len(data)
+        else:
+            self.size = 0
 
         self._data = data
         self.chunks = chunks
@@ -85,6 +93,7 @@ class CachedAttachment(object):
                 "content_type": self.content_type,
                 "type": self.type,
                 "chunks": self.chunks,
+                "size": self.size or None,  # None for backwards compatibility
                 "rate_limited": self.rate_limited,
             }
         )
