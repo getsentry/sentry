@@ -28,6 +28,15 @@ type Props = {
   showTags: boolean;
 };
 
+function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
+  trackAnalyticsEvent({
+    eventKey: 'discover_v2.results.download_csv',
+    eventName: 'Discoverv2: Download CSV',
+    organization_id: parseInt(organization.id, 10),
+  });
+  downloadAsCsv(tableData, eventView.getColumns(), title);
+}
+
 function renderDownloadButton(canEdit: boolean, props: Props) {
   const {tableData} = props;
   if (!tableData || (tableData.data && tableData.data.length < 50)) {
@@ -42,15 +51,6 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
       </Feature>
     );
   }
-}
-
-function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
-  trackAnalyticsEvent({
-    eventKey: 'discover_v2.results.download_csv',
-    eventName: 'Discoverv2: Download CSV',
-    organization_id: parseInt(organization.id, 10),
-  });
-  downloadAsCsv(tableData, eventView.getColumns(), title);
 }
 
 function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Props) {
@@ -123,9 +123,14 @@ function renderSummaryButton({onChangeShowTags, showTags}: Props) {
   );
 }
 
-function HeaderActions(props: Props) {
+type FeatureWrapperProps = Props & {
+  children: (hasFeature: boolean, props: Props) => React.ReactNode;
+};
+
+function FeatureWrapper(props: FeatureWrapperProps) {
   const noEditMessage = t('Requires discover query feature.');
   const editFeatures = ['organizations:discover-query'];
+
   const renderDisabled = p => (
     <Hovercard
       body={
@@ -146,14 +151,22 @@ function HeaderActions(props: Props) {
       renderDisabled={renderDisabled}
       features={editFeatures}
     >
-      {({hasFeature}) => (
-        <React.Fragment>
-          {renderEditButton(hasFeature, props)}
-          {renderDownloadButton(hasFeature, props)}
-          {renderSummaryButton(props)}
-        </React.Fragment>
-      )}
+      {({hasFeature}) => props.children(hasFeature, props)}
     </Feature>
+  );
+}
+
+function HeaderActions(props: Props) {
+  return (
+    <React.Fragment>
+      <FeatureWrapper {...props} key="edit">
+        {renderEditButton}
+      </FeatureWrapper>
+      <FeatureWrapper {...props} key="download">
+        {renderDownloadButton}
+      </FeatureWrapper>
+      {renderSummaryButton(props)}
+    </React.Fragment>
   );
 }
 
