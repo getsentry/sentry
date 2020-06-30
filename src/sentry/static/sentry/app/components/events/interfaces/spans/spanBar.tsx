@@ -850,6 +850,10 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
 const SpanRowCellContainer = styled('div')`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
+  :hover > div {
+    color: ${p => p.theme.white};
+    background-color: ${p => p.theme.gray800};
+  }
 `;
 
 const CursorGuide = styled('div')`
