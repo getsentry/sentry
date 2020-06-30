@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import EventWaiter from 'app/utils/eventWaiter';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark} from 'app/icons';
 import space from 'app/styles/space';
 import testablePose from 'app/utils/testablePose';
 import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
@@ -60,7 +60,7 @@ type SuccessProps = EventWaiterProps & {
 
 const Success = ({organization, firstIssue, ...props}: SuccessProps) => (
   <StatusWrapper {...props}>
-    <ReceivedIndicator src="icon-checkmark-sm" />
+    <ReceivedIndicator size="20px" />
     <PosedText>{t('Event was received!')}</PosedText>
     {firstIssue && firstIssue !== true && (
       <PosedButton
@@ -87,14 +87,12 @@ const WaitingIndicator = styled(posed.div(indicatorPoses))`
   ${pulsingIndicatorStyles};
 `;
 
-const PosedReceivedIndicator = posed(InlineSvg)(indicatorPoses);
+const PosedReceivedIndicator = posed(IconCheckmark)(indicatorPoses);
 
 const ReceivedIndicator = styled(PosedReceivedIndicator)`
   color: #fff;
   background: ${p => p.theme.green400};
   border-radius: 50%;
-  height: 20px;
-  width: 20px;
   padding: 5px;
   margin: 0 2px;
 `;
