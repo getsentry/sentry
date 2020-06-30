@@ -44,6 +44,19 @@ export function addMessage(
 ): void {
   const {duration: optionsDuration, append, ...rest} = options;
 
+  // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
+  if (
+    // @ts-ignore
+    typeof msg?.message !== 'undefined' &&
+    // @ts-ignore
+    typeof msg?.code !== 'undefined' &&
+    // @ts-ignore
+    typeof msg?.extra !== 'undefined'
+  ) {
+    // eslint-disable-next-line no-console
+    console.error(new Error('Attempt to XHR response to Indicators'));
+  }
+
   // use default only if undefined, as 0 is a valid duration
   const duration =
     typeof optionsDuration === 'undefined' ? DEFAULT_TOAST_DURATION : optionsDuration;
