@@ -50,7 +50,7 @@ class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
         if event_id:
             for event in eventstore.get_events(
                 filter=eventstore.Filter(event_ids=[event_id], project_ids=project_ids),
-                referrer="data_scrubbing_selector_suggestions",
+                referrer="api.data_scrubbing_selector_suggestions",
             ):
                 for selector in pii_selector_suggestions_from_event(dict(event.data)):
                     examples_ = suggestions.setdefault(selector["path"], [])
