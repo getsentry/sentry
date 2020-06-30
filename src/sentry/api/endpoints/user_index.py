@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import six
 
 from django.db.models import Q
-from django.conf import settings
 from rest_framework import status, serializers
 from rest_framework.response import Response
 
@@ -118,8 +117,7 @@ class UserIndexEndpoint(Endpoint):
                 user.set_password(password)
                 user.save()
 
-                if settings.SENTRY_SINGLE_ORGANIZATION:
-                    org = Organization.get_default()
+                org = Organization.get_default()
                 if superuser:
                     role = roles.get_top_dog().id
                 else:
