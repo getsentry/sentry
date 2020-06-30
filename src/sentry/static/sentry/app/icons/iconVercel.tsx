@@ -4,7 +4,7 @@ import SvgIcon from './svgIcon';
 
 type Props = React.ComponentProps<typeof SvgIcon>;
 
-const IconVercel = React.forwardRef(function IconGithub(
+const IconVercel = React.forwardRef(function IconVercel(
   props: Props,
   ref: React.Ref<SVGSVGElement>
 ) {
