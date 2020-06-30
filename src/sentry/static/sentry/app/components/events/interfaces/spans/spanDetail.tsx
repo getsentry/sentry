@@ -100,14 +100,12 @@ class SpanDetail extends React.Component<Props, State> {
       field: ['transaction', 'id', 'trace.span'],
       sort: ['-id'],
       query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
-      project: [] as number[],
+      project: organization.features.includes('global-views')
+        ? [] // this is expected to be stripped out by $.param
+        : [Number(event.projectID)],
       start,
       end,
     };
-
-    if (!organization.features.includes('global-views')) {
-      query.project = [Number(event.projectID)];
-    }
 
     return api.requestPromise(url, {
       method: 'GET',
