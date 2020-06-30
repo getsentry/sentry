@@ -34,13 +34,13 @@ from .client import VercelClient
 logger = logging.getLogger("sentry.integrations.vercel")
 
 DESCRIPTION = """
-VERCEL DESC
+Vercel is an all-in-one platform with Global CDN supporting static & JAMstack deployment and Serverless Functions.
 """
 
 FEATURES = [
     FeatureDescription(
         """
-        DEPLOYMENT DESCRIPTION
+        Connect your Sentry and Vercel Projects to automatically upload source maps and notify Sentry of new releases being deployed.
         """,
         IntegrationFeatures.DEPLOYMENT,
     ),
