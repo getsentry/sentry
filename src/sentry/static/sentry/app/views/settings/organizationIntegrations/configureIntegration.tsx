@@ -117,7 +117,10 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           >
             <JsonForm
               fields={integration.configOrganization}
-              title={t('Organization Integration Settings')}
+              title={
+                integration.provider.aspects.configure_integration?.title ||
+                t('Organization Integration Settings')
+              }
             />
           </Form>
         )}

@@ -35,14 +35,14 @@ class VercelIntegrationTest(IntegrationTestCase):
             responses.add(
                 responses.GET,
                 "https://api.vercel.com/v1/teams/my_team_id%s" % team_query,
-                json={"name": "my_team_name"},
+                json={"name": "My Team Name", "slug": "my_team_slug"},
             )
         else:
             team_query = ""
             responses.add(
                 responses.GET,
                 "https://api.vercel.com/www/user",
-                json={"user": {"name": "my_user_name"}},
+                json={"user": {"name": "My Name", "username": "my_user_name"}},
             )
 
         responses.add(
@@ -83,7 +83,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
 
         external_id = "my_team_id" if is_team else "my_user_id"
-        name = "my_team_name" if is_team else "my_user_name"
+        name = "My Team Name" if is_team else "My Name"
         installation_type = "team" if is_team else "user"
 
         assert integration.external_id == external_id
@@ -154,7 +154,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             },
         }
         Integration.objects.create(
-            provider="vercel", name="my_team_name", external_id="my_team_id", metadata=metadata
+            provider="vercel", name="My Team Name", external_id="my_team_id", metadata=metadata
         )
 
         self.assert_setup_flow(is_team=True, multi_config_org=orig_org)

@@ -41,6 +41,7 @@ import twilio from 'app/../images/logos/logo-twilio.svg';
 import visualstudio from 'app/../images/logos/logo-visualstudio.svg';
 import vsts from 'app/../images/logos/logo-azure.svg';
 import youtrack from 'app/../images/logos/logo-youtrack.svg';
+import vercel from 'app/../images/logos/logo-vercel.svg';
 import victorops from 'app/../images/logos/logo-victorops.svg';
 import zulip from 'app/../images/logos/logo-zulip.svg';
 
@@ -97,6 +98,7 @@ export const ICON_PATHS = {
   visualstudio,
   vsts,
   youtrack,
+  vercel,
   victorops,
   zulip,
 };
