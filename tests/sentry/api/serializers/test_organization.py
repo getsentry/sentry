@@ -37,6 +37,7 @@ class OrganizationSerializerTest(TestCase):
                 "releases-v2",
                 "discover-basic",
                 "discover-query",
+                "datascrubbers-v2",
             ]
         )
 
