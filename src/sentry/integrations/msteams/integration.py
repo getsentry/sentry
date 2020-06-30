@@ -36,9 +36,7 @@ FEATURES = [
 ]
 
 
-INSTALL_NOTICE_TEXT = (
-    "INSTALL TEXT"
-)
+INSTALL_NOTICE_TEXT = "INSTALL TEXT"
 
 external_install = {
     "url": u"https://google.com",

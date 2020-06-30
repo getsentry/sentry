@@ -36,7 +36,6 @@ class MsTeamsWebhookEndpoint(Endpoint):
     def dispatch(self, request, *args, **kwargs):
         return super(MsTeamsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
 
-
     @transaction_start("MsTeamsWebhookEndpoint")
     def post(self, request):
         is_valid = verify_signature(request)
@@ -45,6 +44,4 @@ class MsTeamsWebhookEndpoint(Endpoint):
             logger.error("msteams.webhook.invalid-signature")
             return self.respond(status=401)
 
-        data = request.data
-        print('data', data)
         return self.respond(status=202)
