@@ -9,7 +9,7 @@ const COLORS = {
     border: theme.borderLight,
   },
   danger: {
-    background: theme.redLightest,
+    background: theme.red100,
     // TODO(theme) This pink is non-standard
     border: '#e7c0bc',
   },

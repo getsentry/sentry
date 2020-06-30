@@ -197,14 +197,14 @@ exports[`ProjectTags renders 1`] = `
       </TextBlock>
       <Panel>
         <Component
-          className="css-15hwgrz-Panel e119nu470"
+          className="css-ietoyz-Panel e119nu470"
         >
           <div
-            className="css-15hwgrz-Panel e119nu470"
+            className="css-ietoyz-Panel e119nu470"
           >
             <PanelHeader>
               <div
-                className="css-1es1m70-PanelHeader en8g1d30"
+                className="css-pi486d-PanelHeader en8g1d30"
               >
                 Tags
               </div>
@@ -328,7 +328,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>
@@ -404,7 +404,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-8od3q1-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -413,7 +413,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-8od3q1-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -542,7 +542,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>
@@ -618,7 +618,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-8od3q1-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -627,7 +627,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-8od3q1-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -756,7 +756,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>
@@ -832,7 +832,7 @@ exports[`ProjectTags renders 1`] = `
                                             >
                                               <Component
                                                 aria-disabled={false}
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-8od3q1-StyledButton edwq9my0"
                                                 data-test-id="delete"
                                                 forwardRef={null}
                                                 onClick={[Function]}
@@ -841,7 +841,7 @@ exports[`ProjectTags renders 1`] = `
                                               >
                                                 <button
                                                   aria-disabled={false}
-                                                  className="css-12ogwys-StyledButton edwq9my0"
+                                                  className="css-8od3q1-StyledButton edwq9my0"
                                                   data-test-id="delete"
                                                   onClick={[Function]}
                                                   role="button"
@@ -970,7 +970,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>
@@ -1210,7 +1210,7 @@ exports[`ProjectTags renders 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-maiyp9-PanelItem-TagPanelItem e1s2odbs0"
+                            className="css-1roxijg-PanelItem-TagPanelItem e1s2odbs0"
                             data-test-id="tag-row"
                           >
                             <TagName>

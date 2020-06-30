@@ -87,7 +87,7 @@ export default class WorldMapChart extends React.Component {
             min: 0,
             max: maxValue,
             inRange: {
-              color: [theme.purpleLightest, theme.purpleDarkest],
+              color: [theme.purple300, theme.purple500],
             },
             text: ['High', 'Low'],
 

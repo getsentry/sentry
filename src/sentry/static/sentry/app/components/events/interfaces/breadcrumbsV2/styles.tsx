@@ -20,7 +20,7 @@ const IconWrapper = styled('div', {
   border-radius: 32px;
   z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
-  border: 1px solid ${p => p.theme.gray400};
+  border: 1px solid ${p => p.theme.borderDark};
   color: ${p => p.theme.gray800};
   ${p =>
     p.color &&
@@ -65,7 +65,7 @@ const GridCellLeft = styled(GridCell)`
     top: 0;
     bottom: 0;
     left: 21px;
-    background: ${p => (p.hasError ? '#fa4747' : p.theme.borderLight)};
+    background: ${p => (p.hasError ? '#fa4747' : p.theme.gray300)};
     position: absolute;
     @media (min-width: ${p => p.theme.breakpoints[0]}) {
       left: 29px;

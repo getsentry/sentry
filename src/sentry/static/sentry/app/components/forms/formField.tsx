@@ -198,5 +198,5 @@ export default class FormField<
 
 const ErrorMessage = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.red};
+  color: ${p => p.theme.red400};
 `;

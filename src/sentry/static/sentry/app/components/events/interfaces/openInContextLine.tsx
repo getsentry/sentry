@@ -60,7 +60,7 @@ const OpenInContainer = styled('div')<{columnQuantity: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnQuantity}, max-content);
   grid-gap: ${space(1)};
-  color: ${p => p.theme.purple2};
+  color: ${p => p.theme.gray600};
   background-color: ${p => p.theme.white};
   font-family: ${p => p.theme.text.family};
   border-bottom: 1px solid ${p => p.theme.borderLight};

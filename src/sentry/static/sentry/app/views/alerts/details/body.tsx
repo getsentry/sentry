@@ -362,7 +362,7 @@ const ChartParameters = styled('div')`
     display: block;
     height: 70%;
     width: 1px;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.gray300};
     position: absolute;
     right: -${space(2)};
     top: 15%;

@@ -470,7 +470,7 @@ const StyledDiscoverButton = styled(DiscoverButton)`
 `;
 
 const SpanDetailContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.gray400};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
   cursor: auto;
 `;
 

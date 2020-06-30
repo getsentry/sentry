@@ -275,7 +275,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   }
 
   &:hover::after {
-    background-color: ${p => p.theme.borderDark};
+    background-color: ${p => p.theme.gray400};
   }
 
   /**
@@ -284,7 +284,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
    */
   &:active::after,
   &:focus::after {
-    background-color: ${p => p.theme.purple};
+    background-color: ${p => p.theme.purple400};
   }
 
   /**
@@ -298,7 +298,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     display: block;
     width: 7px;
     height: ${GRID_HEAD_ROW_HEIGHT}px;
-    background-color: ${p => p.theme.purple};
+    background-color: ${p => p.theme.purple400};
     opacity: 0.4;
   }
 `;

@@ -56,27 +56,18 @@ const colors = {
   pink400: '#E1567C',
   pink500: '#902D4C',
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Old Colors
-  red: '#e03e2f',
-  redLight: '#FA5849',
-  redLightest: '#FDF6F5',
-  redDark: '#C72516',
+  get borderLighter() {
+    return colors.gray100;
+  },
 
-  pink: '#F868BC',
-  pinkLight: '#FF82D6',
-  pinkDark: '#DF4FA3',
+  get borderLight() {
+    return colors.gray300;
+  },
 
-  purple: '#6C5FC7',
-  purple2: '#6f617c', // This is from event-details
-  purpleLightest: '#9F92FA',
-  purpleLight: '#8679E1',
-  purpleDark: '#5346AE',
-  purpleDarkest: '#392C94',
+  get borderDark() {
+    return colors.gray400;
+  },
 
-  borderLighter: '#f9f6fd',
-  borderLight: '#E2DBE8',
-  borderDark: '#D1CAD8',
   borderRadius: '4px',
   borderRadiusBottom: '0 0 4px 4px',
   borderRadiusTop: '4px 4px 0 0',
@@ -86,9 +77,6 @@ const colors = {
   dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
-
-  background: '#fff',
-  placeholderBackground: '#f5f5f5',
 } as const;
 
 const warning = {
@@ -102,7 +90,7 @@ const alert = {
   muted: {
     background: colors.gray400,
     backgroundLight: colors.gray100,
-    border: colors.gray400,
+    border: colors.borderDark,
     iconColor: 'inherit',
   },
   info: {
@@ -134,8 +122,8 @@ const badge = {
     indicatorColor: colors.orange400,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink}, ${colors.purple})`,
-    indicatorColor: colors.purple,
+    background: `linear-gradient(90deg, ${colors.pink400}, ${colors.purple400})`,
+    indicatorColor: colors.purple400,
   },
   new: {
     background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
@@ -146,8 +134,8 @@ const badge = {
 const aliases = {
   textColor: colors.gray800,
   success: colors.green400,
-  error: colors.red,
-  disabled: colors.gray400,
+  error: colors.red400,
+  disabled: colors.borderDark,
 } as const;
 
 const button = {
@@ -160,18 +148,18 @@ const button = {
     backgroundActive: colors.white,
     border: '#d8d2de',
     borderActive: '#c9c0d1',
-    focusShadow: color(colors.borderLight)
+    focusShadow: color(colors.gray300)
       .alpha(0.5)
       .string(),
   },
   primary: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.purple,
+    background: colors.purple400,
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
     borderActive: '#352b7b',
-    focusShadow: color(colors.purple)
+    focusShadow: color(colors.purple400)
       .alpha(0.4)
       .string(),
   },
@@ -189,11 +177,11 @@ const button = {
   danger: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.red,
+    background: colors.red400,
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
-    focusShadow: color(colors.red)
+    focusShadow: color(colors.red400)
       .alpha(0.5)
       .string(),
   },

@@ -172,7 +172,7 @@ const Title = styled('div')`
 `;
 
 const CriticalIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.redLight};
+  background: ${p => p.theme.red400};
 `;
 
 const WarningIndicator = styled(CircleIndicator)`

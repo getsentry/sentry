@@ -94,7 +94,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.gray400}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.borderDark}`};
     border-radius: 0;
   }
 

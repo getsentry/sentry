@@ -210,16 +210,16 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
           </AlertLink>
           <Panel>
             <Component
-              className="css-15hwgrz-Panel e119nu470"
+              className="css-ietoyz-Panel e119nu470"
             >
               <div
-                className="css-15hwgrz-Panel e119nu470"
+                className="css-ietoyz-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
                 >
                   <div
-                    className="css-yhsu7n-PanelHeader en8g1d30"
+                    className="css-13it3e1-PanelHeader en8g1d30"
                   >
                     Public Integrations
                     <forwardRef<Button>
@@ -380,16 +380,16 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
           </Panel>
           <Panel>
             <Component
-              className="css-15hwgrz-Panel e119nu470"
+              className="css-ietoyz-Panel e119nu470"
             >
               <div
-                className="css-15hwgrz-Panel e119nu470"
+                className="css-ietoyz-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
                 >
                   <div
-                    className="css-yhsu7n-PanelHeader en8g1d30"
+                    className="css-13it3e1-PanelHeader en8g1d30"
                   >
                     Internal Integrations
                     <forwardRef<Button>

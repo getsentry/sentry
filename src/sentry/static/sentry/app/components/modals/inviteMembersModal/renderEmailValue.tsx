@@ -43,9 +43,9 @@ const EmailValue = styled('div')<{status: InviteStatus[string]}>`
       p.status &&
       p.status.error &&
       css`
-        color: ${p.theme.red};
-        border-color: ${p.theme.redLight};
-        background-color: ${p.theme.redLightest};
+        color: ${p.theme.red400};
+        border-color: ${p.theme.red400};
+        background-color: ${p.theme.red100};
       `};
   }
 

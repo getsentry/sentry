@@ -197,7 +197,7 @@ const CategoryTag = styled(
   display: flex;
   flex-direction: row;
   padding: 1px 10px;
-  background: ${p => (p.priority ? p.theme.purpleLightest : p.theme.gray300)};
+  background: ${p => (p.priority ? p.theme.purple300 : p.theme.gray300)};
   border-radius: 20px;
   font-size: ${space(1.5)};
   margin-right: ${space(1)};

@@ -8,7 +8,7 @@ import CircleIndicator from 'app/components/circleIndicator';
 storiesOf('UI|CircleIndicator', module).add(
   'default',
   withInfo('Description')(() => {
-    let enabled = boolean('Enabled', true);
+    const enabled = boolean('Enabled', true);
     return (
       <React.Fragment>
         <CircleIndicator
@@ -23,7 +23,7 @@ storiesOf('UI|CircleIndicator', module).add(
           enabled={!enabled}
         />
 
-        <CircleIndicator size={number('Size', 14)} enabled={enabled} color="purple" />
+        <CircleIndicator size={number('Size', 14)} enabled={enabled} color="purple400" />
       </React.Fragment>
     );
   })

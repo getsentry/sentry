@@ -13,7 +13,7 @@ export default function YAxis(props = {}) {
     },
     splitLine: {
       lineStyle: {
-        color: theme.gray100,
+        color: theme.borderLighter,
       },
     },
     ...props,

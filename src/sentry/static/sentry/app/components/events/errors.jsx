@@ -91,7 +91,7 @@ const StyledBanner = styled(BannerContainer)`
 `;
 
 const StyledIconWarning = styled(IconWarning)`
-  color: ${p => p.theme.red};
+  color: ${p => p.theme.red400};
 `;
 
 // TODO(theme) don't use a custom pink

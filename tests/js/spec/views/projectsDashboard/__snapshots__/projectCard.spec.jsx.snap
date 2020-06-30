@@ -77,7 +77,7 @@ exports[`ProjectCard renders 1`] = `
     >
       <StyledProjectCard>
         <div
-          className="css-mgpviq-StyledProjectCard e1o95it03"
+          className="css-4c8b66-StyledProjectCard e1o95it03"
         >
           <StyledProjectCardHeader>
             <div
@@ -1017,7 +1017,7 @@ exports[`ProjectCard renders 1`] = `
                             <Component
                               aria-disabled={false}
                               aria-label="Track deploys"
-                              className="css-12ogwys-StyledButton edwq9my0"
+                              className="css-8od3q1-StyledButton edwq9my0"
                               external={true}
                               forwardRef={null}
                               href="https://docs.sentry.io/learn/releases/"
@@ -1028,7 +1028,7 @@ exports[`ProjectCard renders 1`] = `
                               <ForwardRef(ExternalLink)
                                 aria-disabled={false}
                                 aria-label="Track deploys"
-                                className="css-12ogwys-StyledButton edwq9my0"
+                                className="css-8od3q1-StyledButton edwq9my0"
                                 href="https://docs.sentry.io/learn/releases/"
                                 onClick={[Function]}
                                 role="button"
@@ -1037,7 +1037,7 @@ exports[`ProjectCard renders 1`] = `
                                 <a
                                   aria-disabled={false}
                                   aria-label="Track deploys"
-                                  className="css-12ogwys-StyledButton edwq9my0"
+                                  className="css-8od3q1-StyledButton edwq9my0"
                                   href="https://docs.sentry.io/learn/releases/"
                                   onClick={[Function]}
                                   rel="noreferrer noopener"
