@@ -150,6 +150,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
           headers={[
             t('Archive'),
             <ArtifactsColumn key="artifacts">{t('Artifacts')}</ArtifactsColumn>,
+            t('Type'),
             t('Date Created'),
             '',
           ]}
@@ -166,7 +167,9 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content minmax(260px, max-content) 75px;
+  grid-template-columns:
+    1fr max-content minmax(85px, max-content) minmax(260px, max-content)
+    75px;
 `;
 
 const ArtifactsColumn = styled('div')`
