@@ -60,7 +60,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
         <Tooltip title={t('This preset is selected')} disabled={!preset.selected}>
           <PresetLink
             onClick={() => model.setValue(name, preset.default)}
-            isSelected={preset.selected}
+            disabled={preset.selected}
           >
             {preset.name}
           </PresetLink>
@@ -125,9 +125,9 @@ const AggregateHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const PresetLink = styled(Button)<{isSelected: boolean}>`
+const PresetLink = styled(Button)<{disabled: boolean}>`
   ${p =>
-    p.isSelected &&
+    p.disabled &&
     css`
       color: ${p.theme.gray700};
       &:hover,
