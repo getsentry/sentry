@@ -723,7 +723,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <Tooltip containerDisplayMode="flex" title={warningText}>
-        <StyledIconWarning />
+        <StyledIconWarning size="xs" />
       </Tooltip>
     );
   }
