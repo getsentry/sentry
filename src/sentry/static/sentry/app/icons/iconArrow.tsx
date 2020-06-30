@@ -19,9 +19,15 @@ const IconArrow = React.forwardRef(function IconArrow(
       ref={ref}
       css={
         direction
-          ? css`
-              transform: rotate(${theme.iconDirections[direction]}deg);
-            `
+          ? direction === 'down'
+            ? // Down arrows have a zoom issue with Firefox inside of tables due to rotate.
+              // Since arrows are symmetric, scaling to only flip vertically works to fix the issue.
+              css`
+                transform: scale(1, -1);
+              `
+            : css`
+                transform: rotate(${theme.iconDirections[direction]}deg);
+              `
           : undefined
       }
     >
