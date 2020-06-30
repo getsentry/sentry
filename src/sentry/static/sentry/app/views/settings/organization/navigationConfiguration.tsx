@@ -74,8 +74,7 @@ const organizationNavigation: NavigationSection[] = [
       {
         path: `${pathPrefix}/relays/`,
         title: t('Relays'),
-        show: ({access, features}) =>
-          features!.has('relay-config') && access!.has('org:write'),
+        show: ({access, features}) => features!.has('relay') && access!.has('org:write'),
         description: t('Manage relays connected to the organization'),
         id: 'relays',
         badge: () => 'new',
