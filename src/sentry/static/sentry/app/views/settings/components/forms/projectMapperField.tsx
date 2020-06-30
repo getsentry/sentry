@@ -26,6 +26,7 @@ type State = {
   selectedMappedValue: MappedValue | null;
 };
 
+//Get the icon
 const getIcon = (iconType: string) => {
   switch (iconType) {
     case 'vercel':
