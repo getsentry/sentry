@@ -16,7 +16,7 @@ function updateFavicon(): void {
   changeFavicon(prefersDark() ? 'dark' : 'light');
 }
 
-export function setupFavicon() {
+export function setupFavicon(): void {
   // Set favicon to dark on load
   if (prefersDark()) {
     changeFavicon('dark');
