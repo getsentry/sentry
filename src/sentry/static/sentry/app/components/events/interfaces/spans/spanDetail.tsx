@@ -101,11 +101,15 @@ class SpanDetail extends React.Component<Props, State> {
       sort: ['-id'],
       query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
       project: organization.features.includes('global-views')
-        ? [] // this is expected to be stripped out by $.param
+        ? []
         : [Number(event.projectID)],
       start,
       end,
     };
+
+    if (query.project.length === 0) {
+      delete query.project;
+    }
 
     return api.requestPromise(url, {
       method: 'GET',
