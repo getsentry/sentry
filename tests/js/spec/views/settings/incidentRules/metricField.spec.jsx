@@ -74,13 +74,13 @@ describe('MetricField', function() {
     );
     selectByLabel(wrapper, 'failure_rate()', {selector: 'QueryField'});
 
-    expect(wrapper.find('FieldHelp Button[isSelected=true]').text()).toEqual(
+    expect(wrapper.find('FieldHelp Button[disabled=true]').text()).toEqual(
       'Failure rate'
     );
 
     selectByLabel(wrapper, 'p95()', {selector: 'QueryField'});
 
-    expect(wrapper.find('FieldHelp Button[isSelected=true]').text()).toEqual('Latency');
+    expect(wrapper.find('FieldHelp Button[disabled=true]').text()).toEqual('Latency');
   });
 
   it('changes field values when selecting presets', function() {
