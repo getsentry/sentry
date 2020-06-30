@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import json
 
 from django.core.urlresolvers import reverse
 from exam import fixture
@@ -69,3 +70,139 @@ class UserListTest(APITestCase):
         response = self.client.get(u"{}?query=permission:foobar".format(self.path))
         assert response.status_code == 200
         assert len(response.data) == 0
+
+
+class UserCreateTest(APITestCase):
+    @fixture
+    def path(self):
+        return reverse("sentry-api-0-user-index")
+
+    def setUp(self):
+        super(UserCreateTest, self).setUp()
+        self.superuser = self.create_user("bar@example.com", is_superuser=True)
+        self.normal_user = self.create_user("foo@example.com", is_superuser=False)
+
+    def test_superuser_only(self):
+        self.login_as(self.normal_user)
+        response = self.client.get(self.path)
+        assert response.status_code == 403
+
+    def test_usercreate_basic(self):
+        self.login_as(user=self.superuser, superuser=True)
+        url = reverse("sentry-api-0-user-index")
+        resp = self.client.post(
+            url,
+            data={
+                "email": "user@example.com",
+                "password": "password",
+                "is_superuser": True,
+                "force_update": True
+            }
+        )
+        assert resp.status_code == 201, resp.content
+        assert json.loads(resp.content)["email"] == "user@example.com"
+        assert json.loads(resp.content)["username"] == "user@example.com"
+        assert json.loads(resp.content)["isSuperuser"] == True
+        assert json.loads(resp.content)["isStaff"] == True
+
+    def test_usercreate_no_password(self):
+        self.login_as(user=self.superuser, superuser=True)
+        url = reverse("sentry-api-0-user-index")
+        resp = self.client.post(
+            url,
+            data={
+                "email": "foo@example.com",
+                "password": "",
+                "is_superuser": True,
+                "force_update": True
+            }
+        )
+        assert resp.status_code == 400
+
+    def test_usercreate_blank_password(self):
+        self.login_as(user=self.superuser, superuser=True)
+        url = reverse("sentry-api-0-user-index")
+        resp = self.client.post(
+            url,
+            data={
+                "email": "foo@example.com",
+                "is_superuser": True,
+                "force_update": True
+            }
+        )
+        assert resp.status_code == 400
+
+    def test_usercreate_no_email(self):
+        self.login_as(user=self.superuser, superuser=True)
+        url = reverse("sentry-api-0-user-index")
+        resp = self.client.post(
+            url,
+            data={
+                "email": "",
+                "password": "password",
+                "is_superuser": True,
+                "force_update": True
+            }
+        )
+        assert resp.status_code == 400
+
+    def test_usercreate_blank_email(self):
+        self.login_as(user=self.superuser, superuser=True)
+        url = reverse("sentry-api-0-user-index")
+        resp = self.client.post(
+            url,
+            data={
+                "password": "password",
+                "is_superuser": True,
+                "force_update": True
+            }
+        )
+        assert resp.status_code == 400
+
+    def test_usercreate_force_update(self):
+        self.login_as(user=self.superuser, superuser=True)
+        url = reverse("sentry-api-0-user-index")
+        resp = self.client.post(
+            url,
+            data={
+                "email": "foo@example.com",
+                "password": "password",
+                "is_superuser": True,
+                "force_update": True
+            }
+        )
+        assert resp.status_code == 201, resp.content
+        assert json.loads(resp.content)["email"] == "foo@example.com"
+        assert json.loads(resp.content)["username"] == "foo@example.com"
+        assert json.loads(resp.content)["isSuperuser"] == True
+        assert json.loads(resp.content)["isStaff"] == True
+
+    def test_usercreate_no_force_update(self):
+        self.login_as(user=self.superuser, superuser=True)
+        url = reverse("sentry-api-0-user-index")
+        resp = self.client.post(
+            url,
+            data={
+                "email": "foo@example.com",
+                "password": "password",
+                "is_superuser": True
+            }
+        )
+        assert resp.status_code == 400
+
+    def test_usercreate_no_superuser(self):
+        self.login_as(user=self.superuser, superuser=True)
+        url = reverse("sentry-api-0-user-index")
+        resp = self.client.post(
+            url,
+            data={
+                "email": "foo@example.com",
+                "password": "password",
+                "force_update": True
+            }
+        )
+        assert resp.status_code == 201, resp.content
+        assert json.loads(resp.content)["email"] == "foo@example.com"
+        assert json.loads(resp.content)["username"] == "foo@example.com"
+        assert json.loads(resp.content)["isSuperuser"] == False
+        assert json.loads(resp.content)["isStaff"] == False
