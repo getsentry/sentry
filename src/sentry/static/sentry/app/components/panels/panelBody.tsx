@@ -4,7 +4,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import textStyles from 'app/styles/text';
 
 type FlexComponentProps = Omit<React.ComponentPropsWithoutRef<typeof Flex>, 'theme'>;
 
@@ -37,7 +36,6 @@ PanelBody.defaultProps = {
 };
 
 const FlexBox = styled(Flex)<Props>`
-  ${textStyles};
   ${p => !p.flexible && 'display: block'};
   ${p => p.withPadding && `padding: ${space(2)}`};
 `;
