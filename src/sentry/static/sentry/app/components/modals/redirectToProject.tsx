@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
+import Text from 'app/components/text';
 import recreateRoute from 'app/utils/recreateRoute';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 
@@ -54,22 +55,24 @@ class RedirectToProjectModal extends React.Component<Props, State> {
 
         <Body>
           <div>
-            <p>{t('The project slug has been changed.')}</p>
+            <Text>
+              <p>{t('The project slug has been changed.')}</p>
 
-            <p>
-              {tct(
-                'You will be redirected to the new project [project] in [timer] seconds...',
-                {
-                  project: <strong>{slug}</strong>,
-                  timer: `${this.state.timer}`,
-                }
-              )}
-            </p>
-            <ButtonWrapper>
-              <Button priority="primary" href={this.newPath}>
-                {t('Continue to %s', slug)}
-              </Button>
-            </ButtonWrapper>
+              <p>
+                {tct(
+                  'You will be redirected to the new project [project] in [timer] seconds...',
+                  {
+                    project: <strong>{slug}</strong>,
+                    timer: `${this.state.timer}`,
+                  }
+                )}
+              </p>
+              <ButtonWrapper>
+                <Button priority="primary" href={this.newPath}>
+                  {t('Continue to %s', slug)}
+                </Button>
+              </ButtonWrapper>
+            </Text>
           </div>
         </Body>
       </React.Fragment>
