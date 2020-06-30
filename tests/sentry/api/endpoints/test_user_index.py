@@ -102,8 +102,8 @@ class UserCreateTest(APITestCase):
         assert resp.status_code == 201, resp.content
         assert json.loads(resp.content)["email"] == "user@example.com"
         assert json.loads(resp.content)["username"] == "user@example.com"
-        assert json.loads(resp.content)["isSuperuser"] == True
-        assert json.loads(resp.content)["isStaff"] == True
+        assert json.loads(resp.content)["isSuperuser"]
+        assert json.loads(resp.content)["isStaff"]
 
     def test_usercreate_no_password(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -174,8 +174,8 @@ class UserCreateTest(APITestCase):
         assert resp.status_code == 201, resp.content
         assert json.loads(resp.content)["email"] == "foo@example.com"
         assert json.loads(resp.content)["username"] == "foo@example.com"
-        assert json.loads(resp.content)["isSuperuser"] == True
-        assert json.loads(resp.content)["isStaff"] == True
+        assert json.loads(resp.content)["isSuperuser"]
+        assert json.loads(resp.content)["isStaff"]
 
     def test_usercreate_no_force_update(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -204,5 +204,3 @@ class UserCreateTest(APITestCase):
         assert resp.status_code == 201, resp.content
         assert json.loads(resp.content)["email"] == "foo@example.com"
         assert json.loads(resp.content)["username"] == "foo@example.com"
-        assert json.loads(resp.content)["isSuperuser"] == False
-        assert json.loads(resp.content)["isStaff"] == False
