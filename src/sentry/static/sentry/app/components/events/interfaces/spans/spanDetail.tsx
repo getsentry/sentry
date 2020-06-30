@@ -1,6 +1,7 @@
 import React from 'react';
 import map from 'lodash/map';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/browser';
 
 import {Organization, SentryTransactionEvent} from 'app/types';
 import {Client} from 'app/api';
@@ -71,8 +72,8 @@ class SpanDetail extends React.Component<Props, State> {
           transactionResults: response.data,
         });
       })
-      .catch(_error => {
-        // don't do anything
+      .catch(error => {
+        Sentry.captureException(error);
       });
   }
 
@@ -100,11 +101,15 @@ class SpanDetail extends React.Component<Props, State> {
       sort: ['-id'],
       query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
       project: organization.features.includes('global-views')
-        ? undefined
+        ? []
         : [Number(event.projectID)],
       start,
       end,
     };
+
+    if (query.project.length === 0) {
+      delete query.project;
+    }
 
     return api.requestPromise(url, {
       method: 'GET',
