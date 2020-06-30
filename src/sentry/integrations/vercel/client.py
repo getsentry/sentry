@@ -11,6 +11,7 @@ class VercelClient(ApiClient):
 
     TEAMS_URL = "/v1/teams/%s"
     USER_URL = "/www/user"
+    PROJECT_URL = "/v1/projects/%s"
     PROJECTS_URL = "/v4/projects/"
     WEBHOOK_URL = "/v1/integrations/webhooks"
     ENV_VAR_URL = "/v4/projects/%s/env"
@@ -24,6 +25,7 @@ class VercelClient(ApiClient):
         self.team_id = team_id
 
     def request(self, method, path, data=None, params=None):
+        print("path: ", path, method, data)
         if self.team_id:
             # always need to use the team_id as a param for requests
             params = params or {}
@@ -42,6 +44,9 @@ class VercelClient(ApiClient):
         # TODO: we will need pagination since we are limited to 20
         return self.get(self.PROJECTS_URL)["projects"]
 
+    def get_source_code_provider(self, vercel_project_id):
+        return self.get(self.PROJECT_URL % vercel_project_id)["link"]["type"]
+
     def create_deploy_webhook(self):
         data = {
             "name": "Sentry webhook",
@@ -55,6 +60,9 @@ class VercelClient(ApiClient):
         return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
 
     def get_secret(self, name):
+        print("getting dat secret")
+        print(name)
+        print(name.lower())
         return self.get(self.GET_SECRET_URL % name.lower())["uid"]
 
     def create_secret(self, vercel_project_id, name, value):
@@ -64,5 +72,13 @@ class VercelClient(ApiClient):
 
     def create_env_variable(self, vercel_project_id, key, value):
         data = {"key": key, "value": value, "target": "production"}
+        print("here in create env var")
+        print(key)
         response = self.post(self.ENV_VAR_URL % vercel_project_id, data=data)
+        return response
+
+    def update_env_variable(self, vercel_project_id, key, value):
+        print("here updating")
+        data = {"key": key, "value": value, "target": "production"}
+        response = self.put(self.ENV_VAR_URL % vercel_project_id, data=data)
         return response
