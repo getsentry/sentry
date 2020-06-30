@@ -210,7 +210,7 @@ export class RenderField extends React.Component<RenderProps, State> {
         {existingValues.map(renderItem)}
         <Item>
           <StyledSelectControl
-            placeholder={t('Choose Sentry project...')}
+            placeholder={t('Choose Sentry project\u2026')}
             name="project"
             openMenuOnFocus
             options={projectOptions}
