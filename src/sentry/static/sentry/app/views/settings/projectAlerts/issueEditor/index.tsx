@@ -99,7 +99,7 @@ type State = AsyncView['state'] & {
 function isSavedAlertRule(
   rule: UnsavedIssueAlertRule | IssueAlertRule
 ): rule is IssueAlertRule {
-  return rule.hasOwnProperty('id');
+  return rule?.hasOwnProperty('id');
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
