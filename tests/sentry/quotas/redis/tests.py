@@ -203,7 +203,7 @@ class RedisQuotaTest(TestCase):
         assert usage == [n if q.id else None for q in quotas] + [0, 0]
 
     @mock.patch.object(RedisQuota, "get_quotas")
-    def test_refund(self, mock_get_quotas):
+    def test_refund_defaults(self, mock_get_quotas):
         timestamp = time.time()
 
         mock_get_quotas.return_value = (
@@ -214,6 +214,7 @@ class RedisQuotaTest(TestCase):
                 limit=None,
                 window=1,
                 reason_code="project_quota",
+                categories=[DataCategory.ERROR],
             ),
             QuotaConfig(
                 id="p",
@@ -222,6 +223,17 @@ class RedisQuotaTest(TestCase):
                 limit=1,
                 window=1,
                 reason_code="project_quota",
+                categories=[DataCategory.ERROR],
+            ),
+            # Should be ignored
+            QuotaConfig(
+                id="a",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=1 ** 6,
+                window=1,
+                reason_code="attachment_quota",
+                categories=[DataCategory.ATTACHMENT],
             ),
         )
 
@@ -230,12 +242,65 @@ class RedisQuotaTest(TestCase):
             six.text_type(self.project.organization.pk)
         )
 
-        keys = client.keys("r:quota:p:?:*")
+        error_keys = client.keys("r:quota:p:?:*")
+        assert len(error_keys) == 2
 
-        assert len(keys) == 2
-
-        for key in keys:
+        for key in error_keys:
             assert client.get(key) == "1"
+
+        attachment_keys = client.keys("r:quota:a:*")
+        assert len(attachment_keys) == 0
+
+    @mock.patch.object(RedisQuota, "get_quotas")
+    def test_refund_categories(self, mock_get_quotas):
+        timestamp = time.time()
+
+        mock_get_quotas.return_value = (
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=None,
+                window=1,
+                reason_code="project_quota",
+                categories=[DataCategory.ERROR],
+            ),
+            QuotaConfig(
+                id="p",
+                scope=QuotaScope.PROJECT,
+                scope_id=2,
+                limit=1,
+                window=1,
+                reason_code="project_quota",
+                categories=[DataCategory.ERROR],
+            ),
+            # Should be ignored
+            QuotaConfig(
+                id="a",
+                scope=QuotaScope.PROJECT,
+                scope_id=1,
+                limit=1 ** 6,
+                window=1,
+                reason_code="attachment_quota",
+                categories=[DataCategory.ATTACHMENT],
+            ),
+        )
+
+        self.quota.refund(
+            self.project, timestamp=timestamp, category=DataCategory.ATTACHMENT, quantity=100
+        )
+        client = self.quota.cluster.get_local_client_for_key(
+            six.text_type(self.project.organization.pk)
+        )
+
+        error_keys = client.keys("r:quota:p:?:*")
+        assert len(error_keys) == 0
+
+        attachment_keys = client.keys("r:quota:a:*")
+        assert len(attachment_keys) == 1
+
+        for key in attachment_keys:
+            assert client.get(key) == "100"
 
     def test_get_usage_uses_refund(self):
         timestamp = time.time()

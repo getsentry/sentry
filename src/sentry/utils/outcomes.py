@@ -61,7 +61,11 @@ def mark_tsdb_incremented(project_id, event_id):
     mark_tsdb_incremented_many([(project_id, event_id)])
 
 
-def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason):
+def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason, category):
+    category = category if category is not None else DataCategory.ERROR
+    if category not in DataCategory.event_categories():
+        return
+
     if outcome != Outcome.INVALID:
         # This simply preserves old behavior. We never counted invalid events
         # (too large, duplicate, CORS) toward regular `received` counts.
@@ -136,7 +140,12 @@ def track_outcome(
     if not tsdb_in_consumer:
         increment_list = list(
             tsdb_increments_from_outcome(
-                org_id=org_id, project_id=project_id, key_id=key_id, outcome=outcome, reason=reason
+                org_id=org_id,
+                project_id=project_id,
+                key_id=key_id,
+                outcome=outcome,
+                reason=reason,
+                category=category,
             )
         )
 
