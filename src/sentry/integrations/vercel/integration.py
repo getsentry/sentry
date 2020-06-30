@@ -40,7 +40,7 @@ Vercel is an all-in-one platform with Global CDN supporting static & JAMstack de
 FEATURES = [
     FeatureDescription(
         """
-        Connect your Sentry and Vercel Projects to automatically upload source maps and notify Sentry of new releases being deployed.
+        Connect your Sentry and Vercel projects to automatically upload source maps and notify Sentry of new releases being deployed.
         """,
         IntegrationFeatures.DEPLOYMENT,
     ),
