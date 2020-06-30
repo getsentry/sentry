@@ -579,3 +579,19 @@ export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
 
   return treeDepth;
 }
+
+export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): boolean {
+  const sdkName = event.sdk?.name;
+  if (!sdkName) {
+    return false;
+  }
+  // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
+  return ['sentry.javascript.browser', 'sentry.javascript.react'].includes(
+    sdkName.toLowerCase()
+  );
+}
+
+// Durationless ops from: https://github.com/getsentry/sentry-javascript/blob/0defcdcc2dfe719343efc359d58c3f90743da2cd/packages/apm/src/integrations/tracing.ts#L629-L688
+// PerformanceMark: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformanceMark
+// PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
+export const durationlessBrowserOps = ['mark', 'paint'];

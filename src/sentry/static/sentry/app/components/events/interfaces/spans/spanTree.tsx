@@ -25,6 +25,7 @@ import {
   getSpanTraceID,
   isGapSpan,
   isOrphanSpan,
+  isEventFromBrowserJavaScriptSDK,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
@@ -159,7 +160,7 @@ class SpanTree extends React.Component<PropType> {
 
     // hide gap spans (i.e. "missing instrumentation" spans) for browser js transactions,
     // since they're not useful to indicate
-    const shouldIncludeGap = !isBrowserJavaScriptSDK(event.sdk?.name);
+    const shouldIncludeGap = !isEventFromBrowserJavaScriptSDK(event);
 
     const isValidGap =
       typeof previousSiblingEndTimestamp === 'number' &&
@@ -355,15 +356,5 @@ const TraceViewContainer = styled('div')`
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
 `;
-
-function isBrowserJavaScriptSDK(sdkName?: string): boolean {
-  if (!sdkName) {
-    return false;
-  }
-  // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
-  return ['sentry.javascript.browser', 'sentry.javascript.react'].includes(
-    sdkName.toLowerCase()
-  );
-}
 
 export default SpanTree;
