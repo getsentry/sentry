@@ -1133,6 +1133,42 @@ class JavascriptIntegrationTest(SnubaTestCase):
             {"url": u"http://example.com/file2.js", "type": "js_invalid_content"},
         ]
 
+    @responses.activate
+    def test_html_file_with_query_param_ending_with_js_extension(self):
+        responses.add(
+            responses.GET,
+            "http://example.com/file.html",
+            body=(
+                "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
+            ),
+        )
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.html?sw=iddqd1337.js",
+                                    "filename": "file.html",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
     def test_node_processing(self):
         project = self.project
         release = Release.objects.create(

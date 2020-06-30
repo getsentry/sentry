@@ -29,6 +29,7 @@ class TestAlertRuleSerializer(TestCase):
             "dataset": QueryDatasets.EVENTS.value,
             "query": "level:error",
             "threshold_type": 0,
+            "resolve_threshold": 100,
             "aggregate": "count()",
             "threshold_period": 1,
             "projects": [self.project.slug],
@@ -141,7 +142,7 @@ class TestAlertRuleSerializer(TestCase):
             {"aggregate": ["Invalid Metric: count_unique(123, hello): expected 1 arguments"]},
         )
         self.run_fail_validation_test(
-            {"aggregate": "max()"}, {"aggregate": ["Invalid Metric: max(): expected 1 arguments"]},
+            {"aggregate": "max()"}, {"aggregate": ["Invalid Metric: max(): expected 1 arguments"]}
         )
         aggregate = "count_unique(tags[sentry:user])"
         base_params = self.valid_params.copy()
@@ -178,7 +179,6 @@ class TestAlertRuleSerializer(TestCase):
             "name": "hello_im_a_test",
             "time_window": 10,
             "query": "level:error",
-            "threshold_type": 0,
             "aggregate": "count()",
             "threshold_period": 1,
             "projects": [self.project.slug],
@@ -197,6 +197,7 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
 
         assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["threshold_type"] == AlertRuleThresholdType.BELOW
 
         # Now do a two trigger test:
         payload["triggers"].append(
@@ -216,12 +217,63 @@ class TestAlertRuleSerializer(TestCase):
 
         assert serializer.is_valid(), serializer.errors
 
+    def test_alert_rule_threshold_overrides_trigger(self):
+        payload = {
+            "name": "hello_im_a_test",
+            "time_window": 10,
+            "query": "level:error",
+            "aggregate": "count()",
+            "thresholdType": 0,
+            "threshold_period": 1,
+            "projects": [self.project.slug],
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 98,
+                    "resolveThreshold": None,
+                    "thresholdType": 1,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
+        }
+        serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["threshold_type"] == AlertRuleThresholdType.ABOVE
+
+    def test_alert_rule_resolved_overrides_trigger(self):
+        payload = {
+            "name": "hello_im_a_test",
+            "time_window": 10,
+            "query": "level:error",
+            "aggregate": "count()",
+            "resolve_threshold": 50,
+            "threshold_period": 1,
+            "projects": [self.project.slug],
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 98,
+                    "resolveThreshold": 100,
+                    "thresholdType": 1,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
+        }
+        serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["resolve_threshold"] == 50
+
     def test_boundary(self):
         payload = {
             "name": "hello_im_a_test",
             "time_window": 10,
             "query": "level:error",
-            "threshold_type": 0,
             "aggregate": "count()",
             "threshold_period": 1,
             "projects": [self.project.slug],
@@ -371,7 +423,6 @@ class TestAlertRuleTriggerSerializer(TestCase):
         field_is_required = ["This field is required."]
         assert serializer.errors == {
             "label": field_is_required,
-            "thresholdType": field_is_required,
             "alertThreshold": field_is_required,
             "actions": field_is_required,
         }

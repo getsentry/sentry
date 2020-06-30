@@ -263,7 +263,7 @@ class Quota(Service):
         """
         return NotRateLimited()
 
-    def refund(self, project, key=None, timestamp=None):
+    def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
         """
         Signals event rejection after ``quotas.is_rate_limited`` has been called
         successfully, and refunds the previously consumed quota.
@@ -275,6 +275,13 @@ class Quota(Service):
         :param timestamp: The timestamp at which data was ingested. This is used
                           to determine the correct quota window to refund the
                           previously consumed data to.
+        :param category:  The data category of the item to refund. This is used
+                          to determine the quotas that should be refunded.
+                          Defaults to ``DataCategory.ERROR``.
+        :param quantity:  The quantity to refund. Defaults to ``1``, which is
+                          the only value that should be used for events. For
+                          attachments, this should be set to the size of the
+                          attachment in bytes.
         """
         pass
 

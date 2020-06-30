@@ -111,7 +111,7 @@ storiesOf('Style|Icons', module).add(
 );
 
 const Highlight = styled('span')`
-  color: ${p => p.theme.purple};
+  color: ${p => p.theme.purple400};
   font-weight: 600;
 `;
 

@@ -12,11 +12,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 from sentry.utils.compat.mock import call, Mock
 
-from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
-)
+from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -78,10 +74,9 @@ class ProcessUpdateTest(TestCase):
 
     @fixture
     def rule(self):
-        rule = create_alert_rule(
-            self.organization,
-            [self.project, self.other_project],
-            "some rule",
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule",
             query="",
             aggregate="count()",
             time_window=1,

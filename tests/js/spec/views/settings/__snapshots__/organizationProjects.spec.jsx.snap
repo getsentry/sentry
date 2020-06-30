@@ -256,16 +256,16 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
           </StyledSettingsPageHeading>
           <Panel>
             <Component
-              className="css-15hwgrz-Panel e119nu470"
+              className="css-ietoyz-Panel e119nu470"
             >
               <div
-                className="css-15hwgrz-Panel e119nu470"
+                className="css-ietoyz-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
                 >
                   <div
-                    className="css-yhsu7n-PanelHeader en8g1d30"
+                    className="css-13it3e1-PanelHeader en8g1d30"
                   >
                     Projects
                     <withRouter(AsyncComponentSearchInput)
@@ -357,7 +357,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                               value=""
                             >
                               <input
-                                className="search css-1iurn5e-Input e1xej46s0"
+                                className="search css-1g2jzij-Input e1xej46s0"
                                 onChange={[Function]}
                                 placeholder="Search Projects"
                                 value=""
@@ -395,7 +395,7 @@ exports[`OrganizationProjects should render the projects in the store 1`] = `
                           p={2}
                         >
                           <div
-                            className="css-1mb4cot-PanelItem-GridPanelItem ew99cs00"
+                            className="css-1huwkq6-PanelItem-GridPanelItem ew99cs00"
                           >
                             <ProjectListItemWrapper>
                               <div

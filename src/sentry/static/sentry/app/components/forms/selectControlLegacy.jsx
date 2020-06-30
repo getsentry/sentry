@@ -4,7 +4,9 @@ import ReactSelect, {Async, Creatable, AsyncCreatable} from 'react-select-legacy
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
+import {IconChevron} from 'app/icons';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
+import space from 'app/styles/space';
 
 /**
  * The library has `value` defined as `PropTypes.object`, but this
@@ -43,7 +45,7 @@ class SelectControlLegacy extends React.Component {
     height: 36,
   };
 
-  renderArrow = () => <span className="icon-arrow-down" />;
+  renderArrow = () => <StyledIconChevron direction="down" size="xs" />;
 
   render() {
     const {async, creatable, options, choices, clearable, noMenu, ...props} = this.props;
@@ -149,7 +151,7 @@ const StyledSelect = styled(SelectPicker)`
 
   .Select-option.is-focused {
     color: white;
-    background-color: ${p => p.theme.purple};
+    background-color: ${p => p.theme.purple400};
   }
   .Select-multi-value-wrapper {
     > a {
@@ -172,6 +174,10 @@ const StyledSelect = styled(SelectPicker)`
         border-radius: 4px;
       }
     `}
+`;
+
+const StyledIconChevron = styled(IconChevron)`
+  margin-top: ${space(0.5)};
 `;
 
 export default SelectControlLegacy;

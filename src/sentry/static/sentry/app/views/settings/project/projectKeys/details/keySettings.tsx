@@ -57,7 +57,7 @@ class KeySettings extends React.Component<Props, State> {
       return;
     }
 
-    addLoadingMessage(t('Revoking key..'));
+    addLoadingMessage(t('Revoking key\u2026'));
     const {api, onRemove, params} = this.props;
     const {keyId, orgId, projectId} = params;
 
