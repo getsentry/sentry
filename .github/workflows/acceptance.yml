@@ -206,6 +206,7 @@ jobs:
             name: visual-snapshots
             path: .artifacts/visual-snapshots
 
+
    visual-diff:
       needs: acceptance
       runs-on: ubuntu-16.04
