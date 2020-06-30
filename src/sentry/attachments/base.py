@@ -44,7 +44,7 @@ class CachedAttachment(object):
 
         if size is not None:
             self.size = size
-        elif data is not None:
+        elif data not in (None, UNINITIALIZED_DATA):
             self.size = len(data)
         else:
             self.size = 0
