@@ -90,7 +90,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
         # Full integration test to ensure that when a subscription receives an update
         # the `QuerySubscriptionConsumer` successfully retries the subscription and
         # calls the correct callback, which should result in an incident being created.
-
         callback = subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE]
 
         def exception_callback(*args, **kwargs):
@@ -118,10 +117,11 @@ class HandleSnubaQueryUpdateTest(TestCase):
             ).exclude(status=IncidentStatus.CLOSED.value)
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
-        with self.assertChanges(
-            lambda: active_incident().exists(), before=False, after=True
-        ), self.tasks():
-            consumer.run()
+        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
+            with self.assertChanges(
+                lambda: active_incident().exists(), before=False, after=True
+            ), self.tasks():
+                consumer.run()
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
