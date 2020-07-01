@@ -345,7 +345,8 @@ def transform_results(result, translated_columns, snuba_filter, selected_columns
         for key, value in row.items():
             if isinstance(value, float) and math.isnan(value):
                 value = 0
-            transformed[translated_columns.get(key, key)] = value
+            if not key.startswith("tags[metrics."):
+                transformed[translated_columns.get(key, key)] = value
 
         if has_user:
             for field in user_fields:

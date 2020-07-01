@@ -15,6 +15,7 @@ import time
 import urllib3
 import sentry_sdk
 from sentry_sdk import Hub
+from sentry.utils.sdk import configure_scope
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -185,7 +186,10 @@ def timer(name, prefix="snuba.client"):
     try:
         yield
     finally:
-        metrics.timing(u"{}.{}".format(prefix, name), time.time() - t)
+        end = time.time()
+        metrics.timing(u"{}.{}".format(prefix, name), end - t)
+        with configure_scope() as scope:
+            scope.set_tag("metrics.{}".format(name), (end - t) * 1000)
 
 
 @contextmanager
@@ -904,7 +908,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
-                if len(col) == 3 and col[0] == "transform":
+                if len(col) == 3 and (col[0] == "transform" or col[0] == "toInt32OrNull"):
                     # Add the name from the project transform, and remove the backticks so its not treated as a new col
                     derived_columns.add(col[2].strip("`"))
                 resolve_complex_column(col, resolve_func)
@@ -912,8 +916,6 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
                 name = resolve_func(col)
                 selected_columns[idx] = name
                 translated_columns[name] = col
-
-        resolved.selected_columns = selected_columns
 
     groupby = resolved.groupby
     if groupby:
@@ -932,10 +934,26 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
         if isinstance(aggregation[1], six.string_types):
-            aggregation[1] = resolve_func(aggregation[1])
+            if aggregation[1].startswith("metrics."):
+                found = False
+                for col in selected_columns:
+                    if col[2].strip("`") == aggregation[1]:
+                        found = True
+                        continue
+                if not found:
+                    selected_columns.append(
+                        [
+                            "toInt32OrNull",
+                            [resolve_func(aggregation[1])],
+                            "`{}`".format(aggregation[1]),
+                        ]
+                    )
+            else:
+                aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
             aggregation[1] = [resolve_func(col) for col in aggregation[1]]
     resolved.aggregations = aggregations
+    resolved.selected_columns = selected_columns
 
     conditions = resolved.conditions
     if conditions:
