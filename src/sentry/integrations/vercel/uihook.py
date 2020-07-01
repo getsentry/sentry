@@ -8,7 +8,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
 from sentry.constants import ObjectStatus
-from sentry.models import Integration, Organization, OrganizationIntegration
+from sentry.models import Integration, Organization, OrganizationIntegration, OrganizationStatus
+from sentry.utils.http import absolute_uri
 from sentry.web.api import allow_cors_options
 from sentry.web.helpers import render_to_response
 
@@ -35,13 +36,19 @@ class VercelUIHook(Endpoint):
                 external_id=team_id or user_id, provider="vercel", status=ObjectStatus.ACTIVE
             )
         except Integration.DoesNotExist:
+            logger.info(
+                "vercel.integration.does-not-exist", extra={"external_id": team_id or user_id},
+            )
             return HttpResponse("The requested integration does not exist.")
         try:
             organization = Organization.objects.get(
-                id=integration.metadata["configurations"][configuration_id]["organization_id"]
+                id=integration.metadata["configurations"][configuration_id]["organization_id"],
+                status=OrganizationStatus.ACTIVE,
             )
         except KeyError:
             return HttpResponse("The requested integration does not exist.")
+        except Organization.DoesNotExist:
+            return HttpResponse("Organization does not exist")
         try:
             OrganizationIntegration.objects.get(
                 organization=organization.id, integration=integration.id
@@ -52,8 +59,12 @@ class VercelUIHook(Endpoint):
                 extra={"organization_id": organization.id, "integration_id": integration.id},
             )
             return HttpResponse("The requested integration does not exist.")
+
+        link = absolute_uri(
+            "/settings/%s/integrations/vercel/%s/" % (organization.slug, integration.id)
+        )
         return render_to_response(
             "sentry/vercel-ui-hook.vercel",
             request=request,
-            context={"org": organization.slug, "integration_id": integration.id},
+            context={"org": organization.slug, "link": link},
         )

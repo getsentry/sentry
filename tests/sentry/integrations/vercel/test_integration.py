@@ -17,6 +17,7 @@ from sentry.models import (
 )
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.http import absolute_uri
 
 
 class VercelIntegrationTest(IntegrationTestCase):
@@ -344,8 +345,10 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         assert (
             six.binary_type(
-                "https://www.sentry.io/settings/%s/integrations/vercel/%s"
-                % (self.organization.slug, integration.id)
+                absolute_uri(
+                    "/settings/%s/integrations/vercel/%s/"
+                    % (self.organization.slug, integration.id)
+                )
             )
             in resp.content
         )
