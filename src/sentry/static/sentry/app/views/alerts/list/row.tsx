@@ -73,7 +73,9 @@ class AlertListRow extends AsyncComponent<Props, State> {
   renderTimeSince(date: string) {
     return (
       <CreatedResolvedTime>
-        <TimeSince date={date} /> <StyledDateTime date={date} utc={false} />
+        <Tooltip title={<DateTime date={date} utc={false} />} position="top">
+          <TimeSince title="" date={date} />
+        </Tooltip>
       </CreatedResolvedTime>
     );
   }
@@ -157,10 +159,8 @@ function ErrorLoadingStatsIcon() {
 const CreatedResolvedTime = styled('div')`
   ${overflowEllipsis}
   line-height: 1.4;
-`;
-
-const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray500};
+  display: flex;
+  align-items: center;
 `;
 
 const ProjectBadge = styled(IdBadge)`
