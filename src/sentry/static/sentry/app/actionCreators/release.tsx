@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import ReleaseActions from 'app/actions/releaseActions';
 import {Client} from 'app/api';

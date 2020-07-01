@@ -66,7 +66,7 @@ const FormSpinner = styled(Spinner)`
 `;
 
 const FieldError = styled('div')`
-  color: ${p => p.theme.redDark};
+  color: ${p => p.theme.red500};
   animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 export default ControlState;

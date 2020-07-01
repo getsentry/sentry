@@ -31,6 +31,7 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
   <EventDataSection
     isCentered={false}
     raw={false}
+    showPermalink={true}
     title={null}
     type="sdk-updates"
     wrapTitle={true}
@@ -39,11 +40,11 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
       className=""
     >
       <div
-        className=" css-14ma22z-DataSection e1z0bih40"
+        className=" css-3rlrsb-DataSection e1z0bih40"
       >
         <SectionContents>
           <div
-            className="css-16dhebx-SectionContents e1fbjd862"
+            className="css-16dhebx-SectionContents e1fbjd863"
           >
             <Alert
               icon="icon-upgrade"
@@ -52,13 +53,13 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
               type="info"
             >
               <Component
-                className="css-22gnn3-Alert ejthpj82"
+                className="css-17b0bb9-Alert ejthpj82"
                 icon="icon-upgrade"
                 iconSize="20px"
                 type="info"
               >
                 <div
-                  className="ref-info css-22gnn3-Alert ejthpj82"
+                  className="ref-info css-17b0bb9-Alert ejthpj82"
                 >
                   <IconWrapper>
                     <span

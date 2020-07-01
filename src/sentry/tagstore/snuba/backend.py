@@ -8,6 +8,8 @@ from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
 
 from sentry import options
+from sentry.api.event_search import PROJECT_ALIAS
+from sentry.models import Project
 from sentry.api.utils import default_start_end_dates
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
@@ -704,6 +706,18 @@ class SnubaTagStorage(TagStorage):
             if converted_query is not None:
                 conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
                 conditions.append([snuba_key, "<=", converted_query + FUZZY_NUMERIC_DISTANCE])
+        elif key == PROJECT_ALIAS:
+            project_filters = {
+                "id__in": projects,
+            }
+            if query:
+                project_filters["slug__icontains"] = query
+            project_queryset = Project.objects.filter(**project_filters).values("id", "slug")
+            project_slugs = {project["id"]: project["slug"] for project in project_queryset}
+            if project_queryset.exists():
+                projects = [project["id"] for project in project_queryset]
+                snuba_key = "project_id"
+                dataset = Dataset.Discover
         else:
             if snuba_key in BLACKLISTED_COLUMNS:
                 snuba_key = "tags[%s]" % (key,)
@@ -740,9 +754,14 @@ class SnubaTagStorage(TagStorage):
         if transaction_status:
             results = OrderedDict(
                 [
-                    (SPAN_STATUS_CODE_TO_NAME[result_key], value)
-                    for result_key, value in six.iteritems(results)
+                    (SPAN_STATUS_CODE_TO_NAME[result_key], data)
+                    for result_key, data in six.iteritems(results)
                 ]
+            )
+        # With project names we map the ids back to the project slugs
+        elif key == PROJECT_ALIAS:
+            results = OrderedDict(
+                [(project_slugs[value], data) for value, data in six.iteritems(results)]
             )
 
         tag_values = [

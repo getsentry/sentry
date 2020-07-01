@@ -1339,6 +1339,42 @@ class JavascriptIntegrationTest(SnubaTestCase):
         for x in range(6):
             assert not frame_list[x].in_app
 
+    @responses.activate
+    def test_html_file_with_query_param_ending_with_js_extension(self):
+        responses.add(
+            responses.GET,
+            "http://example.com/file.html",
+            body=(
+                "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
+            ),
+        )
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.html?sw=iddqd1337.js",
+                                    "filename": "file.html",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
 
 @pytest.mark.relay_store_integration
 class JavascriptIntegrationTestRelay(

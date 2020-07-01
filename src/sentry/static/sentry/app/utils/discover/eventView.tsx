@@ -976,7 +976,8 @@ class EventView {
       this.getAggregateFields()
         // Exclude last_seen and latest_event as they don't produce useful graphs.
         .filter(
-          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
+          (field: Field) =>
+            ['last_seen()', 'latest_event()'].includes(field.field) === false
         )
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),
@@ -1006,7 +1007,7 @@ class EventView {
     return defaultOption;
   }
 
-  getDisplayOptions() {
+  getDisplayOptions(): SelectValue<string>[] {
     if (!this.start && !this.end) {
       return DISPLAY_MODE_OPTIONS;
     }
@@ -1016,6 +1017,15 @@ class EventView {
       }
       return item;
     });
+  }
+
+  getDisplayMode() {
+    const displayOptions = this.getDisplayOptions();
+    const selectedOption = displayOptions.find(option => option.value === this.display);
+    if (selectedOption && !selectedOption.disabled) {
+      return this.display ?? DisplayModes.DEFAULT;
+    }
+    return DisplayModes.DEFAULT;
   }
 }
 

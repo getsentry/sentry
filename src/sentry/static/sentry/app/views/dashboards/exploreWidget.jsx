@@ -120,7 +120,11 @@ class ExploreWidget extends React.Component {
     return (
       <ExploreAction
         to={flags.discover2 ? this.getExportToDiscover(query, true) : ''}
-        href={!flags.discover2 ? 'https://docs.sentry.io/performance/discover/' : ''}
+        href={
+          !flags.discover2
+            ? 'https://docs.sentry.io/performance-monitoring/discover-queries/'
+            : ''
+        }
         target={!flags.discover2 ? '_blank' : ''}
         title={
           flags.discover2
@@ -208,13 +212,13 @@ const ExploreButton = styled(props => {
   return <UnstyledButton {...remaining} />;
 })`
   position: relative;
-  color: ${p => (p.isOpen ? p.theme.purple : p.theme.gray500)};
+  color: ${p => (p.isOpen ? p.theme.purple400 : p.theme.gray500)};
   padding: ${space(1)} ${space(2)};
   border-radius: 0 0 ${p => p.theme.borderRadius} 0;
   ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
 
   &:hover {
-    color: ${p => p.theme.purple};
+    color: ${p => p.theme.purple400};
   }
 
   /* covers up borders to create a continous shape */
@@ -244,9 +248,9 @@ const ExploreRow = styled('li')`
 
 const ExploreAction = styled(UnstyledButton)`
   padding: ${space(1)};
-  color: ${p => p.theme.purple};
+  color: ${p => p.theme.purple400};
   &:hover {
-    color: ${p => p.theme.purpleDark};
+    color: ${p => p.theme.purple400};
   }
 `;
 

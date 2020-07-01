@@ -31,13 +31,14 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
       <Column>
         <TextOverflow>
           <Link to={archiveLink}>
-            <Version version={name} anchor={false} />
+            <Version version={name} anchor={false} tooltipRawVersion truncate />
           </Link>
         </TextOverflow>
       </Column>
       <ArtifactsColumn>
         <Count value={fileCount} />
       </ArtifactsColumn>
+      <Column>{t('release')}</Column>
       <Column>
         <DateTime date={date} />
       </Column>

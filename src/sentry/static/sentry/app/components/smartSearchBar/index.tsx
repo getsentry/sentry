@@ -3,10 +3,10 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -94,7 +94,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.gray400}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.borderDark}`};
     border-radius: 0;
   }
 
@@ -990,10 +990,9 @@ class SmartSearchBar extends React.Component<Props, State> {
       newQuery = `${query}${replaceText}`;
     } else {
       const last = terms.pop() ?? '';
-
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
-      const prefix = newQuery.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
+      const prefix = last.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
       const valuePrefix = newQuery.endsWith(SEARCH_WILDCARD) ? SEARCH_WILDCARD : '';
 
       // newQuery is "<term>:"

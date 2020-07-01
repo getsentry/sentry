@@ -18,6 +18,7 @@ from sentry.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.utils.http import absolute_uri
 from sentry.models import (
+    Integration,
     Project,
     ProjectKey,
     User,
@@ -58,6 +59,8 @@ external_install = {
 }
 
 
+configure_integration = {"title": _("Connect Your Projects")}
+
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
@@ -65,7 +68,7 @@ metadata = IntegrationMetadata(
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=Vercel%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
-    aspects={"externalInstall": external_install},
+    aspects={"externalInstall": external_install, "configure_integration": configure_integration},
 )
 
 internal_integration_overview = (
@@ -76,19 +79,52 @@ internal_integration_overview = (
 
 
 class VercelIntegration(IntegrationInstallation):
+    @property
+    def metadata(self):
+        return self.model.metadata
+
     def get_client(self):
-        access_token = self.model.metadata["access_token"]
-        if self.model.metadata["installation_type"] == "team":
+        access_token = self.metadata["access_token"]
+        if self.metadata["installation_type"] == "team":
             return VercelClient(access_token, self.model.external_id)
 
         return VercelClient(access_token)
 
+    # note this could return a different integration if the user has multiple
+    # installations with the same organization
+    def get_configuration_id(self):
+        for configuration_id, data in self.metadata["configurations"].items():
+            if data["organization_id"] == self.organization_id:
+                return configuration_id
+        logger.error(
+            "could not find matching org",
+            extra={"organization_id": self.organization_id, "integration_id": self.model.id},
+        )
+        return None
+
+    def get_base_project_url(self):
+        client = self.get_client()
+        if self.metadata["installation_type"] == "team":
+            team = client.get_team()
+            slug = team["slug"]
+        else:
+            user = client.get_user()
+            slug = user["username"]
+        return u"https://vercel.com/%s" % slug
+
     def get_organization_config(self):
         vercel_client = self.get_client()
         # TODO: add try/catch if we get API failure
+        base_url = self.get_base_project_url()
         vercel_projects = [
-            {"value": p["id"], "label": p["name"]} for p in vercel_client.get_projects()
+            {"value": p["id"], "label": p["name"], "url": u"%s/%s" % (base_url, p["name"])}
+            for p in vercel_client.get_projects()
         ]
+
+        next_url = None
+        configuration_id = self.get_configuration_id()
+        if configuration_id:
+            next_url = u"https://vercel.com/dashboard/integrations/%s" % configuration_id
 
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
@@ -106,9 +142,11 @@ class VercelIntegration(IntegrationInstallation):
                 "type": "project_mapper",
                 "mappedDropdown": {
                     "items": vercel_projects,
-                    "placeholder": "Select a Vercel Project",  # TOOD: add translation
+                    "placeholder": _("Choose Vercel project..."),
                 },
                 "sentryProjects": sentry_projects,
+                "nextButton": {"url": next_url, "text": _("Return to Vercel")},
+                "iconType": "vercel",
             }
         ]
 
@@ -116,38 +154,45 @@ class VercelIntegration(IntegrationInstallation):
 
     def update_organization_config(self, data):
         # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
-
-        metadata = self.model.metadata
-        vercel_client = VercelClient(metadata["access_token"], metadata.get("team_id"))
+        vercel_client = self.get_client()
         config = self.org_integration.config
-        [sentry_project_id, vercel_project_id] = data["project_mappings"][
-            -1
-        ]  # TODO: update this to work in the case where a project is removed
-        sentry_project = Project.objects.get(id=sentry_project_id)
-        enabled_dsn = ProjectKey.get_default(project=sentry_project)
-        if not enabled_dsn:
-            raise IntegrationError("You must have an enabled DSN to continue!")
-        sentry_project_dsn = enabled_dsn.get_dsn(public=True)
 
-        org_secret = self.create_secret(
-            vercel_client, vercel_project_id, "SENTRY_ORG", sentry_project.organization.slug
-        )
-        project_secret = self.create_secret(
-            vercel_client,
-            vercel_project_id,
-            "SENTRY_PROJECT_%s" % sentry_project_id,
-            sentry_project.slug,
-        )
-        dsn_secret = self.create_secret(
-            vercel_client,
-            vercel_project_id,
-            "NEXT_PUBLIC_SENTRY_DSN_%s" % sentry_project_id,
-            sentry_project_dsn,
-        )
+        new_mappings = data["project_mappings"]
+        old_mappings = config.get("project_mappings") or []
 
-        self.create_env_var(vercel_client, vercel_project_id, "SENTRY_ORG", org_secret)
-        self.create_env_var(vercel_client, vercel_project_id, "SENTRY_PROJECT", project_secret)
-        self.create_env_var(vercel_client, vercel_project_id, "NEXT_PUBLIC_SENTRY_DSN", dsn_secret)
+        for mapping in new_mappings:
+            # skip any mappings that already exist
+            if mapping in old_mappings:
+                continue
+            [sentry_project_id, vercel_project_id] = mapping
+
+            sentry_project = Project.objects.get(id=sentry_project_id)
+            enabled_dsn = ProjectKey.get_default(project=sentry_project)
+            if not enabled_dsn:
+                raise IntegrationError("You must have an enabled DSN to continue!")
+            sentry_project_dsn = enabled_dsn.get_dsn(public=True)
+
+            org_secret = self.create_secret(
+                vercel_client, vercel_project_id, "SENTRY_ORG", sentry_project.organization.slug
+            )
+            project_secret = self.create_secret(
+                vercel_client,
+                vercel_project_id,
+                "SENTRY_PROJECT_%s" % sentry_project_id,
+                sentry_project.slug,
+            )
+            dsn_secret = self.create_secret(
+                vercel_client,
+                vercel_project_id,
+                "NEXT_PUBLIC_SENTRY_DSN_%s" % sentry_project_id,
+                sentry_project_dsn,
+            )
+
+            self.create_env_var(vercel_client, vercel_project_id, "SENTRY_ORG", org_secret)
+            self.create_env_var(vercel_client, vercel_project_id, "SENTRY_PROJECT", project_secret)
+            self.create_env_var(
+                vercel_client, vercel_project_id, "NEXT_PUBLIC_SENTRY_DSN", dsn_secret
+            )
 
         config.update(data)
         self.org_integration.update(config=config)
@@ -206,6 +251,19 @@ class VercelIntegrationProvider(IntegrationProvider):
 
         return [identity_pipeline_view]
 
+    def get_configuration_metadata(self, external_id):
+        # If a vercel team or user was already installed on another sentry org
+        # we want to make sure we don't overwrite the existing configurations. We
+        # keep all the configurations so that if one of them is deleted from vercel's
+        # side, the other sentry org will still have a working vercel integration.
+        try:
+            integration = Integration.objects.get(external_id=external_id, provider=self.key)
+        except Integration.DoesNotExist:
+            # first time setting up vercel team/user
+            return {}
+
+        return integration.metadata["configurations"]
+
     def build_integration(self, state):
         data = state["identity"]["data"]
         access_token = data["access_token"]
@@ -237,6 +295,8 @@ class VercelIntegrationProvider(IntegrationProvider):
             message = u"Could not create deployment webhook in Vercel: {}".format(details)
             raise IntegrationError(message)
 
+        configurations = self.get_configuration_metadata(external_id)
+
         integration = {
             "name": name,
             "external_id": external_id,
@@ -245,6 +305,7 @@ class VercelIntegrationProvider(IntegrationProvider):
                 "installation_id": data["installation_id"],
                 "installation_type": installation_type,
                 "webhook_id": webhook["id"],
+                "configurations": configurations,
             },
             "post_install_data": {"user_id": state["user_id"]},
         }
@@ -252,6 +313,16 @@ class VercelIntegrationProvider(IntegrationProvider):
         return integration
 
     def post_install(self, integration, organization, extra=None):
+        # add new configuration information to metadata
+        configurations = integration.metadata.get("configurations") or {}
+        configurations[integration.metadata["installation_id"]] = {
+            "access_token": integration.metadata["access_token"],
+            "webhook_id": integration.metadata["webhook_id"],
+            "organization_id": organization.id,
+        }
+        integration.metadata["configurations"] = configurations
+        integration.save()
+
         # check if we have an installation already
         if SentryAppInstallationForProvider.objects.filter(
             organization=organization, provider="vercel"

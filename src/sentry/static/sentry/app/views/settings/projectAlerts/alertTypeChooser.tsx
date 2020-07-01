@@ -6,7 +6,7 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import Radio from 'app/components/radio';
 import textStyles from 'app/styles/text';
-import BulletList from 'app/styles/bulletList';
+import {List, ListItem} from 'app/components/list';
 import FeatureBadge from 'app/components/featureBadge';
 import Tooltip from 'app/components/tooltip';
 import {Panel, PanelHeader} from 'app/components/panels';
@@ -75,7 +75,7 @@ const TypeChooserCards = ({onChange, organization, selected}: Props) => {
         <Feature
           requireAll
           features={[
-            'organizations:transaction-events',
+            'organizations:performance-view',
             'organizations:incidents-performance',
           ]}
         >
@@ -90,15 +90,17 @@ const TypeChooserCards = ({onChange, organization, selected}: Props) => {
                 {!selected && (
                   <React.Fragment>
                     <ExampleHeading>{t('For Example:')}</ExampleHeading>
-                    <BulletList>
-                      <li>{t('Performance metrics like latency and apdex')}</li>
-                      <li>
+                    <List>
+                      <ListItem>
+                        {t('Performance metrics like latency and apdex')}
+                      </ListItem>
+                      <ListItem>
                         {t(
                           `Frequency of error events or users affected in the
                        project`
                         )}
-                      </li>
-                    </BulletList>
+                      </ListItem>
+                    </List>
                   </React.Fragment>
                 )}
               </React.Fragment>
@@ -114,15 +116,17 @@ const TypeChooserCards = ({onChange, organization, selected}: Props) => {
                 {!selected && (
                   <React.Fragment>
                     <ExampleHeading>{t('For Example:')}</ExampleHeading>
-                    <BulletList>
-                      <li>{t('Total events in the project exceed 1000/minute')}</li>
-                      <li>
+                    <List>
+                      <ListItem>
+                        {t('Total events in the project exceed 1000/minute')}
+                      </ListItem>
+                      <ListItem>
                         {tct(
                           'Events with tag [code:database] and "API" in the title exceed 100/minute',
                           {code: <code />}
                         )}
-                      </li>
-                    </BulletList>
+                      </ListItem>
+                    </List>
                   </React.Fragment>
                 )}
               </React.Fragment>
@@ -149,10 +153,12 @@ const TypeChooserCards = ({onChange, organization, selected}: Props) => {
         {!selected && (
           <React.Fragment>
             <ExampleHeading>{t('For Example:')}</ExampleHeading>
-            <BulletList>
-              <li>{t('New Issues or regressions')}</li>
-              <li>{t('Frequency of individual Issues exceeds 100/minute')}</li>
-            </BulletList>
+            <List>
+              <ListItem>{t('New Issues or regressions')}</ListItem>
+              <ListItem>
+                {t('Frequency of individual Issues exceeds 100/minute')}
+              </ListItem>
+            </List>
           </React.Fragment>
         )}
       </TypeCard>

@@ -454,6 +454,14 @@ class EventManager(object):
         _get_or_create_release_many(jobs, projects)
         _get_event_user_many(jobs, projects)
 
+        job["project_key"] = None
+        if job["key_id"] is not None:
+            with metrics.timer("event_manager.load_project_key"):
+                try:
+                    job["project_key"] = ProjectKey.objects.get_from_cache(id=job["key_id"])
+                except ProjectKey.DoesNotExist:
+                    pass
+
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
             # clients did not set this appropriately so far.
@@ -510,36 +518,19 @@ class EventManager(object):
         if job["release"]:
             kwargs["first_release"] = job["release"]
 
+        # Load attachments first, but persist them at the very last after
+        # posting to eventstream to make sure all counters and eventstream are
+        # incremented for sure. Also wait for grouping to remove attachments
+        # based on the group counter.
+        with metrics.timer("event_manager.get_attachments"):
+            attachments = get_attachments(cache_key, job)
+
         try:
             job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
                 event=job["event"], hashes=hashes, release=job["release"], **kwargs
             )
         except HashDiscarded:
-            project_key = None
-            if job["key_id"] is not None:
-                try:
-                    project_key = ProjectKey.objects.get_from_cache(id=job["key_id"])
-                except ProjectKey.DoesNotExist:
-                    pass
-
-            quotas.refund(project, key=project_key, timestamp=start_time)
-
-            track_outcome(
-                org_id=project.organization_id,
-                project_id=project_id,
-                key_id=job["key_id"],
-                outcome=Outcome.FILTERED,
-                reason=FilterStatKeys.DISCARDED_HASH,
-                timestamp=to_datetime(job["start_time"]),
-                event_id=job["event"].event_id,
-                category=job["category"],
-            )
-
-            metrics.incr(
-                "events.discarded",
-                skip_internal=True,
-                tags={"organization_id": project.organization_id, "platform": job["platform"]},
-            )
+            discard_event(job, attachments)
             raise
 
         job["event"].group = job["group"]
@@ -576,23 +567,16 @@ class EventManager(object):
                 group=job["group"], environment=job["environment"]
             )
 
+        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
         _materialize_event_metrics(jobs)
 
-        # Load attachments first, but persist them at the very last after
-        # posting to eventstream to make sure all counters and eventstream are
-        # incremented for sure.
-        attachments = []
-        for attachment in get_attachments(cache_key, job["event"]):
-            try:
-                attachment_data = attachment.data
-            except MissingAttachmentChunks:
-                logger.exception("Missing chunks for cache_key=%s", cache_key)
-            else:
-                key = "bytes.stored.%s" % (attachment.type,)
-                job["event_metrics"][key] = (job["event_metrics"].get(key) or 0) + len(
-                    attachment_data
-                )
-                attachments.append(attachment)
+        with metrics.timer("event_manager.filter_attachments_for_group"):
+            attachments = filter_attachments_for_group(attachments, job)
+
+        for attachment in attachments:
+            key = "bytes.stored.%s" % (attachment.type,)
+            old_bytes = job["event_metrics"].get(key) or 0
+            job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs)
 
@@ -625,7 +609,8 @@ class EventManager(object):
 
         # Do this last to ensure signals get emitted even if connection to the
         # file store breaks temporarily.
-        save_attachments(attachments, job["event"])
+        with metrics.timer("event_manager.save_attachments"):
+            save_attachments(cache_key, attachments, job)
 
         metric_tags = {"from_relay": "_relay_processed" in job["data"]}
 
@@ -1219,32 +1204,114 @@ def _process_existing_aggregate(group, event, data, release):
     return is_regression
 
 
-def get_attachments(cache_key, event):
+def discard_event(job, attachments):
     """
-    Computes a list of attachments that should be stored.
+    Refunds consumed quotas for an event and its attachments.
 
-    This method checks whether event attachments are available and sends them to
-    the blob store. There is special handling for crash reports which may
-    contain unstripped PII. If the project or organization is configured to
-    limit the amount of crash reports per group, the number of stored crashes is
-    limited.
+    For the event and each dropped attachment, an outcome
+    FILTERED(discarded-hash) is emitted.
+
+    :param job:         The job context container.
+    :param attachments: The full list of attachments to filter.
+    """
+
+    project = job["event"].project
+
+    quotas.refund(
+        project,
+        key=job["project_key"],
+        timestamp=job["start_time"],
+        category=job["category"],
+        quantity=1,
+    )
+
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=job["project_id"],
+        key_id=job["key_id"],
+        outcome=Outcome.FILTERED,
+        reason=FilterStatKeys.DISCARDED_HASH,
+        timestamp=to_datetime(job["start_time"]),
+        event_id=job["event"].event_id,
+        category=job["category"],
+    )
+
+    attachment_quantity = 0
+    for attachment in attachments:
+        # Quotas are counted with at least ``1`` for attachments.
+        attachment_quantity += attachment.size or 1
+
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=job["project_id"],
+            key_id=job["key_id"],
+            outcome=Outcome.FILTERED,
+            reason=FilterStatKeys.DISCARDED_HASH,
+            timestamp=to_datetime(job["start_time"]),
+            event_id=job["event"].event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=attachment.size,
+        )
+
+    if attachment_quantity:
+        quotas.refund(
+            project,
+            key=job["project_key"],
+            timestamp=job["start_time"],
+            category=DataCategory.ATTACHMENT,
+            quantity=attachment_quantity,
+        )
+
+    metrics.incr(
+        "events.discarded",
+        skip_internal=True,
+        tags={"organization_id": project.organization_id, "platform": job["platform"]},
+    )
+
+
+def get_attachments(cache_key, job):
+    """
+    Retrieves the list of attachments for this event.
+
+    This method skips attachments that have been marked for rate limiting by
+    earlier ingestion pipeline.
 
     :param cache_key: The cache key at which the event payload is stored in the
-                    cache. This is used to retrieve attachments.
-    :param event:     The event model instance.
+                      cache. This is used to retrieve attachments.
+    :param job:       The job context container.
     """
-    filtered = []
-
     if cache_key is None:
-        return filtered
+        return []
 
-    project = event.project
+    project = job["event"].project
     if not features.has("organizations:event-attachments", project.organization, actor=None):
-        return filtered
+        return []
 
     attachments = list(attachment_cache.get(cache_key))
     if not attachments:
-        return filtered
+        return []
+
+    return [attachment for attachment in attachments if not attachment.rate_limited]
+
+
+def filter_attachments_for_group(attachments, job):
+    """
+    Removes crash reports exceeding the group-limit.
+
+    If the project or organization is configured to limit the amount of crash
+    reports per group, the number of stored crashes is limited. This requires
+    `event.group` to be set.
+
+    Emits one outcome per removed attachment.
+
+    :param attachments: The full list of attachments to filter.
+    :param job:         The job context container.
+    """
+    if not attachments:
+        return attachments
+
+    event = job["event"]
+    project = event.project
 
     # The setting is both an organization and project setting. The project
     # setting strictly overrides the organization setting, unless set to the
@@ -1264,12 +1331,28 @@ def get_attachments(cache_key, event):
         cached_reports = 0
     stored_reports = cached_reports
 
+    filtered = []
+    refund_quantity = 0
     for attachment in attachments:
         # If the attachment is a crash report (e.g. minidump), we need to honor
         # the store_crash_reports setting. Otherwise, we assume that the client
         # has already verified PII and just store the attachment.
         if attachment.type in CRASH_REPORT_TYPES:
             if crashreports_exceeded(stored_reports, max_crashreports):
+                track_outcome(
+                    org_id=event.project.organization_id,
+                    project_id=job["project_id"],
+                    key_id=job["key_id"],
+                    outcome=Outcome.FILTERED,
+                    reason=FilterStatKeys.CRASH_REPORT_LIMIT,
+                    timestamp=to_datetime(job["start_time"]),
+                    event_id=event.event_id,
+                    category=DataCategory.ATTACHMENT,
+                    quantity=attachment.size,
+                )
+
+                # Quotas are counted with at least ``1`` for attachments.
+                refund_quantity += attachment.size or 1
                 continue
             stored_reports += 1
 
@@ -1282,23 +1365,54 @@ def get_attachments(cache_key, event):
     if crashreports_exceeded(stored_reports, max_crashreports) and stored_reports > cached_reports:
         cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
 
+    if refund_quantity:
+        quotas.refund(
+            project,
+            key=job["project_key"],
+            timestamp=job["start_time"],
+            category=DataCategory.ATTACHMENT,
+            quantity=refund_quantity,
+        )
+
     return filtered
 
 
-def save_attachments(attachments, event):
+def save_attachments(cache_key, attachments, job):
     """
     Persists cached event attachments into the file store.
 
+    Emits one outcome per attachment, either ACCEPTED on success or
+    INVALID(missing_chunks) if retrieving the attachment fails.
+
     :param attachments: A filtered list of attachments to save.
-    :param event:       The event model instance.
+    :param job:         The job context container.
     """
+    event = job["event"]
+
     for attachment in attachments:
+        try:
+            data = attachment.data
+        except MissingAttachmentChunks:
+            track_outcome(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.INVALID,
+                reason="missing_chunks",
+                timestamp=to_datetime(job["start_time"]),
+                event_id=event.event_id,
+                category=DataCategory.ATTACHMENT,
+            )
+
+            logger.exception("Missing chunks for cache_key=%s", cache_key)
+            continue
+
         file = File.objects.create(
             name=attachment.name,
             type=attachment.type,
             headers={"Content-Type": attachment.content_type},
         )
-        file.putfile(six.BytesIO(attachment.data))
+        file.putfile(six.BytesIO(data))
 
         EventAttachment.objects.create(
             event_id=event.event_id,
@@ -1306,6 +1420,18 @@ def save_attachments(attachments, event):
             group_id=event.group_id,
             name=attachment.name,
             file=file,
+        )
+
+        track_outcome(
+            org_id=event.project.organization_id,
+            project_id=job["project_id"],
+            key_id=job["key_id"],
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(job["start_time"]),
+            event_id=event.event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=attachment.size or 1,
         )
 
 

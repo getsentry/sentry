@@ -2,7 +2,7 @@ import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as ReactRouter from 'react-router';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {Group, Organization, Project} from 'app/types';
@@ -17,7 +17,6 @@ import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
-import withProfiler from 'app/utils/withProfiler';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -30,7 +29,6 @@ type Props = {
   environments: string[];
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
-  finishProfile: () => void;
 } & ReactRouter.RouteComponentProps<{orgId: string; groupId: string}, {}>;
 
 type State = {
@@ -60,11 +58,7 @@ class GroupDetails extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    if (prevState.loading && !this.state.loading) {
-      callIfFunction(this.props.finishProfile);
-    }
-
+  componentDidUpdate(prevProps: Props) {
     if (prevProps.isGlobalSelectionReady !== this.props.isGlobalSelectionReady) {
       this.fetchData();
     }
@@ -295,4 +289,4 @@ class GroupDetails extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withProfiler(GroupDetails));
+export default withApi(Sentry.withProfiler(GroupDetails));

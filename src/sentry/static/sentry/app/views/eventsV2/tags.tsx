@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor} from 'history';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -53,7 +53,7 @@ class Tags extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    this.fetchData();
+    this.fetchData(true);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -72,11 +72,14 @@ class Tags extends React.Component<Props, State> {
     return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
 
-  fetchData = async () => {
+  fetchData = async (forceFetchData = false) => {
     const {api, organization, eventView, location, confirmedQuery} = this.props;
     this.setState({loading: true, error: '', tags: []});
 
-    if (confirmedQuery === false) {
+    // Fetch should be forced after mounting as confirmedQuery isn't guaranteed
+    // since this component can mount/unmount via show/hide tags separate from
+    // data being loaded for the rest of the page.
+    if (!forceFetchData && confirmedQuery === false) {
       return;
     }
 

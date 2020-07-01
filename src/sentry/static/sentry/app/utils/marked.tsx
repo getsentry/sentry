@@ -49,7 +49,7 @@ marked.setOptions({
   sanitize: true,
 
   // Silence sanitize deprecation warning in test / travs (Travis sets NODE_NV
-  // to production, but specifies IS_PERCY).
+  // to production, but specifies `CI`).
   //
   // [!!] This has the side effect of causing failed markdown content to render
   //      as a html error, instead of throwing an exception, however none of
@@ -57,7 +57,7 @@ marked.setOptions({
   //      tradeoff to turn off off the deprecation warning.
   //
   // eslint-disable-next-line no-undef
-  silent: !!process.env.IS_PERCY || process.env.NODE_ENV === 'test',
+  silent: !!process.env.IS_CI || process.env.NODE_ENV === 'test',
 });
 
 const sanitizedMarked = (...args: Parameters<typeof marked>) =>

@@ -3,6 +3,7 @@ import React from 'react';
 import classNames from 'classnames';
 
 import DropdownMenu from 'app/components/dropdownMenu';
+import {IconChevron} from 'app/icons';
 
 // .dropdown-actor-title = flexbox to fix vertical alignment on firefox Need
 // the extra container because dropdown-menu alignment is off if
@@ -75,7 +76,7 @@ const DropdownLink = ({
           >
             <div className="dropdown-actor-title">
               <span>{title}</span>
-              {caret && <i className="icon-arrow-down" />}
+              {caret && <IconChevron direction="down" size="xs" />}
             </div>
           </a>
 

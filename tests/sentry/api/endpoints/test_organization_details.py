@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime
 
 import dateutil
-import dateutil.tz
+from pytz import UTC
 import six
 
 from base64 import b64encode
@@ -168,9 +168,9 @@ class OrganizationDetailsTest(APITestCase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=dateutil.tz.UTC)
+            start_time = datetime.utcnow().replace(tzinfo=UTC)
             response = self.client.put(url, data=data)
-            end_time = datetime.utcnow().replace(tzinfo=dateutil.tz.UTC)
+            end_time = datetime.utcnow().replace(tzinfo=UTC)
             assert response.status_code == 200
             response = self.client.get(url)
             assert response.status_code == 200
@@ -395,9 +395,9 @@ class OrganizationUpdateTest(APITestCase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=dateutil.tz.UTC)
+            start_time = datetime.utcnow().replace(tzinfo=UTC)
             response = self.client.put(url, data=data)
-            end_time = datetime.utcnow().replace(tzinfo=dateutil.tz.UTC)
+            end_time = datetime.utcnow().replace(tzinfo=UTC)
 
             assert response.status_code == 200
             response_data = response.data.get("trustedRelays")
@@ -485,11 +485,11 @@ class OrganizationUpdateTest(APITestCase):
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=dateutil.tz.UTC)
+            start_time = datetime.utcnow().replace(tzinfo=UTC)
             self.client.put(url, data=initial_settings)
-            after_initial = datetime.utcnow().replace(tzinfo=dateutil.tz.UTC)
+            after_initial = datetime.utcnow().replace(tzinfo=UTC)
             response = self.client.put(url, data=changed_settings)
-            after_final = datetime.utcnow().replace(tzinfo=dateutil.tz.UTC)
+            after_final = datetime.utcnow().replace(tzinfo=UTC)
 
             assert response.status_code == 200
 
@@ -665,23 +665,12 @@ class OrganizationUpdateTest(APITestCase):
         org = self.create_organization(owner=self.user)
         url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
         self.login_as(user=self.user)
-        with self.feature("organizations:datascrubbers-v2"):
-            value = '{"applications": {"freeform": []}}'
-            resp = self.client.put(url, data={"relayPiiConfig": value})
-            assert resp.status_code == 200, resp.content
-            assert org.get_option("sentry:relay_pii_config") == value
-            assert resp.data["relayPiiConfig"] == value
-
-    def test_relay_pii_config_forbidden(self):
-        org = self.create_organization(owner=self.user)
-        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
-        self.login_as(user=self.user)
 
         value = '{"applications": {"freeform": []}}'
         resp = self.client.put(url, data={"relayPiiConfig": value})
-        assert resp.status_code == 400
-        assert b"feature" in resp.content
-        assert org.get_option("sentry:relay_pii_config") is None
+        assert resp.status_code == 200, resp.content
+        assert org.get_option("sentry:relay_pii_config") == value
+        assert resp.data["relayPiiConfig"] == value
 
 
 class OrganizationDeleteTest(APITestCase):

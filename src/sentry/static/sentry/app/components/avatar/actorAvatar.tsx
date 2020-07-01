@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import SentryTypes from 'app/sentryTypes';
 import UserAvatar from 'app/components/avatar/userAvatar';

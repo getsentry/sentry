@@ -118,7 +118,7 @@ class ProjectProcessingIssues extends React.Component {
     this.setState({
       reprocessing: true,
     });
-    addLoadingMessage(t('Started reprocessing..'));
+    addLoadingMessage(t('Started reprocessing\u2026'));
     const {orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',

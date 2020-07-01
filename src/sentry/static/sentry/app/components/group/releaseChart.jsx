@@ -135,7 +135,7 @@ class GroupReleaseChart extends React.Component {
           x: firstSeenX,
           className: 'first-seen',
           offset: -7.5,
-          fill: theme.pink,
+          fill: theme.pink400,
         });
       }
     }

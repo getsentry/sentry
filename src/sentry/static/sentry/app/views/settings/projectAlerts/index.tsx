@@ -15,19 +15,14 @@ const ProjectAlerts = ({children, organization}: Props) => (
     {({hasAccess}) => (
       <Feature organization={organization} features={['incidents']}>
         {({hasFeature: hasMetricAlerts}) => (
-          <Feature organization={organization} features={['create-from-discover']}>
-            {({hasFeature: hasCreateFromDiscover}) => (
-              <React.Fragment>
-                {React.isValidElement(children) &&
-                  React.cloneElement(children, {
-                    organization,
-                    canEditRule: hasAccess,
-                    hasMetricAlerts,
-                    hasCreateFromDiscover,
-                  })}
-              </React.Fragment>
-            )}
-          </Feature>
+          <React.Fragment>
+            {React.isValidElement(children) &&
+              React.cloneElement(children, {
+                organization,
+                canEditRule: hasAccess,
+                hasMetricAlerts,
+              })}
+          </React.Fragment>
         )}
       </Feature>
     )}

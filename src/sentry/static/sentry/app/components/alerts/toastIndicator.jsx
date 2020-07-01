@@ -47,7 +47,7 @@ const Icon = styled('div')`
     display: block;
   }
 
-  color: ${p => (p.type === 'success' ? p.theme.green400 : p.theme.red)};
+  color: ${p => (p.type === 'success' ? p.theme.green400 : p.theme.red400)};
 `;
 
 const Message = styled('div')`
@@ -70,7 +70,7 @@ const Undo = styled('div')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
     border-color: ${p => p.theme.gray700};
-    border-left-color: ${p => p.theme.purple};
+    border-left-color: ${p => p.theme.purple400};
   }
 `;
 
