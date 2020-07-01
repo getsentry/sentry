@@ -233,7 +233,7 @@ class Breadcrumbs extends React.Component<Props, State> {
 
     return {
       type: BreadcrumbType.ERROR,
-      level: levelTag?.value as BreadcrumbLevelType,
+      level: (levelTag?.value as BreadcrumbLevelType) || BreadcrumbLevelType.UNDEFINED,
       category: 'message',
       message: event.message,
       timestamp,
@@ -241,20 +241,34 @@ class Breadcrumbs extends React.Component<Props, State> {
   };
 
   filterBySearch = (searchTerm: string, breadcrumbs: BreadcrumbsWithDetails) => {
-    return !searchTerm.trim()
-      ? breadcrumbs
-      : breadcrumbs.filter(obj =>
-          Object.keys(
-            pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
-          ).some(key => {
-            if (!defined(obj[key]) || !String(obj[key]).trim()) {
-              return false;
-            }
-            return JSON.stringify(obj[key])
-              .toLocaleLowerCase()
-              .includes(searchTerm);
-          })
-        );
+    if (!searchTerm.trim()) {
+      return breadcrumbs;
+    }
+
+    // Slightly hacky, but it works
+    // the string is being stringfy here in order to match exactly the same stringfy string of the loop
+    const searchFor = JSON.stringify(searchTerm)
+      // it replaces double backslash generate by JSON.stringfy with single backslash
+      .replace(/((^")|("$))/g, '')
+      .toLocaleLowerCase();
+
+    return breadcrumbs.filter(obj =>
+      Object.keys(
+        pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
+      ).some(key => {
+        const info = obj[key];
+
+        if (!defined(info) || !String(info).trim()) {
+          return false;
+        }
+
+        return JSON.stringify(info)
+          .replace(/((^")|("$))/g, '')
+          .toLocaleLowerCase()
+          .trim()
+          .includes(searchFor);
+      })
+    );
   };
 
   handleSearch = (value: string) => {
@@ -376,6 +390,7 @@ class Breadcrumbs extends React.Component<Props, State> {
             orgId={orgId}
             onSwitchTimeFormat={this.handleSwitchTimeFormat}
             displayRelativeTime={displayRelativeTime}
+            searchTerm={searchTerm}
           />
         ) : (
           <StyledEmptyMessage
