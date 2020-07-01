@@ -71,10 +71,6 @@ class ExampleTestCase(object):
 
         assert len(frame_list) == 4
 
-        import pprint
-
-        pprint.pprint(frame_list)
-
         assert frame_list[0].function == "produceStack"
         assert frame_list[0].lineno == 6
         assert frame_list[0].filename == "index.html"
