@@ -73,7 +73,6 @@ class IssueListSearchBar extends React.Component {
           ? resp.map(query => ({
               desc: query,
               value: query,
-              className: 'icon-clock',
               type: 'recent-search',
             }))
           : [],

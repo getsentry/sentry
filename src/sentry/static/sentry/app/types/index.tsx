@@ -258,6 +258,7 @@ type SentryEventBase = {
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
+  device?: {[key: string]: any};
   packages?: {[key: string]: string};
   user: EventUser;
   message: string;
@@ -683,6 +684,9 @@ type IntegrationAspects = {
     buttonText: string;
     noticeText: string;
   };
+  configure_integration?: {
+    title: string;
+  };
 };
 
 type BaseIntegrationProvider = {
@@ -1036,6 +1040,7 @@ export type SavedQueryState = {
 export type SelectValue<T> = {
   label: string;
   value: T;
+  disabled?: boolean;
 };
 
 /**

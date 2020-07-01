@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {extractMultilineFields} from 'app/utils';
+import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t, tct, tn} from 'app/locale';
 import HintPanelItem from 'app/components/panels/hintPanelItem';
 import PlatformIcon from 'app/components/platformIcon';
@@ -316,7 +316,7 @@ export const fields: {[key: string]: Field} = {
       'Additional field names to match against when scrubbing data. Separate multiple entries with a newline'
     ),
     getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    setValue: val => convertMultilineFieldValue(val),
   },
   safeFields: {
     name: 'safeFields',
@@ -330,7 +330,7 @@ export const fields: {[key: string]: Field} = {
       'Field names which data scrubbers should ignore. Separate multiple entries with a newline'
     ),
     getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    setValue: val => convertMultilineFieldValue(val),
   },
   storeCrashReports: {
     name: 'storeCrashReports',
@@ -384,7 +384,7 @@ export const fields: {[key: string]: Field} = {
     label: t('Allowed Domains'),
     help: t('Separate multiple entries with a newline'),
     getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    setValue: val => convertMultilineFieldValue(val),
   },
   scrapeJavaScript: {
     name: 'scrapeJavaScript',

@@ -589,6 +589,23 @@ describe('SmartSearchBar', function() {
       searchBar.onAutoComplete('12345', {type: 'tag-value'});
       expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
     });
+
+    it('keeps the negation operator is present', function() {
+      const props = {
+        query: '',
+        organization,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const input = smartSearchBar.find('input');
+      // start typing part of the tag prefixed by the negation operator!
+      input.simulate('change', {target: {value: 'event.type:error !ti'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('title:', {});
+      expect(searchBar.state.query).toEqual('event.type:error !title:');
+    });
   });
 
   describe('onTogglePinnedSearch()', function() {

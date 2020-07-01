@@ -523,7 +523,7 @@ const TickText = styled('span')<{align: TickAlignment}>`
 const TickMarker = styled('div')`
   width: 1px;
   height: 4px;
-  background-color: ${p => p.theme.borderDark};
+  background-color: ${p => p.theme.gray400};
   position: absolute;
   top: 0;
   left: 0;
@@ -633,7 +633,7 @@ const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: ${p => p.theme.red};
+  background-color: ${p => p.theme.red400};
   transform: translateX(-50%);
 `;
 

@@ -147,7 +147,7 @@ const Placeholder = styled(Redaction)`
 `;
 
 const ErrorIcon = styled(InlineSvg)`
-  color: ${props => props.theme.redDark};
+  color: ${props => props.theme.red500};
 `;
 
 export default AnnotatedText;

@@ -25,7 +25,7 @@ export default class ApiForm extends React.Component {
 
   onSubmit = (data, onSuccess, onError) => {
     this.props.onSubmit && this.props.onSubmit(data);
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
     this.api.request(this.props.apiEndpoint, {
       method: this.props.apiMethod,
       data,

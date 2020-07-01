@@ -8,15 +8,10 @@ import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
 import {DropdownItem} from 'app/components/dropdownControl';
 import DropdownBubble from 'app/components/dropdownBubble';
 import space from 'app/styles/space';
-
-type Option = {
-  label: string;
-  value: string;
-  disabled?: boolean;
-};
+import {SelectValue} from 'app/types';
 
 type Props = {
-  options: Option[];
+  options: SelectValue<string>[];
   selected: string;
   onChange: (value: string) => void;
   title: string;

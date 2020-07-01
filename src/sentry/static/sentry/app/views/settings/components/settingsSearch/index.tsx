@@ -82,7 +82,7 @@ const SearchInput = styled('input')`
 
   &:focus {
     outline: none;
-    border: 1px solid ${p => p.theme.gray400};
+    border: 1px solid ${p => p.theme.borderDark};
   }
 
   &::placeholder {
