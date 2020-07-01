@@ -6,7 +6,6 @@ import six
 import sentry_relay
 from rest_framework import serializers
 
-from sentry import features
 from sentry.utils import metrics
 
 
