@@ -759,11 +759,6 @@ class IntegrationTestCase(TestCase):
         self.pipeline.initialize()
         self.save_session()
 
-        class MockUuid4:
-            hex = "1234567"
-
-        self.mock_uuid4 = MockUuid4
-
     def assertDialogSuccess(self, resp):
         assert b"window.opener.postMessage(" in resp.content
 

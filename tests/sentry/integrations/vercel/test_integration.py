@@ -26,6 +26,11 @@ class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 
     def assert_setup_flow(self, is_team=False, multi_config_org=None):
+        class MockUuid4:
+            hex = "1234567"
+
+        self.mock_uuid4 = MockUuid4
+
         responses.reset()
         access_json = {
             "user_id": "my_user_id",
@@ -169,12 +174,12 @@ class VercelIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
-        random_suffix = self.mock_uuid4.hex
+        uuid = self.mock_uuid4.hex
         secret_names = [
-            "sentry_org_%s" % random_suffix,
-            "sentry_project_%s" % random_suffix,
-            "next_public_sentry_dsn_%s" % random_suffix,
-            "sentry_auth_token_%s" % random_suffix,
+            "sentry_org_%s" % uuid,
+            "sentry_project_%s" % uuid,
+            "next_public_sentry_dsn_%s" % uuid,
+            "sentry_auth_token_%s" % uuid,
         ]
         responses.add(
             responses.GET,
@@ -230,7 +235,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             organization_id=org.id, integration_id=integration.id
         )
         assert org_integration.config == {}
-        with patch("sentry.db.mixin.uuid4", new=random_suffix):
+        with patch("sentry.integrations.vercel.integration.uuid4", new=self.mock_uuid4):
             installation.update_organization_config(data)
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id, integration_id=integration.id
@@ -240,19 +245,19 @@ class VercelIntegrationTest(IntegrationTestCase):
         }
 
         req_params = json.loads(responses.calls[6].request.body)
-        assert req_params["name"] == "SENTRY_ORG_%s" % random_suffix
+        assert req_params["name"] == "SENTRY_ORG_%s" % uuid
         assert req_params["value"] == org.slug
 
         req_params = json.loads(responses.calls[8].request.body)
-        assert req_params["name"] == "SENTRY_PROJECT_%s" % random_suffix
+        assert req_params["name"] == "SENTRY_PROJECT_%s" % uuid
         assert req_params["value"] == self.project.slug
 
         req_params = json.loads(responses.calls[10].request.body)
-        assert req_params["name"] == "NEXT_PUBLIC_SENTRY_DSN_%s" % random_suffix
+        assert req_params["name"] == "NEXT_PUBLIC_SENTRY_DSN_%s" % uuid
         assert req_params["value"] == enabled_dsn
 
         req_params = json.loads(responses.calls[12].request.body)
-        assert req_params["name"] == "SENTRY_AUTH_TOKEN_%s" % random_suffix
+        assert req_params["name"] == "SENTRY_AUTH_TOKEN_%s" % uuid
         assert req_params["value"] == sentry_auth_token
 
         req_params = json.loads(responses.calls[14].request.body)
@@ -287,11 +292,12 @@ class VercelIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
+        uuid = self.mock_uuid4.hex
         secret_names = [
-            "SENTRY_ORG_42",
-            "SENTRY_PROJECT_42",
-            "NEXT_PUBLIC_SENTRY_DSN_42",
-            "SENTRY_AUTH_TOKEN_42",
+            "sentry_org_%s" % uuid,
+            "sentry_project_%s" % uuid,
+            "next_public_sentry_dsn_%s" % uuid,
+            "sentry_auth_token_%s" % uuid,
         ]
         env_var_names = [
             "SENTRY_ORG",
@@ -323,6 +329,23 @@ class VercelIntegrationTest(IntegrationTestCase):
                 },
             )
 
+        for i, env_var_name in enumerate(env_var_names):
+            responses.add(
+                responses.DELETE,
+                "https://api.vercel.com/v4/projects/%s/env/%s?target=%s"
+                % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", env_var_name, "production"),
+            )
+            responses.add(
+                responses.POST,
+                "https://api.vercel.com/v4/projects/%s/env"
+                % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
+                json={"value": "sec_%s" % i, "target": "production", "key": env_var_name},
+            )
+        responses.add(
+            responses.DELETE,
+            "https://api.vercel.com/v4/projects/%s/env/%s?target=%s"
+            % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", "VERCEL_GITHUB_COMMIT_SHA", ""),
+        )
         responses.add(
             responses.POST,
             "https://api.vercel.com/v4/projects/%s/env"
@@ -341,13 +364,38 @@ class VercelIntegrationTest(IntegrationTestCase):
             organization_id=org.id, integration_id=integration.id
         )
         assert org_integration.config == {}
-        installation.update_organization_config(data)
+        with patch("sentry.integrations.vercel.integration.uuid4", new=self.mock_uuid4):
+            installation.update_organization_config(data)
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id, integration_id=integration.id
         )
         assert org_integration.config == {
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
+        req_params = json.loads(responses.calls[11].request.body)
+        assert req_params["key"] == "SENTRY_ORG"
+        assert req_params["value"] == "sec_0"
+        assert req_params["target"] == "production"
+
+        req_params = json.loads(responses.calls[14].request.body)
+        assert req_params["key"] == "SENTRY_PROJECT"
+        assert req_params["value"] == "sec_1"
+        assert req_params["target"] == "production"
+
+        req_params = json.loads(responses.calls[17].request.body)
+        assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
+        assert req_params["value"] == "sec_2"
+        assert req_params["target"] == "production"
+
+        req_params = json.loads(responses.calls[20].request.body)
+        assert req_params["key"] == "SENTRY_AUTH_TOKEN"
+        assert req_params["value"] == "sec_3"
+        assert req_params["target"] == "production"
+
+        req_params = json.loads(responses.calls[22].request.body)
+        assert req_params["key"] == "VERCEL_GITHUB_COMMIT_SHA"
+        assert req_params["value"] == ""
+        assert req_params["target"] == "production"
 
     @responses.activate
     def test_upgrade_org_config_no_dsn(self):
@@ -406,3 +454,25 @@ class VercelIntegrationTest(IntegrationTestCase):
             )
             in resp.content
         )
+    def test_upgrade_org_config_no_source_code_provider(self):
+        """Test that the function doesn't progress if the Vercel project hasn't been connected to a Git repository"""
+
+        with self.tasks():
+            self.assert_setup_flow()
+
+        project_id = self.project.id
+        org = self.organization
+        data = {
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
+        }
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+
+        responses.add(
+            responses.GET,
+            "https://api.vercel.com/v1/projects/%s"
+            % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
+            json={},
+        )
+        with self.assertRaises(IntegrationError):
+            installation.update_organization_config(data)

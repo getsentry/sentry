@@ -18,20 +18,22 @@ class VercelClient(ApiClient):
     GET_ENV_VAR_URL = "/v5/projects/%s/env"
     SECRETS_URL = "/v2/now/secrets"
     GET_SECRET_URL = "/v3/now/secrets/%s"
+    DELETE_ENV_VAR_URL = "/v4/projects/%s/env/%s?target=%s"
 
     def __init__(self, access_token, team_id=None):
         super(VercelClient, self).__init__()
         self.access_token = access_token
         self.team_id = team_id
 
-    def request(self, method, path, data=None, params=None):
-        print("path: ", path, method, data)
+    def request(self, method, path, data=None, params=None, allow_text=False):
         if self.team_id:
             # always need to use the team_id as a param for requests
             params = params or {}
             params["teamId"] = self.team_id
         headers = {"Authorization": u"Bearer {}".format(self.access_token)}
-        return self._request(method, path, headers=headers, data=data, params=params)
+        return self._request(
+            method, path, headers=headers, data=data, params=params, allow_text=allow_text
+        )
 
     def get_team(self):
         assert self.team_id
@@ -60,9 +62,6 @@ class VercelClient(ApiClient):
         return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
 
     def get_secret(self, name):
-        print("getting dat secret")
-        print(name)
-        print(name.lower())
         return self.get(self.GET_SECRET_URL % name.lower())["uid"]
 
     def create_secret(self, vercel_project_id, name, value):
@@ -72,13 +71,12 @@ class VercelClient(ApiClient):
 
     def create_env_variable(self, vercel_project_id, key, value):
         data = {"key": key, "value": value, "target": "production"}
-        print("here in create env var")
-        print(key)
         response = self.post(self.ENV_VAR_URL % vercel_project_id, data=data)
         return response
 
     def update_env_variable(self, vercel_project_id, key, value):
-        print("here updating")
-        data = {"key": key, "value": value, "target": "production"}
-        response = self.put(self.ENV_VAR_URL % vercel_project_id, data=data)
+        self.delete(
+            self.DELETE_ENV_VAR_URL % (vercel_project_id, key, "production"), allow_text=True
+        )
+        response = self.create_env_variable(vercel_project_id, key, value)
         return response

@@ -175,67 +175,38 @@ class VercelIntegration(IntegrationInstallation):
                     "You must connect your Vercel project to a Git repository to continue!"
                 )
             sentry_project_dsn = enabled_dsn.get_dsn(public=True)
-            random_suffix = uuid4().hex
-            # random_suffix = "1234567"
+            uuid = uuid4().hex
+
             sentry_auth_token = SentryAppInstallationForProvider.objects.get(
                 organization=sentry_project.organization.id, provider="vercel"
             )
-            # secret_names = [
-            #     "SENTRY_ORG_%s" % random_suffix,
-            #     "SENTRY_PROJECT_%s" % random_suffix,
-            #     "NEXT_PUBLIC_SENTRY_DSN_%s" % random_suffix,
-            #     "SENTRY_AUTH_TOKEN_%s" % random_suffix,
-            # ]
-            # values = [
-            #     sentry_project.organization.slug,
-            #     sentry_project.slug,
-            #     sentry_project_dsn,
-            #     sentry_auth_token.sentry_app_installation.api_token.token,
-            # ]
-            # env_var_names = [
-            #     "SENTRY_ORG",
-            #     "SENTRY_PROJECT",
-            #     "NEXT_PUBLIC_SENTRY_DSN",
-            #     "SENTRY_AUTH_TOKEN",
-            #     "VERCEL_%s_COMMIT_SHA" % source_code_provider.upper(),
-            # ]
-
-            # secrets = []
-            # for name, val in zip(secret_names, values):
-            #     secrets.append(self.create_secret(vercel_client, vercel_project_id, name, val))
-
-            # secrets.append("")
-            # for secret, env_var in zip(secrets, env_var_names):
-            #     self.create_env_var(vercel_client, vercel_project_id, env_var, secret)
-
-            # TODO make this DRYer
-            org_secret = self.create_secret(
-                vercel_client, vercel_project_id, "SENTRY_ORG_%s" % random_suffix, sentry_project.organization.slug
-            )
-            project_secret = self.create_secret(
-                vercel_client,
-                vercel_project_id,
-                "SENTRY_PROJECT_%s" % random_suffix,
+            secret_names = [
+                "SENTRY_ORG_%s" % uuid,
+                "SENTRY_PROJECT_%s" % uuid,
+                "NEXT_PUBLIC_SENTRY_DSN_%s" % uuid,
+                "SENTRY_AUTH_TOKEN_%s" % uuid,
+            ]
+            values = [
+                sentry_project.organization.slug,
                 sentry_project.slug,
-            )
-            dsn_secret = self.create_secret(
-                vercel_client,
-                vercel_project_id,
-                "NEXT_PUBLIC_SENTRY_DSN_%s" % random_suffix,
                 sentry_project_dsn,
-            )
-            auth_secret = self.create_secret(
-                vercel_client,
-                vercel_project_id,
-                "SENTRY_AUTH_TOKEN_%s" % random_suffix,
                 sentry_auth_token.sentry_app_installation.api_token.token,
-            )
+            ]
+            env_var_names = [
+                "SENTRY_ORG",
+                "SENTRY_PROJECT",
+                "NEXT_PUBLIC_SENTRY_DSN",
+                "SENTRY_AUTH_TOKEN",
+                "VERCEL_%s_COMMIT_SHA" % source_code_provider.upper(),
+            ]
 
-            self.create_env_var(vercel_client, vercel_project_id, "SENTRY_ORG", org_secret)
-            self.create_env_var(vercel_client, vercel_project_id, "SENTRY_PROJECT", project_secret)
-            self.create_env_var(vercel_client, vercel_project_id, "NEXT_PUBLIC_SENTRY_DSN", dsn_secret)
-            self.create_env_var(vercel_client, vercel_project_id, "SENTRY_AUTH_TOKEN", auth_secret)
-            self.create_env_var(vercel_client, vercel_project_id, "VERCEL_%s_COMMIT_SHA" % source_code_provider.upper(), "")
+            secrets = []
+            for name, val in zip(secret_names, values):
+                secrets.append(self.create_secret(vercel_client, vercel_project_id, name, val))
+
+            secrets.append("")
+            for secret, env_var in zip(secrets, env_var_names):
+                self.create_env_var(vercel_client, vercel_project_id, env_var, secret)
 
         config.update(data)
         self.org_integration.update(config=config)
@@ -274,13 +245,9 @@ class VercelIntegration(IntegrationInstallation):
             return client.create_secret(vercel_project_id, name, value)
 
     def create_env_var(self, client, vercel_project_id, key, value):
-        # if self.env_var_already_exists(client, vercel_project_id, key):
-        #     print("here already existing")
-        #     client.update_env_variable(vercel_project_id, key, value)
-        # else:
         if not self.env_var_already_exists(client, vercel_project_id, key):
-            print("here not existing yet")
-            client.create_env_variable(vercel_project_id, key, value)
+            return client.create_env_variable(vercel_project_id, key, value)
+        return client.update_env_variable(vercel_project_id, key, value)
 
 
 class VercelIntegrationProvider(IntegrationProvider):
