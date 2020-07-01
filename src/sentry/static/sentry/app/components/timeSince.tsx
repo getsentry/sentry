@@ -19,6 +19,8 @@ type DefaultProps = {
   suffix: string;
 };
 
+type TimeProps = React.HTMLProps<HTMLTimeElement>;
+
 type Props = DefaultProps & {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
@@ -26,7 +28,7 @@ type Props = DefaultProps & {
   date: RelaxedDateType;
 
   className?: string;
-};
+} & TimeProps;
 
 type State = {
   relative: string;

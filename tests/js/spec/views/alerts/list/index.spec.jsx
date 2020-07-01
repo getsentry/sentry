@@ -221,6 +221,13 @@ describe('IncidentsList', function() {
         .exists()
     ).toBeFalsy();
 
+    expect(
+      wrapper
+        .find('IncidentPanelItem')
+        .at(0)
+        .find('TimeSince')
+    ).toHaveLength(1);
+
     expect(incidentsMock).toHaveBeenCalledTimes(1);
 
     expect(incidentsMock).toHaveBeenCalledWith(
@@ -245,6 +252,13 @@ describe('IncidentsList', function() {
         .find('Duration')
         .text()
     ).toBe('2 weeks');
+
+    expect(
+      wrapper
+        .find('IncidentPanelItem')
+        .at(0)
+        .find('TimeSince')
+    ).toHaveLength(2);
 
     expect(incidentsMock).toHaveBeenCalledTimes(2);
     // Stats not called for closed incidents
