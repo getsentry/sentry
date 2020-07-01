@@ -928,9 +928,9 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
                 name = resolve_func(col)
 
             groupby[idx] = name
-        resolved.groupby = groupby
 
     aggregations = resolved.aggregations
+    to_append = []
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
         if isinstance(aggregation[1], six.string_types):
@@ -941,17 +941,16 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
                         found = True
                         continue
                 if not found:
-                    selected_columns.append(
-                        [
-                            "toInt32OrNull",
-                            [resolve_func(aggregation[1])],
-                            "`{}`".format(aggregation[1]),
-                        ]
+                    aggregation[0] += "(toInt32OrNull(tags.value[indexOf(tags.key, '{}')]))".format(
+                        aggregation[1]
                     )
+                    aggregation[1] = None
             else:
                 aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
             aggregation[1] = [resolve_func(col) for col in aggregation[1]]
+    aggregations.extend(to_append)
+    resolved.groupby = groupby
     resolved.aggregations = aggregations
     resolved.selected_columns = selected_columns
 

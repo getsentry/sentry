@@ -996,6 +996,8 @@ def get_json_meta_type(field_alias, snuba_type):
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.get("result_type"):
             return function_definition.get("result_type")
+    if field_alias.startswith("metrics."):
+        return "duration"
     if "duration" in field_alias:
         return "duration"
     if field_alias == "transaction.status":
