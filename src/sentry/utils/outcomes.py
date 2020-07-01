@@ -176,5 +176,5 @@ def track_outcome(
     metrics.incr(
         "events.outcomes",
         skip_internal=True,
-        tags={"outcome": outcome.name.lower(), "reason": reason},
+        tags={"outcome": outcome.name.lower(), "reason": reason, "category": category or "null"},
     )
