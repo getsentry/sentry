@@ -32,6 +32,7 @@ class IncidentsContainer extends React.Component<Props> {
       <Feature
         features={['organizations:incidents']}
         organization={organization}
+        hookName="feature-disabled:alerts-page"
         renderDisabled={this.renderNoAccess}
       >
         {children}
