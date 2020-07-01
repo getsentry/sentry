@@ -64,7 +64,7 @@ if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
 if settings.DEBUG:
     urlpatterns += [
         url(
-            r"^_static/[^/]+/[^/]+/images/favicon\.ico$",
+            r"^_static/[^/]+/[^/]+/images/favicon\.(ico|png)$",
             generic.dev_favicon,
             name="sentry-dev-favicon",
         )
