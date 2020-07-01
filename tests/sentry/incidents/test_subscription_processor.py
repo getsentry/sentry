@@ -131,7 +131,8 @@ class ProcessUpdateTest(TestCase):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        processor.process_update(message)
+        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
+            processor.process_update(message)
         return processor
 
     def assert_trigger_exists_with_status(self, incident, trigger, status):
@@ -210,11 +211,28 @@ class ProcessUpdateTest(TestCase):
     def test_removed_alert_rule(self):
         message = self.build_subscription_update(self.sub)
         self.rule.delete()
-        SubscriptionProcessor(self.sub).process_update(message)
+        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
+            SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
         )
         # TODO: Check subscription is deleted once we start doing that
+
+    def test_no_feature(self):
+        message = self.build_subscription_update(self.sub)
+        SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_missing_incidents"
+        )
+
+    def test_no_feature_performance(self):
+        self.sub.snuba_query.dataset = "transactions"
+        message = self.build_subscription_update(self.sub)
+        with self.feature("organizations:incidents"):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_missing_incidents_performance"
+        )
 
     def test_skip_already_processed_update(self):
         self.send_update(self.rule, self.trigger.alert_threshold)
