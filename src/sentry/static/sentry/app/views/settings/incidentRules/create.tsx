@@ -8,6 +8,7 @@ import {
 } from 'app/views/settings/incidentRules/constants';
 import recreateRoute from 'app/utils/recreateRoute';
 import EventView from 'app/utils/discover/eventView';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import RuleForm from './ruleForm';
 
@@ -28,7 +29,16 @@ type Props = {
  */
 class IncidentRulesCreate extends React.Component<Props> {
   handleSubmitSuccess = () => {
-    const {params, routes, router, location} = this.props;
+    const {params, routes, router, location, organization, project} = this.props;
+
+    if (location?.query?.createFromDiscover) {
+      trackAnalyticsEvent({
+        eventKey: 'new_alert_rule.created_from_discover',
+        eventName: 'New Alert Rule: Created from discover',
+        organization_id: organization.id,
+        project_id: project.id,
+      });
+    }
 
     router.push(recreateRoute('', {params, routes, location, stepBack: -1}));
   };
