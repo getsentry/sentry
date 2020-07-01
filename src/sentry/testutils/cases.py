@@ -897,7 +897,8 @@ class SnubaTestCase(BaseTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
+                settings.SENTRY_SNUBA + "/tests/events/insert",
+                data=json.dumps((2, "insert", events, {})),
             ).status_code
             == 200
         )
