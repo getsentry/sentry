@@ -398,7 +398,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
-      ...(environments ? environments.map(env => [env.name, getDisplayName(env)]) : []),
+      ...(environments?.map(env => [env.name, getDisplayName(env)]) ?? []),
     ];
 
     const {rule, detailedError} = this.state;
