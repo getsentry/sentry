@@ -6,30 +6,37 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {inputStyles} from 'app/styles/input';
 
-const TextAreaControl = React.forwardRef(({autosize, rows, ...p}, ref) =>
-  autosize ? (
-    <TextareaAutosize async ref={ref} rows={rows ? rows : 2} {...p} />
-  ) : (
-    <textarea ref={ref} {...p} />
-  )
+type TextAreaProps = Omit<React.HTMLProps<HTMLTextAreaElement>, 'ref'>;
+type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
+type Props = TextAreaProps &
+  InputProps & {
+    /**
+     * Enable autosizing of the textarea.
+     */
+    autosize?: boolean;
+    /**
+     * Number of rows to default to.
+     */
+    rows?: number;
+  };
+
+const TextAreaControl = React.forwardRef<HTMLTextAreaElement, Props>(
+  ({autosize, rows, ...p}, ref) =>
+    autosize ? (
+      <TextareaAutosize async ref={ref} rows={rows ? rows : 2} {...p} />
+    ) : (
+      <textarea ref={ref} {...p} />
+    )
 );
 
 TextAreaControl.propTypes = {
-  /**
-   * Enable autosizing of the textarea.
-   */
   autosize: PropTypes.bool,
-  /**
-   * Number of rows to default to.
-   */
   rows: PropTypes.number,
-  /**
-   * Requests monospace input
-   */
   monospace: PropTypes.bool,
 };
 
-const propFilter = p => ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p);
+const propFilter = (p: string) =>
+  ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p);
 
 const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};
