@@ -61,7 +61,7 @@ function getSentryIntegrations(hasReplays: boolean = false) {
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
       debug: {
         spanDebugTimingInfo: true,
-        writeAsBreadcrumbs: true,
+        writeAsBreadcrumbs: false,
       },
       beforeNavigate: (location: Location) => {
         return normalizeTransactionName(appRoutes, location);
