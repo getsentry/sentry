@@ -211,7 +211,7 @@ class TableView extends React.Component<TableViewProps> {
     return (
       <React.Fragment>
         {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
-          <TopNIndicator count={TOP_N} index={rowIndex} />
+          <TopResultsIndicator count={TOP_N} index={rowIndex} />
         ) : null}
         <CellAction
           column={column}
@@ -458,14 +458,15 @@ const StyledIcon = styled(IconStack)`
   vertical-align: middle;
 `;
 
-type TopNIndicatorProps = {
+type TopResultsIndicatorProps = {
   count: number;
   index: number;
 };
 
-const TopNIndicator = styled('div')<TopNIndicatorProps>`
+const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
   position: absolute;
   left: -1px;
+  margin-top: 4.5px;
   width: 9px;
   height: 15px;
   border-radius: 0 3px 3px 0;
@@ -477,12 +478,6 @@ const TopNIndicator = styled('div')<TopNIndicatorProps>`
     // the color pallete contains n + 2 colors, so we subtract 2 here
     return p.theme.charts.getColorPalette(p.count - 2)[p.index];
   }};
-
-  & span {
-    display: block;
-    width: 9px;
-    height: 15px;
-  }
 `;
 
 export default withProjects(TableView);
