@@ -22,6 +22,7 @@ import EventView, {
 import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
+import {TOP_N, DisplayModes} from 'app/utils/discover/types';
 import withProjects from 'app/utils/withProjects';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
@@ -192,23 +193,34 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderGridBodyCell = (
     column: TableColumn<keyof TableDataRow>,
-    dataRow: TableDataRow
+    dataRow: TableDataRow,
+    rowIndex: number,
+    columnIndex: number
   ): React.ReactNode => {
-    const {location, organization, tableData} = this.props;
+    const {eventView, location, organization, tableData} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
     const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
 
+    const isTopEvents =
+      eventView.display === DisplayModes.TOP5 ||
+      eventView.display === DisplayModes.DAILYTOP5;
+
     return (
-      <CellAction
-        column={column}
-        dataRow={dataRow}
-        handleCellAction={this.handleCellAction(dataRow, column)}
-      >
-        {fieldRenderer(dataRow, {organization, location})}
-      </CellAction>
+      <React.Fragment>
+        {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
+          <TopNIndicator count={TOP_N} index={rowIndex} />
+        ) : null}
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(dataRow, column)}
+        >
+          {fieldRenderer(dataRow, {organization, location})}
+        </CellAction>
+      </React.Fragment>
     );
   };
 
@@ -444,6 +456,33 @@ const StyledLink = styled(Link)`
 
 const StyledIcon = styled(IconStack)`
   vertical-align: middle;
+`;
+
+type TopNIndicatorProps = {
+  count: number;
+  index: number;
+};
+
+const TopNIndicator = styled('div')<TopNIndicatorProps>`
+  position: absolute;
+  left: -1px;
+  width: 9px;
+  height: 15px;
+  border-radius: 0 3px 3px 0;
+
+  background-color: ${p => {
+    // this background color needs to match the colors used in
+    // app/components/charts/eventsChart so that the ordering matches
+
+    // the color pallete contains n + 2 colors, so we subtract 2 here
+    return p.theme.charts.getColorPalette(p.count - 2)[p.index];
+  }};
+
+  & span {
+    display: block;
+    width: 9px;
+    height: 15px;
+  }
 `;
 
 export default withProjects(TableView);
