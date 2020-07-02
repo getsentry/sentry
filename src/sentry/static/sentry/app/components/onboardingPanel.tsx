@@ -31,7 +31,7 @@ const Container = styled('div')`
     justify-content: center;
     flex-wrap: wrap;
     min-height: 300px;
-    max-width: 1200px;
+    max-width: 1000px;
     margin: 0 auto;
   }
 
