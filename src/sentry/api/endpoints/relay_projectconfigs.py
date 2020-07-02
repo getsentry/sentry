@@ -14,7 +14,7 @@ from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.api.authentication import RelayAuthentication
 from sentry.relay import config, projectconfig_cache
-from sentry.models import Project, ProjectKey, Organization
+from sentry.models import Project, ProjectKey, Organization, OrganizationOption
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -58,12 +58,15 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Preload all organizations and their options to prevent repeated
             # database access when computing the project configuration.
             org_ids = set(project.organization_id for project in six.itervalues(projects))
+            orgs = {}
             if org_ids:
                 with metrics.timer("relay_project_configs.fetching_orgs.duration"):
-                    orgs = Organization.objects.get_many_from_cache(org_ids)
-                    orgs = {o.id: o for o in orgs if request.relay.has_org_access(o)}
-            else:
-                orgs = {}
+                    for org in Organization.objects.get_many_from_cache(org_ids):
+                        if request.relay.has_org_access(org):
+                            # Pre-fetch organization options. Cached in-memory
+                            OrganizationOption.objects.get_all_values(org)
+
+                            orgs[org.id] = org
 
         with Hub.current.start_span(op="relay_fetch_keys"):
             project_keys = {}
