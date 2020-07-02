@@ -12,7 +12,10 @@ from django.test.utils import override_settings
 from exam import fixture
 from freezegun import freeze_time
 
-from sentry.incidents.action_handlers import EmailActionHandler
+from sentry.incidents.action_handlers import (
+    EmailActionHandler,
+    generate_incident_trigger_email_context,
+)
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
     AlertRuleThresholdType,
@@ -126,7 +129,14 @@ class HandleSnubaQueryUpdateTest(TestCase):
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
         message = handler.build_message(
-            handler.generate_email_context(TriggerStatus.ACTIVE), TriggerStatus.ACTIVE, self.user.id
+            generate_incident_trigger_email_context(
+                handler.project,
+                handler.incident,
+                handler.action.alert_rule_trigger,
+                TriggerStatus.ACTIVE,
+            ),
+            TriggerStatus.ACTIVE,
+            self.user.id,
         )
 
         out = mail.outbox[0]
