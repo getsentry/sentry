@@ -44,13 +44,11 @@ class AvatarField(serializers.Field):
         if len(data) > self.max_size:
             raise ImageTooLarge()
 
-        try:
-            with Image.open(BytesIO(data)) as img:
-                width, height = img.size
-                if not self.is_valid_size(width, height):
-                    raise serializers.ValidationError("Invalid image dimensions.")
-        except IOError:
-            raise serializers.ValidationError("Invalid image format.")
+        with Image.open(BytesIO(data)) as img:
+            width, height = img.size
+            if not self.is_valid_size(width, height):
+                raise serializers.ValidationError("Invalid image dimensions.")
+        # raise serializers.ValidationError("Invalid image format.")
 
         return BytesIO(data)
 
