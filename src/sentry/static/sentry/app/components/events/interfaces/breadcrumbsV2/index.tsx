@@ -246,7 +246,7 @@ class Breadcrumbs extends React.Component<Props, State> {
     }
 
     // Slightly hacky, but it works
-    // the string is being stringfy here in order to match exactly the same stringfy string of the loop
+    // the string is being `stringfy`d here in order to match exactly the same `stringfy`d string of the loop
     const searchFor = JSON.stringify(searchTerm)
       // it replaces double backslash generate by JSON.stringfy with single backslash
       .replace(/((^")|("$))/g, '')
