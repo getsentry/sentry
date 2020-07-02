@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import posed, {PoseGroup} from 'react-pose';
+import {motion, AnimatePresence} from 'framer-motion';
 import scrollToElement from 'scroll-to-element';
 import styled from '@emotion/styled';
 
@@ -17,9 +17,9 @@ import OnboardingWelcome from 'app/views/onboarding/welcome';
 import PageHeading from 'app/components/pageHeading';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import testablePose from 'app/utils/testablePose';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
+import testableTransition from 'app/utils/testableTransition';
 
 const recordAnalyticStepComplete = ({organization, project, step}) =>
   analytics('onboarding_v2.step_compete', {
@@ -158,7 +158,7 @@ class Onboarding extends React.Component {
       <OnboardingStep
         key={step.id}
         data-test-id={`onboarding-step-${step.id}`}
-        onPoseComplete={this.scrollToActiveStep}
+        onAnimationComplete={this.scrollToActiveStep}
         active={activeStepIndex === index}
       >
         <PageHeading withMargins>{step.title}</PageHeading>
@@ -188,15 +188,17 @@ class Onboarding extends React.Component {
           <Container>
             <LogoSvg src="logo" />
             {this.renderProgressBar()}
-            <PoseGroup preEnterPose="init">
+            <AnimatePresence initial={false}>
               <ProgressStatus key={this.activeStep.id}>
                 {this.activeStep.title}
               </ProgressStatus>
-            </PoseGroup>
+            </AnimatePresence>
           </Container>
         </Header>
         <Container>
-          <PoseGroup flipMove={false}>{this.renderOnboardingSteps()}</PoseGroup>
+          <AnimatePresence initial={false}>
+            {this.renderOnboardingSteps()}
+          </AnimatePresence>
         </Container>
         <Hook name="onboarding:extra-chrome" />
       </OnboardingWrapper>
@@ -266,28 +268,22 @@ const ProgressStep = styled('div')`
   background: #fff;
 `;
 
-const PosedProgressStatus = posed.div(
-  testablePose({
-    init: {opacity: 0, y: -10},
-    enter: {opacity: 1, y: 0},
-    exit: {opacity: 0, y: 10},
-  })
-);
-
-const ProgressStatus = styled(PosedProgressStatus)`
+const ProgressStatus = styled(motion.div)`
   color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
+  grid-column: 3;
+  grid-row: 1;
 `;
 
-const PosedOnboardingStep = posed.div(
-  testablePose({
-    enter: {opacity: 1, y: 0},
-    exit: {opacity: 0, y: 100},
-  })
-);
+ProgressStatus.defaultProps = {
+  initial: {opacity: 0, y: -10},
+  animate: {opacity: 1, y: 0},
+  exit: {opacity: 0, y: 10},
+  transition: testableTransition(),
+};
 
-const OnboardingStep = styled(PosedOnboardingStep)`
+const OnboardingStep = styled(motion.div)`
   margin: 70px 0;
   margin-left: -20px;
   padding-left: 18px;
@@ -310,6 +306,13 @@ const OnboardingStep = styled(PosedOnboardingStep)`
     font-size: 1.5rem;
   }
 `;
+
+OnboardingStep.defaultProps = {
+  initial: {opacity: 0, y: 100},
+  animate: {opacity: 1, y: 0},
+  exit: {opacity: 0, y: 100},
+  transition: testableTransition(),
+};
 
 export const stepPropTypes = {
   scrollTargetId: PropTypes.string,

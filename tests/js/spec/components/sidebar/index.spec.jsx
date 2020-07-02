@@ -103,7 +103,7 @@ describe('Sidebar', function() {
     wrapper.find('OnboardingStatus ProgressRing').simulate('click');
     wrapper.update();
 
-    expect(wrapper.find('OnboardingStatus SidebarPanel')).toMatchSnapshot();
+    expect(wrapper.find('OnboardingStatus TaskSidebarPanel').exists()).toBe(true);
   });
 
   it('handles discover-basic feature', function() {

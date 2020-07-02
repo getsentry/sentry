@@ -1,34 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import posed from 'react-pose';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import testablePose from 'app/utils/testablePose';
+import testableTransition from 'app/utils/testableTransition';
 
-const transition = {
-  type: 'spring',
-  stiffness: 450,
-  damping: 25,
-};
-
-const toastAnimation = testablePose({
-  exit: {
-    transition,
-    opacity: 0,
-    y: 70,
-  },
-  enter: {
-    transition,
-    opacity: 1,
-    y: 0,
-  },
-});
-
-const Toast = styled(posed.div(toastAnimation))`
+const Toast = styled(motion.div)`
   display: flex;
   align-items: center;
   height: 40px;
@@ -40,6 +21,26 @@ const Toast = styled(posed.div(toastAnimation))`
   box-shadow: 0 4px 12px 0 rgba(47, 40, 55, 0.16);
   position: relative;
 `;
+
+Toast.defaultProps = {
+  initial: {
+    opacity: 0,
+    y: 70,
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+  },
+  exit: {
+    opacity: 0,
+    y: 70,
+  },
+  transition: testableTransition({
+    type: 'spring',
+    stiffness: 450,
+    damping: 25,
+  }),
+};
 
 const Icon = styled('div')`
   margin-right: 6px;

@@ -1,13 +1,14 @@
 import React from 'react';
-import posed, {PoseGroup} from 'react-pose';
+import {motion, AnimatePresence} from 'framer-motion';
+import styled from '@emotion/styled';
 
 import {analytics} from 'app/utils/analytics';
 import {stepPropTypes} from 'app/views/onboarding/onboarding';
 import {t} from 'app/locale';
 import HookOrDefault from 'app/components/hookOrDefault';
 import SentryTypes from 'app/sentryTypes';
-import testablePose from 'app/utils/testablePose';
 import withOrganization from 'app/utils/withOrganization';
+import testableTransition from 'app/utils/testableTransition';
 
 import InviteMembers from './inviteMembers';
 import LearnMore from './learnMore';
@@ -68,9 +69,6 @@ class OnboardingProjectSetup extends React.Component {
     const SelectedComponent = SETUP_CHOICES.find(item => item.id === selectedChoice)
       .component;
 
-    // NOTE: We give the PoseGroup different enter/exit/init poses than default
-    // so that when poses propagate down to children they do not animate enter
-    // or exit when switching setup choices.
     return (
       <React.Fragment>
         <SetupChoices
@@ -78,27 +76,33 @@ class OnboardingProjectSetup extends React.Component {
           selectedChoice={selectedChoice}
           onSelect={this.handleSelect}
         />
-        <PoseGroup
-          withParent={false}
-          preEnterPose="choiceInit"
-          enterPose="choiceEnter"
-          exitPose="choiceExit"
-        >
-          <PosedChoice key={selectedChoice}>
-            <SelectedComponent {...this.props} />
-          </PosedChoice>
-        </PoseGroup>
+        <ChoiceContainer>
+          <AnimatePresence>
+            <Choices key={selectedChoice}>
+              <SelectedComponent {...this.props} />
+            </Choices>
+          </AnimatePresence>
+        </ChoiceContainer>
       </React.Fragment>
     );
   }
 }
 
-const PosedChoice = posed.div(
-  testablePose({
-    choiceInit: {opacity: 0, x: -20},
-    choiceEnter: {opacity: 1, x: 0},
-    choiceExit: {opacity: 0, x: 20},
-  })
-);
+const ChoiceContainer = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+`;
+
+const Choices = styled(motion.div)`
+  grid-column: 1;
+  grid-row: 1;
+`;
+
+Choices.defaultProps = {
+  transition: testableTransition(),
+  initial: {opacity: 0, x: -20},
+  animate: {opacity: 1, x: 0},
+  exit: {opacity: 0, x: 20},
+};
 
 export default withOrganization(OnboardingProjectSetup);
