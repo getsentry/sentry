@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -53,8 +54,7 @@ export function addMessage(
     // @ts-ignore
     typeof msg?.extra !== 'undefined'
   ) {
-    // eslint-disable-next-line no-console
-    console.error(new Error('Attempt to XHR response to Indicators'));
+    Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
   }
 
   // use default only if undefined, as 0 is a valid duration
