@@ -3,6 +3,7 @@ import {ECharts, EChartOption} from 'echarts';
 export type SeriesDataUnit = {
   value: number;
   name: string | number; // number because we sometimes use timestamps
+  onClick?: (series: Series, insatnce: ECharts) => void;
   itemStyle?: {
     color?: string;
   };
