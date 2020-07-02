@@ -14,7 +14,7 @@ const ONE_HOUR = 60;
 
 export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
-export function truncationFormatter(value: string, truncate: number): string {
+export function truncationFormatter(value: string, truncate: number | undefined): string {
   if (!truncate) {
     return escape(value);
   }

@@ -1,6 +1,8 @@
+import {EChartOption} from 'echarts';
+
 import theme from 'app/utils/theme';
 
-export default function YAxis(props = {}) {
+export default function YAxis(props: EChartOption.YAxis = {}): EChartOption.YAxis {
   return {
     axisLine: {
       show: false,
