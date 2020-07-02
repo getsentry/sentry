@@ -145,7 +145,7 @@ describe('IncidentsList', function() {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('Alerts tell you what went wrong and why');
+    expect(wrapper.find('Onboarding').text()).toContain('More signal, less noise');
   });
 
   it('displays empty state (rules not yet created)', async function() {
