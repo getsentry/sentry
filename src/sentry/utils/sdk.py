@@ -119,7 +119,7 @@ class SentryInternalFilter(logging.Filter):
     def filter(self, record):
         # TODO(mattrobenolt): handle an upstream Sentry
         metrics.incr("internal.uncaptured.logs", skip_internal=False)
-        return is_current_event_safe()
+        return True
 
 
 def configure_sdk():
