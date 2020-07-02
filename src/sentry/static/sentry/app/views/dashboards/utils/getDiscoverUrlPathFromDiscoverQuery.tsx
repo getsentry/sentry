@@ -1,4 +1,4 @@
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {getExternal, getInternal} from 'app/views/discover/aggregations/utils';
 import {getQueryStringFromQuery} from 'app/views/discover/utils';

@@ -1,6 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 import {Query} from 'history';
 
 import {EventTag, Meta} from 'app/types';

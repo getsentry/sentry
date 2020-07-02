@@ -4,7 +4,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {Client} from 'app/api';
 import {Panel, PanelBody} from 'app/components/panels';

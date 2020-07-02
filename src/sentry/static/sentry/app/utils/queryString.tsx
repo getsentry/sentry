@@ -1,4 +1,4 @@
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 import parseurl from 'parseurl';
 import isString from 'lodash/isString';
 

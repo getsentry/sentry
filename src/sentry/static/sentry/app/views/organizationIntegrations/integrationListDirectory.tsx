@@ -4,7 +4,7 @@ import flatten from 'lodash/flatten';
 import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';

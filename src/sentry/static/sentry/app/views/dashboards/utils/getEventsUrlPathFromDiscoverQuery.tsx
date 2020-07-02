@@ -1,5 +1,5 @@
 import pickBy from 'lodash/pickBy';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {getUtcDateString} from 'app/utils/dates';
 import {Organization, GlobalSelection} from 'app/types';

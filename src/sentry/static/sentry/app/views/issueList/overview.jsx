@@ -7,7 +7,7 @@ import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
 import pickBy from 'lodash/pickBy';
-import qs from 'query-string';
+import * as qs from 'query-string';
 import {withProfiler} from '@sentry/react';
 
 import {Client} from 'app/api';
