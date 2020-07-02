@@ -87,7 +87,7 @@ class InlineDocs extends React.Component<Props, State> {
     if (this.state.html) {
       return (
         <div>
-          <h2>{t('Requires Manual Instrumentation')}</h2>
+          <h4>{t('Requires Manual Instrumentation')}</h4>
           <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
           <p>
             {tct(
@@ -103,7 +103,7 @@ class InlineDocs extends React.Component<Props, State> {
 
     return (
       <div>
-        <h2>{t('Requires Manual Instrumentation')}</h2>
+        <h4>{t('Requires Manual Instrumentation')}</h4>
         <p>
           {tct(
             `To manually instrument certain regions of your code, view [docLink:our documentation].`,

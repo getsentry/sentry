@@ -7,8 +7,8 @@ import {IconInfo, IconClose, IconSiren} from 'app/icons';
 import Button from 'app/components/button';
 import EventView from 'app/utils/discover/eventView';
 import Alert from 'app/components/alert';
-import space from 'app/styles/space';
-import {explodeFieldString} from 'app/utils/discover/fields';
+import Access from 'app/components/acl/access';
+import {explodeFieldString, AGGREGATIONS, Aggregation} from 'app/utils/discover/fields';
 import {
   errorFieldConfig,
   transactionFieldConfig,
@@ -162,8 +162,13 @@ function incompatibleYAxis(eventView: EventView): boolean {
   const yAxisConfig = dataset === 'error' ? errorFieldConfig : transactionFieldConfig;
 
   const invalidFunction = !yAxisConfig.aggregations.includes(column.function[0]);
-  // Allow empty parameters
-  const invalidParameter = !['', ...yAxisConfig.fields].includes(column.function[1]);
+  // Allow empty parameters, allow all numeric parameters - eg. apdex(300)
+  const aggregation: Aggregation = AGGREGATIONS[column.function[0]];
+  const isNumericParameter = aggregation.parameters.some(
+    param => param.kind === 'value' && param.dataType === 'number'
+  );
+  const invalidParameter =
+    !isNumericParameter && !['', ...yAxisConfig.fields].includes(column.function[1]);
 
   return invalidFunction || invalidParameter;
 }
@@ -225,15 +230,25 @@ function CreateAlertButton({
   };
 
   return (
-    <Button
-      type="button"
-      icon={<IconSiren />}
-      to={to}
-      onClick={handleClick}
-      {...buttonProps}
-    >
-      {t('Create alert')}
-    </Button>
+    <Access organization={organization} access={['project:write']}>
+      {({hasAccess}) => (
+        <Button
+          type="button"
+          disabled={!hasAccess}
+          title={
+            !hasAccess
+              ? t('Users with admin permission or higher can create alert rules.')
+              : undefined
+          }
+          icon={<IconSiren />}
+          to={to}
+          onClick={handleClick}
+          {...buttonProps}
+        >
+          {t('Create alert')}
+        </Button>
+      )}
+    </Access>
   );
 }
 
@@ -241,7 +256,7 @@ export default CreateAlertButton;
 
 const StyledAlert = styled(Alert)`
   color: ${p => p.theme.gray700};
-  margin-bottom: ${space(2)};
+  margin-bottom: 0;
 `;
 
 const StyledUnorderedList = styled('ul')`

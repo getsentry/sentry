@@ -456,11 +456,7 @@ def _do_process_event(
     # We are fairly confident, however, that this should run *before*
     # re-normalization as it is hard to find sensitive data in partially
     # trimmed strings.
-    if (
-        has_changed
-        and options.get("processing.can-use-scrubbers")
-        and features.has("organizations:datascrubbers-v2", project.organization, actor=None)
-    ):
+    if has_changed and options.get("processing.can-use-scrubbers"):
         with sentry_sdk.start_span(op="task.store.datascrubbers.scrub"):
             with metrics.timer(
                 "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
@@ -471,7 +467,9 @@ def _do_process_event(
 
                 # XXX(markus): When datascrubbing is finally "totally stable", we might want
                 # to drop the event if it crashes to avoid saving PII
-                if new_data is not None:
+                if new_data is not None and features.has(
+                    "organizations:datascrubbers-v2", project.organization, actor=None
+                ):
                     data.data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
@@ -763,12 +761,11 @@ def _do_save_event(
             )
             return
 
-        event = None
         try:
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                event = manager.save(
+                manager.save(
                     project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
 
@@ -781,12 +778,7 @@ def _do_save_event(
                     event_processing_store.delete_by_key(cache_key)
 
                 with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
-                    # For the unlikely case that we did not manage to persist the
-                    # event we also delete the key always.
-                    if event is None or features.has(
-                        "organizations:event-attachments", event.project.organization, actor=None
-                    ):
-                        attachment_cache.delete(cache_key)
+                    attachment_cache.delete(cache_key)
 
             if start_time:
                 metrics.timing(

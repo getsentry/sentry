@@ -33,8 +33,8 @@ describe('CreateAlertButton', () => {
 
   it('renders', () => {
     const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
-    const component = generateWrappedComponent(organization, eventView);
-    expect(component.text()).toBe('Create alert');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    expect(wrapper.text()).toBe('Create alert');
   });
 
   it('should warn when project is not selected', () => {
@@ -42,8 +42,8 @@ describe('CreateAlertButton', () => {
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
     });
-    const component = generateWrappedComponent(organization, eventView);
-    component.simulate('click');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
@@ -59,8 +59,8 @@ describe('CreateAlertButton', () => {
       query: 'event.type:error',
       projects: [-1],
     });
-    const component = generateWrappedComponent(organization, eventView);
-    component.simulate('click');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
@@ -76,8 +76,8 @@ describe('CreateAlertButton', () => {
       query: '',
       projects: [2],
     });
-    const component = generateWrappedComponent(organization, eventView);
-    component.simulate('click');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
@@ -95,8 +95,8 @@ describe('CreateAlertButton', () => {
       projects: [2],
     });
     expect(eventView.getYAxis()).toBe('count_unique(issue.id)');
-    const component = generateWrappedComponent(organization, eventView);
-    component.simulate('click');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
@@ -106,6 +106,20 @@ describe('CreateAlertButton', () => {
     );
   });
 
+  it('should allow yAxis with a number as the parameter', () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      query: 'event.type:transaction',
+      yAxis: 'apdex(300)',
+      fields: [...DEFAULT_EVENT_VIEW.fields, 'apdex(300)'],
+      projects: [2],
+    });
+    expect(eventView.getYAxis()).toBe('apdex(300)');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
+    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
+  });
+
   it('should warn with multiple errors, missing event.type and project', () => {
     const eventView = EventView.fromSavedQuery({
       ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
@@ -113,8 +127,8 @@ describe('CreateAlertButton', () => {
       yAxis: 'count_unique(issue.id)',
       projects: [],
     });
-    const component = generateWrappedComponent(organization, eventView);
-    component.simulate('click');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
@@ -128,8 +142,8 @@ describe('CreateAlertButton', () => {
       query: 'event.type:error',
       projects: [2],
     });
-    const component = generateWrappedComponent(organization, eventView);
-    component.simulate('click');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
     expect(onSuccessMock).toHaveBeenCalledTimes(1);
   });
@@ -138,8 +152,8 @@ describe('CreateAlertButton', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
     });
-    const component = generateWrappedComponent(organization, eventView);
-    component.simulate('click');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(1);
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
@@ -149,5 +163,20 @@ describe('CreateAlertButton', () => {
       .at(0)
       .simulate('click');
     expect(onCloseMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the create alert button for members', async () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+    });
+    const noAccessOrg = {
+      ...organization,
+      access: [],
+    };
+
+    const wrapper = generateWrappedComponent(noAccessOrg, eventView);
+
+    const button = wrapper.find('button[aria-label="Create alert"]');
+    expect(button.props()['aria-disabled']).toBe(true);
   });
 });

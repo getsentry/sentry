@@ -1,4 +1,4 @@
-import {extractMultilineFields} from 'app/utils';
+import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t} from 'app/locale';
 import {
   STORE_CRASH_REPORTS_VALUES,
@@ -73,21 +73,6 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
         formatLabel: formatStoreCrashReports,
       },
       {
-        name: 'trustedRelays',
-        type: 'string',
-        multiline: true,
-        autosize: true,
-        maxRows: 10,
-        placeholder: t('Paste the relay public keys here'),
-        label: t('Trusted Relays'),
-        help: t(
-          'The list of relay public keys that should be trusted. Any relay in this list will be permitted to access org and project configs. Separate multiple entries with a newline.'
-        ),
-        getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
-        visible: ({features}) => features.has('relay'),
-      },
-      {
         name: 'allowJoinRequests',
         type: 'boolean',
 
@@ -144,7 +129,7 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
           'Note: These fields will be used in addition to project specific fields.'
         ),
         getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        setValue: val => convertMultilineFieldValue(val),
       },
       {
         name: 'safeFields',
@@ -161,7 +146,7 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
           'Note: These fields will be used in addition to project specific fields'
         ),
         getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        setValue: val => convertMultilineFieldValue(val),
       },
       {
         name: 'scrubIPAddresses',

@@ -10,6 +10,7 @@ import {Organization} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
 import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
+import withOrganization from 'app/utils/withOrganization';
 
 import DataScrubbing from '../components/dataScrubbing';
 
@@ -20,10 +21,7 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
-    return [
-      ['data', `/organizations/${orgId}/`],
-      ['authProvider', `/organizations/${orgId}/auth-provider/`],
-    ];
+    return [['authProvider', `/organizations/${orgId}/auth-provider/`]];
   }
 
   handleUpdateOrganization = (data: Organization) => {
@@ -35,12 +33,12 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
   renderBody() {
     const {organization} = this.props;
     const {orgId} = this.props.params;
-    const {authProvider} = this.state;
-    const initialData = this.props.organization;
+    const initialData = organization;
     const endpoint = `/organizations/${orgId}/`;
     const access = new Set(organization.access);
     const features = new Set(organization.features);
-    const relayPiiConfig = this.state.data?.relayPiiConfig;
+    const relayPiiConfig = organization.relayPiiConfig;
+    const {authProvider} = this.state;
 
     return (
       <React.Fragment>
@@ -77,4 +75,4 @@ class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
   }
 }
 
-export default OrganizationSecurityAndPrivacyContent;
+export default withOrganization(OrganizationSecurityAndPrivacyContent);

@@ -13,9 +13,13 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  message?: React.ReactNode;
-  customComponent?: React.ReactNode;
+  // To add context for better UX
   className?: string;
+  customComponent?: React.ReactNode;
+  message?: React.ReactNode;
+
+  // To add context for better error reporting
+  errorTag?: Record<string, string>;
 };
 
 type State = {
@@ -51,8 +55,14 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    const {errorTag} = this.props;
+
     this.setState({error});
     Sentry.withScope(scope => {
+      if (errorTag) {
+        Object.keys(errorTag).forEach(tag => scope.setTag(tag, errorTag[tag]));
+      }
+
       scope.setExtra('errorInfo', errorInfo);
       Sentry.captureException(error);
     });
@@ -71,7 +81,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     const {error} = this.state;
 
     if (!error) {
-      //when there's not an error, render children untouched
+      // when there's not an error, render children untouched
       return this.props.children;
     }
 

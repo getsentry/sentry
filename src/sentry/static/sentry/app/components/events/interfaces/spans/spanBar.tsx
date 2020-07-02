@@ -21,6 +21,8 @@ import {
   isOrphanSpan,
   unwrapTreeDepth,
   isOrphanTreeDepth,
+  isEventFromBrowserJavaScriptSDK,
+  durationlessBrowserOps,
 } from './utils';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {
@@ -259,12 +261,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     width: undefined | number;
     isSpanVisibleInView: boolean;
   } {
-    const {span, generateBounds} = this.props;
+    const {event, span, generateBounds} = this.props;
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
       endTimestamp: span.timestamp,
     });
+
+    const shouldHideSpanWarnings = isEventFromBrowserJavaScriptSDK(event);
 
     switch (bounds.type) {
       case 'TRACE_TIMESTAMPS_EQUAL': {
@@ -284,8 +288,15 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         };
       }
       case 'TIMESTAMPS_EQUAL': {
+        const warning =
+          shouldHideSpanWarnings &&
+          'op' in span &&
+          span.op &&
+          durationlessBrowserOps.includes(span.op)
+            ? void 0
+            : t('Equal start and end times');
         return {
-          warning: t('Equal start and end times'),
+          warning,
           left: bounds.start,
           width: 0.00001,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
@@ -723,7 +734,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <Tooltip containerDisplayMode="flex" title={warningText}>
-        <StyledIconWarning />
+        <StyledIconWarning size="xs" />
       </Tooltip>
     );
   }
@@ -856,13 +867,13 @@ const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: ${p => p.theme.red};
+  background-color: ${p => p.theme.red400};
   transform: translateX(-50%);
   height: 100%;
 `;
 
 export const DividerLine = styled('div')`
-  background-color: ${p => p.theme.borderDark};
+  background-color: ${p => p.theme.gray400};
   position: absolute;
   height: 100%;
   width: 1px;
@@ -923,7 +934,8 @@ const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
 const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray400};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
+    ${p => p.theme.borderDark};
   position: absolute;
   top: 0;
 
@@ -931,7 +943,7 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
     content: '';
     height: 1px;
     border-bottom: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-      ${p => p.theme.gray400};
+      ${p => p.theme.borderDark};
 
     width: 100%;
     position: absolute;
@@ -953,7 +965,8 @@ const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
 const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.gray400};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
+    ${p => p.theme.borderDark};
   top: -5px;
   position: absolute;
 `;
@@ -972,7 +985,7 @@ const getTogglerTheme = ({
   if (disabled) {
     return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.gray400};
+    border: 1px solid ${theme.borderDark};
     color: ${buttonTheme.color};
     cursor: default;
   `;
@@ -980,7 +993,7 @@ const getTogglerTheme = ({
 
   return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.gray400};
+    border: 1px solid ${theme.borderDark};
     color: ${buttonTheme.color};
   `;
 };

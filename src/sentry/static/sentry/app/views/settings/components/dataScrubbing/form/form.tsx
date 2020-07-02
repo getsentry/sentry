@@ -38,7 +38,7 @@ type State = {
 };
 
 class Form extends React.Component<Props<Rule, KeysOfUnion<Rule>>, State> {
-  state: State = {displayEventId: false};
+  state: State = {displayEventId: !!this.props.eventId?.value};
 
   handleChange = <K extends KeysOfUnion<Rule>>(field: K) => (
     event: React.ChangeEvent<HTMLInputElement>

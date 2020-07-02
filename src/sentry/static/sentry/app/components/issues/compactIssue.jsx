@@ -166,7 +166,7 @@ const CompactIssue = createReactClass({
 
   onUpdate(data) {
     const issue = this.state.issue;
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     this.props.api.bulkUpdate(
       {

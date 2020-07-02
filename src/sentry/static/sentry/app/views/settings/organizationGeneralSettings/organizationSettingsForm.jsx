@@ -12,8 +12,6 @@ import organizationSettingsFields from 'app/data/forms/organizationGeneralSettin
 import withOrganization from 'app/utils/withOrganization';
 import Link from 'app/components/links/link';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import organizationSecurityAndPrivacy from 'app/data/forms/organizationSecurityAndPrivacy';
-import Feature from 'app/components/acl/feature';
 import {t} from 'app/locale';
 import {Panel, PanelHeader} from 'app/components/panels';
 
@@ -63,25 +61,17 @@ class OrganizationSettingsForm extends AsyncComponent {
       >
         <JsonForm {...jsonFormSettings} forms={organizationSettingsFields} />
 
-        <Feature features={['datascrubbers-v2']}>
-          {({hasFeature}) =>
-            hasFeature ? (
-              <Panel>
-                <PanelHeader>{t('Security & Privacy')}</PanelHeader>
-                <EmptyMessage
-                  title={t('Security & Privacy has moved')}
-                  description={
-                    <Link to={`/settings/${orgId}/security-and-privacy/`}>
-                      {t('Go to Security & Privacy')}
-                    </Link>
-                  }
-                />
-              </Panel>
-            ) : (
-              <JsonForm {...jsonFormSettings} forms={organizationSecurityAndPrivacy} />
-            )
-          }
-        </Feature>
+        <Panel>
+          <PanelHeader>{t('Security & Privacy')}</PanelHeader>
+          <EmptyMessage
+            title={t('Security & Privacy has moved')}
+            description={
+              <Link to={`/settings/${orgId}/security-and-privacy/`}>
+                {t('Go to Security & Privacy')}
+              </Link>
+            }
+          />
+        </Panel>
 
         <AvatarChooser
           type="organization"

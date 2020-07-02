@@ -41,7 +41,7 @@ const COLOR = {
     .alpha(0.1)
     .rgb()
     .string(),
-  CRITICAL_FILL: color(theme.redLight)
+  CRITICAL_FILL: color(theme.red400)
     .alpha(0.25)
     .rgb()
     .string(),
@@ -171,11 +171,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
     const isCritical = trigger.label === 'critical';
     const LINE_STYLE = {
-      stroke: isResolution
-        ? theme.green500
-        : isCritical
-        ? theme.redDark
-        : theme.yellow500,
+      stroke: isResolution ? theme.green500 : isCritical ? theme.red500 : theme.yellow500,
       lineDash: [2],
     };
 

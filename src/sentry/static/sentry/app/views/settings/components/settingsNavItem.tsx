@@ -44,7 +44,7 @@ const StyledNavItem = styled(Link)`
     color: ${p => p.theme.gray800};
 
     &:before {
-      background: ${p => p.theme.purple};
+      background: ${p => p.theme.purple400};
     }
   }
 

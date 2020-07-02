@@ -61,7 +61,7 @@ const FieldWrapper = styled('div')<Props>`
         left: -1px;
         right: -1px;
         bottom: -1px;
-        border: 1px solid ${p.theme.purple};
+        border: 1px solid ${p.theme.purple400};
         pointer-events: none;
       }
     `}

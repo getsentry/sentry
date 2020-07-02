@@ -152,6 +152,12 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert alert_rule.snuba_query.aggregate == aggregate
 
+    def test_alert_rule_resolved_invalid(self):
+        self.run_fail_validation_test(
+            {"resolve_threshold": 500},
+            {"nonFieldErrors": ["critical alert threshold must be above resolution threshold"]},
+        )
+
     def test_transaction_dataset(self):
         serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
         assert serializer.is_valid(), serializer.errors
@@ -165,9 +171,10 @@ class TestAlertRuleSerializer(TestCase):
         resolve_threshold = 0.7
         params["triggers"][0]["alertThreshold"] = alert_threshold
         params["triggers"][0]["resolveThreshold"] = resolve_threshold
+        params["resolve_threshold"] = resolve_threshold
         # Drop off the warning trigger
         params["triggers"].pop()
-        serializer = AlertRuleSerializer(context=self.context, data=self.valid_transaction_params)
+        serializer = AlertRuleSerializer(context=self.context, data=params)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
         trigger = alert_rule.alertruletrigger_set.filter(label="critical").get()
@@ -249,7 +256,7 @@ class TestAlertRuleSerializer(TestCase):
             "time_window": 10,
             "query": "level:error",
             "aggregate": "count()",
-            "resolve_threshold": 50,
+            "resolve_threshold": 99,
             "threshold_period": 1,
             "projects": [self.project.slug],
             "triggers": [
@@ -267,7 +274,7 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
 
         assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["resolve_threshold"] == 50
+        assert serializer.validated_data["resolve_threshold"] == 99
 
     def test_boundary(self):
         payload = {
