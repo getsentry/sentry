@@ -42,7 +42,7 @@ const Level = React.memo(({level, searchTerm = ''}: Props) => {
     default:
       return (
         <Tag>
-          <Highlight text={searchTerm}>{t('undefined')}</Highlight>
+          <Highlight text={searchTerm}>{level || t('undefined')}</Highlight>
         </Tag>
       );
   }
