@@ -27,7 +27,6 @@ const organizationNavigation: NavigationSection[] = [
           'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
         ),
         id: 'security-and-privacy',
-        show: ({features}) => !!features?.has('datascrubbers-v2'),
         badge: () => 'new',
       },
       {

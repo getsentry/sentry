@@ -72,17 +72,6 @@ describe('projectGeneralSettings', function() {
     expect(wrapper.find('Input[name="slug"]').prop('value')).toBe('project-slug');
     expect(wrapper.find('Input[name="subjectPrefix"]').prop('value')).toBe('[my-org]');
     expect(wrapper.find('RangeSlider[name="resolveAge"]').prop('value')).toBe(48);
-    expect(wrapper.find('Switch[name="dataScrubber"]').prop('isActive')).toBeFalsy();
-    expect(
-      wrapper.find('Switch[name="dataScrubberDefaults"]').prop('isActive')
-    ).toBeFalsy();
-    expect(wrapper.find('Switch[name="scrubIPAddresses"]').prop('isActive')).toBeFalsy();
-    expect(wrapper.find('TextArea[name="sensitiveFields"]').prop('value')).toBe(
-      'creditcard\nssn'
-    );
-    expect(wrapper.find('TextArea[name="safeFields"]').prop('value')).toBe(
-      'business-email\ncompany'
-    );
     expect(wrapper.find('TextArea[name="allowedDomains"]').prop('value')).toBe(
       'example.com\nhttps://example.com'
     );
@@ -97,21 +86,6 @@ describe('projectGeneralSettings', function() {
       'x-security-header'
     );
     expect(wrapper.find('Switch[name="verifySSL"]').prop('isActive')).toBeTruthy();
-  });
-
-  it('disables field when equivalent org setting is true', function() {
-    routerContext.context.organization.dataScrubber = true;
-    routerContext.context.organization.scrubIPAddresses = false;
-    const wrapper = mountWithTheme(
-      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      routerContext
-    );
-    expect(wrapper.find('Switch[name="scrubIPAddresses"]').prop('isDisabled')).toBe(
-      false
-    );
-    expect(wrapper.find('Switch[name="scrubIPAddresses"]').prop('isActive')).toBeFalsy();
-    expect(wrapper.find('Switch[name="dataScrubber"]').prop('isDisabled')).toBe(true);
-    expect(wrapper.find('Switch[name="dataScrubber"]').prop('isActive')).toBe(true);
   });
 
   it('disables scrapeJavaScript when equivalent org setting is false', function() {
