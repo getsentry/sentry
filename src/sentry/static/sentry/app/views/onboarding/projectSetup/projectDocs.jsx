@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
-import posed, {PoseGroup} from 'react-pose';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {analytics} from 'app/utils/analytics';
 import {loadDocs} from 'app/actionCreators/projects';
@@ -21,6 +21,7 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import getDynamicText from 'app/utils/getDynamicText';
 import withOrganization from 'app/utils/withOrganization';
+import testableTransition from 'app/utils/testableTransition';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -127,7 +128,7 @@ class ProjectDocs extends React.Component {
     const introduction = (
       <Panel>
         <PanelBody withPadding>
-          <AnimatedPlatformHeading platform={loadedPlatform || platform} />
+          <PlatformHeading platform={loadedPlatform || platform} />
 
           <Description id={scrollTargetId}>
             {tct(
@@ -159,12 +160,14 @@ class ProjectDocs extends React.Component {
     );
 
     const docs = platformDocs !== null && (
-      <PoseGroup preEnterPose="init" animateOnMount>
-        <DocsWrapper key={platformDocs.html}>
-          <div dangerouslySetInnerHTML={{__html: platformDocs.html}} />
-          {this.missingExampleWarning}
-        </DocsWrapper>
-      </PoseGroup>
+      <DocsContainer>
+        <AnimatePresence>
+          <DocsWrapper key={platformDocs.html}>
+            <div dangerouslySetInnerHTML={{__html: platformDocs.html}} />
+            {this.missingExampleWarning}
+          </DocsWrapper>
+        </AnimatePresence>
+      </DocsContainer>
     );
 
     const loadingError = (
@@ -191,21 +194,22 @@ class ProjectDocs extends React.Component {
 }
 
 const docsTransition = {
-  init: {
+  initial: {
     opacity: 0,
     y: -10,
   },
-  enter: {
+  animate: {
     opacity: 1,
     y: 0,
-    delay: 100,
-    transition: {duration: 200},
+    delay: 0.1,
+    transition: {duration: 0.2},
   },
   exit: {
     opacity: 0,
     y: 10,
-    transition: {duration: 200},
+    transition: {duration: 0.2},
   },
+  transition: testableTransition(),
 };
 
 const Description = styled('p')`
@@ -219,13 +223,24 @@ const Footer = styled('div')`
   align-items: center;
 `;
 
-const Heading = styled(posed('div')(docsTransition))`
+const HeadingContainer = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+`;
+
+const Heading = styled(motion.div)`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-gap: ${space(1)};
   align-items: center;
   margin-bottom: ${space(2)};
+  grid-column: 1;
+  grid-row: 1;
 `;
+
+Heading.defaultProps = {
+  ...docsTransition,
+};
 
 const Header = styled('div')`
   font-size: 1.8rem;
@@ -239,18 +254,20 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   border-radius: 3px;
 `;
 
-const AnimatedPlatformHeading = ({platform}) => (
-  <PoseGroup preEnterPose="init">
-    <Heading key={platform}>
-      <StyledPlatformIcon platform={platform} />
-      <Header>
-        {t('%s SDK Installation Guide', platforms.find(p => p.id === platform).name)}
-      </Header>
-    </Heading>
-  </PoseGroup>
+const PlatformHeading = ({platform}) => (
+  <HeadingContainer>
+    <AnimatePresence initial={false}>
+      <Heading key={platform}>
+        <StyledPlatformIcon platform={platform} />
+        <Header>
+          {t('%s SDK Installation Guide', platforms.find(p => p.id === platform).name)}
+        </Header>
+      </Heading>
+    </AnimatePresence>
+  </HeadingContainer>
 );
 
-AnimatedPlatformHeading.propTypes = {
+PlatformHeading.propTypes = {
   platform: PropTypes.string.isRequired,
 };
 
@@ -263,7 +280,15 @@ const mapAlertStyles = p => type =>
     }
   `;
 
-const DocsWrapper = styled(posed.div(docsTransition))`
+const DocsContainer = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+`;
+
+const DocsWrapper = styled(motion.div)`
+  grid-column: 1;
+  grid-row: 1;
+
   h1,
   h2,
   h3,
@@ -303,5 +328,9 @@ const DocsWrapper = styled(posed.div(docsTransition))`
 
   ${p => Object.keys(p.theme.alert).map(mapAlertStyles(p))}
 `;
+
+DocsWrapper.defaultProps = {
+  ...docsTransition,
+};
 
 export default withOrganization(withApi(ProjectDocs));

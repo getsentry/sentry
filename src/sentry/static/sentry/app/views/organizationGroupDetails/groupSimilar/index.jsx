@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';

@@ -154,11 +154,18 @@ class Dialog extends React.Component<Props, State> {
     const {rule, isFormValid, errors, isNewRule} = this.state;
 
     return (
-      <StyledModal show animation={false} onHide={onClose}>
+      <StyledModal
+        show
+        animation={false}
+        onHide={onClose}
+        data-test-id={isNewRule ? 'add-rule-modal' : 'edit-rule-modal'}
+      >
         <Modal.Header closeButton>
-          {isNewRule
-            ? t('Add an advanced data scrubbing rule')
-            : t('Edit an advanced data scrubbing rule')}
+          <span>
+            {isNewRule
+              ? t('Add an advanced data scrubbing rule')
+              : t('Edit an advanced data scrubbing rule')}
+          </span>
         </Modal.Header>
         <Modal.Body>
           <Form

@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 import debounce from 'lodash/debounce';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';

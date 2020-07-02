@@ -6,7 +6,6 @@ import six
 import sentry_relay
 from rest_framework import serializers
 
-from sentry import features
 from sentry.utils import metrics, json
 from sentry.utils.safe import safe_execute
 
@@ -140,12 +139,6 @@ def _merge_pii_configs(prefixes_and_configs):
 def validate_pii_config_update(organization, value):
     if not value:
         return value
-
-    has_datascrubbers_v2 = features.has("organizations:datascrubbers-v2", organization)
-    if not has_datascrubbers_v2:
-        raise serializers.ValidationError(
-            "Organization does not have the datascrubbers-v2 feature enabled"
-        )
 
     try:
         sentry_relay.validate_pii_config(value)

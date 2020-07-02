@@ -343,37 +343,6 @@ export const fields: {[key: string]: Field} = {
     formatLabel: formatStoreCrashReports,
     allowedValues: STORE_CRASH_REPORTS_VALUES,
   },
-  relayPiiConfig: {
-    name: 'relayPiiConfig',
-    type: 'string',
-    label: t('Advanced datascrubber configuration'),
-    placeholder: t('Paste a JSON configuration here.'),
-    multiline: true,
-    monospace: true,
-    autosize: true,
-    inline: false,
-    maxRows: 20,
-    help: tct(
-      'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. [learn_more:Learn more]',
-      {
-        learn_more: (
-          <a href="https://docs.sentry.io/data-management/advanced-datascrubbing/" />
-        ),
-      }
-    ),
-    visible: ({features}) => features.has('datascrubbers-v2'),
-    validate: ({id, form}) => {
-      if (form[id] === '') {
-        return [];
-      }
-      try {
-        JSON.parse(form[id]);
-      } catch (e) {
-        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
-      }
-      return [];
-    },
-  },
   allowedDomains: {
     name: 'allowedDomains',
     type: 'string',
