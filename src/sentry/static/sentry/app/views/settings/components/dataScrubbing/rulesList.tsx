@@ -42,7 +42,7 @@ const RulesList = React.forwardRef(function RulesList(
   ref: React.Ref<HTMLUListElement>
 ) {
   return (
-    <List ref={ref} isDisabled={disabled}>
+    <List ref={ref} isDisabled={disabled} data-test-id="advanced-data-scrubbing-rules">
       {rules.map(rule => {
         const {id} = rule;
         return (
@@ -75,7 +75,9 @@ const RulesList = React.forwardRef(function RulesList(
 
 export default RulesList;
 
-const List = styled('ul')<{isDisabled?: boolean}>`
+const List = styled('ul')<{
+  isDisabled?: boolean;
+}>`
   list-style: none;
   margin: 0;
   padding: 0;

@@ -21,6 +21,7 @@ import {
   Errors,
   EventId,
   RequestError,
+  ProjectId,
 } from './types';
 import convertRelayPiiConfig from './convertRelayPiiConfig';
 import submitRules from './submitRules';
@@ -28,8 +29,6 @@ import handleError from './handleError';
 
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/data-management/advanced-datascrubbing/';
-
-type ProjectId = Project['id'] | undefined;
 
 type Props<T extends ProjectId> = {
   endpoint: string;
@@ -273,7 +272,7 @@ class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
 
     return (
       <React.Fragment>
-        <Panel>
+        <Panel data-test-id="advanced-data-scrubbing">
           <PanelHeader>
             <div>{t('Advanced Data Scrubbing')}</div>
           </PanelHeader>
