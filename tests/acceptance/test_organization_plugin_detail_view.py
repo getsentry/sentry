@@ -20,7 +20,6 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         self.project = self.create_project(organization=self.organization, name="Back end")
         self.create_project(organization=self.organization, name="Front End")
         self.login_as(self.user)
-        self.dismiss_assistant("discover_sidebar")
 
     def load_page(self, slug, configuration_tab=False):
         url = u"/settings/{}/plugins/{}/".format(self.organization.slug, slug)

@@ -140,8 +140,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
         self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
 
-        self.dismiss_assistant("discover_sidebar")
-
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')

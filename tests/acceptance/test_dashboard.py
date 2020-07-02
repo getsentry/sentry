@@ -41,7 +41,6 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        self.dismiss_assistant("discover_sidebar")
         self.path = u"/organizations/{}/projects/".format(self.organization.slug)
 
     def create_sample_event(self):
@@ -104,7 +103,6 @@ class EmptyDashboardTest(AcceptanceTestCase):
     def setUp(self):
         super(EmptyDashboardTest, self).setUp()
         self.login_as(self.user)
-        self.dismiss_assistant("discover_sidebar")
         self.path = u"/organizations/{}/projects/".format(self.organization.slug)
 
     def test_new_dashboard_empty(self):

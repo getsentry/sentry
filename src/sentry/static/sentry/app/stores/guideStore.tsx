@@ -185,28 +185,11 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
 
     const user = ConfigStore.get('user');
     const assistantThreshold = new Date(2019, 6, 1);
-    const discoverDate = new Date(2020, 1, 6);
     const userDateJoined = new Date(user?.dateJoined);
 
     if (!forceShow) {
-      guideOptions = guideOptions.filter(({guide, seen}) =>
-        seen
-          ? false
-          : user?.isSuperuser
-          ? true
-          : guide === 'discover_sidebar' && userDateJoined >= discoverDate
-          ? false
-          : userDateJoined > assistantThreshold
-      );
-    }
-
-    // do not force show the "events moved" guide
-    // since it's not relevant for new users
-    if (forceShow) {
-      guideOptions = guideOptions.filter(({guide, seen}) =>
-        guide === 'discover_sidebar' && (seen || userDateJoined >= discoverDate)
-          ? false
-          : true
+      guideOptions = guideOptions.filter(({seen}) =>
+        seen ? false : user?.isSuperuser ? true : userDateJoined > assistantThreshold
       );
     }
 

@@ -7,7 +7,6 @@ class OrganizationIntegrationDirectoryTest(AcceptanceTestCase):
     def setUp(self):
         super(OrganizationIntegrationDirectoryTest, self).setUp()
         self.login_as(self.user)
-        self.dismiss_assistant("discover_sidebar")
 
     def test_all_integrations_list(self):
         path = u"/settings/{}/integrations/".format(self.organization.slug)

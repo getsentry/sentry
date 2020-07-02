@@ -35,7 +35,6 @@ class PerformanceSummaryTest(AcceptanceTestCase):
         )
 
         self.page = TransactionSummaryPage(self.browser)
-        self.dismiss_assistant("discover_sidebar")
 
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
