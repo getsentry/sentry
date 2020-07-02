@@ -65,8 +65,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
             else:
                 orgs = {}
 
-            for org_id in six.iterkeys(orgs):
-                OrganizationOption.objects.get_all_values(org_id)
+            with metrics.timer("relay_project_configs.fetching_org_options.duration"):
+                for org_id in six.iterkeys(orgs):
+                    OrganizationOption.objects.get_all_values(org_id)
 
         with Hub.current.start_span(op="relay_fetch_keys"):
             project_keys = {}
