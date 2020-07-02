@@ -318,6 +318,7 @@ INSTALLED_APPS = (
     "django.contrib.sites",
     "crispy_forms",
     "rest_framework",
+    "rest_framework_swagger",
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls import include, url
 from django.http import HttpResponse
 from django.views.generic import RedirectView
+from rest_framework_swagger.views import get_swagger_view
 
 from sentry.web import api
 from sentry.web.frontend import accounts, generic
@@ -53,6 +54,7 @@ __all__ = ("urlpatterns",)
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
+schema_view = get_swagger_view(title="Sentry API")
 
 urlpatterns = []
 
@@ -347,6 +349,7 @@ urlpatterns += [
         r"^api/new-token/$",
         RedirectView.as_view(pattern_name="sentry-api-new-auth-token", permanent=False),
     ),
+    url(r"^manu/$", schema_view),
     url(r"^api/[^0]+/", RedirectView.as_view(pattern_name="sentry-api", permanent=False)),
     url(r"^out/$", OutView.as_view()),
     url(r"^accept-transfer/$", react_page_view, name="sentry-accept-project-transfer"),
