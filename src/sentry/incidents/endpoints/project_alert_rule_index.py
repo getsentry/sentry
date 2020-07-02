@@ -21,6 +21,11 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         """
         Fetches alert rules and legacy rules for an organization
         """
+        alert_rules = AlertRule.objects.fetch_for_project(project)
+        if not features.has("organizations:incidents-performance", project.organization):
+            # Filter to only error alert rules
+            alert_rules = alert_rules.filter(snuba_query__dataset="events")
+
         return self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
@@ -28,7 +33,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             default_per_page=25,
             order_by="-date_added",
             querysets=[
-                AlertRule.objects.fetch_for_project(project),
+                alert_rules,
                 Rule.objects.filter(
                     project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
                 ),

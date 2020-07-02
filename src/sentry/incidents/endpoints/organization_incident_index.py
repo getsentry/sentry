@@ -42,6 +42,10 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             elif query_status == "closed":
                 incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
 
+        if not features.has("organizations:incidents-performance", organization):
+            # Filter to only error alerts
+            incidents = incidents.filter(alert_rule__snuba_query__dataset="events")
+
         return self.paginate(
             request,
             queryset=incidents,
