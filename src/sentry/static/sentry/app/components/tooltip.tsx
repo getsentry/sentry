@@ -168,8 +168,8 @@ class Tooltip extends React.Component<Props, State> {
     // it with a span tag so that popper has ref
 
     if (
-      this.props.skipWrapper ||
-      (React.isValidElement(children) && typeof children.type === 'string')
+      React.isValidElement(children) &&
+      (this.props.skipWrapper || typeof children.type === 'string')
     ) {
       // Basic DOM nodes can be cloned and have more props applied.
       return React.cloneElement(children, {
