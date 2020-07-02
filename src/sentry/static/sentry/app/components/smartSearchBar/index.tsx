@@ -995,14 +995,29 @@ class SmartSearchBar extends React.Component<Props, State> {
       const prefix = last.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
       const valuePrefix = newQuery.endsWith(SEARCH_WILDCARD) ? SEARCH_WILDCARD : '';
 
-      // newQuery is "<term>:"
+      // newQuery is all the terms up to the current term: "... <term>:"
       // replaceText should be the selected value
-      newQuery =
-        last.indexOf(':') > -1
-          ? // tag key present: replace everything after colon with replaceText
-            newQuery.replace(/\:"[^"]*"?$|\:\S*$/, `:${valuePrefix}` + replaceText)
-          : // no tag key present: replace last token with replaceText
-            newQuery.replace(/\S+$/, `${prefix}${replaceText}`);
+      if (last.indexOf(':') > -1) {
+        let replacement = `:${valuePrefix}${replaceText}`;
+
+        // NOTE: The user tag is a special case here as it store values like
+        // `id:1` or `ip:127.0.0.1`. To handle autocompletion for it correctly,
+        // and efficiently, we convert the tag to be `user.id` or `user.ip` etc.
+        if (last.startsWith('user:')) {
+          const colonIndex = replaceText.indexOf(':');
+          if (colonIndex > -1) {
+            const tagEnding = replaceText.substring(0, colonIndex);
+            const tagValue = replaceText.substring(colonIndex + 1);
+            replacement = `.${tagEnding}:${valuePrefix}` + tagValue;
+          }
+        }
+
+        // tag key present: replace everything after colon with replaceText
+        newQuery = newQuery.replace(/\:"[^"]*"?$|\:\S*$/, replacement);
+      } else {
+        // no tag key present: replace last token with replaceText
+        newQuery = newQuery.replace(/\S+$/, `${prefix}${replaceText}`);
+      }
 
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
