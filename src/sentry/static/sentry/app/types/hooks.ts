@@ -77,6 +77,7 @@ export type AnalyticsHooks = {
  * rendered in place for Feature components when the feature is not enabled.
  */
 export type FeatureDisabledHooks = {
+  'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;

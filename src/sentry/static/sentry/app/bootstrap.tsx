@@ -29,6 +29,8 @@ import plugins from 'app/plugins';
 import routes from 'app/routes';
 import {normalizeTransactionName} from 'app/utils/apm';
 
+import {setupFavicon} from './favicon';
+
 if (process.env.NODE_ENV === 'development') {
   import(
     /* webpackChunkName: "SilenceReactUnsafeWarnings" */ /* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings'
@@ -61,7 +63,7 @@ function getSentryIntegrations(hasReplays: boolean = false) {
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
       debug: {
         spanDebugTimingInfo: true,
-        writeAsBreadcrumbs: true,
+        writeAsBreadcrumbs: false,
       },
       beforeNavigate: (location: Location) => {
         return normalizeTransactionName(appRoutes, location);
@@ -138,6 +140,10 @@ const render = (Component: React.ComponentType) => {
     }
   }
 };
+
+if (process.env.NODE_ENV === 'production') {
+  setupFavicon();
+}
 
 // The password strength component is very heavyweight as it includes the
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load

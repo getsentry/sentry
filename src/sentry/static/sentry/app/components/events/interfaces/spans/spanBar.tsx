@@ -21,6 +21,8 @@ import {
   isOrphanSpan,
   unwrapTreeDepth,
   isOrphanTreeDepth,
+  isEventFromBrowserJavaScriptSDK,
+  durationlessBrowserOps,
 } from './utils';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {
@@ -259,12 +261,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     width: undefined | number;
     isSpanVisibleInView: boolean;
   } {
-    const {span, generateBounds} = this.props;
+    const {event, span, generateBounds} = this.props;
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,
       endTimestamp: span.timestamp,
     });
+
+    const shouldHideSpanWarnings = isEventFromBrowserJavaScriptSDK(event);
 
     switch (bounds.type) {
       case 'TRACE_TIMESTAMPS_EQUAL': {
@@ -284,8 +288,15 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         };
       }
       case 'TIMESTAMPS_EQUAL': {
+        const warning =
+          shouldHideSpanWarnings &&
+          'op' in span &&
+          span.op &&
+          durationlessBrowserOps.includes(span.op)
+            ? void 0
+            : t('Equal start and end times');
         return {
-          warning: t('Equal start and end times'),
+          warning,
           left: bounds.start,
           width: 0.00001,
           isSpanVisibleInView: bounds.isSpanVisibleInView,
@@ -723,7 +734,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <Tooltip containerDisplayMode="flex" title={warningText}>
-        <StyledIconWarning />
+        <StyledIconWarning size="xs" />
       </Tooltip>
     );
   }
@@ -742,7 +753,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const durationDisplay = getDurationDisplay(bounds);
 
     return (
-      <SpanRowCellContainer>
+      <SpanRowCellContainer showDetail={this.state.showDetail}>
         <SpanRowCell
           showDetail={this.state.showDetail}
           style={{
@@ -847,9 +858,12 @@ const SpanRowCell = styled('div')<SpanRowCellProps>`
   color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
 `;
 
-const SpanRowCellContainer = styled('div')`
+const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
+  :hover > div {
+    background-color: ${p => (p.showDetail ? p.theme.gray800 : p.theme.gray200)};
+  }
 `;
 
 const CursorGuide = styled('div')`

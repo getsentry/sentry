@@ -10,20 +10,19 @@ import {fields} from 'app/data/forms/projectGeneralSettings';
 import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
 import {Organization, Project} from 'app/types';
+import withProject from 'app/utils/withProject';
 
 import DataScrubbing from '../components/dataScrubbing';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+export type ProjectSecurityAndPrivacyProps = RouteComponentProps<
+  {orgId: string; projectId: string},
+  {}
+> & {
   organization: Organization;
   project: Project;
 };
 
-class ProjectDataPrivacyContent extends AsyncView<Props> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {organization, project} = this.props;
-    return [['data', `/projects/${organization.slug}/${project.slug}/`]];
-  }
-
+class ProjectSecurityAndPrivacy extends AsyncView<ProjectSecurityAndPrivacyProps> {
   handleUpdateProject = (data: Project) => {
     // This will update our project global state
     ProjectActions.updateSuccess(data);
@@ -31,11 +30,11 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
 
   renderBody() {
     const {organization, project} = this.props;
-    const initialData = this.state.data;
+    const initialData = project;
     const endpoint = `/projects/${organization.slug}/${project.slug}/`;
     const access = new Set(organization.access);
     const features = new Set(organization.features);
-    const relayPiiConfig = initialData?.relayPiiConfig;
+    const relayPiiConfig = project.relayPiiConfig;
     const apiMethod = 'PUT';
 
     return (
@@ -101,4 +100,4 @@ class ProjectDataPrivacyContent extends AsyncView<Props> {
   }
 }
 
-export default ProjectDataPrivacyContent;
+export default withProject(ProjectSecurityAndPrivacy);

@@ -12,6 +12,7 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'app/types/alerts';
+import {IconWarning} from 'app/icons';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,
@@ -20,6 +21,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -97,7 +99,7 @@ type State = AsyncView['state'] & {
 function isSavedAlertRule(
   rule: UnsavedIssueAlertRule | IssueAlertRule
 ): rule is IssueAlertRule {
-  return rule.hasOwnProperty('id');
+  return rule?.hasOwnProperty('id');
 }
 
 class IssueRuleEditor extends AsyncView<Props, State> {
@@ -381,12 +383,22 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return this.renderBody();
   }
 
+  renderError() {
+    return (
+      <Alert type="error" icon={<IconWarning />}>
+        {t(
+          'Unable to access this alert rule -- check to make sure you have the correct permissions'
+        )}
+      </Alert>
+    );
+  }
+
   renderBody() {
     const {project, organization} = this.props;
     const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
-      ...environments.map(env => [env.name, getDisplayName(env)]),
+      ...(environments?.map(env => [env.name, getDisplayName(env)]) ?? []),
     ];
 
     const {rule, detailedError} = this.state;

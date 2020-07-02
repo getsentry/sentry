@@ -525,9 +525,7 @@ class SentryWsgiRemoteTest(TransactionTestCase):
                     body = "".join(app_iter)
 
         assert status == "200 OK", body
-        assert set((e.get("type"), e.get("transaction")) for e in events) == {
-            ("transaction", "rule_processor_apply")
-        }
+        assert set(e.get("transaction") for e in events) == {"rule_processor_apply"}
         assert calls == [1]
 
 

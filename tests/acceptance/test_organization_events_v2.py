@@ -140,8 +140,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
         self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
 
-        self.dismiss_assistant("discover_sidebar")
-
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
@@ -321,22 +319,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_errors_view(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-        event_source = (("a", 1), ("b", 39), ("c", 69))
-        event_ids = []
+
         event_data = load_data("javascript")
-        event_data["fingerprint"] = ["group-1"]
-        for id_prefix, offset in event_source:
-            event_time = iso_format(before_now(minutes=offset))
-            event_data.update(
-                {
-                    "timestamp": event_time,
-                    "received": event_time,
-                    "event_id": id_prefix * 32,
-                    "type": "error",
-                }
-            )
-            event = self.store_event(data=event_data, project_id=self.project.id)
-            event_ids.append(event.event_id)
+        event_data.update(
+            {
+                "timestamp": iso_format(before_now(minutes=5)),
+                "event_id": "d" * 32,
+                "fingerprint": ["group-1"],
+            }
+        )
+        self.store_event(data=event_data, project_id=self.project.id)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
@@ -351,7 +343,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.find_elements_by_css_selector('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-            self.browser.snapshot("events-v2 - grouped error event detail view")
+            self.browser.snapshot("events-v2 - error event detail view")
 
     @patch("django.utils.timezone.now")
     def test_event_detail_view_from_transactions_query(self, mock_now):
@@ -360,7 +352,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         event_data = generate_transaction()
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
-        # Create a child event that is linked to the parent.
+        # Create a child event that is linked to the parent so we have coverage
+        # of traversal buttons.
         child_event = generate_transaction()
         child_event["event_id"] = "b" * 32
         child_event["contexts"]["trace"]["parent_span_id"] = event_data["spans"][5]["span_id"]

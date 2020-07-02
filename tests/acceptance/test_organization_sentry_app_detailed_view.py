@@ -19,7 +19,6 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
             name="Super Awesome App",
         )
         self.login_as(self.user)
-        self.dismiss_assistant("discover_sidebar")
 
     def load_page(self, slug):
         url = u"/settings/{}/sentry-apps/{}/".format(self.organization.slug, slug)

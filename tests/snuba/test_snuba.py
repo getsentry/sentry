@@ -15,16 +15,20 @@ from sentry.utils import snuba
 class SnubaTest(TestCase, SnubaTestCase):
     def _insert_event_for_time(self, ts, hash="a" * 32, group_id=None):
         self.snuba_insert(
-            {
-                "event_id": uuid.uuid4().hex,
-                "primary_hash": hash,
-                "group_id": group_id if group_id else int(hash[:16], 16),
-                "project_id": self.project.id,
-                "message": "message",
-                "platform": "python",
-                "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                "data": {"received": time.mktime(ts.timetuple())},
-            }
+            (
+                2,
+                "insert",
+                {
+                    "event_id": uuid.uuid4().hex,
+                    "primary_hash": hash,
+                    "group_id": group_id if group_id else int(hash[:16], 16),
+                    "project_id": self.project.id,
+                    "message": "message",
+                    "platform": "python",
+                    "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "data": {"received": time.mktime(ts.timetuple())},
+                },
+            )
         )
 
     def test(self):
@@ -33,16 +37,20 @@ class SnubaTest(TestCase, SnubaTestCase):
         now = datetime.now()
 
         events = [
-            {
-                "event_id": "x" * 32,
-                "primary_hash": "1" * 32,
-                "group_id": 1,
-                "project_id": self.project.id,
-                "message": "message",
-                "platform": "python",
-                "datetime": now.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                "data": {"received": time.mktime(now.timetuple())},
-            }
+            (
+                2,
+                "insert",
+                {
+                    "event_id": "x" * 32,
+                    "primary_hash": "1" * 32,
+                    "group_id": 1,
+                    "project_id": self.project.id,
+                    "message": "message",
+                    "platform": "python",
+                    "datetime": now.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "data": {"received": time.mktime(now.timetuple())},
+                },
+            )
         ]
 
         self.snuba_insert(events)

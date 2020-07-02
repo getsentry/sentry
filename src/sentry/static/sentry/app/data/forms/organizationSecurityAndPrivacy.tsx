@@ -1,4 +1,4 @@
-import {extractMultilineFields} from 'app/utils';
+import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t} from 'app/locale';
 import {
   STORE_CRASH_REPORTS_VALUES,
@@ -129,7 +129,7 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
           'Note: These fields will be used in addition to project specific fields.'
         ),
         getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        setValue: val => convertMultilineFieldValue(val),
       },
       {
         name: 'safeFields',
@@ -146,7 +146,7 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
           'Note: These fields will be used in addition to project specific fields'
         ),
         getValue: val => extractMultilineFields(val),
-        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        setValue: val => convertMultilineFieldValue(val),
       },
       {
         name: 'scrubIPAddresses',
