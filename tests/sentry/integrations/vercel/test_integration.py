@@ -436,6 +436,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                 }
             },
         )
+
         data = b"""{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}"""
 
         resp = self.client.post(path=uihook_url, data=data, content_type="application/json")
@@ -449,6 +450,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             )
             in resp.content
         )
+
     def test_upgrade_org_config_no_source_code_provider(self):
         """Test that the function doesn't progress if the Vercel project hasn't been connected to a Git repository"""
 
