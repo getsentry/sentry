@@ -31,13 +31,14 @@ class VercelUIHook(Endpoint):
         configuration_id = body["configurationId"]
         user_id = body["user"]["id"]
         team_id = body["teamId"]
+        external_id = team_id or user_id
         try:
             integration = Integration.objects.get(
-                external_id=team_id or user_id, provider="vercel", status=ObjectStatus.ACTIVE
+                external_id=external_id, provider="vercel", status=ObjectStatus.ACTIVE
             )
         except Integration.DoesNotExist:
             logger.info(
-                "vercel.integration.does-not-exist", extra={"external_id": team_id or user_id},
+                "vercel.integration.does-not-exist", extra={"external_id": external_id},
             )
             return HttpResponse("The requested integration does not exist.")
         try:
@@ -46,8 +47,16 @@ class VercelUIHook(Endpoint):
                 status=OrganizationStatus.ACTIVE,
             )
         except KeyError:
-            return HttpResponse("The requested integration does not exist.")
+            logger.info(
+                "vercel.integration.key-error",
+                extra={"external_id": external_id, "integration_id": integration.id},
+            )
+            return HttpResponse("Cannot fetch organization.")
         except Organization.DoesNotExist:
+            logger.info(
+                "vercel.organization.does-not-exist",
+                extra={"external_id": external_id, "integration_id": integration.id},
+            )
             return HttpResponse("Organization does not exist")
         try:
             OrganizationIntegration.objects.get(
