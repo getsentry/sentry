@@ -33,6 +33,7 @@ import {promptsUpdate} from 'app/actionCreators/prompts';
 import {Incident} from '../types';
 import {TableLayout, TitleAndSparkLine} from './styles';
 import AlertListRow from './row';
+import Onboarding from './onboarding';
 
 const DEFAULT_QUERY_STATUS = 'open';
 
@@ -162,31 +163,23 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/`, router);
   };
 
-  tryRenderFirstVisit() {
+  tryRenderOnboarding() {
     const {firstVisitShown} = this.state;
 
     if (!firstVisitShown) {
       return null;
     }
 
-    return (
-      <WelcomeEmptyMessage
-        leftAligned
-        size="medium"
-        title={t('Find the signal in the noise')}
-        description={t(
-          'You’ve got 5 minutes, 2 million lines of code, and an inbox with 300 new messages. Alerts tell you what went wrong and why.'
-        )}
-        action={
-          <ButtonBar gap={1}>
-            <Button size="small" external href={DOCS_URL}>
-              {t('View Features')}
-            </Button>
-            <AddAlertRuleButton {...this.props} />
-          </ButtonBar>
-        }
-      />
+    const actions = (
+      <React.Fragment>
+        <Button size="small" external href={DOCS_URL}>
+          {t('View Features')}
+        </Button>
+        <AddAlertRuleButton {...this.props} />
+      </React.Fragment>
     );
+
+    return <Onboarding actions={actions} />;
   }
 
   tryRenderEmpty() {
@@ -222,13 +215,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderList() {
-    const {
-      loading,
-      incidentList,
-      incidentListPageLinks,
-      hasAlertRule,
-      firstVisitShown,
-    } = this.state;
+    const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
 
     const {orgId} = this.props.params;
     const allProjectsFromIncidents = new Set(
@@ -243,45 +230,46 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
     return (
       <React.Fragment>
-        <Panel>
-          {!loading && !firstVisitShown && (
-            <StyledPanelHeader>
-              <TableLayout status={status}>
-                <PaddedTitleAndSparkLine status={status}>
-                  <div>{t('Alert')}</div>
-                  {status === 'open' && <div>{t('Graph')}</div>}
-                </PaddedTitleAndSparkLine>
-                <div>{t('Project')}</div>
-                <div>{t('Triggered')}</div>
-                {status === 'closed' && <div>{t('Duration')}</div>}
-                {status === 'closed' && <div>{t('Resolved')}</div>}
-              </TableLayout>
-            </StyledPanelHeader>
-          )}
-          {showLoadingIndicator ? (
-            <LoadingIndicator />
-          ) : (
-            this.tryRenderFirstVisit() ??
-            this.tryRenderEmpty() ?? (
-              <PanelBody>
-                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                  {({initiallyLoaded, projects}) =>
-                    incidentList.map(incident => (
-                      <AlertListRow
-                        key={incident.id}
-                        projectsLoaded={initiallyLoaded}
-                        projects={projects}
-                        incident={incident}
-                        orgId={orgId}
-                        filteredStatus={status}
-                      />
-                    ))
-                  }
-                </Projects>
-              </PanelBody>
-            )
-          )}
-        </Panel>
+        {this.tryRenderOnboarding() ?? (
+          <Panel>
+            {!loading && (
+              <StyledPanelHeader>
+                <TableLayout status={status}>
+                  <PaddedTitleAndSparkLine status={status}>
+                    <div>{t('Alert')}</div>
+                    {status === 'open' && <div>{t('Graph')}</div>}
+                  </PaddedTitleAndSparkLine>
+                  <div>{t('Project')}</div>
+                  <div>{t('Triggered')}</div>
+                  {status === 'closed' && <div>{t('Duration')}</div>}
+                  {status === 'closed' && <div>{t('Resolved')}</div>}
+                </TableLayout>
+              </StyledPanelHeader>
+            )}
+            {showLoadingIndicator ? (
+              <LoadingIndicator />
+            ) : (
+              this.tryRenderEmpty() ?? (
+                <PanelBody>
+                  <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                    {({initiallyLoaded, projects}) =>
+                      incidentList.map(incident => (
+                        <AlertListRow
+                          key={incident.id}
+                          projectsLoaded={initiallyLoaded}
+                          projects={projects}
+                          incident={incident}
+                          orgId={orgId}
+                          filteredStatus={status}
+                        />
+                      ))
+                    }
+                  </Projects>
+                </PanelBody>
+              )
+            )}
+          </Panel>
+        )}
         <Pagination pageLinks={incidentListPageLinks} />
       </React.Fragment>
     );
@@ -441,11 +429,6 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const Actions = styled(ButtonBar)`
   height: 32px;
-`;
-
-const WelcomeEmptyMessage = styled(EmptyMessage)`
-  margin: ${space(4)};
-  max-width: 550px;
 `;
 
 export default withOrganization(IncidentsListContainer);

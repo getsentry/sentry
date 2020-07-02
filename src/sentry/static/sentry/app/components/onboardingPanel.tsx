@@ -49,6 +49,7 @@ const StyledBox = styled('div')`
 `;
 
 const IlloBox = styled(StyledBox)`
+  position: relative;
   min-height: 100px;
   max-width: 300px;
   margin: ${space(2)} auto;

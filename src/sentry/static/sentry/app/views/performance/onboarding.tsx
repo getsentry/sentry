@@ -39,9 +39,10 @@ function Onboarding() {
 
 const PerfImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    max-width: unset;
     user-select: none;
     position: absolute;
-    top: 0;
+    top: 50px;
     bottom: 0;
     width: 450px;
     margin-top: auto;
