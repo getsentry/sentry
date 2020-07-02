@@ -13,7 +13,6 @@ from sentry_sdk.tracing import Span
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing, options
-from sentry.relay.config import get_project_config
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
@@ -461,9 +460,7 @@ def _do_process_event(
             with metrics.timer(
                 "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
             ):
-                project_config = get_project_config(project)
-
-                new_data = safe_execute(scrub_data, project_config=project_config, event=data.data)
+                new_data = safe_execute(scrub_data, project=project, event=data.data)
 
                 # XXX(markus): When datascrubbing is finally "totally stable", we might want
                 # to drop the event if it crashes to avoid saving PII

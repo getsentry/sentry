@@ -272,7 +272,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments,
         )
         raise APIForbidden("An event with the same ID already exists (%s)" % (event_id,))
 
-    data = scrub_data(project_config, dict(data))
+    data = scrub_data(project, dict(data))
 
     # mutates data (strips a lot of context if not queued)
     helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
