@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {IconChat, IconEllipsis} from 'app/icons';
+import {IconChat, IconCheckmark, IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -241,7 +241,7 @@ const CompactIssue = createReactClass({
                     status: issue.status !== 'resolved' ? 'resolved' : 'unresolved',
                   })}
                 >
-                  <span className="icon-checkmark" />
+                  <IconCheckmark size="xs" />
                 </a>
               </li>
               <li>
