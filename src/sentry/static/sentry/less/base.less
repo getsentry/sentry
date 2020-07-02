@@ -1,9 +1,10 @@
 * {
-  .box-sizing(border-box);
+  box-sizing: border-box;
 }
+
 *:before,
 *:after {
-  .box-sizing(border-box);
+  box-sizing: border-box;
 }
 
 // Body reset
@@ -67,21 +68,6 @@ img {
 // Rounded corners
 .img-rounded {
   border-radius: @border-radius-large;
-}
-
-// Image thumbnails
-//
-// Heads up! This is mixin-ed into thumbnails.less for `.thumbnail`.
-.img-thumbnail {
-  padding: @thumbnail-padding;
-  line-height: @line-height-base;
-  background-color: @thumbnail-bg;
-  border: 1px solid @thumbnail-border;
-  border-radius: @thumbnail-border-radius;
-  .transition(all 0.2s ease-in-out);
-
-  // Keep them at most 100% wide
-  .img-responsive(inline-block);
 }
 
 // Perfect circle
@@ -174,6 +160,11 @@ h6 {
   line-height: 1.2;
 }
 
+ul,
+ol {
+  padding: 0;
+}
+
 p,
 ul,
 ol,
@@ -203,11 +194,6 @@ h5 {
 
 h6 {
   font-size: 1.4rem;
-}
-
-pre {
-  word-break: break-all;
-  white-space: pre-wrap;
 }
 
 /**
@@ -245,36 +231,6 @@ hr {
   font-size: 16px !important;
   position: relative;
   top: 2px;
-}
-
-/**
-* Code
-* ============================================================================
-*/
-
-pre,
-code,
-kbd,
-sample {
-  font-family: @font-family-code;
-}
-
-pre,
-code {
-  border: 0;
-  background-color: @white-darker;
-  color: @gray-darker;
-  border-radius: 3px;
-
-  &.small {
-    font-size: 12px;
-  }
-}
-
-pre {
-  word-break: break-all;
-  white-space: pre-wrap;
-  padding: 10px;
 }
 
 // HTML5 display definitions
@@ -465,14 +421,6 @@ hr {
 }
 
 //
-// Contain overflow in all browsers.
-//
-
-pre {
-  overflow: auto;
-}
-
-//
 // Address odd `em`-unit font size rendering in all browsers.
 //
 
@@ -532,9 +480,7 @@ pre {
   color: @pre-color;
   word-break: break-all;
   word-wrap: break-word;
-  background-color: @pre-bg;
-  border: 1px solid @pre-border-color;
-  border-radius: @border-radius-base;
+  overflow: auto;
 
   // Account for some code outputs that place code tags in pre tags
   code {
@@ -544,6 +490,18 @@ pre {
     white-space: pre-wrap;
     background-color: transparent;
     border-radius: 0;
+  }
+}
+
+pre,
+code {
+  border: 0;
+  background-color: @white-darker;
+  color: @gray-darker;
+  border-radius: 3px;
+
+  &.small {
+    font-size: 12px;
   }
 }
 
@@ -631,15 +589,6 @@ button::-moz-focus-inner,
 input::-moz-focus-inner {
   border: 0;
   padding: 0;
-}
-
-//
-// Address Firefox 4+ setting `line-height` on `input` using `!important` in
-// the UA stylesheet.
-//
-
-input {
-  line-height: normal;
 }
 
 //
