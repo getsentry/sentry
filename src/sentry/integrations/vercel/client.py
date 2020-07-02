@@ -17,8 +17,7 @@ class VercelClient(ApiClient):
     ENV_VAR_URL = "/v4/projects/%s/env"
     GET_ENV_VAR_URL = "/v5/projects/%s/env"
     SECRETS_URL = "/v2/now/secrets"
-    GET_SECRET_URL = "/v3/now/secrets/%s"
-    DELETE_ENV_VAR_URL = "/v4/projects/%s/env/%s?target=%s"
+    DELETE_ENV_VAR_URL = "/v4/projects/%s/env/%s"
 
     def __init__(self, access_token, team_id=None):
         super(VercelClient, self).__init__()
@@ -61,9 +60,6 @@ class VercelClient(ApiClient):
     def get_env_vars(self, vercel_project_id):
         return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
 
-    def get_secret(self, name):
-        return self.get(self.GET_SECRET_URL % name.lower())["uid"]
-
     def create_secret(self, vercel_project_id, name, value):
         data = {"name": name, "value": value}
         response = self.post(self.SECRETS_URL, data=data)["uid"]
@@ -76,7 +72,8 @@ class VercelClient(ApiClient):
 
     def update_env_variable(self, vercel_project_id, key, value):
         self.delete(
-            self.DELETE_ENV_VAR_URL % (vercel_project_id, key, "production"), allow_text=True
+            self.DELETE_ENV_VAR_URL % (vercel_project_id, key),
+            allow_text=True,
+            params={"target": "production"},
         )
-        response = self.create_env_variable(vercel_project_id, key, value)
-        return response
+        return self.create_env_variable(vercel_project_id, key, value)

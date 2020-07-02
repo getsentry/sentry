@@ -177,8 +177,11 @@ class VercelIntegration(IntegrationInstallation):
             sentry_project_dsn = enabled_dsn.get_dsn(public=True)
             uuid = uuid4().hex
 
-            sentry_auth_token = SentryAppInstallationForProvider.objects.get(
+            sentry_app_installation = SentryAppInstallationForProvider.objects.get(
                 organization=sentry_project.organization.id, provider="vercel"
+            )
+            sentry_auth_token = sentry_app_installation.get_token(
+                self.organization_id, provider="vercel"
             )
             secret_names = [
                 "SENTRY_ORG_%s" % uuid,
@@ -190,7 +193,7 @@ class VercelIntegration(IntegrationInstallation):
                 sentry_project.organization.slug,
                 sentry_project.slug,
                 sentry_project_dsn,
-                sentry_auth_token.sentry_app_installation.api_token.token,
+                sentry_auth_token,
             ]
             env_var_names = [
                 "SENTRY_ORG",
@@ -220,14 +223,6 @@ class VercelIntegration(IntegrationInstallation):
     def get_env_vars(self, client, vercel_project_id):
         return client.get_env_vars(vercel_project_id)
 
-    def get_secret(self, client, name):
-        try:
-            return client.get_secret(name)
-        except ApiError as e:
-            if e.code == 404:
-                return None
-            raise
-
     def env_var_already_exists(self, client, vercel_project_id, name):
         return any(
             [
@@ -238,15 +233,14 @@ class VercelIntegration(IntegrationInstallation):
         )
 
     def create_secret(self, client, vercel_project_id, name, value):
-        secret = self.get_secret(client, name)
-        if secret:
-            return secret
-        else:
-            return client.create_secret(vercel_project_id, name, value)
+        return client.create_secret(vercel_project_id, name, value)
 
     def create_env_var(self, client, vercel_project_id, key, value):
         if not self.env_var_already_exists(client, vercel_project_id, key):
             return client.create_env_variable(vercel_project_id, key, value)
+        self.delete_env_variable(client, vercel_project_id, key, value)
+
+    def delete_env_variable(self, client, vercel_project_id, key, value):
         return client.update_env_variable(vercel_project_id, key, value)
 
 
