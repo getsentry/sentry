@@ -5,21 +5,28 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization, SavedQuery} from 'app/types';
+import {Organization, SavedQuery, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
-
 import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
-import InlineSvg from 'app/components/inlineSvg';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
+import {IconBookmark, IconDelete} from 'app/icons';
+import Feature from 'app/components/acl/feature';
+import EventView from 'app/utils/discover/eventView';
+import withProjects from 'app/utils/withProjects';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
+import CreateAlertButton from 'app/components/createAlertButton';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-import EventView from '../eventView';
-import {generateDiscoverLandingPageRoute} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
-type Props = {
+type DefaultProps = {
+  disabled: boolean;
+};
+
+type Props = DefaultProps & {
   api: Client;
 
   /**
@@ -34,6 +41,11 @@ type Props = {
   eventView: EventView;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
+  projects: Project[];
+  updateCallback: () => void;
+  onIncompatibleAlertQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'];
 };
 
 type State = {
@@ -73,7 +85,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     // For modifying a SavedQuery
     const isEqualQuery = nextEventView.isEqualTo(savedEventView);
-
     return {
       isNewQuery: false,
       isEditingQuery: !isEqualQuery,
@@ -97,6 +108,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       event.preventDefault();
       event.stopPropagation();
     }
+  };
+
+  static defaultProps: DefaultProps = {
+    disabled: false,
   };
 
   state = {
@@ -125,7 +140,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, location, organization, eventView} = this.props;
+    const {api, organization, eventView} = this.props;
 
     if (!this.state.queryName) {
       return;
@@ -143,10 +158,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         const view = EventView.fromSavedQuery(savedQuery);
 
         this.setState({queryName: ''});
-        browserHistory.push({
-          pathname: location.pathname,
-          query: view.generateQueryStringObject(),
-        });
+        browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
       }
     );
   };
@@ -155,15 +167,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView} = this.props;
+    const {api, organization, eventView, updateCallback} = this.props;
 
     handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
       const view = EventView.fromSavedQuery(savedQuery);
       this.setState({queryName: ''});
-      browserHistory.push({
-        pathname: location.pathname,
-        query: view.generateQueryStringObject(),
-      });
+      browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
+      updateCallback();
     });
   };
 
@@ -175,13 +185,23 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       browserHistory.push({
-        pathname: generateDiscoverLandingPageRoute(organization.slug),
+        pathname: getDiscoverLandingUrl(organization),
         query: {},
       });
     });
   };
 
+  handleCreateAlertSuccess = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.create_alert',
+      eventName: 'Discoverv2: Create alert from discover',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
   renderButtonSaveAs() {
+    const {disabled} = this.props;
     const {isNewQuery, isEditingQuery, queryName} = this.state;
 
     if (!isNewQuery && !isEditingQuery) {
@@ -203,12 +223,9 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             {...getActorProps()}
             isOpen={isOpen}
             showChevron={false}
+            disabled={disabled}
           >
-            <ButtonSaveIcon
-              isNewQuery={isNewQuery}
-              src="icon-star-small-filled"
-              size="14"
-            />
+            <StyledIconBookmark size="xs" color="gray500" />
             {t('Save as...')}
           </ButtonSaveAs>
         )}
@@ -221,12 +238,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             value={queryName || ''}
             onBlur={this.onBlurInput}
             onChange={this.onChangeInput}
+            disabled={disabled}
           />
           <Button
             data-test-id="button-save-query"
             onClick={this.handleCreateQuery}
             priority="primary"
-            disabled={!this.state.queryName}
+            disabled={disabled || !this.state.queryName}
             style={{width: '100%'}}
           >
             {t('Save')}
@@ -244,8 +262,8 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
 
     return (
-      <ButtonSaved>
-        <ButtonSaveIcon isNewQuery={isNewQuery} src="icon-star-small-filled" size="14" />
+      <ButtonSaved disabled={this.props.disabled}>
+        <StyledIconBookmark isSolid size="xs" color="yellow400" />
         {t('Saved query')}
       </ButtonSaved>
     );
@@ -262,9 +280,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       <Button
         onClick={this.handleUpdateQuery}
         data-test-id="discover2-savedquery-button-update"
+        disabled={this.props.disabled}
       >
-        <ButtonUpdateIcon />
-        {t('Update query')}
+        <IconUpdate />
+        {t('Save')}
       </Button>
     );
   }
@@ -279,15 +298,34 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     return (
       <Button
         data-test-id="discover2-savedquery-button-delete"
-        icon="icon-trash"
         onClick={this.handleDeleteQuery}
+        disabled={this.props.disabled}
+        icon={<IconDelete />}
       />
+    );
+  }
+
+  renderButtonCreateAlert() {
+    const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
+
+    return (
+      <Feature features={['create-from-discover']} organization={organization}>
+        <CreateAlertButton
+          eventView={eventView}
+          organization={organization}
+          projects={projects}
+          onIncompatibleQuery={onIncompatibleAlertQuery}
+          onSuccess={this.handleCreateAlertSuccess}
+          data-test-id="discover2-create-from-discover"
+        />
+      </Feature>
     );
   }
 
   render() {
     return (
       <ButtonGroup>
+        {this.renderButtonCreateAlert()}
         {this.renderButtonDelete()}
         {this.renderButtonSaveAs()}
         {this.renderButtonUpdate()}
@@ -318,13 +356,7 @@ const ButtonSaveAs = styled(DropdownButton)`
 const ButtonSaved = styled(Button)`
   cursor: not-allowed;
 `;
-const ButtonSaveIcon = styled(InlineSvg)<{isNewQuery?: boolean}>`
-  margin-top: -3px; /* Align SVG vertically to text */
-  margin-right: ${space(0.75)};
-
-  color: ${p => (p.isNewQuery ? p.theme.gray1 : p.theme.yellow)};
-`;
-const ButtonSaveDropDown = styled('li')`
+const ButtonSaveDropDown = styled('div')`
   padding: ${space(1)};
 `;
 const ButtonSaveInput = styled(Input)`
@@ -332,14 +364,18 @@ const ButtonSaveInput = styled(Input)`
   margin-bottom: ${space(1)};
 `;
 
-const ButtonUpdateIcon = styled('div')`
+const StyledIconBookmark = styled(IconBookmark)`
+  margin-right: ${space(1)};
+`;
+
+const IconUpdate = styled('div')`
   display: inline-block;
   width: 10px;
   height: 10px;
 
   margin-right: ${space(0.75)};
   border-radius: 5px;
-  background-color: ${p => p.theme.yellow};
+  background-color: ${p => p.theme.yellow400};
 `;
 
-export default withApi(SavedQueryButtonGroup);
+export default withProjects(withApi(SavedQueryButtonGroup));

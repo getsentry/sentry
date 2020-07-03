@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
+from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.tagstore.base import TAG_KEY_RE
@@ -16,8 +16,6 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
 
         try:
             filter_params = self.get_filter_params(request, organization)
-        except OrganizationEventsError as exc:
-            return Response({"detail": exc.message}, status=400)
         except NoProjects:
             paginator = SequencePaginator([])
         else:

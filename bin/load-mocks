@@ -17,11 +17,17 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
-from loremipsum import Generator
 from pytz import utc
 
 from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
+from sentry.incidents.logic import (
+    AlertRuleNameAlreadyUsedError,
+    create_alert_rule,
+    create_alert_rule_trigger,
+    create_incident,
+)
+from sentry.incidents.models import IncidentType, AlertRuleThresholdType
 from sentry.models import (
     Activity,
     Broadcast,
@@ -57,11 +63,11 @@ from sentry.models import (
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
+from sentry.snuba.models import QueryAggregations
+from sentry.utils import loremipsum
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
 from sentry.utils.samples import generate_user
-
-loremipsum = Generator()
 
 PLATFORMS = itertools.cycle(["ruby", "php", "python", "java", "javascript"])
 
@@ -106,7 +112,7 @@ def create_sample_event(*args, **kwargs):
     try:
         event = _create_sample_event(*args, **kwargs)
     except HashDiscarded as e:
-        print ("> Skipping Event: {}".format(e.message))  # NOQA
+        print("> Skipping Event: {}".format(e.message))  # NOQA
     else:
         if event is not None:
             features.record([event])
@@ -214,8 +220,6 @@ def create_system_time_series():
 def create_sample_time_series(event, release=None):
     if event is None:
         return
-
-    event.bind_node_data()
 
     group = event.group
 
@@ -342,9 +346,9 @@ def main(num_events=1, extra_events=False):
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
-        print ("Mocking org {}".format(org.name))  # NOQA
+        print("Mocking org {}".format(org.name))  # NOQA
     else:
-        print ("Mocking org {}".format("Default"))  # NOQA
+        print("Mocking org {}".format("Default"))  # NOQA
         org, _ = Organization.objects.get_or_create(slug="default")
 
     OrganizationMember.objects.get_or_create(
@@ -356,11 +360,11 @@ def main(num_events=1, extra_events=False):
     )
 
     for team_name, project_names in mocks:
-        print ("> Mocking team {}".format(team_name))  # NOQA
+        print("> Mocking team {}".format(team_name))  # NOQA
         team, _ = Team.objects.get_or_create(name=team_name, defaults={"organization": org})
 
         for project_name in project_names:
-            print ("  > Mocking project {}".format(project_name))  # NOQA
+            print("  > Mocking project {}".format(project_name))  # NOQA
             project, _ = Project.objects.get_or_create(
                 name=project_name,
                 defaults={
@@ -656,8 +660,31 @@ def main(num_events=1, extra_events=False):
                     comments=make_sentence(),
                 )
 
-            print ("    > Loading time series data".format(project_name))  # NOQA
+            try:
+                # Metric alerts
+                alert_rule = create_alert_rule(
+                    org,
+                    [project],
+                    "My Alert Rule",
+                    "level:error",
+                    "count()",
+                    10,
+                    AlertRuleThresholdType.ABOVE,
+                    1,
+                )
+                create_alert_rule_trigger(alert_rule, "critical", AlertRuleThresholdType.ABOVE, 10)
+                create_incident(
+                    org,
+                    type_=IncidentType.DETECTED,
+                    title="My Incident",
+                    date_started=datetime.utcnow().replace(tzinfo=utc),
+                    alert_rule=alert_rule,
+                    projects=[project],
+                )
+            except AlertRuleNameAlreadyUsedError:
+                pass
 
+            print("    > Loading time series data".format(project_name))  # NOQA
             create_sample_time_series(event1, release=release)
             create_sample_time_series(event2, release=release)
             create_sample_time_series(event3)
@@ -665,7 +692,7 @@ def main(num_events=1, extra_events=False):
             create_sample_time_series(event5, release=release)
 
             if hasattr(buffer, "process_pending"):
-                print ("    > Processing pending buffers")  # NOQA
+                print("    > Processing pending buffers")  # NOQA
                 buffer.process_pending()
 
             mocks_loaded.send(project=project, sender=__name__)

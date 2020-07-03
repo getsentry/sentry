@@ -231,34 +231,11 @@ fieldset[disabled] .btn-danger.active,
     margin-right: -1px;
     margin-left: -1px;
   }
-
-  .icon-ellipsis {
-    position: relative;
-    top: 2px;
-  }
-
-  .icon-checkmark,
-  .icon-trash,
-  .icon-pause {
-    position: relative;
-    top: 1px;
-    margin-right: -1px;
-  }
-
-  .icon-play {
-    font-size: 14px;
-    position: relative;
-    top: 2px;
-    left: -2px;
-    width: 0;
-    margin-right: -6px;
-  }
 }
 
 /* Small button icons */
 
 .btn-sm {
-  .icon-arrow-down,
   .icon-arrow-right,
   .icon-arrow-left,
   .icon-refresh {
@@ -360,6 +337,7 @@ pre.plain {
   margin: 0 5px;
   color: @gray-light;
   line-height: 1;
+  vertical-align: middle;
 
   &:hover {
     color: @gray;
@@ -608,6 +586,7 @@ table.table.key-value {
 .loading.mini {
   margin: 4px 0;
   font-size: 13px;
+  height: 24px;
 
   .loading-indicator {
     margin: 0;
@@ -654,24 +633,6 @@ table.table.key-value {
 }
 
 /**
-* Avatar Grid
-* ============================================================================
-*/
-
-.avatar-grid {
-  display: flex;
-  flex-wrap: wrap;
-
-  .avatar-grid-item {
-    margin: 0 4px 4px 0;
-
-    .avatar {
-      .square(24px);
-    }
-  }
-}
-
-/**
 * Search
 * ============================================================================
 */
@@ -693,7 +654,7 @@ table.table.key-value {
   .search-input {
     // Match the height of buttons adjacent to the search input.
     height: 40px;
-    padding: 8px 24px 8px 37px;
+    padding: 8px 34px 8px 37px;
     font-size: 14px;
     background: #fff;
     .transition(none);
@@ -731,8 +692,9 @@ table.table.key-value {
 
 .search-clear-form {
   position: absolute;
-  top: 8px;
+  top: 11px;
   right: 10px;
+  font-size: 16px;
   color: lighten(@gray, 30);
 
   &:hover {
@@ -1053,7 +1015,7 @@ ul.faces {
   }
 
   &:first-of-type {
-    margin-top: -20px;
+    margin-top: -16px;
     border: 0;
   }
 
@@ -1318,25 +1280,10 @@ header + .alert {
     }
   }
 
-  li a {
-    .transition(none);
-    color: @gray-dark;
-
-    &:hover,
-    &.hover {
-      background: #f7f8f9;
-      color: darken(@gray-dark, 10);
-    }
-  }
-
   li.active a,
   li.active a:hover {
     background: @purple;
     color: #fff !important;
-  }
-
-  .divider {
-    margin: 4px 0;
   }
 
   .disabled {
@@ -1635,7 +1582,6 @@ ul.radio-inputs {
   }
 
   .modal-header {
-    background: rgba(249, 250, 251, 0.8);
     border-bottom: 1px solid @trim;
     border-radius: 7px 7px 0 0;
     padding: 20px 30px;
@@ -1700,50 +1646,6 @@ ul.radio-inputs {
         }
       }
     }
-  }
-}
-
-// Command Palette
-.command-palette.modal {
-  .modal-content {
-    padding: 0;
-  }
-}
-
-// Docs Search
-.help-search-modal.modal {
-  .modal-content {
-    padding: 0;
-  }
-}
-
-.create-ownership-rule-modal {
-  @media (min-width: 767px) {
-    .modal-dialog {
-      width: 80%;
-      margin-left: -40%;
-    }
-  }
-  .modal-content {
-    overflow: initial;
-  }
-}
-
-/**
-* Well
-* ============================================================================
-*/
-.blankslate {
-  text-align: center;
-  padding: 50px 0;
-  .icon {
-    font-size: 72px;
-    color: @40;
-    margin-bottom: 10px;
-  }
-
-  h5 {
-    margin-bottom: 10px;
   }
 }
 

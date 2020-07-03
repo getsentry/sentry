@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {shallow} from 'sentry-test/enzyme';
 
 import ResolutionBox from 'app/components/resolutionBox';
@@ -7,11 +8,7 @@ describe('ResolutionBox', function() {
   describe('render()', function() {
     it('handles inNextRelease', function() {
       const wrapper = shallow(
-        <ResolutionBox
-          statusDetails={{inNextRelease: true}}
-          orgId="org"
-          projectId="project"
-        />
+        <ResolutionBox statusDetails={{inNextRelease: true}} projectId="1" />
       );
       expect(wrapper).toMatchSnapshot();
     });
@@ -22,8 +19,7 @@ describe('ResolutionBox', function() {
             inNextRelease: true,
             actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
-          orgId="org"
-          projectId="project"
+          projectId="1"
         />
       );
       expect(wrapper).toMatchSnapshot();
@@ -34,8 +30,7 @@ describe('ResolutionBox', function() {
           statusDetails={{
             inRelease: '1.0',
           }}
-          orgId="org"
-          projectId="project"
+          projectId="1"
         />
       );
       expect(wrapper).toMatchSnapshot();
@@ -47,16 +42,13 @@ describe('ResolutionBox', function() {
             inRelease: '1.0',
             actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
-          orgId="org"
-          projectId="project"
+          projectId="1"
         />
       );
       expect(wrapper).toMatchSnapshot();
     });
     it('handles default', function() {
-      const wrapper = shallow(
-        <ResolutionBox statusDetails={{}} orgId="org" projectId="project" />
-      );
+      const wrapper = shallow(<ResolutionBox statusDetails={{}} projectId="1" />);
       expect(wrapper).toMatchSnapshot();
     });
     it('handles inCommit', function() {
@@ -65,8 +57,7 @@ describe('ResolutionBox', function() {
           statusDetails={{
             inCommit: TestStubs.Commit(),
           }}
-          orgId="org"
-          projectId="project"
+          projectId="1"
         />
       );
       expect(wrapper).toMatchSnapshot();

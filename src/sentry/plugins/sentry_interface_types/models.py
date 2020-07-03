@@ -13,7 +13,7 @@ class InterfaceTypePlugin(TagPlugin):
     the class name of each interface (e.g. Http, Stacktrace, Exception).
     """
 
-    descrption = __doc__
+    description = __doc__
     slug = "interface_types"
     title = "Auto Tag: Interface Types"
     version = sentry.VERSION

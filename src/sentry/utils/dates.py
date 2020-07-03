@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 import pytz
 from dateutil.parser import parse
+from sentry.constants import MAX_ROLLUP_POINTS
 from django.db import connections
 
 DATE_TRUNC_GROUPERS = {"date": "day", "hour": "hour", "minute": "minute"}
@@ -29,6 +30,9 @@ def to_datetime(value):
     The timestamp value must be a numeric type (either a integer or float,
     since it may contain a fractional component.)
     """
+    if value is None:
+        return None
+
     return epoch + timedelta(seconds=value)
 
 
@@ -98,3 +102,15 @@ def parse_stats_period(period):
     return timedelta(
         **{{"h": "hours", "d": "days", "m": "minutes", "s": "seconds", "w": "weeks"}[unit]: value}
     )
+
+
+def get_rollup_from_request(request, params, default_interval, error):
+    interval = parse_stats_period(request.GET.get("interval", default_interval))
+    if interval is None:
+        interval = timedelta(hours=1)
+
+    date_range = params["end"] - params["start"]
+    if date_range.total_seconds() / interval.total_seconds() > MAX_ROLLUP_POINTS:
+        raise error
+
+    return int(interval.total_seconds())

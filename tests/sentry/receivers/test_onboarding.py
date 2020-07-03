@@ -7,6 +7,7 @@ from sentry.models import (
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
     OrganizationOption,
+    Rule,
 )
 from sentry.signals import (
     event_processed,
@@ -17,9 +18,9 @@ from sentry.signals import (
     member_joined,
     plugin_enabled,
     issue_tracker_used,
+    alert_rule_created,
 )
 from sentry.plugins.bases import IssueTrackingPlugin
-from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -266,16 +267,17 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_notification_added(self):
-        plugin_enabled.send(
-            plugin=NotificationPlugin(),
+    def test_alert_added(self):
+        alert_rule_created.send(
+            rule=Rule(id=1),
             project=self.project,
             user=self.user,
-            sender=type(NotificationPlugin),
+            rule_type="issue",
+            sender=type(Rule),
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
-            task=OnboardingTask.NOTIFICATION_SERVICE,
+            task=OnboardingTask.ALERT_RULE,
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
@@ -341,8 +343,12 @@ class OrganizationOnboardingTaskTest(TestCase):
             user=user,
             sender=type(IssueTrackingPlugin),
         )
-        plugin_enabled.send(
-            plugin=NotificationPlugin(), project=project, user=user, sender=type(NotificationPlugin)
+        alert_rule_created.send(
+            rule=Rule(id=1),
+            project=self.project,
+            user=self.user,
+            rule_type="issue",
+            sender=type(Rule),
         )
 
         assert (

@@ -1,19 +1,34 @@
 from __future__ import absolute_import
 
-import json
-
 from .base import BasePage
+from .global_selection import GlobalSelectionPage
 
 
 class IssueDetailsPage(BasePage):
     def __init__(self, browser, client):
         super(IssueDetailsPage, self).__init__(browser)
         self.client = client
+        self.global_selection = GlobalSelectionPage(browser)
 
     def visit_issue(self, org, groupid):
-        self.dismiss_assistant()
         self.browser.get(u"/organizations/{}/issues/{}/".format(org, groupid))
         self.wait_until_loaded()
+
+    def visit_issue_in_environment(self, org, groupid, environment):
+        self.browser.get(
+            u"/organizations/{}/issues/{}/?environment={}".format(org, groupid, environment)
+        )
+        self.browser.wait_until(".group-detail")
+
+    def visit_tag_values(self, org, groupid, tag):
+        self.browser.get(u"/organizations/{}/issues/{}/tags/{}".format(org, groupid, tag))
+        self.browser.wait_until_not(".loading-indicator")
+
+    def get_environment(self):
+        return self.browser.find_element_by_css_selector('[data-test-id="env-label"').text.lower()
+
+    def go_back_to_issues(self):
+        self.global_selection.go_back_to_issues()
 
     def api_issue_get(self, groupid):
         return self.client.get(u"/api/0/issues/{}/".format(groupid))
@@ -65,23 +80,10 @@ class IssueDetailsPage(BasePage):
         element = self.browser.element('[data-test-id="activity-note-body"]')
         return text in element.text
 
-    def dismiss_assistant(self):
-        res = self.client.put(
-            "/api/0/assistant/",
-            content_type="application/json",
-            data=json.dumps({"guide_id": 1, "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201
-
-        res = self.client.put(
-            "/api/0/assistant/",
-            content_type="application/json",
-            data=json.dumps({"guide_id": 3, "status": "viewed", "useful": True}),
-        )
-        assert res.status_code == 201
-
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
-        self.browser.wait_until(".entries")
+        self.browser.wait_until_test_id("event-entries")
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
+        if self.browser.element_exists("#grouping-info"):
+            self.browser.wait_until_test_id("loaded-grouping-info")

@@ -41,15 +41,13 @@ class SimilarList extends React.Component {
     };
   }
 
-  renderEmpty = () => {
-    return (
-      <Panel>
-        <EmptyStateWarning>
-          <p>{t('There are no similar issues.')}</p>
-        </EmptyStateWarning>
-      </Panel>
-    );
-  };
+  renderEmpty = () => (
+    <Panel>
+      <EmptyStateWarning>
+        <p>{t('There are no similar issues.')}</p>
+      </EmptyStateWarning>
+    </Panel>
+  );
 
   handleShowAll = () => {
     this.setState({showAllItems: true});

@@ -1,7 +1,7 @@
-import {t} from 'app/locale';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {analytics} from 'app/utils/analytics';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -192,7 +192,6 @@ class ReleaseProgress extends AsyncComponent {
             <StyledButton
               className="text-light"
               onClick={() => this.handleClick('dismissed')}
-              size="large"
               data-test-id="dismissed"
             >
               {t('Dismiss')}
@@ -200,7 +199,6 @@ class ReleaseProgress extends AsyncComponent {
             <StyledButton
               className="text-light"
               onClick={() => this.handleClick('snoozed')}
-              size="large"
               data-test-id="snoozed"
             >
               {t('Remind Me Later')}

@@ -14,7 +14,8 @@ from time import time
 
 from sentry import nodestore
 from sentry.app import tsdb
-from sentry.constants import MAX_VERSION_LENGTH
+from sentry.attachments import attachment_cache, CachedAttachment
+from sentry.constants import DataCategory, MAX_VERSION_LENGTH
 from sentry.eventstore.models import Event
 from sentry.event_manager import HashDiscarded, EventManager, EventUser
 from sentry.grouping.utils import hash_from_values
@@ -36,7 +37,8 @@ from sentry.models import (
     OrganizationIntegration,
     UserReport,
 )
-from sentry.signals import event_discarded, event_saved
+from sentry.utils.cache import cache_key_for_event
+from sentry.utils.outcomes import Outcome
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils.data_filters import FilterStatKeys
 from sentry.relay.config import get_project_config
@@ -776,6 +778,7 @@ class EventManagerTest(TestCase):
             is_new_group_environment=True,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
+            received_timestamp=event.data["received"],
         )
 
         event = save_event()
@@ -790,6 +793,7 @@ class EventManagerTest(TestCase):
             is_new_group_environment=False,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
+            received_timestamp=event.data["received"],
         )
 
     def test_default_fingerprint(self):
@@ -898,6 +902,7 @@ class EventManagerTest(TestCase):
                         }
                     },
                     "spans": [],
+                    "timestamp": "2019-06-14T14:01:40Z",
                     "start_timestamp": "2019-06-14T14:01:40Z",
                     "type": "transaction",
                 }
@@ -928,6 +933,20 @@ class EventManagerTest(TestCase):
         event = manager.save(self.project.id)
 
         assert event.message == "hello world"
+
+    def test_search_message(self):
+        manager = EventManager(
+            make_event(
+                **{
+                    "message": "test",
+                    "logentry": {"message": "hello world"},
+                    "transaction": "sentry.tasks.process",
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert event.search_message == "hello world sentry.tasks.process"
 
     def test_stringified_message(self):
         manager = EventManager(make_event(**{"message": 1234}))
@@ -996,33 +1015,182 @@ class EventManagerTest(TestCase):
         )
         GroupHash.objects.filter(group=group).update(group=None, group_tombstone_id=tombstone.id)
 
-        manager = EventManager(make_event(message="foo", event_id="b" * 32, fingerprint=["a" * 32]))
-
-        mock_event_discarded = mock.Mock()
-        event_discarded.connect(mock_event_discarded)
-        mock_event_saved = mock.Mock()
-        event_saved.connect(mock_event_saved)
-
-        with self.tasks():
-            with self.assertRaises(HashDiscarded):
-                event = manager.save(1)
-
-        assert not mock_event_saved.called
-        assert_mock_called_once_with_partial(
-            mock_event_discarded, project=group.project, sender=EventManager, signal=event_discarded
+        manager = EventManager(
+            make_event(message="foo", event_id="b" * 32, fingerprint=["a" * 32]),
+            project=self.project,
         )
+        manager.normalize()
 
-    def test_event_saved_signal(self):
-        mock_event_saved = mock.Mock()
-        event_saved.connect(mock_event_saved)
+        a1 = CachedAttachment(name="a1", data=b"hello")
+        a2 = CachedAttachment(name="a2", data=b"world")
 
+        cache_key = cache_key_for_event(manager.get_data())
+        attachment_cache.set(cache_key, attachments=[a1, a2])
+
+        from sentry.utils.outcomes import track_outcome
+
+        mock_track_outcome = mock.Mock(wraps=track_outcome)
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature("organizations:event-attachments"):
+                with self.tasks():
+                    with self.assertRaises(HashDiscarded):
+                        event = manager.save(1, cache_key=cache_key)
+
+        assert mock_track_outcome.call_count == 3
+
+        for o in mock_track_outcome.mock_calls:
+            assert o.kwargs["outcome"] == Outcome.FILTERED
+            assert o.kwargs["reason"] == FilterStatKeys.DISCARDED_HASH
+
+        o = mock_track_outcome.mock_calls[0]
+        assert o.kwargs["category"] == DataCategory.DEFAULT
+
+        for o in mock_track_outcome.mock_calls[1:]:
+            assert o.kwargs["category"] == DataCategory.ATTACHMENT
+            assert o.kwargs["quantity"] == 5
+
+        def query(model, key, **kwargs):
+            return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
+
+        # Ensure that we incremented TSDB counts
+        assert query(tsdb.models.organization_total_received, event.project.organization.id) == 2
+        assert query(tsdb.models.project_total_received, event.project.id) == 2
+
+        assert query(tsdb.models.project, event.project.id) == 1
+        assert query(tsdb.models.group, event.group.id) == 1
+
+        assert query(tsdb.models.organization_total_blacklisted, event.project.organization.id) == 1
+        assert query(tsdb.models.project_total_blacklisted, event.project.id) == 1
+
+    def test_honors_crash_report_limit(self):
+        from sentry.utils.outcomes import track_outcome
+
+        mock_track_outcome = mock.Mock(wraps=track_outcome)
+
+        # Allow exactly one crash report
+        self.project.update_option("sentry:store_crash_reports", 1)
+
+        manager = EventManager(
+            make_event(message="foo", event_id="a" * 32, fingerprint=["a" * 32]),
+            project=self.project,
+        )
+        manager.normalize()
+
+        a1 = CachedAttachment(name="a1", data=b"hello", type="event.minidump")
+        a2 = CachedAttachment(name="a2", data=b"world")
+        cache_key = cache_key_for_event(manager.get_data())
+        attachment_cache.set(cache_key, attachments=[a1, a2])
+
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature("organizations:event-attachments"):
+                with self.tasks():
+                    manager.save(self.project.id, cache_key=cache_key)
+
+        # The first minidump should be accepted, since the limit is 1
+        assert mock_track_outcome.call_count == 3
+        for o in mock_track_outcome.mock_calls:
+            assert o.kwargs["outcome"] == Outcome.ACCEPTED
+
+        mock_track_outcome.reset_mock()
+
+        manager = EventManager(
+            make_event(message="foo", event_id="b" * 32, fingerprint=["a" * 32]),
+            project=self.project,
+        )
+        manager.normalize()
+
+        cache_key = cache_key_for_event(manager.get_data())
+        attachment_cache.set(cache_key, attachments=[a1, a2])
+
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature("organizations:event-attachments"):
+                with self.tasks():
+                    manager.save(self.project.id, cache_key=cache_key)
+
+        assert mock_track_outcome.call_count == 3
+        o = mock_track_outcome.mock_calls[0]
+        assert o.kwargs["outcome"] == Outcome.FILTERED
+        assert o.kwargs["category"] == DataCategory.ATTACHMENT
+        assert o.kwargs["reason"] == FilterStatKeys.CRASH_REPORT_LIMIT
+
+        for o in mock_track_outcome.mock_calls[1:]:
+            assert o.kwargs["outcome"] == Outcome.ACCEPTED
+
+    def test_event_accepted_outcome(self):
         manager = EventManager(make_event(message="foo"))
         manager.normalize()
-        event = manager.save(1)
+
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            manager.save(1)
 
         assert_mock_called_once_with_partial(
-            mock_event_saved, project=event.group.project, sender=EventManager, signal=event_saved
+            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.DEFAULT
         )
+
+    def test_attachment_accepted_outcomes(self):
+        manager = EventManager(make_event(message="foo"), project=self.project)
+        manager.normalize()
+
+        a1 = CachedAttachment(name="a1", data=b"hello")
+        a2 = CachedAttachment(name="a2", data=b"limited", rate_limited=True)
+        a3 = CachedAttachment(name="a3", data=b"world")
+
+        cache_key = cache_key_for_event(manager.get_data())
+        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
+
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature("organizations:event-attachments"):
+                manager.save(1, cache_key=cache_key)
+
+        assert mock_track_outcome.call_count == 3
+
+        for o in mock_track_outcome.mock_calls:
+            assert o.kwargs["outcome"] == Outcome.ACCEPTED
+
+        for o in mock_track_outcome.mock_calls[:2]:
+            assert o.kwargs["category"] == DataCategory.ATTACHMENT
+            assert o.kwargs["quantity"] == 5
+
+        final = mock_track_outcome.mock_calls[2]
+        assert final.kwargs["category"] == DataCategory.DEFAULT
+
+    def test_attachment_filtered_outcomes(self):
+        manager = EventManager(make_event(message="foo"), project=self.project)
+        manager.normalize()
+
+        # Disable storing all crash reports, which will drop the minidump but save the other
+        a1 = CachedAttachment(name="a1", data=b"minidump", type="event.minidump")
+        a2 = CachedAttachment(name="a2", data=b"limited", rate_limited=True)
+        a3 = CachedAttachment(name="a3", data=b"world")
+
+        cache_key = cache_key_for_event(manager.get_data())
+        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
+
+        mock_track_outcome = mock.Mock()
+        with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
+            with self.feature("organizations:event-attachments"):
+                manager.save(1, cache_key=cache_key)
+
+        assert mock_track_outcome.call_count == 3
+
+        # First outcome is the rejection of the minidump
+        o = mock_track_outcome.mock_calls[0]
+        assert o.kwargs["outcome"] == Outcome.FILTERED
+        assert o.kwargs["category"] == DataCategory.ATTACHMENT
+        assert o.kwargs["reason"] == FilterStatKeys.CRASH_REPORT_LIMIT
+
+        # Second outcome is acceptance of the "a3" attachment
+        o = mock_track_outcome.mock_calls[1]
+        assert o.kwargs["outcome"] == Outcome.ACCEPTED
+        assert o.kwargs["category"] == DataCategory.ATTACHMENT
+        assert o.kwargs["quantity"] == 5
+
+        # Last outcome is the event
+        o = mock_track_outcome.mock_calls[2]
+        assert o.kwargs["outcome"] == Outcome.ACCEPTED
+        assert o.kwargs["category"] == DataCategory.DEFAULT
 
     def test_checksum_rehashed(self):
         checksum = "invalid checksum hash"
@@ -1105,6 +1273,7 @@ class EventManagerTest(TestCase):
                     }
                 },
                 spans=[],
+                timestamp="2019-06-14T14:01:40Z",
                 start_timestamp="2019-06-14T14:01:40Z",
                 type="transaction",
                 platform="python",
@@ -1139,6 +1308,7 @@ class EventManagerTest(TestCase):
                     }
                 },
                 spans=[],
+                timestamp="2019-06-14T14:01:40Z",
                 start_timestamp="2019-06-14T14:01:40Z",
                 type="transaction",
                 platform="python",

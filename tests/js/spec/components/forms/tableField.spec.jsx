@@ -1,5 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import React from 'react';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
@@ -45,7 +46,7 @@ describe('TableField', function() {
     });
 
     it('renders button text', function() {
-      expect(wrapper.find('Button[icon="icon-circle-add"]').text()).toEqual('Add Thing');
+      expect(wrapper.find('button[aria-label="Add Thing"]').text()).toEqual('Add Thing');
     });
 
     it("doesn't render columns if there's no initalData", function() {
@@ -54,7 +55,7 @@ describe('TableField', function() {
 
     describe('saves changes', function() {
       it('handles adding a new row', function() {
-        wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
+        wrapper.find('button[aria-label="Add Thing"]').simulate('click');
         expect(
           wrapper
             .find('HeaderLabel')
@@ -71,14 +72,17 @@ describe('TableField', function() {
 
       it('handles removing a row', function() {
         // add a couple new rows for funsies
-        wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
-        wrapper.find('Button[icon="icon-circle-add"]').simulate('click');
+        wrapper.find('button[aria-label="Add Thing"]').simulate('click');
+        wrapper.find('button[aria-label="Add Thing"]').simulate('click');
 
         // delete the last row
         wrapper
-          .find('Button[icon="icon-trash"]')
+          .find('button[aria-label="delete"]')
           .last()
           .simulate('click');
+
+        // click through confirmation
+        wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
 
         expect(wrapper.find('RowContainer[data-test-id="field-row"]')).toHaveLength(1);
       });

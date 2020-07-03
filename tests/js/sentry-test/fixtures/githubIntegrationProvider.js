@@ -1,6 +1,7 @@
 export function GitHubIntegrationProvider(params = {}) {
   return {
     key: 'github',
+    slug: 'github',
     name: 'GitHub',
     canAdd: true,
     config: [],

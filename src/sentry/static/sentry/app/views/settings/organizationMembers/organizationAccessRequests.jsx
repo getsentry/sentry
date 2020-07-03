@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
@@ -7,7 +8,6 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import styled from '@emotion/styled';
 import withApi from 'app/utils/withApi';
 
 class OrganizationAccessRequests extends React.Component {

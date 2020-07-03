@@ -1,11 +1,14 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import Field from 'app/views/settings/components/forms/field';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';
+import space from 'app/styles/space';
 
 const DEFAULT_PROPS = {
   showDsn: true,
@@ -21,12 +24,27 @@ const DEFAULT_PROPS = {
 type Props = {
   projectId: string;
   data: ProjectKey;
-} & Partial<typeof DEFAULT_PROPS>;
+} & typeof DEFAULT_PROPS;
 
-class ProjectKeyCredentials extends React.Component<Props> {
+type State = {
+  showDeprecatedDsn: boolean;
+};
+
+class ProjectKeyCredentials extends React.Component<Props, State> {
   static defaultProps = DEFAULT_PROPS;
 
+  state = {
+    showDeprecatedDsn: false,
+  };
+
+  toggleDeprecatedDsn = () => {
+    this.setState(state => ({
+      showDeprecatedDsn: !state.showDeprecatedDsn,
+    }));
+  };
+
   render() {
+    const {showDeprecatedDsn} = this.state;
     const {
       projectId,
       data,
@@ -43,21 +61,52 @@ class ProjectKeyCredentials extends React.Component<Props> {
     return (
       <React.Fragment>
         {showDsnPublic && (
-          <Field label={t('DSN')} inline={false} flexibleControlStateSize>
+          <Field
+            label={t('DSN')}
+            inline={false}
+            flexibleControlStateSize
+            help={tct('The DSN tells the SDK where to send the events to. [link]', {
+              link: showDsn ? (
+                <Link to="" onClick={this.toggleDeprecatedDsn}>
+                  {showDeprecatedDsn
+                    ? t('Hide deprecated DSN')
+                    : t('Show deprecated DSN')}
+                </Link>
+              ) : null,
+            })}
+          >
             <TextCopyInput>
               {getDynamicText({
                 value: data.dsn.public,
                 fixed: '__DSN__',
               })}
             </TextCopyInput>
+            {showDeprecatedDsn && (
+              <StyledField
+                label={null}
+                help={t(
+                  'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+                )}
+                inline={false}
+                flexibleControlStateSize
+              >
+                <TextCopyInput>
+                  {getDynamicText({
+                    value: data.dsn.secret,
+                    fixed: '__DSN_DEPRECATED__',
+                  })}
+                </TextCopyInput>
+              </StyledField>
+            )}
           </Field>
         )}
 
-        {showDsn && (
+        {/* this edge case should imho not happen, but just to be sure */}
+        {!showDsnPublic && showDsn && (
           <Field
             label={t('DSN (Deprecated)')}
             help={t(
-              "This DSN includes the secret which is no longer required by Sentry' newer versions of SDKs. If you are unsure which to use, follow installation instructions for your language."
+              'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
             )}
             inline={false}
             flexibleControlStateSize
@@ -166,4 +215,9 @@ class ProjectKeyCredentials extends React.Component<Props> {
     );
   }
 }
+
+const StyledField = styled(Field)`
+  padding: ${space(0.5)} 0 0 0;
+`;
+
 export default ProjectKeyCredentials;

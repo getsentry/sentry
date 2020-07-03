@@ -2,27 +2,67 @@ from __future__ import absolute_import
 
 import logging
 
+import six
 import boto3
 from botocore.client import ClientError
+
 from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry_plugins.utils import get_secret_field_config
 from sentry.utils import json, metrics
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 logger = logging.getLogger(__name__)
+
+DESCRIPTION = """
+Forward Sentry events to Amazon SQS.
+
+Amazon Simple Queue Service (SQS) is a fully managed message
+queuing service that enables you to decouple and scale microservices,
+distributed systems, and serverless applications.
+"""
 
 
 def get_regions():
     public_region_list = boto3.session.Session().get_available_regions("sqs")
-    cn_region_list = boto3.session.Session().get_available_regions("sqs", partition_name='aws-cn')
+    cn_region_list = boto3.session.Session().get_available_regions("sqs", partition_name="aws-cn")
     return public_region_list + cn_region_list
+
+
+def track_response_metric(fn):
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Queue.send_message
+    # boto3's send_message doesn't return success/fail or http codes
+    # success is a boolean based on whether there was an exception or not
+    def wrapper(*args, **kwargs):
+        try:
+            success = fn(*args, **kwargs)
+            metrics.incr(
+                "data-forwarding.http_response", tags={"plugin": "amazon-sqs", "success": success}
+            )
+        except Exception:
+            metrics.incr(
+                "data-forwarding.http_response", tags={"plugin": "amazon-sqs", "success": False}
+            )
+            raise
+        return success
+
+    return wrapper
 
 
 class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
     title = "Amazon SQS"
     slug = "amazon-sqs"
-    description = "Forward Sentry events to Amazon SQS."
+    description = DESCRIPTION
     conf_key = "amazon-sqs"
+    required_field = "queue_url"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Forward Sentry errors and events to Amazon SQS.
+            """,
+            IntegrationFeatures.DATA_FORWARDING,
+        )
+    ]
 
     def get_config(self, project, **kwargs):
         return [
@@ -53,6 +93,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             },
         ]
 
+    @track_response_metric
     def forward_event(self, event, payload):
         queue_url = self.get_option("queue_url", event.project)
         access_key = self.get_option("access_key", event.project)
@@ -79,7 +120,6 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             )
 
             message = {"QueueUrl": queue_url, "MessageBody": message}
-
             # need a MessageGroupId for FIFO queues
             # note that if MessageGroupId is specified for non-FIFO, this will fail
             if message_group_id:
@@ -89,23 +129,22 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 # if content based de-duplication is not enabled, we need to provide a
                 # MessageDeduplicationId
                 message["MessageDeduplicationId"] = uuid4().hex
-
             client.send_message(**message)
         except ClientError as e:
-            if e.message.startswith("An error occurred (AccessDenied)"):
+            if six.text_type(e).startswith(
+                "An error occurred (InvalidClientTokenId)"
+            ) or six.text_type(e).startswith("An error occurred (AccessDenied)"):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just log and continue.
                 metrics_name = "sentry_plugins.amazon_sqs.access_token_invalid"
                 logger.info(
                     metrics_name,
                     extra={
-                        "queue_url": queue_url,
-                        "access_key": access_key,
-                        "region": region,
                         "project_id": event.project.id,
                         "organization_id": event.project.organization_id,
                     },
                 )
+
                 metrics.incr(
                     metrics_name,
                     tags={
@@ -114,17 +153,13 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                     },
                 )
                 return False
-            elif e.message.endswith("must contain the parameter MessageGroupId."):
+            elif six.text_type(e).endswith("must contain the parameter MessageGroupId."):
                 metrics_name = "sentry_plugins.amazon_sqs.missing_message_group_id"
                 logger.info(
                     metrics_name,
                     extra={
-                        "queue_url": queue_url,
-                        "access_key": access_key,
-                        "region": region,
                         "project_id": event.project.id,
                         "organization_id": event.project.organization_id,
-                        "message_group_id": message_group_id,
                     },
                 )
                 metrics.incr(
@@ -136,5 +171,4 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
                 )
                 return False
             raise
-
         return True

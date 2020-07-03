@@ -1,322 +1,322 @@
 ---
-created: '2019-03-15T18:37:00.200137Z'
+created: '2020-02-26T19:54:32.353548Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '93c2d97697ba4aa34b91557c1c217641'
+  hash: "93c2d97697ba4aa34b91557c1c217641"
   component:
     app*
       exception*
         stacktrace*
           frame (non app frame)
             module*
-              u'react-native/Libraries/BatchedBridge/MessageQueue'
+              "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
-              u'messagequeue.js'
+              "messagequeue.js"
             function*
-              u'value'
+              "value"
           frame (non app frame)
             module*
-              u'react-native/Libraries/BatchedBridge/MessageQueue'
+              "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
-              u'messagequeue.js'
+              "messagequeue.js"
             function*
-              u'flushedQueue'
+              "flushedQueue"
           frame (non app frame)
             module*
-              u'react-native/Libraries/BatchedBridge/MessageQueue'
+              "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
-              u'messagequeue.js'
+              "messagequeue.js"
             function*
-              u'_inCall'
+              "_inCall"
           frame (non app frame)
             module*
-              u'react-native/Libraries/BatchedBridge/MessageQueue'
+              "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
-              u'messagequeue.js'
+              "messagequeue.js"
             function*
-              u'flushedQueue'
+              "flushedQueue"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'_lastFlush'
+              "_lastFlush"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'_receiveRootNodeIDEvent'
+              "_receiveRootNodeIDEvent"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'batchedUpdates'
+              "batchedUpdates"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'_batchedUpdates'
+              "_batchedUpdates"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'fn'
+              "fn"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'forEachAccumulated'
+              "forEachAccumulated"
           frame (non app frame)
             function*
-              u'[native code] forEach'
-          frame (non app frame)
-            module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
-            filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
-            function*
-              u'D'
+              "[native code] forEach"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'executeDispatch'
+              "D"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'invokeGuardedCallbackAndCatchFirstError'
+              "executeDispatch"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'apply'
+              "invokeGuardedCallbackAndCatchFirstError"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'apply'
+              "apply"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Components/Touchable/Touchable'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'touchable.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'arguments'
+              "apply"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Components/Touchable/Touchable'
+              "react-native/Libraries/Components/Touchable/Touchable"
             filename (module takes precedence)
-              u'touchable.js'
+              "touchable.js"
             function*
-              u'_receiveSignal'
+              "arguments"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Components/Touchable/Touchable'
+              "react-native/Libraries/Components/Touchable/Touchable"
             filename (module takes precedence)
-              u'touchable.js'
+              "touchable.js"
             function*
-              u'_performSideEffectsForTransition'
+              "_receiveSignal"
           frame (non app frame)
             module*
-              u'react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android'
+              "react-native/Libraries/Components/Touchable/Touchable"
             filename (module takes precedence)
-              u'touchablenativefeedback.android.js'
+              "touchable.js"
             function*
-              u'this'
+              "_performSideEffectsForTransition"
+          frame (non app frame)
+            module*
+              "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
+            filename (module takes precedence)
+              "touchablenativefeedback.android.js"
+            function*
+              "this"
           frame*
             module*
-              u'App'
+              "App"
             filename (module takes precedence)
-              u'app.js'
+              "app.js"
             function*
-              u'onPress'
+              "onPress"
           frame*
             module*
-              u'App'
+              "App"
             filename (module takes precedence)
-              u'app.js'
+              "app.js"
             function*
-              u'Button'
+              "Button"
         type*
-          u'TypeError'
+          "TypeError"
 --------------------------------------------------------------------------
 system:
-  hash: '53f5eee7a48d6754dcc87aee2be66195'
+  hash: "53f5eee7a48d6754dcc87aee2be66195"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'react-native/Libraries/BatchedBridge/MessageQueue'
+              "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
-              u'messagequeue.js'
+              "messagequeue.js"
             function*
-              u'value'
+              "value"
           frame*
             module*
-              u'react-native/Libraries/BatchedBridge/MessageQueue'
+              "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
-              u'messagequeue.js'
+              "messagequeue.js"
             function*
-              u'flushedQueue'
+              "flushedQueue"
           frame*
             module*
-              u'react-native/Libraries/BatchedBridge/MessageQueue'
+              "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
-              u'messagequeue.js'
+              "messagequeue.js"
             function*
-              u'_inCall'
+              "_inCall"
           frame*
             module*
-              u'react-native/Libraries/BatchedBridge/MessageQueue'
+              "react-native/Libraries/BatchedBridge/MessageQueue"
             filename (module takes precedence)
-              u'messagequeue.js'
+              "messagequeue.js"
             function*
-              u'flushedQueue'
+              "flushedQueue"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'_lastFlush'
+              "_lastFlush"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'_receiveRootNodeIDEvent'
+              "_receiveRootNodeIDEvent"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'batchedUpdates'
+              "batchedUpdates"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'_batchedUpdates'
+              "_batchedUpdates"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'fn'
+              "fn"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'forEachAccumulated'
+              "forEachAccumulated"
           frame*
             function*
-              u'[native code] forEach'
-          frame*
-            module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
-            filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
-            function*
-              u'D'
+              "[native code] forEach"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'executeDispatch'
+              "D"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'invokeGuardedCallbackAndCatchFirstError'
+              "executeDispatch"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'apply'
+              "invokeGuardedCallbackAndCatchFirstError"
           frame*
             module*
-              u'react-native/Libraries/Renderer/ReactNativeRenderer-prod'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'reactnativerenderer-prod.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'apply'
+              "apply"
           frame*
             module*
-              u'react-native/Libraries/Components/Touchable/Touchable'
+              "react-native/Libraries/Renderer/ReactNativeRenderer-prod"
             filename (module takes precedence)
-              u'touchable.js'
+              "reactnativerenderer-prod.js"
             function*
-              u'arguments'
+              "apply"
           frame*
             module*
-              u'react-native/Libraries/Components/Touchable/Touchable'
+              "react-native/Libraries/Components/Touchable/Touchable"
             filename (module takes precedence)
-              u'touchable.js'
+              "touchable.js"
             function*
-              u'_receiveSignal'
+              "arguments"
           frame*
             module*
-              u'react-native/Libraries/Components/Touchable/Touchable'
+              "react-native/Libraries/Components/Touchable/Touchable"
             filename (module takes precedence)
-              u'touchable.js'
+              "touchable.js"
             function*
-              u'_performSideEffectsForTransition'
+              "_receiveSignal"
           frame*
             module*
-              u'react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android'
+              "react-native/Libraries/Components/Touchable/Touchable"
             filename (module takes precedence)
-              u'touchablenativefeedback.android.js'
+              "touchable.js"
             function*
-              u'this'
+              "_performSideEffectsForTransition"
           frame*
             module*
-              u'App'
+              "react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android"
             filename (module takes precedence)
-              u'app.js'
+              "touchablenativefeedback.android.js"
             function*
-              u'onPress'
+              "this"
           frame*
             module*
-              u'App'
+              "App"
             filename (module takes precedence)
-              u'app.js'
+              "app.js"
             function*
-              u'Button'
+              "onPress"
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "app.js"
+            function*
+              "Button"
         type*
-          u'TypeError'
+          "TypeError"

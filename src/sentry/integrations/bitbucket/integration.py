@@ -16,7 +16,7 @@ from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.models import Repository
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
@@ -24,6 +24,8 @@ from sentry.utils.http import absolute_uri
 from .repository import BitbucketRepositoryProvider
 from .client import BitbucketApiClient
 from .issues import BitbucketIssueBasicMixin
+
+from django.utils.datastructures import OrderedSet
 
 DESCRIPTION = """
 Connect your Sentry organization to Bitbucket, enabling the following features:
@@ -68,7 +70,7 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 # see https://developer.atlassian.com/bitbucket/api/2/reference/meta/authentication#scopes-bbc
-scopes = ("issue:write", "pullrequest", "webhook")
+scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
 class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, RepositoryMixin):
@@ -96,11 +98,21 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
                 for repo in resp.get("values", [])
             ]
 
-        full_query = (u'name~"%s"' % (query)).encode("utf-8")
-        resp = self.get_client().search_repositories(self.username, full_query)
-        return [
-            {"identifier": i["full_name"], "name": i["full_name"]} for i in resp.get("values", [])
-        ]
+        exact_query = (u'name="%s"' % (query)).encode("utf-8")
+        fuzzy_query = (u'name~"%s"' % (query)).encode("utf-8")
+
+        exact_search_resp = self.get_client().search_repositories(self.username, exact_query)
+        fuzzy_search_resp = self.get_client().search_repositories(self.username, fuzzy_query)
+
+        result = OrderedSet()
+
+        for j in exact_search_resp.get("values", []):
+            result.add(j["full_name"])
+
+        for i in fuzzy_search_resp.get("values", []):
+            result.add(i["full_name"])
+
+        return [{"identifier": full_name, "name": full_name} for full_name in result]
 
     def has_repo_access(self, repo):
         client = self.get_client()
@@ -117,7 +129,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
 
-        return filter(lambda repo: repo.name not in accessible_repos, repos)
+        return [repo for repo in repos if repo.name not in accessible_repos]
 
     def reinstall(self):
         self.reinstall_repositories()
@@ -141,7 +153,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
         )
         return [identity_pipeline_view, VerifyInstallation()]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["bitbucket", "integrations:bitbucket"],

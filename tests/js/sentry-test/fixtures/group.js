@@ -7,7 +7,7 @@ export function Group(params = {}) {
     annotations: [],
     assignedTo: null,
     count: '327482',
-    culprit: 'fetchData(app/components/group/suggestedOwners)',
+    culprit: 'fetchData(app/components/group/suggestedOwners/suggestedOwners)',
     firstRelease: null,
     firstSeen: '2019-04-05T19:44:05.963Z',
     hasSeen: false,

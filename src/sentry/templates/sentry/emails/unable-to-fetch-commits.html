@@ -2,7 +2,7 @@
 
 {% block main %}
   <h3>Unable to Fetch Commits</h3>
-  <p>We were unable to fetch the commit log for your release (<em>{{ release.version }}</em>) due to the following error:</p>
+  <p>We were unable to fetch the commit log for your release (<em>{{ release.version }}</em>) for repository <em>{{ repo.name }}</em> due to the following error:</p>
   <p>{{ error_message }}</p>
   <p><strong>Troubleshooting &amp; References</strong></p>
   <ul>

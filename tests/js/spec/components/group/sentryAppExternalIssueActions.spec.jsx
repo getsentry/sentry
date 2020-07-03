@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select';
 

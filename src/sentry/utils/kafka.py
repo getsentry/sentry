@@ -53,18 +53,30 @@ class ProducerManager(object):
 producers = ProducerManager()
 
 
-def create_batching_kafka_consumer(topic_name, worker, **options):
-    cluster_name = settings.KAFKA_TOPICS[topic_name]["cluster"]
+def create_batching_kafka_consumer(topic_names, worker, **options):
+    cluster_names = set(settings.KAFKA_TOPICS[topic_name]["cluster"] for topic_name in topic_names)
+    if len(cluster_names) > 1:
+        raise ValueError(
+            "Cannot launch Kafka consumer listening to multiple topics ({}) on different clusters ({})".format(
+                topic_names, cluster_names
+            )
+        )
+
+    (cluster_name,) = cluster_names
+
     bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
     if not isinstance(bootstrap_servers, (list, tuple)):
         bootstrap_servers = bootstrap_servers.split(",")
 
     consumer = BatchingKafkaConsumer(
-        topics=[topic_name],
+        topics=topic_names,
         bootstrap_servers=bootstrap_servers,
         worker=worker,
         metrics=metrics,
-        metrics_default_tags={"topic": topic_name, "group_id": options.get("group_id")},
+        metrics_default_tags={
+            "topics": ",".join(sorted(topic_names)),
+            "group_id": options.get("group_id"),
+        },
         **options
     )
 

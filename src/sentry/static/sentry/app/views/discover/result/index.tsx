@@ -6,8 +6,10 @@ import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import InlineSvg from 'app/components/inlineSvg';
 import PageHeading from 'app/components/pageHeading';
+import {IconEdit, IconWarning} from 'app/icons';
+import Alert from 'app/components/alert';
+import Link from 'app/components/links/link';
 
 import {
   getChartData,
@@ -40,6 +42,7 @@ import {SavedQuery} from '../types';
 type ResultProps = {
   data: any;
   location: any;
+  discover2Url: string;
   savedQuery: SavedQuery | null; // Provided if it's a saved search
   onFetchPage: (nextOrPrev: string) => void;
   onToggleEdit: () => void;
@@ -53,9 +56,6 @@ type ResultState = {
 };
 
 class Result extends React.Component<ResultProps, ResultState> {
-  // This is the ref of the table container component
-  private container: any;
-
   constructor(props: ResultProps) {
     super(props);
     this.state = {
@@ -69,7 +69,7 @@ class Result extends React.Component<ResultProps, ResultState> {
     window.addEventListener('resize', this.throttledUpdateDimensions);
   }
 
-  componentWillReceiveProps(nextProps: ResultProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: ResultProps) {
     const {data, location} = nextProps;
     const visualization = getVisualization(data, location.query.visualization);
 
@@ -89,6 +89,9 @@ class Result extends React.Component<ResultProps, ResultState> {
   componentWillUnmount() {
     window.removeEventListener('resize', this.throttledUpdateDimensions);
   }
+
+  // This is the ref of the table container component
+  private container: any;
 
   setDimensions = (ref: any) => {
     this.container = ref;
@@ -187,8 +190,8 @@ class Result extends React.Component<ResultProps, ResultState> {
         <PageHeading>
           {getDynamicText({value: this.props.savedQuery!.name, fixed: 'saved query'})}
         </PageHeading>
-        <SavedQueryAction onClick={this.props.onToggleEdit}>
-          <InlineSvg src="icon-edit" />
+        <SavedQueryAction to="" onClick={this.props.onToggleEdit}>
+          <IconEdit />
         </SavedQueryAction>
       </React.Fragment>
     );
@@ -201,6 +204,7 @@ class Result extends React.Component<ResultProps, ResultState> {
   render() {
     const {
       data: {baseQuery, byDayQuery},
+      discover2Url,
       savedQuery,
       onFetchPage,
       utc,
@@ -228,6 +232,10 @@ class Result extends React.Component<ResultProps, ResultState> {
           <HeadingContainer>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
           </HeadingContainer>
+          <Alert type="warning" icon={<IconWarning size="sm" />}>
+            This discover view is deprecated. Check out our new visualization and querying
+            capabilities in <Link to={discover2Url}>the new Discover</Link> today.
+          </Alert>
           {this.renderToggle()}
         </div>
         <ResultInnerContainer ref={this.setDimensions}>

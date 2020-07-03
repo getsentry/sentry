@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
-# the maximum number of remote resources (i.e. sourc eifles) that should be
+# the maximum number of remote resources (i.e. source files) that should be
 # fetched
 MAX_URL_LENGTH = 150
 

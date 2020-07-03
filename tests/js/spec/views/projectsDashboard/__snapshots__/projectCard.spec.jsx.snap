@@ -16,6 +16,7 @@ exports[`ProjectCard renders 1`] = `
         "team:write",
         "team:admin",
       ],
+      "experiments": Object {},
       "features": Array [],
       "id": "3",
       "name": "Organization Name",
@@ -76,7 +77,7 @@ exports[`ProjectCard renders 1`] = `
     >
       <StyledProjectCard>
         <div
-          className="css-mgpviq-StyledProjectCard e1o95it03"
+          className="css-4c8b66-StyledProjectCard e1o95it03"
         >
           <StyledProjectCardHeader>
             <div
@@ -160,8 +161,6 @@ exports[`ProjectCard renders 1`] = `
                             project-slug
                           </span>
                         }
-                        hideAvatar={false}
-                        hideOverflow={true}
                         project={
                           Object {
                             "environments": Array [],
@@ -230,7 +229,10 @@ exports[`ProjectCard renders 1`] = `
                                 __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                   Object {
                                     "$$typeof": Symbol(react.forward_ref),
-                                    "__emotion_base": [Function],
+                                    "__emotion_base": Object {
+                                      "$$typeof": Symbol(react.forward_ref),
+                                      "render": [Function],
+                                    },
                                     "__emotion_forwardProp": undefined,
                                     "__emotion_real": [Circular],
                                     "__emotion_styles": Array [
@@ -239,9 +241,7 @@ exports[`ProjectCard renders 1`] = `
                                       [Function],
                                       ";flex-shrink:0;",
                                     ],
-                                    "defaultProps": Object {
-                                      "hasTooltip": false,
-                                    },
+                                    "defaultProps": undefined,
                                     "displayName": "StyledAvatar",
                                     "render": [Function],
                                     "withComponent": [Function],
@@ -274,7 +274,6 @@ exports[`ProjectCard renders 1`] = `
                               >
                                 <StyledAvatar
                                   className="css-0"
-                                  hasTooltip={false}
                                   project={
                                     Object {
                                       "environments": Array [],
@@ -300,9 +299,8 @@ exports[`ProjectCard renders 1`] = `
                                   }
                                   size={18}
                                 >
-                                  <Avatar
+                                  <ForwardRef
                                     className="css-1neg7x4-StyledAvatar e165dl3i1"
-                                    hasTooltip={false}
                                     project={
                                       Object {
                                         "environments": Array [],
@@ -328,8 +326,9 @@ exports[`ProjectCard renders 1`] = `
                                     }
                                     size={18}
                                   >
-                                    <ProjectAvatar
+                                    <Avatar
                                       className="css-1neg7x4-StyledAvatar e165dl3i1"
+                                      forwardedRef={null}
                                       hasTooltip={false}
                                       project={
                                         Object {
@@ -356,68 +355,104 @@ exports[`ProjectCard renders 1`] = `
                                       }
                                       size={18}
                                     >
-                                      <PlatformList
+                                      <ProjectAvatar
                                         className="css-1neg7x4-StyledAvatar e165dl3i1"
-                                        consistentWidth={false}
-                                        direction="right"
+                                        forwardedRef={null}
                                         hasTooltip={false}
-                                        max={1}
-                                        platforms={
-                                          Array [
-                                            "javascript",
-                                          ]
+                                        project={
+                                          Object {
+                                            "environments": Array [],
+                                            "hasAccess": true,
+                                            "id": "2",
+                                            "isBookmarked": false,
+                                            "isMember": true,
+                                            "name": "Project Name",
+                                            "platform": "javascript",
+                                            "slug": "project-slug",
+                                            "stats": Array [
+                                              Array [
+                                                1525042800,
+                                                1,
+                                              ],
+                                              Array [
+                                                1525046400,
+                                                2,
+                                              ],
+                                            ],
+                                            "teams": Array [],
+                                          }
                                         }
                                         size={18}
                                       >
-                                        <PlatformIcons
-                                          className="css-1neg7x4-StyledAvatar e165dl3i1"
-                                          consistentWidth={false}
-                                          direction="right"
-                                          max={1}
-                                          size={18}
+                                        <Tooltip
+                                          containerDisplayMode="inline-block"
+                                          disabled={true}
+                                          position="top"
                                         >
-                                          <div
-                                            className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar ezvce7z0"
+                                          <PlatformList
+                                            className="css-1neg7x4-StyledAvatar e165dl3i1"
+                                            consistentWidth={false}
                                             direction="right"
+                                            forwardedRef={null}
                                             max={1}
+                                            platforms={
+                                              Array [
+                                                "javascript",
+                                              ]
+                                            }
                                             size={18}
                                           >
-                                            <StyledPlatformIcon
-                                              key="javascript"
-                                              platform="javascript"
+                                            <PlatformIcons
+                                              className="css-1neg7x4-StyledAvatar e165dl3i1"
+                                              consistentWidth={false}
+                                              direction="right"
+                                              max={1}
                                               size={18}
                                             >
-                                              <Component
-                                                className="css-d510pr-StyledPlatformIcon ezvce7z1"
-                                                platform="javascript"
+                                              <div
+                                                className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar ezvce7z0"
+                                                direction="right"
+                                                max={1}
                                                 size={18}
                                               >
-                                                <PlatformIcon
-                                                  className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                <StyledPlatformIcon
+                                                  key="javascript0"
                                                   platform="javascript"
-                                                  size="18px"
+                                                  size={18}
                                                 >
-                                                  <img
+                                                  <Component
                                                     className="css-d510pr-StyledPlatformIcon ezvce7z1"
-                                                    height="18px"
-                                                    src={
-                                                      Object {
-                                                        "default": Object {
-                                                          "id": "test",
-                                                          "viewBox": Object {},
-                                                        },
-                                                      }
-                                                    }
-                                                    width="18px"
-                                                  />
-                                                </PlatformIcon>
-                                              </Component>
-                                            </StyledPlatformIcon>
-                                          </div>
-                                        </PlatformIcons>
-                                      </PlatformList>
-                                    </ProjectAvatar>
-                                  </Avatar>
+                                                    platform="javascript"
+                                                    size={18}
+                                                  >
+                                                    <PlatformIcon
+                                                      className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                      platform="javascript"
+                                                      size="18px"
+                                                    >
+                                                      <img
+                                                        className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                        height="18px"
+                                                        src={
+                                                          Object {
+                                                            "default": Object {
+                                                              "id": "test",
+                                                              "viewBox": Object {},
+                                                            },
+                                                          }
+                                                        }
+                                                        width="18px"
+                                                      />
+                                                    </PlatformIcon>
+                                                  </Component>
+                                                </StyledPlatformIcon>
+                                              </div>
+                                            </PlatformIcons>
+                                          </PlatformList>
+                                        </Tooltip>
+                                      </ProjectAvatar>
+                                    </Avatar>
+                                  </ForwardRef>
                                 </StyledAvatar>
                               </EmotionCssPropInternal>
                               <DisplayNameAndDescription>
@@ -461,6 +496,7 @@ exports[`ProjectCard renders 1`] = `
                       "team:write",
                       "team:admin",
                     ],
+                    "experiments": Object {},
                     "features": Array [],
                     "id": "3",
                     "name": "Organization Name",
@@ -523,6 +559,7 @@ exports[`ProjectCard renders 1`] = `
                         "team:write",
                         "team:admin",
                       ],
+                      "experiments": Object {},
                       "features": Array [],
                       "id": "3",
                       "name": "Organization Name",
@@ -567,13 +604,13 @@ exports[`ProjectCard renders 1`] = `
                     src="icon-star-small-filled"
                   >
                     <ForwardRef
-                      className="css-176na0z-InlineSvg-Star ez1a7zv0"
+                      className="css-13jrg9a-InlineSvg-Star ez1a7zv0"
                       isBookmarked={false}
                       onClick={[Function]}
                       src="icon-star-small-filled"
                     >
                       <svg
-                        className="css-176na0z-InlineSvg-Star ez1a7zv0"
+                        className="css-13jrg9a-InlineSvg-Star ez1a7zv0"
                         height="1em"
                         onClick={[Function]}
                         viewBox={Object {}}
@@ -905,6 +942,7 @@ exports[`ProjectCard renders 1`] = `
                   "team:write",
                   "team:admin",
                 ],
+                "experiments": Object {},
                 "features": Array [],
                 "id": "3",
                 "name": "Organization Name",
@@ -944,92 +982,89 @@ exports[`ProjectCard renders 1`] = `
             }
           >
             <NoDeploys>
-              <DeployBox
-                p={2}
-              >
+              <DeployContainer>
                 <div
-                  className="css-d9a0z6-DeployBox elff1ar5"
+                  className="css-aosuvv-DeployContainer elff1ar4"
                 >
-                  <Background
-                    alignItems="center"
-                    justifyContent="center"
-                  >
+                  <Background>
                     <div
-                      className="css-4zyp61-Background elff1ar6"
+                      className="css-18zws67-Background elff1ar5"
                     >
-                      <Button
-                        align="center"
-                        disabled={false}
+                      <forwardRef<Button>
                         external={true}
                         href="https://docs.sentry.io/learn/releases/"
                         size="xsmall"
                       >
-                        <StyledButton
-                          aria-disabled={false}
-                          aria-label="Track deploys"
+                        <Button
+                          align="center"
                           disabled={false}
                           external={true}
+                          forwardRef={null}
                           href="https://docs.sentry.io/learn/releases/"
-                          onClick={[Function]}
-                          role="button"
                           size="xsmall"
                         >
-                          <ForwardRef
+                          <StyledButton
                             aria-disabled={false}
                             aria-label="Track deploys"
-                            className="css-12ogwys-StyledButton edwq9my0"
                             disabled={false}
                             external={true}
+                            forwardRef={null}
                             href="https://docs.sentry.io/learn/releases/"
                             onClick={[Function]}
                             role="button"
                             size="xsmall"
                           >
-                            <ForwardRef
+                            <Component
                               aria-disabled={false}
                               aria-label="Track deploys"
-                              className="css-12ogwys-StyledButton edwq9my0"
+                              className="css-8od3q1-StyledButton edwq9my0"
+                              external={true}
+                              forwardRef={null}
                               href="https://docs.sentry.io/learn/releases/"
                               onClick={[Function]}
                               role="button"
                               size="xsmall"
                             >
-                              <a
+                              <ForwardRef(ExternalLink)
                                 aria-disabled={false}
                                 aria-label="Track deploys"
-                                className="css-12ogwys-StyledButton edwq9my0"
+                                className="css-8od3q1-StyledButton edwq9my0"
                                 href="https://docs.sentry.io/learn/releases/"
                                 onClick={[Function]}
-                                rel="noreferrer noopener"
                                 role="button"
                                 size="xsmall"
-                                target="_blank"
                               >
-                                <ButtonLabel
-                                  align="center"
+                                <a
+                                  aria-disabled={false}
+                                  aria-label="Track deploys"
+                                  className="css-8od3q1-StyledButton edwq9my0"
+                                  href="https://docs.sentry.io/learn/releases/"
+                                  onClick={[Function]}
+                                  rel="noreferrer noopener"
+                                  role="button"
                                   size="xsmall"
+                                  target="_blank"
                                 >
-                                  <Component
+                                  <ButtonLabel
                                     align="center"
-                                    className="css-cmi7y3-ButtonLabel edwq9my1"
                                     size="xsmall"
                                   >
                                     <span
-                                      className="css-cmi7y3-ButtonLabel edwq9my1"
+                                      className="css-1dw46ju-ButtonLabel edwq9my1"
                                     >
                                       Track deploys
                                     </span>
-                                  </Component>
-                                </ButtonLabel>
-                              </a>
-                            </ForwardRef>
-                          </ForwardRef>
-                        </StyledButton>
-                      </Button>
+                                  </ButtonLabel>
+                                </a>
+                              </ForwardRef(ExternalLink)>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </forwardRef<Button>>
                     </div>
                   </Background>
                 </div>
-              </DeployBox>
+              </DeployContainer>
             </NoDeploys>
           </Deploys>
         </div>

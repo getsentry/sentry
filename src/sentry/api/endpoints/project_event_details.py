@@ -61,16 +61,16 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             if requested_environments:
                 conditions.append(["environment", "IN", requested_environments])
 
-            filter = eventstore.Filter(
+            _filter = eventstore.Filter(
                 conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
             )
 
             # Ignore any time params and search entire retention period
-            next_event_filter = deepcopy(filter)
+            next_event_filter = deepcopy(_filter)
             next_event_filter.end = datetime.utcnow()
             next_event = eventstore.get_next_event_id(event, filter=next_event_filter)
 
-            prev_event_filter = deepcopy(filter)
+            prev_event_filter = deepcopy(_filter)
             prev_event_filter.start = datetime.utcfromtimestamp(0)
             prev_event = eventstore.get_prev_event_id(event, filter=prev_event_filter)
 

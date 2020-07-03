@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TextCopyInput renders 1`] = `
-<Styled(div)>
+<Wrapper>
   <OverflowContainer>
     <StyledInput
       onClick={[Function]}
@@ -18,17 +18,12 @@ exports[`TextCopyInput renders 1`] = `
     value="Text to Copy"
   >
     <StyledCopyButton
-      align="center"
-      disabled={false}
       onClick={[Function]}
       size="xsmall"
       type="button"
     >
-      <InlineSvg
-        size="1.25em"
-        src="icon-clipboard"
-      />
+      <IconCopy />
     </StyledCopyButton>
   </Clipboard>
-</Styled(div)>
+</Wrapper>
 `;

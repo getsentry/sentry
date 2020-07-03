@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationApiKeysList from 'app/views/settings/organizationApiKeys/organizationApiKeysList';
@@ -39,7 +40,7 @@ describe('OrganizationApiKeysList', function() {
 
     wrapper.update();
     // Click remove button
-    wrapper.find('.icon-trash').simulate('click');
+    wrapper.find('ForwardRef(IconDelete)').simulate('click');
     wrapper.update();
 
     // expect a modal

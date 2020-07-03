@@ -12,10 +12,11 @@ import ExternalIssueList from 'app/components/group/externalIssuesList';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
 import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import SentryTypes from 'app/sentryTypes';
 import SubscribeButton from 'app/components/subscribeButton';
-import SuggestedOwners from 'app/components/group/suggestedOwners';
+import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import withApi from 'app/utils/withApi';
 
 const SUBSCRIPTION_REASONS = {
@@ -47,7 +48,7 @@ class GroupSidebar extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     const {group, api} = this.props;
     api.request(`/issues/${group.id}/participants/`, {
       success: data => {
@@ -80,7 +81,7 @@ class GroupSidebar extends React.Component {
     this.fetchTagData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (!isEqual(nextProps.environments, this.props.environments)) {
       this.setState({environments: nextProps.environments}, this.fetchTagData);
     }
@@ -110,7 +111,7 @@ class GroupSidebar extends React.Component {
 
   toggleSubscription() {
     const {api, group, project, organization} = this.props;
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     api.bulkUpdate(
       {
@@ -233,7 +234,9 @@ class GroupSidebar extends React.Component {
 
     return (
       <div className="group-stats">
-        <SuggestedOwners project={project} group={group} event={this.props.event} />
+        {this.props.event && (
+          <SuggestedOwners project={project} group={group} event={this.props.event} />
+        )}
         <GroupReleaseStats
           group={this.props.group}
           project={project}
@@ -253,7 +256,9 @@ class GroupSidebar extends React.Component {
         {this.renderPluginIssue()}
 
         <h6>
-          <span>{t('Tags')}</span>
+          <GuideAnchor target="tags" position="bottom">
+            <span>{t('Tags')}</span>
+          </GuideAnchor>
         </h6>
         {this.state.tagsWithTopValues &&
           group.tags.map(tag => {

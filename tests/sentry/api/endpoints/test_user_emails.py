@@ -21,11 +21,11 @@ class UserEmailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
 
-        primary_email = filter(lambda n: n["isPrimary"], response.data)
+        primary_email = [n for n in response.data if n["isPrimary"]]
         assert len(primary_email) == 1
         assert primary_email[0]["email"] == "foo@example.com"
 
-        secondary_emails = filter(lambda n: not n["isPrimary"], response.data)
+        secondary_emails = [n for n in response.data if not n["isPrimary"]]
         assert len(secondary_emails) == 2
 
     def test_add_secondary_email(self):

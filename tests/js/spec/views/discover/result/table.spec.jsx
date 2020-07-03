@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mount, render} from 'sentry-test/enzyme';
 
 import {ResultTable} from 'app/views/discover/result/table';

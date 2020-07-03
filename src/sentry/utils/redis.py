@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 from sentry.utils.versioning import Version, check_versions
+from sentry.utils.compat import map
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,8 @@ class _RedisCluster(object):
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         hosts = config.get("hosts")
-        hosts = hosts.values() if isinstance(hosts, dict) else hosts
+        # TODO(joshuarli): modernize dict_six fixer
+        hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
@@ -143,19 +145,20 @@ class ClusterManager(object):
     def get(self, key):
         cluster = self.__clusters.get(key)
 
-        if cluster:
-            return cluster
+        # Do not access attributes of the `cluster` object to prevent
+        # setup/init of lazy objects. The _RedisCluster type will try to
+        # connect to the cluster during initialization.
+        if cluster is None:
+            # TODO: This would probably be safer with a lock, but I'm not sure
+            # that it's necessary.
+            configuration = self.__options_manager.get("redis.clusters").get(key)
+            if configuration is None:
+                raise KeyError(u"Invalid cluster name: {}".format(key))
 
-        # TODO: This would probably be safer with a lock, but I'm not sure
-        # that it's necessary.
-        configuration = self.__options_manager.get("redis.clusters").get(key)
-        if configuration is None:
-            raise KeyError(u"Invalid cluster name: {}".format(key))
+            if not self.__cluster_type.supports(configuration):
+                raise KeyError(u"Invalid cluster type, expected: {}".format(self.__cluster_type))
 
-        if not self.__cluster_type.supports(configuration):
-            raise KeyError(u"Invalid cluster type, expected: {}".format(self.__cluster_type))
-
-        cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
+            cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
         return cluster
 

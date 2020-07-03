@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import sentry_sdk
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -86,7 +87,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization for
                                           which the teams should be listed.
-        :param string detailed: Specify "0" to return team details that do not include projects
+        :param string detailed:      Specify "0" to return team details that do not include projects
+        :param string is_not_member: Specify "1" to *only* return team details of teams that user is not a member of
         :auth: required
         """
         # TODO(dcramer): this should be system-wide default for organization
@@ -94,27 +96,37 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if request.auth and hasattr(request.auth, "project"):
             return Response(status=403)
 
-        queryset = Team.objects.filter(
-            organization=organization, status=TeamStatus.VISIBLE
-        ).order_by("slug")
+        with sentry_sdk.start_span(op="PERF: OrgTeam.get - filter"):
+            queryset = Team.objects.filter(
+                organization=organization, status=TeamStatus.VISIBLE
+            ).order_by("slug")
+
+        if request.GET.get("is_not_member", "0") == "1":
+            user_teams = Team.objects.get_for_user(organization=organization, user=request.user)
+            queryset = queryset.exclude(id__in=[ut.id for ut in user_teams])
 
         query = request.GET.get("query")
 
-        if query:
-            tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
-                if key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
-                else:
-                    queryset = queryset.none()
+        with sentry_sdk.start_span(op="PERF: OrgTeam.get - tokenize"):
+            if query:
+                tokens = tokenize_query(query)
+                for key, value in six.iteritems(tokens):
+                    if key == "query":
+                        value = " ".join(value)
+                        queryset = queryset.filter(
+                            Q(name__icontains=value) | Q(slug__icontains=value)
+                        )
+                    else:
+                        queryset = queryset.none()
 
         is_detailed = request.GET.get("detailed", "1") != "0"
-        serializer = (
-            team_serializers.TeamWithProjectsSerializer
-            if is_detailed
-            else team_serializers.TeamSerializer
-        )
+
+        with sentry_sdk.start_span(op="PERF: OrgTeam.get - serialize"):
+            serializer = (
+                team_serializers.TeamWithProjectsSerializer
+                if is_detailed
+                else team_serializers.TeamSerializer
+            )
 
         return self.paginate(
             request=request,

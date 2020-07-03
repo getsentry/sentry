@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.models import Integration
 
 
@@ -47,8 +48,8 @@ class JiraSearchEndpoint(IntegrationEndpoint):
                 return Response([])
             try:
                 resp = installation.search_issues(query)
-            except IntegrationError as exc:
-                return Response({"detail": exc.message}, status=400)
+            except IntegrationError as e:
+                return Response({"detail": six.text_type(e)}, status=400)
             return Response(
                 [
                     {"label": "(%s) %s" % (i["key"], i["fields"]["summary"]), "value": i["key"]}

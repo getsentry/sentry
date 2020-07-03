@@ -32,14 +32,15 @@ class ProjectInstallOverview extends AsyncComponent {
 
   redirectToDocs = platform => {
     const {orgId, projectId} = this.props.params;
-    const prefix = recreateRoute('', {...this.props, stepBack: -3});
-    let rootUrl = `${prefix}install`;
 
-    if (this.isGettingStarted) {
-      rootUrl = `/organizations/${orgId}/projects/${projectId}/getting-started`;
-    }
+    const installUrl = this.isGettingStarted
+      ? `/organizations/${orgId}/projects/${projectId}/getting-started/${platform}/`
+      : recreateRoute(`install/${platform}/`, {
+          ...this.props,
+          stepBack: -3,
+        });
 
-    browserHistory.push(`${rootUrl}/${platform}/`);
+    browserHistory.push(installUrl);
   };
 
   toggleDsn = () => {
@@ -52,7 +53,7 @@ class ProjectInstallOverview extends AsyncComponent {
 
     const issueStreamLink = `/organizations/${orgId}/issues/#welcome`;
 
-    const dsn = keyList ? keyList[0].dsn : {};
+    const dsn = !!keyList?.length ? keyList[0].dsn : {};
 
     return (
       <div>

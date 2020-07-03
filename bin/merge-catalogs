@@ -6,7 +6,7 @@ import click
 from babel.messages.pofile import read_po, write_po
 
 
-JS_EXTENSIONS = (".js", ".jsx")
+JS_EXTENSIONS = (".js", ".jsx", ".ts", ".tsx")
 
 
 def merge_message(msg, frontend_msg):

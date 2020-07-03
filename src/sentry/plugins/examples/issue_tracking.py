@@ -9,8 +9,8 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
     version = "0.0.0"
     description = "An example issue tracking plugin"
     resource_links = [
-        ("Bug Tracker", "https://github.com/getsentry/sentry/issues"),
-        ("Source", "https://github.com/getsentry/sentry"),
+        ("Report Issue", "https://github.com/getsentry/sentry/issues"),
+        ("View Source", "https://github.com/getsentry/sentry"),
     ]
 
     slug = "example-issue"

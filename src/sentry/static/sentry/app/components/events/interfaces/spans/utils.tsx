@@ -1,8 +1,24 @@
 import isString from 'lodash/isString';
 import moment from 'moment';
+import set from 'lodash/set';
+import isNumber from 'lodash/isNumber';
 
+import {SentryTransactionEvent} from 'app/types';
+import {assert} from 'app/types/utils';
 import CHART_PALETTE from 'app/constants/chartPalette';
-import {ParsedTraceType, ProcessedSpanType, GapSpanType, RawSpanType} from './types';
+
+import {
+  ParsedTraceType,
+  ProcessedSpanType,
+  GapSpanType,
+  RawSpanType,
+  OrphanSpanType,
+  SpanType,
+  SpanEntry,
+  TraceContextType,
+  TreeDepthType,
+  OrphanTreeDepth,
+} from './types';
 
 type Rect = {
   // x and y are left/top coords respectively
@@ -42,23 +58,19 @@ export const rectOfContent = (element: Element): Rect => {
   };
 };
 
-export const rectOfViewport = (): Rect => {
-  return {
-    x: window.pageXOffset,
-    y: window.pageYOffset,
-    width: window.document.documentElement.clientWidth,
-    height: window.document.documentElement.clientHeight,
-  };
-};
+export const rectOfViewport = (): Rect => ({
+  x: window.pageXOffset,
+  y: window.pageYOffset,
+  width: window.document.documentElement.clientWidth,
+  height: window.document.documentElement.clientHeight,
+});
 
-export const rectRelativeTo = (rect: Rect, pos = {x: 0, y: 0}): Rect => {
-  return {
-    x: rect.x - pos.x,
-    y: rect.y - pos.y,
-    width: rect.width,
-    height: rect.height,
-  };
-};
+export const rectRelativeTo = (rect: Rect, pos = {x: 0, y: 0}): Rect => ({
+  x: rect.x - pos.x,
+  y: rect.y - pos.y,
+  width: rect.width,
+  height: rect.height,
+});
 
 export const rectOfElement = (element: HTMLElement): Rect => {
   const {x, y} = getOffsetOfElement(element);
@@ -80,13 +92,10 @@ export const clamp = (value: number, min: number, max: number): number => {
   return value;
 };
 
-export const isValidSpanID = (maybeSpanID: any) => {
-  return isString(maybeSpanID) && maybeSpanID.length > 0;
-};
+export const isValidSpanID = (maybeSpanID: any) =>
+  isString(maybeSpanID) && maybeSpanID.length > 0;
 
-export const toPercent = (value: number) => {
-  return `${(value * 100).toFixed(3)}%`;
-};
+export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
 
 export type SpanBoundsType = {startTimestamp: number; endTimestamp: number};
 export type SpanGeneratedBoundsType =
@@ -142,7 +151,7 @@ export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus
   return TimestampStatus.Reversed;
 };
 
-// given the start and end trace timstamps, and the view window, we want to generate a function
+// given the start and end trace timestamps, and the view window, we want to generate a function
 // that'll output the relative %'s for the width and placements relative to the left-hand side.
 //
 // The view window (viewStart and viewEnd) are percentage values (between 0% and 100%), they correspond to the window placement
@@ -259,10 +268,10 @@ export const spanColors = {
 };
 
 export const pickSpanBarColour = (input: string | undefined): string => {
-  // We pick the color for span bars using the first two letters of the op name.
+  // We pick the color for span bars using the first three letters of the op name.
   // That way colors stay consistent between transactions.
 
-  if (!input || input.length < 2) {
+  if (!input || input.length < 3) {
     return CHART_PALETTE[17][4];
   }
 
@@ -272,8 +281,11 @@ export const pickSpanBarColour = (input: string | undefined): string => {
 
   const letterIndex1 = getLetterIndex(input.slice(0, 1));
   const letterIndex2 = getLetterIndex(input.slice(1, 2));
+  const letterIndex3 = getLetterIndex(input.slice(2, 3));
 
-  return colorsAsArray[(letterIndex1 + letterIndex2) % colorsAsArray.length];
+  return colorsAsArray[
+    (letterIndex1 + letterIndex2 + letterIndex3) % colorsAsArray.length
+  ];
 };
 
 export type UserSelectValues = {
@@ -311,6 +323,7 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
     start_timestamp: trace.traceStartTimestamp,
     timestamp: trace.traceEndTimestamp,
     op: trace.op,
+    description: trace.description,
     data: {},
   };
 
@@ -339,8 +352,25 @@ export function getTraceDateTimeRange(input: {
 }
 
 export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
-  // @ts-ignore
-  return span.type === 'gap';
+  if ('type' in span) {
+    return span.type === 'gap';
+  }
+
+  return false;
+}
+
+export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
+  if ('type' in span) {
+    if (span.type === 'orphan') {
+      return true;
+    }
+
+    if (span.type === 'gap') {
+      return span.isOrphan;
+    }
+  }
+
+  return false;
 }
 
 export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
@@ -374,3 +404,194 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
 
   return span.parent_span_id;
 }
+
+export function getTraceContext(
+  event: Readonly<SentryTransactionEvent>
+): TraceContextType | undefined {
+  return event?.contexts?.trace;
+}
+
+export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
+  const spanEntry: SpanEntry | undefined = event.entries.find(
+    (entry: {type: string}) => entry.type === 'spans'
+  );
+
+  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+
+  const traceContext = getTraceContext(event);
+  const traceID = (traceContext && traceContext.trace_id) || '';
+  const rootSpanID = (traceContext && traceContext.span_id) || '';
+  const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
+  const description = traceContext && traceContext.description;
+  const parentSpanID = traceContext && traceContext.parent_span_id;
+
+  if (!spanEntry || spans.length <= 0) {
+    return {
+      op: rootSpanOpName,
+      childSpans: {},
+      traceStartTimestamp: event.startTimestamp,
+      traceEndTimestamp: event.endTimestamp,
+      traceID,
+      rootSpanID,
+      parentSpanID,
+      numOfSpans: 0,
+      spans: [],
+      description,
+    };
+  }
+
+  // any span may be a parent of another span
+  const potentialParents = new Set(
+    spans.map(span => {
+      return span.span_id;
+    })
+  );
+
+  // the root transaction span is a parent of all other spans
+  potentialParents.add(rootSpanID);
+
+  // we reduce spans to become an object mapping span ids to their children
+
+  const init: ParsedTraceType = {
+    op: rootSpanOpName,
+    childSpans: {},
+    traceStartTimestamp: event.startTimestamp,
+    traceEndTimestamp: event.endTimestamp,
+    traceID,
+    rootSpanID,
+    parentSpanID,
+    numOfSpans: spans.length,
+    spans,
+    description,
+  };
+
+  const reduced: ParsedTraceType = spans.reduce((acc, inputSpan) => {
+    let span: SpanType = inputSpan;
+
+    const parentSpanId = getSpanParentSpanID(span);
+
+    const hasParent = parentSpanId && potentialParents.has(parentSpanId);
+
+    if (!isValidSpanID(parentSpanId) || !hasParent) {
+      // this span is considered an orphan with respect to the spans within this transaction.
+      // although the span is an orphan, it's still a descendant of this transaction,
+      // so we set its parent span id to be the root transaction span's id
+      span.parent_span_id = rootSpanID;
+
+      span = {
+        type: 'orphan',
+        ...span,
+      } as OrphanSpanType;
+    }
+
+    assert(span.parent_span_id);
+
+    // get any span children whose parent_span_id is equal to span.parent_span_id,
+    // otherwise start with an empty array
+    const spanChildren: Array<SpanType> = acc.childSpans?.[span.parent_span_id] ?? [];
+
+    spanChildren.push(span);
+
+    set(acc.childSpans, span.parent_span_id, spanChildren);
+
+    // set trace start & end timestamps based on given span's start and end timestamps
+
+    if (!acc.traceStartTimestamp || span.start_timestamp < acc.traceStartTimestamp) {
+      acc.traceStartTimestamp = span.start_timestamp;
+    }
+
+    // establish trace end timestamp
+
+    const hasEndTimestamp = isNumber(span.timestamp);
+
+    if (!acc.traceEndTimestamp) {
+      if (hasEndTimestamp) {
+        acc.traceEndTimestamp = span.timestamp;
+        return acc;
+      }
+
+      acc.traceEndTimestamp = span.start_timestamp;
+      return acc;
+    }
+
+    if (hasEndTimestamp && span.timestamp! > acc.traceEndTimestamp) {
+      acc.traceEndTimestamp = span.timestamp;
+      return acc;
+    }
+
+    if (span.start_timestamp > acc.traceEndTimestamp) {
+      acc.traceEndTimestamp = span.start_timestamp;
+    }
+
+    return acc;
+  }, init);
+
+  // sort span children
+
+  Object.values(reduced.childSpans).forEach(spanChildren => {
+    spanChildren.sort(sortSpans);
+  });
+
+  return reduced;
+}
+
+function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
+  // orphan spans come after non-ophan spans.
+
+  if (isOrphanSpan(firstSpan) && !isOrphanSpan(secondSpan)) {
+    // sort secondSpan before firstSpan
+    return 1;
+  }
+
+  if (!isOrphanSpan(firstSpan) && isOrphanSpan(secondSpan)) {
+    // sort firstSpan before secondSpan
+    return -1;
+  }
+
+  // sort spans by their start timestamp in ascending order
+
+  if (firstSpan.start_timestamp < secondSpan.start_timestamp) {
+    // sort firstSpan before secondSpan
+    return -1;
+  }
+
+  if (firstSpan.start_timestamp === secondSpan.start_timestamp) {
+    return 0;
+  }
+
+  // sort secondSpan before firstSpan
+  return 1;
+}
+
+export function isOrphanTreeDepth(
+  treeDepth: TreeDepthType
+): treeDepth is OrphanTreeDepth {
+  if (typeof treeDepth === 'number') {
+    return false;
+  }
+  return treeDepth?.type === 'orphan';
+}
+
+export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
+  if (isOrphanTreeDepth(treeDepth)) {
+    return treeDepth.depth;
+  }
+
+  return treeDepth;
+}
+
+export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): boolean {
+  const sdkName = event.sdk?.name;
+  if (!sdkName) {
+    return false;
+  }
+  // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
+  return ['sentry.javascript.browser', 'sentry.javascript.react'].includes(
+    sdkName.toLowerCase()
+  );
+}
+
+// Durationless ops from: https://github.com/getsentry/sentry-javascript/blob/0defcdcc2dfe719343efc359d58c3f90743da2cd/packages/apm/src/integrations/tracing.ts#L629-L688
+// PerformanceMark: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformanceMark
+// PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
+export const durationlessBrowserOps = ['mark', 'paint'];

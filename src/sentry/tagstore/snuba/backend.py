@@ -1,15 +1,17 @@
 from __future__ import absolute_import
 
-import datetime
 import functools
 import six
-from collections import defaultdict, Iterable
+from collections import defaultdict, Iterable, OrderedDict
 from dateutil.parser import parse as parse_datetime
 
 from django.core.cache import cache
 
 from sentry import options
+from sentry.api.event_search import PROJECT_ALIAS
+from sentry.models import Project
 from sentry.api.utils import default_start_end_dates
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
@@ -22,6 +24,7 @@ from sentry.tagstore.types import TagKey, TagValue, GroupTagKey, GroupTagValue
 from sentry.utils import snuba, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.dates import to_timestamp
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 
 SEEN_COLUMN = "timestamp"
@@ -58,39 +61,6 @@ def fix_tag_value_data(data):
 
 def get_project_list(project_id):
     return project_id if isinstance(project_id, Iterable) else [project_id]
-
-
-def cache_suffix_time(time, key_hash, duration=300):
-    """ Adds jitter based on the key_hash around start/end times for caching snuba queries
-
-        Given a time and a key_hash this should result in a timestamp that remains the same for a duration
-        The end of the duration will be different per key_hash which avoids spikes in the number of queries
-        Must be based on the key_hash so they cache keys are consistent per query
-
-        For example: the time is 17:02:00, there's two queries query A has a key_hash of 30, query B has a key_hash of
-        60, we have the default duration of 300 (5 Minutes)
-        - query A will have the suffix of 17:00:30 for a timewindow from 17:00:30 until 17:05:30
-            - eg. Even when its 17:05:00 the suffix will still be 17:00:30
-        - query B will have the suffix of 17:01:00 for a timewindow from 17:01:00 until 17:06:00
-    """
-    # Use the hash so that seconds past the hour gets rounded differently per query.
-    jitter = key_hash % duration
-    seconds_past_hour = time.minute * 60 + time.second
-    # Round seconds to a multiple of duration, cause this uses "floor" division shouldn't give us a future window
-    time_window_start = seconds_past_hour // duration * duration + jitter
-    # If the time is past the rounded seconds then we want our key to be for this timewindow
-    if time_window_start < seconds_past_hour:
-        seconds_past_hour = time_window_start
-    # Otherwise we're in the previous time window, subtract duration to give us the previous timewindows start
-    else:
-        seconds_past_hour = time_window_start - duration
-    return (
-        # Since we're adding seconds past the hour, we want time but without minutes or seconds
-        time.replace(minute=0, second=0, microsecond=0)
-        +
-        # Use timedelta here so keys are consistent around hour boundaries
-        datetime.timedelta(seconds=seconds_past_hour)
-    )
 
 
 class SnubaTagStorage(TagStorage):
@@ -226,8 +196,8 @@ class SnubaTagStorage(TagStorage):
             with a certain jitter to the cache key.
             This jitter is based on the hash of the key before duration/end time is added for consistency per query.
             The jitter's intent is to avoid a dogpile effect of many queries being invalidated at the same time.
-            This is done by changing the rounding of the end key to a random offset. See cache_suffix_time for further
-            explanation of how that is done.
+            This is done by changing the rounding of the end key to a random offset. See snuba.quantize_time for
+            further explanation of how that is done.
         """
         default_start, default_end = default_start_end_dates()
         if start is None:
@@ -268,7 +238,7 @@ class SnubaTagStorage(TagStorage):
             # Needs to happen before creating the cache suffix otherwise rounding will cause different durations
             duration = (end - start).total_seconds()
             # Cause there's rounding to create this cache suffix, we want to update the query end so results match
-            end = cache_suffix_time(end, key_hash)
+            end = snuba.quantize_time(end, key_hash)
             cache_key += u":{}@{}".format(duration, end.isoformat())
             result = cache.get(cache_key, None)
             if result is not None:
@@ -615,7 +585,7 @@ class SnubaTagStorage(TagStorage):
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         filters = {"project_id": project_ids}
         conditions = [
-            ["tags[sentry:user]", "IN", filter(None, [eu.tag_value for eu in event_users])]
+            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
         ]
         aggregations = [["max", SEEN_COLUMN, "last_seen"]]
 
@@ -633,7 +603,7 @@ class SnubaTagStorage(TagStorage):
     def get_group_tag_values_for_users(self, event_users, limit=100):
         filters = {"project_id": [eu.project_id for eu in event_users]}
         conditions = [
-            ["tags[sentry:user]", "IN", filter(None, [eu.tag_value for eu in event_users])]
+            ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
         ]
         aggregations = [
             ["count()", "", "times_seen"],
@@ -706,15 +676,48 @@ class SnubaTagStorage(TagStorage):
         if not order_by == "-last_seen":
             raise ValueError("Unsupported order_by: %s" % order_by)
 
+        dataset = Dataset.Events
         snuba_key = snuba.get_snuba_column_name(key)
+        if snuba_key.startswith("tags["):
+            snuba_key = snuba.get_snuba_column_name(key, dataset=Dataset.Discover)
+            if not snuba_key.startswith("tags["):
+                dataset = Dataset.Discover
 
         conditions = []
 
-        if key in FUZZY_NUMERIC_KEYS:
+        # transaction status needs a special case so that the user interacts with the names and not codes
+        transaction_status = snuba_key == "transaction_status"
+        if transaction_status:
+            conditions.append(
+                [
+                    snuba_key,
+                    "IN",
+                    # Here we want to use the status codes during filtering,
+                    # but want to do this with names that include our query
+                    [
+                        span_key
+                        for span_key, value in six.iteritems(SPAN_STATUS_CODE_TO_NAME)
+                        if (query and query in value) or (not query)
+                    ],
+                ]
+            )
+        elif key in FUZZY_NUMERIC_KEYS:
             converted_query = int(query) if query is not None and query.isdigit() else None
             if converted_query is not None:
                 conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
                 conditions.append([snuba_key, "<=", converted_query + FUZZY_NUMERIC_DISTANCE])
+        elif key == PROJECT_ALIAS:
+            project_filters = {
+                "id__in": projects,
+            }
+            if query:
+                project_filters["slug__icontains"] = query
+            project_queryset = Project.objects.filter(**project_filters).values("id", "slug")
+            project_slugs = {project["id"]: project["slug"] for project in project_queryset}
+            if project_queryset.exists():
+                projects = [project["id"] for project in project_queryset]
+                snuba_key = "project_id"
+                dataset = Dataset.Discover
         else:
             if snuba_key in BLACKLISTED_COLUMNS:
                 snuba_key = "tags[%s]" % (key,)
@@ -729,6 +732,7 @@ class SnubaTagStorage(TagStorage):
             filters["environment"] = environments
 
         results = snuba.query(
+            dataset=dataset,
             start=start,
             end=end,
             groupby=[snuba_key],
@@ -746,6 +750,20 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_tag_value_paginator_for_projects",
         )
 
+        # With transaction_status we need to map the ids back to their names
+        if transaction_status:
+            results = OrderedDict(
+                [
+                    (SPAN_STATUS_CODE_TO_NAME[result_key], data)
+                    for result_key, data in six.iteritems(results)
+                ]
+            )
+        # With project names we map the ids back to the project slugs
+        elif key == PROJECT_ALIAS:
+            results = OrderedDict(
+                [(project_slugs[value], data) for value, data in six.iteritems(results)]
+            )
+
         tag_values = [
             TagValue(key=key, value=six.text_type(value), **fix_tag_value_data(data))
             for value, data in six.iteritems(results)
@@ -758,14 +776,16 @@ class SnubaTagStorage(TagStorage):
             reverse=desc,
         )
 
-    def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
+    def get_group_tag_value_iter(
+        self, project_id, group_id, environment_ids, key, callbacks=(), limit=1000, offset=0
+    ):
         filters = {
             "project_id": get_project_list(project_id),
             "tags_key": [key],
             "group_id": [group_id],
         }
-        if environment_id:
-            filters["environment"] = [environment_id]
+        if environment_ids:
+            filters["environment"] = environment_ids
         results = snuba.query(
             groupby=["tags_value"],
             filter_keys=filters,
@@ -775,9 +795,9 @@ class SnubaTagStorage(TagStorage):
                 ["max", "timestamp", "last_seen"],
             ],
             orderby="-first_seen",  # Closest thing to pre-existing `-id` order
-            # TODO: This means they can't actually iterate all GroupTagValues.
-            limit=1000,
+            limit=limit,
             referrer="tagstore.get_group_tag_value_iter",
+            offset=offset,
         )
 
         group_tag_values = [
@@ -791,7 +811,7 @@ class SnubaTagStorage(TagStorage):
         return group_tag_values
 
     def get_group_tag_value_paginator(
-        self, project_id, group_id, environment_id, key, order_by="-id"
+        self, project_id, group_id, environment_ids, key, order_by="-id"
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -803,7 +823,7 @@ class SnubaTagStorage(TagStorage):
         else:
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_id, key)
+        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_ids, key)
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")

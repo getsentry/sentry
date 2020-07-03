@@ -9,6 +9,7 @@ import Confirm from 'app/components/confirm';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Tooltip from 'app/components/tooltip';
+import {IconDelete} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -78,7 +79,8 @@ export default class SavedSearchSelector extends React.Component {
                 <DeleteButton
                   borderless
                   title={t('Delete this saved search')}
-                  icon="icon-trash"
+                  icon={<IconDelete />}
+                  label={t('delete')}
                   size="zero"
                 />
               </Confirm>
@@ -113,9 +115,7 @@ const Container = styled('div')`
   display: block;
 `;
 
-const StyledDropdownButton = styled(
-  React.forwardRef((prop, ref) => <DropdownButton ref={ref} {...prop} />)
-)`
+const StyledDropdownButton = styled(DropdownButton)`
   border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>
@@ -136,7 +136,7 @@ const ButtonTitle = styled('span')`
 `;
 
 const SearchTitle = styled('strong')`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   padding: 0;
   background: inherit;
 
@@ -146,26 +146,26 @@ const SearchTitle = styled('strong')`
 `;
 
 const SearchQuery = styled('code')`
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray800};
   padding: 0;
   background: inherit;
 `;
 
 const TooltipSearchQuery = styled('span')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   font-weight: normal;
   font-family: ${p => p.theme.text.familyMono};
 `;
 
 const DeleteButton = styled(Button)`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   background: transparent;
   flex-shrink: 0;
   padding: ${space(1)} ${space(1.5)} ${space(1)} 0;
 
   &:hover {
     background: transparent;
-    color: ${p => p.theme.blueLight};
+    color: ${p => p.theme.blue300};
   }
 `;
 
@@ -178,7 +178,7 @@ const MenuItem = styled('li')`
   padding: 0;
 
   & :hover {
-    background: ${p => p.theme.offWhite};
+    background: ${p => p.theme.gray100};
   }
 `;
 

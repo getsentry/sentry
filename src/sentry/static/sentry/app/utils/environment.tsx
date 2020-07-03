@@ -1,5 +1,4 @@
 import {Environment} from 'app/types';
-import {toTitleCase} from 'app/utils';
 
 const DEFAULT_EMPTY_ROUTING_NAME = 'none';
 const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
@@ -9,5 +8,5 @@ export function getUrlRoutingName(env: Omit<Environment, 'id'>) {
 }
 
 export function getDisplayName(env: Omit<Environment, 'id'>) {
-  return toTitleCase(env.name) || DEFAULT_EMPTY_ENV_NAME;
+  return env.name || DEFAULT_EMPTY_ENV_NAME;
 }

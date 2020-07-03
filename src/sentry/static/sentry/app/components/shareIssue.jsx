@@ -14,7 +14,7 @@ import FlowLayout from 'app/components/flowLayout';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SpreadLayout from 'app/components/spreadLayout';
 import Switch from 'app/components/switch';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCopy, IconRefresh} from 'app/icons';
 
 const BORDER_COLOR = '#dad5df';
 
@@ -33,6 +33,7 @@ class ShareUrlContainer extends React.Component {
     if (!this.urlRef) {
       return;
     }
+    // eslint-disable-next-line react/no-find-dom-node
     selectText(ReactDOM.findDOMNode(this.urlRef));
   };
 
@@ -41,6 +42,7 @@ class ShareUrlContainer extends React.Component {
 
     if (this.urlRef) {
       // Always select url if it's available
+      // eslint-disable-next-line react/no-find-dom-node
       selectText(ReactDOM.findDOMNode(this.urlRef));
     }
   };
@@ -91,7 +93,7 @@ class ShareUrlContainer extends React.Component {
               onClick={this.handleCopyClick}
               style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}
             >
-              <InlineSvg src="icon-copy" />
+              <IconCopy />
             </Button>
           </Clipboard>
 
@@ -104,7 +106,7 @@ class ShareUrlContainer extends React.Component {
             onConfirm={onShare}
           >
             <Button borderless size="xsmall">
-              <InlineSvg src="icon-refresh" />
+              <IconRefresh />
             </Button>
           </Confirm>
         </FlowLayout>
@@ -157,7 +159,7 @@ class ShareIssue extends React.Component {
     this.state = {busy: false};
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (
       this.state.busy &&
       (this.props.shareUrl !== nextProps.shareUrl ||
@@ -186,7 +188,7 @@ class ShareIssue extends React.Component {
   };
 
   // State of confirm modal so we can keep dropdown menu opn
-  handleConfirmCancel = e => (this.hasConfirmModal = false);
+  handleConfirmCancel = () => (this.hasConfirmModal = false);
   handleConfirmReshare = () => (this.hasConfirmModal = true);
 
   render() {

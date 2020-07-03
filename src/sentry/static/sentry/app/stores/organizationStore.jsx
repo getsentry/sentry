@@ -37,11 +37,11 @@ const OrganizationStore = Reflux.createStore({
     this.trigger(this.get());
   },
 
-  onUpdate(updatedOrg) {
+  onUpdate(updatedOrg, {replace = false} = {}) {
     this.loading = false;
     this.error = null;
     this.errorType = null;
-    this.organization = {...this.organization, ...updatedOrg};
+    this.organization = replace ? updatedOrg : {...this.organization, ...updatedOrg};
     this.dirty = false;
     this.trigger(this.get());
   },
@@ -50,8 +50,8 @@ const OrganizationStore = Reflux.createStore({
     this.organization = null;
     this.errorType = null;
 
-    switch (err.statusText) {
-      case 'NOT FOUND':
+    switch (err?.status) {
+      case 404:
         this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND;
         break;
       default:

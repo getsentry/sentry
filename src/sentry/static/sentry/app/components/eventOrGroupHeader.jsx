@@ -3,8 +3,6 @@ import React from 'react';
 import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
-
-import classNames from 'classnames';
 import capitalize from 'lodash/capitalize';
 
 import SentryTypes from 'app/sentryTypes';
@@ -35,7 +33,7 @@ class EventOrGroupHeader extends React.Component {
 
   getTitle() {
     const {hideIcons, hideLevel, includeLink, data, params, location} = this.props;
-    const {orgId} = params;
+    const orgId = params?.orgId;
 
     const {id, level, groupID} = data || {};
     const isEvent = !!data.eventID;
@@ -89,12 +87,11 @@ class EventOrGroupHeader extends React.Component {
 
   render() {
     const {className, size, data} = this.props;
-    const cx = classNames('event-issue-header', className);
     const location = getLocation(data);
     const message = getMessage(data);
 
     return (
-      <div className={cx}>
+      <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
         {message && <Message size={size}>{message}</Message>}
@@ -125,7 +122,7 @@ const Title = styled('div')`
     font-size: 14px;
     font-style: normal;
     font-weight: 300;
-    color: ${p => p.theme.gray3};
+    color: ${p => p.theme.gray600};
   }
 `;
 
@@ -135,7 +132,7 @@ const LocationWrapper = styled('div')`
   direction: rtl;
   text-align: left;
   font-size: 14px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   span {
     direction: ltr;
   }
@@ -163,12 +160,12 @@ const iconStyles = css`
 
 const Muted = styled('span')`
   ${iconStyles};
-  color: ${p => p.theme.red};
+  color: ${p => p.theme.red400};
 `;
 
 const Starred = styled('span')`
   ${iconStyles};
-  color: ${p => p.theme.yellowOrange};
+  color: ${p => p.theme.orange300};
 `;
 
 const GroupLevel = styled('div')`
@@ -181,17 +178,17 @@ const GroupLevel = styled('div')`
   background-color: ${p => {
     switch (p.level) {
       case 'sample':
-        return p.theme.purple;
+        return p.theme.purple400;
       case 'info':
-        return p.theme.blue;
+        return p.theme.blue400;
       case 'warning':
-        return p.theme.yellowOrange;
+        return p.theme.yellow400;
       case 'error':
-        return p.theme.orange;
+        return p.theme.orange400;
       case 'fatal':
-        return p.theme.red;
+        return p.theme.red400;
       default:
-        return p.theme.gray2;
+        return p.theme.gray500;
     }
   }};
 

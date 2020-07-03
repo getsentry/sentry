@@ -19,6 +19,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
         self.page = IssueDetailsPage(self.browser, self.client)
+        self.dismiss_assistant()
 
     def create_sample_event(self, platform, default=None, sample_name=None):
         event_data = load_data(platform, default=default, sample_name=sample_name)

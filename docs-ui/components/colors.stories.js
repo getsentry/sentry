@@ -35,7 +35,7 @@ const Swatch = styled('div')`
   align-items: center;
   justify-content: center;
   background-color: ${p => p.color};
-  color: ${p => (p.color[1].match(/[0-8]{1}/) ? p.theme.offWhite : p.theme.gray5)};
+  color: ${p => (p.color[1].match(/[0-8]{1}/) ? p.theme.gray100 : p.theme.gray800)};
   font-size: ${p => p.theme.fontSizeSmall};
   height: 80px;
   text-align: center;

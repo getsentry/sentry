@@ -3,7 +3,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import CreateTeamForm from 'app/components/createTeam/createTeamForm';
+import CreateTeamForm from 'app/components/createTeamForm';
 import NarrowLayout from 'app/components/narrowLayout';
 import SentryTypes from 'app/sentryTypes';
 

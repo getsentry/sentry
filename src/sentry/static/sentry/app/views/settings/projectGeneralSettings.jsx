@@ -26,11 +26,13 @@ import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
-import BetaTag from 'app/components/betaTag';
+import FeatureBadge from 'app/components/featureBadge';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import marked from 'app/utils/marked';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
+import Link from 'app/components/links/link';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -154,7 +156,7 @@ class ProjectGeneralSettings extends AsyncView {
       newData.groupingConfig = latestGroupingConfig.id;
     }
     if (latestEnhancementsBase) {
-      newData.groupingEnhancementBases = latestEnhancementsBase.id;
+      newData.groupingEnhancementsBase = latestEnhancementsBase.id;
     }
 
     let riskNote;
@@ -245,9 +247,7 @@ class ProjectGeneralSettings extends AsyncView {
     );
   }
 
-  isProjectAdmin = () => {
-    return new Set(this.context.organization.access).has('project:admin');
-  };
+  isProjectAdmin = () => new Set(this.context.organization.access).has('project:admin');
 
   renderRemoveProject() {
     const project = this.state.data;
@@ -448,7 +448,7 @@ class ProjectGeneralSettings extends AsyncView {
               {...jsonFormProps}
               title={
                 <React.Fragment>
-                  {t('Grouping Settings')} <BetaTag />
+                  {t('Grouping Settings')} <FeatureBadge type="beta" />
                 </React.Fragment>
               }
               fields={[
@@ -473,19 +473,19 @@ class ProjectGeneralSettings extends AsyncView {
             />
           )}
 
-          <JsonForm
-            {...jsonFormProps}
-            title={t('Data Privacy')}
-            fields={[
-              fields.dataScrubber,
-              fields.dataScrubberDefaults,
-              fields.scrubIPAddresses,
-              fields.sensitiveFields,
-              fields.safeFields,
-              fields.storeCrashReports,
-              fields.relayPiiConfig,
-            ]}
-          />
+          <Panel>
+            <PanelHeader>{t('Data Privacy')}</PanelHeader>
+            <EmptyMessage
+              title={t('Data Privacy has moved')}
+              description={
+                <Link
+                  to={`/settings/${orgId}/projects/${projectId}/security-and-privacy/`}
+                >
+                  {t('Go to Security & Privacy')}
+                </Link>
+              }
+            />
+          </Panel>
 
           <JsonForm
             {...jsonFormProps}

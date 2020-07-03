@@ -4,6 +4,7 @@ import os
 import sys
 from hashlib import md5
 
+import six
 import pytest
 
 pytest_plugins = ["sentry.utils.pytest"]
@@ -14,15 +15,22 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 def pytest_configure(config):
     import warnings
 
-    # XXX(dramer): Kombu throws a warning due to transaction.commit_manually
+    # XXX(dcramer): Kombu throws a warning due to transaction.commit_manually
     # being used
     warnings.filterwarnings("error", "", Warning, r"^(?!(|kombu|raven|sentry))")
 
-    # if we are running any tests for plugins, we need to make sure we install them first
-    # (for `py.test --version` or `py.test --help`, there are no files to test)
-    test_targets = config.getoption("file_or_dir")
-    if test_targets and any("tests/sentry_plugins" in s for s in test_targets):
-        install_sentry_plugins()
+    # always install plugins for the tests
+    install_sentry_plugins()
+
+    # add custom test markers
+    config.addinivalue_line(
+        "markers",
+        "sentry_store_integration: mark test as using the sentry store endpoint and therefore using legacy code",
+    )
+    config.addinivalue_line(
+        "markers", "relay_store_integration: mark test as using the relay store endpoint"
+    )
+    config.addinivalue_line("markers", "obsolete: mark test as obsolete and soon to be removed")
 
 
 def install_sentry_plugins():
@@ -46,8 +54,6 @@ def install_sentry_plugins():
     settings.BITBUCKET_CONSUMER_SECRET = "123"
     settings.GITHUB_APP_ID = "abc"
     settings.GITHUB_API_SECRET = "123"
-    settings.GITHUB_APPS_APP_ID = "abc"
-    settings.GITHUB_APPS_API_SECRET = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -55,7 +61,10 @@ def install_sentry_plugins():
 def pytest_collection_modifyitems(config, items):
     for item in items:
         total_groups = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
-        group_num = int(md5(item.location[0]).hexdigest(), 16) % total_groups
+        # TODO(joshuarli): six 1.12.0 adds ensure_binary: six.ensure_binary(item.location[0])
+        group_num = (
+            int(md5(six.text_type(item.location[0]).encode("utf-8")).hexdigest(), 16) % total_groups
+        )
         marker = "group_%s" % group_num
         config.addinivalue_line("markers", marker)
         item.add_marker(getattr(pytest.mark, marker))

@@ -25,7 +25,7 @@ def get_project(value):
         if "/" not in value:
             return None
         org, proj = value.split("/", 1)
-        return Project.objects.get_from_cache(organization__slug=org, slug=proj).id
+        return Project.objects.get(organization__slug=org, slug=proj).id
     except Project.DoesNotExist:
         return None
 
@@ -154,6 +154,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry import models
+    from sentry.data_export.models import ExportedData
 
     if timed:
         import time
@@ -225,6 +226,17 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 queryset = queryset.filter(sentry_app_installation__isnull=True)
 
             queryset.delete()
+
+    if not silent:
+        click.echo("Removing expired files associated with ExportedData")
+
+    if is_filtered(ExportedData):
+        if not silent:
+            click.echo(">> Skipping ExportedData files")
+    else:
+        queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
+        for item in queryset:
+            item.delete_file()
 
     project_id = None
     if project:

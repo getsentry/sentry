@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
@@ -29,9 +30,7 @@ class ExceptionInterface extends React.Component {
     };
   }
 
-  eventHasThreads = () => {
-    return !!this.props.event.entries.find(x => x.type === 'threads');
-  };
+  eventHasThreads = () => !!this.props.event.entries.find(x => x.type === 'threads');
 
   render() {
     const {projectId, event, data, hideGuide, type} = this.props;

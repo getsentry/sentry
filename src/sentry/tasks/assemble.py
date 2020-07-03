@@ -268,7 +268,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
     except AssembleArtifactsError as e:
         set_assemble_status(
-            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=e.message
+            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=six.text_type(e)
         )
     except BaseException:
         logger.error("failed to assemble release bundle", exc_info=True)

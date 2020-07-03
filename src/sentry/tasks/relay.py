@@ -3,11 +3,11 @@ from __future__ import absolute_import
 import logging
 
 from django.conf import settings
-from django.core.cache import cache
 
-from sentry.models.projectkey import ProjectKey
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.relay import projectconfig_debounce_cache
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
         invalidated.
     """
 
-    from sentry.models import Project
+    from sentry.models import Project, ProjectKey
     from sentry.relay import projectconfig_cache
     from sentry.relay.config import get_project_config
 
@@ -37,8 +37,7 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
     # If this was running at the end of the task, it would be more effective
     # against bursts of updates, but introduces a different race where an
     # outdated cache may be used.
-    debounce_key = _get_schedule_debounce_key(project_id, organization_id)
-    cache.delete(debounce_key)
+    projectconfig_debounce_cache.mark_task_done(project_id, organization_id)
 
     if project_id:
         projects = [Project.objects.get_from_cache(id=project_id)]
@@ -69,15 +68,6 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
     )
 
 
-def _get_schedule_debounce_key(project_id, organization_id):
-    if organization_id:
-        return "relayconfig-debounce:o:%s" % (organization_id,)
-    elif project_id:
-        return "relayconfig-debounce:p:%s" % (project_id,)
-    else:
-        raise ValueError()
-
-
 def schedule_update_config_cache(
     generate, project_id=None, organization_id=None, update_reason=None
 ):
@@ -102,16 +92,13 @@ def schedule_update_config_cache(
     if bool(organization_id) == bool(project_id):
         raise TypeError("One of organization_id and project_id has to be provided, not both.")
 
-    debounce_key = _get_schedule_debounce_key(project_id, organization_id)
-    if cache.get(debounce_key, None):
+    if projectconfig_debounce_cache.check_is_debounced(project_id, organization_id):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": update_reason},
         )
         # If this task is already in the queue, do not schedule another task.
         return
-
-    cache.set(debounce_key, True, 3600)
 
     # XXX(markus): We could schedule this task a couple seconds into the
     # future, this would make debouncing more effective. If we want to do this

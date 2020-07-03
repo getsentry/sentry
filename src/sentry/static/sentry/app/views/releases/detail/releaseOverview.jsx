@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 
 import SentryTypes from 'app/sentryTypes';
 import LastCommit from 'app/components/lastCommit';
-
 import RepositoryFileSummary from 'app/components/repositoryFileSummary';
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
@@ -22,8 +21,8 @@ export default class ReleaseOverview extends AsyncComponent {
   };
 
   getEndpoints() {
-    const {orgId, version} = this.props.params;
-    const basePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
+    const {orgId, release} = this.props.params;
+    const basePath = `/organizations/${orgId}/releases/${encodeURIComponent(release)}/`;
     return [
       ['fileList', `${basePath}commitfiles/`],
       ['deploys', `${basePath}deploys/`],
@@ -36,11 +35,7 @@ export default class ReleaseOverview extends AsyncComponent {
   }
 
   renderBody() {
-    const {
-      release,
-      query,
-      params: {orgId, version},
-    } = this.props;
+    const {release, query, params} = this.props;
 
     const {fileList, repos} = this.state;
 
@@ -52,18 +47,16 @@ export default class ReleaseOverview extends AsyncComponent {
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            <ReleaseIssues version={version} orgId={orgId} query={query} />
+            <ReleaseIssues version={params.release} orgId={params.orgId} query={query} />
             {hasRepos && (
               <div>
-                {Object.keys(filesByRepository).map((repository, i) => {
-                  return (
-                    <RepositoryFileSummary
-                      key={i}
-                      repository={repository}
-                      fileChangeSummary={filesByRepository[repository]}
-                    />
-                  );
-                })}
+                {Object.keys(filesByRepository).map((repository, i) => (
+                  <RepositoryFileSummary
+                    key={i}
+                    repository={repository}
+                    fileChangeSummary={filesByRepository[repository]}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -73,21 +66,19 @@ export default class ReleaseOverview extends AsyncComponent {
                 {release.lastCommit && (
                   <LastCommit commit={release.lastCommit} headerClass="nav-header" />
                 )}
-                <CommitAuthorStats orgId={orgId} version={version} />
+                <CommitAuthorStats orgId={params.orgId} version={params.release} />
                 <h6 className="nav-header m-b-1">{t('Projects Affected')}</h6>
                 <ul className="nav nav-stacked">
                   {release.projects.length === 0
                     ? this.renderEmpty()
-                    : release.projects.map(project => {
-                        return (
-                          <ReleaseProjectStatSparkline
-                            key={project.slug}
-                            orgId={orgId}
-                            project={project}
-                            version={version}
-                          />
-                        );
-                      })}
+                    : release.projects.map(project => (
+                        <ReleaseProjectStatSparkline
+                          key={project.slug}
+                          orgId={params.orgId}
+                          project={project}
+                          version={params.release}
+                        />
+                      ))}
                 </ul>
               </div>
             ) : (
@@ -95,8 +86,8 @@ export default class ReleaseOverview extends AsyncComponent {
             )}
             <ReleaseDeploys
               deploys={this.state.deploys}
-              version={version}
-              orgId={orgId}
+              version={params.release}
+              orgId={params.orgId}
             />
           </div>
         </div>

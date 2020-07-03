@@ -11,6 +11,7 @@ from sentry.utils.http import absolute_uri
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import ClubhouseClient
 
@@ -21,6 +22,22 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
     title = "Clubhouse"
     conf_title = title
     conf_key = "clubhouse"
+    required_field = "token"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Create and link Sentry issue groups directly to a Clubhouse story in any of your
+            projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+        FeatureDescription(
+            """
+            Link Sentry issues to existing Clubhouse stories.
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+    ]
 
     issue_fields = frozenset(["id", "title", "url"])
 

@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from sentry.nodestore.base import NodeStorage
 
+
 # Cache an instance of the encoder we want to use
 json_dumps = JSONEncoder(
     separators=(",", ":"),
@@ -97,22 +98,36 @@ class BigtableNodeStorage(NodeStorage):
         return get_connection(self.project, self.instance, self.table, self.options)
 
     def get(self, id):
-        return self.decode_row(self.connection.read_row(id))
+        item_from_cache = self._get_cache_item(id)
+        if item_from_cache:
+            return item_from_cache
+
+        data = self.decode_row(self.connection.read_row(id))
+        self._set_cache_item(id, data)
+        return data
 
     def get_multi(self, id_list):
-        if len(id_list) == 1:
-            id = id_list[0]
-            return {id: self.get(id)}
+        id_list = list(set(id_list))
 
+        if len(id_list) == 1:
+            return {id_list[0]: self.get(id_list[0])}
+
+        cache_items = self._get_cache_items(id_list)
+
+        if len(cache_items) == len(id_list):
+            return cache_items
+
+        uncached_ids = [id for id in id_list if id not in cache_items]
         rv = {}
         rows = RowSet()
-        for id in id_list:
+        for id in uncached_ids:
             rows.add_row_key(id)
             rv[id] = None
 
         for row in self.connection.read_rows(row_set=rows):
             rv[row.row_key] = self.decode_row(row)
-
+        self._set_cache_items(rv)
+        rv.update(cache_items)
         return rv
 
     def decode_row(self, row):
@@ -154,6 +169,7 @@ class BigtableNodeStorage(NodeStorage):
     def set(self, id, data, ttl=None):
         row = self.encode_row(id, data, ttl)
         row.commit()
+        self._set_cache_item(id, data)
 
     def encode_row(self, id, data, ttl=None):
         data = json_dumps(data)
@@ -215,6 +231,7 @@ class BigtableNodeStorage(NodeStorage):
         row = self.connection.row(id)
         row.delete()
         row.commit()
+        self._delete_cache_item(id)
 
     def delete_multi(self, id_list):
         if self.skip_deletes:
@@ -231,6 +248,7 @@ class BigtableNodeStorage(NodeStorage):
             rows.append(row)
 
         self.connection.mutate_rows(rows)
+        self._delete_cache_items(id_list)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
@@ -261,4 +279,8 @@ class BigtableNodeStorage(NodeStorage):
         else:
             gc_rule = None
 
-        table.create(column_families={self.column_family: gc_rule})
+        from google.api_core import exceptions
+        from google.api_core import retry
+
+        retry_504 = retry.Retry(retry.if_exception_type(exceptions.DeadlineExceeded))
+        retry_504(table.create)(column_families={self.column_family: gc_rule})

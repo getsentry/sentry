@@ -6,24 +6,32 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
 >
   <div>
     <StyledSettingsPageHeading
+      action={
+        <ForwardRef
+          size="small"
+          to={
+            Object {
+              "pathname": "/organizations/org-slug/issues/",
+              "query": Object {
+                "project": "2",
+              },
+            }
+          }
+        >
+          View Issues
+        </ForwardRef>
+      }
       noTitleStyles={false}
       title="Issue Owners"
     />
-    <PermissionAlert
-      access={
-        Array [
-          "project:write",
-        ]
-      }
-    />
+    <PermissionAlert />
     <Panel>
       <PanelHeader>
         Ownership Rules
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={false}
-        flex={false}
+        flexible={false}
+        withPadding={true}
       >
         <Block>
           Define rules here to configure automated ownership for new issues and direct email alerts
@@ -69,6 +77,9 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             
 
             url:http://example.com/settings/* #product
+            
+
+            tags.sku_class:enterprise #enterprise
           </CodeBlock>
         </Block>
         <OwnerInput
@@ -88,6 +99,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
                 "team:write",
                 "team:admin",
               ],
+              "experiments": Object {},
               "features": Array [],
               "id": "3",
               "name": "Organization Name",

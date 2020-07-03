@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import ProjectSecurityHeaders from 'app/views/settings/projectSecurityHeaders';
 
 describe('ProjectSecurityHeaders', function() {
@@ -22,7 +23,6 @@ describe('ProjectSecurityHeaders', function() {
       <ProjectSecurityHeaders
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: url}),

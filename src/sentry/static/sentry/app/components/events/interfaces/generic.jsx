@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React, {Component} from 'react';
-import SentryTypes from 'app/sentryTypes';
 
+import SentryTypes from 'app/sentryTypes';
+import ButtonBar from 'app/components/buttonBar';
+import Button from 'app/components/button';
 import EventDataSection from 'app/components/events/eventDataSection';
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';
 
 function getView(view, data) {
@@ -44,20 +46,18 @@ export default class GenericInterface extends Component {
 
     const title = (
       <div>
-        <div className="btn-group">
-          <a
-            className={(view === 'report' ? 'active' : '') + ' btn btn-default btn-sm'}
+        <ButtonBar merged active={view}>
+          <Button
+            barId="report"
+            size="xsmall"
             onClick={this.toggleView.bind(this, 'report')}
           >
             {t('Report')}
-          </a>
-          <a
-            className={(view === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'raw')}
-          >
+          </Button>
+          <Button barId="raw" size="xsmall" onClick={this.toggleView.bind(this, 'raw')}>
             {t('Raw')}
-          </a>
-        </div>
+          </Button>
+        </ButtonBar>
         <h3>{t('Report')}</h3>
       </div>
     );

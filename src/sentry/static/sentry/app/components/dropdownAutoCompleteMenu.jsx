@@ -185,22 +185,19 @@ class DropdownAutoCompleteMenu extends React.Component {
   };
 
   filterItems = (items, inputValue) =>
-    items.filter(item => {
-      return (
+    items.filter(
+      item =>
         (item.searchKey || `${item.value} ${item.label}`)
           .toLowerCase()
           .indexOf(inputValue.toLowerCase()) > -1
-      );
-    });
+    );
 
   filterGroupedItems = (groups, inputValue) =>
     groups
-      .map(group => {
-        return {
-          ...group,
-          items: this.filterItems(group.items, inputValue),
-        };
-      })
+      .map(group => ({
+        ...group,
+        items: this.filterItems(group.items, inputValue),
+      }))
       .filter(group => group.items.length > 0);
 
   autoCompleteFilter = (items, inputValue) => {
@@ -257,11 +254,11 @@ class DropdownAutoCompleteMenu extends React.Component {
               height={this.getHeight(items)}
               onScroll={onScroll}
               rowCount={items.length}
-              rowHeight={({index}) => {
-                return items[index].groupLabel && virtualizedLabelHeight
+              rowHeight={({index}) =>
+                items[index].groupLabel && virtualizedLabelHeight
                   ? virtualizedLabelHeight
-                  : virtualizedHeight;
-              }}
+                  : virtualizedHeight
+              }
               rowRenderer={({key, index, style}) => {
                 const item = items[index];
                 return this.renderRow({
@@ -499,6 +496,11 @@ const InputLoadingWrapper = styled('div')`
   align-items: center;
   flex-shrink: 0;
   width: 30px;
+
+  .loading.mini {
+    height: 16px;
+    margin: 0;
+  }
 `;
 
 const StyledInputWrapper = styled('div')`
@@ -521,7 +523,7 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     padding: ${space(1)};
     font-weight: normal;
-    color: ${p => p.gray2};
+    color: ${p => p.gray500};
   }
 `;
 
@@ -545,7 +547,7 @@ const AutoCompleteItem = styled('div')`
 
   font-size: 0.9em;
   background-color: ${p =>
-    p.index === p.highlightedIndex ? p.theme.offWhite : 'transparent'};
+    p.index === p.highlightedIndex ? p.theme.gray100 : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -555,15 +557,15 @@ const AutoCompleteItem = styled('div')`
   }
 
   &:hover {
-    background-color: ${p => p.theme.offWhite};
+    background-color: ${p => p.theme.gray100};
   }
 `;
 
 const LabelWithBorder = styled('div')`
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
 
   &:first-child {
@@ -595,7 +597,7 @@ const BusyMessage = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  color: ${p => p.theme.gray1};
+  color: ${p => p.theme.gray400};
   padding: ${space(2)};
   text-align: center;
   text-transform: none;

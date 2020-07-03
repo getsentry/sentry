@@ -50,7 +50,7 @@ class Creator(Mediator):
         # For Sentry Apps, if projects = [], the service hook applies to all
         # the projects in the organization.
         # We are using the first project so that we can satisfy the not null
-        # contraint for project_id on the ServiceHook table.
+        # constraint for project_id on the ServiceHook table.
         #
         # Otherwise, we'll always have a single project passed through by
         # the ProjectServiceHooksEndpoint

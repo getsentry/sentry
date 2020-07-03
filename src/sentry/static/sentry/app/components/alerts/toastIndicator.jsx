@@ -1,45 +1,46 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import posed from 'react-pose';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import testablePose from 'app/utils/testablePose';
+import testableTransition from 'app/utils/testableTransition';
 
-const transition = {
-  type: 'spring',
-  stiffness: 450,
-  damping: 25,
-};
-
-const toastAnimation = testablePose({
-  exit: {
-    transition,
-    opacity: 0,
-    y: 70,
-  },
-  enter: {
-    transition,
-    opacity: 1,
-    y: 0,
-  },
-});
-
-const Toast = styled(posed.div(toastAnimation))`
+const Toast = styled(motion.div)`
   display: flex;
   align-items: center;
   height: 40px;
   padding: 0 15px 0 10px;
   margin-top: 15px;
-  background: ${p => p.theme.gray5};
+  background: ${p => p.theme.gray800};
   color: #fff;
   border-radius: 44px 7px 7px 44px;
   box-shadow: 0 4px 12px 0 rgba(47, 40, 55, 0.16);
   position: relative;
 `;
+
+Toast.defaultProps = {
+  initial: {
+    opacity: 0,
+    y: 70,
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+  },
+  exit: {
+    opacity: 0,
+    y: 70,
+  },
+  transition: testableTransition({
+    type: 'spring',
+    stiffness: 450,
+    damping: 25,
+  }),
+};
 
 const Icon = styled('div')`
   margin-right: 6px;
@@ -47,7 +48,7 @@ const Icon = styled('div')`
     display: block;
   }
 
-  color: ${p => (p.type === 'success' ? p.theme.green : p.theme.red)};
+  color: ${p => (p.type === 'success' ? p.theme.green400 : p.theme.red400)};
 `;
 
 const Message = styled('div')`
@@ -56,21 +57,21 @@ const Message = styled('div')`
 
 const Undo = styled('div')`
   display: inline-block;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray500};
   padding-left: 16px;
   margin-left: 16px;
   border-left: 1px solid ${p => p.theme.gray3};
   cursor: pointer;
 
   &:hover {
-    color: ${p => p.theme.gray1};
+    color: ${p => p.theme.gray400};
   }
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
-    border-color: ${p => p.theme.gray4};
-    border-left-color: ${p => p.theme.purple};
+    border-color: ${p => p.theme.gray700};
+    border-left-color: ${p => p.theme.purple400};
   }
 `;
 

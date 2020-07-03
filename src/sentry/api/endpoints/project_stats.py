@@ -11,7 +11,7 @@ from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario("RetrieveEventCountsProjcet")
+@scenario("RetrieveEventCountsProject")
 def retrieve_event_counts_project(runner):
     runner.request(
         method="GET", path="/projects/%s/%s/stats/" % (runner.org.slug, runner.default_project.slug)

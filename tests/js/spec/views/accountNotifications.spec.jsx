@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import AccountNotifications from 'app/views/settings/account/accountNotifications';
 
 describe('AccountNotifications', function() {
@@ -28,7 +29,7 @@ describe('AccountNotifications', function() {
   it('renders with values from API', function() {
     const wrapper = mountWithTheme(<AccountNotifications />, TestStubs.routerContext());
 
-    // "Send Me Project Alerts"
+    // "Send Me Alerts"
     expect(wrapper.find('Switch[name="subscribeByDefault"]').prop('isActive')).toBe(true);
 
     // "Workflow Notifications"
@@ -60,9 +61,9 @@ describe('AccountNotifications', function() {
     });
 
     wrapper
-      .find('Field[id="deployNotifications"] RadioLineItem')
+      .find('Field[id="deployNotifications"] Radio')
       .at(2)
-      .simulate('click');
+      .simulate('change');
 
     expect(mock).toHaveBeenCalledWith(
       url,

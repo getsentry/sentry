@@ -2,7 +2,7 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {MEMBER_ROLES} from 'app/constants';
@@ -104,12 +104,11 @@ class InviteMember extends React.Component {
     router.push(replaceRouterParams(pathToParentRoute, params));
   };
 
-  splitEmails = text => {
-    return text
+  splitEmails = text =>
+    text
       .split(',')
       .map(e => e.trim())
       .filter(e => e);
-  };
 
   inviteUser = email => {
     const {slug} = this.props.organization;

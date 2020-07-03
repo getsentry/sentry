@@ -1,7 +1,7 @@
-import {Flex} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import omit from 'lodash/omit';
+import styled from '@emotion/styled';
 
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -21,11 +21,15 @@ import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import space from 'app/styles/space';
+import {IconDelete} from 'app/icons';
 
 class ReleaseArtifacts extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     api: PropTypes.object,
+    projectId: PropTypes.string,
+    smallEmptyMessage: PropTypes.string,
   };
 
   constructor() {
@@ -43,11 +47,12 @@ class ReleaseArtifacts extends React.Component {
   }
 
   getFilesEndpoint() {
-    const {orgId, projectId, version} = this.props.params;
-    const encodedVersion = encodeURIComponent(version);
+    const {orgId, projectId, release} = this.props.params;
+    const encodedVersion = encodeURIComponent(release);
+    const project = projectId ?? this.props.projectId;
 
-    return projectId
-      ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/files/`
+    return project
+      ? `/projects/${orgId}/${project}/releases/${encodedVersion}/files/`
       : `/organizations/${orgId}/releases/${encodedVersion}/files/`;
   }
 
@@ -60,7 +65,7 @@ class ReleaseArtifacts extends React.Component {
     this.props.api.request(this.getFilesEndpoint(), {
       method: 'GET',
       // We need to omit global selection header url params because they are not supported
-      data: omit(this.props.location.query, Object.values(URL_PARAM)),
+      data: omit(this.props.location.query, [...Object.values(URL_PARAM), 'query']),
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
@@ -79,14 +84,12 @@ class ReleaseArtifacts extends React.Component {
   };
 
   handleRemove(id) {
-    addLoadingMessage(t('Removing artifact..'));
+    addLoadingMessage(t('Removing artifact\u2026'));
 
     this.props.api.request(this.getFilesEndpoint() + `${id}/`, {
       method: 'DELETE',
       success: () => {
-        const fileList = this.state.fileList.filter(file => {
-          return file.id !== id;
-        });
+        const fileList = this.state.fileList.filter(file => file.id !== id);
 
         this.setState({
           fileList,
@@ -108,9 +111,11 @@ class ReleaseArtifacts extends React.Component {
     } else if (this.state.fileList.length === 0) {
       return (
         <Panel>
-          <EmptyStateWarning>
-            <p>{t('There are no artifacts uploaded for this release.')}</p>
-          </EmptyStateWarning>
+          <PanelBody>
+            <EmptyStateWarning small={this.props.smallEmptyMessage}>
+              <p>{t('There are no artifacts uploaded for this release.')}</p>
+            </EmptyStateWarning>
+          </PanelBody>
         </Panel>
       );
     }
@@ -122,66 +127,58 @@ class ReleaseArtifacts extends React.Component {
       <div>
         <Panel>
           <PanelHeader>
-            <Flex flex="7" pr={2}>
-              {t('Name')}
-            </Flex>
-            <Flex flex="2">{t('Distribution')}</Flex>
-            <Flex flex="3">{t('Size')}</Flex>
+            <NameColumn>{t('Name')}</NameColumn>
+            <DistributionColumn>{t('Distribution')}</DistributionColumn>
+            <SizeAndActionsColumn>{t('Size')}</SizeAndActionsColumn>
           </PanelHeader>
           <PanelBody>
-            {this.state.fileList.map(file => {
-              return (
-                <PanelItem key={file.id}>
-                  <Flex
-                    flex="7"
-                    pr={2}
-                    style={{wordWrap: 'break-word', wordBreak: 'break-all'}}
-                  >
-                    <strong>{file.name || '(empty)'}</strong>
-                  </Flex>
-                  <Flex flex="2">
-                    {file.dist || <span className="text-light">{t('None')}</span>}
-                  </Flex>
-                  <Flex flex="3" justifyContent="space-between">
-                    <FileSize bytes={file.size} />
-                    <Flex alignItems="center">
-                      {access.has('project:write') ? (
-                        <a
-                          href={
-                            this.props.api.baseUrl +
-                            this.getFilesEndpoint() +
-                            `${file.id}/?download=1`
-                          }
-                          className="btn btn-sm btn-default"
-                        >
+            {this.state.fileList.map(file => (
+              <PanelItem key={file.id}>
+                <NameColumn>
+                  <strong>{file.name || '(empty)'}</strong>
+                </NameColumn>
+                <DistributionColumn>
+                  {file.dist || <span className="text-light">{t('None')}</span>}
+                </DistributionColumn>
+                <SizeAndActionsColumn>
+                  <FileSize bytes={file.size} />
+                  <AlignCenter>
+                    {access.has('project:write') ? (
+                      <a
+                        href={
+                          this.props.api.baseUrl +
+                          this.getFilesEndpoint() +
+                          `${file.id}/?download=1`
+                        }
+                        className="btn btn-sm btn-default"
+                      >
+                        <span className="icon icon-open" />
+                      </a>
+                    ) : (
+                      <Tooltip
+                        title={t(
+                          'You do not have the required permission to download this artifact.'
+                        )}
+                      >
+                        <div className="btn btn-sm btn-default disabled">
                           <span className="icon icon-open" />
-                        </a>
-                      ) : (
-                        <Tooltip
-                          title={t(
-                            'You do not have the required permission to download this artifact.'
-                          )}
-                        >
-                          <div className="btn btn-sm btn-default disabled">
-                            <span className="icon icon-open" />
-                          </div>
-                        </Tooltip>
-                      )}
-                      <div style={{marginLeft: 5}}>
-                        <LinkWithConfirmation
-                          className="btn btn-sm btn-default"
-                          title={t('Delete artifact')}
-                          message={t('Are you sure you want to remove this artifact?')}
-                          onConfirm={this.handleRemove.bind(this, file.id)}
-                        >
-                          <span className="icon icon-trash" />
-                        </LinkWithConfirmation>
-                      </div>
-                    </Flex>
-                  </Flex>
-                </PanelItem>
-              );
-            })}
+                        </div>
+                      </Tooltip>
+                    )}
+                    <div style={{marginLeft: 5}}>
+                      <LinkWithConfirmation
+                        className="btn btn-sm btn-default"
+                        title={t('Delete artifact')}
+                        message={t('Are you sure you want to remove this artifact?')}
+                        onConfirm={this.handleRemove.bind(this, file.id)}
+                      >
+                        <IconDelete />
+                      </LinkWithConfirmation>
+                    </div>
+                  </AlignCenter>
+                </SizeAndActionsColumn>
+              </PanelItem>
+            ))}
           </PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} />
@@ -189,6 +186,28 @@ class ReleaseArtifacts extends React.Component {
     );
   }
 }
+
+const NameColumn = styled('div')`
+  display: flex;
+  flex: 7;
+  padding-right: ${space(2)};
+  word-wrap: break-word;
+  word-break: break-all;
+`;
+const DistributionColumn = styled('div')`
+  display: flex;
+  flex: 2;
+  padding-right: ${space(2)};
+`;
+const SizeAndActionsColumn = styled('div')`
+  display: flex;
+  flex: 3;
+  justify-content: space-between;
+`;
+const AlignCenter = styled('div')`
+  display: flex;
+  align-items: center;
+`;
 
 export {ReleaseArtifacts};
 export default withOrganization(withApi(ReleaseArtifacts));

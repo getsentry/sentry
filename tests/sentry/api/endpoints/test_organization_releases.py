@@ -113,16 +113,51 @@ class OrganizationReleaseListTest(APITestCase):
         release2.add_project(project)
 
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
-        response = self.client.get(url + "?query=foo", format="json")
+        response = self.client.get(url + "?query=oob", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["version"] == release.version
 
-        response = self.client.get(url + "?query=bar", format="json")
+        response = self.client.get(url + "?query=baz", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_query_filter_suffix(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team], organization=org)
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        release = Release.objects.create(
+            organization_id=org.id,
+            version="com.foo.BarApp@1.0+1234",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+        release.add_project(project)
+
+        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url + "?query=1.0+(1234)", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["version"] == release.version
+
+        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        response = self.client.get(url + "?query=1.0%2B1234", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["version"] == release.version
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -629,7 +664,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             url, data={"version": "1.2.1", "projects": [project.slug, "banana"]}
         )
         assert response.status_code == 400
-        assert "Invalid project slugs" in response.content
+        assert b"Invalid project slugs" in response.content
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -670,7 +705,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
         assert response.status_code == 400
-        assert "Invalid project slugs" in response.content
+        assert b"Invalid project slugs" in response.content
 
         response = self.client.post(url, data={"version": "1.2.1", "projects": [project1.slug]})
 

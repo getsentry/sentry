@@ -123,7 +123,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
               >
                 <span
                   aria-describedby="tooltip-123456"
-                  className="css-sce1yi-Container eowlwvy0"
+                  className="css-1y4rfpo-Container eowlwvy0"
                   onBlur={[Function]}
                   onFocus={[Function]}
                   onMouseEnter={[Function]}
@@ -246,7 +246,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <span
                         aria-describedby="tooltip-123456"
-                        className="css-sce1yi-Container eowlwvy0"
+                        className="css-1y4rfpo-Container eowlwvy0"
                         onBlur={[Function]}
                         onFocus={[Function]}
                         onMouseEnter={[Function]}
@@ -254,6 +254,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -262,6 +264,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -271,48 +277,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -418,7 +434,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <span
                         aria-describedby="tooltip-123456"
-                        className="css-sce1yi-Container eowlwvy0"
+                        className="css-1y4rfpo-Container eowlwvy0"
                         onBlur={[Function]}
                         onFocus={[Function]}
                         onMouseEnter={[Function]}
@@ -426,6 +442,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -434,6 +452,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -443,48 +465,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -590,7 +622,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <span
                         aria-describedby="tooltip-123456"
-                        className="css-sce1yi-Container eowlwvy0"
+                        className="css-1y4rfpo-Container eowlwvy0"
                         onBlur={[Function]}
                         onFocus={[Function]}
                         onMouseEnter={[Function]}
@@ -598,6 +630,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -606,6 +640,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -615,48 +653,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -762,7 +810,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <span
                         aria-describedby="tooltip-123456"
-                        className="css-sce1yi-Container eowlwvy0"
+                        className="css-1y4rfpo-Container eowlwvy0"
                         onBlur={[Function]}
                         onFocus={[Function]}
                         onMouseEnter={[Function]}
@@ -770,6 +818,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -778,6 +828,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -787,48 +841,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -934,7 +998,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                     >
                       <span
                         aria-describedby="tooltip-123456"
-                        className="css-sce1yi-Container eowlwvy0"
+                        className="css-1y4rfpo-Container eowlwvy0"
                         onBlur={[Function]}
                         onFocus={[Function]}
                         onMouseEnter={[Function]}
@@ -942,6 +1006,8 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -950,6 +1016,10 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -959,48 +1029,58 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -1158,7 +1238,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                     >
                       <span
                         aria-describedby="tooltip-123456"
-                        className="css-sce1yi-Container eowlwvy0"
+                        className="css-1y4rfpo-Container eowlwvy0"
                         onBlur={[Function]}
                         onFocus={[Function]}
                         onMouseEnter={[Function]}
@@ -1166,6 +1246,8 @@ exports[`AvatarList renders with user avatars 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -1174,6 +1256,10 @@ exports[`AvatarList renders with user avatars 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -1183,48 +1269,58 @@ exports[`AvatarList renders with user avatars 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>
@@ -1330,7 +1426,7 @@ exports[`AvatarList renders with user avatars 1`] = `
                     >
                       <span
                         aria-describedby="tooltip-123456"
-                        className="css-sce1yi-Container eowlwvy0"
+                        className="css-1y4rfpo-Container eowlwvy0"
                         onBlur={[Function]}
                         onFocus={[Function]}
                         onMouseEnter={[Function]}
@@ -1338,6 +1434,8 @@ exports[`AvatarList renders with user avatars 1`] = `
                       >
                         <StyledBaseAvatar
                           className="avatar css-31pfpo-StyledAvatar-Circle e1mtf41h1"
+                          gravatarId="foo@example.com"
+                          letterId="foo@example.com"
                           loaded={true}
                           round={true}
                           style={
@@ -1346,6 +1444,10 @@ exports[`AvatarList renders with user avatars 1`] = `
                               "width": "28px",
                             }
                           }
+                          title="Foo Bar"
+                          type="letter_avatar"
+                          uploadId=""
+                          uploadPath="avatar"
                         >
                           <span
                             className="avatar e1mtf41h1 css-11cenzn-StyledBaseAvatar-StyledAvatar-Circle e147uwb0"
@@ -1355,48 +1457,58 @@ exports[`AvatarList renders with user avatars 1`] = `
                                 "width": "28px",
                               }
                             }
+                            title="Foo Bar"
+                            type="letter_avatar"
                           >
-                            <LetterAvatar
+                            <ForwardRef
                               displayName="Foo Bar"
                               identifier="foo@example.com"
                               round={true}
                             >
-                              <Component
-                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                              <LetterAvatar
                                 displayName="Foo Bar"
+                                forwardedRef={null}
                                 identifier="foo@example.com"
                                 round={true}
                               >
-                                <svg
+                                <Component
                                   className="css-1oxr9oh-LetterAvatar e12lgfev0"
-                                  viewBox="0 0 120 120"
+                                  displayName="Foo Bar"
+                                  forwardedRef={null}
+                                  identifier="foo@example.com"
+                                  round={true}
                                 >
-                                  <rect
-                                    fill="#315cac"
-                                    height="120"
-                                    rx="15"
-                                    ry="15"
-                                    width="120"
-                                    x="0"
-                                    y="0"
-                                  />
-                                  <text
-                                    fill="#FFFFFF"
-                                    fontSize="65"
-                                    style={
-                                      Object {
-                                        "dominantBaseline": "central",
-                                      }
-                                    }
-                                    textAnchor="middle"
-                                    x="50%"
-                                    y="50%"
+                                  <svg
+                                    className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                    viewBox="0 0 120 120"
                                   >
-                                    FB
-                                  </text>
-                                </svg>
-                              </Component>
-                            </LetterAvatar>
+                                    <rect
+                                      fill="#315cac"
+                                      height="120"
+                                      rx="15"
+                                      ry="15"
+                                      width="120"
+                                      x="0"
+                                      y="0"
+                                    />
+                                    <text
+                                      fill="#FFFFFF"
+                                      fontSize="65"
+                                      style={
+                                        Object {
+                                          "dominantBaseline": "central",
+                                        }
+                                      }
+                                      textAnchor="middle"
+                                      x="50%"
+                                      y="50%"
+                                    >
+                                      FB
+                                    </text>
+                                  </svg>
+                                </Component>
+                              </LetterAvatar>
+                            </ForwardRef>
                           </span>
                         </StyledBaseAvatar>
                       </span>

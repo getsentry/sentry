@@ -1,4 +1,5 @@
 import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
+
 import errorsByGeoQuery from '../queries/errorsByGeo';
 
 const errorsByGeo = {

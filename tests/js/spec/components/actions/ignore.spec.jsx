@@ -1,6 +1,8 @@
 import React from 'react';
-import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import $ from 'jquery';
+
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
+
 import IgnoreActions from 'app/components/actions/ignore';
 
 describe('IgnoreActions', function() {

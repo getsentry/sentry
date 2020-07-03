@@ -8,6 +8,7 @@ import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
+import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
@@ -24,6 +25,7 @@ import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
+import QuestionTooltip from 'app/components/questionTooltip';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -48,8 +50,8 @@ const getBulkConfirmMessage = (action, queryCount) => {
   );
 };
 
-const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
-  return function(action, canBeUndone, append = '') {
+const getConfirm = (numIssues, allInQuerySelected, query, queryCount) =>
+  function(action, canBeUndone, append = '') {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
@@ -84,10 +86,9 @@ const getConfirm = (numIssues, allInQuerySelected, query, queryCount) => {
       </div>
     );
   };
-};
 
-const getLabel = (numIssues, allInQuerySelected) => {
-  return function(action, append = '') {
+const getLabel = (numIssues, allInQuerySelected) =>
+  function(action, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
       ? t(`Bulk ${action} issues`)
@@ -99,7 +100,6 @@ const getLabel = (numIssues, allInQuerySelected) => {
 
     return text + append;
   };
-};
 
 const ExtraDescription = ({all, query, queryCount}) => {
   if (!all) {
@@ -236,7 +236,7 @@ const IssueListActions = createReactClass({
   handleUpdate(data) {
     const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
-      addLoadingMessage(t('Saving changes..'));
+      addLoadingMessage(t('Saving changes\u2026'));
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
@@ -268,7 +268,7 @@ const IssueListActions = createReactClass({
   handleDelete() {
     const {selection} = this.props;
 
-    addLoadingMessage(t('Removing events..'));
+    addLoadingMessage(t('Removing events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       this.props.api.bulkDelete(
@@ -292,7 +292,7 @@ const IssueListActions = createReactClass({
   handleMerge() {
     const {selection} = this.props;
 
-    addLoadingMessage(t('Merging events..'));
+    addLoadingMessage(t('Merging events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
       this.props.api.merge(
@@ -454,7 +454,11 @@ const IssueListActions = createReactClass({
                 btnGroup
                 caret={false}
                 className="btn btn-sm btn-default action-more"
-                title={<span className="icon-ellipsis" />}
+                title={
+                  <IconPad>
+                    <IconEllipsis size="xs" />
+                  </IconPad>
+                }
               >
                 <MenuItem noAnchor>
                   <ActionLink
@@ -537,11 +541,9 @@ const IssueListActions = createReactClass({
                   className="btn btn-default btn-sm hidden-xs"
                   onClick={this.handleRealtimeChange}
                 >
-                  {realtimeActive ? (
-                    <span className="icon icon-pause" />
-                  ) : (
-                    <span className="icon icon-play" />
-                  )}
+                  <IconPad>
+                    {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+                  </IconPad>
                 </a>
               </Tooltip>
             </div>
@@ -565,10 +567,18 @@ const IssueListActions = createReactClass({
             </GraphHeader>
           </GraphHeaderWrapper>
           <EventsOrUsersLabel className="align-right">
-            <ToolbarHeader>{t('Events')}</ToolbarHeader>
+            {t('Events')}
+            <StyledQuestionTooltip
+              title={t('Number of events since the issue was created')}
+              size="xs"
+            />
           </EventsOrUsersLabel>
           <EventsOrUsersLabel className="align-right">
-            <ToolbarHeader>{t('Users')}</ToolbarHeader>
+            {t('Users')}
+            <StyledQuestionTooltip
+              title={t('Unique users affected since the issue was created')}
+              size="xs"
+            />
           </EventsOrUsersLabel>
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
@@ -631,7 +641,7 @@ const StyledFlex = styled('div')`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
   align-items: center;
-  background: ${p => p.theme.offWhite};
+  background: ${p => p.theme.gray100};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   margin-bottom: -1px;
@@ -686,28 +696,49 @@ const GraphToggle = styled('a')`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => (p.active ? p.theme.gray4 : p.theme.disabled)};
+    color: ${p => (p.active ? p.theme.gray700 : p.theme.disabled)};
   }
 `;
 
-const EventsOrUsersLabel = styled('div')`
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+const EventsOrUsersLabel = styled(ToolbarHeader)`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(0.5)};
+  align-items: center;
+
+  margin-left: ${space(1.5)};
+  margin-right: ${space(1.5)};
   @media (min-width: ${theme.breakpoints[0]}) {
-    width: 40px;
+    width: 60px;
   }
   @media (min-width: ${theme.breakpoints[1]}) {
     width: 60px;
   }
   @media (min-width: ${theme.breakpoints[2]}) {
     width: 80px;
+    margin-left: ${space(2)};
+    margin-right: ${space(2)};
   }
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
 `;
 
 const AssigneesLabel = styled('div')`
   width: 80px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
+`;
+
+// New icons are misaligned inside bootstrap buttons.
+// This is a shim that can be removed when buttons are upgraded
+// to styled components.
+const IconPad = styled('span')`
+  position: relative;
+  top: ${space(0.25)};
 `;
 
 export {IssueListActions};

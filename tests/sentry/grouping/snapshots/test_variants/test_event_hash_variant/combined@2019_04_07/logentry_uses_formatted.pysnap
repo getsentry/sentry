@@ -1,11 +1,11 @@
 ---
-created: '2019-04-07T10:03:31.480871Z'
+created: '2020-02-26T19:54:24.974955Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
-  hash: '329b29efcf1f77067a063e34f56e7791'
+  hash: "329b29efcf1f77067a063e34f56e7791"
   component:
     default*
       message*
-        u'Hello there world!'
+        "Hello there world!"

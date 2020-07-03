@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 import logging
 import json
+
 from jsonschema import Draft4Validator
 from jsonschema.exceptions import best_match
 from jsonschema.exceptions import ValidationError as SchemaValidationError
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,7 @@ SCHEMA = {
                 "name": {"type": "string"},
                 "uri": {"$ref": "#/definitions/uri"},
                 "options": {"$ref": "#/definitions/options"},
+                "depends_on": {"type": "array", "minItems": 1, "items": {"type": "string"}},
             },
             "required": ["type", "name", "label"],
             "oneOf": [{"required": ["uri"]}, {"required": ["options"]}],

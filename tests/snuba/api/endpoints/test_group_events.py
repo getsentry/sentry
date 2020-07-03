@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.compat import map
 
 
 class GroupEventsTest(APITestCase, SnubaTestCase):
@@ -197,7 +198,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             )
 
         # Asserts that all are in the same group
-        group_id, = set(e.group.id for e in events.values())
+        (group_id,) = set(e.group.id for e in events.values())
 
         url = u"/api/0/issues/{}/events/".format(group_id)
         response = self.client.get(url + "?environment=production", format="json")
@@ -303,6 +304,16 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         group = self.create_group(first_seen=first_seen)
         response = self.client.get(
             u"/api/0/issues/{}/events/".format(group.id), data={"statsPeriod": "lol"}
+        )
+        assert response.status_code == 400
+
+    def test_invalid_query(self):
+        self.login_as(user=self.user)
+        first_seen = timezone.now() - timedelta(days=5)
+        group = self.create_group(first_seen=first_seen)
+        response = self.client.get(
+            u"/api/0/issues/{}/events/".format(group.id),
+            data={"statsPeriod": "7d", "query": "foo(bar"},
         )
         assert response.status_code == 400
 

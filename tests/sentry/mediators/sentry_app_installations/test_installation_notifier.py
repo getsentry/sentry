@@ -10,8 +10,15 @@ from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 
-MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
-MockResponseInstance = MockResponse({}, {}, True, 200)
+
+def raiseStatusFalse():
+    return False
+
+
+MockResponse = namedtuple(
+    "MockResponse", ["headers", "content", "ok", "status_code", "raise_for_status"]
+)
+MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 
 class DictContaining(object):
@@ -53,7 +60,7 @@ class TestInstallationNotifier(TestCase):
                         "organization": {"slug": self.org.slug},
                         "uuid": self.install.uuid,
                         "code": self.install.api_grant.code,
-                        "status": "pending",
+                        "status": "installed",
                     }
                 },
                 "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},
@@ -87,7 +94,7 @@ class TestInstallationNotifier(TestCase):
                         "organization": {"slug": self.org.slug},
                         "uuid": self.install.uuid,
                         "code": self.install.api_grant.code,
-                        "status": "pending",
+                        "status": "installed",
                     }
                 },
                 "actor": {"id": self.user.id, "name": self.user.name, "type": "user"},

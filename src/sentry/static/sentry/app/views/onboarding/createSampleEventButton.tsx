@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
@@ -20,7 +20,7 @@ import withOrganization from 'app/utils/withOrganization';
 type Props = React.ComponentProps<typeof Button> & {
   api: Client;
   organization: Organization;
-  project: Project;
+  project?: Project;
   source: string;
 };
 
@@ -82,6 +82,10 @@ class CreateSampleEventButton extends React.Component<Props, State> {
     const {api, organization, project, source} = this.props;
     let eventData;
 
+    if (!project) {
+      return;
+    }
+
     addLoadingMessage(t('Processing sample event...'));
     this.setState({creating: true});
 
@@ -122,8 +126,13 @@ class CreateSampleEventButton extends React.Component<Props, State> {
   };
 
   render() {
-    // eslint-disable-next-line no-unused-vars
-    const {api, organization, project, source, ...props} = this.props;
+    const {
+      api: _api,
+      organization: _organization,
+      project: _project,
+      source: _source,
+      ...props
+    } = this.props;
     const {creating} = this.state;
 
     return (

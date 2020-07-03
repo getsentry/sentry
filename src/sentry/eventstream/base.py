@@ -59,6 +59,7 @@ class EventStream(Service):
         is_regression,
         is_new_group_environment,
         primary_hash,
+        received_timestamp,  # type: float
         skip_consume=False,
     ):
         self._dispatch_post_process_group_task(

@@ -1,0 +1,98 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+
+{% block title %}{% trans "Slack Migration" %} | {{ block.super }}{% endblock %}
+
+{% block css %}
+  <style>
+    li {
+        list-style-type: none;
+        margin: 5px;
+    }
+    .channel-name {
+        margin-left: 10px;
+    }
+    div {
+        padding:10px 0px;
+    }
+    h6 {
+        margin: 0px 5px;
+    }
+    .section-info {
+        margin-top: 5px;
+    }
+    .private :last-child {
+        margin-top: 20px;
+    }
+    .footer-text {
+        display: inline-block;
+        font-size: 90%;
+    }
+  </style>
+
+
+{% endblock %}
+
+
+{% block main %}
+    <h3>{% trans "Time For An Upgrade" %}</h3>
+    {% if private %}
+        <div class="private">
+            <strong>{% trans "Well, look who has private channels with alert rules." %}</strong>
+            <p class="section-info">
+                {% blocktrans %}
+                So what does this mean for you and the future of your channels? Not much.
+                You'll just need to add the Sentry bot to each channel after you authorize the new Slack app.
+                Otherwise, you might miss out on some important error alerts.
+                {% endblocktrans %}
+            </p>
+            {% for channel in private %}
+                <li class="channel-name">{{channel.name}} </li>
+            {% endfor %}
+            <p class="section-info">
+                {% blocktrans %}
+                No need to waste time committing these to memory. After you authenticate the app,
+                we'll give you one last nudge via your private channels.
+                {% endblocktrans %}
+            </p>
+        </div>
+
+        <strong>{% trans "Next Steps" %}</strong>
+        <p class="section-info">
+            {% blocktrans %}
+            Click <strong>Upgrade</strong> to start the authentication flow for the new Slack app.
+            {% endblocktrans %}
+        </p>
+    {% endif %}
+
+
+    <div>
+        {% if not private %}
+            <h5>{% trans "Next Steps" %}</h5>
+            <p>
+                {% blocktrans %}
+                See, that wasn't so bad. Just click <strong>Upgrade</strong> to start the authentication flow for the new Slack app.
+                {% endblocktrans %}
+            </p>
+        {% endif %}
+    </div>
+
+    <div class="form-actions clearfix">
+        <div>
+            <div class="footer-text">
+                {% blocktrans %}
+                Have questions? Emails us at <a href="mailto:partners@sentry.io?subject=Slack Upgrade"><strong>partners@sentry.io</strong></a>
+                {% endblocktrans %}
+            </div>
+            <div class="pull-right">
+                <a class="btn btn-primary" href="{{ next_url }}">{% trans "Upgrade" %}</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

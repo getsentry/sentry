@@ -1,8 +1,9 @@
 import React from 'react';
 
-import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import NoteInput from 'app/components/activity/note/input';

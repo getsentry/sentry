@@ -7,6 +7,8 @@ from django.utils import timezone
 
 from collections import namedtuple, OrderedDict
 
+import sentry_sdk
+
 from sentry.models import Project, Release
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -512,26 +514,40 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
 
         # Preprocess step
         for processor in processing_task.iter_processors():
-            if processor.preprocess_step(processing_task):
-                changed = True
+            with sentry_sdk.start_span(
+                op="stacktraces.processing.process_stacktraces.preprocess_step"
+            ) as span:
+                span.set_data("processor", processor.__class__.__name__)
+                if processor.preprocess_step(processing_task):
+                    changed = True
+                    span.set_data("data_changed", True)
 
         # Process all stacktraces
         for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
             # Let the stacktrace processors touch the exception
             if stacktrace_info.is_exception and stacktrace_info.container:
                 for processor in processing_task.iter_processors():
-                    if processor.process_exception(stacktrace_info.container):
-                        changed = True
+                    with sentry_sdk.start_span(
+                        op="stacktraces.processing.process_stacktraces.process_exception"
+                    ) as span:
+                        span.set_data("processor", processor.__class__.__name__)
+                        if processor.process_exception(stacktrace_info.container):
+                            changed = True
+                            span.set_data("data_changed", True)
 
             # If the stacktrace is empty we skip it for processing
             if not stacktrace_info.stacktrace:
                 continue
-            new_frames, new_raw_frames, errors = process_single_stacktrace(
-                processing_task, stacktrace_info, processable_frames
-            )
-            if new_frames is not None:
-                stacktrace_info.stacktrace["frames"] = new_frames
-                changed = True
+            with sentry_sdk.start_span(
+                op="stacktraces.processing.process_stacktraces.process_single_stacktrace"
+            ) as span:
+                new_frames, new_raw_frames, errors = process_single_stacktrace(
+                    processing_task, stacktrace_info, processable_frames
+                )
+                if new_frames is not None:
+                    stacktrace_info.stacktrace["frames"] = new_frames
+                    changed = True
+                    span.set_data("data_changed", True)
             if (
                 set_raw_stacktrace
                 and new_raw_frames is not None
@@ -543,8 +559,14 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
                 changed = True
             if errors:
                 data.setdefault("errors", []).extend(dedup_errors(errors))
+                data.setdefault("_metrics", {})["flag.processing.error"] = True
                 changed = True
 
+    except Exception:
+        logger.exception("stacktraces.processing.crash")
+        data.setdefault("_metrics", {})["flag.processing.fatal"] = True
+        data.setdefault("_metrics", {})["flag.processing.error"] = True
+        changed = True
     finally:
         for processor in processors:
             processor.close()

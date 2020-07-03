@@ -58,7 +58,7 @@ const StyledPill = styled('li')`
   white-space: nowrap;
   margin: 0 10px 10px 0;
   display: flex;
-  border: 1px solid ${p => p.theme.gray1};
+  border: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p => p.theme.button.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLightest};
   line-height: 1.2;
@@ -82,24 +82,24 @@ const PillValue = styled(PillName)<PillValueProps>`
     switch (p.type) {
       case 'positive':
         return `
-          background: ${p.theme.greenLightest};
-          border: 1px solid ${p.theme.green};
+          background: ${p.theme.green100};
+          border: 1px solid ${p.theme.green400};
           margin: -1px;
         `;
       case 'negative':
         return `
-          background: ${p.theme.redLightest};
-          border: 1px solid ${p.theme.red};
+          background: ${p.theme.red100};
+          border: 1px solid ${p.theme.red400};
           margin: -1px;
         `;
       default:
         return `
-          background: ${p.theme.whiteDark};
+          background: ${p.theme.gray100};
         `;
     }
   }}
 
-  border-left: 1px solid ${p => p.theme.gray1};
+  border-left: 1px solid ${p => p.theme.borderDark};
   border-radius: ${p =>
     `0 ${p.theme.button.borderRadius} ${p.theme.button.borderRadius} 0`};
   font-family: ${p => p.theme.text.familyMono};
@@ -118,10 +118,10 @@ const PillValue = styled(PillName)<PillValueProps>`
   .external-icon {
     display: inline;
     margin: 0 0 0 ${space(1)};
-    color: ${p => p.theme.gray2};
+    color: ${p => p.theme.gray500};
     line-height: 1.2;
     &:hover {
-      color: ${p => p.theme.gray4};
+      color: ${p => p.theme.gray700};
     }
   }
 `;

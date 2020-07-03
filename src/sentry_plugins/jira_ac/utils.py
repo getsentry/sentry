@@ -5,7 +5,7 @@ import jwt
 
 from six.moves.urllib.parse import quote
 
-from sentry_plugins.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 
 
 def percent_encode(val):

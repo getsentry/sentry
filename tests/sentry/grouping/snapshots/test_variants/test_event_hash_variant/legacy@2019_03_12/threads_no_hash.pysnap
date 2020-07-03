@@ -1,19 +1,19 @@
 ---
-created: '2019-03-14T17:12:37.597519Z'
+created: '2020-02-26T19:54:29.249031Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app
       threads (ignored because contains 2 threads)
 --------------------------------------------------------------------------
 fallback:
-  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
 --------------------------------------------------------------------------
 system:
-  hash: None
+  hash: null
   component:
     system
       threads (ignored because contains 2 threads)

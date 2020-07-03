@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Flex} from 'reflexbox';
 import styled from '@emotion/styled';
 
 import SentryTypes from 'app/sentryTypes';
@@ -28,7 +27,7 @@ class TeamSection extends React.Component {
 
     return (
       <TeamSectionWrapper data-test-id="team" showBorder={showBorder}>
-        <TeamTitleBar justifyContent="space-between" alignItems="center">
+        <TeamTitleBar>
           <TeamName>{title}</TeamName>
           {hasTeamAccess && team && <TeamMembers teamId={team.slug} orgId={orgId} />}
         </TeamTitleBar>
@@ -47,7 +46,8 @@ class TeamSection extends React.Component {
   }
 }
 
-const ProjectCards = styled(Flex)`
+const ProjectCards = styled('div')`
+  display: flex;
   flex-wrap: wrap;
   padding: 0 ${space(3)} ${space(3)};
 `;
@@ -62,7 +62,10 @@ const TeamSectionWrapper = styled('div')`
   }
 `;
 
-const TeamTitleBar = styled(Flex)`
+const TeamTitleBar = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: ${space(3)} ${space(4)} 10px;
 `;
 

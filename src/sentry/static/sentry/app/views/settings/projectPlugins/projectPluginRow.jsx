@@ -1,5 +1,4 @@
 import {css} from '@emotion/core';
-import {Flex} from 'reflexbox';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -13,6 +12,9 @@ import SentryTypes from 'app/sentryTypes';
 import Switch from 'app/components/switch';
 import getDynamicText from 'app/utils/getDynamicText';
 import recreateRoute from 'app/utils/recreateRoute';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 const grayText = css`
   color: #979ba0;
@@ -27,6 +29,17 @@ class ProjectPluginRow extends React.PureComponent {
   handleChange = () => {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
+    trackIntegrationEvent(
+      {
+        eventKey: `integrations.${!enabled ? 'enabled' : 'disabled'}`,
+        eventName: `Integrations: ${!enabled ? 'Enabled' : 'Disabled'}`,
+        integration: id,
+        integration_type: 'plugin',
+        view: 'legacy_integrations',
+        project_id: this.props.project.id,
+      },
+      this.props.organization
+    );
   };
 
   render() {
@@ -48,10 +61,10 @@ class ProjectPluginRow extends React.PureComponent {
           const LinkOrSpan = hasAccess ? Link : 'span';
 
           return (
-            <Flex key={id} className={slug} flex="1" alignItems="center">
+            <PluginItem key={id} className={slug}>
               <PluginInfo>
                 <StyledPluginIcon size={48} pluginId={id} />
-                <Flex justifyContent="center" flexDirection="column">
+                <PluginDescription>
                   <PluginName>
                     {`${name} `}
                     {getDynamicText({
@@ -77,7 +90,7 @@ class ProjectPluginRow extends React.PureComponent {
                       </span>
                     )}
                   </div>
-                </Flex>
+                </PluginDescription>
               </PluginInfo>
               <Switch
                 size="lg"
@@ -85,7 +98,7 @@ class ProjectPluginRow extends React.PureComponent {
                 isActive={enabled}
                 toggle={this.handleChange}
               />
-            </Flex>
+            </PluginItem>
           );
         }}
       </Access>
@@ -93,9 +106,20 @@ class ProjectPluginRow extends React.PureComponent {
   }
 }
 
-export default ProjectPluginRow;
+export default withOrganization(withProject(ProjectPluginRow));
 
-// Includes icon, name, version, configure link
+const PluginItem = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const PluginDescription = styled('div')`
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+`;
+
 const PluginInfo = styled('div')`
   display: flex;
   flex: 1;

@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {IconClock} from 'app/icons';
 import {t} from 'app/locale';
-
 import Count from 'app/components/count';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
@@ -13,13 +13,15 @@ import ReleaseStats from 'app/components/releaseStats';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import SentryTypes from 'app/sentryTypes';
 
 import ReleaseDetailsActions from './releaseDetailActions';
 
 export default class ReleaseHeader extends React.Component {
   static propTypes = {
     release: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   static contextTypes = {
@@ -27,11 +29,11 @@ export default class ReleaseHeader extends React.Component {
   };
 
   render() {
-    const {release, orgId} = this.props;
+    const {release, organization} = this.props;
 
-    const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(
-      release.version
-    )}/`;
+    const releasePath = `/organizations/${
+      organization.slug
+    }/releases/${encodeURIComponent(release.version)}/`;
 
     const links = [
       {title: t('Overview'), to: releasePath},
@@ -46,7 +48,10 @@ export default class ReleaseHeader extends React.Component {
         <div className="row">
           <div className="col-sm-4 col-xs-12">
             <PageHeading>{t('Release')} </PageHeading>
-            <StyledVersion orgId={orgId} version={release.version} anchor={false} />
+            <StyledVersion version={release.version} anchor={false} />
+            <FullVersionWrapper>
+              <TextCopyInput>{release.version}</TextCopyInput>
+            </FullVersionWrapper>
             {!!release.url && (
               <div>
                 <ExternalLink href={release.url}>
@@ -55,7 +60,7 @@ export default class ReleaseHeader extends React.Component {
               </div>
             )}
             <div className="release-meta">
-              <span className="icon icon-clock" />{' '}
+              <IconClock size="11px" />
               <TimeSince date={release.dateCreated} />
             </div>
           </div>
@@ -95,7 +100,11 @@ export default class ReleaseHeader extends React.Component {
             </div>
           </div>
         </div>
-        <ReleaseDetailsActions api={this.api} orgId={orgId} release={release} />
+        <ReleaseDetailsActions
+          api={this.api}
+          organization={organization}
+          release={release}
+        />
         <NavTabs>
           {links.map(link => (
             <ListLink
@@ -118,4 +127,21 @@ const StyledVersion = styled(Version)`
   line-height: 1.2;
   display: block;
   margin: 6px 0;
+`;
+
+const FullVersionWrapper = styled('div')`
+  width: 285px;
+  max-width: 100%;
+  input {
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 1.5;
+  }
+  button > span {
+    padding: 2px 5px;
+  }
+  svg {
+    width: 0.9em;
+    height: 0.9em;
+  }
 `;

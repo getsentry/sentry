@@ -65,7 +65,7 @@ const ProjectsStatsStore = Reflux.createStore({
    * @param {Object} err Error object
    * @param {Object} data Previous project data
    */
-  onUpdateError(err, projectSlug) {
+  onUpdateError(_err, projectSlug) {
     const project = this.updatingItems.get(projectSlug);
     if (!project) {
       return;

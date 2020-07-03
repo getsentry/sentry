@@ -7,30 +7,23 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
     title="Repositories"
   />
   <AlertLink
+    openInNewTab={false}
     priority="warning"
     size="normal"
     to="/settings/org-slug/integrations/"
+    withoutMarginBottom={false}
   >
     Want to add a repository to start tracking commits? Install or configure your version control integration here.
   </AlertLink>
   <Panel>
-    <PanelHeader
-      disablePadding={true}
-    >
-      <Styled(div)>
-        <Styled(div)
-          px={2}
-        >
-          Added Repositories
-        </Styled(div)>
-      </Styled(div)>
+    <PanelHeader>
+      Added Repositories
     </PanelHeader>
     <PanelBody
-      direction="column"
-      disablePadding={true}
-      flex={false}
+      flexible={false}
+      withPadding={false}
     >
-      <Styled(div)>
+      <div>
         <RepositoryRow
           api={
             Client {
@@ -55,7 +48,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
           }
           showProvider={true}
         />
-      </Styled(div)>
+      </div>
     </PanelBody>
   </Panel>
 </div>
@@ -68,9 +61,11 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
     title="Repositories"
   />
   <AlertLink
+    openInNewTab={false}
     priority="warning"
     size="normal"
     to="/settings/org-slug/integrations/"
+    withoutMarginBottom={false}
   >
     Want to add a repository to start tracking commits? Install or configure your version control integration here.
   </AlertLink>
@@ -106,34 +101,19 @@ exports[`OrganizationRepositories renders with github provider 1`] = `
       </span>
     </TextBlock>
   </div>
-  <Panel
-    className="align-center p-x-2 p-y-1"
-  >
-    <Styled(div)
-      mb={1}
-    >
-      <HeroIcon
-        size="72px"
-        src="icon-commit"
-      />
-    </Styled(div)>
-    <h3>
-      Sentry is better with commit data
-    </h3>
-    <TextBlock>
-      Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
-    </TextBlock>
-    <Styled(div)
-      mb={1}
-    >
-      <Button
-        align="center"
-        disabled={false}
-        href="https://docs.sentry.io/learn/releases/"
-      >
-        Learn more
-      </Button>
-    </Styled(div)>
+  <Panel>
+    <EmptyMessage
+      action={
+        <ForwardRef
+          href="https://docs.sentry.io/learn/releases/"
+        >
+          Learn more
+        </ForwardRef>
+      }
+      description="Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message."
+      icon={<ForwardRef(IconCommit) />}
+      title="Sentry is better with commit data"
+    />
   </Panel>
 </div>
 `;
@@ -145,9 +125,11 @@ exports[`OrganizationRepositories renders without providers 1`] = `
     title="Repositories"
   />
   <AlertLink
+    openInNewTab={false}
     priority="warning"
     size="normal"
     to="/settings/org-slug/integrations/"
+    withoutMarginBottom={false}
   >
     Want to add a repository to start tracking commits? Install or configure your version control integration here.
   </AlertLink>
@@ -183,34 +165,19 @@ exports[`OrganizationRepositories renders without providers 1`] = `
       </span>
     </TextBlock>
   </div>
-  <Panel
-    className="align-center p-x-2 p-y-1"
-  >
-    <Styled(div)
-      mb={1}
-    >
-      <HeroIcon
-        size="72px"
-        src="icon-commit"
-      />
-    </Styled(div)>
-    <h3>
-      Sentry is better with commit data
-    </h3>
-    <TextBlock>
-      Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.
-    </TextBlock>
-    <Styled(div)
-      mb={1}
-    >
-      <Button
-        align="center"
-        disabled={false}
-        href="https://docs.sentry.io/learn/releases/"
-      >
-        Learn more
-      </Button>
-    </Styled(div)>
+  <Panel>
+    <EmptyMessage
+      action={
+        <ForwardRef
+          href="https://docs.sentry.io/learn/releases/"
+        >
+          Learn more
+        </ForwardRef>
+      }
+      description="Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message."
+      icon={<ForwardRef(IconCommit) />}
+      title="Sentry is better with commit data"
+    />
   </Panel>
 </div>
 `;

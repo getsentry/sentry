@@ -96,6 +96,13 @@ def _get_public_dsn():
     return result
 
 
+def _get_dsn_requests():
+    if settings.SENTRY_FRONTEND_REQUESTS_DSN:
+        return settings.SENTRY_FRONTEND_REQUESTS_DSN
+
+    return ""
+
+
 def get_client_config(request=None):
     """
     Provides initial bootstrap data needed to boot the frontend application.
@@ -110,7 +117,7 @@ def get_client_config(request=None):
         # User identity is used by the sentry SDK
         user_identity = {"ip_address": request.META["REMOTE_ADDR"]}
         if user and user.is_authenticated():
-            user_identity.update({"email": user.email, "id": user.id})
+            user_identity.update({"email": user.email, "id": user.id, "isStaff": user.is_staff})
             if user.name:
                 user_identity["name"] = user.name
     else:
@@ -145,6 +152,7 @@ def get_client_config(request=None):
         "distPrefix": get_asset_url("sentry", "dist/"),
         "needsUpgrade": needs_upgrade,
         "dsn": public_dsn,
+        "dsn_requests": _get_dsn_requests(),
         "statuspage": _get_statuspage(),
         "messages": [{"message": msg.message, "level": msg.tags} for msg in messages],
         "apmSampling": float(settings.SENTRY_APM_SAMPLING or 0),

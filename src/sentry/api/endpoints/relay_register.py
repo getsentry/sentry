@@ -16,7 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 
 
-from semaphore import (
+from sentry_relay import (
     create_register_challenge,
     validate_register_response,
     get_register_response_relay_id,

@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';

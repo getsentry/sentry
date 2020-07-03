@@ -7,6 +7,7 @@ from django.core.cache import cache
 
 from sentry.net.http import Session
 from sentry.utils.safe import get_path
+from sentry.utils.compat import zip
 
 logger = logging.getLogger(__name__)
 

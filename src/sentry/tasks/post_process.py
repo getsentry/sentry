@@ -2,8 +2,10 @@ from __future__ import absolute_import, print_function
 
 import logging
 import time
+import sentry_sdk
 
 from django.conf import settings
+from sentry_sdk.tracing import Span
 
 from sentry import features
 from sentry.utils.cache import cache
@@ -13,7 +15,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import set_current_project
 
 logger = logging.getLogger("sentry")
 
@@ -119,6 +121,8 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
     """
     Fires post processing hooks for a group.
     """
+    set_current_project(event.project_id)
+
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
@@ -151,9 +155,6 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             event.group, _ = get_group_with_redirect(event.group_id)
             event.group_id = event.group.id
 
-        with configure_scope() as scope:
-            scope.set_tag("project", event.project_id)
-
         # Re-bind Project and Org since we're pickling the whole Event object
         # which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
@@ -178,7 +179,10 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
             # objects back and forth isn't super efficient
             for callback, futures in rp.apply():
                 has_alert = True
-                safe_execute(callback, event, futures)
+                with sentry_sdk.start_span(
+                    Span(op="post_process_group", transaction="rule_processor_apply", sampled=True)
+                ):
+                    safe_execute(callback, event, futures)
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])
@@ -253,8 +257,7 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    with configure_scope() as scope:
-        scope.set_tag("project", event.project_id)
+    set_current_project(event.project_id)
 
     from sentry.plugins.base import plugins
 

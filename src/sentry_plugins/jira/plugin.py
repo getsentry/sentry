@@ -20,9 +20,10 @@ from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, 
 from sentry.utils.http import absolute_uri
 
 from sentry_plugins.base import CorePluginMixin
-from sentry_plugins.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry_plugins.jira.client import JiraClient
 from sentry_plugins.utils import get_secret_field_config
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 # A list of common builtin custom field types for JIRA for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {
@@ -39,6 +40,16 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     title = "JIRA"
     conf_title = title
     conf_key = slug
+    required_field = "username"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Create and link Sentry issue groups directly to a Jira ticket in any of your
+            projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        )
+    ]
 
     def get_group_urls(self):
         _patterns = super(JiraPlugin, self).get_group_urls()

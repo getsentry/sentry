@@ -1,6 +1,8 @@
 import React from 'react';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import $ from 'jquery';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ResolveActions from 'app/components/actions/resolve';
 
 describe('ResolveActions', function() {

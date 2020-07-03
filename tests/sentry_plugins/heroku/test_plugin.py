@@ -127,6 +127,47 @@ class SetRefsTest(TestCase):
 
 
 class HookHandleTest(TestCase):
+    def test_user_success(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        project = self.create_project(organization=organization)
+        hook = HerokuReleaseHook(project)
+        hook.set_refs = Mock()
+
+        req = Mock()
+        req.POST = {"head_long": "abcd123", "url": "http://example.com", "user": user.email}
+        hook.handle(req)
+        assert Release.objects.filter(version=req.POST["head_long"]).exists()
+        assert hook.set_refs.call_count == 1
+
+    def test_actor_email_success(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        project = self.create_project(organization=organization)
+        hook = HerokuReleaseHook(project)
+        hook.set_refs = Mock()
+
+        req = Mock()
+        req.POST = {
+            "head_long": "v999",
+            "url": "http://example.com",
+            "actor": {"email": user.email},
+        }
+        hook.handle(req)
+        assert Release.objects.filter(version=req.POST["head_long"]).exists()
+        assert hook.set_refs.call_count == 1
+
+    def test_email_mismatch(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        project = self.create_project(organization=organization)
+        hook = HerokuReleaseHook(project)
+
+        req = Mock()
+        req.POST = {"head_long": "v999", "url": "http://example.com", "user": "wrong@example.com"}
+        hook.handle(req)
+        assert Release.objects.filter(version=req.POST["head_long"]).exists()
+
     def test_bad_version(self):
         project = self.create_project()
         user = self.create_user()

@@ -8,7 +8,7 @@ from sentry.integrations import (
     IntegrationProvider,
     FeatureDescription,
 )
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.mediators.plugins import Migrator
 from sentry.models import User
@@ -160,7 +160,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
     def get_config(self):
         return [{"name": "name", "label": "Name", "type": "text", "required": True}]
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         Migrator.run(integration=integration, organization=organization)
 
     def build_integration(self, state):
@@ -183,3 +183,14 @@ class AliasedIntegrationProvider(ExampleIntegrationProvider):
     key = "aliased"
     integration_key = "example"
     name = "Integration Key Example"
+
+
+class ServerExampleProvider(ExampleIntegrationProvider):
+    key = "example_server"
+    name = "Example Server"
+
+
+class FeatureFlagIntegration(ExampleIntegrationProvider):
+    key = "feature_flag_integration"
+    name = "Feature Flag Integration"
+    requires_feature_flag = True

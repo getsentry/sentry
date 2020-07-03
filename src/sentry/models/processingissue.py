@@ -10,8 +10,8 @@ from sentry.db.models import BaseManager, Model, FlexibleForeignKey, GzippedDict
 
 def get_processing_issue_checksum(scope, object):
     h = sha1()
-    h.update(scope.encode("utf-8") + "\x00")
-    h.update(object.encode("utf-8") + "\x00")
+    h.update(scope.encode("utf-8") + b"\x00")
+    h.update(object.encode("utf-8") + b"\x00")
     return h.hexdigest()
 
 

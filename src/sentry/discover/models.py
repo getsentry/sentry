@@ -5,6 +5,9 @@ from sentry.db.models.fields import JSONField
 from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 
 
+MAX_KEY_TRANSACTIONS = 10
+
+
 class DiscoverSavedQueryProject(Model):
     __core__ = False
 
@@ -57,3 +60,18 @@ class DiscoverSavedQuery(Model):
                     for project_id in new_project_ids
                 ]
             )
+
+
+class KeyTransaction(Model):
+    __core__ = False
+
+    # max_length here is based on the maximum for transactions in relay
+    transaction = models.CharField(max_length=200)
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    owner = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    organization = FlexibleForeignKey("sentry.Organization")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_discoverkeytransaction"
+        unique_together = (("project", "owner", "transaction"),)

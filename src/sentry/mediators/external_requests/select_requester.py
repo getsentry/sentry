@@ -29,6 +29,7 @@ class SelectRequester(Mediator):
     project = Param("sentry.models.Project", required=False)
     uri = Param(six.string_types)
     query = Param(six.string_types, required=False)
+    dependent_data = Param(six.string_types, required=False)
 
     def call(self):
         return self._make_request()
@@ -44,6 +45,9 @@ class SelectRequester(Mediator):
 
         if self.query:
             query["query"] = self.query
+
+        if self.dependent_data:
+            query["dependentData"] = self.dependent_data
 
         urlparts[4] = urlencode(query)
         return urlunparse(urlparts)
@@ -69,7 +73,7 @@ class SelectRequester(Mediator):
                     "install": self.install.uuid,
                     "project": self.project and self.project.slug,
                     "uri": self.uri,
-                    "error_message": e.message,
+                    "error_message": six.text_type(e),
                 },
             )
             response = {}

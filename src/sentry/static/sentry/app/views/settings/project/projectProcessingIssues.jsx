@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Panel, PanelAlert} from 'app/components/panels';
+import {Panel, PanelItem, PanelBody, PanelAlert} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -118,7 +118,7 @@ class ProjectProcessingIssues extends React.Component {
     this.setState({
       reprocessing: true,
     });
-    addLoadingMessage(t('Started reprocessing..'));
+    addLoadingMessage(t('Started reprocessing\u2026'));
     const {orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
@@ -216,23 +216,19 @@ class ProjectProcessingIssues extends React.Component {
     return body;
   };
 
-  renderLoading = () => {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
-  };
+  renderLoading = () => (
+    <div className="box">
+      <LoadingIndicator />
+    </div>
+  );
 
-  renderEmpty = () => {
-    return (
-      <Panel>
-        <EmptyStateWarning>
-          <p>{t('Good news! There are no processing issues.')}</p>
-        </EmptyStateWarning>
-      </Panel>
-    );
-  };
+  renderEmpty = () => (
+    <Panel>
+      <EmptyStateWarning>
+        <p>{t('Good news! There are no processing issues.')}</p>
+      </EmptyStateWarning>
+    </Panel>
+  );
 
   getProblemDescription = item => {
     const msg = MESSAGES[item.type];
@@ -335,7 +331,7 @@ class ProjectProcessingIssues extends React.Component {
     let processingRow = null;
     if (this.state.processingIssues.issuesProcessing > 0) {
       processingRow = (
-        <div className="list-group-item alert-info">
+        <PanelItem className="alert-info">
           <div className="row row-flex row-center-vertically">
             <div className="col-sm-12">
               <span
@@ -349,7 +345,7 @@ class ProjectProcessingIssues extends React.Component {
               )}
             </div>
           </div>
-        </div>
+        </PanelItem>
       );
     }
 
@@ -380,23 +376,21 @@ class ProjectProcessingIssues extends React.Component {
               <div className="col-sm-2">{t('Last seen')}</div>
             </div>
           </div>
-          <div className="list-group">
+          <PanelBody>
             {processingRow}
-            {this.state.processingIssues.issues.map((item, idx) => {
-              return (
-                <div key={idx} className="list-group-item">
-                  <div className="row row-flex row-center-vertically">
-                    <div className="col-sm-3">{this.renderProblem(item)}</div>
-                    <div className="col-sm-5">{this.renderDetails(item)}</div>
-                    <div className="col-sm-2">{item.numEvents + ''}</div>
-                    <div className="col-sm-2">
-                      <TimeSince date={item.lastSeen} />
-                    </div>
+            {this.state.processingIssues.issues.map((item, idx) => (
+              <PanelItem key={idx}>
+                <div className="row row-flex row-center-vertically">
+                  <div className="col-sm-3">{this.renderProblem(item)}</div>
+                  <div className="col-sm-5">{this.renderDetails(item)}</div>
+                  <div className="col-sm-2">{item.numEvents + ''}</div>
+                  <div className="col-sm-2">
+                    <TimeSince date={item.lastSeen} />
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </PanelItem>
+            ))}
+          </PanelBody>
         </div>
       </div>
     );
@@ -444,13 +438,11 @@ class ProjectProcessingIssues extends React.Component {
         <SettingsPageHeader title={title} />
         <TextBlock>
           {t(
-            `
-          For some platforms the event processing requires configuration or
+            `For some platforms the event processing requires configuration or
           manual action.  If a misconfiguration happens or some necessary
           steps are skipped, issues can occur during processing. (The most common
           reason for this is missing debug symbols.) In these cases you can see
-          all the problems here with guides of how to correct them.
-        `
+          all the problems here with guides of how to correct them.`
           )}
         </TextBlock>
         {this.renderDebugTable()}

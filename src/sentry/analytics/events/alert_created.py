@@ -11,7 +11,7 @@ class AlertCreatedEvent(analytics.Event):
         analytics.Attribute("default_user_id"),
         analytics.Attribute("organization_id"),
         analytics.Attribute("rule_id"),
-        analytics.Attribute("actions", type=list),
+        analytics.Attribute("rule_type"),
     )
 
 

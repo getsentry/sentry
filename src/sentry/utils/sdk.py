@@ -1,27 +1,30 @@
 from __future__ import absolute_import, print_function
 
 import inspect
-import json
 import logging
 import six
-import zlib
 
 from django.conf import settings
-from django.utils.functional import cached_property
 
 import sentry_sdk
 
 from sentry_sdk.client import get_options
-from sentry_sdk.transport import Transport, make_transport
-from sentry_sdk.consts import VERSION as SDK_VERSION
-from sentry_sdk.utils import Auth, capture_internal_exceptions
+from sentry_sdk.transport import make_transport
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.utils import metrics
 from sentry.utils.rust import RustInfoIntegration
 
-UNSAFE_FILES = ("sentry/event_manager.py", "sentry/tasks/process_buffer.py")
+UNSAFE_FILES = (
+    "sentry/event_manager.py",
+    "sentry/tasks/process_buffer.py",
+    "sentry/ingest/ingest_consumer.py",
+    # This consumer lives outside of sentry but is just as unsafe.
+    "outcomes_consumer.py",
+)
+
+UNSAFE_TAG = "_unsafe"
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
@@ -33,10 +36,47 @@ def is_current_event_safe():
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
     """
+
+    with configure_scope() as scope:
+
+        # Scope was explicitly marked as unsafe
+        if scope._tags.get(UNSAFE_TAG):
+            return False
+
+        project_id = scope._tags.get("project")
+
+        if project_id and project_id == settings.SENTRY_PROJECT:
+            return False
+
     for _, filename, _, _, _, _ in inspect.stack():
         if filename.endswith(UNSAFE_FILES):
             return False
+
     return True
+
+
+def mark_scope_as_unsafe():
+    """
+    Set the unsafe tag on the SDK scope for outgoing crashe and transactions.
+
+    Marking a scope explicitly as unsafe allows the recursion breaker to
+    decide early, before walking the stack and checking for unsafe files.
+    """
+    with configure_scope() as scope:
+        scope.set_tag(UNSAFE_TAG, True)
+
+
+def set_current_project(project_id):
+    """
+    Set the current project on the SDK scope for outgoing crash reports.
+
+    This is a dedicated function because it is also important for the recursion
+    breaker to work. You really should set the project in every task that is
+    relevant to event processing, or that task may crash ingesting
+    sentry-internal errors, causing infinite recursion.
+    """
+    with configure_scope() as scope:
+        scope.set_tag("project", project_id)
 
 
 def get_project_key():
@@ -79,22 +119,36 @@ class SentryInternalFilter(logging.Filter):
     def filter(self, record):
         # TODO(mattrobenolt): handle an upstream Sentry
         metrics.incr("internal.uncaptured.logs", skip_internal=False)
-        return is_current_event_safe()
+        return True
 
 
 def configure_sdk():
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
 
     assert sentry_sdk.Hub.main.client is None
 
-    sdk_options = settings.SENTRY_SDK_CONFIG
+    sdk_options = dict(settings.SENTRY_SDK_CONFIG)
 
-    internal_transport = InternalTransport()
-    upstream_transport = None
-    if sdk_options.get("dsn"):
-        upstream_transport = make_transport(get_options(sdk_options))
+    relay_dsn = sdk_options.pop("relay_dsn", None)
+    internal_project_key = get_project_key()
+    upstream_dsn = sdk_options.pop("dsn", None)
+
+    if upstream_dsn:
+        upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+    else:
+        upstream_transport = None
+
+    if relay_dsn:
+        relay_transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+    elif internal_project_key and internal_project_key.dsn_private:
+        relay_transport = make_transport(
+            get_options(dsn=internal_project_key.dsn_private, **sdk_options)
+        )
+    else:
+        relay_transport = None
 
     def capture_event(event):
         if event.get("type") == "transaction" and options.get(
@@ -102,8 +156,10 @@ def configure_sdk():
         ):
             return
 
-        # Make sure we log to upstream when available first
-        if upstream_transport is not None:
+        # Upstream should get the event first because it is most isolated from
+        # the this sentry installation.
+        if upstream_transport:
+            metrics.incr("internal.captured.events.upstream")
             # TODO(mattrobenolt): Bring this back safely.
             # from sentry import options
             # install_id = options.get('sentry:install-id')
@@ -111,102 +167,27 @@ def configure_sdk():
             #     event.setdefault('tags', {})['install-id'] = install_id
             upstream_transport.capture_event(event)
 
-        internal_transport.capture_event(event)
+        if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+            if is_current_event_safe():
+                metrics.incr("internal.captured.events.relay")
+                relay_transport.capture_event(event)
+            else:
+                metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
+                if event.get("type") != "transaction":
+                    sdk_logger.warn("internal-error.unsafe-stacktrace.relay")
 
     sentry_sdk.init(
+        transport=capture_event,
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
+            RedisIntegration(),
         ],
-        transport=capture_event,
         traceparent_v2=True,
         **sdk_options
     )
-
-
-def _create_noop_hub():
-    def transport(event):
-        with capture_internal_exceptions():
-            metrics.incr("internal.uncaptured.events", skip_internal=False)
-            sdk_logger.warn("internal-error.noop-hub")
-
-    return sentry_sdk.Hub(sentry_sdk.Client(transport=transport))
-
-
-NOOP_HUB = _create_noop_hub()
-del _create_noop_hub
-
-
-class InternalTransport(Transport):
-    def __init__(self):
-        pass
-
-    @cached_property
-    def project_key(self):
-        return get_project_key()
-
-    @cached_property
-    def request_factory(self):
-        from django.test import RequestFactory
-
-        return RequestFactory()
-
-    def capture_event(self, event):
-        # Disable the SDK while processing our own events. This fixes some
-        # recursion issues when the view crashes without including any
-        # UNSAFE_FILES
-        #
-        # NOTE: UNSAFE_FILES still exists because the hub does not follow the
-        # execution flow into the celery job triggered by StoreView. In other
-        # words, UNSAFE_FILES is used in case the celery job for crashes and
-        # that error is captured by the SDK.
-        with NOOP_HUB:
-            return self._capture_event(event)
-
-    def _capture_event(self, event):
-        with capture_internal_exceptions():
-            key = self.project_key
-            if key is None:
-                return
-
-            if not is_current_event_safe():
-                metrics.incr("internal.uncaptured.events", skip_internal=False)
-                sdk_logger.warn("internal-error.unsafe-stacktrace")
-                return
-
-            auth = Auth(
-                scheme="https",
-                host="localhost",
-                project_id=key.project_id,
-                public_key=key.public_key,
-                secret_key=key.secret_key,
-                client="sentry-python/%s" % SDK_VERSION,
-            )
-
-            headers = {"HTTP_X_SENTRY_AUTH": auth.to_header(), "HTTP_CONTENT_ENCODING": "deflate"}
-
-            request = self.request_factory.post(
-                "/api/{}/store/".format(key.project_id),
-                data=zlib.compress(json.dumps(event).encode("utf8")),
-                content_type="application/octet-stream",
-                **headers
-            )
-
-            from sentry.web.api import StoreView
-
-            resp = StoreView.as_view()(request, project_id=six.text_type(key.project_id))
-
-            if resp.status_code != 200:
-                sdk_logger.warn(
-                    "internal-error.invalid-response",
-                    extra={
-                        "project_id": settings.SENTRY_PROJECT,
-                        "project_key": settings.SENTRY_PROJECT_KEY,
-                        "status_code": resp.status_code,
-                    },
-                )
 
 
 class RavenShim(object):
@@ -240,6 +221,7 @@ class RavenShim(object):
 def bind_organization_context(organization):
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
+    # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)

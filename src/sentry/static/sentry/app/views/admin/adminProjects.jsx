@@ -10,19 +10,17 @@ export const prettyDate = function(x) {
 };
 
 class AdminProjects extends React.Component {
-  getRow = row => {
-    return [
-      <td>
-        <strong>
-          <a href={`/${row.organization.slug}/${row.slug}/`}>{row.name}</a>
-        </strong>
-        <br />
-        <small>{row.organization.name}</small>
-      </td>,
-      <td style={{textAlign: 'center'}}>{row.status}</td>,
-      <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
-    ];
-  };
+  getRow = row => [
+    <td>
+      <strong>
+        <a href={`/${row.organization.slug}/${row.slug}/`}>{row.name}</a>
+      </strong>
+      <br />
+      <small>{row.organization.name}</small>
+    </td>,
+    <td style={{textAlign: 'center'}}>{row.status}</td>,
+    <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
+  ];
 
   render() {
     const columns = [

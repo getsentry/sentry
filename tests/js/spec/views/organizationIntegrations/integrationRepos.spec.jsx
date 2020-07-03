@@ -1,17 +1,24 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import RepositoryActions from 'app/actions/repositoryActions';
+import {Client} from 'app/api';
 import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function() {
-  beforeEach(function() {
-    Client.clearMockResponses();
-  });
-
   const org = TestStubs.Organization();
   const integration = TestStubs.GitHubIntegration();
   const routerContext = TestStubs.routerContext();
+
+  beforeEach(() => {
+    Client.clearMockResponses();
+    jest.spyOn(RepositoryActions, 'resetRepositories');
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   describe('Getting repositories', function() {
     it('handles broken integrations', function() {
@@ -80,6 +87,8 @@ describe('IntegrationRepos', function() {
         .first();
       expect(name).toHaveLength(1);
       expect(name.text()).toEqual('example/repo-name');
+
+      expect(RepositoryActions.resetRepositories).toHaveBeenCalled();
     });
 
     it('handles failure during save', async function() {
@@ -119,7 +128,7 @@ describe('IntegrationRepos', function() {
   });
 
   describe('migratable repo', function() {
-    it('associates repository with integration', () => {
+    it('associates repository with integration', async () => {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         body: [
@@ -150,12 +159,15 @@ describe('IntegrationRepos', function() {
 
       wrapper.find('DropdownButton').simulate('click');
       wrapper.find('StyledListElement').simulate('click');
+      await tick();
+
       expect(updateRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/4/`,
         expect.objectContaining({
           data: {integrationId: '1'},
         })
       );
+      expect(RepositoryActions.resetRepositories).toHaveBeenCalled();
     });
 
     it('uses externalSlug not name for comparison', () => {

@@ -19,6 +19,7 @@ type Props = {
 type BooleanFilterProps = {
   onChange: (value: boolean | null) => void;
   value: boolean | null;
+  children: React.ReactNode;
 };
 
 type Filters = {
@@ -31,7 +32,7 @@ type Filters = {
 const getBoolean = (list: string[]) =>
   Array.isArray(list) ? list && list.map(v => v.toLowerCase()).includes('true') : null;
 
-const MembersFilter: React.FC<Props> = ({className, roles, query, onChange}) => {
+const MembersFilter = ({className, roles, query, onChange}: Props) => {
   const search = tokenizeSearch(query);
 
   const filters = {
@@ -112,7 +113,7 @@ const MembersFilter: React.FC<Props> = ({className, roles, query, onChange}) => 
   );
 };
 
-const BooleanFilter: React.FC<BooleanFilterProps> = ({onChange, value, children}) => (
+const BooleanFilter = ({onChange, value, children}: BooleanFilterProps) => (
   <label>
     <Checkbox
       checked={value !== null}
@@ -149,8 +150,8 @@ const FilterHeader = styled('h2')`
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  background: ${p => p.theme.offWhite};
-  color: ${p => p.theme.gray3};
+  background: ${p => p.theme.gray100};
+  color: ${p => p.theme.gray600};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(1)};

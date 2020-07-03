@@ -29,7 +29,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.signals import sso_enabled
+from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
@@ -150,7 +150,9 @@ def handle_existing_identity(
         return HttpResponseRedirect(auth.get_login_redirect(request))
 
     state.clear()
-    metrics.incr("sso.login-success", tags={"provider": provider.key}, skip_internal=False)
+    metrics.incr(
+        "sso.login-success", tags={"provider": provider.key}, skip_internal=False, sample_rate=1.0
+    )
 
     return HttpResponseRedirect(auth.get_login_redirect(request))
 
@@ -497,6 +499,10 @@ def handle_new_user(auth_provider, organization, request, identity):
         auth_identity.update(user=user, data=identity.get("data", {}))
 
     user.send_confirm_emails(is_new_user=True)
+    provider = auth_provider.provider if auth_provider else None
+    user_signup.send_robust(
+        sender=handle_new_user, user=user, source="sso", provider=provider, referrer="in-app"
+    )
 
     handle_new_membership(auth_provider, organization, request, auth_identity)
 
@@ -805,6 +811,7 @@ class AuthHelper(object):
             "sso.error",
             tags={"provider": self.provider.key, "flow": self.state.flow},
             skip_internal=False,
+            sample_rate=1.0,
         )
 
         messages.add_message(

@@ -1,7 +1,8 @@
 import React from 'react';
-import {mount, shallow} from 'sentry-test/enzyme';
-import {Client} from 'app/api';
 
+import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+
+import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
 
 describe('AsyncComponent', function() {
@@ -46,14 +47,9 @@ describe('AsyncComponent', function() {
       },
       statusCode: 400,
     });
-    const wrapper = mount(<TestAsyncComponent />);
+    const wrapper = mountWithTheme(<TestAsyncComponent />);
     expect(wrapper.find('LoadingError')).toHaveLength(1);
-    expect(
-      wrapper
-        .find('LoadingError')
-        .find('p')
-        .text()
-    ).toEqual('oops there was a problem');
+    expect(wrapper.find('LoadingError').text()).toEqual('oops there was a problem');
   });
 
   describe('multi-route component', () => {

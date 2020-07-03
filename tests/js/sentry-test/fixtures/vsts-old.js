@@ -1,4 +1,4 @@
-function VstsPlugin(params) {
+function VstsPlugin() {
   return {
     status: 'unknown',
     description: 'Integrate Visual Studio Team Services work items by linking a project.',
@@ -26,7 +26,7 @@ function VstsPlugin(params) {
   };
 }
 
-function VstsCreate(params) {
+function VstsCreate() {
   return [
     {
       name: 'project',

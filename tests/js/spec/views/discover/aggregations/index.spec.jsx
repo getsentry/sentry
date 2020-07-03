@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Aggregations from 'app/views/discover/aggregations';
@@ -35,7 +36,8 @@ describe('Aggregations', function() {
   it('addRow()', function() {
     wrapper
       .find('AddText')
-      .find('Link')
+      .find("[data-test-id='aggregation-add-text-link']")
+      .hostNodes()
       .simulate('click');
     expect(onChangeMock).toHaveBeenCalledWith([[null, null, null]]);
   });

@@ -1,5 +1,6 @@
 import React from 'react';
-import {mount} from 'sentry-test/enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Login from 'app/views/auth/login';
 
@@ -13,7 +14,7 @@ describe('Login', function() {
       url: '/auth/config/',
     });
 
-    const wrapper = mount(<Login />);
+    const wrapper = mountWithTheme(<Login />);
 
     expect(wrapper.find('LoadingIndicator').exists()).toBe(true);
   });
@@ -24,7 +25,7 @@ describe('Login', function() {
       statusCode: 500,
     });
 
-    const wrapper = mount(<Login />);
+    const wrapper = mountWithTheme(<Login />);
 
     await tick();
     wrapper.update();
@@ -39,7 +40,7 @@ describe('Login', function() {
       body: {canRegister: false},
     });
 
-    const wrapper = mount(<Login />);
+    const wrapper = mountWithTheme(<Login />);
 
     expect(
       wrapper
@@ -55,7 +56,7 @@ describe('Login', function() {
       body: {canRegister: true},
     });
 
-    const wrapper = mount(<Login />);
+    const wrapper = mountWithTheme(<Login />);
 
     await tick();
     wrapper.update();
@@ -74,7 +75,7 @@ describe('Login', function() {
       body: {canRegister: true},
     });
 
-    const wrapper = mount(<Login />);
+    const wrapper = mountWithTheme(<Login />);
 
     await tick();
     wrapper.update();

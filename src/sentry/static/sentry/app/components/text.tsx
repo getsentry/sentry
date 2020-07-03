@@ -7,7 +7,7 @@ import Panel from 'app/components/panels/panel';
 const Text = styled('div')`
   ${textStyles};
 
-  ${Panel} & {
+  ${/* sc-selector */ Panel} & {
     padding-left: ${space(2)};
     padding-right: ${space(2)};
 

@@ -1,9 +1,9 @@
 import $ from 'jquery';
+import * as Sentry from '@sentry/react';
 
 import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
 import {PROJECT_MOVED} from 'app/constants/apiErrorCodes';
-import * as Sentry from '@sentry/browser';
 
 jest.unmock('app/api');
 
@@ -278,25 +278,6 @@ describe('api', function() {
 
         return {};
       });
-    });
-
-    it('reports correct error and stacktrace to Sentry', async function() {
-      api.request('/some/url/');
-      await tick();
-
-      const errorObjectSentryCalled = Sentry.captureException.mock.calls[0][0];
-      expect(errorObjectSentryCalled.name).toBe('InternalServerError');
-      expect(errorObjectSentryCalled.message).toBe('GET /some/url/ 500');
-
-      // First line of stack should be this test case
-      expect(errorObjectSentryCalled.stack.split('\n')[1]).toContain('api.spec.jsx');
-    });
-
-    it('reports correct error and stacktrace to Sentry when using promises', async function() {
-      await expect(
-        api.requestPromise('/some/url/')
-      ).rejects.toThrowErrorMatchingInlineSnapshot('"GET /some/url/ 500"');
-      expect(Sentry.captureException).toHaveBeenCalled();
     });
   });
 });

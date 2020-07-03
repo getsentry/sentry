@@ -28,9 +28,9 @@ def callback_func(context, method, callargs, backends, results):
     if backends == ["snuba", "snuba_discover"]:
         if method in get_by_id_methods:
             snuba_result = results[0].result()
-            snuba_discover_reuslt = results[1].result()
+            snuba_discover_result = results[1].result()
 
-            if snuba_result != snuba_discover_reuslt:
+            if snuba_result != snuba_discover_result:
                 logger.info(
                     "discover.result-mismatch",
                     extra={

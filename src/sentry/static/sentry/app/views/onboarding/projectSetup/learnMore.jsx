@@ -27,7 +27,7 @@ const LearnMore = ({project}) => (
   <React.Fragment>
     <DemoVideo>{learnMoveVideo}</DemoVideo>
     <Panel>
-      <SampleEventPanelBody disablePadding={false}>
+      <SampleEventPanelBody withPadding>
         {tct(
           `Want to see more of what Sentry can do before integrating into your
            application? Create a [strong:Sample Error Event] and poke around to

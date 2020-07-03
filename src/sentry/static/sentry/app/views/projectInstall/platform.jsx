@@ -10,18 +10,16 @@ import Button from 'app/components/button';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
+import Projects from 'app/utils/projects';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SentryTypes from 'app/sentryTypes';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 
 class ProjectInstallPlatform extends React.Component {
   static propTypes = {
     api: PropTypes.object,
-    project: SentryTypes.Project.isRequired,
   };
 
   state = {
@@ -71,7 +69,7 @@ class ProjectInstallPlatform extends React.Component {
   }
 
   render() {
-    const {project, params} = this.props;
+    const {params} = this.props;
     const {orgId, projectId} = params;
 
     const platform = platforms.find(p => p.id === params.platform);
@@ -80,7 +78,7 @@ class ProjectInstallPlatform extends React.Component {
       return <NotFound />;
     }
 
-    const issueStreamLink = `/organizations/${orgId}/issues/?project=${project.id}#welcome`;
+    const issueStreamLink = `/organizations/${orgId}/issues/`;
     const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
 
     return (
@@ -88,7 +86,7 @@ class ProjectInstallPlatform extends React.Component {
         <PanelHeader hasButtons>
           {t('Configure %(platform)s', {platform: platform.name})}
           <Actions>
-            <Button size="small" href={gettingStartedLink}>
+            <Button size="small" to={gettingStartedLink}>
               {t('< Back')}
             </Button>
             <Button size="small" href={platform.link} external>
@@ -102,8 +100,7 @@ class ProjectInstallPlatform extends React.Component {
             `
              This is a quick getting started guide. For in-depth instructions
              on integrating Sentry with [platform], view
-             [docLink:our complete documentation].
-            `,
+             [docLink:our complete documentation].`,
             {
               platform: platform.name,
               docLink: <a href={platform.link} />,
@@ -111,7 +108,7 @@ class ProjectInstallPlatform extends React.Component {
           )}
         </PanelAlert>
 
-        <PanelBody disablePadding={false}>
+        <PanelBody withPadding>
           {this.state.loading ? (
             <LoadingIndicator />
           ) : this.state.error ? (
@@ -127,14 +124,37 @@ class ProjectInstallPlatform extends React.Component {
           )}
 
           {this.isGettingStarted && (
-            <Button
-              priority="primary"
-              size="large"
-              to={issueStreamLink}
-              style={{marginTop: 20}}
+            <Projects
+              key={`${orgId}-${projectId}`}
+              orgId={orgId}
+              slugs={[projectId]}
+              passthroughPlaceholderProject={false}
             >
-              {t('Got it! Take me to the Issue Stream.')}
-            </Button>
+              {({projects, initiallyLoaded, fetching, fetchError}) => {
+                const projectsLoading = !initiallyLoaded && fetching;
+                const issueStreamLinkQuery =
+                  !projectsLoading && !fetchError && projects.length
+                    ? {
+                        project: projects[0].id,
+                      }
+                    : {};
+
+                return (
+                  <Button
+                    priority="primary"
+                    busy={projectsLoading}
+                    to={{
+                      pathname: issueStreamLink,
+                      query: issueStreamLinkQuery,
+                      hash: '#welcome',
+                    }}
+                    style={{marginTop: 20}}
+                  >
+                    {t('Got it! Take me to the Issue Stream.')}
+                  </Button>
+                );
+              }}
+            </Projects>
           )}
         </PanelBody>
       </Panel>
@@ -159,4 +179,4 @@ const Actions = styled('div')`
 `;
 
 export {ProjectInstallPlatform};
-export default withApi(withOrganization(withProject(ProjectInstallPlatform)));
+export default withApi(withOrganization(ProjectInstallPlatform));

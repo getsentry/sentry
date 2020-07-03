@@ -1,46 +1,36 @@
 from __future__ import absolute_import
 
+import random
 import logging
 from datetime import datetime
-import six
 
 from time import time
-from django.core.cache import cache
 from django.utils import timezone
+from django.conf import settings
 
-from semaphore.processing import StoreNormalizer
+import sentry_sdk
+from sentry_sdk.tracing import Span
+from sentry_relay.processing import StoreNormalizer
 
-from sentry import features, reprocessing
+from sentry import features, reprocessing, options
+from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
-from sentry.cache import default_cache
-from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
-from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
-from sentry.utils.sdk import configure_scope
-from sentry.models import (
-    EventAttachment,
-    File,
-    ProjectOption,
-    Activity,
-    Project,
-    CRASH_REPORT_TYPES,
-    get_crashreport_key,
-)
+from sentry.utils.sdk import set_current_project
+from sentry.models import ProjectOption, Activity, Project, Organization
+from sentry.eventstore.processing import event_processing_store
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
-
-# Timeout for cached group crash report counts
-CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 
 class RetryProcessing(Exception):
@@ -52,9 +42,13 @@ class RetrySymbolication(Exception):
         self.retry_after = retry_after
 
 
+@metrics.wraps("should_process")
 def should_process(data):
     """Quick check if processing is needed at all."""
     from sentry.plugins.base import plugins
+
+    if data.get("type") == "transaction":
+        return False
 
     for plugin in plugins.all(version=2):
         processors = safe_execute(
@@ -73,8 +67,24 @@ def should_process(data):
     return False
 
 
-def submit_process(project, from_reprocessing, cache_key, event_id, start_time, data):
+def submit_process(
+    project, from_reprocessing, cache_key, event_id, start_time, data, data_has_changed=None,
+):
     task = process_event_from_reprocessing if from_reprocessing else process_event
+    task.delay(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        data_has_changed=data_has_changed,
+    )
+
+
+def sample_symbolicate_event_apm():
+    return random.random() < getattr(settings, "SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING", 0)
+
+
+def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
+    task = symbolicate_event_from_reprocessing if from_reprocessing else symbolicate_event
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
@@ -91,9 +101,15 @@ def submit_save_event(project, cache_key, event_id, start_time, data):
     )
 
 
+def sample_process_event_apm():
+    return random.random() < getattr(settings, "SENTRY_PROCESS_EVENT_APM_SAMPLING", 0)
+
+
 def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project):
+    from sentry.lang.native.processing import should_process_with_symbolicator
+
     if cache_key and data is None:
-        data = default_cache.get(cache_key)
+        data = event_processing_store.get(cache_key)
 
     if data is None:
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "pre"}, skip_internal=False)
@@ -103,18 +119,31 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     original_data = data
     data = CanonicalKeyDict(data)
     project_id = data["project"]
-
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+    set_current_project(project_id)
 
     if project is None:
         project = Project.objects.get_from_cache(id=project_id)
     else:
         assert project.id == project_id, (project.id, project_id)
 
+    from_reprocessing = process_task is process_event_from_reprocessing
+
+    if should_process_with_symbolicator(data):
+        submit_symbolicate(
+            project, from_reprocessing, cache_key, event_id, start_time, original_data
+        )
+        return
+
     if should_process(data):
-        from_reprocessing = process_task is process_event_from_reprocessing
-        submit_process(project, from_reprocessing, cache_key, event_id, start_time, original_data)
+        submit_process(
+            project,
+            from_reprocessing,
+            cache_key,
+            event_id,
+            start_time,
+            original_data,
+            data_has_changed=False,
+        )
         return
 
     submit_save_event(project, cache_key, event_id, start_time, original_data)
@@ -153,9 +182,181 @@ def preprocess_event_from_reprocessing(
         data=data,
         start_time=start_time,
         event_id=event_id,
-        process_task=process_event,
+        process_task=process_event_from_reprocessing,
         project=project,
     )
+
+
+def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, data=None):
+    from sentry.lang.native.processing import get_symbolication_function
+
+    if data is None:
+        data = event_processing_store.get(cache_key)
+
+    if data is None:
+        metrics.incr(
+            "events.failed", tags={"reason": "cache", "stage": "symbolicate"}, skip_internal=False
+        )
+        error_logger.error("symbolicate.failed.empty", extra={"cache_key": cache_key})
+        return
+
+    data = CanonicalKeyDict(data)
+
+    project_id = data["project"]
+    set_current_project(project_id)
+
+    event_id = data["event_id"]
+
+    symbolication_function = get_symbolication_function(data)
+
+    has_changed = False
+
+    from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
+
+    try:
+        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
+            span.set_data("symbolicaton_function", symbolication_function.__name__)
+
+            with metrics.timer("tasks.store.symbolicate_event.symbolication"):
+                symbolicated_data = symbolication_function(data)
+
+            span.set_data("symbolicated_data", bool(symbolicated_data))
+            if symbolicated_data:
+                data = symbolicated_data
+                has_changed = True
+
+    except RetrySymbolication as e:
+        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
+            error_logger.warning(
+                "symbolicate.slow", extra={"project_id": project_id, "event_id": event_id}
+            )
+
+        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+            # Do not drop event but actually continue with rest of pipeline
+            # (persisting unsymbolicated event)
+            error_logger.exception(
+                "symbolicate.failed.infinite_retry",
+                extra={"project_id": project_id, "event_id": event_id},
+            )
+            data.setdefault("_metrics", {})["flag.processing.error"] = True
+            data.setdefault("_metrics", {})["flag.processing.fatal"] = True
+            has_changed = True
+        else:
+            # Requeue the task in the "sleep" queue
+            retry_symbolicate_event.apply_async(
+                args=(),
+                kwargs={
+                    "symbolicate_task_name": symbolicate_task.__name__,
+                    "task_kwargs": {
+                        "cache_key": cache_key,
+                        "event_id": event_id,
+                        "start_time": start_time,
+                    },
+                },
+                countdown=e.retry_after,
+            )
+            return
+    except Exception:
+        error_logger.exception("tasks.store.symbolicate_event.symbolication")
+        data.setdefault("_metrics", {})["flag.processing.error"] = True
+        data.setdefault("_metrics", {})["flag.processing.fatal"] = True
+        has_changed = True
+
+    # We cannot persist canonical types in the cache, so we need to
+    # downgrade this.
+    if isinstance(data, CANONICAL_TYPES):
+        data = dict(data.items())
+
+    if has_changed:
+        cache_key = event_processing_store.store(data)
+
+    process_task = process_event_from_reprocessing if from_reprocessing else process_event
+    _do_process_event(
+        cache_key=cache_key,
+        start_time=start_time,
+        event_id=event_id,
+        process_task=process_task,
+        data=data,
+        data_has_changed=has_changed,
+        from_symbolicate=True,
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.store.symbolicate_event",
+    queue="events.symbolicate_event",
+    time_limit=65,
+    soft_time_limit=60,
+)
+def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
+    """
+    Handles event symbolication using the external service: symbolicator.
+
+    :param string cache_key: the cache key for the event data
+    :param int start_time: the timestamp when the event was ingested
+    :param string event_id: the event identifier
+    """
+    with sentry_sdk.start_span(
+        Span(
+            op="tasks.store.symbolicate_event",
+            transaction="TaskSymbolicateEvent",
+            sampled=sample_symbolicate_event_apm(),
+        )
+    ):
+        return _do_symbolicate_event(
+            cache_key=cache_key,
+            start_time=start_time,
+            event_id=event_id,
+            symbolicate_task=symbolicate_event,
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.store.symbolicate_event_from_reprocessing",
+    queue="events.reprocessing.symbolicate_event",
+    time_limit=65,
+    soft_time_limit=60,
+)
+def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
+    with sentry_sdk.start_span(
+        Span(
+            op="tasks.store.symbolicate_event_from_reprocessing",
+            transaction="TaskSymbolicateEvent",
+            sampled=sample_symbolicate_event_apm(),
+        )
+    ):
+        return _do_symbolicate_event(
+            cache_key=cache_key,
+            start_time=start_time,
+            event_id=event_id,
+            symbolicate_task=symbolicate_event_from_reprocessing,
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.store.retry_symbolicate_event",
+    queue="sleep",
+    time_limit=(60 * 5) + 5,
+    soft_time_limit=60 * 5,
+)
+def retry_symbolicate_event(symbolicate_task_name, task_kwargs, **kwargs):
+    """
+    The only purpose of this task is be enqueued with some ETA set. This is
+    essentially an implementation of ETAs on top of Celery's existing ETAs, but
+    with the intent of having separate workers wait for those ETAs.
+    """
+    tasks = {
+        "symbolicate_event": symbolicate_event,
+        "symbolicate_event_from_reprocessing": symbolicate_event_from_reprocessing,
+    }
+
+    symbolicate_task = tasks.get(symbolicate_task_name)
+    if not symbolicate_task:
+        raise ValueError(
+            "Invalid argument for symbolicate_task_name: %s" % (symbolicate_task_name,)
+        )
+
+    symbolicate_task.delay(**task_kwargs)
 
 
 @instrumented_task(
@@ -182,11 +383,19 @@ def retry_process_event(process_task_name, task_kwargs, **kwargs):
     process_task.delay(**task_kwargs)
 
 
-def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
+def _do_process_event(
+    cache_key,
+    start_time,
+    event_id,
+    process_task,
+    data=None,
+    data_has_changed=None,
+    from_symbolicate=False,
+):
     from sentry.plugins.base import plugins
 
     if data is None:
-        data = default_cache.get(cache_key)
+        data = event_processing_store.get(cache_key)
 
     if data is None:
         metrics.incr(
@@ -196,65 +405,96 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
         return
 
     data = CanonicalKeyDict(data)
+
     project_id = data["project"]
+    set_current_project(project_id)
 
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+    event_id = data["event_id"]
 
-    has_changed = False
+    with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
+        project = Project.objects.get_from_cache(id=project_id)
 
-    # Fetch the reprocessing revision
-    reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
+    with metrics.timer("tasks.store.process_event.organization.get_from_cache"):
+        project._organization_cache = Organization.objects.get_from_cache(
+            id=project.organization_id
+        )
 
-    try:
-        # Event enhancers.  These run before anything else.
-        for plugin in plugins.all(version=2):
-            enhancers = safe_execute(plugin.get_event_enhancers, data=data)
-            for enhancer in enhancers or ():
-                enhanced = safe_execute(enhancer, data, _passthrough_errors=(RetrySymbolication,))
-                if enhanced:
-                    data = enhanced
-                    has_changed = True
+    has_changed = bool(data_has_changed)
 
-        # Stacktrace based event processors.
-        new_data = process_stacktraces(data)
-        if new_data is not None:
-            has_changed = True
-            data = new_data
-    except RetrySymbolication as e:
-        if start_time and (time() - start_time) > 3600:
-            # Do not drop event but actually continue with rest of pipeline
-            # (persisting unsymbolicated event)
-            error_logger.exception("process.failed.infinite_retry")
-        else:
-            retry_process_event.apply_async(
-                args=(),
-                kwargs={
-                    "process_task_name": process_task.__name__,
-                    "task_kwargs": {
-                        "cache_key": cache_key,
-                        "event_id": event_id,
-                        "start_time": start_time,
-                    },
-                },
-                countdown=e.retry_after,
-            )
-            return
+    with sentry_sdk.start_span(op="tasks.store.process_event.get_reprocessing_revision"):
+        # Fetch the reprocessing revision
+        reprocessing_rev = reprocessing.get_reprocessing_revision(project_id)
+
+    # Stacktrace based event processors.
+    with sentry_sdk.start_span(op="task.store.process_event.stacktraces"):
+        with metrics.timer(
+            "tasks.store.process_event.stacktraces", tags={"from_symbolicate": from_symbolicate}
+        ):
+            new_data = process_stacktraces(data)
+
+    if new_data is not None:
+        has_changed = True
+        data = new_data
+
+    # Second round of datascrubbing after stacktrace and language-specific
+    # processing. First round happened as part of ingest.
+    #
+    # *Right now* the only sensitive data that is added in stacktrace
+    # processing are usernames in filepaths, so we run directly after
+    # stacktrace processors.
+    #
+    # We do not yet want to deal with context data produced by plugins like
+    # sessionstack or fullstory (which are in `get_event_preprocessors`), as
+    # this data is very unlikely to be sensitive data. This is why scrubbing
+    # happens somewhere in the middle of the pipeline.
+    #
+    # On the other hand, Javascript event error translation is happening after
+    # this block because it uses `get_event_preprocessors` instead of
+    # `get_event_enhancers`.
+    #
+    # We are fairly confident, however, that this should run *before*
+    # re-normalization as it is hard to find sensitive data in partially
+    # trimmed strings.
+    if has_changed and options.get("processing.can-use-scrubbers"):
+        with sentry_sdk.start_span(op="task.store.datascrubbers.scrub"):
+            with metrics.timer(
+                "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
+            ):
+                new_data = safe_execute(scrub_data, project=project, event=data.data)
+
+                # XXX(markus): When datascrubbing is finally "totally stable", we might want
+                # to drop the event if it crashes to avoid saving PII
+                if new_data is not None and features.has(
+                    "organizations:datascrubbers-v2", project.organization, actor=None
+                ):
+                    data.data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
     for plugin in plugins.all(version=2):
-        processors = safe_execute(
-            plugin.get_event_preprocessors, data=data, _with_transaction=False
-        )
-        for processor in processors or ():
-            result = safe_execute(processor, data)
-            if result:
-                data = result
-                has_changed = True
+        with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
+            span.set_data("plugin", plugin.slug)
+            span.set_data("from_symbolicate", from_symbolicate)
+            with metrics.timer(
+                "tasks.store.process_event.preprocessors",
+                tags={"plugin": plugin.slug, "from_symbolicate": from_symbolicate},
+            ):
+                processors = safe_execute(
+                    plugin.get_event_preprocessors, data=data, _with_transaction=False
+                )
+                for processor in processors or ():
+                    try:
+                        result = processor(data)
+                    except Exception:
+                        error_logger.exception("tasks.store.preprocessors.error")
+                        data.setdefault("_metrics", {})["flag.processing.error"] = True
+                        has_changed = True
+                    else:
+                        if result:
+                            data = result
+                            has_changed = True
 
-    assert data["project"] == project_id, "Project cannot be mutated by preprocessor"
-    project = Project.objects.get_from_cache(id=project_id)
+    assert data["project"] == project_id, "Project cannot be mutated by plugins"
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
@@ -286,14 +526,12 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
                 return
         except RetryProcessing:
             # If `create_failed_event` indicates that we need to retry we
-            # invoke outselves again.  This happens when the reprocessing
+            # invoke ourselves again.  This happens when the reprocessing
             # revision changed while we were processing.
-            from_reprocessing = process_task is process_event_from_reprocessing
-            submit_process(project, from_reprocessing, cache_key, event_id, start_time, data)
-            process_task.delay(cache_key, start_time=start_time, event_id=event_id)
+            _do_preprocess_event(cache_key, data, start_time, event_id, process_task, project)
             return
 
-        default_cache.set(cache_key, data, 3600)
+        cache_key = event_processing_store.store(data)
 
     submit_save_event(project, cache_key, event_id, start_time, data)
 
@@ -304,10 +542,31 @@ def _do_process_event(cache_key, start_time, event_id, process_task, data=None):
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(
-        cache_key=cache_key, start_time=start_time, event_id=event_id, process_task=process_event
-    )
+def process_event(cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs):
+    """
+    Handles event processing (for those events that need it)
+
+    This excludes symbolication via symbolicator service (see symbolicate_event).
+
+    :param string cache_key: the cache key for the event data
+    :param int start_time: the timestamp when the event was ingested
+    :param string event_id: the event identifier
+    :param boolean data_has_changed: set to True if the event data was changed in previous tasks
+    """
+    with sentry_sdk.start_span(
+        Span(
+            op="tasks.store.process_event",
+            transaction="TaskProcessEvent",
+            sampled=sample_process_event_apm(),
+        )
+    ):
+        return _do_process_event(
+            cache_key=cache_key,
+            start_time=start_time,
+            event_id=event_id,
+            process_task=process_event,
+            data_has_changed=data_has_changed,
+        )
 
 
 @instrumented_task(
@@ -316,19 +575,32 @@ def process_event(cache_key, start_time=None, event_id=None, **kwargs):
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        process_task=process_event_from_reprocessing,
-    )
+def process_event_from_reprocessing(
+    cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs
+):
+    with sentry_sdk.start_span(
+        Span(
+            op="tasks.store.process_event_from_reprocessing",
+            transaction="TaskProcessEvent",
+            sampled=sample_process_event_apm(),
+        )
+    ):
+        return _do_process_event(
+            cache_key=cache_key,
+            start_time=start_time,
+            event_id=event_id,
+            process_task=process_event_from_reprocessing,
+            data_has_changed=data_has_changed,
+        )
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
+    set_current_project(project_id)
+
     if event_id is None:
         error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
         return
+
     from sentry.models import RawEvent, ReprocessingReport
 
     RawEvent.objects.filter(project_id=project_id, event_id=event_id).delete()
@@ -355,6 +627,8 @@ def create_failed_event(
     """If processing failed we put the original data from the cache into a
     raw event.  Returns `True` if a failed event was inserted
     """
+    set_current_project(project_id)
+
     # We can only create failed events for events that can potentially
     # create failed events.
     if not reprocessing.event_supports_reprocessing(data):
@@ -399,7 +673,7 @@ def create_failed_event(
     # from the last processing step because we do not want any
     # modifications to take place.
     delete_raw_event(project_id, event_id)
-    data = default_cache.get(cache_key)
+    data = event_processing_store.get(cache_key)
     if data is None:
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "raw"}, skip_internal=False)
         error_logger.error("process.failed_raw.empty", extra={"cache_key": cache_key})
@@ -424,108 +698,9 @@ def create_failed_event(
             data=issue["data"],
         )
 
-    default_cache.delete(cache_key)
+    event_processing_store.delete_by_key(cache_key)
 
     return True
-
-
-def get_max_crashreports(model):
-    value = model.get_option("sentry:store_crash_reports")
-    return convert_crashreport_count(value)
-
-
-def crashreports_exceeded(current_count, max_count):
-    if max_count == STORE_CRASH_REPORTS_ALL:
-        return False
-    return current_count >= max_count
-
-
-def get_stored_crashreports(cache_key, event, max_crashreports):
-    # There are two common cases: Storing crash reports is disabled, or is
-    # unbounded. In both cases, there is no need in caching values or querying
-    # the database.
-    if max_crashreports in (0, STORE_CRASH_REPORTS_ALL):
-        return max_crashreports
-
-    cached_reports = cache.get(cache_key, None)
-    if cached_reports >= max_crashreports:
-        return cached_reports
-
-    # Fall-through if max_crashreports was bumped to get a more accurate number.
-    return EventAttachment.objects.filter(
-        group_id=event.group_id, file__type__in=CRASH_REPORT_TYPES
-    ).count()
-
-
-def save_attachments(cache_key, event):
-    """
-    Persists cached event attachments into the file store.
-
-    This method checks whether event attachments are available and sends them to
-    the blob store. There is special handling for crash reports which may
-    contain unstripped PII. If the project or organization is configured to
-    limit the amount of crash reports per group, the number of stored crashes is
-    limited.
-
-    :param cache_key: The cache key at which the event payload is stored in the
-                      cache. This is used to retrieve attachments.
-    :param event:     The event model instance.
-    """
-    if not features.has("organizations:event-attachments", event.project.organization, actor=None):
-        return
-
-    attachments = list(attachment_cache.get(cache_key))
-    if not attachments:
-        return
-
-    # The setting is both an organization and project setting. The project
-    # setting strictly overrides the organization setting, unless set to the
-    # default.
-    max_crashreports = get_max_crashreports(event.project)
-    if not max_crashreports:
-        max_crashreports = get_max_crashreports(event.project.organization)
-
-    # The number of crash reports is cached per group
-    crashreports_key = get_crashreport_key(event.group_id)
-
-    # Only fetch the number of stored crash reports if there is a crash report
-    # in the list of attachments. Otherwise, we won't require this number.
-    if any(attachment.type in CRASH_REPORT_TYPES for attachment in attachments):
-        cached_reports = get_stored_crashreports(crashreports_key, event, max_crashreports)
-    else:
-        cached_reports = 0
-    stored_reports = cached_reports
-
-    for attachment in attachments:
-        # If the attachment is a crash report (e.g. minidump), we need to honor
-        # the store_crash_reports setting. Otherwise, we assume that the client
-        # has already verified PII and just store the attachment.
-        if attachment.type in CRASH_REPORT_TYPES:
-            if crashreports_exceeded(stored_reports, max_crashreports):
-                continue
-            stored_reports += 1
-
-        file = File.objects.create(
-            name=attachment.name,
-            type=attachment.type,
-            headers={"Content-Type": attachment.content_type},
-        )
-        file.putfile(six.BytesIO(attachment.data))
-
-        EventAttachment.objects.create(
-            event_id=event.event_id,
-            project_id=event.project_id,
-            group_id=event.group_id,
-            name=attachment.name,
-            file=file,
-        )
-
-    # Check if we have exceeded the stored crash reports count. If so, we
-    # persist the current maximum (not the actual number!) into the cache. Next
-    # time when loading from the cache, we will validate that this number has
-    # not changed, or otherwise re-fetch from the database.
-    if crashreports_exceeded(stored_reports, max_crashreports) and stored_reports > cached_reports:
-        cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
 
 
 def _do_save_event(
@@ -534,118 +709,78 @@ def _do_save_event(
     """
     Saves an event to the database.
     """
-    from sentry.event_manager import HashDiscarded, EventManager
-    from sentry import quotas
-    from sentry.models import ProjectKey
-    from sentry.utils.outcomes import Outcome, track_outcome
-    from sentry.ingest.outcomes_consumer import mark_signal_sent
+
+    set_current_project(project_id)
+
+    from sentry.event_manager import EventManager, HashDiscarded
+
+    event_type = "none"
 
     if cache_key and data is None:
-        data = default_cache.get(cache_key)
+        with metrics.timer("tasks.store.do_save_event.get_cache") as metric_tags:
+            data = event_processing_store.get(cache_key)
+            if data is not None:
+                metric_tags["event_type"] = event_type = data.get("type") or "none"
 
-    if data is not None:
-        data = CanonicalKeyDict(data)
+    with metrics.global_tags(event_type=event_type):
+        if data is not None:
+            data = CanonicalKeyDict(data)
 
-    if event_id is None and data is not None:
-        event_id = data["event_id"]
+        if event_id is None and data is not None:
+            event_id = data["event_id"]
 
-    # only when we come from reprocessing we get a project_id sent into
-    # the task.
-    if project_id is None:
-        project_id = data.pop("project")
+        # only when we come from reprocessing we get a project_id sent into
+        # the task.
+        if project_id is None:
+            project_id = data.pop("project")
+            set_current_project(project_id)
 
-    key_id = None if data is None else data.get("key_id")
-    if key_id is not None:
-        key_id = int(key_id)
-    timestamp = to_datetime(start_time) if start_time is not None else None
+        # We only need to delete raw events for events that support
+        # reprocessing.  If the data cannot be found we want to assume
+        # that we need to delete the raw event.
+        if not data or reprocessing.event_supports_reprocessing(data):
+            with metrics.timer("tasks.store.do_save_event.delete_raw_event"):
+                delete_raw_event(project_id, event_id, allow_hint_clear=True)
 
-    # We only need to delete raw events for events that support
-    # reprocessing.  If the data cannot be found we want to assume
-    # that we need to delete the raw event.
-    if not data or reprocessing.event_supports_reprocessing(data):
-        delete_raw_event(project_id, event_id, allow_hint_clear=True)
+        # This covers two cases: where data is None because we did not manage
+        # to fetch it from the default cache or the empty dictionary was
+        # stored in the default cache.  The former happens if the event
+        # expired while being on the queue, the second happens on reprocessing
+        # if the raw event was deleted concurrently while we held on to
+        # it.  This causes the node store to delete the data and we end up
+        # fetching an empty dict.  We could in theory not invoke `save_event`
+        # in those cases but it's important that we always clean up the
+        # reprocessing reports correctly or they will screw up the UI.  So
+        # to future proof this correctly we just handle this case here.
+        if not data:
+            metrics.incr(
+                "events.failed", tags={"reason": "cache", "stage": "post"}, skip_internal=False
+            )
+            return
 
-    # This covers two cases: where data is None because we did not manage
-    # to fetch it from the default cache or the empty dictionary was
-    # stored in the default cache.  The former happens if the event
-    # expired while being on the queue, the second happens on reprocessing
-    # if the raw event was deleted concurrently while we held on to
-    # it.  This causes the node store to delete the data and we end up
-    # fetching an empty dict.  We could in theory not invoke `save_event`
-    # in those cases but it's important that we always clean up the
-    # reprocessing reports correctly or they will screw up the UI.  So
-    # to future proof this correctly we just handle this case here.
-    if not data:
-        metrics.incr(
-            "events.failed", tags={"reason": "cache", "stage": "post"}, skip_internal=False
-        )
-        return
-
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
-
-    event = None
-    try:
-        manager = EventManager(data)
-        # event.project.organization is populated after this statement.
-        event = manager.save(project_id, assume_normalized=True)
-
-        # This is where we can finally say that we have accepted the event.
-        track_outcome(
-            event.project.organization_id,
-            event.project.id,
-            key_id,
-            Outcome.ACCEPTED,
-            None,
-            timestamp,
-            event_id,
-        )
-
-    except HashDiscarded:
-        project = Project.objects.get_from_cache(id=project_id)
-        reason = FilterStatKeys.DISCARDED_HASH
-        project_key = None
         try:
-            if key_id is not None:
-                project_key = ProjectKey.objects.get_from_cache(id=key_id)
-        except ProjectKey.DoesNotExist:
+            with metrics.timer("tasks.store.do_save_event.event_manager.save"):
+                manager = EventManager(data)
+                # event.project.organization is populated after this statement.
+                manager.save(
+                    project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
+                )
+
+        except HashDiscarded:
             pass
 
-        quotas.refund(project, key=project_key, timestamp=start_time)
-        # There is no signal supposed to be sent for this particular
-        # outcome-reason combination. Prevent the outcome consumer from
-        # emitting it for now.
-        #
-        # XXX(markus): Revisit decision about signals once outcomes consumer is stable.
-        mark_signal_sent(project_id, event_id)
-        track_outcome(
-            project.organization_id,
-            project_id,
-            key_id,
-            Outcome.FILTERED,
-            reason,
-            timestamp,
-            event_id,
-        )
+        finally:
+            if cache_key:
+                with metrics.timer("tasks.store.do_save_event.delete_cache"):
+                    event_processing_store.delete_by_key(cache_key)
 
-    else:
-        if cache_key:
-            # Note that event is now a model, and no longer the data
-            save_attachments(cache_key, event)
+                with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
+                    attachment_cache.delete(cache_key)
 
-    finally:
-        if cache_key:
-            default_cache.delete(cache_key)
-
-            # For the unlikely case that we did not manage to persist the
-            # event we also delete the key always.
-            if event is None or features.has(
-                "organizations:event-attachments", event.project.organization, actor=None
-            ):
-                attachment_cache.delete(cache_key)
-
-        if start_time:
-            metrics.timing("events.time-to-process", time() - start_time, instance=data["platform"])
+            if start_time:
+                metrics.timing(
+                    "events.time-to-process", time() - start_time, instance=data["platform"]
+                )
 
 
 @instrumented_task(

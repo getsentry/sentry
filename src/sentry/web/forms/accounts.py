@@ -587,12 +587,6 @@ class NotificationDeploySettingsForm(forms.Form):
 
 
 class NotificationSettingsForm(forms.Form):
-    alert_email = AllowedEmailField(
-        label=_("Email"),
-        help_text=_("Designate an alternative email address to send email notifications to."),
-        required=False,
-    )
-
     subscribe_by_default = forms.BooleanField(
         label=_("Automatically subscribe to alerts for new projects"),
         help_text=_(
@@ -637,9 +631,6 @@ class NotificationSettingsForm(forms.Form):
         self.user = user
         super(NotificationSettingsForm, self).__init__(*args, **kwargs)
 
-        self.fields["alert_email"].initial = UserOption.objects.get_value(
-            user=self.user, key="alert_email", default=user.email
-        )
         self.fields["subscribe_by_default"].initial = (
             UserOption.objects.get_value(user=self.user, key="subscribe_by_default", default="1")
             == "1"
@@ -666,10 +657,6 @@ class NotificationSettingsForm(forms.Form):
         return "General"
 
     def save(self):
-        UserOption.objects.set_value(
-            user=self.user, key="alert_email", value=self.cleaned_data["alert_email"]
-        )
-
         UserOption.objects.set_value(
             user=self.user,
             key="subscribe_by_default",
@@ -721,12 +708,10 @@ class ProjectEmailOptionsForm(forms.Form):
 
         has_alerts = project.is_user_subscribed_to_mail_alerts(user)
 
-        # This allows users who have entered an alert_email value or have specified an email
-        # for notifications to keep their settings
+        # This allows users who have specified an email for notifications to keep their settings
         emails = [e.email for e in user.get_verified_emails()]
-        alert_email = UserOption.objects.get_value(self.user, "alert_email")
         specified_email = UserOption.objects.get_value(self.user, "mail:email", project=project)
-        emails.extend([user.email, alert_email, specified_email])
+        emails.extend([user.email, specified_email])
 
         choices = [(email, email) for email in sorted(set(emails)) if email]
 
@@ -744,7 +729,7 @@ class ProjectEmailOptionsForm(forms.Form):
                 default=UserOptionValue.participating_only,
             ),
         )
-        self.fields["email"].initial = specified_email or alert_email or user.email
+        self.fields["email"].initial = specified_email or user.email
 
     def save(self):
         UserOption.objects.set_value(

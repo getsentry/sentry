@@ -51,8 +51,8 @@ class ProjectPlugins extends Component {
         <PanelBody>
           <PanelAlert type="warning">
             <Access access={['org:integrations']}>
-              {({hasAccess}) => {
-                return hasAccess
+              {({hasAccess}) =>
+                hasAccess
                   ? tct(
                       "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",
                       {
@@ -61,8 +61,8 @@ class ProjectPlugins extends Component {
                     )
                   : t(
                       "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available."
-                    );
-              }}
+                    )
+              }
             </Access>
           </PanelAlert>
 

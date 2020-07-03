@@ -6,6 +6,7 @@ type Props = {
   forwardRef?: React.Ref<HTMLButtonElement>;
   className?: string;
   id?: string;
+  name?: string;
   size?: 'sm' | 'lg';
   isActive?: boolean;
   isLoading?: boolean;
@@ -13,19 +14,21 @@ type Props = {
   toggle: React.HTMLProps<HTMLButtonElement>['onClick'];
 };
 
-const Switch: React.FC<Props> = ({
+const Switch = ({
   forwardRef,
-  size,
+  size = 'sm',
   isActive,
   isLoading,
   isDisabled,
   toggle,
   id,
+  name,
   className,
-}) => (
+}: Props) => (
   <SwitchButton
     ref={forwardRef}
     id={id}
+    name={name}
     type="button"
     className={className}
     onClick={isDisabled ? undefined : toggle}
@@ -49,10 +52,6 @@ Switch.propTypes = {
   isLoading: PropTypes.bool,
   isDisabled: PropTypes.bool,
   toggle: PropTypes.func.isRequired,
-};
-
-Switch.defaultProps = {
-  size: 'sm',
 };
 
 type StyleProps = Partial<Props>;
@@ -99,7 +98,7 @@ const Toggle = styled('span')<StyleProps>`
   transform: translateX(${getTranslateX}px);
   width: ${getToggleSize}px;
   height: ${getToggleSize}px;
-  background: ${p => (p.isActive ? p.theme.green : p.theme.gray6)};
+  background: ${p => (p.isActive ? p.theme.green400 : p.theme.gray400)};
   opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
 

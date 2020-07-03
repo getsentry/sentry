@@ -4,6 +4,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+
 import ErrorRobot from 'app/components/errorRobot';
 import GroupStore from 'app/stores/groupStore';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
@@ -14,12 +15,15 @@ import TagStore from 'app/stores/tagStore';
 jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
 jest.mock('app/views/issueList/actions', () => jest.fn(() => null));
 jest.mock('app/components/stream/group', () => jest.fn(() => null));
+jest.mock('app/views/issueList/noGroupsHandler/congratsRobots', () =>
+  jest.fn(() => null)
+);
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-describe('IssueList,', function() {
+describe('IssueList', function() {
   let wrapper;
   let props;
 
@@ -87,10 +91,11 @@ describe('IssueList,', function() {
         },
       ],
     });
+    const tags = TestStubs.Tags();
     fetchTagsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: tags,
     });
     fetchMembersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
@@ -120,6 +125,11 @@ describe('IssueList,', function() {
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
       params: {orgId: organization.slug},
       organization,
+      tags: tags.reduce((acc, tag) => {
+        acc[tag.key] = tag;
+
+        return acc;
+      }),
     };
   });
 
@@ -477,7 +487,7 @@ describe('IssueList,', function() {
 
       wrapper.find('IssueListSortOptions DropdownButton').simulate('click');
       wrapper
-        .find('IssueListSortOptions MenuItem a')
+        .find('IssueListSortOptions MenuItem span')
         .at(3)
         .simulate('click');
 
@@ -572,6 +582,8 @@ describe('IssueList,', function() {
         })
       );
 
+      await tick();
+
       wrapper.setProps({
         location: {
           ...router.location,
@@ -664,6 +676,8 @@ describe('IssueList,', function() {
         .find('SavedSearchSelector MenuItem a')
         .first()
         .simulate('click');
+
+      await tick();
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -817,6 +831,8 @@ describe('IssueList,', function() {
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
       wrapper.find('SmartSearchBar form').simulate('submit');
 
+      await tick();
+
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
@@ -899,14 +915,14 @@ describe('IssueList,', function() {
       let pushArgs;
       createWrapper();
       await tick();
+      await tick();
       wrapper.update();
 
       expect(
         wrapper
-          .find('Pagination a')
+          .find('Pagination Button')
           .first()
-          .prop('className')
-          .includes('disabled')
+          .prop('disabled')
       ).toBe(true);
 
       issuesRequest = MockApiClient.addMockResponse({
@@ -920,9 +936,12 @@ describe('IssueList,', function() {
 
       // Click next
       wrapper
-        .find('Pagination a')
+        .find('Pagination Button')
         .last()
         .simulate('click');
+
+      await tick();
+
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
         query: {
@@ -937,21 +956,22 @@ describe('IssueList,', function() {
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
       wrapper.setContext({location: pushArgs});
-      wrapper.update();
 
       expect(
         wrapper
-          .find('Pagination a')
+          .find('Pagination Button')
           .first()
-          .prop('className')
-          .includes('disabled')
+          .prop('disabled')
       ).toBe(false);
 
       // Click next again
       wrapper
-        .find('Pagination a')
+        .find('Pagination Button')
         .last()
         .simulate('click');
+
+      await tick();
+
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
         query: {
@@ -966,13 +986,15 @@ describe('IssueList,', function() {
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
       wrapper.setContext({location: pushArgs});
-      wrapper.update();
 
       // Click previous
       wrapper
-        .find('Pagination a')
+        .find('Pagination Button')
         .first()
         .simulate('click');
+
+      await tick();
+
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
         query: {
@@ -987,13 +1009,13 @@ describe('IssueList,', function() {
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
       wrapper.setProps({location: pushArgs});
       wrapper.setContext({location: pushArgs});
-      wrapper.update();
 
       // Click previous back to initial page
       wrapper
-        .find('Pagination a')
+        .find('Pagination Button')
         .first()
         .simulate('click');
+      await tick();
 
       // cursor is undefined because "prev" cursor is === initial "next" cursor
       expect(browserHistory.push).toHaveBeenLastCalledWith({
@@ -1187,7 +1209,6 @@ describe('IssueList,', function() {
       await instance.componentDidMount();
 
       expect(fetchTagsRequest).toHaveBeenCalled();
-      expect(instance.state.tags.assigned).toBeTruthy();
       expect(instance.state.tagsLoading).toBeFalsy();
     });
 
@@ -1377,7 +1398,7 @@ describe('IssueList,', function() {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('CongratsRobots').exists()).toBe(true);
+      expect(wrapper.find('NoUnresolvedIssues').exists()).toBe(true);
     });
 
     it('displays an empty resultset with is:unresolved and level:error query', async function() {

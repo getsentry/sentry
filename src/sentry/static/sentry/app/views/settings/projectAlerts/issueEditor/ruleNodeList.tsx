@@ -9,24 +9,27 @@ import {
 } from 'app/types/alerts';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 
 import RuleNode from './ruleNode';
 
 type Props = {
-  // All available actions or conditions
+  project: Project;
+  organization: Organization;
+  /**
+   * All available actions or conditions
+   */
   nodes: IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[] | null;
-
-  // actions/conditions that have been added to the rule
+  /**
+   * actions/conditions that have been added to the rule
+   */
   items?: IssueAlertRuleAction[] | IssueAlertRuleCondition[];
-
-  // Placeholder for select control
+  /**
+   * Placeholder for select control
+   */
   placeholder: string;
-
-  onPropertyChange: (ruleIndex: number) => (prop: string, val: string) => void;
-
-  // TODO(ts): Type value
-  onAddRow: (value: unknown) => void;
-
+  onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
+  onAddRow: (value: string) => void;
   onDeleteRow: (ruleIndex: number) => void;
 };
 
@@ -50,14 +53,17 @@ class RuleNodeList extends React.Component<Props> {
       nodes,
       placeholder,
       items,
+      organization,
+      project,
     } = this.props;
 
+    const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
     const options = nodes
       ? nodes
           .filter(({enabled}) => enabled)
           .map(node => ({
             value: node.id,
-            label: node.label,
+            label: shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label,
           }))
       : [];
 
@@ -65,21 +71,23 @@ class RuleNodeList extends React.Component<Props> {
       <React.Fragment>
         {items && !!items.length && (
           <RuleNodes>
-            {items.map((item, idx) => {
-              return (
-                <RuleNode
-                  key={idx}
-                  node={this.getNode(item.id)}
-                  onDelete={() => onDeleteRow(idx)}
-                  data={item}
-                  onPropertyChange={onPropertyChange(idx)}
-                />
-              );
-            })}
+            {items.map((item, idx) => (
+              <RuleNode
+                key={idx}
+                index={idx}
+                node={this.getNode(item.id)}
+                onDelete={onDeleteRow}
+                data={item}
+                onPropertyChange={onPropertyChange}
+                organization={organization}
+                project={project}
+              />
+            ))}
           </RuleNodes>
         )}
         <StyledSelectControl
           placeholder={placeholder}
+          value={null}
           onChange={obj => onAddRow(obj ? obj.value : obj)}
           options={options}
         />
@@ -96,9 +104,10 @@ const StyledSelectControl = styled(SelectControl)`
 
 const RuleNodes = styled('div')`
   display: grid;
-  grid-template-columns: max-content auto min-content;
-  flex-direction: column;
-  align-items: center;
   margin-bottom: ${space(2)};
   grid-gap: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    grid-auto-flow: row;
+  }
 `;

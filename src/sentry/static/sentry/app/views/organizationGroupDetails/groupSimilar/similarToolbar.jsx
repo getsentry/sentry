@@ -5,7 +5,6 @@ import Reflux from 'reflux';
 
 import {t} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
-
 import SpreadLayout from 'app/components/spreadLayout';
 import FlowLayout from 'app/components/flowLayout';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';

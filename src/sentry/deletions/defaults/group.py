@@ -2,7 +2,8 @@ from __future__ import absolute_import, print_function
 
 import os
 from sentry import eventstore, nodestore
-from sentry.models import Event, EventAttachment, UserReport
+from sentry.eventstore.models import Event
+from sentry.models import EventAttachment, UserReport
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -33,7 +34,7 @@ class EventDataDeletionTask(BaseDeletionTask):
                 ]
             )
 
-        events = eventstore.get_events(
+        events = eventstore.get_unfetched_events(
             filter=eventstore.Filter(
                 conditions=conditions, project_ids=[self.project_id], group_ids=[self.group_id]
             ),
@@ -62,7 +63,6 @@ class EventDataDeletionTask(BaseDeletionTask):
 class GroupDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
         from sentry import models
-        from sentry.incidents.models import IncidentGroup
 
         relations = []
 
@@ -86,7 +86,6 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupSubscription,
             models.UserReport,
             models.EventAttachment,
-            IncidentGroup,
         )
 
         relations.extend([ModelRelation(m, {"group_id": instance.id}) for m in model_list])

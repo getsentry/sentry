@@ -8,18 +8,16 @@ import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
 class IssueListTagFilter extends React.Component {
+  static tagValueToSelectFormat = ({value}) => ({
+    value,
+    label: value,
+  });
+
   static propTypes = {
     tag: PropTypes.object.isRequired,
     value: PropTypes.string,
     onSelect: PropTypes.func,
     tagValueLoader: PropTypes.func.isRequired,
-  };
-
-  static tagValueToSelectFormat = ({value}) => {
-    return {
-      value,
-      label: value,
-    };
   };
 
   static defaultProps = {
@@ -38,7 +36,7 @@ class IssueListTagFilter extends React.Component {
     this.api = new Client();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (nextProps.value !== this.state.value) {
       this.setState({
         value: nextProps.value,
@@ -75,7 +73,7 @@ class IssueListTagFilter extends React.Component {
           options: Object.values(resp).map(IssueListTagFilter.tagValueToSelectFormat),
         });
       })
-      .catch(err => {
+      .catch(() => {
         // TODO(billy): This endpoint seems to timeout a lot,
         // should we log these errors into datadog?
 
@@ -156,8 +154,9 @@ class IssueListTagFilter extends React.Component {
 
         {!tag.isInput && (
           <SelectControl
+            deprecatedSelectControl
             clearable
-            filterOptions={(options, filter, currentValues) => options}
+            filterOptions={options => options}
             placeholder="--"
             value={this.state.value}
             onChange={this.handleChangeSelect}

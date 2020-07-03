@@ -8,10 +8,25 @@ from django.utils import timezone
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel, Model
+from sentry.models import Project, DefaultFieldsModel
 
 
 def default_uuid():
-    return six.binary_type(uuid.uuid4())
+    return six.text_type(uuid.uuid4())
+
+
+# connects a sentry app installation to an organization and a provider
+class SentryAppInstallationForProvider(DefaultFieldsModel):
+    __core__ = False
+
+    sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")
+    organization = FlexibleForeignKey("sentry.Organization")
+    provider = models.CharField(max_length=64)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_sentryappinstallationforprovider"
+        unique_together = (("provider", "organization"),)
 
 
 class SentryAppInstallationToken(Model):
@@ -24,6 +39,30 @@ class SentryAppInstallationToken(Model):
         app_label = "sentry"
         db_table = "sentry_sentryappinstallationtoken"
         unique_together = (("sentry_app_installation", "api_token"),)
+
+    @classmethod
+    def has_organization_access(cls, token, organization):
+        try:
+            install_token = cls.objects.select_related("sentry_app_installation").get(
+                api_token=token
+            )
+        except cls.DoesNotExist:
+            return False
+
+        return install_token.sentry_app_installation.organization_id == organization.id
+
+    @classmethod
+    def get_projects(cls, token):
+        try:
+            install_token = cls.objects.select_related("sentry_app_installation").get(
+                api_token=token
+            )
+        except cls.DoesNotExist:
+            return False
+
+        return Project.objects.filter(
+            organization_id=install_token.sentry_app_installation.organization_id
+        )
 
 
 class SentryAppInstallation(ParanoidModel):
@@ -47,12 +86,12 @@ class SentryAppInstallation(ParanoidModel):
         related_name="sentry_app_installation",
     )
 
-    # Two scenarios for tokens:
-    # 1) An installation gets an access token once the Grant has been exchanged,
+    # Only use this token for public integrtions since each install has only token at a time
+    # An installation gets an access token once the Grant has been exchanged,
     # and is updated when the token gets refreshed.
     #
-    # 2) An installation is created for an internal SentryApp. This token will
-    # not need to be refreshed as it will live forever
+    # Do NOT Use this token for internal integrations since there could be multiple
+    # need to look at SentryAppInstallationToken which connects api_tokens to installations
     api_token = models.OneToOneField(
         "sentry.ApiToken",
         null=True,
@@ -82,3 +121,9 @@ class SentryAppInstallation(ParanoidModel):
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
         return super(SentryAppInstallation, self).save(*args, **kwargs)
+
+    @classmethod
+    def get_installed_for_org(cls, organization_id):
+        return cls.objects.filter(
+            organization_id=organization_id, status=SentryAppInstallationStatus.INSTALLED
+        )

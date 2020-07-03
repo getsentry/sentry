@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import pytest
 from sentry.utils.compat import mock
 
 from django.core.urlresolvers import reverse
@@ -12,26 +13,30 @@ from six import BytesIO
 
 from sentry.coreapi import APIRateLimited
 from sentry.models import ProjectKey, EventAttachment
-from sentry.signals import event_accepted, event_dropped, event_filtered
+from sentry.signals import event_accepted
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
 from sentry.utils import json
 from sentry.utils.data_filters import FilterTypes
 
 
+@pytest.mark.obsolete("functionality moved and tested in Relay")
 class SecurityReportCspTest(TestCase):
     @fixture
     def path(self):
         path = reverse("sentry-api-security-report", kwargs={"project_id": self.project.id})
         return path + "?sentry_key=%s" % self.projectkey.public_key
 
+    @pytest.mark.obsolete("can be removed, covered in Relay")
     def test_get_response(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 405, resp.content
 
+    @pytest.mark.obsolete("can be removed, NOT worth porting to Relay")
     def test_invalid_content_type(self):
         resp = self.client.post(self.path, content_type="text/plain")
         assert resp.status_code == 400, resp.content
 
+    @pytest.mark.obsolete("can be removed, NOT worth porting to Relay")
     def test_missing_csp_report(self):
         resp = self.client.post(
             self.path,
@@ -41,13 +46,17 @@ class SecurityReportCspTest(TestCase):
         )
         assert resp.status_code == 400, resp.content
 
+    @pytest.mark.obsolete(
+        "ported to Relay", "tests/integration/test_security_report.py::test_uses_origins"
+    )
     @mock.patch("sentry.utils.http.get_origins")
     def test_bad_origin(self, get_origins):
         get_origins.return_value = ["example.com"]
         resp = self.client.post(
             self.path,
             content_type="application/csp-report",
-            data='{"csp-report":{"document-uri":"http://lolnope.com","effective-directive":"img-src","violated-directive":"img-src","source-file":"test.html"}}',
+            data='{"csp-report":{"document-uri":"http://lolnope.com","effective-directive":"img-src",'
+            '"violated-directive":"img-src","source-file":"test.html"}}',
             HTTP_USER_AGENT="awesome",
         )
         assert resp.status_code == 403, resp.content
@@ -61,6 +70,10 @@ class SecurityReportCspTest(TestCase):
         )
         assert resp.status_code == 400, resp.content
 
+    @pytest.mark.obsolete(
+        "already covered in Relay by multiple integration tests",
+        "tests/integration/test_security_report.py",
+    )
     @mock.patch("sentry.web.api.is_valid_origin", mock.Mock(return_value=True))
     @mock.patch("sentry.web.api.SecurityReportView.process")
     def test_post_success(self, process):
@@ -77,6 +90,7 @@ class SecurityReportCspTest(TestCase):
         assert resp.status_code == 201, resp.content
 
 
+@pytest.mark.obsolete("functionality moved and tested in Relay")
 class SecurityReportHpkpTest(TestCase):
     @fixture
     def path(self):
@@ -111,6 +125,10 @@ class SecurityReportHpkpTest(TestCase):
         assert resp.status_code == 201, resp.content
 
 
+@pytest.mark.obsolete(
+    "functionality moved and tested in Relay",
+    "tests/integration/test_security_report.py::test_security_reports_no_processing",
+)
 class SecurityReportExpectCTTest(TestCase):
     @fixture
     def path(self):
@@ -153,6 +171,10 @@ class SecurityReportExpectCTTest(TestCase):
         assert resp.status_code == 201, resp.content
 
 
+@pytest.mark.obsolete(
+    "functionality moved and tested in Relay",
+    "tests/integration/test_security_report.py::test_security_reports_no_processing",
+)
 class SecurityReportExpectStapleTest(TestCase):
     @fixture
     def path(self):
@@ -189,11 +211,13 @@ class SecurityReportExpectStapleTest(TestCase):
         assert resp.status_code == 201, resp.content
 
 
+@pytest.mark.obsolete("functionality moved in Relay")
 class StoreViewTest(TestCase):
     @fixture
     def path(self):
         return reverse("sentry-api-store", kwargs={"project_id": self.project.id})
 
+    @pytest.mark.obsolete("covered in Relay", "tests/integration/test_store.py")
     @mock.patch("sentry.web.api.StoreView._parse_header")
     def test_options_response(self, parse_header):
         project = self.create_project()
@@ -205,42 +229,56 @@ class StoreViewTest(TestCase):
         }
         resp = self.client.options(self.path)
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Allow", resp)
+        assert resp.has_header("Allow")
         self.assertEquals(resp["Allow"], "GET, POST, HEAD, OPTIONS")
-        self.assertIn("Content-Length", resp)
+        assert resp.has_header("Content-Length")
         self.assertEquals(resp["Content-Length"], "0")
 
+    @pytest.mark.obsolete(
+        "Will not be directly tested since implementation is part of axis-web CORS"
+    )
     def test_options_with_no_origin_or_referrer(self):
         resp = self.client.options(self.path)
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "*")
 
+    @pytest.mark.obsolete(
+        "Will not be directly tested since implementation is part of axis-web CORS"
+    )
     def test_options_response_with_valid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN="http://foo.com")
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "http://foo.com")
 
+    @pytest.mark.obsolete(
+        "Will not be directly tested since implementation is part of axis-web CORS"
+    )
     def test_options_response_with_valid_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER="http://foo.com")
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "http://foo.com")
 
+    @pytest.mark.obsolete(
+        "Will not be directly tested since implementation is part of axis-web CORS"
+    )
     def test_options_response_origin_preferred_over_referrer(self):
         resp = self.client.options(
             self.path, HTTP_REFERER="http://foo.com", HTTP_ORIGIN="http://bar.com"
         )
         assert resp.status_code == 200, (resp.status_code, resp.content)
-        self.assertIn("Access-Control-Allow-Origin", resp)
+        assert resp.has_header("Access-Control-Allow-Origin")
         self.assertEquals(resp["Access-Control-Allow-Origin"], "http://bar.com")
 
+    @pytest.mark.obsolete("Unit test in Relay", "relay-filter/client_ips.rs")
     @mock.patch("sentry.event_manager.is_valid_ip", mock.Mock(return_value=False))
     def test_request_with_blacklisted_ip(self):
         resp = self._postWithHeader({})
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @pytest.mark.obsolete("Unit test in Relay", "relay-filter/releases.rs")
     @mock.patch("sentry.event_manager.is_valid_release", mock.Mock(return_value=False))
     def test_request_with_filtered_release(self):
         body = {
@@ -256,6 +294,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @pytest.mark.obsolete("Unit test in Relay", "relay-filter/error_messages.rs")
     @mock.patch("sentry.event_manager.is_valid_error_message", mock.Mock(return_value=False))
     def test_request_with_filtered_error(self):
         body = {
@@ -271,6 +310,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @pytest.mark.obsolete("Unit test in Relay", "relay-filter/client_ips.rs")
     def test_request_with_invalid_ip(self):
         self.project.update_option("sentry:blacklisted_ips", ["127.0.0.1"])
         body = {
@@ -286,6 +326,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @pytest.mark.obsolete("Unit test in Relay", "relay-filter/releases.rs")
     def test_request_with_invalid_release(self):
         self.project.update_option(u"sentry:{}".format(FilterTypes.RELEASES), ["1.3.2"])
         body = {
@@ -301,6 +342,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @pytest.mark.obsolete("Unit test in Relay", "relay-filter/releases.rs")
     def test_request_with_short_release_globbing(self):
         self.project.update_option(u"sentry:{}".format(FilterTypes.RELEASES), ["1.*"])
         body = {
@@ -316,6 +358,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @pytest.mark.obsolete("Unit test in Relay", "relay-filter/releases.rs")
     def test_request_with_longer_release_globbing(self):
         self.project.update_option(u"sentry:{}".format(FilterTypes.RELEASES), ["2.1.*"])
         body = {
@@ -351,6 +394,9 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @pytest.mark.obsolete(
+        "Moved to Relay", "tests/integration/test_basic.py::test_store_allowed_origins_passes"
+    )
     @mock.patch("sentry.relay.config.get_origins")
     def test_request_with_bad_origin(self, get_origins):
         get_origins.return_value = ["foo.com"]
@@ -359,8 +405,9 @@ class StoreViewTest(TestCase):
 
         resp = self._postWithHeader(body, HTTP_ORIGIN="lolnope.com")
         assert resp.status_code == 403, (resp.status_code, resp.content)
-        assert "Invalid origin" in resp.content
+        assert b"Invalid origin" in resp.content
 
+    @pytest.mark.obsolete("Unit test in Relay", "relay-filter/error_messages.rs")
     def test_request_with_beginning_glob(self):
         self.project.update_option(
             u"sentry:{}".format(FilterTypes.ERROR_MESSAGES),
@@ -382,6 +429,7 @@ class StoreViewTest(TestCase):
         resp = self._postWithHeader(body)
         assert resp.status_code == 403, (resp.status_code, resp.content)
 
+    @pytest.mark.obsolete("Unit test in Relay, PII/data scrubbing")
     @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
     def test_scrubs_ip_address(self, mock_insert_data_to_database):
         self.project.update_option("sentry:scrub_ip_address", True)
@@ -403,6 +451,7 @@ class StoreViewTest(TestCase):
         assert not call_data["request"]["env"].get("REMOTE_ADDR")
         assert not call_data["sdk"].get("client_ip")
 
+    @pytest.mark.obsolete("Unit test in Relay, PII/data scrubbing")
     @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
     def test_scrubs_org_ip_address_override(self, mock_insert_data_to_database):
         self.organization.update_option("sentry:require_scrub_ip_address", True)
@@ -423,6 +472,7 @@ class StoreViewTest(TestCase):
         assert not call_data["user"].get("ip_address")
         assert not call_data["request"]["env"].get("REMOTE_ADDR")
 
+    @pytest.mark.obsolete("Unit test in Relay, PII/data scrubbing")
     @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
     def test_scrub_data_off(self, mock_insert_data_to_database):
         self.project.update_option("sentry:scrub_data", False)
@@ -447,6 +497,7 @@ class StoreViewTest(TestCase):
             "baz": "3",
         }
 
+    @pytest.mark.obsolete("Unit test in Relay, PII/data scrubbing")
     @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
     def test_scrub_data_on(self, mock_insert_data_to_database):
         self.project.update_option("sentry:scrub_data", True)
@@ -471,6 +522,7 @@ class StoreViewTest(TestCase):
             "baz": "3",
         }
 
+    @pytest.mark.obsolete("Unit test in Relay, PII/data scrubbing")
     @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
     def test_scrub_data_defaults(self, mock_insert_data_to_database):
         self.project.update_option("sentry:scrub_data", True)
@@ -495,6 +547,7 @@ class StoreViewTest(TestCase):
             "baz": "3",
         }
 
+    @pytest.mark.obsolete("Unit test in Relay, PII/data scrubbing")
     @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
     def test_scrub_data_sensitive_fields(self, mock_insert_data_to_database):
         self.project.update_option("sentry:scrub_data", True)
@@ -520,6 +573,7 @@ class StoreViewTest(TestCase):
             "baz": "3",
         }
 
+    @pytest.mark.obsolete("Unit test in Relay, PII/data scrubbing")
     @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
     def test_scrub_data_org_override(self, mock_insert_data_to_database):
         self.organization.update_option("sentry:require_scrub_data", True)
@@ -546,6 +600,7 @@ class StoreViewTest(TestCase):
             "baz": "3",
         }
 
+    @pytest.mark.obsolete("Unit test in Relay, PII/data scrubbing")
     @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
     def test_scrub_data_org_override_sensitive_fields(self, mock_insert_data_to_database):
         self.organization.update_option("sentry:require_scrub_data", True)
@@ -595,40 +650,6 @@ class StoreViewTest(TestCase):
             mock_event_accepted, ip="127.0.0.1", project=self.project, signal=event_accepted
         )
 
-    @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database", Mock())
-    @mock.patch("sentry.app.quotas.is_rate_limited")
-    def test_dropped_signal(self, mock_is_rate_limited):
-        mock_is_rate_limited.is_limited = True
-
-        mock_event_dropped = Mock()
-
-        event_dropped.connect(mock_event_dropped)
-
-        resp = self._postWithHeader({"logentry": {"message": u"hello"}})
-
-        assert resp.status_code == 429, resp.content
-
-        assert_mock_called_once_with_partial(
-            mock_event_dropped, ip="127.0.0.1", project=self.project, signal=event_dropped
-        )
-
-    @mock.patch("sentry.coreapi.ClientApiHelper.insert_data_to_database", Mock())
-    @mock.patch("sentry.event_manager.EventManager.should_filter")
-    def test_filtered_signal(self, mock_should_filter):
-        mock_should_filter.return_value = (True, "ip-address")
-
-        mock_event_filtered = Mock()
-
-        event_filtered.connect(mock_event_filtered)
-
-        resp = self._postWithHeader({"logentry": {"message": u"hello"}})
-
-        assert resp.status_code == 403, resp.content
-
-        assert_mock_called_once_with_partial(
-            mock_event_filtered, ip="127.0.0.1", project=self.project, signal=event_filtered
-        )
-
 
 class CrossDomainXmlTest(TestCase):
     @fixture
@@ -643,23 +664,18 @@ class CrossDomainXmlTest(TestCase):
         assert resp.status_code == 200, resp.content
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert '<allow-access-from domain="*" secure="false" />' in resp.content.decode("utf-8")
+        assert b'<allow-access-from domain="*" secure="false" />' in resp.content
 
     @mock.patch("sentry.web.api.get_origins")
-    def test_output_with_whitelist(self, get_origins):
+    def test_output_with_allowed_origins(self, get_origins):
         get_origins.return_value = ["disqus.com", "www.disqus.com"]
         resp = self.client.get(self.path)
         get_origins.assert_called_once_with(self.project)
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert '<allow-access-from domain="disqus.com" secure="false" />' in resp.content.decode(
-            "utf-8"
-        )
-        assert (
-            '<allow-access-from domain="www.disqus.com" secure="false" />'
-            in resp.content.decode("utf-8")
-        )
+        assert b'<allow-access-from domain="disqus.com" secure="false" />' in resp.content
+        assert b'<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content
 
     @mock.patch("sentry.web.api.get_origins")
     def test_output_with_no_origins(self, get_origins):
@@ -669,7 +685,7 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert "<allow-access-from" not in resp.content.decode("utf-8")
+        assert b"<allow-access-from" not in resp.content
 
     def test_output_allows_x_sentry_auth(self):
         resp = self.client.get(self.path)
@@ -677,8 +693,8 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp["Content-Type"], "application/xml")
         self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
         assert (
-            '<allow-http-request-headers-from domain="*" headers="*" secure="false" />'
-            in resp.content.decode("utf-8")
+            b'<allow-http-request-headers-from domain="*" headers="*" secure="false" />'
+            in resp.content
         )
 
 
@@ -699,7 +715,7 @@ class EventAttachmentStoreViewTest(TestCase):
 
     def test_event_attachments_feature_creates_attachment(self):
         out = BytesIO()
-        out.write("hi")
+        out.write(b"hi")
         with self.feature("organizations:event-attachments"):
             response = self._postEventAttachmentWithHeader(
                 {
@@ -715,7 +731,7 @@ class EventAttachmentStoreViewTest(TestCase):
 
     def test_event_attachments_without_feature_returns_forbidden(self):
         out = BytesIO()
-        out.write("hi")
+        out.write(b"hi")
         with self.feature({"organizations:event-attachments": False}):
             response = self._postEventAttachmentWithHeader(
                 {
@@ -731,7 +747,7 @@ class EventAttachmentStoreViewTest(TestCase):
 
     def test_event_attachments_without_files_returns_400(self):
         out = BytesIO()
-        out.write("hi")
+        out.write(b"hi")
         with self.feature("organizations:event-attachments"):
             response = self._postEventAttachmentWithHeader({}, format="multipart")
 
@@ -742,7 +758,7 @@ class EventAttachmentStoreViewTest(TestCase):
         with self.feature("organizations:event-attachments"):
             self.path = self.path.replace(self.event.event_id, "z" * 32)
             out = BytesIO()
-            out.write("hi")
+            out.write(b"hi")
             response = self._postEventAttachmentWithHeader(
                 {
                     "attachment1": SimpleUploadedFile(

@@ -1,18 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {MetricAction} from 'app/types/alerts';
 import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {Trigger} from 'app/views/settings/incidentRules/types';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
+import {IconDelete} from 'app/icons';
 import CircleIndicator from 'app/components/circleIndicator';
 import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import space from 'app/styles/space';
 import withProjects from 'app/utils/withProjects';
+
+import {MetricActionTemplate, Trigger} from '../types';
 
 type DeleteButtonProps = {
   triggerIndex: number;
@@ -23,14 +24,10 @@ type DeleteButtonProps = {
 /**
  * Button to delete a trigger
  */
-const DeleteButton: React.FC<DeleteButtonProps> = ({
-  triggerIndex,
-  onDelete,
-  disabled,
-}: DeleteButtonProps) => (
+const DeleteButton = ({triggerIndex, onDelete, disabled}: DeleteButtonProps) => (
   <Button
     type="button"
-    icon="icon-trash"
+    icon={<IconDelete size="xs" />}
     size="xsmall"
     aria-label={t('Delete Trigger')}
     onClick={(e: React.MouseEvent<Element>) => onDelete(triggerIndex, e)}
@@ -43,16 +40,20 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
 type Props = {
   organization: Organization;
   projects: Project[];
-  incidentRuleId?: string;
+  ruleId?: string;
   triggers: Trigger[];
   currentProject: string;
-  availableActions: MetricAction[] | null;
+  availableActions: MetricActionTemplate[] | null;
   disabled: boolean;
 
   errors: Map<number, {[fieldName: string]: string}>;
 
   onAdd: () => void;
-  onChange: (triggers: Trigger[]) => void;
+  onChange: (
+    triggers: Trigger[],
+    triggerIndex?: number,
+    changeObj?: Partial<Trigger>
+  ) => void;
 };
 
 /**
@@ -66,11 +67,30 @@ class Triggers extends React.Component<Props> {
     onChange(updatedTriggers);
   };
 
-  handleChangeTrigger = (triggerIndex: number, trigger: Trigger) => {
+  handleChangeTrigger = (
+    triggerIndex: number,
+    trigger: Trigger,
+    changeObj: Partial<Trigger>
+  ) => {
     const {triggers, onChange} = this.props;
-    const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, trigger);
+    let updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, trigger);
 
-    onChange(updatedTriggers);
+    // If we have multiple triggers (warning and critical), we need to make sure
+    // the triggers have the same threshold direction
+    if (triggers.length > 1) {
+      const otherIndex = triggerIndex ^ 1;
+      let otherTrigger = triggers[otherIndex];
+      if (trigger.thresholdType !== otherTrigger.thresholdType) {
+        otherTrigger = {
+          ...otherTrigger,
+          thresholdType: trigger.thresholdType,
+        };
+      }
+
+      updatedTriggers = replaceAtArrayIndex(updatedTriggers, otherIndex, otherTrigger);
+    }
+
+    onChange(updatedTriggers, triggerIndex, changeObj);
   };
 
   render() {
@@ -125,28 +145,23 @@ class Triggers extends React.Component<Props> {
         })}
 
         {triggers.length < 2 && (
-          <BorderlessPanel>
-            <FullWidthButton
-              type="button"
-              size="small"
-              icon="icon-circle-add"
-              onClick={onAdd}
-            >
-              {t('Add Warning Trigger')}
-            </FullWidthButton>
-          </BorderlessPanel>
+          <AddWarningButton
+            disabled={disabled}
+            type="button"
+            size="small"
+            icon={<WarningIndicator size={12} />}
+            onClick={onAdd}
+          >
+            {t('Add Warning Trigger')}
+          </AddWarningButton>
         )}
       </React.Fragment>
     );
   }
 }
 
-const BorderlessPanel = styled(Panel)`
-  border: none;
-`;
-
-const FullWidthButton = styled(Button)`
-  width: 100%;
+const AddWarningButton = styled(Button)`
+  margin-bottom: ${space(3)};
 `;
 
 const Title = styled('div')`
@@ -157,11 +172,11 @@ const Title = styled('div')`
 `;
 
 const CriticalIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.redLight};
+  background: ${p => p.theme.red400};
 `;
 
 const WarningIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.yellowDark};
+  background: ${p => p.theme.yellow500};
 `;
 
 export default withProjects(Triggers);

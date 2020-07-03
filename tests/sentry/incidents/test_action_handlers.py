@@ -6,17 +6,24 @@ import responses
 import six
 from django.core import mail
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
 from six.moves.urllib.parse import parse_qs
 
-from sentry.incidents.action_handlers import EmailActionHandler, SlackActionHandler
+from sentry.incidents.action_handlers import (
+    EmailActionHandler,
+    SlackActionHandler,
+    generate_incident_trigger_email_context,
+    INCIDENT_STATUS_KEY,
+)
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
     IncidentStatus,
-    QueryAggregations,
+    IncidentStatusMethod,
     TriggerStatus,
+    INCIDENT_STATUS,
 )
 from sentry.integrations.slack.utils import build_incident_attachment
 from sentry.models import Integration, UserOption
@@ -46,7 +53,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=six.text_type(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert handler.get_targets() == []
+        assert handler.get_targets() == [(self.user.id, self.user.email)]
 
     def test_team(self):
         new_user = self.create_user()
@@ -64,6 +71,8 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         UserOption.objects.set_value(
             user=self.user, key="mail:alert", value=0, project=self.project
         )
+        disabled_user = self.create_user()
+        UserOption.objects.set_value(user=disabled_user, key="subscribe_by_default", value="0")
 
         new_user = self.create_user()
         self.create_team_membership(team=self.team, user=new_user)
@@ -81,11 +90,11 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         status = TriggerStatus.ACTIVE
         action = self.create_alert_rule_trigger_action()
         incident = self.create_incident()
-        handler = EmailActionHandler(action, incident, self.project)
+        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
         expected = {
             "link": absolute_uri(
                 reverse(
-                    "sentry-incident",
+                    "sentry-metric-alert",
                     kwargs={
                         "organization_slug": incident.organization.slug,
                         "incident_id": incident.identifier,
@@ -97,19 +106,43 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                     "sentry-alert-rule",
                     kwargs={
                         "organization_slug": incident.organization.slug,
+                        "project_slug": self.project.slug,
                         "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
                     },
                 )
             ),
             "incident_name": incident.title,
-            "aggregate": handler.query_aggregations_display[
-                QueryAggregations(action.alert_rule_trigger.alert_rule.aggregation)
-            ],
-            "query": action.alert_rule_trigger.alert_rule.query,
+            "aggregate": aggregate,
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
-            "status": handler.status_display[status],
+            "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS_KEY[IncidentStatus(incident.status)],
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_direction_string": ">",
+            "time_window": "10 minutes",
+            "triggered_at": timezone.now(),
+            "project_slug": self.project.slug,
+            "unsubscribe_link": None,
         }
-        assert expected == handler.generate_email_context(status)
+        assert expected == generate_incident_trigger_email_context(
+            self.project, incident, action.alert_rule_trigger, status
+        )
+
+    def test_environment(self):
+        status = TriggerStatus.ACTIVE
+        environments = [
+            self.create_environment(project=self.project, name="prod"),
+            self.create_environment(project=self.project, name="dev"),
+        ]
+        alert_rule = self.create_alert_rule(environment=environments[0])
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(alert_rule_trigger=alert_rule_trigger)
+        incident = self.create_incident()
+        assert "prod" == generate_incident_trigger_email_context(
+            self.project, incident, action.alert_rule_trigger, status
+        ).get("environment")
 
 
 @freeze_time()
@@ -118,13 +151,13 @@ class EmailActionHandlerFireTest(TestCase):
         action = self.create_alert_rule_trigger_action(
             target_identifier=six.text_type(self.user.id)
         )
-        incident = self.create_incident()
+        incident = self.create_incident(status=IncidentStatus.CRITICAL.value)
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
-            handler.fire()
+            handler.fire(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject.startswith("Incident Alert Rule Fired")
+        assert out.subject == u"[Critical] {} - {}".format(incident.title, self.project.slug)
 
 
 @freeze_time()
@@ -136,10 +169,11 @@ class EmailActionHandlerResolveTest(TestCase):
         incident = self.create_incident()
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
-            handler.resolve()
+            incident.status = IncidentStatus.CLOSED.value
+            handler.resolve(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject.startswith("Incident Alert Rule Resolved")
+        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
 
 
 @freeze_time()
@@ -177,21 +211,28 @@ class SlackActionHandlerBaseTest(object):
             body='{"ok": true}',
         )
         handler = SlackActionHandler(action, incident, self.project)
+        metric_value = 1000
         with self.tasks():
-            getattr(handler, method)()
+            getattr(handler, method)(metric_value)
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
-        assert json.loads(data["attachments"][0])[0] == build_incident_attachment(incident)
+        assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
+            incident, metric_value
+        )
 
 
 class SlackActionHandlerFireTest(SlackActionHandlerBaseTest, TestCase):
     def test(self):
-        self.run_test(self.create_incident(), "fire")
+        alert_rule = self.create_alert_rule()
+        self.run_test(self.create_incident(status=2, alert_rule=alert_rule), "fire")
 
 
 class SlackActionHandlerResolveTest(SlackActionHandlerBaseTest, TestCase):
     def test(self):
-        incident = self.create_incident()
-        update_incident_status(incident, IncidentStatus.CLOSED)
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule)
+        update_incident_status(
+            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
+        )
         self.run_test(incident, "resolve")

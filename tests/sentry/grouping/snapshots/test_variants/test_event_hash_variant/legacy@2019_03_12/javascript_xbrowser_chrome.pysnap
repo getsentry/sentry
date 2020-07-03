@@ -1,154 +1,154 @@
 ---
-created: '2019-09-03T07:26:07.618200Z'
+created: '2020-02-26T19:54:27.375454Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
         stacktrace
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             lineno (line number is not used if module or filename are available)
               49
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'Foo.testMethod'
+              "Foo.testMethod"
             lineno (line number is not used if module or filename are available)
               43
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'aha'
+              "aha"
             lineno (line number is not used if module or filename are available)
               38
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'eval'
+              "eval"
             lineno (line number is not used if module or filename are available)
               1
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'test'
+              "test"
             lineno (line number is not used if module or filename are available)
               32
           frame (frame considered in-app because no frame is in-app)
             filename (anonymous filename discarded)
-              u'<anonymous>'
+              "<anonymous>"
             function (function name is not used if module or filename are available)
-              u'Array.map'
+              "Array.map"
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             lineno (line number is not used if module or filename are available)
               33
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'Object.callback'
+              "Object.callback"
             lineno (line number is not used if module or filename are available)
               24
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'callAnotherThing'
+              "callAnotherThing"
             lineno (line number is not used if module or filename are available)
               19
           frame (frame considered in-app because no frame is in-app)
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'Object.aha'
+              "Object.aha"
             lineno (line number is not used if module or filename are available)
               18
         type*
-          u'Error'
+          "Error"
         value*
-          u'bad'
+          "bad"
 --------------------------------------------------------------------------
 system:
-  hash: 'be36642f41f047346396f018f62375d3'
+  hash: "be36642f41f047346396f018f62375d3"
   component:
     system*
       exception*
         stacktrace
           frame
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             lineno (line number is not used if module or filename are available)
               49
           frame
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'Foo.testMethod'
+              "Foo.testMethod"
             lineno (line number is not used if module or filename are available)
               43
           frame
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'aha'
+              "aha"
             lineno (line number is not used if module or filename are available)
               38
           frame
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'eval'
+              "eval"
             lineno (line number is not used if module or filename are available)
               1
           frame
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'test'
+              "test"
             lineno (line number is not used if module or filename are available)
               32
           frame
             filename (anonymous filename discarded)
-              u'<anonymous>'
+              "<anonymous>"
             function (function name is not used if module or filename are available)
-              u'Array.map'
+              "Array.map"
           frame
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             lineno (line number is not used if module or filename are available)
               33
           frame
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'Object.callback'
+              "Object.callback"
             lineno (line number is not used if module or filename are available)
               24
           frame
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'callAnotherThing'
+              "callAnotherThing"
             lineno (line number is not used if module or filename are available)
               19
           frame
             filename (ignored because filename is a URL)
-              u'/tmp/test.html'
+              "/tmp/test.html"
             function (function name is not used if module or filename are available)
-              u'Object.aha'
+              "Object.aha"
             lineno (line number is not used if module or filename are available)
               18
         type*
-          u'Error'
+          "Error"
         value*
-          u'bad'
+          "bad"

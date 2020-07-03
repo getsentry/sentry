@@ -7,7 +7,7 @@ from sentry.interfaces.contexts import ContextType
 from sentry.plugins.base import Plugin2
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.exceptions import PluginError
-
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry_plugins.base import CorePluginMixin
 
 from .client import SessionStackClient, UnauthorizedError, InvalidWebsiteIdError, InvalidApiUrlError
@@ -30,9 +30,19 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
     slug = "sessionstack"
     conf_title = title
     conf_key = slug
+    required_field = "account_email"
 
     sessionstack_resource_links = [
         ("Documentation", "http://docs.sessionstack.com/integrations/sentry/")
+    ]
+
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Watch the SessionStack session replay of a user in a video widget embedded in the Sentry UI for an issue.
+            """,
+            IntegrationFeatures.SESSION_REPLAY,
+        )
     ]
 
     def get_resource_links(self):

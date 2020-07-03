@@ -1,54 +1,54 @@
 ---
-created: '2019-11-01T10:16:14.268235Z'
+created: '2020-02-26T19:54:37.816777Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"
           function*
-            u'test'
+            "test"
           context-line (discarded because from URL origin)
-            u'hello world'
+            "hello world"
         frame (non app frame)
           filename*
-            u'foo.js'
+            "foo.js"
           function*
-            u'test'
+            "test"
           context-line*
-            u'hello world'
+            "hello world"
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"
           context-line (discarded because from URL origin)
-            u'hello world'
+            "hello world"
 --------------------------------------------------------------------------
 system:
-  hash: 'bd8c868a3914eeb4f48e7ef46f19a0df'
+  hash: "bd8c868a3914eeb4f48e7ef46f19a0df"
   component:
     system*
       stacktrace*
         frame*
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"
           function*
-            u'test'
+            "test"
           context-line (discarded because from URL origin)
-            u'hello world'
+            "hello world"
         frame*
           filename*
-            u'foo.js'
+            "foo.js"
           function*
-            u'test'
+            "test"
           context-line*
-            u'hello world'
+            "hello world"
         frame
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"
           context-line (discarded because from URL origin)
-            u'hello world'
+            "hello world"

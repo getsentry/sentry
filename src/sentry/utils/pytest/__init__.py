@@ -6,4 +6,5 @@ pytest_plugins = [
     "sentry.utils.pytest.fixtures",
     "sentry.utils.pytest.unittest",
     "sentry.utils.pytest.kafka",
+    "sentry.utils.pytest.relay",
 ]

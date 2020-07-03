@@ -24,7 +24,7 @@ export default class SelectField extends FormField {
     multiple: false,
   };
 
-  componentWillReceiveProps(nextProps, nextContext) {
+  UNSAFE_componentWillReceiveProps(nextProps, nextContext) {
     const newError = this.getError(nextProps, nextContext);
     if (newError !== this.state.error) {
       this.setState({error: newError});
@@ -103,6 +103,7 @@ export default class SelectField extends FormField {
 
   getField() {
     const {
+      deprecatedSelectControl,
       options,
       clearable,
       creatable,
@@ -116,6 +117,7 @@ export default class SelectField extends FormField {
 
     return (
       <StyledSelectControl
+        deprecatedSelectControl={deprecatedSelectControl}
         creatable={creatable}
         id={this.getId()}
         choices={choices}

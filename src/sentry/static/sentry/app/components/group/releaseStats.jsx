@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import SentryTypes from 'app/sentryTypes';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupReleaseChart from 'app/components/group/releaseChart';
@@ -30,8 +31,9 @@ class GroupReleaseStats extends React.PureComponent {
         ? environments[0].displayName
         : null;
 
-    const projectId = project.slug;
-    const orgId = organization.slug;
+    const projectId = project.id;
+    const projectSlug = project.slug;
+    const orgSlug = organization.slug;
     const hasRelease = new Set(project.features).has('releases');
     const isLoading = !group || !allEnvironments;
 
@@ -75,8 +77,9 @@ class GroupReleaseStats extends React.PureComponent {
               </h6>
 
               <SeenInfo
-                orgId={orgId}
+                orgSlug={orgSlug}
                 projectId={projectId}
+                projectSlug={projectSlug}
                 date={getDynamicText({
                   value: group.firstSeen,
                   fixed: '2015-08-13T03:08:25Z',
@@ -93,8 +96,9 @@ class GroupReleaseStats extends React.PureComponent {
                 {environments.length ? <small>({environmentLabel})</small> : null}
               </h6>
               <SeenInfo
-                orgId={orgId}
+                orgSlug={orgSlug}
                 projectId={projectId}
+                projectSlug={projectSlug}
                 date={getDynamicText({
                   value: group.lastSeen,
                   fixed: '2016-01-13T03:08:25Z',

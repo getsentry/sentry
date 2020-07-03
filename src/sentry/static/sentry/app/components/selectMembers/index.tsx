@@ -1,24 +1,25 @@
-import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 import React from 'react';
+import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
+import {IconAdd} from 'app/icons';
 import {Member, Organization, Project, Team, User} from 'app/types';
 import {addTeamToProject} from 'app/actionCreators/projects';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
 import MemberListStore from 'app/stores/memberListStore';
-import SelectControl from 'app/components/forms/selectControl';
 import ProjectsStore from 'app/stores/projectsStore';
+import SelectControl from 'app/components/forms/selectControl';
 import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 import Tooltip from 'app/components/tooltip';
 import withApi from 'app/utils/withApi';
 
-const getSearchKeyForUser = user =>
+const getSearchKeyForUser = (user: User) =>
   `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
 
 type Actor<T> = {
@@ -44,6 +45,8 @@ type UnmentionableTeam = MentionableTeam & Unmentionable;
 type MentionableUser = Mentionable<'user'>;
 type UnmentionableUser = MentionableUser & Unmentionable;
 
+type AllMentionable = (MentionableUser | MentionableTeam) & Partial<Unmentionable>;
+
 type Props = {
   api: Client;
   project?: Project;
@@ -54,12 +57,26 @@ type Props = {
   onInputChange?: (value: any) => any;
   disabled?: boolean;
   placeholder?: string;
+  styles?: {control?: (provided: any) => any};
+};
+
+type State = {
+  loading: boolean;
+  memberListLoading: boolean;
+  inputValue: string;
+  options: AllMentionable[] | null;
+};
+
+type FilterOption<T> = {
+  value: string;
+  label: React.ReactNode;
+  data: T;
 };
 
 /**
  * A component that allows you to select either members and/or teams
  */
-class SelectMembers extends React.Component<Props> {
+class SelectMembers extends React.Component<Props, State> {
   static propTypes = {
     project: SentryTypes.Project,
     organization: SentryTypes.Organization,
@@ -67,72 +84,76 @@ class SelectMembers extends React.Component<Props> {
     onChange: PropTypes.func.isRequired,
     onInputChange: PropTypes.func,
     disabled: PropTypes.bool,
+    styles: PropTypes.shape({
+      control: PropTypes.func,
+    }),
   };
 
-  state = {
+  state: State = {
     loading: false,
     inputValue: '',
+    options: null,
+    memberListLoading: !MemberListStore.isLoaded(),
   };
 
   componentWillUnmount() {
-    if (this.projectsStoreUnlisten) {
-      this.projectsStoreUnlisten();
-    }
+    this.unlisteners.forEach(callIfFunction);
   }
 
   selectRef = React.createRef<typeof SelectControl>();
 
-  // See comments in `handleAddTeamToProject` for why we close the menu this way
-  projectsStoreUnlisten = ProjectsStore.listen(() => {
-    this.closeSelectMenu();
+  unlisteners = [
+    // See comments in `handleAddTeamToProject` for why we close the menu this way
+    ProjectsStore.listen(() => {
+      this.closeSelectMenu();
+    }),
+    MemberListStore.listen(() => {
+      this.setState({
+        memberListLoading: !MemberListStore.isLoaded(),
+      });
+    }, undefined),
+  ];
+
+  renderUserBadge = (user: User) => (
+    <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
+  );
+
+  createMentionableUser = (user: User): MentionableUser => ({
+    value: user.id,
+    label: this.renderUserBadge(user),
+    searchKey: getSearchKeyForUser(user),
+    actor: {
+      type: 'user',
+      id: user.id,
+      name: user.name,
+    },
   });
 
-  renderUserBadge = (user: User) => {
-    return <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />;
-  };
+  createUnmentionableUser = ({user}) => ({
+    ...this.createMentionableUser(user),
+    disabled: true,
+    label: (
+      <DisabledLabel>
+        <Tooltip
+          position="left"
+          title={t('%s is not a member of project', user.name || user.email)}
+        >
+          {this.renderUserBadge(user)}
+        </Tooltip>
+      </DisabledLabel>
+    ),
+  });
 
-  createMentionableUser = user => {
-    return {
-      value: user.id,
-      label: this.renderUserBadge(user),
-      searchKey: getSearchKeyForUser(user),
-      actor: {
-        type: 'user',
-        id: user.id,
-        name: user.name,
-      },
-    };
-  };
-
-  createUnmentionableUser = ({user}) => {
-    return {
-      ...this.createMentionableUser(user),
-      disabled: true,
-      label: (
-        <DisabledLabel>
-          <Tooltip
-            position="left"
-            title={t('%s is not a member of project', user.name || user.email)}
-          >
-            {this.renderUserBadge(user)}
-          </Tooltip>
-        </DisabledLabel>
-      ),
-    };
-  };
-
-  createMentionableTeam = (team: Team): MentionableTeam => {
-    return {
-      value: team.id,
-      label: <IdBadge team={team} />,
-      searchKey: `#${team.slug}`,
-      actor: {
-        type: 'team',
-        id: team.id,
-        name: team.slug,
-      },
-    };
-  };
+  createMentionableTeam = (team: Team): MentionableTeam => ({
+    value: team.id,
+    label: <IdBadge team={team} />,
+    searchKey: `#${team.slug}`,
+    actor: {
+      type: 'team',
+      id: team.id,
+      name: team.slug,
+    },
+  });
 
   createUnmentionableTeam = (team: Team): UnmentionableTeam => {
     const {organization} = this.props;
@@ -163,9 +184,8 @@ class SelectMembers extends React.Component<Props> {
               borderless
               disabled={!canAddTeam}
               onClick={this.handleAddTeamToProject.bind(this, team)}
-            >
-              <InlineSvg src="icon-circle-add" />
-            </AddToProjectButton>
+              icon={<IconAdd isCircled />}
+            />
           </Tooltip>
         </UnmentionableTeam>
       ),
@@ -274,17 +294,17 @@ class SelectMembers extends React.Component<Props> {
       );
   }, 250);
 
-  handleLoadOptions = (): Promise<{options: any[]}> => {
-    const usersInProject = this.getMentionableUsers();
-    const teamsInProject = this.getMentionableTeams();
-    const teamsNotInProject = this.getTeamsNotInProject(teamsInProject);
-    const usersInProjectById = usersInProject.map(({actor}) => actor.id);
-
+  handleLoadOptions = (): Promise<AllMentionable[]> => {
     if (this.props.showTeam) {
-      return Promise.resolve({
-        options: [...teamsInProject, ...teamsNotInProject],
-      });
+      const teamsInProject = this.getMentionableTeams();
+      const teamsNotInProject = this.getTeamsNotInProject(teamsInProject);
+      const options = [...teamsInProject, ...teamsNotInProject];
+      this.setState({options});
+      return Promise.resolve(options);
     }
+
+    const usersInProject = this.getMentionableUsers();
+    const usersInProjectById = usersInProject.map(({actor}) => actor.id);
 
     // Return a promise for `react-select`
     return new Promise((resolve, reject) => {
@@ -296,46 +316,57 @@ class SelectMembers extends React.Component<Props> {
         }
       });
     })
-      .then(members => {
-        // Be careful here as we actually want the `users` object, otherwise it means user
-        // has not registered for sentry yet, but has been invited
-        return (members
-          ? (members as Member[])
-              .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
-              .map(this.createUnmentionableUser)
-          : []) as UnmentionableUser[];
-      })
+      .then(
+        members =>
+          // Be careful here as we actually want the `users` object, otherwise it means user
+          // has not registered for sentry yet, but has been invited
+          (members
+            ? (members as Member[])
+                .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
+                .map(this.createUnmentionableUser)
+            : []) as UnmentionableUser[]
+      )
       .then((members: UnmentionableUser[]) => {
-        return {
-          options: [...usersInProject, ...members],
-        };
+        const options = [...usersInProject, ...members];
+        this.setState({options});
+        return options;
       });
   };
 
   render() {
-    const {placeholder} = this.props;
+    const {placeholder, styles} = this.props;
+
+    // If memberList is still loading we need to disable a placeholder Select,
+    // otherwise `react-select` will call `loadOptions` and prematurely load
+    // options
+    if (this.state.memberListLoading) {
+      return <StyledSelectControl isDisabled placeholder={t('Loading')} />;
+    }
 
     return (
       <StyledSelectControl
         ref={this.selectRef}
-        filterOptions={(options, filterText) =>
-          options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
+        filterOption={(option: FilterOption<AllMentionable>, filterText: string) =>
+          option?.data?.searchKey?.indexOf(filterText) > -1
         }
         loadOptions={this.handleLoadOptions}
+        isOptionDisabled={option => option.disabled}
         defaultOptions
         async
-        disabled={this.props.disabled}
-        cache={false}
+        isDisabled={this.props.disabled}
+        cacheOptions={false}
         placeholder={placeholder}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
-        value={this.props.value}
+        value={this.state.options?.find(({value}) => value === this.props.value)}
+        styles={styles}
       />
     );
   }
 }
 
 const DisabledLabel = styled('div')`
+  display: flex;
   opacity: 0.5;
   overflow: hidden; /* Needed so that "Add to team" button can fit */
 `;

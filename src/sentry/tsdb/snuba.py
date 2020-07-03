@@ -2,12 +2,16 @@ from __future__ import absolute_import
 
 import collections
 from copy import deepcopy
+import itertools
+
 import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
+from sentry.utils.compat import map
+from sentry.utils.compat import zip
 
 
 SnubaModelQuerySettings = collections.namedtuple(
@@ -35,7 +39,9 @@ class SnubaTSDB(BaseTSDB):
     # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
     # other models.
     non_outcomes_query_settings = {
-        TSDBModel.project: SnubaModelQuerySettings(snuba.Dataset.Events, "project_id", None, None),
+        TSDBModel.project: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "project_id", None, [["type", "!=", "transaction"]]
+        ),
         TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, None),
         TSDBModel.release: SnubaModelQuerySettings(
             snuba.Dataset.Events, "tags[sentry:release]", None, None
@@ -125,9 +131,11 @@ class SnubaTSDB(BaseTSDB):
 
     # ``model_query_settings`` is a translation of TSDB models into required settings for querying snuba
     model_query_settings = dict(
-        project_filter_model_query_settings.items()
-        + outcomes_partial_query_settings.items()
-        + non_outcomes_query_settings.items()
+        itertools.chain(
+            project_filter_model_query_settings.items(),
+            outcomes_partial_query_settings.items(),
+            non_outcomes_query_settings.items(),
+        )
     )
 
     project_filter_model_query_settings_lower_rollup = {
@@ -185,8 +193,10 @@ class SnubaTSDB(BaseTSDB):
     }
 
     lower_rollup_query_settings = dict(
-        project_filter_model_query_settings_lower_rollup.items()
-        + other_lower_rollup_query_settings.items()
+        itertools.chain(
+            project_filter_model_query_settings_lower_rollup.items(),
+            other_lower_rollup_query_settings.items(),
+        )
     )
 
     def __init__(self, **options):

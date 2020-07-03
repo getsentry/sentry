@@ -6,7 +6,7 @@ import six
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.models import Integration
 
 logger = logging.getLogger("sentry.integrations.bitbucket")
@@ -56,10 +56,8 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
             )
 
         if field == "repo":
-            full_query = (u'name~"%s"' % (query)).encode("utf-8")
-            resp = installation.get_client().search_repositories(installation.username, full_query)
-            return Response(
-                [{"label": i["full_name"], "value": i["full_name"]} for i in resp.get("values", [])]
-            )
+
+            result = installation.get_repositories(query)
+            return Response([{"label": i["name"], "value": i["name"]} for i in result])
 
         return Response(status=400)

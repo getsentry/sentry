@@ -10,18 +10,46 @@ from rest_framework.response import Response
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, PluginError
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 from six.moves.urllib.parse import urlencode
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
+DESCRIPTION = """
+Improve your productivity by creating tickets in Pivotal Tracker directly from Sentry issues.
+This integration also allows you to link Sentry issues to existing tickets in Pivotal Tracker.
+
+Pivotal Tracker is a straightforward project-planning tool that helps software development
+teams form realistic expectations about when work might be completed based on the teams
+ongoing performance. Tracker visualizes your projects in the form of stories
+moving through your workflow, encouraging you to break down projects into manageable
+chunks and have important conversations about deliverables and scope.
+"""
+
 
 class PivotalPlugin(CorePluginMixin, IssuePlugin2):
-    description = "Integrate Pivotal Tracker stories by linking a project and account."
+    description = DESCRIPTION
     slug = "pivotal"
     title = "Pivotal Tracker"
     conf_title = title
     conf_key = "pivotal"
+    required_field = "token"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Create and link Sentry issue groups directly to a Pivotal Tracker ticket in any of your
+            projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+        FeatureDescription(
+            """
+            Link Sentry issues to existing Pivotal Tracker tickets.
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+    ]
 
     def get_group_urls(self):
         return super(PivotalPlugin, self).get_group_urls() + [

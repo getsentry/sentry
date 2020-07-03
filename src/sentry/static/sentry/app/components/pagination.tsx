@@ -2,11 +2,14 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {Query} from 'history';
 
+import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {Query} from 'history';
 
 const defaultProps = {
   onCursor: (cursor: string, path: string, query: Query, _direction: number) => {
@@ -23,7 +26,7 @@ type Props = {
   className?: string;
   pageLinks: string | null | undefined;
   to?: string;
-} & Partial<DefaultProps>;
+} & DefaultProps;
 
 class Pagination extends React.Component<Props> {
   static propTypes = {
@@ -48,39 +51,42 @@ class Pagination extends React.Component<Props> {
     const location = this.context.location;
     const path = this.props.to || location.pathname;
     const query = location.query;
-
     const links = parseLinkHeader(pageLinks);
-
-    let previousPageClassName = 'btn btn-default btn-lg prev';
-    if (links.previous.results === false) {
-      previousPageClassName += ' disabled';
-    }
-
-    let nextPageClassName = 'btn btn-default btn-lg next';
-    if (links.next.results === false) {
-      nextPageClassName += ' disabled';
-    }
+    const previousDisabled = links.previous.results === false;
+    const nextDisabled = links.next.results === false;
 
     return (
       <div className={className}>
-        <div className="btn-group">
-          <a
+        <ButtonBar merged>
+          <Button
+            icon={
+              <IconChevron
+                direction="left"
+                size="sm"
+                color={previousDisabled ? 'gray400' : 'gray700'}
+              />
+            }
+            aria-label={t('Previous')}
+            disabled={previousDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.previous.cursor, path, query, -1);
             }}
-            className={previousPageClassName}
-          >
-            <span title={t('Previous')} className="icon-arrow-left" />
-          </a>
-          <a
+          />
+          <Button
+            icon={
+              <IconChevron
+                direction="right"
+                size="sm"
+                color={nextDisabled ? 'gray400' : 'gray700'}
+              />
+            }
+            aria-label={t('Next')}
+            disabled={nextDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.next.cursor, path, query, 1);
             }}
-            className={nextPageClassName}
-          >
-            <span title={t('Next')} className="icon-arrow-right" />
-          </a>
-        </div>
+          />
+        </ButtonBar>
       </div>
     );
   }
@@ -91,9 +97,4 @@ export default styled(Pagination)`
   align-items: center;
   justify-content: flex-end;
   margin: 20px 0 0 0;
-
-  .icon-arrow-right,
-  .icon-arrow-left {
-    font-size: 20px !important;
-  }
 `;

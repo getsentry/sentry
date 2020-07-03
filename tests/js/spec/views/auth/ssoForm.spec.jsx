@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
+
 import SsoForm from 'app/views/auth/ssoForm';
 
 function doSso(wrapper, apiRequest) {

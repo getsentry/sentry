@@ -13,12 +13,23 @@ class RelayPublicKeysEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
 
     def post(self, request):
+        calling_relay = request.relay
+
         relay_ids = request.relay_request_data.get("relay_ids") or ()
-        rv = dict.fromkeys(relay_ids)
+        legacy_public_keys = dict.fromkeys(relay_ids)
+        public_keys = dict.fromkeys(relay_ids)
 
         if relay_ids:
             relays = Relay.objects.filter(relay_id__in=relay_ids)
             for relay in relays:
-                rv[relay.relay_id] = relay.public_key
+                pk = relay.public_key
+                relay_id = relay.relay_id
 
-        return Response({"public_keys": rv}, status=200)
+                legacy_public_keys[relay_id] = pk
+                public_keys[relay_id] = {
+                    "publicKey": pk,
+                    # only expose internal information to internal relays
+                    "internal": relay.is_internal and calling_relay.is_internal,
+                }
+
+        return Response({"public_keys": legacy_public_keys, "relays": public_keys}, status=200)

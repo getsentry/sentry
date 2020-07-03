@@ -11,7 +11,7 @@
 
 # What's Sentry?
 
-Sentry fundamentally is a service that helps you monitor and fix crashes
+Sentry is a service that helps you monitor and fix crashes
 in realtime. The server is in Python, but it contains a full API for
 sending events from any language, in any application.
 
@@ -29,6 +29,7 @@ sending events from any language, in any application.
   - [Ruby](https://github.com/getsentry/raven-ruby)
   - [PHP](https://github.com/getsentry/sentry-php)
   - [Go](https://github.com/getsentry/sentry-go)
+  - [Rust](https://github.com/getsentry/sentry-rust)
   - [Java](https://github.com/getsentry/sentry-java)
   - [Objective-C/Swift](https://github.com/getsentry/sentry-cocoa)
   - [C\#](https://github.com/getsentry/sentry-dotnet)
@@ -44,6 +45,5 @@ sending events from any language, in any application.
   - [Contributing](https://docs.sentry.io/internal/contributing/)
   - [Bug Tracker](https://github.com/getsentry/sentry/issues)
   - [Code](https://github.com/getsentry/sentry)
-  - [Discord](https://discord.gg/ez5KZN7)
   - [Transifex](https://www.transifex.com/getsentry/sentry/) (Translate
     Sentry\!)

@@ -1,5 +1,6 @@
-import {mount} from 'sentry-test/enzyme';
 import React from 'react';
+
+import {mount} from 'sentry-test/enzyme';
 
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 

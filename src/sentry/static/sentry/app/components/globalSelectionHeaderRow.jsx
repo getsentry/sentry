@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'app/components/checkboxFancy';
+import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import space from 'app/styles/space';
 
 class GlobalSelectionHeaderRow extends React.Component {
@@ -28,7 +28,7 @@ class GlobalSelectionHeaderRow extends React.Component {
   render() {
     const {checked, onCheckClick, multi, renderCheckbox, children, ...props} = this.props;
 
-    const checkbox = <CheckboxFancy disabled={!multi} checked={checked} />;
+    const checkbox = <CheckboxFancy isDisabled={!multi} isChecked={checked} />;
 
     return (
       <Container isChecked={checked} {...props}>
@@ -71,7 +71,7 @@ const Content = styled('div')`
 
   &:hover {
     text-decoration: ${p => (p.multi ? 'underline' : null)};
-    color: ${p => (p.multi ? p.theme.blue : null)};
+    color: ${p => (p.multi ? p.theme.blue400 : null)};
   }
 `;
 

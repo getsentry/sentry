@@ -8,11 +8,21 @@ from requests.exceptions import RequestException
 
 
 import sentry
+from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.base import JSONResponse
 from sentry.plugins.bases.issue import IssuePlugin, NewIssueForm
 from sentry.utils.http import absolute_uri
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import TeamworkClient
+
+DESCRIPTION = """
+Create issues in Teamwork directly from Sentry. This integration also allows
+you to link Sentry issues to existing tickets in Teamwork.
+
+Teamwork is a work and project management tool that helps teams improve
+collaboration, visibility, accountability and ultimately results.
+"""
 
 
 class TeamworkSettingsForm(forms.Form):
@@ -56,12 +66,28 @@ class TeamworkTaskForm(NewIssueForm):
             self.fields["tasklist"].widget.choices = self.fields["tasklist"].choices
 
 
-class TeamworkPlugin(IssuePlugin):
+class TeamworkPlugin(CorePluginMixin, IssuePlugin):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
     title = _("Teamwork")
-    description = _("Create Teamwork Tasks.")
+    description = DESCRIPTION
     slug = "teamwork"
+    required_field = "url"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Create and link Sentry issue groups directly to an Teamwork ticket in any of your
+            projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+        FeatureDescription(
+            """
+            Link Sentry issues to existing Teamwork tickets.
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+    ]
 
     conf_title = title
     conf_key = slug

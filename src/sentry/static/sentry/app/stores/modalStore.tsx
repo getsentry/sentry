@@ -25,6 +25,13 @@ const ModalStore = Reflux.createStore({
   },
 
   onCloseModal() {
+    const onClose = this.state?.options?.onClose;
+
+    // Trigger the options.onClose callback
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+
     this.reset();
     this.trigger(this.state);
   },

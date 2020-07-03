@@ -8,6 +8,7 @@ import string
 import zlib
 
 from django.utils.encoding import force_text, smart_text
+from sentry.utils.compat import map
 
 _word_sep_re = re.compile(r"[\s.;,_-]+(?u)")
 _camelcase_re = re.compile(r"(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)")

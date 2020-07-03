@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {createProject} from 'app/actionCreators/projects';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {createProject} from 'app/actionCreators/projects';
 import OnboardingPlatform from 'app/views/onboarding/platform';
 import TeamStore from 'app/stores/teamStore';
 
@@ -65,7 +66,7 @@ describe('OnboardingWelcome', function() {
 
     let resolveProjectCreate;
     createProject.mockReturnValue(
-      new Promise((resolve, reject) => (resolveProjectCreate = resolve))
+      new Promise(resolve => (resolveProjectCreate = resolve))
     );
 
     // Create the project

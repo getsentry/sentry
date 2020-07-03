@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import pytz
 import six
@@ -18,7 +18,7 @@ def floor_to_hour_epoch(value):
 
 def floor_to_10s_epoch(value):
     seconds = value.second
-    floored_second = 10 * (seconds / 10)
+    floored_second = 10 * (seconds // 10)
 
     value = value.replace(second=floored_second, microsecond=0)
     return int(to_timestamp(value))
@@ -208,9 +208,9 @@ class SnubaTSDBTest(OutcomesSnubaTest):
         ]
 
         # does not include the internal TSDB model
-        models = filter(
-            lambda model: 0 < model.value < 700 and model not in exceptions, list(TSDBModel)
-        )
+        models = [
+            model for model in list(TSDBModel) if 0 < model.value < 700 and model not in exceptions
+        ]
         for model in models:
             assert model in SnubaTSDB.model_query_settings
 
@@ -234,6 +234,6 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 or (600 <= model.value < 700)
             )
 
-        models = filter(lambda x: is_an_outcome(x), list(TSDBModel))
+        models = [x for x in list(TSDBModel) if is_an_outcome(x)]
         for model in models:
             assert model in SnubaTSDB.lower_rollup_query_settings

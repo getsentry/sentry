@@ -7,6 +7,7 @@ import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import EventDataSection from 'app/components/events/eventDataSection';
 
 const AlertUl = styled('ul')`
   margin-top: ${space(1)};
@@ -95,13 +96,11 @@ class EventSdkUpdateSuggestion extends React.Component {
         {title}
         {t(' so you can')}
         <AlertUl>
-          {suggestion.enables.map((suggestion2, i) => {
-            return (
-              <li key={getSuggestionComponentKey(suggestion2)}>
-                <EventSdkUpdateSuggestion event={event} suggestion={suggestion2} />
-              </li>
-            );
-          })}
+          {suggestion.enables.map(suggestion2 => (
+            <li key={getSuggestionComponentKey(suggestion2)}>
+              <EventSdkUpdateSuggestion event={event} suggestion={suggestion2} />
+            </li>
+          ))}
         </AlertUl>
       </span>
     );
@@ -118,20 +117,19 @@ class EventSdkUpdates extends React.Component {
     const data = event.sdkUpdates;
 
     return (
-      <div className="box">
-        {data.map(suggestion => {
-          return (
-            <Alert
-              type="info"
-              icon="icon-upgrade"
-              key={getSuggestionComponentKey(suggestion)}
-            >
-              {t('We recommend you ')}
-              <EventSdkUpdateSuggestion event={event} suggestion={suggestion} />
-            </Alert>
-          );
-        })}
-      </div>
+      <EventDataSection title={null} type="sdk-updates">
+        {data.map(suggestion => (
+          <Alert
+            type="info"
+            icon="icon-upgrade"
+            key={getSuggestionComponentKey(suggestion)}
+          >
+            {t('We recommend you ')}
+            <EventSdkUpdateSuggestion event={event} suggestion={suggestion} />
+            {'.'}
+          </Alert>
+        ))}
+      </EventDataSection>
     );
   }
 }

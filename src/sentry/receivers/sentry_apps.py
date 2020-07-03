@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import GroupAssignee
+from sentry.models import GroupAssignee, SentryAppInstallation
 from sentry.signals import issue_ignored, issue_assigned, issue_resolved
 from sentry.tasks.sentry_apps import workflow_notification
 
@@ -54,6 +54,8 @@ def send_workflow_webhooks(organization, issue, user, event, data=None):
 
 
 def installations_to_notify(organization, event):
-    installations = organization.sentry_app_installations.select_related("sentry_app")
+    installations = SentryAppInstallation.get_installed_for_org(organization.id).select_related(
+        "sentry_app"
+    )
 
-    return filter(lambda i: event in i.sentry_app.events, installations)
+    return [i for i in installations if event in i.sentry_app.events]

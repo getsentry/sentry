@@ -1,26 +1,38 @@
 import moment from 'moment-timezone';
 import Reflux from 'reflux';
-import qs from 'query-string';
+import * as qs from 'query-string';
+
 import {setLocale} from 'app/locale';
 import {Config} from 'app/types';
 
-const ConfigStore = Reflux.createStore({
+type ConfigStoreInterface = {
+  config: Config;
+
+  get<K extends keyof Config>(key: K): Config[K];
+  set<K extends keyof Config>(key: K, value: Config[K]): void;
+  getConfig(): Config;
+  loadInitialData(config: Config): void;
+};
+
+const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
+  // When the app is booted we will _immediately_ hydrate the config store,
+  // effecively ensureing this is not empty.
+  config: {} as Config,
+
   init(): void {
-    this.config = {};
+    this.config = {} as Config;
   },
 
-  get(key: string): any {
+  get(key) {
     return this.config[key];
   },
 
-  set(key: string, value: any): void {
+  set(key, value) {
     this.config[key] = value;
-    const out = {};
-    out[key] = value;
-    this.trigger(out);
+    this.trigger({[key]: value});
   },
 
-  getConfig(): Config {
+  getConfig() {
     return this.config;
   },
 
@@ -62,7 +74,8 @@ const ConfigStore = Reflux.createStore({
 
     this.trigger(config);
   },
-});
+};
 
-// TODO(ts): This should be properly typed
-export default ConfigStore as any;
+type ConfigStore = Reflux.Store & ConfigStoreInterface;
+
+export default Reflux.createStore(configStoreConfig) as ConfigStore;

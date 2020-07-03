@@ -7,11 +7,7 @@ import SentryTypes from 'app/sentryTypes';
 
 const ProjectStatsGraph = ({project, stats}) => {
   stats = stats || project.stats;
-  const chartData =
-    stats &&
-    stats.map(point => {
-      return {x: point[0], y: point[1]};
-    });
+  const chartData = stats && stats.map(point => ({x: point[0], y: point[1]}));
 
   return (
     <div>

@@ -1,166 +1,166 @@
 ---
-created: '2019-06-05T11:45:17.268197Z'
+created: '2020-02-26T19:54:36.230357Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             module*
-              u'django.core.handlers.base'
+              "django.core.handlers.base"
             filename (module takes precedence)
-              u'base.py'
+              "base.py"
             function*
-              u'get_response'
+              "get_response"
           frame (non app frame)
             module*
-              u'django.views.generic.base'
+              "django.views.generic.base"
             filename (module takes precedence)
-              u'base.py'
+              "base.py"
             function*
-              u'view'
+              "view"
           frame (non app frame)
             module*
-              u'django.utils.decorators'
+              "django.utils.decorators"
             filename (module takes precedence)
-              u'decorators.py'
+              "decorators.py"
             function*
-              u'_wrapper'
+              "_wrapper"
           frame (non app frame)
             module*
-              u'django.views.decorators.csrf'
+              "django.views.decorators.csrf"
             filename (module takes precedence)
-              u'csrf.py'
+              "csrf.py"
             function*
-              u'wrapped_view'
+              "wrapped_view"
           frame (non app frame)
             module*
-              u'django.utils.decorators'
+              "django.utils.decorators"
             filename (module takes precedence)
-              u'decorators.py'
+              "decorators.py"
             function*
-              u'bound_func'
+              "bound_func"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'sentry.web.frontend.release_webhook'
+              "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
-              u'release_webhook.py'
+              "release_webhook.py"
             function*
-              u'dispatch'
+              "dispatch"
           frame (non app frame)
             module*
-              u'django.views.generic.base'
+              "django.views.generic.base"
             filename (module takes precedence)
-              u'base.py'
+              "base.py"
             function*
-              u'dispatch'
+              "dispatch"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'sentry.web.frontend.release_webhook'
+              "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
-              u'release_webhook.py'
+              "release_webhook.py"
             function*
-              u'post'
+              "post"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'sentry_plugins.heroku.plugin'
+              "sentry_plugins.heroku.plugin"
             filename (module takes precedence)
-              u'plugin.py'
+              "plugin.py"
             function*
-              u'handle'
+              "handle"
           frame (non app frame)
             module*
-              u'django.utils.datastructures'
+              "django.utils.datastructures"
             filename (module takes precedence)
-              u'datastructures.py'
+              "datastructures.py"
             function*
-              u'__getitem__'
+              "__getitem__"
         type*
-          u'MultiValueDictKeyError'
+          "MultiValueDictKeyError"
         value*
-          u'"\'user\'"'
+          "\"'user'\""
 --------------------------------------------------------------------------
 system:
-  hash: '761cbc1236089dd8bd96706c896d7087'
+  hash: "761cbc1236089dd8bd96706c896d7087"
   component:
     system*
       exception*
         stacktrace*
           frame*
             module*
-              u'django.core.handlers.base'
+              "django.core.handlers.base"
             filename (module takes precedence)
-              u'base.py'
+              "base.py"
             function*
-              u'get_response'
+              "get_response"
           frame*
             module*
-              u'django.views.generic.base'
+              "django.views.generic.base"
             filename (module takes precedence)
-              u'base.py'
+              "base.py"
             function*
-              u'view'
+              "view"
           frame*
             module*
-              u'django.utils.decorators'
+              "django.utils.decorators"
             filename (module takes precedence)
-              u'decorators.py'
+              "decorators.py"
             function*
-              u'_wrapper'
+              "_wrapper"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'django.views.decorators.csrf'
+              "django.views.decorators.csrf"
             filename (module takes precedence)
-              u'csrf.py'
+              "csrf.py"
             function*
-              u'wrapped_view'
+              "wrapped_view"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'django.utils.decorators'
+              "django.utils.decorators"
             filename (module takes precedence)
-              u'decorators.py'
+              "decorators.py"
             function*
-              u'bound_func'
+              "bound_func"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'sentry.web.frontend.release_webhook'
+              "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
-              u'release_webhook.py'
+              "release_webhook.py"
             function*
-              u'dispatch'
+              "dispatch"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'django.views.generic.base'
+              "django.views.generic.base"
             filename (module takes precedence)
-              u'base.py'
+              "base.py"
             function*
-              u'dispatch'
+              "dispatch"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'sentry.web.frontend.release_webhook'
+              "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
-              u'release_webhook.py'
+              "release_webhook.py"
             function*
-              u'post'
+              "post"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'sentry_plugins.heroku.plugin'
+              "sentry_plugins.heroku.plugin"
             filename (module takes precedence)
-              u'plugin.py'
+              "plugin.py"
             function*
-              u'handle'
+              "handle"
           frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
             module*
-              u'django.utils.datastructures'
+              "django.utils.datastructures"
             filename (module takes precedence)
-              u'datastructures.py'
+              "datastructures.py"
             function*
-              u'__getitem__'
+              "__getitem__"
         type*
-          u'MultiValueDictKeyError'
+          "MultiValueDictKeyError"
         value (ignored because stacktrace takes precedence)
-          u'"\'user\'"'
+          "\"'user'\""

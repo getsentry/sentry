@@ -104,13 +104,11 @@ class MissingProjectMembership extends React.Component {
       );
     }
 
-    return teams.map(team => {
-      return (
-        <p key={team.slug}>
-          #{team.slug}: {this.renderJoinTeam(team, features)}
-        </p>
-      );
-    });
+    return teams.map(team => (
+      <p key={team.slug}>
+        #{team.slug}: {this.renderJoinTeam(team, features)}
+      </p>
+    ));
   }
 
   render() {

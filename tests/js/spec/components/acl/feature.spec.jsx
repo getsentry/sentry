@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mount, mountWithTheme} from 'sentry-test/enzyme';
 
 import Feature from 'app/components/acl/feature';
@@ -35,6 +36,7 @@ describe('Feature', function() {
         features,
         organization,
         project,
+        renderDisabled: false,
       });
     });
 
@@ -53,6 +55,7 @@ describe('Feature', function() {
         organization,
         project,
         features,
+        renderDisabled: false,
       });
     });
 
@@ -64,6 +67,7 @@ describe('Feature', function() {
         organization,
         project,
         features: ['org-baz'],
+        renderDisabled: false,
       });
     });
 
@@ -100,6 +104,7 @@ describe('Feature', function() {
         organization: customOrg,
         project,
         features: ['org-bazar'],
+        renderDisabled: false,
       });
     });
 
@@ -117,6 +122,7 @@ describe('Feature', function() {
         organization,
         project: customProject,
         features: ['project-baz'],
+        renderDisabled: false,
       });
     });
 
@@ -134,6 +140,7 @@ describe('Feature', function() {
         organization: null,
         project: null,
         features,
+        renderDisabled: false,
       });
     });
 
@@ -148,6 +155,7 @@ describe('Feature', function() {
         organization,
         project,
         features: ['organizations:org-bar'],
+        renderDisabled: false,
       });
 
       mount(<Feature features={['projects:bar']}>{childrenMock}</Feature>, routerContext);
@@ -157,6 +165,7 @@ describe('Feature', function() {
         organization,
         project,
         features: ['projects:bar'],
+        renderDisabled: false,
       });
     });
 
@@ -174,6 +183,7 @@ describe('Feature', function() {
         organization,
         project,
         features: ['organizations:create'],
+        renderDisabled: false,
       });
     });
   });

@@ -143,9 +143,7 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
         <div
           className="modal-footer"
         >
-          <Button
-            align="center"
-            disabled={false}
+          <forwardRef<Button>
             onClick={[Function]}
             style={
               Object {
@@ -153,23 +151,22 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
               }
             }
           >
-            <StyledButton
-              aria-disabled={false}
-              aria-label="Cancel"
+            <Button
+              align="center"
               disabled={false}
+              forwardRef={null}
               onClick={[Function]}
-              role="button"
               style={
                 Object {
                   "marginRight": 10,
                 }
               }
             >
-              <ForwardRef
+              <StyledButton
                 aria-disabled={false}
                 aria-label="Cancel"
-                className="css-1c2phb1-StyledButton edwq9my0"
                 disabled={false}
+                forwardRef={null}
                 onClick={[Function]}
                 role="button"
                 style={
@@ -178,10 +175,11 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                   }
                 }
               >
-                <button
+                <Component
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-1c2phb1-StyledButton edwq9my0"
+                  className="css-1ili4om-StyledButton edwq9my0"
+                  forwardRef={null}
                   onClick={[Function]}
                   role="button"
                   style={
@@ -190,69 +188,80 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                     }
                   }
                 >
-                  <ButtonLabel
-                    align="center"
+                  <button
+                    aria-disabled={false}
+                    aria-label="Cancel"
+                    className="css-1ili4om-StyledButton edwq9my0"
+                    onClick={[Function]}
+                    role="button"
+                    style={
+                      Object {
+                        "marginRight": 10,
+                      }
+                    }
                   >
-                    <Component
+                    <ButtonLabel
                       align="center"
-                      className="css-zmpclt-ButtonLabel edwq9my1"
                     >
                       <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         Cancel
                       </span>
-                    </Component>
-                  </ButtonLabel>
-                </button>
-              </ForwardRef>
-            </StyledButton>
-          </Button>
-          <Button
-            align="center"
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
+          <forwardRef<Button>
             autoFocus={true}
             data-test-id="confirm-button"
             disabled={false}
             onClick={[Function]}
             priority="primary"
           >
-            <StyledButton
-              aria-disabled={false}
-              aria-label="Bulk resolve issues"
+            <Button
+              align="center"
               autoFocus={true}
               data-test-id="confirm-button"
               disabled={false}
+              forwardRef={null}
               onClick={[Function]}
               priority="primary"
-              role="button"
             >
-              <ForwardRef
+              <StyledButton
                 aria-disabled={false}
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-1e05jtd-StyledButton edwq9my0"
                 data-test-id="confirm-button"
                 disabled={false}
+                forwardRef={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
               >
-                <button
+                <Component
                   aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
                   className="css-1e05jtd-StyledButton edwq9my0"
                   data-test-id="confirm-button"
+                  forwardRef={null}
                   onClick={[Function]}
                   role="button"
                 >
-                  <ButtonLabel
-                    align="center"
-                    priority="primary"
+                  <button
+                    aria-disabled={false}
+                    aria-label="Bulk resolve issues"
+                    autoFocus={true}
+                    className="css-1e05jtd-StyledButton edwq9my0"
+                    data-test-id="confirm-button"
+                    onClick={[Function]}
+                    role="button"
                   >
-                    <Component
+                    <ButtonLabel
                       align="center"
-                      className="css-zmpclt-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
@@ -260,12 +269,12 @@ exports[`IssueListActions Bulk Total results < bulk limit bulk resolves 1`] = `
                       >
                         Bulk resolve issues
                       </span>
-                    </Component>
-                  </ButtonLabel>
-                </button>
-              </ForwardRef>
-            </StyledButton>
-          </Button>
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
         </div>
       </div>
     </div>
@@ -448,9 +457,7 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
         <div
           className="modal-footer"
         >
-          <Button
-            align="center"
-            disabled={false}
+          <forwardRef<Button>
             onClick={[Function]}
             style={
               Object {
@@ -458,23 +465,22 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
               }
             }
           >
-            <StyledButton
-              aria-disabled={false}
-              aria-label="Cancel"
+            <Button
+              align="center"
               disabled={false}
+              forwardRef={null}
               onClick={[Function]}
-              role="button"
               style={
                 Object {
                   "marginRight": 10,
                 }
               }
             >
-              <ForwardRef
+              <StyledButton
                 aria-disabled={false}
                 aria-label="Cancel"
-                className="css-1c2phb1-StyledButton edwq9my0"
                 disabled={false}
+                forwardRef={null}
                 onClick={[Function]}
                 role="button"
                 style={
@@ -483,10 +489,11 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                   }
                 }
               >
-                <button
+                <Component
                   aria-disabled={false}
                   aria-label="Cancel"
-                  className="css-1c2phb1-StyledButton edwq9my0"
+                  className="css-1ili4om-StyledButton edwq9my0"
+                  forwardRef={null}
                   onClick={[Function]}
                   role="button"
                   style={
@@ -495,69 +502,80 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                     }
                   }
                 >
-                  <ButtonLabel
-                    align="center"
+                  <button
+                    aria-disabled={false}
+                    aria-label="Cancel"
+                    className="css-1ili4om-StyledButton edwq9my0"
+                    onClick={[Function]}
+                    role="button"
+                    style={
+                      Object {
+                        "marginRight": 10,
+                      }
+                    }
                   >
-                    <Component
+                    <ButtonLabel
                       align="center"
-                      className="css-zmpclt-ButtonLabel edwq9my1"
                     >
                       <span
                         className="css-zmpclt-ButtonLabel edwq9my1"
                       >
                         Cancel
                       </span>
-                    </Component>
-                  </ButtonLabel>
-                </button>
-              </ForwardRef>
-            </StyledButton>
-          </Button>
-          <Button
-            align="center"
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
+          <forwardRef<Button>
             autoFocus={true}
             data-test-id="confirm-button"
             disabled={false}
             onClick={[Function]}
             priority="primary"
           >
-            <StyledButton
-              aria-disabled={false}
-              aria-label="Bulk resolve issues"
+            <Button
+              align="center"
               autoFocus={true}
               data-test-id="confirm-button"
               disabled={false}
+              forwardRef={null}
               onClick={[Function]}
               priority="primary"
-              role="button"
             >
-              <ForwardRef
+              <StyledButton
                 aria-disabled={false}
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-1e05jtd-StyledButton edwq9my0"
                 data-test-id="confirm-button"
                 disabled={false}
+                forwardRef={null}
                 onClick={[Function]}
                 priority="primary"
                 role="button"
               >
-                <button
+                <Component
                   aria-disabled={false}
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
                   className="css-1e05jtd-StyledButton edwq9my0"
                   data-test-id="confirm-button"
+                  forwardRef={null}
                   onClick={[Function]}
                   role="button"
                 >
-                  <ButtonLabel
-                    align="center"
-                    priority="primary"
+                  <button
+                    aria-disabled={false}
+                    aria-label="Bulk resolve issues"
+                    autoFocus={true}
+                    className="css-1e05jtd-StyledButton edwq9my0"
+                    data-test-id="confirm-button"
+                    onClick={[Function]}
+                    role="button"
                   >
-                    <Component
+                    <ButtonLabel
                       align="center"
-                      className="css-zmpclt-ButtonLabel edwq9my1"
                       priority="primary"
                     >
                       <span
@@ -565,12 +583,12 @@ exports[`IssueListActions Bulk Total results > bulk limit bulk resolves 1`] = `
                       >
                         Bulk resolve issues
                       </span>
-                    </Component>
-                  </ButtonLabel>
-                </button>
-              </ForwardRef>
-            </StyledButton>
-          </Button>
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
         </div>
       </div>
     </div>

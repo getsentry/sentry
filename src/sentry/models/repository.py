@@ -84,12 +84,13 @@ def on_delete(instance, actor=None, **kwargs):
         return
 
     # TODO(lb): I'm assuming that this is used by integrations... is it?
-    def handle_exception(exc):
+    def handle_exception(e):
+        import six
         from sentry.exceptions import InvalidIdentity, PluginError
-        from sentry.integrations.exceptions import IntegrationError
+        from sentry.shared_integrations.exceptions import IntegrationError
 
-        if isinstance(exc, (IntegrationError, PluginError, InvalidIdentity)):
-            error = exc.message
+        if isinstance(e, (IntegrationError, PluginError, InvalidIdentity)):
+            error = six.text_type(e)
         else:
             error = "An unknown error occurred"
         if actor is not None:

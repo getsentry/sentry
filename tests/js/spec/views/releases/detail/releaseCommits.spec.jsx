@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mount} from 'sentry-test/enzyme';
 
 import ReleaseCommits from 'app/views/releases/detail/releaseCommits';
@@ -25,7 +26,7 @@ describe('ReleaseCommits', function() {
   it('project release commits', function() {
     wrapper = mount(
       <ReleaseCommits
-        params={{orgId: '123', projectId: '456', version: '10.0'}}
+        params={{orgId: '123', projectId: '456', release: '10.0'}}
         location={{}}
       />
     );
@@ -37,7 +38,7 @@ describe('ReleaseCommits', function() {
 
   it('organization release commits', function() {
     wrapper = mount(
-      <ReleaseCommits params={{orgId: '123', version: '10.0'}} location={{}} />
+      <ReleaseCommits params={{orgId: '123', release: '10.0'}} location={{}} />
     );
 
     expect(wrapper).toMatchSnapshot();

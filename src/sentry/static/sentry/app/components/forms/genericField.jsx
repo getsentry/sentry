@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {defined} from 'app/utils';
-
 import BooleanField from 'app/components/forms/booleanField';
 import EmailField from 'app/components/forms/emailField';
 import NumberField from 'app/components/forms/numberField';
@@ -63,7 +62,7 @@ export default class GenericField extends React.Component {
       case 'text':
       case 'url':
         if (props.choices) {
-          return <SelectCreatableField {...props} />;
+          return <SelectCreatableField deprecatedSelectControl {...props} />;
         }
         return <TextField {...props} />;
       case 'number':
@@ -77,9 +76,9 @@ export default class GenericField extends React.Component {
         // it's required (with *) and rely on server validation
         delete props.required;
         if (props.has_autocomplete) {
-          return <SelectAsyncField {...props} />;
+          return <SelectAsyncField deprecatedSelectControl {...props} />;
         }
-        return <SelectField {...props} />;
+        return <SelectField deprecatedSelectControl {...props} />;
       default:
         return null;
     }

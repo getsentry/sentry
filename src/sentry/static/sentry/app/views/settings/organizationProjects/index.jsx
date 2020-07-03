@@ -17,6 +17,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import routeTitleGen from 'app/utils/routeTitle';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import {IconAdd} from 'app/icons';
 
 import ProjectStatsGraph from './projectStatsGraph';
 
@@ -31,8 +32,8 @@ class OrganizationProjects extends AsyncView {
     router: PropTypes.object.isRequired,
   };
 
-  componentWillReceiveProps(nextProps, nextContext) {
-    super.componentWillReceiveProps(nextProps, nextContext);
+  UNSAFE_componentWillReceiveProps(nextProps, nextContext) {
+    super.UNSAFE_componentWillReceiveProps(nextProps, nextContext);
     const searchQuery = nextProps.location.query.query;
     if (searchQuery !== this.props.location.query.query) {
       this.setState({searchQuery});
@@ -99,7 +100,7 @@ class OrganizationProjects extends AsyncView {
             : undefined
         }
         to={`/organizations/${organization.slug}/projects/new/`}
-        icon="icon-circle-add"
+        icon={<IconAdd size="xs" isCircled />}
       >
         {t('Create Project')}
       </Button>

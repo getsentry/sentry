@@ -54,7 +54,7 @@ export default class AdminEnvironment extends AsyncView {
 
           <dt>{t('Host')}</dt>
           <dd>
-            <pre className="vall">
+            <pre className="val">
               {mailHost}:{mailPort}
             </pre>
           </dd>

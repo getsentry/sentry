@@ -6,6 +6,7 @@ import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
 import Hook from 'app/components/hook';
 import getDynamicText from 'app/utils/getDynamicText';
+import space from 'app/styles/space';
 
 const Footer = () => {
   const config = ConfigStore.getConfig();
@@ -17,11 +18,7 @@ const Footer = () => {
             {t('API')}
           </FooterLink>
           <FooterLink href="/docs/">{t('Docs')}</FooterLink>
-          <FooterLink
-            className="hidden-xs"
-            href="https://github.com/getsentry/sentry"
-            rel="noreferrer"
-          >
+          <FooterLink className="hidden-xs" href="https://github.com/getsentry/sentry">
             {t('Contribute')}
           </FooterLink>
           {config.isOnPremise && (
@@ -37,12 +34,12 @@ const Footer = () => {
               fixed: 'Acceptance Test',
               value: config.version.current,
             })}
-            {' ('}
-            {getDynamicText({
-              fixed: 'test',
-              value: config.version.build,
-            })}
-            {')'}
+            <Build>
+              {getDynamicText({
+                fixed: 'test',
+                value: config.version.build.substring(0, 7),
+              })}
+            </Build>
           </div>
         )}
         <a href="/" tabIndex={-1} className="icon-sentry-logo" />
@@ -55,8 +52,15 @@ const Footer = () => {
 const FooterLink = styled(ExternalLink)`
   &.focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue} 0 2px 0;
+    box-shadow: ${p => p.theme.blue400} 0 2px 0;
   }
+`;
+
+const Build = styled('span')`
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+  color: ${p => p.theme.gray400};
+  font-weight: bold;
+  margin-left: ${space(1)};
 `;
 
 export default Footer;

@@ -124,7 +124,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
+          <PanelBody flexible withPadding>
             <p>
               {tct(
                 'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
@@ -153,7 +153,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Deploy Token')}</PanelHeader>
-          <PanelBody flex>
+          <PanelBody flexible>
             <Field
               label={t('Token')}
               help={t('A unique secret which is used to generate deploy hook URLs')}
@@ -186,7 +186,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('Webhook')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
+          <PanelBody flexible withPadding>
             <p>
               {t(
                 'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
@@ -229,7 +229,7 @@ class ProjectReleaseTracking extends AsyncView {
 
         <Panel>
           <PanelHeader>{t('API')}</PanelHeader>
-          <PanelBody disablePadding={false} flex>
+          <PanelBody flexible withPadding>
             <p>
               {t(
                 'You can notify Sentry when you release new versions of your application via our HTTP API.'

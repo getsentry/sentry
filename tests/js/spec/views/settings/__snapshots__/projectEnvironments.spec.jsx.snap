@@ -123,7 +123,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                 }
               >
                 <div
-                  className="css-aqgf1z-Title e1uay4fd1"
+                  className="css-inoj98-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
@@ -195,13 +195,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
         </div>
       </SettingsPageHeading>
     </StyledSettingsPageHeading>
-    <PermissionAlert
-      access={
-        Array [
-          "project:write",
-        ]
-      }
-    >
+    <PermissionAlert>
       <WithOrganizationMockWrapper
         access={
           Array [
@@ -229,6 +223,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                 "team:write",
                 "team:admin",
               ],
+              "experiments": Object {},
               "features": Array [],
               "id": "3",
               "name": "Organization Name",
@@ -286,6 +281,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                   "team:write",
                   "team:admin",
                 ],
+                "experiments": Object {},
                 "features": Array [],
                 "id": "3",
                 "name": "Organization Name",
@@ -308,52 +304,41 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <div
-          className="css-15hwgrz-Panel e119nu470"
+          className="css-ietoyz-Panel e119nu470"
         >
           <PanelHeader>
             <div
-              className="css-1es1m70-PanelHeader en8g1d30"
+              className="css-pi486d-PanelHeader en8g1d30"
             >
               Active Environments
             </div>
           </PanelHeader>
           <PanelBody
-            direction="column"
-            disablePadding={true}
-            flex={false}
+            flexible={false}
+            withPadding={false}
           >
-            <EmotionCssPropInternal
-              __EMOTION_LABEL_PLEASE_DO_NOT_USE__="PanelBody"
-              __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
-              css={
-                Object {
-                  "map": undefined,
-                  "name": "b1rh9y-PanelBody",
-                  "next": undefined,
-                  "styles": "h1,h2,h3,h4,h5,h6,p,ul,ol,table,dl,blockquote,form,pre,.auto-select-text,.section,[class^='highlight-']{margin-bottom:20px;&:last-child{margin-bottom:0;}}h1,h2,h3,h4,h5,h6{line-height:1.2;}p,ul,ol,blockquote{line-height:1.5;}h1{font-size:2em;}h2{font-size:1.75em;}h3{font-size:1.5em;}h4{font-size:1.25em;}h5{font-size:1em;}pre{word-break:break-all;white-space:pre-wrap;};;label:PanelBody;",
-                  "toString": [Function],
-                }
-              }
+            <FlexBox
+              withPadding={false}
             >
               <div
-                className="css-b1rh9y-PanelBody"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <EmptyMessage>
                   <Component
-                    className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                    className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                   >
                     <div
-                      className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                      className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                       data-test-id="empty-message"
                     >
                       <Description
                         noMargin={true}
                       >
                         <div
-                          className="css-1y44za3-TextBlock-Description e1h3yfdx0"
+                          className="css-iex7sn-TextBlock-Description e1h3yfdx3"
                         >
                           You don't have any environments yet.
                         </div>
@@ -362,7 +347,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
                   </Component>
                 </EmptyMessage>
               </div>
-            </EmotionCssPropInternal>
+            </FlexBox>
           </PanelBody>
         </div>
       </Component>
@@ -494,7 +479,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                 }
               >
                 <div
-                  className="css-aqgf1z-Title e1uay4fd1"
+                  className="css-inoj98-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
@@ -566,13 +551,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
         </div>
       </SettingsPageHeading>
     </StyledSettingsPageHeading>
-    <PermissionAlert
-      access={
-        Array [
-          "project:write",
-        ]
-      }
-    >
+    <PermissionAlert>
       <WithOrganizationMockWrapper
         access={
           Array [
@@ -600,6 +579,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                 "team:write",
                 "team:admin",
               ],
+              "experiments": Object {},
               "features": Array [],
               "id": "3",
               "name": "Organization Name",
@@ -657,6 +637,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                   "team:write",
                   "team:admin",
                 ],
+                "experiments": Object {},
                 "features": Array [],
                 "id": "3",
                 "name": "Organization Name",
@@ -679,52 +660,41 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <div
-          className="css-15hwgrz-Panel e119nu470"
+          className="css-ietoyz-Panel e119nu470"
         >
           <PanelHeader>
             <div
-              className="css-1es1m70-PanelHeader en8g1d30"
+              className="css-pi486d-PanelHeader en8g1d30"
             >
               Hidden
             </div>
           </PanelHeader>
           <PanelBody
-            direction="column"
-            disablePadding={true}
-            flex={false}
+            flexible={false}
+            withPadding={false}
           >
-            <EmotionCssPropInternal
-              __EMOTION_LABEL_PLEASE_DO_NOT_USE__="PanelBody"
-              __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
-              css={
-                Object {
-                  "map": undefined,
-                  "name": "b1rh9y-PanelBody",
-                  "next": undefined,
-                  "styles": "h1,h2,h3,h4,h5,h6,p,ul,ol,table,dl,blockquote,form,pre,.auto-select-text,.section,[class^='highlight-']{margin-bottom:20px;&:last-child{margin-bottom:0;}}h1,h2,h3,h4,h5,h6{line-height:1.2;}p,ul,ol,blockquote{line-height:1.5;}h1{font-size:2em;}h2{font-size:1.75em;}h3{font-size:1.5em;}h4{font-size:1.25em;}h5{font-size:1em;}pre{word-break:break-all;white-space:pre-wrap;};;label:PanelBody;",
-                  "toString": [Function],
-                }
-              }
+            <FlexBox
+              withPadding={false}
             >
               <div
-                className="css-b1rh9y-PanelBody"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <EmptyMessage>
                   <Component
-                    className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                    className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                   >
                     <div
-                      className="css-1scmenn-EmptyMessage e1h3yfdx4"
+                      className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                       data-test-id="empty-message"
                     >
                       <Description
                         noMargin={true}
                       >
                         <div
-                          className="css-1y44za3-TextBlock-Description e1h3yfdx0"
+                          className="css-iex7sn-TextBlock-Description e1h3yfdx3"
                         >
                           You don't have any hidden environments.
                         </div>
@@ -733,7 +703,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
                   </Component>
                 </EmptyMessage>
               </div>
-            </EmotionCssPropInternal>
+            </FlexBox>
           </PanelBody>
         </div>
       </Component>
@@ -865,7 +835,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 }
               >
                 <div
-                  className="css-aqgf1z-Title e1uay4fd1"
+                  className="css-inoj98-Title e1uay4fd1"
                 >
                   <HeaderTitle>
                     <h4
@@ -937,13 +907,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
         </div>
       </SettingsPageHeading>
     </StyledSettingsPageHeading>
-    <PermissionAlert
-      access={
-        Array [
-          "project:write",
-        ]
-      }
-    >
+    <PermissionAlert>
       <WithOrganizationMockWrapper
         access={
           Array [
@@ -971,6 +935,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                 "team:write",
                 "team:admin",
               ],
+              "experiments": Object {},
               "features": Array [],
               "id": "3",
               "name": "Organization Name",
@@ -1028,6 +993,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   "team:write",
                   "team:admin",
                 ],
+                "experiments": Object {},
                 "features": Array [],
                 "id": "3",
                 "name": "Organization Name",
@@ -1050,38 +1016,27 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
     </PermissionAlert>
     <Panel>
       <Component
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <div
-          className="css-15hwgrz-Panel e119nu470"
+          className="css-ietoyz-Panel e119nu470"
         >
           <PanelHeader>
             <div
-              className="css-1es1m70-PanelHeader en8g1d30"
+              className="css-pi486d-PanelHeader en8g1d30"
             >
               Hidden
             </div>
           </PanelHeader>
           <PanelBody
-            direction="column"
-            disablePadding={true}
-            flex={false}
+            flexible={false}
+            withPadding={false}
           >
-            <EmotionCssPropInternal
-              __EMOTION_LABEL_PLEASE_DO_NOT_USE__="PanelBody"
-              __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
-              css={
-                Object {
-                  "map": undefined,
-                  "name": "b1rh9y-PanelBody",
-                  "next": undefined,
-                  "styles": "h1,h2,h3,h4,h5,h6,p,ul,ol,table,dl,blockquote,form,pre,.auto-select-text,.section,[class^='highlight-']{margin-bottom:20px;&:last-child{margin-bottom:0;}}h1,h2,h3,h4,h5,h6{line-height:1.2;}p,ul,ol,blockquote{line-height:1.5;}h1{font-size:2em;}h2{font-size:1.75em;}h3{font-size:1.5em;}h4{font-size:1.25em;}h5{font-size:1em;}pre{word-break:break-all;white-space:pre-wrap;};;label:PanelBody;",
-                  "toString": [Function],
-                }
-              }
+            <FlexBox
+              withPadding={false}
             >
               <div
-                className="css-b1rh9y-PanelBody"
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
               >
                 <EnvironmentRow
                   actionText="Show"
@@ -1098,23 +1053,19 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                   onHide={[Function]}
                   shouldShowAction={true}
                 >
-                  <PanelItem
-                    alignItems="center"
-                    justifyContent="space-between"
+                  <EnvironmentItem
                     p={2}
                   >
                     <div
-                      className="css-d2dsxt-PanelItem eo8n7lk0"
+                      className="css-1op0klu-PanelItem-EnvironmentItem e1pnz46f0"
                     >
-                      <Styled(div)
-                        alignItems="center"
-                      >
+                      <Name>
                         <div
-                          className="css-zkfaav"
+                          className="css-1f9cg5n-Name e1pnz46f1"
                         >
                           zzz
                         </div>
-                      </Styled(div)>
+                      </Name>
                       <WithOrganizationMockWrapper
                         access={
                           Array [
@@ -1142,6 +1093,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                 "team:write",
                                 "team:admin",
                               ],
+                              "experiments": Object {},
                               "features": Array [],
                               "id": "3",
                               "name": "Organization Name",
@@ -1199,6 +1151,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                   "team:write",
                                   "team:admin",
                                 ],
+                                "experiments": Object {},
                                 "features": Array [],
                                 "id": "3",
                                 "name": "Organization Name",
@@ -1218,74 +1171,76 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                           >
                             <div>
                               <EnvironmentButton
-                                align="center"
                                 disabled={false}
                                 onClick={[Function]}
                                 size="xsmall"
                               >
-                                <Button
-                                  align="center"
-                                  className="css-1g4cmym-EnvironmentButton e1pnz46f0"
+                                <forwardRef<Button>
+                                  className="css-1g4cmym-EnvironmentButton e1pnz46f2"
                                   disabled={false}
                                   onClick={[Function]}
                                   size="xsmall"
                                 >
-                                  <StyledButton
-                                    aria-disabled={false}
-                                    aria-label="Show"
-                                    className="css-1g4cmym-EnvironmentButton e1pnz46f0"
+                                  <Button
+                                    align="center"
+                                    className="css-1g4cmym-EnvironmentButton e1pnz46f2"
                                     disabled={false}
+                                    forwardRef={null}
                                     onClick={[Function]}
-                                    role="button"
                                     size="xsmall"
                                   >
-                                    <ForwardRef
+                                    <StyledButton
                                       aria-disabled={false}
                                       aria-label="Show"
-                                      className="e1pnz46f0 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
+                                      className="css-1g4cmym-EnvironmentButton e1pnz46f2"
                                       disabled={false}
+                                      forwardRef={null}
                                       onClick={[Function]}
                                       role="button"
                                       size="xsmall"
                                     >
-                                      <button
+                                      <Component
                                         aria-disabled={false}
                                         aria-label="Show"
-                                        className="e1pnz46f0 css-kzdej5-StyledButton-EnvironmentButton edwq9my0"
+                                        className="e1pnz46f2 css-tqh1t8-StyledButton-EnvironmentButton edwq9my0"
+                                        forwardRef={null}
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
                                       >
-                                        <ButtonLabel
-                                          align="center"
+                                        <button
+                                          aria-disabled={false}
+                                          aria-label="Show"
+                                          className="e1pnz46f2 css-tqh1t8-StyledButton-EnvironmentButton edwq9my0"
+                                          onClick={[Function]}
+                                          role="button"
                                           size="xsmall"
                                         >
-                                          <Component
+                                          <ButtonLabel
                                             align="center"
-                                            className="css-cmi7y3-ButtonLabel edwq9my1"
                                             size="xsmall"
                                           >
                                             <span
-                                              className="css-cmi7y3-ButtonLabel edwq9my1"
+                                              className="css-1dw46ju-ButtonLabel edwq9my1"
                                             >
                                               Show
                                             </span>
-                                          </Component>
-                                        </ButtonLabel>
-                                      </button>
-                                    </ForwardRef>
-                                  </StyledButton>
-                                </Button>
+                                          </ButtonLabel>
+                                        </button>
+                                      </Component>
+                                    </StyledButton>
+                                  </Button>
+                                </forwardRef<Button>>
                               </EnvironmentButton>
                             </div>
                           </Access>
                         </withConfig(Access)>
                       </WithOrganizationMockWrapper>
                     </div>
-                  </PanelItem>
+                  </EnvironmentItem>
                 </EnvironmentRow>
               </div>
-            </EmotionCssPropInternal>
+            </FlexBox>
           </PanelBody>
         </div>
       </Component>

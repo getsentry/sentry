@@ -1,4 +1,5 @@
 import React from 'react';
+
 import InputField from 'app/components/forms/inputField';
 
 type State = InputField['state'] & {
@@ -16,7 +17,6 @@ export default class TextareaField extends InputField<InputField['props'], State
         required={this.props.required}
         placeholder={this.props.placeholder}
         onChange={this.onChange.bind(this)}
-        {...this.getAttributes}
       />
     );
   }

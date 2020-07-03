@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+
 import App from 'app/views/app';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
 import * as modals from 'app/actionCreators/modal';
@@ -247,7 +248,7 @@ describe('ProjectTeams', function() {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/',
+      url: '/assistant/?v2',
       body: {},
     });
     MockApiClient.addMockResponse({

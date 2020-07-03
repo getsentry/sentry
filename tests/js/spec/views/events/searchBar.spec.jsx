@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SearchBar from 'app/views/events/searchBar';
@@ -8,7 +9,7 @@ const focusInput = el => el.find('input[name="query"]').simulate('focus');
 const selectFirstAutocompleteItem = async el => {
   focusInput(el);
 
-  el.find('SearchItem[data-test-id="search-autocomplete-item"]')
+  el.find('SearchListItem[data-test-id="search-autocomplete-item"]')
     .first()
     .simulate('click');
   const input = el.find('input');
@@ -77,7 +78,7 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
+      expect.objectContaining({query: {project: ['1', '2'], statsPeriod: '14d'}})
     );
 
     await tick();
@@ -112,7 +113,7 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
+      expect.objectContaining({query: {project: ['1', '2'], statsPeriod: '14d'}})
     );
 
     expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
@@ -175,10 +176,10 @@ describe('SearchBar', function() {
     await wrapper.update();
 
     expect(
-      wrapper.find('SearchItem[data-test-id="search-autocomplete-item"]')
+      wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]')
     ).toHaveLength(1);
     expect(
-      wrapper.find('SearchItem[data-test-id="search-autocomplete-item"]').text()
+      wrapper.find('SearchListItem[data-test-id="search-autocomplete-item"]').text()
     ).toBe('gpu:');
   });
 
@@ -193,7 +194,7 @@ describe('SearchBar', function() {
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
-      expect.objectContaining({query: {project: [1, 2], statsPeriod: '14d'}})
+      expect.objectContaining({query: {project: ['1', '2'], statsPeriod: '14d'}})
     );
     selectFirstAutocompleteItem(wrapper);
     expect(wrapper.find('input').prop('value')).toBe('!gpu:*"Nvidia 1080ti" ');

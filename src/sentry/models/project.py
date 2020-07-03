@@ -103,10 +103,16 @@ class Project(Model, PendingDeletionMixin):
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
     flags = BitField(
-        flags=(("has_releases", "This Project has sent release data"),), default=0, null=True
+        flags=(
+            ("has_releases", "This Project has sent release data"),
+            ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
+            ("has_transactions", "This Project has sent transactions"),
+        ),
+        default=2,
+        null=True,
     )
 
-    objects = ProjectManager(cache_fields=["pk", "slug"])
+    objects = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:
@@ -284,6 +290,33 @@ class Project(Model, PendingDeletionMixin):
             is_enabled = bool(is_enabled)
         return is_enabled
 
+    def filter_to_subscribed_users(self, users):
+        """
+        Filters a list of users down to the users who are subscribed to email alerts. We
+        check both the project level settings and global default settings.
+        """
+        from sentry.models import UserOption
+
+        project_options = UserOption.objects.filter(
+            user__in=users, project=self, key="mail:alert"
+        ).values_list("user_id", "value")
+
+        user_settings = {user_id: value for user_id, value in project_options}
+        users_without_project_setting = [user for user in users if user.id not in user_settings]
+        if users_without_project_setting:
+            user_default_settings = {
+                user_id: value
+                for user_id, value in UserOption.objects.filter(
+                    user__in=users_without_project_setting,
+                    key="subscribe_by_default",
+                    project__isnull=True,
+                ).values_list("user_id", "value")
+            }
+            for user in users_without_project_setting:
+                user_settings[user.id] = int(user_default_settings.get(user.id, "1"))
+
+        return [user for user in users if bool(user_settings[user.id])]
+
     def transfer_to(self, team=None, organization=None):
         # NOTE: this will only work properly if the new team is in a different
         # org than the existing one, which is currently the only use case in
@@ -411,7 +444,11 @@ class Project(Model, PendingDeletionMixin):
         except IntegrityError as e:
             logging.exception(
                 "Error occurred during copy project settings.",
-                extra={"error": e.message, "project_to": self.id, "project_from": project_id},
+                extra={
+                    "error": six.text_type(e),
+                    "project_to": self.id,
+                    "project_from": project_id,
+                },
             )
             return False
         return True

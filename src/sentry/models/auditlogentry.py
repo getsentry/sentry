@@ -75,6 +75,7 @@ class AuditLogEntryEvent(object):
     SERVICEHOOK_ENABLE = 103
     SERVICEHOOK_DISABLE = 104
 
+    INTEGRATION_UPGRADE = 109
     INTEGRATION_ADD = 110
     INTEGRATION_EDIT = 111
     INTEGRATION_REMOVE = 112
@@ -160,6 +161,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.SERVICEHOOK_REMOVE, "servicehook.remove"),
             (AuditLogEntryEvent.SERVICEHOOK_ENABLE, "servicehook.enable"),
             (AuditLogEntryEvent.SERVICEHOOK_DISABLE, "servicehook.disable"),
+            (AuditLogEntryEvent.INTEGRATION_UPGRADE, "integration.upgrade"),
             (AuditLogEntryEvent.INTEGRATION_ADD, "integration.add"),
             (AuditLogEntryEvent.INTEGRATION_EDIT, "integration.edit"),
             (AuditLogEntryEvent.INTEGRATION_REMOVE, "integration.remove"),
@@ -358,20 +360,42 @@ class AuditLogEntry(Model):
             return 'disabled the service hook for "%s"' % (truncatechars(self.data["url"], 64),)
 
         elif self.event == AuditLogEntryEvent.INTEGRATION_ADD:
-            return "enabled integration %s for project %s" % (
-                self.data["integration"],
-                self.data["project"],
-            )
+            if self.data.get("provider"):
+                return "installed %s for the %s integration" % (
+                    self.data["name"],
+                    self.data["provider"],
+                )
+            else:
+                return "enabled integration %s for project %s" % (
+                    self.data["integration"],
+                    self.data["project"],
+                )
         elif self.event == AuditLogEntryEvent.INTEGRATION_EDIT:
+            if self.data.get("provider"):
+                return "edited the %s for the %s integration" % (
+                    self.data["name"],
+                    self.data["provider"],
+                )
             return "edited integration %s for project %s" % (
                 self.data["integration"],
                 self.data["project"],
             )
         elif self.event == AuditLogEntryEvent.INTEGRATION_REMOVE:
+            if self.data.get("provider"):
+                return "uninstalled %s for the %s integration" % (
+                    self.data["name"],
+                    self.data["provider"],
+                )
             return "disabled integration %s from project %s" % (
                 self.data["integration"],
                 self.data["project"],
             )
+        elif self.event == AuditLogEntryEvent.INTEGRATION_UPGRADE:
+            if self.data.get("provider"):
+                return "upgraded %s for the %s integration" % (
+                    self.data["name"],
+                    self.data["provider"],
+                )
 
         elif self.event == AuditLogEntryEvent.SENTRY_APP_ADD:
             return "created sentry app %s" % (self.data["sentry_app"])
@@ -381,6 +405,8 @@ class AuditLogEntry(Model):
             return "installed sentry app %s" % (self.data["sentry_app"])
         elif self.event == AuditLogEntryEvent.SENTRY_APP_UNINSTALL:
             return "uninstalled sentry app %s" % (self.data["sentry_app"])
+        elif self.event == AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD:
+            return "created internal integration %s" % (self.data.get("name", ""))
         elif self.event == AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD_TOKEN:
             return "created a token for internal integration %s" % (self.data["sentry_app"])
         elif self.event == AuditLogEntryEvent.INTERNAL_INTEGRATION_REMOVE_TOKEN:

@@ -35,15 +35,15 @@ class JavaScriptSdkLoaderTest(TestCase):
         )
         resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key]))
         assert resp.status_code == 200
-        self.assertIn(settings.JS_SDK_LOADER_DEFAULT_SDK_URL, resp.content)
+        assert settings.JS_SDK_LOADER_DEFAULT_SDK_URL.encode("utf-8") in resp.content
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
 
     def test_renders_js_loader(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
-        self.assertIn(self.projectkey.public_key, resp.content)
-        self.assertIn("bundle.min.js", resp.content)
+        assert self.projectkey.public_key.encode("utf-8") in resp.content
+        assert b"bundle.min.js" in resp.content
 
     def test_minified(self):
         resp = self.client.get(self.path)
@@ -53,8 +53,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         )
         assert min_resp.status_code == 200
         self.assertTemplateUsed(min_resp, "sentry/js-sdk-loader.min.js.tmpl")
-        self.assertIn(self.projectkey.public_key, min_resp.content)
-        self.assertIn("bundle.min.js", min_resp.content)
+        assert self.projectkey.public_key.encode("utf-8") in min_resp.content
+        assert b"bundle.min.js" in min_resp.content
         assert len(resp.content) > len(min_resp.content)
 
     @patch("sentry.loader.browsersdkversion.load_version_from_file")
@@ -66,14 +66,14 @@ class JavaScriptSdkLoaderTest(TestCase):
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200, resp
-        self.assertIn("*", resp["Access-Control-Allow-Origin"])
-        self.assertIn("stale-if-error", resp["Cache-Control"])
-        self.assertIn("stale-while-revalidate", resp["Cache-Control"])
-        self.assertIn("s-maxage", resp["Cache-Control"])
-        self.assertIn("max-age", resp["Cache-Control"])
-        self.assertIn("project/%s" % self.projectkey.project_id, resp["Surrogate-Key"])
-        self.assertIn("sdk/", resp["Surrogate-Key"])
-        self.assertIn("sdk-loader", resp["Surrogate-Key"])
+        assert "*" in resp["Access-Control-Allow-Origin"]
+        assert "stale-if-error" in resp["Cache-Control"]
+        assert "stale-while-revalidate" in resp["Cache-Control"]
+        assert "s-maxage" in resp["Cache-Control"]
+        assert "max-age" in resp["Cache-Control"]
+        assert "project/%s" % self.projectkey.project_id in resp["Surrogate-Key"]
+        assert "sdk/" in resp["Surrogate-Key"]
+        assert "sdk-loader" in resp["Surrogate-Key"]
         assert "Content-Encoding" not in resp
         assert "Set-Cookie" not in resp
         assert "Vary" not in resp
@@ -84,6 +84,6 @@ class JavaScriptSdkLoaderTest(TestCase):
             in self.projectkey.js_sdk_loader_cdn_url
         )
         settings.JS_SDK_LOADER_CDN_URL = "https://js.sentry-cdn.com/"
-        assert "https://js.sentry-cdn.com/%s.min.js" % (
-            self.projectkey.public_key == self.projectkey.js_sdk_loader_cdn_url
-        )
+        assert (
+            "https://js.sentry-cdn.com/%s.min.js" % self.projectkey.public_key
+        ) == self.projectkey.js_sdk_loader_cdn_url

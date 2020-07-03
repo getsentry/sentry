@@ -38,11 +38,11 @@ class OrganizationStatsContainer extends React.Component {
     };
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     // If query string changes, it will be due to pagination.
     // Intentionally only fetch projects since stats are fetched for a fixed period during
     // the initial payload
@@ -84,19 +84,17 @@ class OrganizationStatsContainer extends React.Component {
   fetchProjectData() {
     this.props.api.request(this.getOrganizationProjectsEndpoint(), {
       query: this.props.location.query,
-      success: (data, textStatus, jqxhr) => {
+      success: (data, _textStatus, jqxhr) => {
         const projectMap = {};
         data.forEach(project => {
           projectMap[project.id] = project;
         });
 
-        this.setState(prevState => {
-          return {
-            pageLinks: jqxhr.getResponseHeader('Link'),
-            projectMap,
-            projectsRequestsPending: prevState.projectsRequestsPending - 1,
-          };
-        });
+        this.setState(prevState => ({
+          pageLinks: jqxhr.getResponseHeader('Link'),
+          projectMap,
+          projectsRequestsPending: prevState.projectsRequestsPending - 1,
+        }));
       },
       error: () => {
         this.setState({

@@ -38,12 +38,8 @@ const DividerManagerContext = React.createContext<DividerHandlerManagerChildrenP
   dividerPosition: DEFAULT_DIVIDER_POSITION,
   onDragStart: () => {},
   setHover: () => {},
-  addDividerLineRef: () => {
-    return React.createRef<HTMLDivElement>();
-  },
-  addGhostDividerLineRef: () => {
-    return React.createRef<HTMLDivElement>();
-  },
+  addDividerLineRef: () => React.createRef<HTMLDivElement>(),
+  addGhostDividerLineRef: () => React.createRef<HTMLDivElement>(),
 });
 
 type PropType = {
@@ -59,15 +55,17 @@ export class Provider extends React.Component<PropType, StateType> {
     dividerPosition: DEFAULT_DIVIDER_POSITION,
   };
 
+  componentWillUnmount() {
+    this.cleanUpListeners();
+  }
+
   previousUserSelect: UserSelectValues | null = null;
   dividerHandlePosition: number = DEFAULT_DIVIDER_POSITION;
   isDragging: boolean = false;
   dividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
   ghostDividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
 
-  hasInteractiveLayer = (): boolean => {
-    return !!this.props.interactiveLayerRef.current;
-  };
+  hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
 
   addDividerLineRef = () => {
     const ref = React.createRef<HTMLDivElement>();
@@ -193,10 +191,6 @@ export class Provider extends React.Component<PropType, StateType> {
       window.removeEventListener('mouseup', this.onDragEnd);
     }
   };
-
-  componentWillUnmount() {
-    this.cleanUpListeners();
-  }
 
   render() {
     const childrenProps = {

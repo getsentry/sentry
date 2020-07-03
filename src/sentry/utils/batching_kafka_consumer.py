@@ -15,6 +15,7 @@ from confluent_kafka import (
     OFFSET_INVALID,
 )
 
+from django.conf import settings
 
 logger = logging.getLogger("batching-kafka-consumer")
 
@@ -71,7 +72,7 @@ class BatchingKafkaConsumer(object):
     * Messages are processed locally (e.g. not written to an external datastore!) as they are
       read from Kafka, then added to an in-memory batch
     * Batches are flushed based on the batch size or time sent since the first message
-      in the batch was recieved (e.g. "500 items or 1000ms")
+      in the batch was received (e.g. "500 items or 1000ms")
     * Kafka offsets are not automatically committed! If they were, offsets might be committed
       for messages that are still sitting in an in-memory batch, or they might *not* be committed
       when messages are sent to an external datastore right before the consumer process dies
@@ -139,10 +140,10 @@ class BatchingKafkaConsumer(object):
         # new messages)
         self.__batch_processing_time_ms = 0.0
 
-        if not isinstance(topics, (list, tuple)):
-            topics = [topics]
-        elif isinstance(topics, tuple):
+        if isinstance(topics, (tuple, set)):
             topics = list(topics)
+        elif not isinstance(topics, list):
+            topics = [topics]
 
         self.consumer = self.create_consumer(
             topics,
@@ -164,9 +165,8 @@ class BatchingKafkaConsumer(object):
         tags = dict(tags or ())
         tags.update(self.__metrics_default_tags)
 
-        return self.__metrics.timing(
-            metric, value, tags=tags, sample_rate=self.__metrics_sample_rates.get(metric, 1)
-        )
+        sample_rate = self.__metrics_sample_rates.get(metric, settings.SENTRY_METRICS_SAMPLE_RATE)
+        return self.__metrics.timing(metric, value, tags=tags, sample_rate=sample_rate)
 
     def create_consumer(
         self,
@@ -326,14 +326,17 @@ class BatchingKafkaConsumer(object):
         )
 
         batch_results_length = len(self.__batch_results)
+        self.__record_timing("batching_consumer.batch.size", batch_results_length)
         if batch_results_length > 0:
             logger.debug("Flushing batch via worker")
             flush_start = time.time()
             self.worker.flush_batch(self.__batch_results)
             flush_duration = (time.time() - flush_start) * 1000
             logger.info("Worker flush took %dms", flush_duration)
-            self.__record_timing("batch.flush", flush_duration)
-            self.__record_timing("batch.flush.normalized", flush_duration / batch_results_length)
+            self.__record_timing("batching_consumer.batch.flush", flush_duration)
+            self.__record_timing(
+                "batching_consumer.batch.flush.normalized", flush_duration / batch_results_length
+            )
 
         logger.debug("Committing Kafka offsets")
         commit_start = time.time()

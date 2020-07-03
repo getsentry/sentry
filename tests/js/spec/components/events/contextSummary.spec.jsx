@@ -1,12 +1,12 @@
 import React from 'react';
+
 import {shallow, mount} from 'sentry-test/enzyme';
 
-import ContextSummary, {
-  OsSummary,
-  GpuSummary,
-  UserSummary,
-} from 'app/components/events/contextSummary';
+import ContextSummary from 'app/components/events/contextSummary/contextSummary';
 import {FILTER_MASK} from 'app/constants';
+import ContextSummaryUser from 'app/components/events/contextSummary/contextSummaryUser';
+import ContextSummaryGPU from 'app/components/events/contextSummary/contextSummaryGPU';
+import ContextSummaryOS from 'app/components/events/contextSummary/contextSummaryOS';
 
 const CONTEXT_USER = {
   email: 'mail@example.org',
@@ -188,7 +188,7 @@ describe('OsSummary', function() {
         name: 'Mac OS X',
       };
 
-      const wrapper = shallow(<OsSummary data={os} />);
+      const wrapper = shallow(<ContextSummaryOS data={os} />);
       expect(wrapper).toMatchSnapshot();
     });
 
@@ -200,7 +200,7 @@ describe('OsSummary', function() {
         name: 'Mac OS X',
       };
 
-      const wrapper = shallow(<OsSummary data={os} />);
+      const wrapper = shallow(<ContextSummaryOS data={os} />);
       expect(wrapper).toMatchSnapshot();
     });
 
@@ -211,7 +211,7 @@ describe('OsSummary', function() {
         name: 'Mac OS X',
       };
 
-      const wrapper = shallow(<OsSummary data={os} />);
+      const wrapper = shallow(<ContextSummaryOS data={os} />);
       expect(wrapper).toMatchSnapshot();
     });
   });
@@ -226,7 +226,7 @@ describe('GpuSummary', function() {
         version: 'OpenGL ES 3.2 v1.r22p0-01rel0.f294e54ceb2cb2d81039204fa4b0402e',
       };
 
-      const wrapper = shallow(<GpuSummary data={gpu} />);
+      const wrapper = shallow(<ContextSummaryGPU data={gpu} />);
       expect(wrapper).toMatchSnapshot();
     });
 
@@ -236,7 +236,7 @@ describe('GpuSummary', function() {
         name: 'Apple A8 GPU',
       };
 
-      const wrapper = shallow(<GpuSummary data={gpu} />);
+      const wrapper = shallow(<ContextSummaryGPU data={gpu} />);
       expect(wrapper).toMatchSnapshot();
     });
   });
@@ -254,8 +254,13 @@ describe('UserSummary', function() {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper1 = shallow(<UserSummary data={user1} />);
-      expect(wrapper1.find('[data-test-id="user-title"]').text()).toEqual(user1.email);
+      const wrapper1 = shallow(<ContextSummaryUser data={user1} />);
+      expect(
+        wrapper1
+          .find('[data-test-id="user-title"]')
+          .render()
+          .text()
+      ).toEqual(user1.email);
 
       const user2 = {
         ip_address: '12.31.20.12',
@@ -265,10 +270,13 @@ describe('UserSummary', function() {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper2 = shallow(<UserSummary data={user2} />);
-      expect(wrapper2.find('[data-test-id="user-title"]').text()).toEqual(
-        user2.ip_address
-      );
+      const wrapper2 = shallow(<ContextSummaryUser data={user2} />);
+      expect(
+        wrapper2
+          .find('[data-test-id="user-title"]')
+          .render()
+          .text()
+      ).toEqual(user2.ip_address);
 
       const user3 = {
         id: '26',
@@ -277,8 +285,13 @@ describe('UserSummary', function() {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper3 = shallow(<UserSummary data={user3} />);
-      expect(wrapper3.find('[data-test-id="user-title"]').text()).toEqual(user3.id);
+      const wrapper3 = shallow(<ContextSummaryUser data={user3} />);
+      expect(
+        wrapper3
+          .find('[data-test-id="user-title"]')
+          .render()
+          .text()
+      ).toEqual(user3.id);
 
       const user4 = {
         username: 'maiseythedog',
@@ -286,8 +299,13 @@ describe('UserSummary', function() {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper4 = shallow(<UserSummary data={user4} />);
-      expect(wrapper4.find('[data-test-id="user-title"]').text()).toEqual(user4.username);
+      const wrapper4 = shallow(<ContextSummaryUser data={user4} />);
+      expect(
+        wrapper4
+          .find('[data-test-id="user-title"]')
+          .render()
+          .text()
+      ).toEqual(user4.username);
     });
 
     it('renders NoSummary if no email, IP, id, or username', function() {
@@ -296,7 +314,7 @@ describe('UserSummary', function() {
         data: {siblings: ['Charlie Dog'], dreamsOf: 'squirrels'},
       };
 
-      const wrapper = mount(<UserSummary data={user} />);
+      const wrapper = mount(<ContextSummaryUser data={user} />);
       expect(wrapper.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -308,7 +326,7 @@ describe('UserSummary', function() {
         email: FILTER_MASK,
       };
 
-      const wrapper1 = mount(<UserSummary data={user1} />);
+      const wrapper1 = mount(<ContextSummaryUser data={user1} />);
       expect(wrapper1.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper1.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -323,7 +341,7 @@ describe('UserSummary', function() {
         id: FILTER_MASK,
       };
 
-      const wrapper2 = mount(<UserSummary data={user2} />);
+      const wrapper2 = mount(<ContextSummaryUser data={user2} />);
       expect(wrapper2.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper2.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -333,7 +351,7 @@ describe('UserSummary', function() {
         username: FILTER_MASK,
       };
 
-      const wrapper3 = mount(<UserSummary data={user3} />);
+      const wrapper3 = mount(<ContextSummaryUser data={user3} />);
       expect(wrapper3.find('[data-test-id="user-title"]')).toHaveLength(0);
       expect(wrapper3.find('[data-test-id="no-summary-title"]').text()).toEqual(
         'Unknown User'
@@ -349,7 +367,7 @@ describe('UserSummary', function() {
         name: FILTER_MASK,
       };
 
-      const wrapper1 = mount(<UserSummary data={user1} />);
+      const wrapper1 = mount(<ContextSummaryUser data={user1} />);
       expect(wrapper1.find('LetterAvatar').text()).toEqual('?');
 
       const user2 = {
@@ -357,7 +375,7 @@ describe('UserSummary', function() {
         email: FILTER_MASK,
       };
 
-      const wrapper2 = mount(<UserSummary data={user2} />);
+      const wrapper2 = mount(<ContextSummaryUser data={user2} />);
       expect(wrapper2.find('LetterAvatar').text()).toEqual('?');
 
       const user3 = {
@@ -365,7 +383,7 @@ describe('UserSummary', function() {
         username: FILTER_MASK,
       };
 
-      const wrapper3 = mount(<UserSummary data={user3} />);
+      const wrapper3 = mount(<ContextSummaryUser data={user3} />);
       expect(wrapper3.find('LetterAvatar').text()).toEqual('?');
     });
   });

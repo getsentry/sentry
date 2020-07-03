@@ -60,6 +60,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.functional import extract_lazy_object
+from sentry.utils.compat import zip
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -91,7 +92,9 @@ def build_query_params_from_request(request, organization, projects, environment
                 parse_search_query(query), projects, request.user, environments
             )
         except InvalidSearchQuery as e:
-            raise ValidationError(u"Your search query could not be parsed: {}".format(e.message))
+            raise ValidationError(
+                u"Your search query could not be parsed: {}".format(six.text_type(e))
+            )
 
         validate_search_filter_permissions(organization, search_filters, request.user)
         query_kwargs["search_filters"] = search_filters
@@ -273,6 +276,12 @@ class GroupValidator(serializers.Serializer):
 
         return value
 
+    def validate_discard(self, value):
+        access = self.context.get("access")
+        if value and (not access or not access.has_scope("event:admin")):
+            raise serializers.ValidationError("You do not have permission to discard events")
+        return value
+
     def validate(self, attrs):
         attrs = super(GroupValidator, self).validate(attrs)
         if len(attrs) > 1 and "discard" in attrs:
@@ -417,6 +426,31 @@ def self_subscribe_and_assign_issue(acting_user, group):
             return Actor(type=User, id=acting_user.id)
 
 
+def track_update_groups(function):
+    def wrapper(request, projects, *args, **kwargs):
+        try:
+            response = function(request, projects, *args, **kwargs)
+        except Exception:
+            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            # Continue raising the error now that we've incr the metric
+            raise
+
+        serializer = GroupValidator(
+            data=request.data,
+            partial=True,
+            context={"project": projects[0], "access": getattr(request, "access", None)},
+        )
+        results = dict(serializer.validated_data) if serializer.is_valid() else {}
+        tags = {key: True for key in results.keys()}
+        tags["status"] = response.status_code
+
+        metrics.incr("group.update.http_response", sample_rate=1.0, tags=tags)
+        return response
+
+    return wrapper
+
+
+@track_update_groups
 def update_groups(request, projects, organization_id, search_fn):
     group_ids = request.GET.getlist("id")
     if group_ids:
@@ -434,7 +468,11 @@ def update_groups(request, projects, organization_id, search_fn):
     # to support multiple projects, but this is pretty complicated
     # because of the assignee validation. Punting on this for now.
     for project in projects:
-        serializer = GroupValidator(data=request.data, partial=True, context={"project": project})
+        serializer = GroupValidator(
+            data=request.data,
+            partial=True,
+            context={"project": project, "access": getattr(request, "access", None)},
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -467,6 +505,7 @@ def update_groups(request, projects, organization_id, search_fn):
 
     discard = result.get("discard")
     if discard:
+
         return handle_discard(request, list(queryset), projects, acting_user)
 
     statusDetails = result.pop("statusDetails", result)

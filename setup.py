@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import os
 import sys
 
-if sys.version_info[:2] != (2, 7):
+if not os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (2, 7):
     sys.exit("Error: Sentry requires Python 2.7.")
-
-import os
-import os.path
 
 from distutils.command.build import build as BuildCommand
 from setuptools import setup, find_packages
@@ -19,13 +17,15 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 # add sentry to path so we can import sentry.utils.distutils
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
+
 from sentry.utils.distutils import (
     BuildAssetsCommand,
     BuildIntegrationDocsCommand,
     BuildJsSdkRegistryCommand,
 )
 
-VERSION = "10.1.0.dev0"
+
+VERSION = "20.7.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -59,6 +59,10 @@ class SentrySDistCommand(SDistCommand):
 
 class SentryBuildCommand(BuildCommand):
     def run(self):
+        from distutils import log as distutils_log
+
+        distutils_log.set_threshold(distutils_log.WARN)
+
         if not IS_LIGHT_BUILD:
             self.run_command("build_integration_docs")
             self.run_command("build_assets")
@@ -106,6 +110,7 @@ setup(
         "console_scripts": ["sentry = sentry.runner:main"],
         "sentry.apps": [
             # TODO: This can be removed once the getsentry tests no longer check for this app
+            "auth_activedirectory = sentry.auth.providers.saml2.activedirectory",
             "auth_auth0 = sentry.auth.providers.saml2.auth0",
             "auth_github = sentry.auth.providers.github",
             "auth_okta = sentry.auth.providers.saml2.okta",

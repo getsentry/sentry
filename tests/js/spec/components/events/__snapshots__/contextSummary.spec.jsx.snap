@@ -4,7 +4,7 @@ exports[`ContextSummary render() renders at least three contexts 1`] = `
 <div
   className="context-summary"
 >
-  <UserSummary
+  <ContextSummaryUser
     data={
       Object {
         "email": "mail@example.org",
@@ -13,12 +13,12 @@ exports[`ContextSummary render() renders at least three contexts 1`] = `
     }
     key="user"
   />
-  <GenericSummary
+  <ContextSummaryGeneric
     data={Object {}}
     key="browser"
     unknownTitle="Unknown Browser"
   />
-  <DeviceSummary
+  <ContextSummaryDevice
     data={
       Object {
         "arch": "x86",
@@ -36,7 +36,7 @@ exports[`ContextSummary render() renders client_os too 1`] = `
 <div
   className="context-summary"
 >
-  <UserSummary
+  <ContextSummaryUser
     data={
       Object {
         "email": "mail@example.org",
@@ -45,7 +45,7 @@ exports[`ContextSummary render() renders client_os too 1`] = `
     }
     key="user"
   />
-  <GenericSummary
+  <ContextSummaryGeneric
     data={
       Object {
         "name": "Chrome",
@@ -55,7 +55,7 @@ exports[`ContextSummary render() renders client_os too 1`] = `
     key="browser"
     unknownTitle="Unknown Browser"
   />
-  <GenericSummary
+  <ContextSummaryGeneric
     data={
       Object {
         "name": "Electron",
@@ -66,7 +66,7 @@ exports[`ContextSummary render() renders client_os too 1`] = `
     key="runtime"
     unknownTitle="Unknown Runtime"
   />
-  <OsSummary
+  <ContextSummaryOS
     data={
       Object {
         "build": "17E199",
@@ -89,7 +89,7 @@ exports[`ContextSummary render() renders up to four contexts 1`] = `
 <div
   className="context-summary"
 >
-  <UserSummary
+  <ContextSummaryUser
     data={
       Object {
         "email": "mail@example.org",
@@ -98,7 +98,7 @@ exports[`ContextSummary render() renders up to four contexts 1`] = `
     }
     key="user"
   />
-  <GenericSummary
+  <ContextSummaryGeneric
     data={
       Object {
         "name": "Chrome",
@@ -108,7 +108,7 @@ exports[`ContextSummary render() renders up to four contexts 1`] = `
     key="browser"
     unknownTitle="Unknown Browser"
   />
-  <GenericSummary
+  <ContextSummaryGeneric
     data={
       Object {
         "name": "Electron",
@@ -119,7 +119,7 @@ exports[`ContextSummary render() renders up to four contexts 1`] = `
     key="runtime"
     unknownTitle="Unknown Runtime"
   />
-  <OsSummary
+  <ContextSummaryOS
     data={
       Object {
         "build": "17E199",
@@ -140,7 +140,7 @@ exports[`ContextSummary render() should prefer client_os over os 1`] = `
 <div
   className="context-summary"
 >
-  <UserSummary
+  <ContextSummaryUser
     data={
       Object {
         "email": "mail@example.org",
@@ -149,7 +149,7 @@ exports[`ContextSummary render() should prefer client_os over os 1`] = `
     }
     key="user"
   />
-  <GenericSummary
+  <ContextSummaryGeneric
     data={
       Object {
         "name": "Chrome",
@@ -159,7 +159,7 @@ exports[`ContextSummary render() should prefer client_os over os 1`] = `
     key="browser"
     unknownTitle="Unknown Browser"
   />
-  <GenericSummary
+  <ContextSummaryGeneric
     data={
       Object {
         "name": "Electron",
@@ -170,7 +170,7 @@ exports[`ContextSummary render() should prefer client_os over os 1`] = `
     key="runtime"
     unknownTitle="Unknown Runtime"
   />
-  <OsSummary
+  <ContextSummaryOS
     data={
       Object {
         "build": "17E199",
@@ -189,7 +189,7 @@ exports[`ContextSummary render() should skip a missing user context 1`] = `
 <div
   className="context-summary"
 >
-  <GenericSummary
+  <ContextSummaryGeneric
     data={
       Object {
         "name": "Electron",
@@ -200,7 +200,7 @@ exports[`ContextSummary render() should skip a missing user context 1`] = `
     key="runtime"
     unknownTitle="Unknown Runtime"
   />
-  <OsSummary
+  <ContextSummaryOS
     data={
       Object {
         "build": "17E199",
@@ -212,7 +212,7 @@ exports[`ContextSummary render() should skip a missing user context 1`] = `
     }
     key="os"
   />
-  <DeviceSummary
+  <ContextSummaryDevice
     data={
       Object {
         "arch": "x86",
@@ -230,7 +230,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
 <div
   className="context-summary"
 >
-  <UserSummary
+  <ContextSummaryUser
     data={
       Object {
         "email": "mail@example.org",
@@ -239,7 +239,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
     }
     key="user"
   />
-  <GenericSummary
+  <ContextSummaryGeneric
     data={
       Object {
         "name": "Electron",
@@ -250,7 +250,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
     key="runtime"
     unknownTitle="Unknown Runtime"
   />
-  <OsSummary
+  <ContextSummaryOS
     data={
       Object {
         "build": "17E199",
@@ -262,7 +262,7 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
     }
     key="os"
   />
-  <DeviceSummary
+  <ContextSummaryDevice
     data={
       Object {
         "arch": "x86",
@@ -284,15 +284,20 @@ exports[`GpuSummary render() renders name and vendor 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Mali-T880
+    <AnnotatedText
+      meta={null}
+      value="Mali-T880"
+    />
   </h3>
-  <p>
-    <strong>
+  <ParagraphOverflow>
+    <Subject>
       Vendor:
-    </strong>
-     
-    ARM
-  </p>
+    </Subject>
+    <AnnotatedText
+      meta={null}
+      value="ARM"
+    />
+  </ParagraphOverflow>
 </div>
 `;
 
@@ -304,15 +309,19 @@ exports[`GpuSummary render() renders unknown when no vendor 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Apple A8 GPU
+    <AnnotatedText
+      meta={null}
+      value="Apple A8 GPU"
+    />
   </h3>
-  <p>
-    <strong>
+  <ParagraphOverflow>
+    <Subject>
       Vendor:
-    </strong>
-     
-    Unknown
-  </p>
+    </Subject>
+    <AnnotatedText
+      value="Unknown"
+    />
+  </ParagraphOverflow>
 </div>
 `;
 
@@ -324,15 +333,20 @@ exports[`OsSummary render() renders the kernel version when no version 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Mac OS X
+    <AnnotatedText
+      meta={null}
+      value="Mac OS X"
+    />
   </h3>
-  <p>
-    <strong>
+  <ParagraphOverflow>
+    <Subject>
       Kernel:
-    </strong>
-     
-    17.5.0
-  </p>
+    </Subject>
+    <AnnotatedText
+      meta={null}
+      value="17.5.0"
+    />
+  </ParagraphOverflow>
 </div>
 `;
 
@@ -344,15 +358,20 @@ exports[`OsSummary render() renders the version string 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Mac OS X
+    <AnnotatedText
+      meta={null}
+      value="Mac OS X"
+    />
   </h3>
-  <p>
-    <strong>
+  <ParagraphOverflow>
+    <Subject>
       Version:
-    </strong>
-     
-    10.13.4
-  </p>
+    </Subject>
+    <AnnotatedText
+      meta={null}
+      value="10.13.4"
+    />
+  </ParagraphOverflow>
 </div>
 `;
 
@@ -364,14 +383,18 @@ exports[`OsSummary render() renders unknown when no version 1`] = `
     className="context-item-icon"
   />
   <h3>
-    Mac OS X
+    <AnnotatedText
+      meta={null}
+      value="Mac OS X"
+    />
   </h3>
-  <p>
-    <strong>
+  <ParagraphOverflow>
+    <Subject>
       Version:
-    </strong>
-     
-    Unknown
-  </p>
+    </Subject>
+    <AnnotatedText
+      value="Unknown"
+    />
+  </ParagraphOverflow>
 </div>
 `;

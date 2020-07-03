@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import click
+import sys
 from sentry.runner.decorators import configuration
 
 
@@ -42,8 +43,9 @@ def _get_superuser():
 @click.option("--superuser/--no-superuser", default=None, is_flag=True)
 @click.option("--no-password", default=False, is_flag=True)
 @click.option("--no-input", default=False, is_flag=True)
+@click.option("--force-update", default=False, is_flag=True)
 @configuration
-def createuser(email, password, superuser, no_password, no_input):
+def createuser(email, password, superuser, no_password, no_input, force_update):
     "Create a new user."
     if not no_input:
         if not email:
@@ -76,24 +78,31 @@ def createuser(email, password, superuser, no_password, no_input):
     if password:
         user.set_password(password)
 
-    user.save()
-
-    click.echo("User created: %s" % (email,))
-
-    # TODO(dcramer): kill this when we improve flows
-    if settings.SENTRY_SINGLE_ORGANIZATION:
-        from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
-
-        org = Organization.get_default()
-        if superuser:
-            role = roles.get_top_dog().id
+    if User.objects.filter(username=email).exists():
+        if force_update:
+            user.save(force_update=force_update)
+            click.echo("User updated: %s" % (email,))
         else:
-            role = org.default_role
-        member = OrganizationMember.objects.create(organization=org, user=user, role=role)
+            click.echo("User: %s exists, use --force-update to force" % (email,))
+            sys.exit(3)
+    else:
+        user.save()
+        click.echo("User created: %s" % (email,))
 
-        # if we've only got a single team let's go ahead and give
-        # access to that team as its likely the desired outcome
-        teams = list(Team.objects.filter(organization=org)[0:2])
-        if len(teams) == 1:
-            OrganizationMemberTeam.objects.create(team=teams[0], organizationmember=member)
-        click.echo("Added to organization: %s" % (org.slug,))
+        # TODO(dcramer): kill this when we improve flows
+        if settings.SENTRY_SINGLE_ORGANIZATION:
+            from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
+
+            org = Organization.get_default()
+            if superuser:
+                role = roles.get_top_dog().id
+            else:
+                role = org.default_role
+            member = OrganizationMember.objects.create(organization=org, user=user, role=role)
+
+            # if we've only got a single team let's go ahead and give
+            # access to that team as its likely the desired outcome
+            teams = list(Team.objects.filter(organization=org)[0:2])
+            if len(teams) == 1:
+                OrganizationMemberTeam.objects.create(team=teams[0], organizationmember=member)
+            click.echo("Added to organization: %s" % (org.slug,))

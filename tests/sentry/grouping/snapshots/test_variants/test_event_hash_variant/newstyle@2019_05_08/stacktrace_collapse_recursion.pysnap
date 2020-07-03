@@ -1,114 +1,114 @@
 ---
-created: '2019-05-08T07:29:42.737426Z'
+created: '2020-02-26T19:54:39.823461Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'main'
+            "main"
         frame (non app frame)
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'normalFunc'
+            "normalFunc"
         frame (non app frame)
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'recurFunc'
+            "recurFunc"
         frame (non app frame)
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'recurFunc'
+            "recurFunc"
         frame (non app frame)
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'recurFunc'
+            "recurFunc"
         frame (non app frame)
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'recurFunc'
+            "recurFunc"
         frame (non app frame)
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'throwError'
+            "throwError"
 --------------------------------------------------------------------------
 system:
-  hash: '894c3489e2ade384dc107bca6829d134'
+  hash: "894c3489e2ade384dc107bca6829d134"
   component:
     system*
       stacktrace*
         frame*
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'main'
+            "main"
         frame*
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'normalFunc'
+            "normalFunc"
         frame*
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'recurFunc'
+            "recurFunc"
         frame (ignored due to recursion)
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'recurFunc'
+            "recurFunc"
         frame (ignored due to recursion)
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'recurFunc'
+            "recurFunc"
         frame*
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'recurFunc'
+            "recurFunc"
         frame*
           module*
-            u'io.sentry.example.Application'
+            "io.sentry.example.Application"
           filename (module takes precedence)
-            u'application.java'
+            "application.java"
           function*
-            u'throwError'
+            "throwError"

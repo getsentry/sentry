@@ -14,7 +14,6 @@ module.exports = {
     ],
   ],
   plugins: [
-    'react-hot-loader/babel',
     '@babel/plugin-syntax-dynamic-import',
     '@babel/plugin-proposal-object-rest-spread',
     '@babel/plugin-transform-runtime',
@@ -54,7 +53,10 @@ module.exports = {
           },
         ],
       ],
-      plugins: ['@babel/plugin-transform-react-jsx-source'],
+      plugins: [
+        '@babel/plugin-transform-react-jsx-source',
+        !!process.env.SENTRY_UI_HOT_RELOAD ? 'react-refresh/babel' : null,
+      ].filter(Boolean),
     },
     test: {
       plugins: ['dynamic-import-node'],

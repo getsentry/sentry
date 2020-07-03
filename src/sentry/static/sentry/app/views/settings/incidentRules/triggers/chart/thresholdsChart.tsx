@@ -1,9 +1,10 @@
-import {ECharts, EChartOption} from 'echarts';
+import {ECharts} from 'echarts';
 import React from 'react';
 import color from 'color';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
+import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import Graphic from 'app/components/charts/components/graphic';
 import LineChart from 'app/components/charts/lineChart';
@@ -12,12 +13,14 @@ import theme from 'app/utils/theme';
 
 import {Trigger, AlertRuleThresholdType} from '../../types';
 
-type Props = {
-  xAxis: EChartOption.XAxis;
+type DefaultProps = {
   data: Series[];
+};
+
+type Props = DefaultProps & {
   triggers: Trigger[];
   maxValue?: number;
-};
+} & Partial<GlobalSelection['datetime']>;
 
 type State = {
   width: number;
@@ -34,15 +37,15 @@ const CHART_GRID = {
 
 // Colors to use for trigger thresholds
 const COLOR = {
-  RESOLUTION_FILL: color(theme.greenLight)
+  RESOLUTION_FILL: color(theme.green300)
     .alpha(0.1)
     .rgb()
     .string(),
-  CRITICAL_FILL: color(theme.redLight)
+  CRITICAL_FILL: color(theme.red400)
     .alpha(0.25)
     .rgb()
     .string(),
-  WARNING_FILL: color(theme.yellowLight)
+  WARNING_FILL: color(theme.yellow300)
     .alpha(0.1)
     .rgb()
     .string(),
@@ -53,7 +56,7 @@ const COLOR = {
  * Metric Alert rule.
  */
 export default class ThresholdsChart extends React.PureComponent<Props, State> {
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     data: [],
   };
 
@@ -154,7 +157,12 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     const position = this.getChartPixelForThreshold(trigger[type]);
     const isInverted = thresholdType === AlertRuleThresholdType.BELOW;
 
-    if (typeof position !== 'number' || !this.state.height || !this.chartRef) {
+    if (
+      typeof position !== 'number' ||
+      isNaN(position) ||
+      !this.state.height ||
+      !this.chartRef
+    ) {
       return [];
     }
 
@@ -163,7 +171,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
     const isCritical = trigger.label === 'critical';
     const LINE_STYLE = {
-      stroke: isResolution ? theme.greenDark : isCritical ? theme.redDark : theme.yellow,
+      stroke: isResolution ? theme.green500 : isCritical ? theme.red500 : theme.yellow500,
       lineDash: [2],
     };
 
@@ -211,18 +219,25 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     ];
   };
 
-  getChartPixelForThreshold = (threshold: number | '') =>
-    this.chartRef && this.chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`);
+  getChartPixelForThreshold = (threshold: number | '' | null) =>
+    threshold !== '' &&
+    this.chartRef &&
+    this.chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`);
 
   render() {
-    const {data, triggers, xAxis} = this.props;
+    const {data, triggers, period} = this.props;
+    const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => ({
+      ...restOfData,
+      data: eventData.slice(0, -1),
+    }));
 
     return (
       <LineChart
         isGroupedByDate
+        showTimeInTooltip
+        period={period}
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
-        xAxis={xAxis}
         yAxis={{
           max: this.state.yAxisMax,
         }}
@@ -234,7 +249,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
             ])
           ),
         })}
-        series={data}
+        series={dataWithoutRecentBucket}
         onFinished={() => {
           // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
           // any graphics related to the triggers (e.g. the threshold areas + boundaries)

@@ -10,19 +10,12 @@ exports[`AccountIdentities renders empty 1`] = `
       title="Identities"
     />
     <Panel>
-      <PanelHeader
-        disablePadding={true}
-      >
-        <Styled(div)
-          px={2}
-        >
-          Identities
-        </Styled(div)>
+      <PanelHeader>
+        Identities
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={true}
-        flex={false}
+        flexible={false}
+        withPadding={false}
       >
         <EmptyMessage>
           There are no identities associated with this account
@@ -43,44 +36,27 @@ exports[`AccountIdentities renders list 1`] = `
       title="Identities"
     />
     <Panel>
-      <PanelHeader
-        disablePadding={true}
-      >
-        <Styled(div)
-          px={2}
-        >
-          Identities
-        </Styled(div)>
+      <PanelHeader>
+        Identities
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={true}
-        flex={false}
+        flexible={false}
+        withPadding={false}
       >
-        <PanelItem
-          alignItems="center"
+        <IdentityPanelItem
           key="1"
-          p={0}
+          p={2}
         >
-          <Styled(div)
-            flex="1"
-            p={2}
-          >
+          <div>
             GitHub
-          </Styled(div)>
-          <Styled(div)
-            p={2}
+          </div>
+          <forwardRef<Button>
+            onClick={[Function]}
+            size="small"
           >
-            <Button
-              align="center"
-              disabled={false}
-              onClick={[Function]}
-              size="small"
-            >
-              Disconnect
-            </Button>
-          </Styled(div)>
-        </PanelItem>
+            Disconnect
+          </forwardRef<Button>>
+        </IdentityPanelItem>
       </PanelBody>
     </Panel>
   </div>

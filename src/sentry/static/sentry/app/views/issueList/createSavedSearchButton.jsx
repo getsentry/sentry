@@ -11,6 +11,7 @@ import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {TextField} from 'app/components/forms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {IconAdd} from 'app/icons';
 
 class CreateSavedSearchButton extends React.Component {
   static propTypes = {
@@ -94,16 +95,15 @@ class CreateSavedSearchButton extends React.Component {
     return (
       <Access organization={organization} access={['org:write']}>
         <Button
-          title={withTooltip ? t('Add to organization filter list') : null}
+          title={withTooltip ? t('Add to organization saved searches') : null}
           onClick={this.onToggle}
           data-test-id="save-current-search"
           size="zero"
           borderless
           containerDisplayMode="inline-flex"
           type="button"
-          aria-label={t('Add to organization filter list')}
-          icon="icon-add-to-list"
-          iconSize="16px"
+          aria-label={t('Add to organization saved searches')}
+          icon={<IconAdd size="xs" />}
           className={buttonClassName}
         >
           {!iconOnly && t('Create Saved Search')}

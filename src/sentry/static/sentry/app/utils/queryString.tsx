@@ -1,4 +1,4 @@
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 import parseurl from 'parseurl';
 import isString from 'lodash/isString';
 
@@ -33,11 +33,18 @@ type QueryValue = string | string[] | undefined | null;
 export function appendTagCondition(
   query: QueryValue,
   key: string,
-  value: string
+  value: null | string
 ): string {
   let currentQuery = Array.isArray(query) ? query.pop() : isString(query) ? query : '';
 
-  if (isString(value) && value.indexOf(' ') > -1) {
+  // The user key values have additional key data inside them.
+  if (key === 'user' && isString(value) && value.includes(':')) {
+    const parts = value.split(':', 2);
+    key = [key, parts[0]].join('.');
+    value = parts[1];
+  }
+
+  if (isString(value) && value.includes(' ')) {
     value = `"${value}"`;
   }
   if (currentQuery) {
@@ -49,7 +56,33 @@ export function appendTagCondition(
   return currentQuery;
 }
 
+export function decodeScalar(
+  value: string[] | string | undefined | null
+): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const unwrapped =
+    Array.isArray(value) && value.length > 0
+      ? value[0]
+      : isString(value)
+      ? value
+      : undefined;
+  return isString(unwrapped) ? unwrapped : undefined;
+}
+
+export function decodeList(
+  value: string[] | string | undefined | null
+): string[] | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return Array.isArray(value) ? value : isString(value) ? [value] : [];
+}
+
 export default {
+  decodeList,
+  decodeScalar,
   formatQueryString,
   addQueryParamsToExistingUrl,
   appendTagCondition,

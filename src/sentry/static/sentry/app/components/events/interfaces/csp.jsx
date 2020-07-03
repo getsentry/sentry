@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import SentryTypes from 'app/sentryTypes';
 
+import SentryTypes from 'app/sentryTypes';
+import ButtonBar from 'app/components/buttonBar';
+import Button from 'app/components/button';
 import EventDataSection from 'app/components/events/eventDataSection';
 import CSPContent from 'app/components/events/interfaces/cspContent';
 import CSPHelp from 'app/components/events/interfaces/cspHelp';
@@ -48,36 +50,34 @@ export default class CspInterface extends React.Component {
     const {view, data} = this.state;
     const {event} = this.props;
 
-    const title = (
-      <div>
-        <div className="btn-group">
-          <a
-            className={(view === 'report' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'report')}
-          >
-            {t('Report')}
-          </a>
-          <a
-            className={(view === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'raw')}
-          >
-            {t('Raw')}
-          </a>
-          <a
-            className={(view === 'help' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'help')}
-          >
-            {t('Help')}
-          </a>
-        </div>
-        <h3>{t('CSP Report')}</h3>
-      </div>
+    const actions = (
+      <ButtonBar merged active={view}>
+        <Button
+          barId="report"
+          size="xsmall"
+          onClick={this.toggleView.bind(this, 'report')}
+        >
+          {t('Report')}
+        </Button>
+        <Button barId="raw" size="xsmall" onClick={this.toggleView.bind(this, 'raw')}>
+          {t('Raw')}
+        </Button>
+        <Button barId="help" size="xsmall" onClick={this.toggleView.bind(this, 'help')}>
+          {t('Help')}
+        </Button>
+      </ButtonBar>
     );
 
     const children = getView(view, data);
 
     return (
-      <EventDataSection event={event} type="csp" title={title} wrapTitle={false}>
+      <EventDataSection
+        event={event}
+        type="csp"
+        title={<h3>{t('CSP Report')}</h3>}
+        actions={actions}
+        wrapTitle={false}
+      >
         {children}
       </EventDataSection>
     );

@@ -4,9 +4,10 @@ from exam import mock
 
 
 from sentry.testutils import AcceptanceTestCase
-from tests.acceptance.page_objects.organization_integration_settings import (
-    OrganizationIntegrationSettingsPage,
-)
+
+# from tests.acceptance.page_objects.organization_integration_settings import (
+#     OrganizationIntegrationSettingsPage,
+# )
 
 
 class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
@@ -38,58 +39,54 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not(".loading-indicator")
 
-    def test_install_sentry_app(self):
-        self.load_page(self.org_integration_settings_path)
+    # def test_install_sentry_app(self):
+    #     self.load_page(self.org_integration_settings_path)
 
-        org_settings_page = OrganizationIntegrationSettingsPage(browser=self.browser)
+    #     org_settings_page = OrganizationIntegrationSettingsPage(browser=self.browser)
 
-        provider_element = org_settings_page.get_provider(self.provider)
+    #     provider_element = org_settings_page.get_provider(self.provider)
 
-        # assert installation rather than upgrade button
-        assert provider_element.install_button.label == "Install"
-        assert provider_element.install_button.icon_href == "#icon-circle-add"
+    #     # assert installation rather than upgrade button
+    #     assert provider_element.install_button.label == "Install"
 
-        provider_element.install_button.click()
+    #     provider_element.install_button.click()
 
-        install_selecter = '.modal-dialog [aria-label="Accept & Install"]'
-        self.browser.wait_until(install_selecter)
-        self.browser.click(install_selecter)
+    #     install_selecter = '.modal-dialog [aria-label="Accept & Install"]'
+    #     self.browser.wait_until(install_selecter)
+    #     self.browser.click(install_selecter)
 
-        self.browser.wait_until(".ref-success")
+    #     self.browser.wait_until(".ref-success")
 
-        # provider_element might be rerendered
-        provider_element = org_settings_page.get_provider(self.provider)
+    #     # provider_element might be rerendered
+    #     provider_element = org_settings_page.get_provider(self.provider)
 
-        # assert we see the uninstall option
-        assert provider_element.install_button.label == "Uninstall"
-        assert provider_element.install_button.icon_href == "#icon-trash"
+    #     # assert we see the uninstall option
+    #     assert provider_element.install_button.label == "Uninstall"
 
-    def test_uninstall_sentry_app(self):
-        # add the installation
-        self.installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.org, user=self.user
-        )
+    # def test_uninstall_sentry_app(self):
+    #     # add the installation
+    #     self.installation = self.create_sentry_app_installation(
+    #         slug=self.sentry_app.slug, organization=self.org, user=self.user
+    #     )
 
-        self.load_page(self.org_integration_settings_path)
+    #     self.load_page(self.org_integration_settings_path)
 
-        org_settings_page = OrganizationIntegrationSettingsPage(browser=self.browser)
+    #     org_settings_page = OrganizationIntegrationSettingsPage(browser=self.browser)
 
-        provider_element = org_settings_page.get_provider(self.provider)
+    #     provider_element = org_settings_page.get_provider(self.provider)
 
-        # assert we see the uninstall option
-        assert provider_element.install_button.label == "Uninstall"
-        assert provider_element.install_button.icon_href == "#icon-trash"
+    #     # assert we see the uninstall option
+    #     assert provider_element.install_button.label == "Uninstall"
 
-        provider_element.install_button.click()
-        self.browser.wait_until(org_settings_page.modal_selector)
+    #     provider_element.install_button.click()
+    #     self.browser.wait_until(org_settings_page.modal_selector)
 
-        self.browser.click('.modal-dialog [aria-label="Confirm"]')
+    #     self.browser.click('.modal-dialog [aria-label="Confirm"]')
 
-        self.browser.wait_until(".ref-success")
+    #     self.browser.wait_until(".ref-success")
 
-        # provider_element might be rerendered
-        provider_element = org_settings_page.get_provider(self.provider)
+    #     # provider_element might be rerendered
+    #     provider_element = org_settings_page.get_provider(self.provider)
 
-        # assert we see the install option now
-        assert provider_element.install_button.label == "Install"
-        assert provider_element.install_button.icon_href == "#icon-circle-add"
+    #     # assert we see the install option now
+    #     assert provider_element.install_button.label == "Install"

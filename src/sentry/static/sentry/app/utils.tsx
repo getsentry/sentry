@@ -140,13 +140,19 @@ export function escape(str: string): string {
 }
 
 export function percent(value: number, totalValue: number): number {
+  // prevent division by zero
+  if (totalValue === 0) {
+    return 0;
+  }
+
   return (value / totalValue) * 100;
 }
 
 export function toTitleCase(str: string): string {
-  return str.replace(/\w\S*/g, txt => {
-    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-  });
+  return str.replace(
+    /\w\S*/g,
+    txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
 }
 
 export function formatBytes(bytes: number): string {
@@ -191,6 +197,23 @@ export function extractMultilineFields(value: string): Array<string> {
     .split('\n')
     .map(f => trim(f))
     .filter(f => f !== '');
+}
+
+/**
+ * If the value is of type Array, converts it to type string, keeping the line breaks, if there is any
+ */
+export function convertMultilineFieldValue<T extends string | Array<string>>(
+  value: T
+): string {
+  if (Array.isArray(value)) {
+    return value.join('\n');
+  }
+
+  if (typeof value === 'string') {
+    return value.split('\n').join('\n');
+  }
+
+  return '';
 }
 
 function projectDisplayCompare(a: Project, b: Project): number {
@@ -273,4 +296,11 @@ export function generateQueryWithTag(
   }
 
   return query;
+}
+
+export const isFunction = (value: any): value is Function => typeof value === 'function';
+
+// NOTE: only escapes a " if it's not already escaped
+export function escapeDoubleQuotes(str) {
+  return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
 }

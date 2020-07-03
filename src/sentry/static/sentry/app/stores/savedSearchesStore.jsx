@@ -114,6 +114,9 @@ const SavedSearchesStore = Reflux.createStore({
   },
 
   onFetchSavedSearchesSuccess(data) {
+    if (!Array.isArray(data)) {
+      data = [];
+    }
     this.state = {
       ...this.state,
       savedSearches: data,
@@ -122,7 +125,7 @@ const SavedSearchesStore = Reflux.createStore({
     this.trigger(this.state);
   },
 
-  onFetchSavedSearchesError(resp) {
+  onFetchSavedSearchesError(_resp) {
     this.state = {
       ...this.state,
       savedSearches: [],
@@ -150,7 +153,7 @@ const SavedSearchesStore = Reflux.createStore({
     this.trigger(this.state);
   },
 
-  onPinSearch(type, query, ...args) {
+  onPinSearch(type, query) {
     const existingSearch = this.findByQuery(query);
 
     if (existingSearch) {

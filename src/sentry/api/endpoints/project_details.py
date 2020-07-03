@@ -23,6 +23,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.list import ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
+from sentry.datascrubbing import validate_pii_config_update
 from sentry.lang.native.symbolicator import parse_sources, InvalidSourcesError
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
@@ -41,6 +42,7 @@ from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerpri
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils import json
+from sentry.utils.compat import filter
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -172,21 +174,8 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         return slug
 
     def validate_relayPiiConfig(self, value):
-        if not value:
-            return value
-
-        from sentry import features
-
         organization = self.context["project"].organization
-        request = self.context["request"]
-        has_datascrubbers_v2 = features.has(
-            "organizations:datascrubbers-v2", organization, actor=request.user
-        )
-        if not has_datascrubbers_v2:
-            raise serializers.ValidationError(
-                "Organization does not have the datascrubbers-v2 feature enabled"
-            )
-        return value
+        return validate_pii_config_update(organization, value)
 
     def validate_builtinSymbolSources(self, value):
         if not value:
@@ -224,7 +213,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip())
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(six.text_type(e))
 
         return sources_json
 
@@ -235,7 +224,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(six.text_type(e))
 
         return value
 
@@ -246,7 +235,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError(six.text_type(e))
 
         return value
 

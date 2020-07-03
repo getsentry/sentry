@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';

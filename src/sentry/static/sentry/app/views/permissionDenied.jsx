@@ -2,10 +2,11 @@ import {withRouter} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
+import {PageContent} from 'app/styles/organization';
 import LoadingError from 'app/components/loadingError';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
@@ -39,14 +40,16 @@ class PermissionDenied extends React.Component {
   render() {
     return (
       <DocumentTitle title={t('Permission Denied')}>
-        <LoadingError
-          message={tct(
-            'Your role does not have the necessary permissions to access this resource, please read more about [link:organizational roles]',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/learn/membership/" />,
-            }
-          )}
-        />
+        <PageContent>
+          <LoadingError
+            message={tct(
+              'Your role does not have the necessary permissions to access this resource, please read more about [link:organizational roles]',
+              {
+                link: <ExternalLink href="https://docs.sentry.io/learn/membership/" />,
+              }
+            )}
+          />
+        </PageContent>
       </DocumentTitle>
     );
   }

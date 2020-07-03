@@ -58,6 +58,10 @@ class WorkItemWebhook(Endpoint):
 
             try:
                 self.check_webhook_secret(request, integration)
+                logger.info(
+                    "vsts.valid-webhook-secret",
+                    extra={"event_type": event_type, "integration_id": integration.id},
+                )
             except AssertionError:
                 logger.info(
                     "vsts.invalid-webhook-secret",
@@ -71,6 +75,15 @@ class WorkItemWebhook(Endpoint):
         try:
             integration_secret = integration.metadata["subscription"]["secret"]
             webhook_payload_secret = request.META["HTTP_SHARED_SECRET"]
+            # TODO(Steve): remove
+            logger.info(
+                "vsts.special-webhook-secret",
+                extra={
+                    "integration_id": integration.id,
+                    "integration_secret": six.text_type(integration_secret)[:6],
+                    "webhook_payload_secret": six.text_type(webhook_payload_secret)[:6],
+                },
+            )
         except KeyError as e:
             logger.info(
                 "vsts.missing-webhook-secret",
@@ -80,6 +93,7 @@ class WorkItemWebhook(Endpoint):
         assert constant_time_compare(integration_secret, webhook_payload_secret)
 
     def handle_updated_workitem(self, data, integration):
+        project = None
         try:
             external_issue_key = data["resource"]["workItemId"]
             project = data["resourceContainers"]["project"]["id"]
@@ -99,9 +113,18 @@ class WorkItemWebhook(Endpoint):
                     "error": six.text_type(e),
                     "workItemId": data["resource"]["workItemId"],
                     "integration_id": integration.id,
+                    "azure_project_id": project,
                 },
             )
             return  # In the case that there are no fields sent, no syncing can be done
+        logger.info(
+            "vsts.updated-workitem-fields-correct",
+            extra={
+                "workItemId": data["resource"]["workItemId"],
+                "integration_id": integration.id,
+                "azure_project_id": project,
+            },
+        )
         self.handle_assign_to(integration, external_issue_key, assigned_to)
         self.handle_status_change(integration, external_issue_key, status_change, project)
 

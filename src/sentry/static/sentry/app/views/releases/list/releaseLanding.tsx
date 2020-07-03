@@ -1,5 +1,4 @@
 import React from 'react';
-import {t} from 'app/locale';
 import styled from '@emotion/styled';
 
 import minified from 'sentry-dreamy-components/dist/minified.svg';
@@ -7,8 +6,9 @@ import emails from 'sentry-dreamy-components/dist/emails.svg';
 import issues from 'sentry-dreamy-components/dist/issues.svg';
 import suggestedAssignees from 'sentry-dreamy-components/dist/suggested-assignees.svg';
 import contributors from 'sentry-dreamy-components/dist/contributors.svg';
-import {Project, Organization} from 'app/types';
 
+import {t} from 'app/locale';
+import {Project, Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
@@ -34,6 +34,7 @@ const Illustration = styled(({data, className}: IllustrationProps) => (
 const cards = [
   {
     title: t("You Haven't Set Up Releases!"),
+    disclaimer: t('(you made no releases in 30 days)'),
     message: t(
       'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced in a release'
     ),
@@ -115,25 +116,19 @@ const ReleaseLanding = withOrganization(
         });
       };
 
-      getCard = stepId => {
-        return cards[stepId];
-      };
+      getCard = stepId => cards[stepId];
 
       render() {
         const {stepId} = this.state;
         const card = this.getCard(stepId);
 
         return (
-          <div className="container">
-            <div className="row">
-              <ReleaseLandingCard
-                onClick={this.handleClick}
-                card={card}
-                step={stepId}
-                cardsLength={cards.length}
-              />
-            </div>
-          </div>
+          <ReleaseLandingCard
+            onClick={this.handleClick}
+            card={card}
+            step={stepId}
+            cardsLength={cards.length}
+          />
         );
       }
     }

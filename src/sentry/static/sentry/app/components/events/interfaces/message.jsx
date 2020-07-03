@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import Annotated from 'app/components/events/meta/annotated';
 import EventDataSection from 'app/components/events/eventDataSection';
 import SentryTypes from 'app/sentryTypes';
@@ -38,7 +38,7 @@ class MessageInterface extends React.Component {
     return (
       <EventDataSection event={event} type="message" title={t('Message')}>
         <pre className="plain">
-          <Annotated object={data} prop="formatted" />
+          <Annotated object={data} objectKey="formatted" />
         </pre>
         {this.renderParams()}
       </EventDataSection>

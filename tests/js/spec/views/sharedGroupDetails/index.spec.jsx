@@ -1,6 +1,8 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
-import SharedGroupDetails from 'app/views/sharedGroupDetails';
+
+import SharedGroupDetails from 'app/views/sharedGroupDetails/sharedGroupDetails';
 
 describe('SharedGroupDetails', function() {
   beforeEach(function() {

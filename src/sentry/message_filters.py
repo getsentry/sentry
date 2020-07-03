@@ -377,6 +377,7 @@ class _LegacyBrowserFilterSerializer(serializers.Serializer):
             "ie_pre_9",
             "ie9",
             "ie10",
+            "ie11",
             "opera_pre_15",
             "android_pre_4",
             "safari_pre_6",
@@ -474,6 +475,10 @@ def _filter_opera_mini_pre_8(browser):
     return False
 
 
+def _filter_ie11(browser):
+    return _filter_ie_internal(browser, lambda major_ver: major_ver == 11)
+
+
 def _filter_ie10(browser):
     return _filter_ie_internal(browser, lambda major_ver: major_ver == 10)
 
@@ -507,6 +512,7 @@ _legacy_browsers_sub_filters = {
     "opera_mini_pre_8": _filter_opera_mini_pre_8,
     "ie9": _filter_ie9,
     "ie10": _filter_ie10,
+    "ie11": _filter_ie11,
     "ie_pre_9": _filter_ie_pre_9,
 }
 

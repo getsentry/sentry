@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {buildUserId, buildTeamId} from 'app/utils';

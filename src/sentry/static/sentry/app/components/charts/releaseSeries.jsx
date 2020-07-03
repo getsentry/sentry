@@ -1,25 +1,33 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment-timezone';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getUserTimezone} from 'app/utils/dates';
+import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
 import MarkLine from 'app/components/charts/components/markLine';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {escape} from 'app/utils';
+import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
-function getOrganizationReleases(api, organization, projects = null) {
+function getOrganizationReleases(api, organization, conditions = null) {
   const query = {};
-  if (projects) {
-    query.project = projects;
-  }
+  Object.keys(conditions).forEach(key => {
+    let value = conditions[key];
+    if (value && (key === 'start' || key === 'end')) {
+      value = getUtcDateString(value);
+    }
+    if (value) {
+      query[key] = value;
+    }
+  });
+  api.clear();
   return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
     method: 'GET',
     query,
@@ -33,9 +41,13 @@ class ReleaseSeries extends React.Component {
     organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(PropTypes.number),
 
+    period: PropTypes.string,
+    start: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
+    end: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
     utc: PropTypes.bool,
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
+    tooltip: SentryTypes.EChartsTooltip,
   };
 
   state = {
@@ -44,8 +56,11 @@ class ReleaseSeries extends React.Component {
   };
 
   componentDidMount() {
-    if (this.props.releases) {
+    const {releases} = this.props;
+
+    if (releases) {
       // No need to fetch releases if passed in from props
+      this.setReleasesWithSeries(releases);
       return;
     }
 
@@ -53,28 +68,37 @@ class ReleaseSeries extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (!isEqual(prevProps.projects, this.props.projects)) {
+    if (
+      !isEqual(prevProps.projects, this.props.projects) ||
+      !isEqual(prevProps.start, this.props.start) ||
+      !isEqual(prevProps.end, this.props.end) ||
+      !isEqual(prevProps.period, this.props.period)
+    ) {
       this.fetchData();
     }
   }
 
   fetchData() {
-    const {api, organization, projects} = this.props;
-
-    getOrganizationReleases(api, organization, projects)
+    const {api, organization, projects, period, start, end} = this.props;
+    const conditions = {start, end, project: projects, statsPeriod: period};
+    getOrganizationReleases(api, organization, conditions)
       .then(releases => {
-        this.setState({
-          releases,
-          releaseSeries: [this.getReleaseSeries(releases)],
-        });
+        this.setReleasesWithSeries(releases);
       })
       .catch(() => {
         addErrorMessage(t('Error fetching releases'));
       });
   }
 
+  setReleasesWithSeries(releases) {
+    this.setState({
+      releases,
+      releaseSeries: [this.getReleaseSeries(releases)],
+    });
+  }
+
   getReleaseSeries = releases => {
-    const {utc, organization, router} = this.props;
+    const {organization, router, tooltip} = this.props;
 
     return {
       seriesName: 'Releases',
@@ -82,18 +106,32 @@ class ReleaseSeries extends React.Component {
       markLine: MarkLine({
         lineStyle: {
           normal: {
-            color: theme.purpleLight,
+            color: theme.purple400,
             opacity: 0.3,
             type: 'solid',
           },
         },
-        tooltip: {
+        tooltip: tooltip || {
           formatter: ({data}) => {
-            return `<div>${moment
-              .tz(data.value, utc ? 'UTC' : getUserTimezone())
-              .format('MMM D, YYYY LT')} <br />
-            Release: ${data.name}<br />
-            </div>`;
+            // XXX using this.props here as this function does not get re-run
+            // unless projects are changed. Using a closure variable would result
+            // in stale values.
+            const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
+              local: !this.props.utc,
+            });
+            const version = escape(formatVersion(data.name, true));
+            return [
+              '<div class="tooltip-series">',
+              `<div><span class="tooltip-label"><strong>${t(
+                'Release'
+              )}</strong></span> ${version}</div>`,
+              '</div>',
+              '<div class="tooltip-date">',
+              time,
+              '</div>',
+              '</div>',
+              '<div class="tooltip-arrow"></div>',
+            ].join('');
           },
         },
         label: {
@@ -101,15 +139,18 @@ class ReleaseSeries extends React.Component {
         },
         data: releases.map(release => ({
           xAxis: +new Date(release.dateCreated),
-          name: release.shortVersion,
-          value: release.shortVersion,
+          name: formatVersion(release.version, true),
+          value: formatVersion(release.version, true),
           onClick: () => {
-            router.push(
-              `/organizations/${organization.slug}/releases/${release.version}/`
-            );
+            router.push({
+              pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
+              query: new Set(organization.features).has('global-views')
+                ? undefined
+                : {project: router.location.query.project},
+            });
           },
           label: {
-            formatter: () => release.shortVersion,
+            formatter: () => formatVersion(release.version, true),
           },
         })),
       }),

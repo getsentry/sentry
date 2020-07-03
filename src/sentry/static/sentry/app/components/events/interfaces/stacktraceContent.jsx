@@ -1,8 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import get from 'lodash/get';
 
-import Frame from 'app/components/events/interfaces/frame';
+import Frame from 'app/components/events/interfaces/frame/frame';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
@@ -39,17 +38,12 @@ export default class StacktraceContent extends React.Component {
     return <li {...props}>{text}</li>;
   };
 
-  frameIsVisible = (frame, nextFrame) => {
-    return (
-      this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp)
-    );
-  };
+  frameIsVisible = (frame, nextFrame) =>
+    this.props.includeSystemFrames || frame.inApp || (nextFrame && nextFrame.inApp);
 
   findImageForAddress(address) {
-    const images = get(
-      this.props.event.entries.find(entry => entry.type === 'debugmeta'),
-      'data.images'
-    );
+    const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
+      ?.data?.images;
 
     return images
       ? images.find(img => {

@@ -37,16 +37,17 @@ def schedule_digests():
 @instrumented_task(name="sentry.tasks.digests.deliver_digest", queue="digests.delivery")
 def deliver_digest(key, schedule_timestamp=None):
     from sentry import digests
+    from sentry.mail import mail_adapter
 
     try:
-        plugin, project = split_key(key)
+        project, target_type, target_identifier = split_key(key)
     except Project.DoesNotExist as error:
         logger.info("Cannot deliver digest %r due to error: %s", key, error)
         digests.delete(key)
         return
 
     minimum_delay = ProjectOption.objects.get_value(
-        project, get_option_key(plugin.get_conf_key(), "minimum_delay")
+        project, get_option_key("mail", "minimum_delay")
     )
 
     with snuba.options_override({"consistent": True}):
@@ -58,4 +59,13 @@ def deliver_digest(key, schedule_timestamp=None):
             return
 
         if digest:
-            plugin.notify_digest(project, digest)
+            mail_adapter.notify_digest(project, digest, target_type, target_identifier)
+        else:
+            logger.info(
+                "Skipped digest delivery due to empty digest",
+                extra={
+                    "project": project.id,
+                    "target_type": target_type.value,
+                    "target_identifier": target_identifier,
+                },
+            )

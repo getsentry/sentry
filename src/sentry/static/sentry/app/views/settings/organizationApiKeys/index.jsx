@@ -24,12 +24,12 @@ class OrganizationApiKeys extends AsyncView {
     return `${org.name} API Keys`;
   }
 
-  handleRemove = (id, e) => {
+  handleRemove = id => {
     const api = new Client();
     api.request(`/organizations/${this.props.params.orgId}/api-keys/${id}/`, {
       method: 'DELETE',
       data: {},
-      success: data => {
+      success: () => {
         this.setState(state => ({
           keys: state.keys.filter(({id: existingId}) => existingId !== id),
         }));

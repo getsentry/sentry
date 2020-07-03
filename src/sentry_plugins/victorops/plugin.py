@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.exceptions import PluginError
 from sentry.plugins.bases.notify import NotifyPlugin
 
 from sentry_plugins.base import CorePluginMixin
-from sentry_plugins.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.utils import get_secret_field_config
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .client import VictorOpsClient
 
@@ -17,13 +17,36 @@ privacy controls are enabled. For more details about this issue, view this
 issue on Sentry.
 """.strip()
 
+DESCRIPTION = """
+Trigger alerts in VictorOps from Sentry.
+
+VictorOps is incident response software purpose-built for teams powering the
+evolution of software. With on-call basics, cross-team collaboration, and
+streamlined visibility, we champion the engineers powering innovation and uptime.
+"""
+
 
 class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
-    description = "Send alerts to VictorOps."
+    description = DESCRIPTION
     slug = "victorops"
     title = "VictorOps"
     conf_key = slug
     conf_title = title
+    required_field = "api_key"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Manage incidents and outages by sending Sentry notifications to VictorOps.
+            """,
+            IntegrationFeatures.INCIDENT_MANAGEMENT,
+        ),
+        FeatureDescription(
+            """
+            Configure Sentry rules to trigger notifications based on conditions you set.
+            """,
+            IntegrationFeatures.ALERT_RULE,
+        ),
+    ]
 
     def is_configured(self, project, **kwargs):
         return bool(self.get_option("api_key", project))
@@ -91,7 +114,6 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
                 project_id=group.project.id,
             )
         except ApiError as e:
-            message = "Could not communicate with victorops. Got %s" % e
-            raise PluginError(message)
+            self.raise_error(e)
 
         assert response["result"] == "success"

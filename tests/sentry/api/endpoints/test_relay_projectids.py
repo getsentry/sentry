@@ -12,7 +12,7 @@ from sentry.utils import safe
 from sentry.models.relay import Relay
 from sentry.testutils import APITestCase
 
-from semaphore.auth import generate_key_pair
+from sentry_relay.auth import generate_key_pair
 
 
 def _get_all_keys(config):
@@ -31,7 +31,7 @@ class RelayProjectIdsEndpointTest(APITestCase):
 
         self.public_key = self.key_pair[1]
         self.private_key = self.key_pair[0]
-        self.relay_id = six.binary_type(uuid4())
+        self.relay_id = six.binary_type(six.text_type(uuid4()).encode("ascii"))
 
         self.relay = Relay.objects.create(
             relay_id=self.relay_id,
@@ -48,7 +48,10 @@ class RelayProjectIdsEndpointTest(APITestCase):
         org = self.project.organization
 
         if add_org_key:
-            org.update_option("sentry:trusted-relays", [self.relay.public_key])
+            org.update_option(
+                "sentry:trusted-relays",
+                [{"public_key": self.relay.public_key, "name": "main-relay"}],
+            )
 
     def _call_endpoint(self, public_key):
         raw_json, signature = self.private_key.pack({"publicKeys": [public_key]})

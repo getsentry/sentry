@@ -31,7 +31,7 @@ class ProcessingIssueList extends React.Component {
     this.fetchIssues();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (!isEqual(prevProps.projectIds, this.props.projectIds)) {
       this.fetchIssues();
     }
@@ -55,7 +55,7 @@ class ProcessingIssueList extends React.Component {
           this.setState({issues: data});
         }
       },
-      error => {
+      () => {
         // this is okay. it's just a ui hint
       }
     );
@@ -67,17 +67,15 @@ class ProcessingIssueList extends React.Component {
 
     return (
       <React.Fragment>
-        {issues.map((p, idx) => {
-          return (
-            <ProcessingIssueHint
-              key={idx}
-              issue={p}
-              projectId={p.project}
-              orgId={organization.slug}
-              showProject={showProject}
-            />
-          );
-        })}
+        {issues.map((p, idx) => (
+          <ProcessingIssueHint
+            key={idx}
+            issue={p}
+            projectId={p.project}
+            orgId={organization.slug}
+            showProject={showProject}
+          />
+        ))}
       </React.Fragment>
     );
   }

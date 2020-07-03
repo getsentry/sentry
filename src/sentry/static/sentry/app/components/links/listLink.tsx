@@ -5,10 +5,13 @@ import {Link} from 'react-router';
 import classNames from 'classnames';
 import {LocationDescriptor} from 'history';
 
-type Props = {
-  to: LocationDescriptor;
+type DefaultProps = {
   index: boolean;
   activeClassName: string;
+};
+
+type Props = DefaultProps & {
+  to: LocationDescriptor;
   className?: string;
   query?: string;
   onClick?: () => void;
@@ -25,7 +28,7 @@ class ListLink extends React.Component<Props> {
     router: PropTypes.object.isRequired,
   };
 
-  static defaultProps: Partial<Props> = {
+  static defaultProps: DefaultProps = {
     activeClassName: 'active',
     index: false,
   };

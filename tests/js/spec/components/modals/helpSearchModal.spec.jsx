@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {openHelpSearchModal} from 'app/actionCreators/modal';
 import App from 'app/views/app';
 
@@ -46,7 +47,7 @@ describe('Docs Search Modal', function() {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/',
+      url: '/assistant/?v2',
       body: [],
     });
   });

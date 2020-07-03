@@ -29,6 +29,7 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.web.helpers import render_to_string
+from sentry.utils.compat import map
 
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5
@@ -43,7 +44,7 @@ logger = logging.getLogger("sentry.mail")
 def inline_css(value):
     tree = lxml.html.document_fromstring(value)
     toronado.inline(tree)
-    # CSS media query support is inconistent when the DOCTYPE declaration is
+    # CSS media query support is inconsistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
     return lxml.html.tostring(tree, doctype="<!DOCTYPE html>")
 
@@ -170,12 +171,6 @@ def get_email_addresses(user_ids, project=None):
             pending.discard(option.user_id)
 
     if pending:
-        queryset = UserOption.objects.filter(user__in=pending, key="alert_email")
-        for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
-            results[option.user_id] = option.value
-            pending.discard(option.user_id)
-
-    if pending:
         queryset = User.objects.filter(pk__in=pending, is_active=True)
         for (user_id, email) in queryset.values_list("id", "email"):
             if email and not is_fake_email(email):
@@ -230,7 +225,7 @@ class ListResolver(object):
                 u"Cannot generate mailing list identifier for {!r}".format(instance)
             )
 
-        label = ".".join(map(six.binary_type, handler(instance)))
+        label = ".".join(map(six.text_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
         return u"{}.{}".format(label, self.__namespace)

@@ -21,7 +21,7 @@ class BufferTest(TestCase):
         columns = {"times_seen": 1}
         filters = {"id": 1}
         self.buf.incr(model, columns, filters)
-        kwargs = dict(model=model, columns=columns, filters=filters, extra=None)
+        kwargs = dict(model=model, columns=columns, filters=filters, extra=None, signal_only=None)
         process_incr.apply_async.assert_called_once_with(kwargs=kwargs)
 
     def test_process_saves_data(self):
@@ -65,3 +65,14 @@ class BufferTest(TestCase):
         self.buf.process(ReleaseProject, columns, filters)
         release_project_ = ReleaseProject.objects.get(id=release_project.id)
         assert release_project_.new_groups == 1
+
+    @mock.patch("sentry.models.Group.objects.create_or_update")
+    def test_signal_only(self, create_or_update):
+        group = Group.objects.create(project=Project(id=1))
+        columns = {"times_seen": 1}
+        filters = {"id": group.id, "project_id": 1}
+        the_date = timezone.now() + timedelta(days=5)
+        prev_times_seen = group.times_seen
+        self.buf.process(Group, columns, filters, {"last_seen": the_date}, signal_only=True)
+        group.refresh_from_db()
+        assert group.times_seen == prev_times_seen

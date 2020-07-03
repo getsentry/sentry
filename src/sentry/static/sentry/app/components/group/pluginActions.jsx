@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
+
 import withApi from 'app/utils/withApi';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import NavTabs from 'app/components/navTabs';
@@ -30,7 +31,7 @@ class PluginActions extends React.Component {
     this.loadPlugin(this.props.plugin);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.plugin.id !== nextProps.plugin.id) {
       this.loadPlugin(nextProps.plugin);
     }
@@ -45,11 +46,11 @@ class PluginActions extends React.Component {
     // doesn't think the plugin still has an issue linked
     const endpoint = `/issues/${this.props.group.id}/plugins/${plugin.slug}/unlink/`;
     this.props.api.request(endpoint, {
-      success: data => {
+      success: () => {
         this.loadPlugin(plugin);
         addSuccessMessage(t('Successfully unlinked issue.'));
       },
-      error: error => {
+      error: () => {
         addErrorMessage(t('Unable to unlink issue'));
       },
     });

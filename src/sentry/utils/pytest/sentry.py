@@ -94,7 +94,10 @@ def pytest_configure(config):
 
     settings.DISABLE_RAVEN = True
 
-    settings.CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    settings.CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+        "nodedata": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    }
 
     if os.environ.get("USE_SNUBA", False):
         settings.SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
@@ -112,11 +115,14 @@ def pytest_configure(config):
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
+            "slack.legacy-app": True,
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
             "vsts.client-id": "vsts-client-id",
             "vsts.client-secret": "vsts-client-secret",
+            "vercel.client-id": "vercel-client-id",
+            "vercel.client-secret": "vercel-client-secret",
         }
     )
 
@@ -179,10 +185,13 @@ def register_extensions():
 
     from sentry import integrations
     from sentry.integrations.bitbucket import BitbucketIntegrationProvider
+    from sentry.integrations.bitbucket_server import BitbucketServerIntegrationProvider
     from sentry.integrations.example import (
         ExampleIntegrationProvider,
         AliasedIntegrationProvider,
         ExampleRepositoryProvider,
+        ServerExampleProvider,
+        FeatureFlagIntegration,
     )
     from sentry.integrations.github import GitHubIntegrationProvider
     from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
@@ -195,8 +204,11 @@ def register_extensions():
     from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 
     integrations.register(BitbucketIntegrationProvider)
+    integrations.register(BitbucketServerIntegrationProvider)
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
+    integrations.register(ServerExampleProvider)
+    integrations.register(FeatureFlagIntegration)
     integrations.register(GitHubIntegrationProvider)
     integrations.register(GitHubEnterpriseIntegrationProvider)
     integrations.register(GitlabIntegrationProvider)

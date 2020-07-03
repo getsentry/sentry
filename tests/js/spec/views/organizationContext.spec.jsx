@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
+
 import {openSudo} from 'app/actionCreators/modal';
 import * as OrganizationActionCreator from 'app/actionCreators/organization';
 import ConfigStore from 'app/stores/configStore';
 import {OrganizationContext} from 'app/views/organizationContext';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import OrganizationStore from 'app/stores/organizationStore';
 
 jest.mock('app/stores/configStore', () => ({
@@ -27,7 +27,7 @@ describe('OrganizationContext', function() {
   let getOrgMock;
 
   const createWrapper = props => {
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <OrganizationContext
         api={api}
         params={{orgId: 'org-slug'}}
@@ -49,7 +49,6 @@ describe('OrganizationContext', function() {
     });
     jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(ProjectsStore, 'loadInitialData');
-    jest.spyOn(GlobalSelectionStore, 'loadInitialData');
     jest.spyOn(OrganizationActionCreator, 'fetchOrganizationDetails');
   });
 
@@ -62,7 +61,6 @@ describe('OrganizationContext', function() {
     TeamStore.loadInitialData.mockRestore();
     ProjectsStore.loadInitialData.mockRestore();
     ConfigStore.get.mockRestore();
-    GlobalSelectionStore.loadInitialData.mockRestore();
     OrganizationActionCreator.fetchOrganizationDetails.mockRestore();
   });
 
@@ -89,7 +87,6 @@ describe('OrganizationContext', function() {
       true,
       true
     );
-    expect(GlobalSelectionStore.loadInitialData).toHaveBeenCalledWith(org, {});
   });
 
   it('fetches new org when router params change', async function() {
@@ -257,22 +254,5 @@ describe('OrganizationContext', function() {
     });
 
     expect(getOrgMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not call `GlobalSelectionStore.loadInitialData` on group details route', async function() {
-    expect(GlobalSelectionStore.loadInitialData).not.toHaveBeenCalled();
-    wrapper = createWrapper({
-      routes: [{path: '/organizations/:orgId/issues/:groupId/'}],
-    });
-    // await dispatching action
-    await tick();
-    // await resolving api, and updating component
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.state('loading')).toBe(false);
-    expect(wrapper.state('error')).toBe(null);
-
-    expect(GlobalSelectionStore.loadInitialData).not.toHaveBeenCalled();
   });
 });

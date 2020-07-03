@@ -97,9 +97,9 @@ class AccountSecuritySessionHistory extends AsyncView {
           </SessionPanelHeader>
 
           <PanelBody>
-            {ipList.map(ipObj => {
-              return <SessionRow key={ipObj.id} {...ipObj} />;
-            })}
+            {ipList.map(ipObj => (
+              <SessionRow key={ipObj.id} {...ipObj} />
+            ))}
           </PanelBody>
         </Panel>
       </React.Fragment>

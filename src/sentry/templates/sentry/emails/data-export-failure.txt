@@ -1,0 +1,17 @@
+We couldn't export your data.
+-----------------------------
+
+Well, this is a little awkward.
+The data export that you created at {{creation}} didn't work. Sorry about that.
+
+It looks like there was an error:
+
+    {{error_message}}
+
+This is what you sent us. Maybe it'll help you sort this out.
+
+{{payload|safe}}
+
+Need a little more help?
+ - https://docs.sentry.io/ (Documentation)
+ - https://help.sentry.io/ (FAQs)

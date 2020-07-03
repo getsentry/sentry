@@ -142,15 +142,13 @@ class Settings extends BasePlugin.DefaultSettings {
     let onSubmit;
     let submitLabel;
     if (this.state.editing) {
-      fields = this.state.fieldList.filter(f => {
-        return this.PAGE_FIELD_LIST[this.state.page].includes(f.name);
-      });
+      fields = this.state.fieldList.filter(f =>
+        this.PAGE_FIELD_LIST[this.state.page].includes(f.name)
+      );
       onSubmit = this.onSubmit;
       submitLabel = this.isLastPage() ? 'Finish' : 'Save and Continue';
     } else {
-      fields = this.state.fieldList.map(f => {
-        return Object.assign({}, f, {readonly: true});
-      });
+      fields = this.state.fieldList.map(f => Object.assign({}, f, {readonly: true}));
       onSubmit = this.startEditing;
       submitLabel = 'Edit';
     }
@@ -178,14 +176,14 @@ class Settings extends BasePlugin.DefaultSettings {
             </ul>
           </div>
         )}
-        {fields.map(f => {
-          return this.renderField({
+        {fields.map(f =>
+          this.renderField({
             config: f,
             formData: this.state.formData,
             formErrors: this.state.errors,
             onChange: this.changeField.bind(this, f.name),
-          });
-        })}
+          })
+        )}
       </Form>
     );
   }

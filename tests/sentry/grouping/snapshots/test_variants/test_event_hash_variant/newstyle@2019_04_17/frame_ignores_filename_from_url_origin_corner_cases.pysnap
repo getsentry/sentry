@@ -1,42 +1,42 @@
 ---
-created: '2019-11-01T10:16:12.760098Z'
+created: '2020-02-26T19:54:33.970179Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"
           function*
-            u'test'
+            "test"
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"
           function*
-            u'test'
+            "test"
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"
 --------------------------------------------------------------------------
 system:
-  hash: '05a671c66aefea124cc08b76ea6d30bb'
+  hash: "05a671c66aefea124cc08b76ea6d30bb"
   component:
     system*
       stacktrace*
         frame*
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"
           function*
-            u'test'
+            "test"
         frame*
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"
           function*
-            u'test'
+            "test"
         frame
           filename (ignored because frame points to a URL)
-            u'foo.js'
+            "foo.js"

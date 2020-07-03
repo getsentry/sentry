@@ -5,9 +5,13 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
+import logging
+
 from django.conf import settings
 from django.db.models import Min, Q
 from django.utils import timezone
+
+import sentry_sdk
 
 from sentry import tagstore, tsdb
 from sentry.app import env
@@ -17,6 +21,7 @@ from sentry.api.fields.actor import Actor
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
+    ApiToken,
     Commit,
     Environment,
     Group,
@@ -33,6 +38,7 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Integration,
+    SentryAppInstallationToken,
     User,
     UserOption,
     UserOptionValue,
@@ -40,6 +46,7 @@ from sentry.models import (
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
+from sentry.utils.compat import map, zip
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -55,6 +62,14 @@ disabled = object()
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
+
+
+logger = logging.getLogger(__name__)
+
+
+def merge_list_dictionaries(dict1, dict2):
+    for key, val in six.iteritems(dict2):
+        dict1.setdefault(key, []).extend(val)
 
 
 class GroupSerializerBase(Serializer):
@@ -105,7 +120,7 @@ class GroupSerializerBase(Serializer):
             for subscription in GroupSubscription.objects.filter(
                 group__in=list(
                     itertools.chain.from_iterable(
-                        itertools.imap(
+                        map(
                             lambda project__groups: project__groups[1]
                             if not options.get(project__groups[0].id, options.get(None))
                             == UserOptionValue.no_conversations
@@ -143,6 +158,8 @@ class GroupSerializerBase(Serializer):
 
     def get_attrs(self, item_list, user):
         from sentry.plugins.base import plugins
+        from sentry.integrations import IntegrationFeatures
+        from sentry.models import PlatformExternalIssue
 
         GroupMeta.objects.populate_cache(item_list)
 
@@ -200,8 +217,7 @@ class GroupSerializerBase(Serializer):
                 )
             )
             commit_resolutions = {
-                i.group_id: d
-                for i, d in itertools.izip(commit_results, serialize(commit_results, user))
+                i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
             }
         else:
             release_resolutions = {}
@@ -211,7 +227,7 @@ class GroupSerializerBase(Serializer):
         actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
         if actor_ids:
             users = list(User.objects.filter(id__in=actor_ids, is_active=True))
-            actors = {u.id: d for u, d in itertools.izip(users, serialize(users, user))}
+            actors = {u.id: d for u, d in zip(users, serialize(users, user))}
         else:
             actors = {}
 
@@ -223,41 +239,67 @@ class GroupSerializerBase(Serializer):
 
         seen_stats = self._get_seen_stats(item_list, user)
 
+        annotations_by_group_id = defaultdict(list)
+
+        organization_id_list = list(set(item.project.organization_id for item in item_list))
+        # if no groups, then we can't proceed but this seems to be a valid use case
+        if not item_list:
+            return {}
+        if len(organization_id_list) > 1:
+            # this should never happen but if it does we should know about it
+            logger.warn(
+                u"Found multiple organizations for groups: %s, with orgs: %s"
+                % ([item.id for item in item_list], organization_id_list)
+            )
+
+        # should only have 1 org at this point
+        organization_id = organization_id_list[0]
+
+        # find all the integration installs that have issue tracking
+        for integration in Integration.objects.filter(organizations=organization_id):
+            if not (
+                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
+                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
+            ):
+                continue
+
+            install = integration.get_installation(organization_id)
+            local_annotations_by_group_id = (
+                safe_execute(
+                    install.get_annotations_for_group_list,
+                    group_list=item_list,
+                    _with_transaction=False,
+                )
+                or {}
+            )
+            merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
+
+        # find the external issues for sentry apps and add them in
+        local_annotations_by_group_id = (
+            safe_execute(
+                PlatformExternalIssue.get_annotations_for_group_list,
+                group_list=item_list,
+                _with_transaction=False,
+            )
+            or {}
+        )
+        merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
+
         for item in item_list:
             active_date = item.active_at or item.first_seen
 
             annotations = []
+            annotations.extend(annotations_by_group_id[item.id])
+
+            # add the annotations for plugins
+            # note that the model GroupMeta where all the information is stored is already cached at the top of this function
+            # so these for loops doesn't make a bunch of queries
             for plugin in plugins.for_project(project=item.project, version=1):
                 safe_execute(plugin.tags, None, item, annotations, _with_transaction=False)
             for plugin in plugins.for_project(project=item.project, version=2):
                 annotations.extend(
                     safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
                 )
-
-            from sentry.integrations import IntegrationFeatures
-
-            for integration in Integration.objects.filter(
-                organizations=item.project.organization_id
-            ):
-                if not (
-                    integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-                    or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
-                ):
-                    continue
-
-                install = integration.get_installation(item.project.organization_id)
-                annotations.extend(
-                    safe_execute(install.get_annotations, group=item, _with_transaction=False) or ()
-                )
-
-            from sentry.models import PlatformExternalIssue
-
-            annotations.extend(
-                safe_execute(
-                    PlatformExternalIssue.get_annotations, group=item, _with_transaction=False
-                )
-                or ()
-            )
 
             resolution_actor = None
             resolution_type = None
@@ -293,7 +335,7 @@ class GroupSerializerBase(Serializer):
             result[item].update(seen_stats.get(item, {}))
         return result
 
-    def serialize(self, obj, attrs, user):
+    def _get_status(self, attrs, obj):
         status = obj.status
         status_details = {}
         if attrs["ignore_until"]:
@@ -342,18 +384,38 @@ class GroupSerializerBase(Serializer):
             status_label = "pending_merge"
         else:
             status_label = "unresolved"
+        return status_details, status_label
 
+    def _get_permalink(self, obj, user):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
         is_superuser = request and is_active_superuser(request) and request.user == user
-        if is_superuser or (
-            user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists()
-        ):
-            permalink = obj.get_absolute_url()
-        else:
-            permalink = None
 
+        # If user is a sentry_app then it's a proxy user meaning we can't do a org lookup via `get_orgs()`
+        # because the user isn't an org member. Instead we can use the auth token and the installation
+        # it's associated with to find out what organization the token has access to.
+        is_valid_sentryapp = False
+        if (
+            request
+            and getattr(request.user, "is_sentry_app", False)
+            and isinstance(request.auth, ApiToken)
+        ):
+            is_valid_sentryapp = SentryAppInstallationToken.has_organization_access(
+                request.auth, obj.organization
+            )
+
+        if (
+            is_superuser
+            or is_valid_sentryapp
+            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
+        ):
+            with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
+                return obj.get_absolute_url()
+        else:
+            return None
+
+    def _get_subscription(self, attrs):
         subscription_details = None
         if attrs["subscription"] is not disabled:
             is_subscribed, subscription = attrs["subscription"]
@@ -364,7 +426,12 @@ class GroupSerializerBase(Serializer):
         else:
             is_subscribed = False
             subscription_details = {"disabled": True}
+        return is_subscribed, subscription_details
 
+    def serialize(self, obj, attrs, user):
+        status_details, status_label = self._get_status(attrs, obj)
+        permalink = self._get_permalink(obj, user)
+        is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
 
         return {
@@ -568,21 +635,15 @@ class GroupSerializerSnuba(GroupSerializerBase):
             end=self.end,
         )
 
-        first_seen = {}
-        last_seen = {}
-        times_seen = {}
+        seen_data = tagstore.get_group_seen_values_for_environments(
+            project_ids, group_ids, self.environment_ids, start=self.start, end=self.end
+        )
+        last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
         if not self.environment_ids:
-            # use issue fields
-            for item in item_list:
-                first_seen[item.id] = item.first_seen
-                last_seen[item.id] = item.last_seen
-                times_seen[item.id] = item.times_seen
+            first_seen = {item.id: item.first_seen for item in item_list}
+            times_seen = {item.id: item.times_seen for item in item_list}
         else:
-            seen_data = tagstore.get_group_seen_values_for_environments(
-                project_ids, group_ids, self.environment_ids, start=self.start, end=self.end
-            )
-
-            first_seen_data = {
+            first_seen = {
                 ge["group_id"]: ge["first_seen__min"]
                 for ge in GroupEnvironment.objects.filter(
                     group_id__in=[item.id for item in item_list],
@@ -591,11 +652,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 .values("group_id")
                 .annotate(Min("first_seen"))
             }
-
-            for item_id, value in seen_data.items():
-                first_seen[item_id] = first_seen_data.get(item_id)
-                last_seen[item_id] = value["last_seen"]
-                times_seen[item_id] = value["times_seen"]
+            times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
 
         attrs = {}
         for item in item_list:

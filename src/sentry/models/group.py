@@ -6,12 +6,12 @@ import re
 import warnings
 from collections import namedtuple
 from enum import Enum
-
 from datetime import timedelta
-from django.core.urlresolvers import reverse
+
+import six
 from django.db import models
 from django.utils import timezone
-from django.utils.http import urlencode
+from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventstore, eventtypes, tagstore
@@ -78,7 +78,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         getter = queryset.get
 
     if not (
-        isinstance(id_or_qualified_short_id, (long, int))  # noqa
+        isinstance(id_or_qualified_short_id, six.integer_types)  # noqa
         or id_or_qualified_short_id.isdigit()
     ):  # NOQA
         short_id = parse_short_id(id_or_qualified_short_id)
@@ -185,8 +185,10 @@ class GroupManager(BaseManager):
             return manager.save(project)
 
         # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as exc:
-            logger.info("discarded.hash", extra={"project_id": project, "description": exc.message})
+        except HashDiscarded as e:
+            logger.info(
+                "discarded.hash", extra={"project_id": project, "description": six.text_type(e)}
+            )
 
     def from_event_id(self, project, event_id):
         """
@@ -215,7 +217,7 @@ class GroupManager(BaseManager):
             filter=eventstore.Filter(
                 event_ids=event_ids, project_ids=project_ids, conditions=conditions
             ),
-            limit=len(project_ids),
+            limit=max(len(project_ids), 100),
             referrer="Group.filter_by_event_id",
         )
 
@@ -315,9 +317,13 @@ class Group(Model):
         super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
-        url = reverse("sentry-organization-issue", args=[self.organization.slug, self.id])
-        if params:
-            url = url + "?" + urlencode(params)
+        # Built manually in preference to django.core.urlresolvers.reverse,
+        # because reverse has a measured performance impact.
+        url = u"organizations/{org}/issues/{id}/{params}".format(
+            org=urlquote(self.organization.slug),
+            id=self.id,
+            params="?" + urlencode(params) if params else "",
+        )
         return absolute_uri(url)
 
     @property
@@ -333,6 +339,9 @@ class Group(Model):
 
     def is_ignored(self):
         return self.get_status() == GroupStatus.IGNORED
+
+    def is_unresolved(self):
+        return self.get_status() == GroupStatus.UNRESOLVED
 
     # TODO(dcramer): remove in 9.0 / after plugins no long ref
     is_muted = is_ignored
@@ -460,10 +469,20 @@ class Group(Model):
         return "%s - %s" % (self.qualified_short_id.encode("utf-8"), self.title.encode("utf-8"))
 
     def count_users_seen(self):
-        return tagstore.get_groups_user_counts([self.project_id], [self.id], environment_ids=None)[
-            self.id
-        ]
+        return tagstore.get_groups_user_counts(
+            [self.project_id], [self.id], environment_ids=None, start=self.first_seen
+        )[self.id]
 
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime("%s"))
+
+    @staticmethod
+    def issues_mapping(group_ids, project_ids, organization):
+        """ Create a dictionary of group_ids to their qualified_short_ids """
+        return {
+            i.id: i.qualified_short_id
+            for i in Group.objects.filter(
+                id__in=group_ids, project_id__in=project_ids, project__organization=organization
+            )
+        }

@@ -1,24 +1,31 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Organization, SavedQuery} from 'app/types';
 import {fetchSavedQuery} from 'app/actionCreators/discoverSavedQueries';
-
 import {Client} from 'app/api';
-import space from 'app/styles/space';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import Hovercard from 'app/components/hovercard';
+import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
+import EventView from 'app/utils/discover/eventView';
+import * as Layout from 'app/components/layouts/thirds';
+import CreateAlertButton from 'app/components/createAlertButton';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
-import EventView from './eventView';
 import SavedQueryButtonGroup from './savedQuery';
 
 type Props = {
   api: Client;
   organization: Organization;
   location: Location;
+  errorCode: number;
   eventView: EventView;
+  onIncompatibleAlertQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'];
 };
 
 type State = {
@@ -39,7 +46,11 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.eventView !== this.props.eventView) {
+    if (
+      prevProps.eventView &&
+      this.props.eventView &&
+      prevProps.eventView.id !== this.props.eventView.id
+    ) {
       this.fetchData();
     }
   }
@@ -55,59 +66,68 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location, eventView} = this.props;
+    const {
+      organization,
+      location,
+      errorCode,
+      eventView,
+      onIncompatibleAlertQuery,
+    } = this.props;
     const {savedQuery, loading} = this.state;
 
+    const renderDisabled = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={t('Discover queries are disabled')}
+            featureName={t('Discover queries')}
+          />
+        }
+      >
+        {p.children(p)}
+      </Hovercard>
+    );
+
     return (
-      <HeaderBox>
-        <DiscoverBreadcrumb
-          eventView={eventView}
-          organization={organization}
-          location={location}
-        />
-        <EventInputName
-          savedQuery={savedQuery}
-          organization={organization}
-          eventView={eventView}
-        />
-        <Controller>
-          <SavedQueryButtonGroup
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <DiscoverBreadcrumb
+            eventView={eventView}
+            organization={organization}
             location={location}
+          />
+          <EventInputName
+            savedQuery={savedQuery}
             organization={organization}
             eventView={eventView}
-            savedQuery={savedQuery}
-            savedQueryLoading={loading}
           />
-        </Controller>
-      </HeaderBox>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <Feature
+            organization={organization}
+            features={['discover-query']}
+            hookName="feature-disabled:discover-saved-query-create"
+            renderDisabled={renderDisabled}
+          >
+            {({hasFeature}) => (
+              <SavedQueryButtonGroup
+                location={location}
+                organization={organization}
+                eventView={eventView}
+                savedQuery={savedQuery}
+                savedQueryLoading={loading}
+                disabled={!hasFeature || (errorCode >= 400 && errorCode < 500)}
+                updateCallback={() => this.fetchData()}
+                onIncompatibleAlertQuery={onIncompatibleAlertQuery}
+              />
+            )}
+          </Feature>
+        </Layout.HeaderActions>
+      </Layout.Header>
     );
   }
 }
-
-const HeaderBox = styled('div')`
-  padding: ${space(2)} ${space(4)};
-  background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  grid-row-gap: ${space(2)};
-  margin: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: grid;
-    grid-template-rows: 1fr 30px;
-    grid-template-columns: 65% auto;
-    grid-column-gap: ${space(3)};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: auto 325px;
-  }
-`;
-
-const Controller = styled('div')`
-  display: flex;
-  justify-self: end;
-  grid-row: 1/2;
-  grid-column: 2/3;
-`;
 
 export default withApi(ResultsHeader);

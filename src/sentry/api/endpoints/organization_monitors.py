@@ -5,7 +5,7 @@ import six
 from django.db.models import Q
 
 from sentry import features
-from sentry.api.bases import NoProjects, OrganizationEventsError
+from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -41,8 +41,6 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
             return self.respond([])
-        except OrganizationEventsError as exc:
-            return self.respond({"detail": exc.message}, status=400)
 
         queryset = Monitor.objects.filter(
             organization_id=organization.id, project_id__in=filter_params["project_id"]

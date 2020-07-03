@@ -1,25 +1,25 @@
 ---
-created: '2019-05-08T07:29:42.770977Z'
+created: '2020-02-26T19:54:43.268685Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app
       stacktrace
         frame (non app frame)
           filename (ignored because frame points to a URL)
-            u'index.js'
+            "index.js"
 --------------------------------------------------------------------------
 fallback:
-  hash: 'd41d8cd98f00b204e9800998ecf8427e'
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
 --------------------------------------------------------------------------
 system:
-  hash: None
+  hash: null
   component:
     system
       stacktrace
         frame
           filename (ignored because frame points to a URL)
-            u'index.js'
+            "index.js"

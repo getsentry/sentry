@@ -146,7 +146,7 @@ class AllTeamsRow extends React.Component {
     );
 
     // You can only view team details if you have access to team -- this should account
-    // for your role + org open memberhsip
+    // for your role + org open membership
     const canViewTeam = team.hasAccess;
 
     return (

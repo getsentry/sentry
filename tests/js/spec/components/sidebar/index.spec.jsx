@@ -1,9 +1,12 @@
 import React from 'react';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
-import ServiceIncidentStore from 'app/stores/serviceIncidentStore';
+
 import ConfigStore from 'app/stores/configStore';
 import SidebarContainer, {Sidebar} from 'app/components/sidebar';
+import * as incidentActions from 'app/actionCreators/serviceIncidents';
+
+jest.mock('app/actionCreators/serviceIncidents');
 
 describe('Sidebar', function() {
   let wrapper;
@@ -95,12 +98,47 @@ describe('Sidebar', function() {
       routerContext
     );
 
-    expect(wrapper.find('[data-test-id="onboarding-progress-bar"]')).toHaveLength(1);
+    expect(wrapper.find('OnboardingStatus ProgressRing')).toHaveLength(1);
 
-    wrapper.find('[data-test-id="onboarding-progress-bar"]').simulate('click');
+    wrapper.find('OnboardingStatus ProgressRing').simulate('click');
     wrapper.update();
 
-    expect(wrapper.find('OnboardingStatus SidebarPanel')).toMatchSnapshot();
+    expect(wrapper.find('OnboardingStatus TaskSidebarPanel').exists()).toBe(true);
+  });
+
+  it('handles discover-basic feature', function() {
+    wrapper = mountWithTheme(
+      <SidebarContainer
+        organization={{
+          ...organization,
+          features: ['discover-basic', 'events', 'discover'],
+        }}
+        user={user}
+        router={router}
+      />,
+      routerContext
+    );
+
+    // Should only show discover2 tab
+    expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(1);
+    expect(wrapper.find('SidebarItem[id="events"]')).toHaveLength(0);
+    expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(0);
+  });
+
+  it('handles discover feature', function() {
+    wrapper = mountWithTheme(
+      <SidebarContainer
+        organization={{...organization, features: ['discover', 'events']}}
+        user={user}
+        router={router}
+      />,
+      routerContext
+    );
+
+    // Should show events and discover1 as those features are on.
+    expect(wrapper.find('SidebarItem[id="discover-v2"]')).toHaveLength(0);
+    expect(wrapper.find('SidebarItem[id="events"]')).toHaveLength(1);
+    expect(wrapper.find('SidebarItem[id="discover"]')).toHaveLength(1);
   });
 
   describe('SidebarHelp', function() {
@@ -154,12 +192,13 @@ describe('Sidebar', function() {
       jest.useRealTimers();
     });
 
-    it('has can logout', function() {
+    it('has can logout', async function() {
       const mock = MockApiClient.addMockResponse({
         url: '/auth/',
         method: 'DELETE',
         status: 204,
       });
+      jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
       let org = TestStubs.Organization();
       org = {
@@ -174,6 +213,10 @@ describe('Sidebar', function() {
       wrapper.find('SidebarDropdownActor').simulate('click');
       wrapper.find('SidebarMenuItem[data-test-id="sidebarSignout"]').simulate('click');
       expect(mock).toHaveBeenCalled();
+
+      await tick();
+      expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
+      window.location.assign.mockRestore();
     });
   });
 
@@ -259,14 +302,16 @@ describe('Sidebar', function() {
       // This advances timers enough so that mark as seen should be called if it wasn't unmounted
       jest.advanceTimersByTime(600);
       expect(apiMocks.broadcastsMarkAsSeen).not.toHaveBeenCalled();
+      jest.useRealTimers();
     });
 
     it('can show Incidents in Sidebar Panel', async function() {
+      incidentActions.loadIncidents = jest.fn(() => ({
+        incidents: [TestStubs.ServiceIncident()],
+      }));
+
       wrapper = createWrapper();
-      ServiceIncidentStore.onUpdateSuccess({
-        status: {incidents: [TestStubs.ServiceIncident()]},
-      });
-      wrapper.update();
+      await tick();
 
       wrapper.find('ServiceIncidents').simulate('click');
       wrapper.update();

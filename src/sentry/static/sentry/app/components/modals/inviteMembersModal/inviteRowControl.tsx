@@ -47,6 +47,7 @@ const InviteRowControl = ({
   <div className={className}>
     <div>
       <SelectControl
+        deprecatedSelectControl
         data-test-id="select-emails"
         disabled={disabled}
         placeholder={t('Enter one or more email')}
@@ -75,6 +76,7 @@ const InviteRowControl = ({
     </div>
     <div>
       <RoleSelectControl
+        deprecatedSelectControl
         data-test-id="select-role"
         disabled={disabled}
         value={role}
@@ -85,6 +87,7 @@ const InviteRowControl = ({
     </div>
     <div>
       <SelectControl
+        deprecatedSelectControl
         data-test-id="select-teams"
         disabled={disabled}
         placeholder={t('Add to teams...')}
@@ -101,7 +104,7 @@ const InviteRowControl = ({
     <Button
       borderless
       icon="icon-close"
-      size="micro"
+      size="zero"
       onClick={onRemove}
       disabled={disableRemove}
     />

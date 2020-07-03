@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
 import {Panel, PanelBody} from 'app/components/panels';
@@ -114,17 +113,15 @@ const IssueList = createReactClass({
       body = (
         <Panel style={panelStyle}>
           <PanelBody className="issue-list">
-            {this.state.data.map(issue => {
-              return (
-                <CompactIssue
-                  key={issue.id}
-                  id={issue.id}
-                  data={issue}
-                  statsPeriod={this.props.statsPeriod}
-                  showActions={this.props.showActions}
-                />
-              );
-            })}
+            {this.state.data.map(issue => (
+              <CompactIssue
+                key={issue.id}
+                id={issue.id}
+                data={issue}
+                statsPeriod={this.props.statsPeriod}
+                showActions={this.props.showActions}
+              />
+            ))}
           </PanelBody>
         </Panel>
       );

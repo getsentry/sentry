@@ -109,19 +109,28 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             queryset = queryset.order_by("slug").select_related("organization")
             return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
         else:
+
+            def serialize_on_result(result):
+                environment_id = self._get_environment_id_from_request(request, organization.id)
+                serializer = ProjectSummarySerializer(
+                    environment_id=environment_id, stats_period=stats_period,
+                )
+                return serialize(result, request.user, serializer)
+
             return self.paginate(
                 request=request,
                 queryset=queryset,
                 order_by=order_by,
-                on_results=lambda x: serialize(
-                    x,
-                    request.user,
-                    ProjectSummarySerializer(
-                        environment_id=self._get_environment_id_from_request(
-                            request, organization.id
-                        ),
-                        stats_period=stats_period,
-                    ),
-                ),
+                on_results=serialize_on_result,
                 paginator_cls=OffsetPaginator,
             )
+
+
+class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    def get(self, request, organization):
+        queryset = Project.objects.filter(organization=organization)
+
+        all_projects = queryset.count()
+        my_projects = queryset.filter(teams__organizationmember__user=request.user).count()
+
+        return Response({"allProjects": all_projects, "myProjects": my_projects})

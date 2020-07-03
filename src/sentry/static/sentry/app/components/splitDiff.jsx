@@ -34,7 +34,7 @@ class SplitDiff extends React.Component {
       baseLines.length > targetLines.length
         ? [baseLines, targetLines]
         : [targetLines, baseLines];
-    const results = largerArray.map((line, index) =>
+    const results = largerArray.map((_line, index) =>
       diffFn(baseLines[index] || '', targetLines[index] || '', {newlineIsToken: true})
     );
 
@@ -51,13 +51,11 @@ class SplitDiff extends React.Component {
                   <Line>
                     {line
                       .filter(result => !result.added)
-                      .map((result, i) => {
-                        return (
-                          <Word key={i} isRemoved={result.removed}>
-                            {result.value}
-                          </Word>
-                        );
-                      })}
+                      .map((result, i) => (
+                        <Word key={i} isRemoved={result.removed}>
+                          {result.value}
+                        </Word>
+                      ))}
                   </Line>
                 </Cell>
 
@@ -67,13 +65,11 @@ class SplitDiff extends React.Component {
                   <Line>
                     {line
                       .filter(result => !result.removed)
-                      .map((result, i) => {
-                        return (
-                          <Word key={i} isAdded={result.added}>
-                            {result.value}
-                          </Word>
-                        );
-                      })}
+                      .map((result, i) => (
+                        <Word key={i} isAdded={result.added}>
+                          {result.value}
+                        </Word>
+                      ))}
                   </Line>
                 </Cell>
               </tr>

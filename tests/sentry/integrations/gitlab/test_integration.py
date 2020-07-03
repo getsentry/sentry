@@ -137,6 +137,22 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert identity.status == IdentityStatus.VALID
         assert identity.data == {"access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
 
+    def test_goback_to_instructions(self):
+        # Go to instructions
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 200
+        self.assertContains(resp, "Step 1")
+
+        # Go to setup form
+        resp = self.client.get(self.init_path_without_guide)
+        assert resp.status_code == 200
+        self.assertContains(resp, "Step 2")
+
+        # Go to back to instructions
+        resp = self.client.get(self.init_path + "?goback=1")
+        assert resp.status_code == 200
+        self.assertContains(resp, "Step 1")
+
     @responses.activate
     def test_setup_missing_group(self):
         resp = self.client.get(self.init_path_without_guide)

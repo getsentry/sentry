@@ -13,7 +13,7 @@ from sentry.relay.utils import to_camel_case_name
 
 class FilterStatKeys(object):
     """
-    NOTE: This enum also exists in semaphore, check if alignment is needed when
+    NOTE: This enum also exists in Relay, check if alignment is needed when
     editing this.
     """
 
@@ -26,7 +26,8 @@ class FilterStatKeys(object):
     WEB_CRAWLER = "web-crawlers"
     INVALID_CSP = "invalid-csp"
     CORS = "cors"
-    DISCARDED_HASH = "discarded-hash"
+    DISCARDED_HASH = "discarded-hash"  # Not replicated in Relay
+    CRASH_REPORT_LIMIT = "crash-report-limit"  # Not replicated in Relay
 
 
 FILTER_STAT_KEYS_TO_VALUES = {

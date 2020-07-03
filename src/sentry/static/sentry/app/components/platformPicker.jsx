@@ -17,6 +17,7 @@ import PlatformIconTile from 'app/components/platformIconTile';
 import categoryList from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
+import {IconClose} from 'app/icons';
 
 const PLATFORM_CATEGORIES = categoryList.concat({id: 'all', name: t('All')});
 
@@ -160,7 +161,7 @@ const NavContainer = styled('div')`
 const SearchBar = styled('div')`
   ${inputStyles};
   padding: 0 8px;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
   display: flex;
   align-items: center;
   font-size: 15px;
@@ -202,7 +203,7 @@ const StyledPlatformIconTile = styled(PlatformIconTile)`
 `;
 
 const ClearButton = styled(p => (
-  <Button {...p} icon="icon-circle-close" size="xsmall" borderless />
+  <Button {...p} icon={<IconClose isCircled size="xs" />} size="xsmall" borderless />
 ))`
   position: absolute;
   top: -6px;
@@ -211,7 +212,7 @@ const ClearButton = styled(p => (
   width: 22px;
   border-radius: 50%;
   background: #fff;
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
 `;
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (

@@ -25,7 +25,7 @@ from sentry.utils.auth import parse_auth_header
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.http import origin_from_request
 from sentry.utils.strings import decompress
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import configure_scope, set_current_project
 from sentry.utils.canonical import CANONICAL_TYPES
 
 
@@ -91,8 +91,7 @@ class ClientContext(object):
     def bind_project(self, project):
         self.project = project
         self.project_id = project.id
-        with configure_scope() as scope:
-            scope.set_tag("project", project.id)
+        set_current_project(project.id)
 
     def bind_auth(self, auth):
         self.agent = auth.client

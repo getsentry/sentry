@@ -3,7 +3,8 @@ import React from 'react';
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
-import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
+import {SmartSearchBar} from 'app/components/smartSearchBar';
+import {addSpace, removeSpace} from 'app/components/smartSearchBar/utils';
 import TagStore from 'app/stores/tagStore';
 
 describe('addSpace()', function() {
@@ -44,6 +45,10 @@ describe('SmartSearchBar', function() {
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
     supportedTags = TagStore.getAllTags();
+    supportedTags.firstRelease = {
+      key: 'firstRelease',
+      name: 'firstRelease',
+    };
     organization = TestStubs.Organization({id: '123'});
 
     const location = {
@@ -74,6 +79,79 @@ describe('SmartSearchBar', function() {
 
   afterEach(function() {
     MockApiClient.clearMockResponses();
+  });
+
+  it('does not preventDefault when there are no search items and is loading and enter is pressed', async function() {
+    jest.useRealTimers();
+    const getTagValuesMock = jest.fn().mockImplementation(() => {
+      return new Promise(() => {});
+    });
+    const onSearch = jest.fn();
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      organization,
+      supportedTags,
+      onGetTagValues: getTagValuesMock,
+      onSearch,
+    };
+
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('input').simulate('focus');
+    searchBar.find('input').simulate('change', {target: {value: 'browser:'}});
+    await tick();
+
+    // press enter
+    const preventDefault = jest.fn();
+    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    expect(onSearch).not.toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('calls preventDefault when there are existing search items and is loading and enter is pressed', async function() {
+    jest.useRealTimers();
+    const getTagValuesMock = jest.fn().mockImplementation(() => {
+      return new Promise(() => {});
+    });
+    const onSearch = jest.fn();
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      organization,
+      supportedTags,
+      onGetTagValues: getTagValuesMock,
+      onSearch,
+    };
+
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('input').simulate('focus');
+    searchBar.find('input').simulate('change', {target: {value: 'bro'}});
+    await tick();
+
+    // Can't select with tab
+    searchBar.find('input').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('input').simulate('keyDown', {key: 'Tab'});
+    expect(onSearch).not.toHaveBeenCalled();
+
+    searchBar.find('input').simulate('change', {target: {value: 'browser:'}});
+    await tick();
+
+    // press enter
+    const preventDefault = jest.fn();
+    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    expect(onSearch).not.toHaveBeenCalled();
+    // Prevent default since we need to select an item
+    expect(preventDefault).toHaveBeenCalled();
   });
 
   describe('componentWillReceiveProps()', function() {
@@ -243,7 +321,7 @@ describe('SmartSearchBar', function() {
       searchBar.state.dropdownVisible = true;
 
       jest.useFakeTimers();
-      searchBar.onQueryBlur();
+      searchBar.onQueryBlur({target: {value: 'test'}});
       jest.advanceTimersByTime(201); // doesn't close until 200ms
 
       expect(searchBar.state.dropdownVisible).toBe(false);
@@ -348,7 +426,7 @@ describe('SmartSearchBar', function() {
       const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('');
-      expect(searchBar.state.searchItems).toEqual([]);
+      expect(searchBar.state.searchGroups).toEqual([]);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
@@ -365,7 +443,7 @@ describe('SmartSearchBar', function() {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toEqual([
+      expect(searchBar.state.searchGroups).toEqual([
         expect.objectContaining({children: []}),
       ]);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
@@ -384,7 +462,7 @@ describe('SmartSearchBar', function() {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toEqual([
+      expect(searchBar.state.searchGroups).toEqual([
         expect.objectContaining({children: []}),
       ]);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
@@ -406,7 +484,7 @@ describe('SmartSearchBar', function() {
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
       // 1 items because of headers ("Tags")
-      expect(searchBar.state.searchItems).toHaveLength(1);
+      expect(searchBar.state.searchGroups).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
@@ -476,7 +554,83 @@ describe('SmartSearchBar', function() {
     });
   });
 
-  describe('onTogglePinnedSearch', function() {
+  describe('onAutoComplete()', function() {
+    it('completes terms from the list', function() {
+      const props = {
+        query: 'event.type:error ',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.onAutoComplete('myTag:', {type: 'tag'});
+      expect(searchBar.state.query).toEqual('event.type:error myTag:');
+    });
+
+    it('completes values if cursor is not at the end', function() {
+      const props = {
+        query: 'id: event.type:error ',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(3);
+      searchBar.onAutoComplete('12345', {type: 'tag-value'});
+      expect(searchBar.state.query).toEqual('id:12345 event.type:error ');
+    });
+
+    it('completes values if cursor is at the end', function() {
+      const props = {
+        query: 'event.type:error id:',
+        organization,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      searchBar.onAutoComplete('12345', {type: 'tag-value'});
+      expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
+    });
+
+    it('keeps the negation operator is present', function() {
+      const props = {
+        query: '',
+        organization,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const input = smartSearchBar.find('input');
+      // start typing part of the tag prefixed by the negation operator!
+      input.simulate('change', {target: {value: 'event.type:error !ti'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('title:', {});
+      expect(searchBar.state.query).toEqual('event.type:error !title:');
+    });
+
+    it('handles special case for user tag', function() {
+      const props = {
+        query: '',
+        organization,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const input = smartSearchBar.find('input');
+
+      input.simulate('change', {target: {value: 'user:'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
+      searchBar.onAutoComplete('id:1', {});
+      expect(searchBar.state.query).toEqual('user.id:1');
+
+      // try it with the SEARCH_WILDCARD
+      input.simulate('change', {target: {value: 'user:1*'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
+      searchBar.onAutoComplete('ip:127.0.0.1', {});
+      expect(searchBar.state.query).toEqual('user.ip:*127.0.0.1');
+    });
+  });
+
+  describe('onTogglePinnedSearch()', function() {
     let pinRequest, unpinRequest;
     beforeEach(function() {
       pinRequest = MockApiClient.addMockResponse({

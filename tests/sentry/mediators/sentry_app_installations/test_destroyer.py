@@ -14,6 +14,7 @@ from sentry.models import (
     ApiToken,
     SentryAppInstallation,
     ServiceHook,
+    SentryAppInstallationForProvider,
 )
 from sentry.testutils import TestCase
 
@@ -83,6 +84,16 @@ class TestDestroyer(TestCase):
         assert not ApiToken.objects.filter(pk=api_token.id).exists()
 
     @responses.activate
+    def test_deletes_installation_provider(self):
+        SentryAppInstallationForProvider.objects.create(
+            sentry_app_installation=self.install, organization=self.org, provider="vercel"
+        )
+        responses.add(responses.POST, "https://example.com/webhook")
+        self.destroyer.call()
+
+        assert not SentryAppInstallationForProvider.objects.filter()
+
+    @responses.activate
     @patch("sentry.mediators.sentry_app_installations.InstallationNotifier.run")
     def test_sends_notification(self, run):
         with self.tasks():
@@ -143,7 +154,11 @@ class TestDestroyer(TestCase):
 
     @responses.activate
     def test_fail_on_other_error(self):
+        from sentry.constants import SentryAppStatus
+
         install = self.install
+        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
+        # we don't log errors for unpublished and internal apps
         try:
             responses.add(
                 responses.POST, "https://example.com/webhook", body=Exception("Other error")

@@ -5,6 +5,7 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
   address: string;
@@ -94,18 +95,23 @@ const Toggle = styled('span')`
   visibility: hidden;
   position: relative;
   top: 1px;
+  display: none;
 
   &:hover {
     opacity: 1;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    display: inline;
   }
 `;
 
 const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   border-bottom: ${p => {
     if (p.isFoundByStackScanning) {
-      return `1px dashed ${p.theme.red}`;
+      return `1px dashed ${p.theme.red400}`;
     } else if (p.isInlineFrame) {
-      return `1px dashed ${p.theme.blue}`;
+      return `1px dashed ${p.theme.blue400}`;
     } else {
       return 'none';
     }
@@ -116,17 +122,25 @@ const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
 const Address = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.foreground};
+  color: ${p => p.theme.gray700};
   letter-spacing: -0.25px;
-  width: 117px;
+  width: 100%;
   flex-grow: 0;
   flex-shrink: 0;
   display: block;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(0.5)} 0 0;
+  order: 1;
 
   &:hover ${Toggle} {
     visibility: visible;
   }
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    padding: 0 ${space(0.5)};
+    width: 117px;
+    order: 0;
+  }
+  ${overflowEllipsis}
 `;
 
 export default TogglableAddress;

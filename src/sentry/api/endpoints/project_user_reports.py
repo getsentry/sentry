@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework import serializers
 from uuid import uuid4
 
@@ -120,7 +121,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         try:
             report_instance = save_userreport(project, report)
         except Conflict as e:
-            return self.respond({"detail": e.message}, status=409)
+            return self.respond({"detail": six.text_type(e)}, status=409)
 
         return self.respond(
             serialize(

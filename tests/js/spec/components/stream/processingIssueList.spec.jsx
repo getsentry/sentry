@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {shallow} from 'sentry-test/enzyme';
 
 import ProcessingIssueList from 'app/components/stream/processingIssueList';

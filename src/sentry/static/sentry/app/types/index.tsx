@@ -1,8 +1,59 @@
-import {SpanEntry} from 'app/components/events/interfaces/spans/types';
+import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {Field} from 'app/views/settings/components/forms/type';
-import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
+import {PlatformKey} from 'app/data/platformCategories';
+import {OrgExperiments, UserExperiments} from 'app/types/experiments';
+import {
+  INSTALLED,
+  NOT_INSTALLED,
+  PENDING,
+} from 'app/views/organizationIntegrations/constants';
+import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
+import {Props as AlertProps} from 'app/components/alert';
+import {Query as DiscoverQuery} from 'app/views/discover/types';
+
+declare global {
+  interface Window {
+    /**
+     * Assets public location
+     */
+    __sentryGlobalStaticPrefix: string;
+    /**
+     * The config object provided by the backend.
+     */
+    __initialData: Config;
+    /**
+     * Sentry SDK configuration
+     */
+    __SENTRY__OPTIONS: Config['sentryConfig'];
+    /**
+     * The authenticated user identity, a bare-bones version of User
+     */
+    __SENTRY__USER: Config['userIdentity'];
+    /**
+     * Sentrys version string
+     */
+    __SENTRY__VERSION?: string;
+    /**
+     * The CSRF cookie ised on the backend
+     */
+    csrfCookieName?: string;
+    /**
+     * Primary entrypoint for rendering the sentry app. This is typically
+     * called in the django templates, or in the case of the EXPERIMENTAL_SPA,
+     * after config hydration.
+     */
+    SentryRenderApp: () => void;
+    sentryEmbedCallback?: ((embed: any) => void) | null;
+  }
+}
+
+export type IntegrationInstallationStatus =
+  | typeof INSTALLED
+  | typeof NOT_INSTALLED
+  | typeof PENDING;
+
+export type SentryAppStatus = 'unpublished' | 'published' | 'internal';
 
 export type ObjectStatus =
   | 'active'
@@ -15,15 +66,13 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
-export type Actor = {
-  id: string;
+export type Actor = User & {
   type: 'user' | 'team';
-  name: string;
 };
 
 /**
  * Organization summaries are sent when you request a
- * list of all organiations
+ * list of all organizations
  */
 export type OrganizationSummary = {
   status: {
@@ -41,14 +90,24 @@ export type OrganizationSummary = {
   slug: string;
 };
 
+export type Relay = {
+  publicKey: string;
+  name: string;
+  created?: string;
+  lastModified?: string;
+  description?: string;
+};
+
 /**
  * Detailed organization (e.g. when requesting details for a single org)
  *
  * Lightweight in this case means it does not contain `projects` or `teams`
  */
 export type LightWeightOrganization = OrganizationSummary & {
+  relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
+  eventsMemberAdmin: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
   quota: {
@@ -58,7 +117,7 @@ export type LightWeightOrganization = OrganizationSummary & {
     maxRate: number | null;
   };
   defaultRole: string;
-  experiments: ActiveExperiments;
+  experiments: Partial<OrgExperiments>;
   allowJoinRequests: boolean;
   scrapeJavaScript: boolean;
   isDefault: boolean;
@@ -71,15 +130,9 @@ export type LightWeightOrganization = OrganizationSummary & {
   allowSharedIssues: boolean;
   dataScrubberDefaults: boolean;
   dataScrubber: boolean;
+  onboardingTasks: OnboardingTaskStatus[];
+  trustedRelays: Relay[];
   role?: string;
-  onboardingTasks: Array<{
-    status: string;
-    dateCompleted: string;
-    task: number;
-    data: object;
-    user: string | null;
-  }>;
-  trustedRelays: string[];
 };
 
 /**
@@ -90,9 +143,14 @@ export type Organization = LightWeightOrganization & {
   teams: Team[];
 };
 
+// Minimal project representation for use with avatars.
+export type AvatarProject = {
+  slug: string;
+  platform?: PlatformKey;
+};
+
 export type Project = {
   id: string;
-  slug: string;
   isMember: boolean;
   teams: Team[];
   features: string[];
@@ -100,12 +158,35 @@ export type Project = {
   isBookmarked: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
-  platform: string;
+  firstEvent: 'string' | null;
+  firstTransactionEvent: boolean;
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
+  relayPiiConfig: string;
+  builtinSymbolSources?: string[];
+} & AvatarProject;
+
+export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+
+export type Health = {
+  totalUsers: number;
+  totalUsers24h: number | null;
+  totalSessions: number;
+  totalSessions24h: number | null;
+  crashFreeUsers: number | null;
+  crashFreeSessions: number | null;
+  stats: HealthGraphData;
+  sessionsCrashed: number;
+  sessionsErrored: number;
+  adoption: number | null;
+  hasHealthData: boolean;
+  durationP50: number | null;
+  durationP90: number | null;
 };
+
+export type HealthGraphData = Record<string, [number, number][]>;
 
 export type Team = {
   id: string;
@@ -140,14 +221,16 @@ export type EventAttachment = {
   event_id: string;
 };
 
+export type EntryTypeData = {[key: string]: any | any[]};
+
 type EntryType = {
-  data: {[key: string]: any} | any[];
+  data: EntryTypeData;
   type: string;
 };
 
 export type EventTag = {key: string; value: string};
 
-type EventUser = {
+export type EventUser = {
   username?: string;
   name?: string;
   ip_address?: string;
@@ -162,18 +245,9 @@ type RuntimeContext = {
   name?: string;
 };
 
-type TraceContext = {
-  type: 'trace';
-  op: string;
-  description: string;
-  parent_span_id: string;
-  span_id: string;
-  trace_id: string;
-};
-
 type EventContexts = {
   runtime?: RuntimeContext;
-  trace?: TraceContext;
+  trace?: TraceContextType;
 };
 
 type SentryEventBase = {
@@ -184,16 +258,21 @@ type SentryEventBase = {
   culprit: string;
   metadata: EventMetadata;
   contexts: EventContexts;
+  context?: {[key: string]: any};
+  device?: {[key: string]: any};
+  packages?: {[key: string]: string};
   user: EventUser;
   message: string;
-  platform?: string;
+  platform?: PlatformKey;
   dateCreated?: string;
+  dateReceived?: string;
   endTimestamp?: number;
   entries: EntryType[];
 
   previousEventID?: string;
   nextEventID?: string;
   projectSlug: string;
+  projectID: string;
 
   tags: EventTag[];
 
@@ -203,26 +282,45 @@ type SentryEventBase = {
 
   oldestEventID: string | null;
   latestEventID: string | null;
+
+  groupingConfig: {
+    id: string;
+    enhancements: string;
+  };
 };
 
+export type SentryTransactionEvent = {
+  type: 'transaction';
+  title?: string;
+  entries: SpanEntry[];
+  startTimestamp: number;
+  endTimestamp: number;
+  sdk?: {
+    name?: string;
+  };
+  contexts?: {
+    trace?: TraceContextType;
+  };
+} & SentryEventBase;
+
 // This type is incomplete
-export type Event =
-  | ({type: string} & SentryEventBase)
-  | ({
-      type: 'transaction';
-      entries: SpanEntry[];
-      startTimestamp: number;
-      endTimestamp: number;
-    } & SentryEventBase);
+export type Event = ({type: string} & SentryEventBase) | SentryTransactionEvent;
 
 export type EventsStatsData = [number, {count: number}[]][];
 
+// API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
   totals?: {count: number};
+  order?: number;
 };
 
-// Avatars are a more primitive version of User.
+// API response format for multiple series
+export type MultiSeriesEventsStats = {[seriesName: string]: EventsStats};
+
+/**
+ * Avatars are a more primitive version of User.
+ */
 export type AvatarUser = {
   id: string;
   name: string;
@@ -236,11 +334,23 @@ export type AvatarUser = {
   options?: {
     avatarType: string;
   };
+  lastSeen?: string;
 };
 
-export type User = AvatarUser & {
+/**
+ * This is an authenticator that a user is enrolled in
+ */
+type UserEnrolledAuthenticator = {
+  dateUsed: EnrolledAuthenticator['lastUsedAt'];
+  dateCreated: EnrolledAuthenticator['createdAt'];
+  type: Authenticator['id'];
+  id: EnrolledAuthenticator['authId'];
+};
+
+export type User = Omit<AvatarUser, 'options'> & {
   lastLogin: string;
   isSuperuser: boolean;
+  isAuthenticated: boolean;
   emails: {
     is_verified: boolean;
     id: string;
@@ -253,7 +363,7 @@ export type User = AvatarUser & {
   isActive: boolean;
   has2fa: boolean;
   canReset2fa: boolean;
-  authenticators: Authenticator[];
+  authenticators: UserEnrolledAuthenticator[];
   dateJoined: string;
   options: {
     timezone: string;
@@ -265,6 +375,7 @@ export type User = AvatarUser & {
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
   permissions: Set<string>;
+  experiments: Partial<UserExperiments>;
 };
 
 export type CommitAuthor = {
@@ -279,9 +390,11 @@ export type Environment = {
 };
 
 // TODO(ts): This type is incomplete
-export type SavedSearch = {};
+export type SavedSearch = {
+  query?: string;
+};
 
-export type Plugin = {
+export type PluginNoProject = {
   id: string;
   name: string;
   slug: string;
@@ -295,32 +408,116 @@ export type Plugin = {
   status: string;
   assets: any[]; // TODO(ts)
   doc: string;
-  enabled?: boolean;
   version?: string;
   author?: {name: string; url: string};
   isHidden: boolean;
   description?: string;
   resourceLinks?: Array<{title: string; url: string}>;
+  features: string[];
+  featureDescriptions: IntegrationFeature[];
 };
+
+export type Plugin = PluginNoProject & {
+  enabled: boolean;
+};
+
+export type PluginProjectItem = {
+  projectId: string;
+  projectSlug: string;
+  projectName: string;
+  projectPlatform: PlatformKey;
+  enabled: boolean;
+  configured: boolean;
+};
+
+export type PluginWithProjectList = PluginNoProject & {
+  projectList: PluginProjectItem[];
+};
+
+export type AppOrProviderOrPlugin =
+  | SentryApp
+  | IntegrationProvider
+  | PluginWithProjectList
+  | DocumentIntegration;
+
+export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_app';
+
+export type DocumentIntegration = {
+  slug: string;
+  name: string;
+  author: string;
+  docUrl: string;
+  description: string;
+  features: IntegrationFeature[];
+  resourceLinks: Array<{title: string; url: string}>;
+};
+
+export type DateString = Date | string | null;
 
 export type GlobalSelection = {
   projects: number[];
   environments: string[];
-  forceUrlSync?: boolean;
   datetime: {
-    start: Date | null;
-    end: Date | null;
+    start: DateString;
+    end: DateString;
     period: string;
     utc: boolean;
   };
 };
 
-type Authenticator = {
-  dateUsed: string | null;
-  dateCreated: string;
-  type: string; // i.e. 'u2f'
-  id: string;
+export type Authenticator = {
+  /**
+   * String used to display on button for user as CTA to enroll
+   */
+  enrollButton: string;
+
+  /**
+   * Display name for the authenticator
+   */
   name: string;
+
+  /**
+   * Allows multiple enrollments to authenticator
+   */
+  allowMultiEnrollment: boolean;
+
+  /**
+   * String to display on button for user to remove authenticator
+   */
+  removeButton: string | null;
+
+  canValidateOtp: boolean;
+
+  /**
+   * Is user enrolled to this authenticator
+   */
+  isEnrolled: boolean;
+
+  /**
+   * String to display on button for additional information about authenticator
+   */
+  configureButton: string;
+
+  /**
+   * Type of authenticator
+   */
+  id: string;
+
+  /**
+   * Is this used as a backup interface?
+   */
+  isBackupInterface: boolean;
+
+  /**
+   * Description of the authenticator
+   */
+  description: string;
+} & Partial<EnrolledAuthenticator>;
+
+export type EnrolledAuthenticator = {
+  lastUsedAt: string | null;
+  createdAt: string;
+  authId: string;
 };
 
 export type Config = {
@@ -336,11 +533,15 @@ export type Config = {
   invitesEnabled: boolean;
   privacyUrl: string | null;
   isOnPremise: boolean;
-  lastOrganization: string;
+  lastOrganization: string | null;
   gravatarBaseUrl: string;
-  messages: string[];
+
+  /**
+   * This comes from django (django.contrib.messages)
+   */
+  messages: {message: string; level: string}[];
   dsn: string;
-  userIdentity: {ip_address: string; email: string; id: number};
+  userIdentity: {ip_address: string; email: string; id: string; isStaff: boolean};
   termsUrl: string | null;
   isAuthenticated: boolean;
   version: {
@@ -349,33 +550,28 @@ export type Config = {
     upgradeAvailable: boolean;
     latest: string;
   };
-  statuspage: string | null;
+  statuspage?: {
+    id: string;
+    api_host: string;
+  };
   sentryConfig: {
     dsn: string;
     release: string;
     whitelistUrls: string[];
   };
   distPrefix: string;
+  apmSampling: number;
+  dsn_requests: string;
 };
 
-type Metadata = {
-  value: string;
-  message: string;
-  directive: string;
-  type: string;
-  title: string;
-  uri: string;
-};
-
-type EventOrGroupType = [
-  'error',
-  'csp',
-  'hpkp',
-  'expectct',
-  'expectstaple',
-  'default',
-  'transaction'
-];
+export type EventOrGroupType =
+  | 'error'
+  | 'csp'
+  | 'hpkp'
+  | 'expectct'
+  | 'expectstaple'
+  | 'default'
+  | 'transaction';
 
 // TODO(ts): incomplete
 export type Group = {
@@ -394,13 +590,13 @@ export type Group = {
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
   lastSeen: string;
-  level: string;
+  level: Level;
   logger: string;
-  metadata: Metadata;
+  metadata: EventMetadata;
   numComments: number;
   participants: any[]; // TODO(ts)
   permalink: string;
-  platform: string;
+  platform: PlatformKey;
   pluginActions: any[]; // TODO(ts)
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: any[]; // TODO(ts)
@@ -410,13 +606,16 @@ export type Group = {
   shortId: string;
   stats: any; // TODO(ts)
   status: string;
-  statusDetails: {};
+  statusDetails: ResolutionStatusDetails;
   title: string;
   type: EventOrGroupType;
   userCount: number;
   userReportCount: number;
 };
 
+/**
+ * Returned from /organizations/org/users/
+ */
 export type Member = {
   dateCreated: string;
   email: string;
@@ -432,9 +631,10 @@ export type Member = {
   isOnlyOwner: boolean;
   name: string;
   pending: boolean | undefined;
+  projects: string[];
   role: string;
   roleName: string;
-  roles: MemberRole[];
+  roles: MemberRole[]; // TODO(ts): This is not present from API call
   teams: string[];
   user: User;
 };
@@ -452,23 +652,68 @@ export type Repository = {
   integrationId: string;
   name: string;
   provider: {id: string; name: string};
-  status: string;
+  status: RepositoryStatus;
   url: string;
 };
 
-export type IntegrationProvider = {
+export enum RepositoryStatus {
+  ACTIVE = 'active',
+  DISABLED = 'disabled',
+  HIDDEN = 'hidden',
+  PENDING_DELETION = 'pending_deletion',
+  DELETION_IN_PROGRESS = 'deletion_in_progress',
+}
+
+export type PullRequest = {
+  id: string;
+  title: string;
+  externalUrl: string;
+};
+
+type IntegrationDialog = {
+  actionText: string;
+  body: string;
+};
+
+type IntegrationAspects = {
+  alerts?: Array<AlertProps & {text: string}>;
+  reauthentication_alert?: {alertText: string};
+  disable_dialog?: IntegrationDialog;
+  removal_dialog?: IntegrationDialog;
+  externalInstall?: {
+    url: string;
+    buttonText: string;
+    noticeText: string;
+  };
+  configure_integration?: {
+    title: string;
+  };
+};
+
+type BaseIntegrationProvider = {
   key: string;
+  slug: string;
   name: string;
   canAdd: boolean;
   canDisable: boolean;
   features: string[];
-  aspects: any; //TODO(ts)
+};
+
+export type IntegrationProvider = BaseIntegrationProvider & {
   setupDialog: {url: string; width: number; height: number};
-  metadata: any; //TODO(ts)
+  metadata: {
+    description: string;
+    features: IntegrationFeature[];
+    author: string;
+    noun: string;
+    issue_url: string;
+    source_url: string;
+    aspects: IntegrationAspects;
+  };
 };
 
 export type IntegrationFeature = {
-  description: React.ReactNode;
+  description: string;
   featureGate: string;
 };
 
@@ -493,6 +738,8 @@ export type SentryAppSchemaIssueLink = {
 export type SentryAppSchemaStacktraceLink = {
   type: 'stacktrace-link';
   uri: string;
+  url: string;
+  params?: Array<string>;
 };
 
 export type SentryAppSchemaElement =
@@ -500,7 +747,7 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  status: 'unpublished' | 'published' | 'internal';
+  status: SentryAppStatus;
   scopes: Scope[];
   isAlertable: boolean;
   verifyInstall: boolean;
@@ -524,6 +771,7 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  featureData: IntegrationFeature[];
 };
 
 export type Integration = {
@@ -533,10 +781,17 @@ export type Integration = {
   domainName: string;
   accountType: string;
   status: ObjectStatus;
-  provider: IntegrationProvider;
+  provider: BaseIntegrationProvider & {aspects: IntegrationAspects};
   configOrganization: Field[];
   //TODO(ts): This includes the initial data that is passed into the integration's configuration form
-  configData: object;
+  configData: object & {
+    //installationType is only for Slack migration and can be removed after migrations are done
+    installationType?:
+      | 'workspace_app'
+      | 'classic_bot'
+      | 'born_as_bot'
+      | 'migrated_to_bot';
+  };
 };
 
 export type IntegrationExternalIssue = {
@@ -637,6 +892,76 @@ export type UserReport = {
   email: string;
 };
 
+export type Release = BaseRelease &
+  ReleaseData & {
+    projects: ReleaseProject[];
+  };
+
+export type ReleaseWithHealth = BaseRelease &
+  ReleaseData & {
+    projects: Required<ReleaseProject>[];
+  };
+
+type ReleaseData = {
+  commitCount: number;
+  data: {};
+  lastDeploy?: Deploy;
+  deployCount: number;
+  lastEvent: string;
+  firstEvent: string;
+  lastCommit?: Commit;
+  authors: User[];
+  owner?: any; // TODO(ts)
+  newGroups: number;
+  versionInfo: VersionInfo;
+  fileCount: number | null;
+};
+
+type BaseRelease = {
+  dateReleased: string;
+  url: string;
+  dateCreated: string;
+  version: string;
+  shortVersion: string;
+  ref: string;
+};
+
+export type ReleaseProject = {
+  slug: string;
+  name: string;
+  id: number;
+  platform: PlatformKey;
+  platforms: PlatformKey[];
+  newGroups: number;
+  healthData?: Health;
+};
+
+export type ReleaseMeta = {
+  commitCount: number;
+  commitFilesChanged: number;
+  deployCount: number;
+  releaseFileCount: number;
+  version: string;
+  projects: ReleaseProject[];
+  versionInfo: VersionInfo;
+};
+
+export type VersionInfo = {
+  buildHash: string | null;
+  description: string;
+  package: string | null;
+  version: {raw: string};
+};
+
+export type Deploy = {
+  id: string;
+  name: string;
+  url: string;
+  environment: string;
+  dateStarted: string;
+  dateFinished: string;
+};
+
 export type Commit = {
   id: string;
   key: string;
@@ -644,6 +969,17 @@ export type Commit = {
   dateCreated: string;
   repository?: Repository;
   author?: User;
+  releases: BaseRelease[];
+};
+
+export type CommitFile = {
+  id: string;
+  author: CommitAuthor;
+  commitMessage: string;
+  filename: string;
+  orgId: number;
+  repoName: string;
+  type: string;
 };
 
 export type MemberRole = {
@@ -656,21 +992,12 @@ export type MemberRole = {
 export type SentryAppComponent = {
   uuid: string;
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
-  schema: object;
+  schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: string;
+    slug: 'clickup' | 'clubhouse' | 'rookout';
     name: string;
   };
-};
-
-export type RouterProps = {
-  params: Params;
-  location: Location;
-};
-
-export type ActiveExperiments = {
-  TrialUpgradeV2Experiment: 'upgrade' | 'trial' | -1;
 };
 
 type SavedQueryVersions = 1 | 2;
@@ -679,24 +1006,30 @@ export type NewQuery = {
   id: string | undefined;
   version: SavedQueryVersions;
   name: string;
-  projects: Readonly<number[]>;
+  createdBy?: User;
+
+  // Query and Table
+  query: string;
   fields: Readonly<string[]>;
   widths?: Readonly<string[]>;
-  query: string;
   orderby?: string;
+
+  // GlobalSelectionHeader
+  projects: Readonly<number[]>;
+  environment?: Readonly<string[]>;
   range?: string;
   start?: string;
   end?: string;
-  environment?: Readonly<string[]>;
-  tags?: Readonly<string[]>;
+
+  // Graph
   yAxis?: string;
+  display?: string;
 };
 
 export type SavedQuery = NewQuery & {
   id: string;
   dateCreated: string;
   dateUpdated: string;
-  createdBy?: string;
 };
 
 export type SavedQueryState = {
@@ -708,13 +1041,14 @@ export type SavedQueryState = {
 export type SelectValue<T> = {
   label: string;
   value: T;
+  disabled?: boolean;
 };
 
 /**
- * The issue config form fields we get are basically the form fields we use in the UI but with some extra information.
- * Some fields marked optional in the form field are guaranteed to exist so we can mark them as required here
+ * The issue config form fields we get are basically the form fields we use in
+ * the UI but with some extra information. Some fields marked optional in the
+ * form field are guaranteed to exist so we can mark them as required here
  */
-
 export type IssueConfigField = Field & {
   name: string;
   default?: string;
@@ -733,17 +1067,74 @@ export type IntegrationIssueConfig = {
   icon: string[];
 };
 
-export type OnboardingTask = {
-  task: number;
+export enum OnboardingTaskKey {
+  FIRST_PROJECT = 'create_project',
+  FIRST_EVENT = 'send_first_event',
+  INVITE_MEMBER = 'invite_member',
+  SECOND_PLATFORM = 'setup_second_platform',
+  USER_CONTEXT = 'setup_user_context',
+  RELEASE_TRACKING = 'setup_release_tracking',
+  SOURCEMAPS = 'setup_sourcemaps',
+  USER_REPORTS = 'setup_user_reports',
+  ISSUE_TRACKER = 'setup_issue_tracker',
+  ALERT_RULE = 'setup_alert_rules',
+}
+
+export type OnboardingSupplementComponentProps = {
+  task: OnboardingTask;
+  onCompleteTask: () => void;
+};
+
+export type OnboardingTaskDescriptor = {
+  task: OnboardingTaskKey;
   title: string;
   description: string;
   detailedDescription?: string;
+  /**
+   * Can this task be skipped?
+   */
   skippable: boolean;
-  prereq: number[];
-  featureLocation: string;
-  location: string | (() => void);
+  /**
+   * A list of require task keys that must have been completed before these
+   * tasks may be completed.
+   */
+  requisites: OnboardingTaskKey[];
+  /**
+   * Should the onboarding task currently be displayed
+   */
   display: boolean;
+  /**
+   * An extra component that may be rendered within the onboarding task item.
+   */
+  SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
+} & (
+  | {
+      actionType: 'app' | 'external';
+      location: string;
+    }
+  | {
+      actionType: 'action';
+      action: () => void;
+    }
+);
+
+export type OnboardingTaskStatus = {
+  task: OnboardingTaskKey;
+  status: 'skipped' | 'pending' | 'complete';
+  user?: AvatarUser | null;
+  dateCompleted?: string;
+  completionSeen?: string;
+  data?: object;
 };
+
+export type OnboardingTask = OnboardingTaskStatus &
+  OnboardingTaskDescriptor & {
+    /**
+     * Onboarding tasks that are currently incomplete and must be completed
+     * before this task should be completed.
+     */
+    requisiteTasks: OnboardingTask[];
+  };
 
 export type Tag = {
   name: string;
@@ -752,3 +1143,182 @@ export type Tag = {
   totalValues?: number;
   predefined?: boolean;
 };
+
+export type TagCollection = {[key: string]: Tag};
+
+export type TagValue = {
+  count: number;
+  name: string;
+  value: string;
+  lastSeen: string;
+  key: string;
+  firstSeen: string;
+  query?: string;
+  email?: string;
+  username?: string;
+  identifier?: string;
+  ipAddress?: string;
+} & AvatarUser;
+
+export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+
+export type Meta = {
+  chunks: Array<Chunks>;
+  len: number;
+  rem: Array<MetaRemark>;
+  err: Array<MetaError>;
+};
+
+export type MetaError = [string, any];
+export type MetaRemark = Array<string | number>;
+
+export type Chunks = {
+  text: string;
+  type: string;
+  remark?: string;
+  rule_id?: string;
+};
+
+export enum ResolutionStatus {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+}
+export type ResolutionStatusDetails = {
+  actor?: AvatarUser;
+  autoResolved?: boolean;
+  ignoreCount?: number;
+  // Sent in requests. ignoreUntil is used in responses.
+  ignoreDuration?: number;
+  ignoreUntil?: string;
+  ignoreUserCount?: number;
+  ignoreUserWindow?: number;
+  ignoreWindow?: number;
+  inCommit?: Commit;
+  inRelease?: string;
+  inNextRelease?: boolean;
+};
+export type UpdateResolutionStatus = {
+  status: ResolutionStatus;
+  statusDetails?: ResolutionStatusDetails;
+};
+
+export type Broadcast = {
+  id: string;
+  message: string;
+  title: string;
+  link: string;
+  cta: string;
+  isActive: boolean;
+  dateCreated: string;
+  dateExpires: string;
+  hasSeen: boolean;
+};
+
+export type SentryServiceIncident = {
+  id: string;
+  name: string;
+  updates?: string[];
+  url: string;
+  status: string;
+};
+
+export type SentryServiceStatus = {
+  indicator: 'major' | 'minor' | 'none';
+  incidents: SentryServiceIncident[];
+  url: string;
+};
+
+export type CrashFreeTimeBreakdown = {
+  date: string;
+  totalSessions: number;
+  crashFreeSessions: number | null;
+  crashFreeUsers: number | null;
+  totalUsers: number;
+}[];
+
+export type Activity = {
+  data: any;
+  dateCreated: string;
+  type: string;
+  id: string;
+  issue?: Group;
+  project: Project;
+  user?: User;
+};
+
+export type PlatformIntegration = {
+  id: string;
+  type: string;
+  language: string;
+  link: string | null;
+  name: string;
+};
+
+export type EventGroupComponent = {
+  contributes: boolean;
+  hint: string | null;
+  id: string;
+  name: string | null;
+  values: EventGroupComponent[] | string[];
+};
+export type EventGroupingConfig = {
+  base: string | null;
+  changelog: string;
+  delegates: string[];
+  hidden: boolean;
+  id: string;
+  latest: boolean;
+  risk: number;
+  strategies: string[];
+};
+
+type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
+
+export enum EventGroupVariantType {
+  CUSTOM_FINGERPRINT = 'custom-fingerprint',
+  COMPONENT = 'component',
+  SALTED_COMPONENT = 'salted-component',
+}
+
+export type EventGroupVariant = {
+  description: string | null;
+  hash: string | null;
+  hashMismatch: boolean;
+  key: EventGroupVariantKey;
+  type: EventGroupVariantType;
+  values?: string;
+  component?: EventGroupComponent;
+  config?: EventGroupingConfig;
+};
+
+export type SourceMapsArchive = {
+  id: number;
+  type: 'release';
+  name: string;
+  date: string;
+  fileCount: number;
+};
+
+export type Artifact = {
+  dateCreated: string;
+  dist: string | null;
+  id: string;
+  name: string;
+  sha1: string;
+  size: number;
+  headers: {'Content-Type': string};
+};
+
+export type Widget = {
+  queries: {
+    discover: DiscoverQuery[];
+  };
+  title: React.ReactNode;
+  type: WIDGET_DISPLAY;
+  fieldLabelMap?: object;
+  yAxisMapping?: [number[], number[]];
+  includeReleases?: boolean;
+  includePreviousPeriod?: boolean;
+};
+
+export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;

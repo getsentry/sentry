@@ -1,10 +1,12 @@
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import moment from 'moment-timezone';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import ConfigStore from 'app/stores/configStore';
 import DateTime from 'app/components/dateTime';
 import ExternalLink from 'app/components/links/externalLink';
@@ -34,19 +36,17 @@ const formatDateDelta = (reference, observed) => {
   return results.join(', ');
 };
 
-const GroupEventToolbar = createReactClass({
-  displayName: 'GroupEventToolbar',
-
-  propTypes: {
+class GroupEventToolbar extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     location: PropTypes.object.isRequired,
-  },
+  };
 
   shouldComponentUpdate(nextProps) {
     return this.props.event.id !== nextProps.event.id;
-  },
+  }
 
   getDateTooltip() {
     const evt = this.props.event;
@@ -78,7 +78,7 @@ const GroupEventToolbar = createReactClass({
         )}
       </dl>
     );
-  },
+  }
 
   render() {
     const evt = this.props.event;
@@ -89,63 +89,43 @@ const GroupEventToolbar = createReactClass({
     const baseEventsPath = `/organizations/${orgId}/issues/${groupId}/events/`;
 
     const eventNavNodes = [
-      evt.previousEventID ? (
-        <Link
-          key="oldest"
-          to={{pathname: `${baseEventsPath}oldest/`, query: location.query}}
-          className="btn btn-default"
-          title={t('Oldest')}
-        >
-          <span className="icon-skip-back" />
-        </Link>
-      ) : (
-        <a key="oldest" className="btn btn-default disabled">
-          <span className="icon-skip-back" />
-        </a>
-      ),
-      evt.previousEventID ? (
-        <Link
-          key="prev"
-          to={{
-            pathname: `${baseEventsPath}${evt.previousEventID}/`,
-            query: location.query,
-          }}
-          className="btn btn-default"
-        >
-          {t('Older')}
-        </Link>
-      ) : (
-        <a key="prev" className="btn btn-default disabled">
-          {t('Older')}
-        </a>
-      ),
-      evt.nextEventID ? (
-        <Link
-          key="next"
-          to={{pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query}}
-          className="btn btn-default"
-        >
-          {t('Newer')}
-        </Link>
-      ) : (
-        <a key="next" className="btn btn-default disabled">
-          {t('Newer')}
-        </a>
-      ),
-      evt.nextEventID ? (
-        <Link
-          key="latest"
-          to={{pathname: `${baseEventsPath}latest/`, query: location.query}}
-          className="btn btn-default"
-          title={t('Newest')}
-        >
-          <span className="icon-skip-forward" />
-        </Link>
-      ) : (
-        <a key="latest" className="btn btn-default disabled">
-          <span className="icon-skip-forward" />
-        </a>
-      ),
+      <Button
+        size="small"
+        key="oldest"
+        to={{pathname: `${baseEventsPath}oldest/`, query: location.query}}
+        disabled={!evt.previousEventID}
+        aria-label={t('Oldest')}
+      >
+        <span className="icon-skip-back" />
+      </Button>,
+      <Button
+        size="small"
+        key="prev"
+        to={{
+          pathname: `${baseEventsPath}${evt.previousEventID}/`,
+          query: location.query,
+        }}
+        disabled={!evt.previousEventID}
+      >
+        {t('Older')}
+      </Button>,
+      <Button
+        size="small"
+        key="next"
+        to={{pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query}}
+        disabled={!evt.nextEventID}
+      >
+        {t('Newer')}
+      </Button>,
+      <Button
+        size="small"
+        key="latest"
+        to={{pathname: `${baseEventsPath}latest/`, query: location.query}}
+        disabled={!evt.nextEventID}
+        aria-label={t('Newest')}
+      >
+        <span className="icon-skip-forward" />
+      </Button>,
     ];
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
@@ -162,9 +142,9 @@ const GroupEventToolbar = createReactClass({
 
     return (
       <div className="event-toolbar">
-        <div className="pull-right">
-          <div className="btn-group">{eventNavNodes}</div>
-        </div>
+        <NavigationButtons gap={1}>
+          <ButtonBar merged>{eventNavNodes}</ButtonBar>
+        </NavigationButtons>
         <h4>
           {t('Event')}{' '}
           <Link to={`${baseEventsPath}${evt.id}/`} className="event-id">
@@ -173,13 +153,11 @@ const GroupEventToolbar = createReactClass({
         </h4>
         <span>
           <Tooltip title={this.getDateTooltip()}>
-            <span>
-              <DateTime
-                date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
-                style={style}
-              />
-              {isOverLatencyThreshold && <span className="icon-alert" />}
-            </span>
+            <DateTime
+              date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
+              style={style}
+            />
+            {isOverLatencyThreshold && <span className="icon-alert" />}
           </Tooltip>
           <ExternalLink href={jsonUrl} className="json-link">
             {'JSON'} (<FileSize bytes={evt.size} />)
@@ -187,7 +165,11 @@ const GroupEventToolbar = createReactClass({
         </span>
       </div>
     );
-  },
-});
+  }
+}
+
+const NavigationButtons = styled(ButtonBar)`
+  float: right;
+`;
 
 export default GroupEventToolbar;

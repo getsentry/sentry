@@ -1,5 +1,8 @@
 from __future__ import absolute_import, print_function
 
+from datetime import datetime
+from django.utils import timezone
+
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.core.urlresolvers import reverse
@@ -105,7 +108,7 @@ class SAML2AcceptACSView(BaseView):
             sso_login = AuthProviderLoginView()
             return sso_login.handle(request)
 
-        # IdP initiated authentication. The organizatio_slug must be valid and
+        # IdP initiated authentication. The organization_slug must be valid and
         # an auth provider must exist for this organization to proceed with
         # IdP initiated SAML auth.
         try:
@@ -152,6 +155,14 @@ class SAML2ACSView(AuthView):
 
         helper.bind_state("auth_attributes", auth.get_attributes())
 
+        # Not all providers send a session expiration value, but if they do,
+        # we should respect it and set session cookies to expire at the given time.
+        if auth.get_session_expiration() is not None:
+            session_expiration = datetime.fromtimestamp(auth.get_session_expiration()).replace(
+                tzinfo=timezone.utc
+            )
+            request.session.set_expiry(session_expiration)
+
         return helper.next_step()
 
 
@@ -170,8 +181,6 @@ class SAML2SLSView(BaseView):
         should_logout = request.user.is_authenticated()
 
         def force_logout():
-            request.user.refresh_session_nonce()
-            request.user.save()
             logout(request)
 
         redirect_to = auth.process_slo(
@@ -307,7 +316,7 @@ class SAML2Provider(Provider):
             )
 
         name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
-        name = " ".join(filter(None, name))
+        name = " ".join([_f for _f in name if _f])
 
         return {
             "id": attributes[Attributes.IDENTIFIER],
@@ -341,10 +350,7 @@ def build_saml_config(provider_config, org):
         "signatureAlgorithm": avd.get("signature_algorithm", OneLogin_Saml2_Constants.RSA_SHA256),
         "digestAlgorithm": avd.get("digest_algorithm", OneLogin_Saml2_Constants.SHA256),
         "wantNameId": False,
-        "requestedAuthnContext": [
-            "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
-            "urn:federation:authentication:windows",
-        ],
+        "requestedAuthnContext": False,
     }
 
     # TODO(epurkhiser): This is also available in the helper and should probably come from there.

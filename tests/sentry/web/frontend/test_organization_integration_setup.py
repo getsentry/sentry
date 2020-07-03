@@ -37,4 +37,4 @@ class OrganizationIntegrationSetupTest(TestCase):
 
         # Check that we're binding the state back to the opening window
         # through the dialog's window.postMessage.
-        assert "morty" in resp.content
+        assert b"morty" in resp.content

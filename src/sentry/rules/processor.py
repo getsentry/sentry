@@ -7,7 +7,9 @@ from collections import namedtuple
 from datetime import timedelta
 from django.core.cache import cache
 from django.utils import timezone
+from random import randrange
 
+from sentry import analytics
 from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, rules
 from sentry.utils.hashlib import hash_values
@@ -16,35 +18,11 @@ from sentry.utils.safe import safe_execute
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
-# TODO(dcramer): come up with a clean way to kill this either by renaming
-# the Event.message attribute or updating all plugins (former is better)
-class EventCompatibilityProxy(object):
-    """
-    A proxy which manages the 'message' attribute on an event to safely
-    upgrade legacy notifications.
-    """
-
-    __class__ = property(lambda x: x._event.__class__)
-
-    # TODO: this goes away once message has been renamed to search_message
-    # and real_message to message
-
-    def __init__(self, event):
-        self._event = event
-
-    def __getattr__(self, attr):
-        return getattr(self._event, attr)
-
-    @property
-    def message(self):
-        return self._event.real_message
-
-
 class RuleProcessor(object):
     logger = logging.getLogger("sentry.rules")
 
     def __init__(self, event, is_new, is_regression, is_new_group_environment, has_reappeared):
-        self.event = EventCompatibilityProxy(event)
+        self.event = event
         self.group = event.group
         self.project = event.project
 
@@ -133,6 +111,15 @@ class RuleProcessor(object):
         if not passed:
             return
 
+        if randrange(10) == 0:
+            analytics.record(
+                "issue_alert.fired",
+                issue_id=self.group.id,
+                project_id=rule.project.id,
+                organization_id=rule.project.organization.id,
+                rule_id=rule.id,
+            )
+
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
             if action_cls is None:
@@ -157,6 +144,10 @@ class RuleProcessor(object):
                     self.grouped_futures[key][1].append(rule_future)
 
     def apply(self):
+        # we should only apply rules on unresolved issues
+        if not self.event.group.is_unresolved():
+            return six.itervalues({})
+
         self.grouped_futures.clear()
         for rule in self.get_rules():
             self.apply_rule(rule)

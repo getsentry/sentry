@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mount} from 'sentry-test/enzyme';
 
 import TeamActions from 'app/actions/teamActions';
@@ -63,33 +64,5 @@ describe('withUserTeams HoC', function() {
         .find('MyComponent')
         .prop('teams')
     ).toEqual(mockTeams);
-  });
-
-  it('does not fetch teams if information is in organization', async function() {
-    const mockTeam = TestStubs.Team();
-    const mockProjects = [TestStubs.Project({teams: [mockTeam]})];
-    const mockOrg = TestStubs.Organization({teams: [mockTeam], projects: mockProjects});
-
-    const getTeamsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/user-teams/`,
-      body: [mockTeam],
-    });
-
-    const MyComponent = () => null;
-    const Container = withTeamsForUser(MyComponent);
-    const wrapper = mount(<Container organization={mockOrg} api={api} />);
-    await tick();
-
-    const expectedTeams = [{...mockTeam, projects: mockProjects}];
-
-    expect(
-      wrapper
-        .update()
-        .find('MyComponent')
-        .prop('teams')
-    ).toEqual(expectedTeams);
-
-    // ensure no request was made to get teams
-    expect(getTeamsMock).not.toHaveBeenCalled();
   });
 });

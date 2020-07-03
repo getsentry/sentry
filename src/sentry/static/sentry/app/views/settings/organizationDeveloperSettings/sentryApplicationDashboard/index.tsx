@@ -5,12 +5,10 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import LineChart from 'app/components/charts/lineChart';
-
 import {Panel, PanelBody, PanelHeader, PanelFooter} from 'app/components/panels';
 import BarChart from 'app/components/charts/barChart';
 import Link from 'app/components/links/link';
 import DateTime from 'app/components/dateTime';
-
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {SentryApp} from 'app/types';
@@ -251,7 +249,7 @@ const StatsHeader = styled('h6')`
   margin-bottom: ${space(1)};
   font-size: 12px;
   text-transform: uppercase;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 const StyledFooter = styled('div')`

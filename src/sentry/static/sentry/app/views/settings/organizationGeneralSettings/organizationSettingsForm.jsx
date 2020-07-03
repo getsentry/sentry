@@ -7,10 +7,13 @@ import AsyncComponent from 'app/components/asyncComponent';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 import withOrganization from 'app/utils/withOrganization';
+import Link from 'app/components/links/link';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {t} from 'app/locale';
+import {Panel, PanelHeader} from 'app/components/panels';
 
 class OrganizationSettingsForm extends AsyncComponent {
   static propTypes = {
@@ -31,9 +34,18 @@ class OrganizationSettingsForm extends AsyncComponent {
     const {initialData, organization, orgId, onSave, access} = this.props;
     const {authProvider} = this.state;
     const endpoint = `/organizations/${orgId}/`;
+
+    const jsonFormSettings = {
+      additionalFieldProps: {hasSsoEnabled: !!authProvider},
+      features: new Set(organization.features),
+      access,
+      location: this.props.location,
+      disabled: !access.has('org:write'),
+    };
+
     return (
       <Form
-        className="ref-organization-settings"
+        data-test-id="organization-settings"
         apiMethod="PUT"
         apiEndpoint={endpoint}
         saveOnBlur
@@ -47,15 +59,20 @@ class OrganizationSettingsForm extends AsyncComponent {
         }}
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
-        <PermissionAlert />
-        <JsonForm
-          additionalFieldProps={{hasSsoEnabled: !!authProvider}}
-          features={new Set(organization.features)}
-          access={access}
-          location={this.props.location}
-          forms={organizationSettingsFields}
-          disabled={!access.has('org:write')}
-        />
+        <JsonForm {...jsonFormSettings} forms={organizationSettingsFields} />
+
+        <Panel>
+          <PanelHeader>{t('Security & Privacy')}</PanelHeader>
+          <EmptyMessage
+            title={t('Security & Privacy has moved')}
+            description={
+              <Link to={`/settings/${orgId}/security-and-privacy/`}>
+                {t('Go to Security & Privacy')}
+              </Link>
+            }
+          />
+        </Panel>
+
         <AvatarChooser
           type="organization"
           allowGravatar={false}

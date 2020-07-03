@@ -64,7 +64,7 @@ if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
 if settings.DEBUG:
     urlpatterns += [
         url(
-            r"^_static/[^/]+/[^/]+/images/favicon\.ico$",
+            r"^_static/[^/]+/[^/]+/images/favicon\.(ico|png)$",
             generic.dev_favicon,
             name="sentry-dev-favicon",
         )
@@ -475,6 +475,7 @@ urlpatterns += [
                     name="sentry-organization-issue-list",
                 ),
                 url(
+                    # See src.sentry.models.group.Group.get_absolute_url if this changes
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/$",
                     react_page_view,
                     name="sentry-organization-issue",
@@ -488,6 +489,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/$",
                     react_page_view,
                     name="sentry-organization-event-detail",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",
+                    react_page_view,
+                    name="sentry-data-export-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",
@@ -625,6 +631,8 @@ urlpatterns += [
                 url(r"^gitlab/", include("sentry.integrations.gitlab.urls")),
                 url(r"^vsts/", include("sentry.integrations.vsts.urls")),
                 url(r"^bitbucket/", include("sentry.integrations.bitbucket.urls")),
+                url(r"^bitbucket-server/", include("sentry.integrations.bitbucket_server.urls")),
+                url(r"^vercel/", include("sentry.integrations.vercel.urls")),
             ]
         ),
     ),
@@ -662,12 +670,12 @@ urlpatterns += [
         name="sentry-stream",
     ),
     url(
-        r"^organizations/(?P<organization_slug>[\w_-]+)/incidents/(?P<incident_id>\d+)/$",
+        r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/(?P<incident_id>\d+)/$",
         react_page_view,
-        name="sentry-incident",
+        name="sentry-metric-alert",
     ),
     url(
-        r"^settings/(?P<organization_slug>[\w_-]+)/incident-rules/(?P<alert_rule_id>\d+)/$",
+        r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
         react_page_view,
         name="sentry-alert-rule",
     ),

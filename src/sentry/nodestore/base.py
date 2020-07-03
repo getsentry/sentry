@@ -6,6 +6,9 @@ from base64 import b64encode
 from threading import local
 from uuid import uuid4
 
+from django.core.cache import caches, InvalidCacheBackendError
+
+from sentry.utils.cache import memoize
 from sentry.utils.services import Service
 
 
@@ -21,6 +24,12 @@ class NodeStorage(local, Service):
         "generate_id",
         "cleanup",
         "validate",
+        "bootstrap",
+        "_get_cache_item",
+        "_get_cache_items",
+        "_set_cache_item",
+        "_delete_cache_item",
+        "_delete_cache_items",
     )
 
     def create(self, data):
@@ -85,3 +94,39 @@ class NodeStorage(local, Service):
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
+
+    def bootstrap(self):
+        raise NotImplementedError
+
+    def _get_cache_item(self, id):
+        if self.cache:
+            return self.cache.get(id)
+
+    def _get_cache_items(self, id_list):
+        if self.cache:
+            return self.cache.get_many(id_list)
+        return {}
+
+    def _set_cache_item(self, id, data):
+        if self.cache and data:
+            self.cache.set(id, data)
+
+    def _set_cache_items(self, items):
+        cacheable_items = {k: v for k, v in six.iteritems(items) if v}
+        if self.cache:
+            self.cache.set_many(cacheable_items)
+
+    def _delete_cache_item(self, id):
+        if self.cache:
+            self.cache.delete(id)
+
+    def _delete_cache_items(self, id_list):
+        if self.cache:
+            self.cache.delete_many(id_list)
+
+    @memoize
+    def cache(self):
+        try:
+            return caches["nodedata"]
+        except InvalidCacheBackendError:
+            return None

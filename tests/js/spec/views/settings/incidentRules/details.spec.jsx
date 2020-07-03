@@ -2,7 +2,8 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select';
+import {selectByValue} from 'sentry-test/select-new';
+
 import GlobalModal from 'app/components/globalModal';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 
@@ -14,6 +15,10 @@ describe('Incident Rules Details', function() {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/environments/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -34,10 +39,10 @@ describe('Incident Rules Details', function() {
   });
 
   it('renders and adds and edits trigger', async function() {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, project, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const req = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
       body: rule,
     });
 
@@ -47,7 +52,7 @@ describe('Incident Rules Details', function() {
     });
 
     const editRule = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
       method: 'PUT',
       body: rule,
     });
@@ -58,7 +63,8 @@ describe('Incident Rules Details', function() {
         <IncidentRulesDetails
           params={{
             orgId: organization.slug,
-            incidentRuleId: rule.id,
+            projectId: project.slug,
+            ruleId: rule.id,
           }}
           organization={organization}
         />
@@ -72,13 +78,13 @@ describe('Incident Rules Details', function() {
     // has existing trigger
     expect(
       wrapper
-        .find('input[name="alertThresholdInput"]')
+        .find('input[name="alertThreshold"]')
         .first()
         .prop('value')
     ).toEqual(70);
     expect(
       wrapper
-        .find('input[name="resolutionThresholdInput"]')
+        .find('input[name="resolveThreshold"]')
         .first()
         .prop('value')
     ).toEqual(36);
@@ -89,16 +95,16 @@ describe('Incident Rules Details', function() {
     wrapper.find('button[aria-label="Add Warning Trigger"]').simulate('click');
 
     wrapper
-      .find('input[name="alertThresholdInput"]')
+      .find('input[name="alertThreshold"]')
       .at(1)
       .simulate('change', {target: {value: 13}});
     wrapper
-      .find('input[name="resolutionThresholdInput"]')
+      .find('input[name="resolveThreshold"]')
       .at(1)
       .simulate('change', {target: {value: 12}});
 
     // Add an action
-    selectByValue(wrapper, 'email', {
+    selectByValue(wrapper, 'email-null', {
       control: true,
       name: 'add-action',
     });
@@ -122,6 +128,7 @@ describe('Incident Rules Details', function() {
             expect.objectContaining({
               actions: [
                 {
+                  integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',
@@ -152,13 +159,13 @@ describe('Incident Rules Details', function() {
     // Has correct values
     expect(
       wrapper
-        .find('input[name="alertThresholdInput"]')
+        .find('input[name="alertThreshold"]')
         .at(1)
         .prop('value')
     ).toBe(13);
     expect(
       wrapper
-        .find('input[name="resolutionThresholdInput"]')
+        .find('input[name="resolveThreshold"]')
         .at(1)
         .prop('value')
     ).toBe(12);
@@ -190,6 +197,7 @@ describe('Incident Rules Details', function() {
             expect.objectContaining({
               actions: [
                 {
+                  integrationId: null,
                   targetIdentifier: '',
                   targetType: 'user',
                   type: 'email',

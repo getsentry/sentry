@@ -10,6 +10,7 @@ import six
 import time
 
 from sentry import tsdb, options
+from sentry.constants import DataCategory
 from sentry.utils import json, metrics
 from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
@@ -28,11 +29,6 @@ class Outcome(IntEnum):
 
 outcomes = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
 outcomes_publisher = None
-
-
-def decide_signals_in_consumer():
-    rate = options.get("outcomes.signals-in-consumer-sample-rate")
-    return rate and rate > random.random()
 
 
 def decide_tsdb_in_consumer():
@@ -65,7 +61,11 @@ def mark_tsdb_incremented(project_id, event_id):
     mark_tsdb_incremented_many([(project_id, event_id)])
 
 
-def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason):
+def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason, category):
+    category = category if category is not None else DataCategory.ERROR
+    if category not in DataCategory.event_categories():
+        return
+
     if outcome != Outcome.INVALID:
         # This simply preserves old behavior. We never counted invalid events
         # (too large, duplicate, CORS) toward regular `received` counts.
@@ -97,7 +97,17 @@ def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason):
             yield (FILTER_STAT_KEYS_TO_VALUES[reason], project_id)
 
 
-def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=None, event_id=None):
+def track_outcome(
+    org_id,
+    project_id,
+    key_id,
+    outcome,
+    reason=None,
+    timestamp=None,
+    event_id=None,
+    category=None,
+    quantity=None,
+):
     """
     This is a central point to track org/project counters per incoming event.
     NB: This should only ever be called once per incoming event, which means
@@ -112,11 +122,16 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     if outcomes_publisher is None:
         outcomes_publisher = KafkaPublisher(settings.KAFKA_CLUSTERS[outcomes["cluster"]])
 
+    if quantity is None:
+        quantity = 1
+
     assert isinstance(org_id, six.integer_types)
     assert isinstance(project_id, six.integer_types)
     assert isinstance(key_id, (type(None), six.integer_types))
     assert isinstance(outcome, Outcome)
     assert isinstance(timestamp, (type(None), datetime))
+    assert isinstance(category, (type(None), DataCategory))
+    assert isinstance(quantity, int)
 
     timestamp = timestamp or to_datetime(time.time())
 
@@ -125,7 +140,12 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     if not tsdb_in_consumer:
         increment_list = list(
             tsdb_increments_from_outcome(
-                org_id=org_id, project_id=project_id, key_id=key_id, outcome=outcome, reason=reason
+                org_id=org_id,
+                project_id=project_id,
+                key_id=key_id,
+                outcome=outcome,
+                reason=reason,
+                category=category,
             )
         )
 
@@ -147,6 +167,8 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
                 "outcome": outcome.value,
                 "reason": reason,
                 "event_id": event_id,
+                "category": category,
+                "quantity": quantity,
             }
         ),
     )
@@ -154,5 +176,9 @@ def track_outcome(org_id, project_id, key_id, outcome, reason=None, timestamp=No
     metrics.incr(
         "events.outcomes",
         skip_internal=True,
-        tags={"outcome": outcome.name.lower(), "reason": reason},
+        tags={
+            "outcome": outcome.name.lower(),
+            "reason": reason,
+            "category": category.api_name() if category is not None else "null",
+        },
     )

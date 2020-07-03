@@ -2,17 +2,24 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
 
-type Props = {
-  mini?: boolean;
-  message?: React.ReactNode;
-  customComponent?: React.ReactNode;
+type DefaultProps = {
+  mini: boolean;
+};
+
+type Props = DefaultProps & {
+  // To add context for better UX
   className?: string;
+  customComponent?: React.ReactNode;
+  message?: React.ReactNode;
+
+  // To add context for better error reporting
+  errorTag?: Record<string, string>;
 };
 
 type State = {
@@ -32,16 +39,13 @@ class ErrorBoundary extends React.Component<Props, State> {
     customComponent: PropTypes.node,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     mini: false,
   };
 
   state: State = {
     error: null,
   };
-
-  // XXX: browserHistory.listen does not have a correct return type.
-  unlistenBrowserHistory: any;
 
   componentDidMount() {
     // Listen for route changes so we can clear error
@@ -51,8 +55,14 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    const {errorTag} = this.props;
+
     this.setState({error});
     Sentry.withScope(scope => {
+      if (errorTag) {
+        Object.keys(errorTag).forEach(tag => scope.setTag(tag, errorTag[tag]));
+      }
+
       scope.setExtra('errorInfo', errorInfo);
       Sentry.captureException(error);
     });
@@ -64,11 +74,14 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
   }
 
+  // XXX: browserHistory.listen does not have a correct return type.
+  unlistenBrowserHistory: any;
+
   render() {
     const {error} = this.state;
 
     if (!error) {
-      //when there's not an error, render children untouched
+      // when there's not an error, render children untouched
       return this.props.children;
     }
 
@@ -103,7 +116,7 @@ Anyway, we apologize for the inconvenience.`
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray4};
+  color: ${p => p.theme.gray700};
   padding: ${p => p.theme.grid * 3}px;
   max-width: 1000px;
   margin: auto;

@@ -16,8 +16,10 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
     Rule,
+    UserOption,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat import zip
 
 
 class ProjectTest(TestCase):
@@ -293,3 +295,54 @@ class CopyProjectSettingsTest(TestCase):
         assert project.copy_settings_from(self.other_project.id)
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
+
+
+class FilterToSubscribedUsersTest(TestCase):
+    def run_test(self, users, expected_users):
+        assert self.project.filter_to_subscribed_users(users) == expected_users
+
+    def test(self):
+        assert self.project.filter_to_subscribed_users([self.user]) == [self.user]
+
+    def test_global_enabled(self):
+        user = self.create_user()
+        UserOption.objects.set_value(user, "subscribe_by_default", "1")
+        self.run_test([user], [user])
+
+    def test_global_disabled(self):
+        user = self.create_user()
+        UserOption.objects.set_value(user, "subscribe_by_default", "0")
+        self.run_test([user], [])
+
+    def test_project_enabled(self):
+        user = self.create_user()
+        UserOption.objects.set_value(user, "subscribe_by_default", "0")
+        UserOption.objects.set_value(user, "mail:alert", 1, project=self.project)
+        self.run_test([user], [user])
+
+    def test_project_disabled(self):
+        user = self.create_user()
+        UserOption.objects.set_value(user, "subscribe_by_default", "1")
+        UserOption.objects.set_value(user, "mail:alert", 0, project=self.project)
+        self.run_test([user], [])
+
+    def test_mixed(self):
+        user_global_enabled = self.create_user()
+        UserOption.objects.set_value(user_global_enabled, "subscribe_by_default", "1")
+        user_global_disabled = self.create_user()
+        UserOption.objects.set_value(user_global_disabled, "subscribe_by_default", "0")
+        user_project_enabled = self.create_user()
+        UserOption.objects.set_value(user_project_enabled, "subscribe_by_default", "0")
+        UserOption.objects.set_value(user_project_enabled, "mail:alert", 1, project=self.project)
+        user_project_disabled = self.create_user()
+        UserOption.objects.set_value(user_project_disabled, "subscribe_by_default", "1")
+        UserOption.objects.set_value(user_project_disabled, "mail:alert", 0, project=self.project)
+        self.run_test(
+            [
+                user_global_enabled,
+                user_global_disabled,
+                user_project_enabled,
+                user_project_disabled,
+            ],
+            [user_global_enabled, user_project_enabled],
+        )

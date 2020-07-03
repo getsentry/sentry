@@ -2,6 +2,7 @@ import React from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import IssueList from 'app/views/issueList/overview';
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
@@ -157,10 +158,10 @@ describe('IssueList -> Polling', function() {
     );
 
     // Enable real time control
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(1);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(1);
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
 
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(0);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -170,7 +171,7 @@ describe('IssueList -> Polling', function() {
 
     // Pauses
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(1);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(1);
 
     jest.advanceTimersByTime(12001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
@@ -187,7 +188,7 @@ describe('IssueList -> Polling', function() {
 
     // Enable real time control
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(0);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -206,9 +207,9 @@ describe('IssueList -> Polling', function() {
     await createWrapper();
 
     // Enable real time control
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(1);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(1);
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(0);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -228,7 +229,7 @@ describe('IssueList -> Polling', function() {
 
     // Enable real time control
     wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] .icon-play')).toHaveLength(0);
+    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);

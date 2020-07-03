@@ -9,6 +9,7 @@ import Avatar from 'app/components/avatar';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import Tooltip from 'app/components/tooltip';
+import {IconDelete} from 'app/icons';
 import {Panel, PanelItem} from 'app/components/panels';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';
@@ -58,7 +59,7 @@ class GroupTombstoneRow extends React.Component {
                 onUndiscard(data.id);
               }}
             >
-              <span className="icon-trash undiscard" />
+              <IconDelete className="undiscard" />
             </LinkWithConfirmation>
           </Tooltip>
         </ActionContainer>
@@ -108,15 +109,13 @@ class GroupTombstones extends AsyncComponent {
 
     return tombstones.length ? (
       <Panel>
-        {tombstones.map(data => {
-          return (
-            <GroupTombstoneRow
-              key={data.id}
-              data={data}
-              onUndiscard={this.handleUndiscard}
-            />
-          );
-        })}
+        {tombstones.map(data => (
+          <GroupTombstoneRow
+            key={data.id}
+            data={data}
+            onUndiscard={this.handleUndiscard}
+          />
+        ))}
       </Panel>
     ) : (
       this.renderEmpty()

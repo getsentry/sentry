@@ -1,64 +1,64 @@
 ---
-created: '2020-01-15T14:24:44.628338Z'
+created: '2020-02-26T19:54:39.018799Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: 'a728cdf5d62c8e017c35c3fe04051b6e'
+  hash: "a728cdf5d62c8e017c35c3fe04051b6e"
   component:
     app*
       exception*
         stacktrace*
           frame*
             filename*
-              u'server.php'
+              "server.php"
             context-line*
-              u"require_once __DIR__.'/public/index.php';"
+              "require_once __DIR__.'/public/index.php';"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function (ignored anonymous function)
-              u'class@anonymous\x00/var/www/html/dummy.php0x7190ad3c35cf::run'
+              "class@anonymous\u0000/var/www/html/dummy.php0x7190ad3c35cf::run"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
         type*
-          u'Exception'
+          "Exception"
         value (ignored because stacktrace takes precedence)
-          u'LARAVEL TEST'
+          "LARAVEL TEST"
 --------------------------------------------------------------------------
 system:
-  hash: '38f89a430b4a251a06a5a15b382638b5'
+  hash: "38f89a430b4a251a06a5a15b382638b5"
   component:
     system*
       exception*
         stacktrace*
           frame*
             filename*
-              u'server.php'
+              "server.php"
             context-line*
-              u"require_once __DIR__.'/public/index.php';"
+              "require_once __DIR__.'/public/index.php';"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function (ignored anonymous function)
-              u'class@anonymous\x00/var/www/html/dummy.php0x7190ad3c35cf::run'
+              "class@anonymous\u0000/var/www/html/dummy.php0x7190ad3c35cf::run"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
         type*
-          u'Exception'
+          "Exception"
         value (ignored because stacktrace takes precedence)
-          u'LARAVEL TEST'
+          "LARAVEL TEST"

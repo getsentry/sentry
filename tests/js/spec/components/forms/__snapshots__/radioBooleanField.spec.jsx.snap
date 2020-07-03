@@ -30,6 +30,7 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
         name="fieldName"
         noLabel="No"
         required={false}
+        showHelpInTooltip={false}
         visible={true}
         yesLabel="Yes"
       >
@@ -97,6 +98,23 @@ exports[`RadioBooleanField render() renders new field without form context 1`] =
                               initialData={
                                 Object {
                                   "fieldName": undefined,
+                                }
+                              }
+                              model={
+                                MockModel {
+                                  "initialData": Object {
+                                    "fieldName": undefined,
+                                  },
+                                  "props": Object {
+                                    "children": [Function],
+                                    "className": undefined,
+                                    "field": [Function],
+                                    "flexibleControlStateSize": false,
+                                    "hideErrorMessage": false,
+                                    "name": "fieldName",
+                                    "noLabel": "No",
+                                    "yesLabel": "Yes",
+                                  },
                                 }
                               }
                               name="fieldName"

@@ -1,13 +1,16 @@
 from __future__ import absolute_import
 
+import six
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import http
 from sentry.rules.actions.base import EventAction
 from sentry.utils import metrics, json
 from sentry.models import Integration
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 
+from .client import SlackClient
 from .utils import build_group_attachment, get_channel_id, strip_channel_name
 
 
@@ -30,14 +33,39 @@ class SlackNotifyServiceForm(forms.Form):
         self.fields["workspace"].choices = workspace_list
         self.fields["workspace"].widget.choices = self.fields["workspace"].choices
 
+        # XXX(meredith): When this gets set to True, it lets the RuleSerializer
+        # know to only save if and when we have the channel_id. The rule will get saved
+        # in the task (integrations/slack/tasks.py) if the channel_id is found.
+        self._pending_save = False
+
     def clean(self):
         cleaned_data = super(SlackNotifyServiceForm, self).clean()
 
         workspace = cleaned_data.get("workspace")
         channel = cleaned_data.get("channel", "")
 
-        channel_id = self.channel_transformer(workspace, channel)
+        try:
+            channel_prefix, channel_id, timed_out = self.channel_transformer(workspace, channel)
+        except DuplicateDisplayNameError as e:
+            integration = Integration.objects.get(id=workspace)
+            domain = integration.metadata["domain_name"]
+
+            params = {"channel": e.message, "domain": domain}
+
+            raise forms.ValidationError(
+                _(
+                    'Multiple users were found with display name "%(channel)s". Please use your username, found at %(domain)s/account/settings.',
+                ),
+                code="invalid",
+                params=params,
+            )
+
         channel = strip_channel_name(channel)
+
+        if channel_id is None and timed_out:
+            cleaned_data["channel"] = channel_prefix + channel
+            self._pending_save = True
+            return cleaned_data
 
         if channel_id is None and workspace is not None:
             params = {
@@ -53,7 +81,6 @@ class SlackNotifyServiceForm(forms.Form):
                 params=params,
             )
 
-        channel_prefix, channel_id = channel_id
         cleaned_data["channel"] = channel_prefix + channel
         cleaned_data["channel_id"] = channel_id
 
@@ -63,6 +90,7 @@ class SlackNotifyServiceForm(forms.Form):
 class SlackNotifyServiceAction(EventAction):
     form_cls = SlackNotifyServiceForm
     label = u"Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
+    prompt = "Send a Slack notification"
 
     def __init__(self, *args, **kwargs):
         super(SlackNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -79,9 +107,6 @@ class SlackNotifyServiceAction(EventAction):
         return self.get_integrations().exists()
 
     def after(self, event, state):
-        if event.group.is_ignored():
-            return
-
         integration_id = self.get_option("workspace")
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
@@ -101,15 +126,23 @@ class SlackNotifyServiceAction(EventAction):
             payload = {
                 "token": integration.metadata["access_token"],
                 "channel": channel,
+                "link_names": 1,
                 "attachments": json.dumps([attachment]),
             }
 
-            session = http.build_session()
-            resp = session.post("https://slack.com/api/chat.postMessage", data=payload, timeout=5)
-            resp.raise_for_status()
-            resp = resp.json()
-            if not resp.get("ok"):
-                self.logger.info("rule.fail.slack_post", extra={"error": resp.get("error")})
+            client = SlackClient()
+            try:
+                client.post("/chat.postMessage", data=payload, timeout=5)
+            except ApiError as e:
+                self.logger.info(
+                    "rule.fail.slack_post",
+                    extra={
+                        "error": six.text_type(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "channel_name": self.get_option("channel"),
+                    },
+                )
 
         key = u"slack:{}:{}".format(integration_id, channel)
 

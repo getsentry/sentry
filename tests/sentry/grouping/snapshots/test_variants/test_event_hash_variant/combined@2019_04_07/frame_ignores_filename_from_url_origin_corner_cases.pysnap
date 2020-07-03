@@ -1,52 +1,52 @@
 ---
-created: '2019-11-01T10:16:07.487579Z'
+created: '2020-02-26T19:52:18.609773Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (stacktrace of system takes precedence)
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           filename (ignored because filename is a URL)
-            u'/foo.js'
+            "/foo.js"
           context-line*
-            u'hello world'
+            "hello world"
           function (function name is not used if context-line is available)
-            u'test'
+            "test"
         frame* (frame considered in-app because no frame is in-app)
           filename (ignored because filename is a URL)
-            u'/foo.js'
+            "/foo.js"
           context-line*
-            u'hello world'
+            "hello world"
           function (function name is not used if context-line is available)
-            u'test'
+            "test"
         frame (frame considered in-app because no frame is in-app)
           filename (ignored because filename is a URL)
-            u'/foo.js'
+            "/foo.js"
           context-line (discarded because from URL origin)
 --------------------------------------------------------------------------
 system:
-  hash: '98f84fd484f8c2273f28cc645935f650'
+  hash: "98f84fd484f8c2273f28cc645935f650"
   component:
     system*
       stacktrace*
         frame*
           filename (ignored because filename is a URL)
-            u'/foo.js'
+            "/foo.js"
           context-line*
-            u'hello world'
+            "hello world"
           function (function name is not used if context-line is available)
-            u'test'
+            "test"
         frame*
           filename (ignored because filename is a URL)
-            u'/foo.js'
+            "/foo.js"
           context-line*
-            u'hello world'
+            "hello world"
           function (function name is not used if context-line is available)
-            u'test'
+            "test"
         frame
           filename (ignored because filename is a URL)
-            u'/foo.js'
+            "/foo.js"
           context-line (discarded because from URL origin)

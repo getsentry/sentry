@@ -10,9 +10,8 @@ from sentry.api.serializers.models.alert_rule import (
     CombinedRuleSerializer,
 )
 from sentry.models import Rule
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
+from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
-from sentry.snuba.models import QueryAggregations
 from sentry.testutils import TestCase, APITestCase
 
 
@@ -21,19 +20,20 @@ class BaseAlertRuleSerializerTest(object):
         assert result["id"] == six.text_type(alert_rule.id)
         assert result["organizationId"] == six.text_type(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
-        assert result["thresholdType"] == 0
-        assert result["dataset"] == alert_rule.dataset
-        assert result["query"] == alert_rule.query
-        assert result["aggregation"] == alert_rule.aggregation
-        assert result["timeWindow"] == alert_rule.time_window
-        assert result["resolution"] == alert_rule.resolution
-        assert result["alertThreshold"] == 0
-        assert result["resolveThreshold"] == 0
+        assert result["dataset"] == alert_rule.snuba_query.dataset
+        assert result["query"] == alert_rule.snuba_query.query
+        assert result["aggregate"] == alert_rule.snuba_query.aggregate
+        assert result["timeWindow"] == alert_rule.snuba_query.time_window / 60
+        assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["includeAllProjects"] == alert_rule.include_all_projects
         if not skip_dates:
             assert result["dateModified"] == alert_rule.date_modified
             assert result["dateCreated"] == alert_rule.date_added
+        if alert_rule.snuba_query.environment:
+            assert result["environment"] == alert_rule.snuba_query.environment.name
+        else:
+            assert result["environment"] is None
 
     def create_issue_alert_rule(self, data):
         """data format
@@ -70,15 +70,7 @@ class BaseAlertRuleSerializerTest(object):
 
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
-        )
+        alert_rule = self.create_alert_rule()
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
 
@@ -89,6 +81,11 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize([alert_rule, other_alert_rule])
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []
+
+    def test_environment(self):
+        alert_rule = self.create_alert_rule(environment=self.environment)
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result)
 
 
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):

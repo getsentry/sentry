@@ -5,7 +5,6 @@ import datetime
 import jwt
 import time
 
-from django.conf import settings
 from sentry import options
 
 from sentry_plugins.client import ApiClient, AuthApiClient
@@ -44,10 +43,6 @@ class GitHubClient(GitHubClientMixin, AuthApiClient):
         if params is None:
             params = {}
 
-        params.update(
-            {"client_id": settings.GITHUB_APP_ID, "client_secret": settings.GITHUB_API_SECRET}
-        )
-
         return self._request(method, path, auth=None, data=data, params=params)
 
     def get_repo(self, repo):
@@ -81,9 +76,7 @@ class GitHubClient(GitHubClientMixin, AuthApiClient):
         # TODO(jess): remove this whenever it's out of preview
         headers = {"Accept": "application/vnd.github.machine-man-preview+json"}
 
-        params = {"access_token": self.auth.tokens["access_token"]}
-
-        return self._request("GET", "/user/installations", headers=headers, params=params)
+        return self._request("GET", "/user/installations", headers=headers)
 
 
 class GitHubAppsClient(GitHubClientMixin, ApiClient):

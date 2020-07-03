@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 import six
+from six.moves.queue import Queue, Empty
 
 from collections import defaultdict
-from Queue import Queue, Empty
 from threading import Thread
 
 

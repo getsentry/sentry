@@ -5,14 +5,15 @@ import re
 import six
 from collections import defaultdict
 
-from django.conf import settings
 from django.db.models import Q
 
-from sentry import http
 from sentry.api.base import Endpoint
 from sentry.incidents.models import Incident
 from sentry.models import Group, Project
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.web.decorators import transaction_start
 
+from .client import SlackClient
 from .requests import SlackEventRequest, SlackRequestError
 from .utils import build_group_attachment, build_incident_attachment, logger
 
@@ -110,10 +111,12 @@ class SlackEventEndpoint(Endpoint):
         if not results:
             return
 
-        if settings.SLACK_INTEGRATION_USE_WST:
+        # the classic bot tokens must use the user auth token for URL unfurling
+        # we stored the user_access_token there
+        # but for workspace apps and new slack bot tokens, we can just use access_token
+        access_token = integration.metadata.get("user_access_token")
+        if not access_token:
             access_token = integration.metadata["access_token"]
-        else:
-            access_token = integration.metadata["user_access_token"]
 
         payload = {
             "token": access_token,
@@ -122,16 +125,16 @@ class SlackEventEndpoint(Endpoint):
             "unfurls": json.dumps(results),
         }
 
-        session = http.build_session()
-        req = session.post("https://slack.com/api/chat.unfurl", data=payload)
-        req.raise_for_status()
-        resp = req.json()
-        if not resp.get("ok"):
-            logger.error("slack.event.unfurl-error", extra={"response": resp})
+        client = SlackClient()
+        try:
+            client.post("/chat.unfurl", data=payload)
+        except ApiError as e:
+            logger.error("slack.event.unfurl-error", extra={"error": six.text_type(e)})
 
         return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
+    @transaction_start("SlackEventEndpoint")
     def post(self, request):
         try:
             slack_request = SlackEventRequest(request)

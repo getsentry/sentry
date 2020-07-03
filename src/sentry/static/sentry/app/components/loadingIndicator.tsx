@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
+import {withProfiler} from '@sentry/react';
 
 type Props = {
   overlay?: boolean;
@@ -14,7 +15,7 @@ type Props = {
   size?: number;
   className?: string;
   style?: React.CSSProperties;
-  children?: React.ReactChildren;
+  children?: React.ReactNode;
 };
 
 function LoadingIndicator(props: Props) {
@@ -58,7 +59,7 @@ function LoadingIndicator(props: Props) {
     <div className={cx} style={style}>
       {!hideSpinner && (
         <div className={loadingCx} style={loadingStyle}>
-          {finished ? <div className="checkmark draw" /> : null}
+          {finished ? <div className="checkmark draw" style={style} /> : null}
         </div>
       )}
 
@@ -79,4 +80,6 @@ LoadingIndicator.propTypes = {
   hideSpinner: PropTypes.bool,
 };
 
-export default LoadingIndicator;
+export default withProfiler(LoadingIndicator, {
+  includeUpdates: false,
+});

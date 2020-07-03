@@ -8,6 +8,7 @@ import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconDelete, IconAdd} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -31,7 +32,7 @@ class OrganizationApiKeysList extends React.Component {
       <Button
         priority="primary"
         size="small"
-        icon="icon-circle-add"
+        icon={<IconAdd size="xs" isCircled />}
         busy={busy}
         disabled={busy}
         onClick={onAddApiKey}
@@ -111,7 +112,7 @@ class OrganizationApiKeysList extends React.Component {
                         message={t('Are you sure you want to remove this API key?')}
                         title={t('Remove API Key?')}
                       >
-                        <span className="icon-trash" />
+                        <IconDelete size="xs" css={{position: 'relative', top: '2px'}} />
                       </LinkWithConfirmation>
                     </Box>
                   </PanelItem>

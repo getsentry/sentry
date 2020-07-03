@@ -526,7 +526,11 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         )
 
         alert_rule_created.send(
-            user=self.owner, project=self.project, rule=rule, sender=type(self.project)
+            user=self.owner,
+            project=self.project,
+            rule=rule,
+            rule_type="issue",
+            sender=type(self.project),
         )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="alert_rules"

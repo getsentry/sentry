@@ -6,6 +6,9 @@ from sentry.api.serializers import Serializer, register
 from sentry.models import SentryApp
 from sentry.models.sentryapp import MASKED_VALUE
 from sentry.constants import SentryAppStatus
+from sentry.models import IntegrationFeature
+from sentry.api.serializers import serialize
+from sentry.utils.compat import map
 
 
 @register(SentryApp)
@@ -30,10 +33,16 @@ class SentryAppSerializer(Serializer):
             "allowedOrigins": obj.application.get_allowed_origins(),
         }
 
+        data["featureData"] = []
+
+        if obj.status != SentryAppStatus.INTERNAL:
+            features = IntegrationFeature.objects.filter(sentry_app_id=obj.id)
+            data["featureData"] = map(lambda x: serialize(x, user), features)
+
         if obj.status == SentryAppStatus.PUBLISHED and obj.date_published:
             data.update({"datePublished": obj.date_published})
 
-        if is_active_superuser(env.request) or (
+        if (env.request and is_active_superuser(env.request)) or (
             hasattr(user, "get_orgs") and obj.owner in user.get_orgs()
         ):
             client_secret = (

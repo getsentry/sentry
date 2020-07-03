@@ -11,19 +11,17 @@ export const prettyDate = function(x) {
 };
 
 class AdminUsers extends React.Component {
-  getRow = row => {
-    return [
-      <td>
-        <strong>
-          <Link to={`/manage/users/${row.id}/`}>{row.username}</Link>
-        </strong>
-        <br />
-        {row.email !== row.username && <small>{row.email}</small>}
-      </td>,
-      <td style={{textAlign: 'center'}}>{prettyDate(row.dateJoined)}</td>,
-      <td style={{textAlign: 'center'}}>{prettyDate(row.lastLogin)}</td>,
-    ];
-  };
+  getRow = row => [
+    <td>
+      <strong>
+        <Link to={`/manage/users/${row.id}/`}>{row.username}</Link>
+      </strong>
+      <br />
+      {row.email !== row.username && <small>{row.email}</small>}
+    </td>,
+    <td style={{textAlign: 'center'}}>{prettyDate(row.dateJoined)}</td>,
+    <td style={{textAlign: 'center'}}>{prettyDate(row.lastLogin)}</td>,
+  ];
 
   render() {
     const columns = [

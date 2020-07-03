@@ -10,6 +10,7 @@ import pytest
 
 from datetime import datetime
 from django.conf import settings
+from django.utils.text import slugify
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
@@ -18,6 +19,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from six.moves.urllib.parse import quote, urlparse
 
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.compat import map
 
 # if we're not running in a PR, we kill the PERCY_TOKEN because its a push
 # to a branch, and we dont want percy comparing things
@@ -68,12 +70,17 @@ class Browser(object):
         self._has_initialized_cookie_store = True
         return self
 
-    def element(self, selector):
+    def element(self, selector=None, xpath=None):
         """
         Get an element from the page. This method will wait for the element to show up.
         """
-        self.wait_until(selector)
-        return self.driver.find_element_by_css_selector(selector)
+
+        if xpath is not None:
+            self.wait_until(xpath=xpath)
+            return self.driver.find_element_by_xpath(xpath)
+        else:
+            self.wait_until(selector)
+            return self.driver.find_element_by_css_selector(selector)
 
     def element_exists(self, selector):
         """
@@ -99,8 +106,8 @@ class Browser(object):
         """
         return self.element_exists('[aria-label="%s"]' % (selector))
 
-    def click(self, selector):
-        self.element(selector).click()
+    def click(self, selector=None, xpath=None):
+        self.element(selector, xpath=xpath).click()
 
     def click_when_visible(self, selector=None, timeout=3):
         """
@@ -213,8 +220,29 @@ class Browser(object):
                 click.launch(tf.name)
                 time.sleep(1)
 
+        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") == "1":
+            self.save_screenshot(
+                u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
+            )
+
         self.percy.snapshot(name=name)
         return self
+
+    def get_local_storage_items(self):
+        """
+        Retrieve all items in local storage
+        """
+
+        return self.driver.execute_script(
+            "Object.fromEntries(Object.entries(window.localStorage));"
+        )
+
+    def get_local_storage_item(self, key):
+        """
+        Retrieve key from local storage, this will fail if you use single quotes in your keys.
+        """
+
+        return self.driver.execute_script(u"window.localStorage.getItem('{}')".format(key))
 
     def save_cookie(
         self,
@@ -314,7 +342,7 @@ def percy(request):
     return percy
 
 
-@TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,))
+@TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,), log_original_error=True)
 def start_chrome(**chrome_args):
     return webdriver.Chrome(**chrome_args)
 
@@ -322,7 +350,7 @@ def start_chrome(**chrome_args):
 @pytest.fixture(scope="function")
 def browser(request, percy, live_server):
     window_size = request.config.getoption("window_size")
-    window_width, window_height = list(map(int, window_size.split("x", 1)))
+    window_width, window_height = map(int, window_size.split("x", 1))
 
     driver_type = request.config.getoption("selenium_driver")
     headless = not request.config.getoption("no_headless")

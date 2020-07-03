@@ -186,3 +186,19 @@ class OrganizationMemberTest(TestCase):
         member.approve_invite()
         assert member.invite_approved
         member.invite_status == InviteStatus.APPROVED.value
+
+    def test_scopes_with_member_admin_config(self):
+        organization = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=organization, role="member", email="test@example.com",
+        )
+
+        assert "event:admin" in member.get_scopes()
+
+        organization.update_option("sentry:events_member_admin", True)
+
+        assert "event:admin" in member.get_scopes()
+
+        organization.update_option("sentry:events_member_admin", False)
+
+        assert "event:admin" not in member.get_scopes()

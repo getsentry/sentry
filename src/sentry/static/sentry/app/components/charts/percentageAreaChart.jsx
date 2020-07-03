@@ -13,6 +13,15 @@ const FILLER_NAME = '__filler';
  * See https://exceljet.net/chart-type/100-stacked-bar-chart
  */
 export default class PercentageAreaChart extends React.Component {
+  static get defaultProps() {
+    // TODO(billyvg): Move these into BaseChart? or get rid completely
+    return {
+      getDataItemName: ({name}) => name,
+      getValue: ({value}, total) =>
+        !total ? 0 : Math.round((value / total) * 1000) / 10,
+    };
+  }
+
   static propTypes = {
     ...BaseChart.propTypes,
 
@@ -20,22 +29,14 @@ export default class PercentageAreaChart extends React.Component {
     getValue: PropTypes.func,
   };
 
-  static get defaultProps() {
-    // TODO(billyvg): Move these into BaseChart? or get rid completely
-    return {
-      getDataItemName: ({name}) => name,
-      getValue: ({name, value}, total) =>
-        !total ? 0 : Math.round((value / total) * 1000) / 10,
-    };
-  }
-
   getSeries() {
     const {series, getDataItemName, getValue} = this.props;
 
     const totalsArray = series.length
-      ? series[0].data.map(({name, value}, i) => {
-          return [name, series.reduce((sum, {data}) => sum + data[i].value, 0)];
-        })
+      ? series[0].data.map(({name}, i) => [
+          name,
+          series.reduce((sum, {data}) => sum + data[i].value, 0),
+        ])
       : [];
     const totals = new Map(totalsArray);
     return [
@@ -61,8 +62,6 @@ export default class PercentageAreaChart extends React.Component {
       <BaseChart
         {...this.props}
         tooltip={{
-          // Make sure tooltip is inside of chart (because of overflow: hidden)
-          confine: true,
           formatter: seriesParams => {
             // `seriesParams` can be an array or an object :/
             const series = Array.isArray(seriesParams) ? seriesParams : [seriesParams];
@@ -71,15 +70,22 @@ export default class PercentageAreaChart extends React.Component {
             const date =
               `${series.length &&
                 moment(series[0].axisValue).format('MMM D, YYYY')}<br />` || '';
-            return `${date} ${series
-              .filter(
-                ({seriesName, data}) => data[1] > 0.001 && seriesName !== FILLER_NAME
-              )
-              .map(
-                ({marker, seriesName, data}) =>
-                  `${marker} ${seriesName}:  <strong>${data[1]}</strong>%`
-              )
-              .join('<br />')}`;
+
+            return [
+              '<div class="tooltip-series">',
+              series
+                .filter(
+                  ({seriesName, data}) => data[1] > 0.001 && seriesName !== FILLER_NAME
+                )
+                .map(
+                  ({marker, seriesName, data}) =>
+                    `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span> ${data[1]}%</div>`
+                )
+                .join(''),
+              '</div>',
+              `<div class="tooltip-date">${date}</div>`,
+              '<div class="tooltip-arrow"></div>',
+            ].join('');
           },
         }}
         xAxis={{boundaryGap: true}}

@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import IssueListSavedSearchSelector from 'app/views/issueList/savedSearchSelector';
@@ -81,7 +82,7 @@ describe('IssueListSavedSearchSelector', function() {
       const button = wrapper
         .find('MenuItem')
         .at(1)
-        .find('Button[icon="icon-trash"]');
+        .find('button[aria-label="delete"]');
       expect(button).toHaveLength(1);
     });
 
@@ -95,7 +96,7 @@ describe('IssueListSavedSearchSelector', function() {
       const button = wrapper
         .find('MenuItem')
         .at(1)
-        .find('Button[icon="icon-trash"]');
+        .find('button[aria-label="delete"]');
       expect(button).toHaveLength(0);
     });
 
@@ -107,7 +108,7 @@ describe('IssueListSavedSearchSelector', function() {
       const button = wrapper
         .find('MenuItem')
         .first()
-        .find('Button[icon="icon-trash"]');
+        .find('button[aria-label="delete"]');
       expect(button).toHaveLength(0);
     });
 
@@ -119,7 +120,7 @@ describe('IssueListSavedSearchSelector', function() {
       const button = wrapper
         .find('MenuItem')
         .at(1)
-        .find('Button[icon="icon-trash"] button');
+        .find('button[aria-label="delete"]');
       button.simulate('click');
       await wrapper.update();
 

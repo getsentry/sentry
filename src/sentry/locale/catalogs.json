@@ -1,16 +1,16 @@
 {
   "supported_locales": [
-    "bg",
-    "cs",
-    "de",
-    "en",
-    "es",
-    "fi",
-    "fr",
-    "it",
-    "ja",
-    "ru",
-    "zh_CN",
+    "bg", 
+    "cs", 
+    "de", 
+    "en", 
+    "es", 
+    "fi", 
+    "fr", 
+    "it", 
+    "ja", 
+    "ru", 
+    "zh_CN", 
     "zh_TW"
   ]
 }

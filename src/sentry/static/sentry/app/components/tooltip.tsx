@@ -7,27 +7,25 @@ import styled from '@emotion/styled';
 
 import {domId} from 'app/utils/domId';
 
-type Props = {
-  children: React.ReactElement;
+const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
+
+type DefaultProps = {
+  position: PopperJS.Placement;
+  containerDisplayMode: React.CSSProperties['display'];
+};
+
+type Props = DefaultProps & {
+  children: React.ReactNode;
   disabled?: boolean;
   title: React.ReactNode;
-  position: PopperJS.Placement;
   popperStyle?: React.CSSProperties;
-  containerDisplayMode?: React.CSSProperties['display'];
   delay?: number;
+  isHoverable?: boolean;
 };
 
 type State = {
   isOpen: boolean;
 };
-
-// Using an inline-block solves the container being smaller
-// than the elements it is wrapping
-const Container = styled('span')<{
-  containerDisplayMode?: React.CSSProperties['display'];
-}>`
-  ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
-`;
 
 class Tooltip extends React.Component<Props, State> {
   static propTypes = {
@@ -65,20 +63,21 @@ class Tooltip extends React.Component<Props, State> {
     /**
      * Display mode for the container element
      */
-    containerDisplayMode: PropTypes.oneOf([
-      'block',
-      'inline-block',
-      'inline',
-      'inline-flex',
-    ]),
+    containerDisplayMode: PropTypes.string,
 
     /**
      * Time to wait (in milliseconds) before showing the tooltip
      */
     delay: PropTypes.number,
+
+    /**
+     * If true, user is able to hover tooltip without it disappearing.
+     * (nice if you want to be able to copy tooltip contents to clipboard)
+     */
+    isHoverable: PropTypes.bool,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     position: 'top',
     containerDisplayMode: 'inline-block',
   };
@@ -102,31 +101,47 @@ class Tooltip extends React.Component<Props, State> {
   portalEl: HTMLElement;
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
+  delayHideTimeout: number | null = null;
 
   setOpen = () => {
     this.setState({isOpen: true});
   };
 
-  handleOpen = () => {
-    const {delay} = this.props;
+  setClose = () => {
+    this.setState({isOpen: false});
+  };
 
-    if (delay) {
-      this.delayTimeout = window.setTimeout(this.setOpen, delay);
+  handleOpen = () => {
+    const {delay, isHoverable} = this.props;
+
+    if (this.delayHideTimeout) {
+      window.clearTimeout(this.delayHideTimeout);
+      this.delayHideTimeout = null;
+    }
+
+    if (delay || isHoverable) {
+      this.delayTimeout = window.setTimeout(this.setOpen, delay || IS_HOVERABLE_DELAY);
     } else {
       this.setOpen();
     }
   };
 
   handleClose = () => {
-    this.setState({isOpen: false});
+    const {isHoverable} = this.props;
 
     if (this.delayTimeout) {
       window.clearTimeout(this.delayTimeout);
       this.delayTimeout = null;
     }
+
+    if (isHoverable) {
+      this.delayHideTimeout = window.setTimeout(this.setClose, IS_HOVERABLE_DELAY);
+    } else {
+      this.setClose();
+    }
   };
 
-  renderTrigger(children: React.ReactElement, ref: React.Ref<HTMLElement>) {
+  renderTrigger(children: React.ReactNode, ref: React.Ref<HTMLElement>) {
     const propList: {[key: string]: any} = {
       'aria-describedby': this.tooltipId,
       onFocus: this.handleOpen,
@@ -140,7 +155,7 @@ class Tooltip extends React.Component<Props, State> {
     // Because we can't rely on the child element implementing forwardRefs we wrap
     // it with a span tag so that popper has ref
 
-    if (typeof children.type === 'string') {
+    if (React.isValidElement(children) && typeof children.type === 'string') {
       // Basic DOM nodes can be cloned and have more props applied.
       return React.cloneElement(children, {
         ...propList,
@@ -157,9 +172,9 @@ class Tooltip extends React.Component<Props, State> {
   }
 
   render() {
-    const {disabled, children, title, position, popperStyle} = this.props;
+    const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
     const {isOpen} = this.state;
-    if (disabled || title === '') {
+    if (disabled) {
       return children;
     }
 
@@ -183,8 +198,11 @@ class Tooltip extends React.Component<Props, State> {
               aria-hidden={!isOpen}
               ref={ref}
               style={style}
+              hide={!title}
               data-placement={placement}
               popperStyle={popperStyle}
+              onMouseEnter={() => isHoverable && this.handleOpen()}
+              onMouseLeave={() => isHoverable && this.handleClose()}
             >
               {title}
               <TooltipArrow
@@ -208,7 +226,16 @@ class Tooltip extends React.Component<Props, State> {
   }
 }
 
-const TooltipContent = styled('div')<Pick<Props, 'popperStyle'>>`
+// Using an inline-block solves the container being smaller
+// than the elements it is wrapping
+const Container = styled('span')<{
+  containerDisplayMode?: React.CSSProperties['display'];
+}>`
+  ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
+  max-width: 100%;
+`;
+
+const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
   color: #fff;
   background: #000;
   opacity: 0.9;
@@ -226,6 +253,7 @@ const TooltipContent = styled('div')<Pick<Props, 'popperStyle'>>`
   margin: 6px;
   text-align: center;
   ${p => p.popperStyle as any};
+  ${p => p.hide && `display: none`};
 `;
 
 const TooltipArrow = styled('span')`

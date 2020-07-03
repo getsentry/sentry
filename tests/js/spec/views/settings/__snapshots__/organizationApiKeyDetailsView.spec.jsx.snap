@@ -54,7 +54,7 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
           submitDisabled={false}
           submitErrorMessage="There was an error saving your changes."
           submitLabel="Save Changes"
-          submitLoadingMessage="Saving changes.."
+          submitLoadingMessage="Saving changes…"
         >
           <StyledForm
             className="form-stacked"
@@ -64,106 +64,76 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
               className="form-stacked css-1z07nlv-StyledForm e18zovyk0"
               onSubmit={[Function]}
             >
-              <SplitLayout
-                splitWidth={15}
-              >
-                <SpreadLayout
-                  className="split-layout"
+              <SplitInput>
+                <div
+                  className="css-1xi4wyb-SplitInput e197x9p40"
                 >
-                  <div
-                    className="spread-layout split-layout center"
+                  <TextField
+                    disabled={false}
+                    hideErrorMessage={false}
+                    label="Label"
+                    name="label"
+                    required={false}
                   >
-                    <TextField
-                      className="split-layout-child"
-                      disabled={false}
-                      hideErrorMessage={false}
-                      key=".0"
-                      label="Label"
-                      name="label"
-                      required={false}
-                      style={
-                        Object {
-                          "marginRight": 15,
-                        }
-                      }
+                    <div
+                      className="control-group"
                     >
                       <div
-                        className="split-layout-child control-group"
-                        style={
-                          Object {
-                            "marginRight": 15,
-                          }
-                        }
+                        className="controls"
                       >
-                        <div
-                          className="controls"
+                        <label
+                          className="control-label"
+                          htmlFor="id-label"
                         >
-                          <label
-                            className="control-label"
-                            htmlFor="id-label"
-                          >
-                            Label
-                          </label>
-                          <input
-                            className="form-control"
-                            disabled={false}
-                            id="id-label"
-                            name="label"
-                            onChange={[Function]}
-                            required={false}
-                            type="text"
-                            value="Default"
-                          />
-                        </div>
+                          Label
+                        </label>
+                        <input
+                          className="form-control"
+                          disabled={false}
+                          id="id-label"
+                          name="label"
+                          onChange={[Function]}
+                          required={false}
+                          type="text"
+                          value="Default"
+                        />
                       </div>
-                    </TextField>
-                    <TextField
-                      className="split-layout-child"
-                      disabled={true}
-                      hideErrorMessage={false}
-                      key=".1"
-                      label="API Key"
-                      name="key"
-                      required={false}
-                      style={
-                        Object {
-                          "marginRight": undefined,
-                        }
-                      }
+                    </div>
+                  </TextField>
+                  <TextField
+                    disabled={true}
+                    hideErrorMessage={false}
+                    label="API Key"
+                    name="key"
+                    required={false}
+                  >
+                    <div
+                      className="control-group"
                     >
                       <div
-                        className="split-layout-child control-group"
-                        style={
-                          Object {
-                            "marginRight": undefined,
-                          }
-                        }
+                        className="controls"
                       >
-                        <div
-                          className="controls"
+                        <label
+                          className="control-label"
+                          htmlFor="id-key"
                         >
-                          <label
-                            className="control-label"
-                            htmlFor="id-key"
-                          >
-                            API Key
-                          </label>
-                          <input
-                            className="form-control"
-                            disabled={true}
-                            id="id-key"
-                            name="key"
-                            onChange={[Function]}
-                            required={false}
-                            type="text"
-                            value="aa624bcc12024702a202cd90be5feda0"
-                          />
-                        </div>
+                          API Key
+                        </label>
+                        <input
+                          className="form-control"
+                          disabled={true}
+                          id="id-key"
+                          name="key"
+                          onChange={[Function]}
+                          required={false}
+                          type="text"
+                          value="aa624bcc12024702a202cd90be5feda0"
+                        />
                       </div>
-                    </TextField>
-                  </div>
-                </SpreadLayout>
-              </SplitLayout>
+                    </div>
+                  </TextField>
+                </div>
+              </SplitInput>
               <MultipleCheckboxField
                 choices={
                   Array [
@@ -237,7 +207,6 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                     ],
                   ]
                 }
-                className="api-key-details"
                 disabled={false}
                 hideErrorMessage={false}
                 label="Scopes"
@@ -245,7 +214,7 @@ exports[`OrganizationApiKeyDetails renders 1`] = `
                 required={true}
               >
                 <div
-                  className="api-key-details control-group"
+                  className="control-group"
                 >
                   <div
                     className="required"

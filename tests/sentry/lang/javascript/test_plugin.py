@@ -3,22 +3,26 @@
 from __future__ import absolute_import
 
 import os.path
+import pytest
 import responses
+
+from base64 import b64encode
+
 from sentry.utils.compat.mock import patch
-
-from sentry import eventstore
 from sentry.models import File, Release, ReleaseFile
-from sentry.testutils import TestCase, SnubaTestCase
+from sentry.testutils import TestCase, SnubaTestCase, SentryStoreHelper
+
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils import json
 
-
+# TODO(joshuarli): six 1.12.0 adds ensure_binary
+# might also want to put this in utils since we pretty much expect the result to be py3 str and not bytes
 BASE64_SOURCEMAP = "data:application/json;base64," + (
-    '{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":["console.log(\\"hello, World!\\")"]}'.encode(
-        "base64"
-    ).replace(
-        "\n", ""
+    b64encode(
+        u'{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":['
+        '"console.log(\\"hello, World!\\")"]}'.encode("utf-8")
     )
+    .decode("utf-8")
+    .replace("\n", "")
 )
 
 
@@ -31,13 +35,10 @@ def load_fixture(name):
         return fp.read()
 
 
-class JavascriptIntegrationTest(TestCase, SnubaTestCase):
+class JavascriptIntegrationTest(SnubaTestCase):
     def setUp(self):
         super(JavascriptIntegrationTest, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))
-
-    def get_event(self, event_id):
-        return eventstore.get_event_by_id(self.project.id, event_id)
 
     def test_adds_contexts_without_device(self):
         data = {
@@ -49,28 +50,28 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
                 "headers": [
                     [
                         "User-Agent",
-                        "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36",
+                        "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/28.0.1500.72 Safari/537.36",
                     ]
                 ],
             },
         }
 
-        # We do a preflight post, because there are many queries polluting the array
-        # before the actual "processing" happens (like, auth_user)
-        self._postWithHeader(data)
-        with self.assertWriteQueries(
-            {
-                "nodestore_node": 2,
-                "sentry_eventuser": 1,
-                "sentry_groupedmessage": 1,
-                "sentry_userreport": 1,
-            },
-            debug=True,
-        ):  # debug=True is for coverage
-            resp = self._postWithHeader(data)
-        assert resp.status_code, 200
-
-        event = self.get_event(json.loads(resp.content)["id"])
+        event = self.post_and_retrieve_event(data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                },
+                debug=True,
+            ):  # debug=True is for coverage
+                self._postWithHeader(data)
 
         contexts = event.interfaces["contexts"].to_json()
         assert contexts.get("os") == {"name": "Windows", "version": "8", "type": "os"}
@@ -86,16 +87,15 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
                 "headers": [
                     [
                         "User-Agent",
-                        "Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U",
+                        "Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 ("
+                        "KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U",
                     ]
                 ],
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         contexts = event.interfaces["contexts"].to_json()
         assert contexts.get("os") == {"name": "Android", "type": "os", "version": "4.3"}
         assert contexts.get("browser") == {"name": "Android", "type": "browser", "version": "4.3"}
@@ -122,10 +122,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         contexts = event.interfaces["contexts"].to_json()
         assert contexts.get("os") is None
         assert contexts.get("browser") is None
@@ -171,8 +169,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         mock_fetch_file.return_value.encoding = None
         mock_fetch_file.return_value.headers = {}
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
         mock_fetch_file.assert_called_once_with(
             "http://example.com/foo.js",
@@ -182,7 +179,6 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             allow_scraping=True,
         )
 
-        event = self.get_event(json.loads(resp.content)["id"])
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
@@ -231,8 +227,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         mock_fetch_file.return_value.body = "\n".join("<generated source>")
         mock_fetch_file.return_value.encoding = None
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
         mock_fetch_file.assert_called_once_with(
             "http://example.com/test.min.js",
@@ -242,7 +237,6 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             allow_scraping=True,
         )
 
-        event = self.get_event(json.loads(resp.content)["id"])
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
@@ -259,23 +253,22 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             "message": "hello",
             "platform": "javascript",
             "logentry": {
-                "formatted": u"ReferenceError: Impossible de d\xe9finir une propri\xe9t\xe9 \xab foo \xbb : objet non extensible"
+                "formatted": u"ReferenceError: Impossible de d\xe9finir une propri\xe9t\xe9 \xab foo \xbb : objet non "
+                u"extensible"
             },
             "exception": {
                 "values": [
                     {"type": "Error", "value": u"P\u0159\xedli\u0161 mnoho soubor\u016f"},
                     {
                         "type": "Error",
-                        "value": u"foo: wyst\u0105pi\u0142 nieoczekiwany b\u0142\u0105d podczas pr\xf3by uzyskania informacji o metadanych",
+                        "value": u"foo: wyst\u0105pi\u0142 nieoczekiwany b\u0142\u0105d podczas pr\xf3by uzyskania "
+                        u"informacji o metadanych",
                     },
                 ]
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
-
-        event = self.get_event(json.loads(resp.content)["id"])
+        event = self.post_and_retrieve_event(data)
 
         message = event.interfaces["logentry"]
         assert (
@@ -350,10 +343,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert event.data["errors"] == [
             {"type": "js_no_source", "url": "http//example.com/index.html"}
         ]
@@ -372,7 +363,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         assert not raw_frame.pre_context
         assert (
             raw_frame.context_line
-            == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multip {snip}'
+            == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
+            'divide(a,b){"use strict";try{return multip {snip}'
         )
         assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js"]
         assert raw_frame.lineno == 1
@@ -429,10 +421,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert event.data["errors"] == [
             {"type": "js_no_source", "url": "http//example.com/index.html"}
         ]
@@ -491,10 +481,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert "errors" not in event.data
 
         exception = event.interfaces["exception"]
@@ -568,10 +556,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert "errors" not in event.data
 
         exception = event.interfaces["exception"]
@@ -589,7 +575,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         assert not raw_frame.pre_context
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}'
         assert raw_frame.post_context == [
-            'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply(add(a,b),a,b)/c}catch(e){Raven.captureE {snip}',
+            'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
+            "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}",
             "//# sourceMappingURL=indexed.sourcemap.js",
             "",
         ]
@@ -610,7 +597,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         assert raw_frame.pre_context == ['function add(a,b){"use strict";return a+b}']
         assert (
             raw_frame.context_line
-            == 'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply(add(a,b),a,b)/c}catch(e){Raven.captureE {snip}'
+            == 'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply('
+            "add(a,b),a,b)/c}catch(e){Raven.captureE {snip}"
         )
         assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js", ""]
         assert raw_frame.lineno == 2
@@ -729,10 +717,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert "errors" not in event.data
 
         exception = event.interfaces["exception"]
@@ -875,10 +861,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert "errors" not in event.data
 
         exception = event.interfaces["exception"]
@@ -951,10 +935,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert event.data["errors"] == [
             {"url": u"http://example.com/file1.js", "type": "fetch_invalid_http_code", "value": 404}
         ]
@@ -1016,10 +998,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert event.data["errors"] == [
             {"url": u"http://example.com/unsupported.sourcemap.js", "type": "js_invalid_source"}
         ]
@@ -1048,10 +1028,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert event.data["errors"] == [{"url": u"<data url>", "type": "js_no_source"}]
 
     @responses.activate
@@ -1089,10 +1067,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code == 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert "errors" not in event.data
 
     @responses.activate
@@ -1150,14 +1126,48 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         assert event.data["errors"] == [
             {"url": u"http://example.com/file1.js", "type": "js_invalid_content"},
             {"url": u"http://example.com/file2.js", "type": "js_invalid_content"},
         ]
+
+    @responses.activate
+    def test_html_file_with_query_param_ending_with_js_extension(self):
+        responses.add(
+            responses.GET,
+            "http://example.com/file.html",
+            body=(
+                "<!doctype html><html><head></head><body><script>/*legit case*/</script></body></html>"
+            ),
+        )
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.html?sw=iddqd1337.js",
+                                    "filename": "file.html",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
 
     def test_node_processing(self):
         project = self.project
@@ -1246,10 +1256,7 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
-
-        event = self.get_event(json.loads(resp.content)["id"])
+        event = self.post_and_retrieve_event(data)
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -1357,10 +1364,8 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
             },
         }
 
-        resp = self._postWithHeader(data)
-        assert resp.status_code, 200
+        event = self.post_and_retrieve_event(data)
 
-        event = self.get_event(json.loads(resp.content)["id"])
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
 
@@ -1370,3 +1375,10 @@ class JavascriptIntegrationTest(TestCase, SnubaTestCase):
         # None of the in app should update
         for x in range(6):
             assert not frame_list[x].in_app
+
+
+@pytest.mark.sentry_store_integration
+class JavascriptIntegrationTestLegacy(SentryStoreHelper, TestCase, JavascriptIntegrationTest):
+    def setUp(self):
+        super(JavascriptIntegrationTestLegacy, self).setUp()
+        self.min_ago = iso_format(before_now(minutes=1))

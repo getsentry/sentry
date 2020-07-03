@@ -13,10 +13,10 @@ class OrganizationAuth extends AsyncView {
     organization: SentryTypes.Organization,
   };
 
-  componentWillUpdate(_nextProps, nextState) {
+  UNSAFE_componentWillUpdate(_nextProps, nextState) {
     const access = this.context.organization.access;
 
-    if (nextState.provider && access.includes('org:admin')) {
+    if (nextState.provider && access.includes('org:write')) {
       // If SSO provider is configured, keep showing loading while we redirect
       // to django configuration view
       window.location.assign(`/organizations/${this.props.params.orgId}/auth/configure/`);
@@ -95,7 +95,7 @@ class OrganizationAuth extends AsyncView {
     const {providerList, provider} = this.state;
     const access = this.context.organization.access;
 
-    if (access.includes('org:admin') && provider) {
+    if (access.includes('org:write') && provider) {
       // If SSO provider is configured, keep showing loading while we redirect
       // to django configuration view
       return this.renderLoading();

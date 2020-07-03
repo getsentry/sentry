@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+
 import InputField from 'app/components/forms/inputField';
 
 export default class NumberField extends InputField {
@@ -8,7 +9,7 @@ export default class NumberField extends InputField {
     max: PropTypes.number,
   };
 
-  coerceValue(value, prevValue) {
+  coerceValue(value) {
     const intValue = parseInt(value, 10);
 
     // return previous value if new value is NaN, otherwise, will get recursive error

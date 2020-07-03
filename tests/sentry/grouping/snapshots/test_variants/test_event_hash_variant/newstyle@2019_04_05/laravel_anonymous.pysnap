@@ -1,48 +1,48 @@
 ---
-created: '2020-01-15T14:24:41.163911Z'
+created: '2020-02-26T19:54:31.833190Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '6c99fc6b18e4fa4040a94e10729969db'
+  hash: "6c99fc6b18e4fa4040a94e10729969db"
   component:
     app*
       exception*
         stacktrace*
           frame*
             filename*
-              u'server.php'
+              "server.php"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function (ignored anonymous function)
-              u'class@anonymous\x00/var/www/html/dummy.php0x7190ad3c35cf::run'
+              "class@anonymous\u0000/var/www/html/dummy.php0x7190ad3c35cf::run"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
         type*
-          u'Exception'
+          "Exception"
 --------------------------------------------------------------------------
 system:
-  hash: '64809e005de3afd90f703a70e36a2591'
+  hash: "64809e005de3afd90f703a70e36a2591"
   component:
     system*
       exception*
         stacktrace*
           frame*
             filename*
-              u'server.php'
+              "server.php"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function (ignored anonymous function)
-              u'class@anonymous\x00/var/www/html/dummy.php0x7190ad3c35cf::run'
+              "class@anonymous\u0000/var/www/html/dummy.php0x7190ad3c35cf::run"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
         type*
-          u'Exception'
+          "Exception"

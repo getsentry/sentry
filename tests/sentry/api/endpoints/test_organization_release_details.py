@@ -102,6 +102,35 @@ class ReleaseDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
 
+    def test_wrong_project(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team1], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+
+        response = self.client.get(url, {"project": project2.id})
+        assert response.status_code == 404
+
+        response = self.client.get(url, {"project": project.id})
+        assert response.status_code == 200
+
 
 class UpdateReleaseDetailsTest(APITestCase):
     @patch("sentry.tasks.commits.fetch_commits")

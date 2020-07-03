@@ -6,7 +6,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.models import (
     Deploy,
     LatestRepoReleaseEnvironment,
@@ -14,6 +14,7 @@ from sentry.models import (
     ReleaseHeadCommit,
     Repository,
     User,
+    OrganizationMember,
 )
 from sentry.plugins.base import bindings
 from sentry.tasks.base import instrumented_task, retry
@@ -38,8 +39,8 @@ def generate_invalid_identity_email(identity, commit_failure=False):
     )
 
 
-def generate_fetch_commits_error_email(release, error_message):
-    new_context = {"release": release, "error_message": error_message}
+def generate_fetch_commits_error_email(release, repo, error_message):
+    new_context = {"release": release, "error_message": error_message, "repo": repo}
 
     return MessageBuilder(
         subject="Unable to Fetch Commits",
@@ -132,7 +133,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                 repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
         except NotImplementedError:
             pass
-        except Exception as exc:
+        except Exception as e:
             logger.info(
                 "fetch_commits.error",
                 extra={
@@ -140,21 +141,23 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                     "user_id": user_id,
                     "repository": repo.name,
                     "provider": provider.id,
-                    "error": six.text_type(exc),
+                    "error": six.text_type(e),
                     "end_sha": end_sha,
                     "start_sha": start_sha,
                 },
             )
-            if isinstance(exc, InvalidIdentity) and getattr(exc, "identity", None):
-                handle_invalid_identity(identity=exc.identity, commit_failure=True)
-            elif isinstance(exc, (PluginError, InvalidIdentity, IntegrationError)):
-                msg = generate_fetch_commits_error_email(release, exc.message)
-                msg.send_async(to=[user.email])
+            if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
+                handle_invalid_identity(identity=e.identity, commit_failure=True)
+            elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
+                msg = generate_fetch_commits_error_email(release, repo, six.text_type(e))
+                emails = get_emails_for_user_or_org(user, release.organization_id)
+                msg.send_async(to=emails)
             else:
                 msg = generate_fetch_commits_error_email(
-                    release, "An internal system error occurred."
+                    release, repo, "An internal system error occurred."
                 )
-                msg.send_async(to=[user.email])
+                emails = get_emails_for_user_or_org(user, release.organization_id)
+                msg.send_async(to=emails)
         else:
             logger.info(
                 "fetch_commits.complete",
@@ -220,3 +223,17 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
 def is_integration_provider(provider):
     return provider and provider.startswith("integrations:")
+
+
+def get_emails_for_user_or_org(user, orgId):
+    emails = []
+    if user.is_sentry_app:
+        members = OrganizationMember.objects.filter(
+            organization_id=orgId, role="owner", user_id__isnull=False
+        ).select_related("user")
+        for m in list(members):
+            emails.append(m.user.email)
+    else:
+        emails = [user.email]
+
+    return emails

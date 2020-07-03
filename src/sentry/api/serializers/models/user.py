@@ -5,6 +5,7 @@ import six
 from collections import defaultdict
 from django.conf import settings
 
+from sentry import experiments
 from sentry.app import env
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
@@ -22,10 +23,10 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.utils.avatar import get_gravatar_url
 
 
-def manytoone_to_dict(queryset, key, filter=None):
+def manytoone_to_dict(queryset, key, filter_func=None):
     result = defaultdict(list)
     for row in queryset:
-        if filter and not filter(row):
+        if filter_func and not filter_func(row):
             continue
         result[getattr(row, key)].append(row)
     return result
@@ -64,6 +65,8 @@ class UserSerializer(Serializer):
         return data
 
     def serialize(self, obj, attrs, user):
+        experiment_assignments = experiments.all(user=user)
+
         d = {
             "id": six.text_type(obj.id),
             "name": obj.get_display_name(),
@@ -79,6 +82,7 @@ class UserSerializer(Serializer):
             "lastActive": obj.last_active,
             "isSuperuser": obj.is_superuser,
             "isStaff": obj.is_staff,
+            "experiments": experiment_assignments,
         }
 
         if obj == user:

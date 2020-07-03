@@ -1,34 +1,30 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import pick from 'lodash/pick';
+import {withProfiler} from '@sentry/react';
 
 import {PageContent} from 'app/styles/organization';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
+import {tn} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
-import profiler from 'app/utils/profiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import ReleaseHeader from './releaseHeader';
 
-const ReleaseDetailsContainer = props => {
-  return (
-    <React.Fragment>
-      <GlobalSelectionHeader organization={props.organization} />
+const ReleaseDetailsContainer = props => (
+  <React.Fragment>
+    <GlobalSelectionHeader>
       <OrganizationReleaseDetails {...props} />
-    </React.Fragment>
-  );
-};
-ReleaseDetailsContainer.propTypes = {
-  organization: SentryTypes.Organization,
-};
+    </GlobalSelectionHeader>
+  </React.Fragment>
+);
 
 class OrganizationReleaseDetails extends AsyncView {
   static propTypes = {
@@ -56,14 +52,14 @@ class OrganizationReleaseDetails extends AsyncView {
 
   getTitle() {
     const {
-      params: {version},
+      params: {release},
       organization,
     } = this.props;
-    return `Release ${version} | ${organization.slug}`;
+    return `Release ${release} | ${organization.slug}`;
   }
 
   getEndpoints() {
-    const {orgId, version} = this.props.params;
+    const {orgId, release} = this.props.params;
     const {project} = this.props.location.query;
     const query = {};
     if (project !== undefined) {
@@ -72,17 +68,48 @@ class OrganizationReleaseDetails extends AsyncView {
     return [
       [
         'release',
-        `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
+        `/organizations/${orgId}/releases/${encodeURIComponent(release)}/`,
         {query},
       ],
     ];
   }
 
+  renderError(error, disableLog = false, disableReport = false) {
+    const has404Errors = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 404
+    );
+    if (has404Errors) {
+      // This catches a 404 coming from the release endpoint and displays a custom error message.
+      const {projects: allProjects} = this.props;
+      const {projects: projectsFromSelection} = this.props.selection;
+
+      // It's possible that `allProjects` is not fully loaded yet
+      const selectedProjects = projectsFromSelection
+        .map(selectedProjectId =>
+          allProjects.find(({id}) => parseInt(id, 10) === selectedProjectId)
+        )
+        .filter(Boolean);
+
+      return (
+        <PageContent>
+          <Alert type="error" icon="icon-circle-exclamation">
+            {tn(
+              'This release may not be in your selected project',
+              'This release may not be in your selected projects',
+              projectsFromSelection.length
+            )}
+            {selectedProjects.length
+              ? `: ${selectedProjects.map(({slug}) => slug).join(', ')}`
+              : ''}
+          </Alert>
+        </PageContent>
+      );
+    }
+    return super.renderError(error, disableLog, disableReport);
+  }
+
   renderBody() {
-    const {
-      location,
-      params: {orgId},
-    } = this.props;
+    const {location, organization} = this.props;
     const {release} = this.state;
 
     const query = pick(location.query, Object.values(URL_PARAM));
@@ -96,7 +123,7 @@ class OrganizationReleaseDetails extends AsyncView {
 
     return (
       <PageContent>
-        <ReleaseHeader release={release} orgId={orgId} />
+        <ReleaseHeader release={release} organization={organization} />
         {React.cloneElement(this.props.children, {
           release,
           query,
@@ -104,37 +131,8 @@ class OrganizationReleaseDetails extends AsyncView {
       </PageContent>
     );
   }
-
-  renderError(error, disableLog = false, disableReport = false) {
-    const has404Errors = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 404
-    );
-    if (has404Errors) {
-      // This catches a 404 coming from the release endpoint and displays a custom error message.
-      const {projects: all_projects} = this.props;
-      const {projects: selected_projects} = this.props.selection;
-
-      return (
-        <PageContent>
-          <Alert type="error" icon="icon-circle-exclamation">
-            {t(
-              'This release may not be in your selected project' +
-                (selected_projects.length > 1 ? 's' : '')
-            )}
-            :{' '}
-            {selected_projects
-              .map(p => {
-                return all_projects.find(pp => parseInt(pp.id, 10) === p).name;
-              })
-              .join(', ')}
-          </Alert>
-        </PageContent>
-      );
-    }
-    return super.renderError(error, disableLog, disableReport);
-  }
 }
 
 export default withProjects(
-  withOrganization(withGlobalSelection(profiler()(ReleaseDetailsContainer)))
+  withOrganization(withGlobalSelection(withProfiler(ReleaseDetailsContainer)))
 );

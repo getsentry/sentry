@@ -2,11 +2,13 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
+import {text, boolean} from '@storybook/addon-knobs';
 
 import FileSize from 'app/components/fileSize';
 import Duration from 'app/components/duration';
 import DateTime from 'app/components/dateTime';
 import Count from 'app/components/count';
+import Version from 'app/components/version';
 
 storiesOf('Utility|Formatters', module)
   .add(
@@ -56,31 +58,35 @@ storiesOf('Utility|Formatters', module)
   )
   .add(
     'Duration',
-    withInfo('Formats number of seconds into a duration string')(() => (
-      <div>
+    withInfo('Formats number of seconds into a duration string')(() => {
+      const exact = boolean('exact', false);
+      const abbreviation = boolean('abbreviation', false);
+      return (
         <div>
-          <Duration seconds={15} />
+          <div>
+            <Duration seconds={15} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={60} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={15000} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={86400} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={186400} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={604800} exact={exact} abbreviation={abbreviation} />
+          </div>
+          <div>
+            <Duration seconds={1500000} exact={exact} abbreviation={abbreviation} />
+          </div>
         </div>
-        <div>
-          <Duration seconds={60} />
-        </div>
-        <div>
-          <Duration seconds={15000} />
-        </div>
-        <div>
-          <Duration seconds={86400} />
-        </div>
-        <div>
-          <Duration seconds={186400} />
-        </div>
-        <div>
-          <Duration seconds={604800} />
-        </div>
-        <div>
-          <Duration seconds={1500000} />
-        </div>
-      </div>
-    ))
+      );
+    })
   )
   .add(
     'Count',
@@ -100,4 +106,32 @@ storiesOf('Utility|Formatters', module)
         </div>
       </div>
     ))
+  )
+  .add(
+    'Version',
+    withInfo('Formats release version')(() => {
+      const version = text('version', 'foo.bar.Baz@1.0.0+20200101');
+      const anchor = boolean('anchor', true);
+      const preserveGlobalSelection = boolean('preserveGlobalSelection', false);
+      const tooltipRawVersion = boolean('tooltipRawVersion', true);
+      const withPackage = boolean('withPackage', false);
+      const truncate = boolean('truncate', false);
+      const projectId = text('projectId', '');
+      const className = text('className', 'asdsad');
+      return (
+        <div>
+          {version} =
+          <Version
+            version={version}
+            anchor={anchor}
+            preserveGlobalSelection={preserveGlobalSelection}
+            tooltipRawVersion={tooltipRawVersion}
+            withPackage={withPackage}
+            projectId={projectId}
+            truncate={truncate}
+            className={className}
+          />
+        </div>
+      );
+    })
   );

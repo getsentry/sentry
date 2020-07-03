@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import ProjectKeys from 'app/views/settings/project/projectKeys/list';
 
 describe('ProjectKeys', function() {

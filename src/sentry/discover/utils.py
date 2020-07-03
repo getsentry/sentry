@@ -6,6 +6,7 @@ from sentry.utils.snuba import Dataset, aliased_query, get_snuba_column_name, ge
 
 # TODO(mark) Once this import is removed, transform_results should not
 # be exported.
+from sentry import eventstore
 from sentry.snuba.discover import transform_results
 
 
@@ -144,4 +145,10 @@ def transform_aliases_and_query(**kwargs):
 
     result = aliased_query(**kwargs)
 
-    return transform_results(result, translated_columns, kwargs)
+    snuba_filter = eventstore.Filter(
+        rollup=kwargs.get("rollup"),
+        start=kwargs.get("start"),
+        end=kwargs.get("end"),
+        orderby=kwargs.get("orderby"),
+    )
+    return transform_results(result, translated_columns, snuba_filter)

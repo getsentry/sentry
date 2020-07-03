@@ -32,7 +32,7 @@ class EventAttachment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_eventattachment"
-        index_together = (("project_id", "date_added"),)
+        index_together = (("project_id", "date_added"), ("project_id", "date_added", "file"))
         unique_together = (("project_id", "event_id", "file"),)
 
     __repr__ = sane_repr("event_id", "name", "file_id")

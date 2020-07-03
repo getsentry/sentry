@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mount} from 'sentry-test/enzyme';
 
 import Access from 'app/components/acl/access';
@@ -30,7 +31,7 @@ describe('Access', function() {
       });
     });
 
-    it('has accesss', function() {
+    it('has access', function() {
       mount(
         <Access access={['project:write', 'project:read']}>{childrenMock}</Access>,
         routerContext

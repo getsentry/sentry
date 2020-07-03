@@ -7,7 +7,7 @@ import {Integration} from 'app/types';
 
 type Props = {
   integration: Integration;
-  size: number;
+  size?: number;
 };
 
 type IconProps = Pick<Props, 'size'>;
@@ -39,7 +39,7 @@ class Icon extends React.Component<Props> {
   }
 }
 
-const IntegrationIcon = ({integration, size}: Props) =>
+const IntegrationIcon = ({integration, size = 32}: Props) =>
   integration.icon ? (
     <Icon size={size} integration={integration} />
   ) : (
@@ -49,10 +49,6 @@ const IntegrationIcon = ({integration, size}: Props) =>
 IntegrationIcon.propTypes = {
   integration: PropTypes.object.isRequired,
   size: PropTypes.number,
-};
-
-IntegrationIcon.defaultProps = {
-  size: 32,
 };
 
 export default IntegrationIcon;

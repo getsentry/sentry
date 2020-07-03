@@ -102,9 +102,7 @@ class GroupHeader extends React.Component {
         <div className="row">
           <div className="col-sm-7">
             <h3>
-              <GuideAnchor target="issue_title">
-                <EventOrGroupTitle data={group} />
-              </GuideAnchor>
+              <EventOrGroupTitle hasGuideAnchor data={group} />
             </h3>
 
             <EventMessage
@@ -138,8 +136,8 @@ class GroupHeader extends React.Component {
           <div className="col-sm-5 stats">
             <div className="flex flex-justify-right">
               {group.shortId && (
-                <div className="short-id-box count align-right">
-                  <GuideAnchor target="issue_number" position="right">
+                <GuideAnchor target="issue_number" position="bottom">
+                  <div className="short-id-box count align-right">
                     <h6 className="nav-header">
                       <Tooltip
                         title={t(
@@ -155,14 +153,14 @@ class GroupHeader extends React.Component {
                         </a>
                       </Tooltip>
                     </h6>
-                  </GuideAnchor>
-                  <ShortId
-                    shortId={group.shortId}
-                    avatar={
-                      <StyledProjectBadge project={project} avatarSize={20} hideName />
-                    }
-                  />
-                </div>
+                    <ShortId
+                      shortId={group.shortId}
+                      avatar={
+                        <StyledProjectBadge project={project} avatarSize={20} hideName />
+                      }
+                    />
+                  </div>
+                </GuideAnchor>
               )}
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>

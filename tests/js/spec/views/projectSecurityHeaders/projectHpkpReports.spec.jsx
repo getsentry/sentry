@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'sentry-test/enzyme';
+
 import ProjectHpkpReports from 'app/views/settings/projectSecurityHeaders/hpkp';
 
 describe('ProjectHpkpReports', function() {
@@ -27,7 +28,6 @@ describe('ProjectHpkpReports', function() {
       <ProjectHpkpReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: url}),

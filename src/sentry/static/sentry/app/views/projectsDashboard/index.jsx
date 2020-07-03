@@ -5,6 +5,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 import flatten from 'lodash/flatten';
+import {withProfiler} from '@sentry/react';
 
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
@@ -16,12 +17,12 @@ import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
-import profiler from 'app/utils/profiler';
 import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeamsForUser from 'app/utils/withTeamsForUser';
+import {IconAdd} from 'app/icons';
 
 import Resources from './resources';
 import TeamSection from './teamSection';
@@ -30,18 +31,9 @@ class Dashboard extends React.Component {
   static propTypes = {
     teams: PropTypes.array,
     organization: SentryTypes.Organization,
-    finishProfile: PropTypes.func,
     loadingTeams: PropTypes.bool,
     error: PropTypes.instanceOf(Error),
   };
-
-  componentDidMount() {
-    const {finishProfile} = this.props;
-
-    if (finishProfile) {
-      finishProfile();
-    }
-  }
 
   componentWillUnmount() {
     ProjectsStatsStore.reset();
@@ -96,7 +88,7 @@ class Dashboard extends React.Component {
                   : undefined
               }
               to={`/organizations/${organization.slug}/projects/new/`}
-              icon="icon-circle-add"
+              icon={<IconAdd size="xs" isCircled />}
               data-test-id="create-project"
             >
               {t('Create Project')}
@@ -134,13 +126,11 @@ class Dashboard extends React.Component {
   }
 }
 
-const OrganizationDashboard = props => {
-  return (
-    <OrganizationDashboardWrapper>
-      <Dashboard {...props} />
-    </OrganizationDashboardWrapper>
-  );
-};
+const OrganizationDashboard = props => (
+  <OrganizationDashboardWrapper>
+    <Dashboard {...props} />
+  </OrganizationDashboardWrapper>
+);
 
 const TeamLink = styled(Link)`
   display: flex;
@@ -162,5 +152,5 @@ const OrganizationDashboardWrapper = styled('div')`
 
 export {Dashboard};
 export default withApi(
-  withOrganization(withTeamsForUser(profiler()(OrganizationDashboard)))
+  withOrganization(withTeamsForUser(withProfiler(OrganizationDashboard)))
 );

@@ -33,7 +33,7 @@ export default class SelectCreatableField extends SelectField {
     this.options = this.getOptions(props);
   }
 
-  componentWillReceiveProps(nextProps, nextContext) {
+  UNSAFE_componentWillReceiveProps(nextProps, nextContext) {
     const newError = this.getError(nextProps, nextContext);
     if (newError !== this.state.error) {
       this.setState({error: newError});
@@ -66,10 +66,18 @@ export default class SelectCreatableField extends SelectField {
   }
 
   getField() {
-    const {placeholder, disabled, required, clearable, name} = this.props;
+    const {
+      deprecatedSelectControl,
+      placeholder,
+      disabled,
+      required,
+      clearable,
+      name,
+    } = this.props;
 
     return (
       <StyledSelectControl
+        deprecatedSelectControl={deprecatedSelectControl}
         creatable
         id={this.getId()}
         options={this.options}

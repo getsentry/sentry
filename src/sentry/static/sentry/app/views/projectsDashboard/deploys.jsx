@@ -1,14 +1,14 @@
-import {Flex, Box} from 'reflexbox';
 import React from 'react';
 import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import getDynamicText from 'app/utils/getDynamicText';
+import Version from 'app/components/version';
+import space from 'app/styles/space';
 
 const DEPLOY_COUNT = 2;
 
@@ -21,11 +21,9 @@ export default class Deploys extends React.Component {
   render() {
     const {project, organization} = this.props;
 
-    const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(
-      ([environment, value]) => {
-        return {environment, ...value};
-      }
-    );
+    const flattenedDeploys = Object.entries(
+      project.latestDeploys || {}
+    ).map(([environment, value]) => ({environment, ...value}));
 
     const deploys = (flattenedDeploys || [])
       .sort((a, b) => new Date(b.dateFinished) - new Date(a.dateFinished))
@@ -33,7 +31,7 @@ export default class Deploys extends React.Component {
 
     if (deploys.length) {
       return (
-        <DeployBox p={2} pt={1}>
+        <DeployContainer>
           {deploys.map(deploy => (
             <Deploy
               key={`${deploy.environment}-${deploy.version}`}
@@ -42,7 +40,7 @@ export default class Deploys extends React.Component {
               organization={organization}
             />
           ))}
-        </DeployBox>
+        </DeployContainer>
       );
     } else {
       return <NoDeploys />;
@@ -54,89 +52,95 @@ class Deploy extends React.Component {
   static propTypes = {
     deploy: SentryTypes.Deploy.isRequired,
     project: SentryTypes.Project.isRequired,
-    organization: SentryTypes.Organization.isRequired,
   };
 
   render() {
-    const {deploy, organization, project} = this.props;
+    const {deploy, project} = this.props;
 
     return (
-      <DeployRow justifyContent="space-between">
+      <DeployRow>
         <Environment>{deploy.environment}</Environment>
-        <Version>
-          <StyledLink
-            to={`/organizations/${organization.slug}/releases/${deploy.version}/?project=${project.id}`}
-          >
-            {deploy.version}
-          </StyledLink>
-        </Version>
-        <Flex width={90} justifyContent="flex-end">
-          <DeployTimeWrapper>
-            {getDynamicText({
-              value: moment(deploy.dateFinished).fromNow(),
-              fixed: '3 hours ago',
-            })}
-          </DeployTimeWrapper>
-        </Flex>
+
+        <StyledTextOverflow>
+          <Version
+            version={deploy.version}
+            projectId={project.id}
+            tooltipRawVersion
+            truncate
+          />
+        </StyledTextOverflow>
+
+        <DeployTimeWrapper>
+          {getDynamicText({
+            value: moment(deploy.dateFinished).fromNow(),
+            fixed: '3 hours ago',
+          })}
+        </DeployTimeWrapper>
       </DeployRow>
     );
   }
 }
 
-const DeployRow = styled(Flex)`
-  color: ${p => p.theme.gray2};
+const DeployRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  color: ${p => p.theme.gray500};
   font-size: 12px;
-  margin-top: 8px;
+
+  &:not(:last-of-type) {
+    margin-top: ${space(1)};
+  }
 `;
 
 const Environment = styled(TextOverflow)`
   font-size: 11px;
   text-transform: uppercase;
   width: 80px;
-  border: 1px solid ${p => p.theme.offWhite2};
-  margin-right: 8px;
-  background-color: ${p => p.theme.offWhite};
+  border: 1px solid ${p => p.theme.borderLight};
+  margin-right: ${space(1)};
+  background-color: ${p => p.theme.gray100};
   text-align: center;
   border-radius: ${p => p.theme.borderRadius};
+  flex-shrink: 0;
 `;
 
-const Version = styled(TextOverflow)`
-  display: flex;
-  flex: 1;
-  margin-right: 8px;
-`;
-
-const StyledLink = styled(Link)`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
+const StyledTextOverflow = styled(TextOverflow)`
+  margin-right: ${space(1)};
 `;
 
 const DeployTimeWrapper = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 90px;
+  flex-grow: 1;
+  flex-shrink: 0;
+  text-align: right;
 `;
 
 class NoDeploys extends React.Component {
   render() {
     return (
-      <DeployBox p={2}>
-        <Background alignItems="center" justifyContent="center">
+      <DeployContainer>
+        <Background>
           <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
             {t('Track deploys')}
           </Button>
         </Background>
-      </DeployBox>
+      </DeployContainer>
     );
   }
 }
 
-const DeployBox = styled(Box)`
+const DeployContainer = styled('div')`
   height: 92px;
+  padding: ${space(2)};
 `;
 
-const Background = styled(Flex)`
+const Background = styled('div')`
+  display: flex;
   height: 100%;
-  background-color: ${p => p.theme.offWhite};
+  background-color: ${p => p.theme.gray100};
+  align-items: center;
+  justify-content: center;
 `;

@@ -30,7 +30,7 @@ from sentry.models import (
 from sentry.plugins.providers import RepositoryProvider
 from sentry.utils import json
 
-from sentry_plugins.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.github.client import GitHubClient
 
 logger = logging.getLogger("sentry.webhooks")

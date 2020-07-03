@@ -5,7 +5,7 @@ import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'app/api';
-import {Project} from 'app/types';
+import {Project, AvatarProject} from 'app/types';
 import {defined} from 'app/utils';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -15,9 +15,7 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 
-type ProjectPlaceholder = {
-  slug: string;
-};
+type ProjectPlaceholder = AvatarProject;
 
 type State = {
   /**
@@ -60,7 +58,7 @@ type State = {
   fetchError: null | RequestError;
 };
 
-type RenderProps = {
+export type RenderProps = {
   /**
    * We want to make sure that at the minimum, we return a list of objects with only `slug`
    * while we load actual project data
@@ -77,6 +75,13 @@ type RenderProps = {
   'isIncomplete' | 'fetching' | 'hasMore' | 'initiallyLoaded' | 'fetchError'
 >;
 type RenderFunc = (props: RenderProps) => React.ReactNode;
+
+type DefaultProps = {
+  /**
+   * If slugs is passed, forward placeholder objects with slugs while fetching
+   */
+  passthroughPlaceholderProject?: boolean;
+};
 
 type Props = {
   api: Client;
@@ -109,7 +114,7 @@ type Props = {
   allProjects?: boolean;
 
   children: RenderFunc;
-};
+} & DefaultProps;
 
 /**
  * This is a utility component that should be used to fetch an organization's projects (summary).
@@ -127,6 +132,11 @@ class Projects extends React.Component<Props, State> {
     slugs: PropTypes.arrayOf(PropTypes.string),
     limit: PropTypes.number,
     allProjects: PropTypes.bool,
+    passthroughPlaceholderProject: PropTypes.bool,
+  };
+
+  static defaultProps: DefaultProps = {
+    passthroughPlaceholderProject: true,
   };
 
   state = {
@@ -201,7 +211,7 @@ class Projects extends React.Component<Props, State> {
    * These will fetch projects via API (using project slug) provided by `this.fetchQueue`
    */
   fetchSpecificProjects = async () => {
-    const {api, orgId} = this.props;
+    const {api, orgId, passthroughPlaceholderProject} = this.props;
 
     if (!this.fetchQueue.size) {
       return;
@@ -231,7 +241,15 @@ class Projects extends React.Component<Props, State> {
     // the server, just fill in with an object with only the slug
     const projectsOrPlaceholder: Project[] | ProjectPlaceholder[] = Array.from(
       this.fetchQueue
-    ).map(slug => (projectsMap.has(slug) && projectsMap.get(slug)) || {slug});
+    )
+      .map(slug =>
+        projectsMap.has(slug)
+          ? projectsMap.get(slug)
+          : !!passthroughPlaceholderProject
+          ? {slug}
+          : null
+      )
+      .filter(defined);
 
     this.setState({
       fetchedProjects: projectsOrPlaceholder,

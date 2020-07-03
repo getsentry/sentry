@@ -1,8 +1,9 @@
 import {browserHistory} from 'react-router';
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {logout} from 'app/actionCreators/account';
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {logout} from 'app/actionCreators/account';
 import AcceptOrganizationInvite from 'app/views/acceptOrganizationInvite';
 
 jest.mock('app/actionCreators/account');
@@ -110,7 +111,10 @@ describe('AcceptOrganizationInvite', function() {
     const {replace} = window.location;
     window.location.replace = jest.fn();
 
-    existingMember.find('Link').simulate('click');
+    existingMember
+      .find('[data-test-id="existing-member-link"]')
+      .hostNodes()
+      .simulate('click');
     expect(logout).toHaveBeenCalled();
     await tick();
     expect(window.location.replace).toHaveBeenCalled();

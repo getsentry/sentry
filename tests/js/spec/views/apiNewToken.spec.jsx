@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {shallow} from 'sentry-test/enzyme';
 
 import ApiNewToken from 'app/views/settings/account/apiNewToken';

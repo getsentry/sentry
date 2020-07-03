@@ -3,9 +3,8 @@ import {Link} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';
+import GroupList from 'app/components/issues/groupList';
 import {t} from 'app/locale';
-
-import GroupList from './groupList';
 
 const ReleaseAllEvents = ({release, params}) => {
   const {orgId} = params;

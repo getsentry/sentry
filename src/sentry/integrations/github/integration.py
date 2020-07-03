@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
 
@@ -12,8 +13,8 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
-from sentry.integrations.exceptions import ApiError
-from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.models import Repository
 from sentry.pipeline import PipelineView
@@ -35,19 +36,19 @@ linking up your GitHub issues and pull requests directly to issues in Sentry.
 FEATURES = [
     FeatureDescription(
         """
-        Create and link Sentry issue groups directly to a GitHub issue or pull
-        request in any of your repositories, providing a quick way to jump from
-        Sentry bug to tracked issue or PR!
-        """,
-        IntegrationFeatures.ISSUE_BASIC,
-    ),
-    FeatureDescription(
-        """
         Authorize repositories to be added to your Sentry organization to augment
         sentry issues with commit data with [deployment
         tracking](https://docs.sentry.io/learn/releases/).
         """,
         IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a GitHub issue or pull
+        request in any of your repositories, providing a quick way to jump from
+        Sentry bug to tracked issue or PR!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
     ),
 ]
 
@@ -119,7 +120,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             organization_id=self.organization_id, provider="github"
         )
 
-        return filter(lambda repo: repo.name not in accessible_repo_names, existing_repos)
+        return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
 
     def reinstall(self):
         self.reinstall_repositories()
@@ -127,6 +128,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
             message = API_ERRORS.get(exc.code)
+            if exc.code == 404 and re.search(r"/repos/.*/(compare|commits)", exc.url):
+                message += (
+                    " Please also confirm that the commits associated with the following URL have been pushed to GitHub: %s"
+                    % exc.url
+                )
+
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
             return "Error Communicating with GitHub (HTTP %s): %s" % (exc.code, message)
@@ -157,7 +164,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
-    def post_install(self, integration, organization):
+    def post_install(self, integration, organization, extra=None):
         repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider__in=["github", "integrations:github"],

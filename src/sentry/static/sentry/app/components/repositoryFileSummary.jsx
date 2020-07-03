@@ -1,16 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+
+import {ListGroup, ListGroupItem} from 'app/components/listGroup';
 import FileChange from 'app/components/fileChange';
 import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
 
 function Collapsed(props) {
   return (
-    <li className="list-group-item list-group-item-sm align-center">
-      <span className="icon-container" />
+    <ListGroupItem centered>
       <a onClick={props.onClick}>
         {tn('Show %s collapsed file', 'Show %s collapsed files', props.count)}
       </a>
-    </li>
+    </ListGroupItem>
   );
 }
 
@@ -23,9 +26,14 @@ class RepositoryFileSummary extends React.Component {
   static propTypes = {
     fileChangeSummary: PropTypes.object,
     repository: PropTypes.string,
+    collapsable: PropTypes.bool,
+    maxWhenCollapsed: PropTypes.number,
   };
 
-  static MAX_WHEN_COLLAPSED = 5;
+  static defaultProps = {
+    collapsable: true,
+    maxWhenCollapsed: 5,
+  };
 
   constructor(...args) {
     super(...args);
@@ -42,18 +50,17 @@ class RepositoryFileSummary extends React.Component {
   };
 
   render() {
-    const {repository, fileChangeSummary} = this.props;
-    const MAX = RepositoryFileSummary.MAX_WHEN_COLLAPSED;
+    const {repository, fileChangeSummary, collapsable, maxWhenCollapsed} = this.props;
     let files = Object.keys(fileChangeSummary);
     const fileCount = files.length;
     files.sort();
-    if (this.state.collapsed && fileCount > MAX) {
-      files = files.slice(0, MAX);
+    if (this.state.collapsed && collapsable && fileCount > maxWhenCollapsed) {
+      files = files.slice(0, maxWhenCollapsed);
     }
     const numCollapsed = fileCount - files.length;
-    const canCollapse = fileCount > MAX;
+    const canCollapse = collapsable && fileCount > maxWhenCollapsed;
     return (
-      <div>
+      <Container>
         <h5>
           {tn(
             '%s file changed in ' + repository,
@@ -61,7 +68,7 @@ class RepositoryFileSummary extends React.Component {
             fileCount
           )}
         </h5>
-        <ul className="list-group list-group-striped m-b-2">
+        <ListGroup striped>
           {files.map(filename => {
             const {authors, types} = fileChangeSummary[filename];
             return (
@@ -77,15 +84,18 @@ class RepositoryFileSummary extends React.Component {
             <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
           )}
           {numCollapsed === 0 && canCollapse && (
-            <li className="list-group-item list-group-item-sm align-center">
-              <span className="icon-container" />
+            <ListGroupItem centered>
               <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
-            </li>
+            </ListGroupItem>
           )}
-        </ul>
-      </div>
+        </ListGroup>
+      </Container>
     );
   }
 }
+
+const Container = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default RepositoryFileSummary;

@@ -19,9 +19,17 @@ describe('OrganizationEnvironmentsStore', function() {
 
     const {environments} = OrganizationEnvironmentsStore.get();
 
-    expect(environments.length).toBe(2);
-    expect(environments.map(env => env.name)).toEqual(['production', 'staging']);
-    expect(environments.map(env => env.displayName)).toEqual(['Production', 'Staging']);
+    expect(environments).toHaveLength(3);
+    expect(environments.map(env => env.name)).toEqual([
+      'production',
+      'staging',
+      'STAGING',
+    ]);
+    expect(environments.map(env => env.displayName)).toEqual([
+      'production',
+      'staging',
+      'STAGING',
+    ]);
   });
 
   it('has the correct loading state', async function() {

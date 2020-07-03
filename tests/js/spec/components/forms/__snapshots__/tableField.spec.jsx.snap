@@ -84,7 +84,6 @@ exports[`TableField renders renders with form context 1`] = `
             "column2": "Column 2",
           }
         }
-        formatMessageValue={false}
         name="fieldName"
       >
         <InputField
@@ -154,6 +153,7 @@ exports[`TableField renders renders with form context 1`] = `
                 inline={true}
                 name="fieldName"
                 required={false}
+                showHelpInTooltip={false}
                 visible={true}
               >
                 <FieldWrapper
@@ -161,7 +161,7 @@ exports[`TableField renders renders with form context 1`] = `
                   inline={true}
                 >
                   <div
-                    className="css-hkyx7n-FieldWrapper-FieldWrapper e2iyls20"
+                    className="css-zwp5he-FieldWrapper-FieldWrapper e2iyls20"
                   >
                     <FieldControl
                       alignRight={false}
@@ -249,96 +249,106 @@ exports[`TableField renders renders with form context 1`] = `
                                 >
                                   <Observer>
                                     <div>
-                                      <Button
-                                        align="center"
+                                      <forwardRef<Button>
                                         disabled={false}
-                                        icon="icon-circle-add"
+                                        icon={
+                                          <ForwardRef(IconAdd)
+                                            isCircled={true}
+                                            size="xs"
+                                          />
+                                        }
                                         onClick={[Function]}
                                         size="xsmall"
                                       >
-                                        <StyledButton
-                                          aria-disabled={false}
-                                          aria-label="Add Thing"
+                                        <Button
+                                          align="center"
                                           disabled={false}
+                                          forwardRef={null}
+                                          icon={
+                                            <ForwardRef(IconAdd)
+                                              isCircled={true}
+                                              size="xs"
+                                            />
+                                          }
                                           onClick={[Function]}
-                                          role="button"
                                           size="xsmall"
                                         >
-                                          <ForwardRef
+                                          <StyledButton
                                             aria-disabled={false}
                                             aria-label="Add Thing"
-                                            className="css-12ogwys-StyledButton edwq9my0"
                                             disabled={false}
+                                            forwardRef={null}
                                             onClick={[Function]}
                                             role="button"
                                             size="xsmall"
                                           >
-                                            <button
+                                            <Component
                                               aria-disabled={false}
                                               aria-label="Add Thing"
-                                              className="css-12ogwys-StyledButton edwq9my0"
+                                              className="css-8od3q1-StyledButton edwq9my0"
+                                              forwardRef={null}
                                               onClick={[Function]}
                                               role="button"
                                               size="xsmall"
                                             >
-                                              <ButtonLabel
-                                                align="center"
+                                              <button
+                                                aria-disabled={false}
+                                                aria-label="Add Thing"
+                                                className="css-8od3q1-StyledButton edwq9my0"
+                                                onClick={[Function]}
+                                                role="button"
                                                 size="xsmall"
                                               >
-                                                <Component
+                                                <ButtonLabel
                                                   align="center"
-                                                  className="css-cmi7y3-ButtonLabel edwq9my1"
                                                   size="xsmall"
                                                 >
                                                   <span
-                                                    className="css-cmi7y3-ButtonLabel edwq9my1"
+                                                    className="css-1dw46ju-ButtonLabel edwq9my1"
                                                   >
                                                     <Icon
                                                       hasChildren={true}
                                                       size="xsmall"
                                                     >
-                                                      <Component
-                                                        className="css-1299qb2-Icon edwq9my2"
-                                                        hasChildren={true}
+                                                      <span
+                                                        className="css-1hbuack-Icon edwq9my2"
                                                         size="xsmall"
                                                       >
-                                                        <span
-                                                          className="css-1299qb2-Icon edwq9my2"
-                                                          size="xsmall"
+                                                        <IconAdd
+                                                          isCircled={true}
+                                                          size="xs"
                                                         >
-                                                          <StyledInlineSvg
-                                                            size="12px"
-                                                            src="icon-circle-add"
+                                                          <ForwardRef(SvgIcon)
+                                                            size="xs"
                                                           >
-                                                            <ForwardRef
-                                                              className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                              size="12px"
-                                                              src="icon-circle-add"
+                                                            <svg
+                                                              fill="currentColor"
+                                                              height="12px"
+                                                              viewBox="0 0 16 16"
+                                                              width="12px"
                                                             >
-                                                              <svg
-                                                                className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                                height="12px"
-                                                                viewBox={Object {}}
-                                                                width="12px"
-                                                              >
-                                                                <use
-                                                                  href="#test"
-                                                                  xlinkHref="#test"
-                                                                />
-                                                              </svg>
-                                                            </ForwardRef>
-                                                          </StyledInlineSvg>
-                                                        </span>
-                                                      </Component>
+                                                              <path
+                                                                d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                              />
+                                                              <path
+                                                                d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                              />
+                                                              <path
+                                                                d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                              />
+                                                            </svg>
+                                                          </ForwardRef(SvgIcon)>
+                                                        </IconAdd>
+                                                      </span>
                                                     </Icon>
                                                     Add Thing
                                                   </span>
-                                                </Component>
-                                              </ButtonLabel>
-                                            </button>
-                                          </ForwardRef>
-                                        </StyledButton>
-                                      </Button>
+                                                </ButtonLabel>
+                                              </button>
+                                            </Component>
+                                          </StyledButton>
+                                        </Button>
+                                      </forwardRef<Button>>
                                     </div>
                                   </Observer>
                                 </div>
@@ -439,50 +449,52 @@ exports[`TableField renders renders with form context 1`] = `
             className="css-1utgghf-DefaultButtons e1r1zmbj1"
           >
             <Observer>
-              <Button
-                align="center"
+              <forwardRef<Button>
                 data-test-id="form-submit"
                 disabled={false}
                 priority="primary"
                 type="submit"
               >
-                <StyledButton
-                  aria-disabled={false}
-                  aria-label="Save Changes"
+                <Button
+                  align="center"
                   data-test-id="form-submit"
                   disabled={false}
-                  onClick={[Function]}
+                  forwardRef={null}
                   priority="primary"
-                  role="button"
                   type="submit"
                 >
-                  <ForwardRef
+                  <StyledButton
                     aria-disabled={false}
                     aria-label="Save Changes"
-                    className="css-1e05jtd-StyledButton edwq9my0"
                     data-test-id="form-submit"
                     disabled={false}
+                    forwardRef={null}
                     onClick={[Function]}
                     priority="primary"
                     role="button"
                     type="submit"
                   >
-                    <button
+                    <Component
                       aria-disabled={false}
                       aria-label="Save Changes"
                       className="css-1e05jtd-StyledButton edwq9my0"
                       data-test-id="form-submit"
+                      forwardRef={null}
                       onClick={[Function]}
                       role="button"
                       type="submit"
                     >
-                      <ButtonLabel
-                        align="center"
-                        priority="primary"
+                      <button
+                        aria-disabled={false}
+                        aria-label="Save Changes"
+                        className="css-1e05jtd-StyledButton edwq9my0"
+                        data-test-id="form-submit"
+                        onClick={[Function]}
+                        role="button"
+                        type="submit"
                       >
-                        <Component
+                        <ButtonLabel
                           align="center"
-                          className="css-zmpclt-ButtonLabel edwq9my1"
                           priority="primary"
                         >
                           <span
@@ -490,12 +502,12 @@ exports[`TableField renders renders with form context 1`] = `
                           >
                             Save Changes
                           </span>
-                        </Component>
-                      </ButtonLabel>
-                    </button>
-                  </ForwardRef>
-                </StyledButton>
-              </Button>
+                        </ButtonLabel>
+                      </button>
+                    </Component>
+                  </StyledButton>
+                </Button>
+              </forwardRef<Button>>
             </Observer>
           </div>
         </DefaultButtons>
@@ -521,7 +533,6 @@ exports[`TableField renders renders without form context 1`] = `
       "column2": "Column 2",
     }
   }
-  formatMessageValue={false}
   name="fieldName"
 >
   <InputField
@@ -591,6 +602,7 @@ exports[`TableField renders renders without form context 1`] = `
           inline={true}
           name="fieldName"
           required={false}
+          showHelpInTooltip={false}
           visible={true}
         >
           <FieldWrapper
@@ -598,7 +610,7 @@ exports[`TableField renders renders without form context 1`] = `
             inline={true}
           >
             <div
-              className="css-hkyx7n-FieldWrapper-FieldWrapper e2iyls20"
+              className="css-zwp5he-FieldWrapper-FieldWrapper e2iyls20"
             >
               <FieldControl
                 alignRight={false}
@@ -661,96 +673,106 @@ exports[`TableField renders renders without form context 1`] = `
                           >
                             <Observer>
                               <div>
-                                <Button
-                                  align="center"
+                                <forwardRef<Button>
                                   disabled={false}
-                                  icon="icon-circle-add"
+                                  icon={
+                                    <ForwardRef(IconAdd)
+                                      isCircled={true}
+                                      size="xs"
+                                    />
+                                  }
                                   onClick={[Function]}
                                   size="xsmall"
                                 >
-                                  <StyledButton
-                                    aria-disabled={false}
-                                    aria-label="Add Item"
+                                  <Button
+                                    align="center"
                                     disabled={false}
+                                    forwardRef={null}
+                                    icon={
+                                      <ForwardRef(IconAdd)
+                                        isCircled={true}
+                                        size="xs"
+                                      />
+                                    }
                                     onClick={[Function]}
-                                    role="button"
                                     size="xsmall"
                                   >
-                                    <ForwardRef
+                                    <StyledButton
                                       aria-disabled={false}
                                       aria-label="Add Item"
-                                      className="css-12ogwys-StyledButton edwq9my0"
                                       disabled={false}
+                                      forwardRef={null}
                                       onClick={[Function]}
                                       role="button"
                                       size="xsmall"
                                     >
-                                      <button
+                                      <Component
                                         aria-disabled={false}
                                         aria-label="Add Item"
-                                        className="css-12ogwys-StyledButton edwq9my0"
+                                        className="css-8od3q1-StyledButton edwq9my0"
+                                        forwardRef={null}
                                         onClick={[Function]}
                                         role="button"
                                         size="xsmall"
                                       >
-                                        <ButtonLabel
-                                          align="center"
+                                        <button
+                                          aria-disabled={false}
+                                          aria-label="Add Item"
+                                          className="css-8od3q1-StyledButton edwq9my0"
+                                          onClick={[Function]}
+                                          role="button"
                                           size="xsmall"
                                         >
-                                          <Component
+                                          <ButtonLabel
                                             align="center"
-                                            className="css-cmi7y3-ButtonLabel edwq9my1"
                                             size="xsmall"
                                           >
                                             <span
-                                              className="css-cmi7y3-ButtonLabel edwq9my1"
+                                              className="css-1dw46ju-ButtonLabel edwq9my1"
                                             >
                                               <Icon
                                                 hasChildren={true}
                                                 size="xsmall"
                                               >
-                                                <Component
-                                                  className="css-1299qb2-Icon edwq9my2"
-                                                  hasChildren={true}
+                                                <span
+                                                  className="css-1hbuack-Icon edwq9my2"
                                                   size="xsmall"
                                                 >
-                                                  <span
-                                                    className="css-1299qb2-Icon edwq9my2"
-                                                    size="xsmall"
+                                                  <IconAdd
+                                                    isCircled={true}
+                                                    size="xs"
                                                   >
-                                                    <StyledInlineSvg
-                                                      size="12px"
-                                                      src="icon-circle-add"
+                                                    <ForwardRef(SvgIcon)
+                                                      size="xs"
                                                     >
-                                                      <ForwardRef
-                                                        className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                        size="12px"
-                                                        src="icon-circle-add"
+                                                      <svg
+                                                        fill="currentColor"
+                                                        height="12px"
+                                                        viewBox="0 0 16 16"
+                                                        width="12px"
                                                       >
-                                                        <svg
-                                                          className="css-nc0ns5-InlineSvg-StyledInlineSvg edwq9my3"
-                                                          height="12px"
-                                                          viewBox={Object {}}
-                                                          width="12px"
-                                                        >
-                                                          <use
-                                                            href="#test"
-                                                            xlinkHref="#test"
-                                                          />
-                                                        </svg>
-                                                      </ForwardRef>
-                                                    </StyledInlineSvg>
-                                                  </span>
-                                                </Component>
+                                                        <path
+                                                          d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                        />
+                                                        <path
+                                                          d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                        />
+                                                        <path
+                                                          d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                        />
+                                                      </svg>
+                                                    </ForwardRef(SvgIcon)>
+                                                  </IconAdd>
+                                                </span>
                                               </Icon>
                                               Add Item
                                             </span>
-                                          </Component>
-                                        </ButtonLabel>
-                                      </button>
-                                    </ForwardRef>
-                                  </StyledButton>
-                                </Button>
+                                          </ButtonLabel>
+                                        </button>
+                                      </Component>
+                                    </StyledButton>
+                                  </Button>
+                                </forwardRef<Button>>
                               </div>
                             </Observer>
                           </div>

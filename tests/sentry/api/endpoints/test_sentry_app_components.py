@@ -7,6 +7,7 @@ from sentry.utils.compat.mock import patch, call
 
 from sentry.coreapi import APIError
 from sentry.testutils import APITestCase
+from sentry.constants import SentryAppInstallationStatus
 
 
 class SentryAppComponentsTest(APITestCase):
@@ -33,7 +34,7 @@ class SentryAppComponentsTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data[0] == {
-            "uuid": six.binary_type(self.component.uuid),
+            "uuid": six.text_type(self.component.uuid),
             "type": "issue-link",
             "schema": self.component.schema,
             "sentryApp": {
@@ -70,6 +71,12 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             slug=self.sentry_app2.slug, organization=self.org
         )
 
+        self.install3 = self.create_sentry_app_installation(
+            slug=self.sentry_app3.slug,
+            organization=self.org,
+            status=SentryAppInstallationStatus.PENDING,
+        )
+
         self.component1 = self.sentry_app1.components.first()
         self.component2 = self.sentry_app2.components.first()
         self.component3 = self.sentry_app3.components.first()
@@ -88,7 +95,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         assert self.component3.uuid not in [d["uuid"] for d in response.data]
         assert response.data == [
             {
-                "uuid": six.binary_type(self.component1.uuid),
+                "uuid": six.text_type(self.component1.uuid),
                 "type": "issue-link",
                 "schema": self.component1.schema,
                 "sentryApp": {
@@ -98,7 +105,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 },
             },
             {
-                "uuid": six.binary_type(self.component2.uuid),
+                "uuid": six.text_type(self.component2.uuid),
                 "type": "issue-link",
                 "schema": self.component2.schema,
                 "sentryApp": {
@@ -136,7 +143,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         assert response.data == [
             {
-                "uuid": six.binary_type(component.uuid),
+                "uuid": six.text_type(component.uuid),
                 "type": "alert-rule",
                 "schema": component.schema,
                 "sentryApp": {
@@ -168,7 +175,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         # during preparation.
         assert response.data == [
             {
-                "uuid": six.binary_type(self.component2.uuid),
+                "uuid": six.text_type(self.component2.uuid),
                 "type": self.component2.type,
                 "schema": self.component2.schema,
                 "sentryApp": {

@@ -101,7 +101,7 @@ export function leaveTeam(api, params, options) {
   });
 }
 
-export function createTeam(api, team, params, options) {
+export function createTeam(api, team, params) {
   TeamActions.createTeam(team);
 
   return api
@@ -133,7 +133,7 @@ export function createTeam(api, team, params, options) {
     );
 }
 
-export function removeTeam(api, params, options) {
+export function removeTeam(api, params) {
   TeamActions.removeTeam(params.teamId);
 
   return api

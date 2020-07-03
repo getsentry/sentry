@@ -1,9 +1,9 @@
 import React from 'react';
-import {Value} from 'react-select';
 import styled from '@emotion/styled';
+import {Value} from 'react-select-legacy';
+
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-
 import SelectControl from 'app/components/forms/selectControl';
 
 import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
@@ -21,22 +21,21 @@ type ConditionState = {
   isOpen: boolean;
 };
 
-const initalState = {
-  inputValue: '',
-  isOpen: false,
-};
-
 export default class ConditionRow extends React.Component<
   ConditionProps,
   ConditionState
 > {
-  state = initalState;
+  state: ConditionState = {
+    inputValue: '',
+    isOpen: false,
+  };
 
-  // This is the ref of the inner react-select component
-  private select: any;
+  selectRef = React.createRef<HTMLInputElement>();
 
   focus() {
-    this.select.focus();
+    if (this.selectRef.current) {
+      this.selectRef.current.focus();
+    }
   }
 
   handleChange = (option: ReactSelectOption) => {
@@ -213,7 +212,8 @@ export default class ConditionRow extends React.Component<
     return (
       <Box>
         <SelectControl
-          ref={(ref: any) => (this.select = ref)}
+          deprecatedSelectControl
+          ref={this.selectRef}
           value={getInternal(this.props.value)}
           placeholder={<PlaceholderText>{t('Add condition...')}</PlaceholderText>}
           options={this.getOptions()}

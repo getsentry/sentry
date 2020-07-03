@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Box, Flex} from 'reflexbox';
 import isEqual from 'lodash/isEqual';
+import styled from '@emotion/styled';
 
 import SentryTypes from 'app/sentryTypes';
 import Count from 'app/components/count';
@@ -13,8 +13,10 @@ import {t, tct} from 'app/locale';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Alert from 'app/components/alert';
 import withApi from 'app/utils/withApi';
+import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import Version from 'app/components/version';
 
 class GroupTags extends React.Component {
   static propTypes = {
@@ -87,8 +89,18 @@ class GroupTags extends React.Component {
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
         const valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
+          let label;
           const pct = percent(tagValue.count, tag.totalValues);
           const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
+
+          switch (tag.key) {
+            case 'release':
+              label = <Version version={tagValue.name} anchor={false} />;
+              break;
+            default:
+              label = <DeviceName value={tagValue.name} />;
+          }
+
           return (
             <li key={tagValueIdx} data-test-id={tag.key}>
               <GlobalSelectionLink
@@ -99,9 +111,7 @@ class GroupTags extends React.Component {
                 }}
               >
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
-                <span className="tag-bar-label">
-                  <DeviceName>{tagValue.name}</DeviceName>
-                </span>
+                <span className="tag-bar-label">{label}</span>
                 <span className="tag-bar-count">
                   <Count value={tagValue.count} />
                 </span>
@@ -111,33 +121,33 @@ class GroupTags extends React.Component {
         });
 
         return (
-          <Box key={tagIdx} px={1} width={0.5}>
+          <TagItem key={tagIdx}>
             <Panel>
               <PanelHeader hasButtons style={{textTransform: 'none'}}>
                 <div style={{fontSize: 16}}>{tag.key}</div>
-                <Flex>
+                <DetailsLinkWrapper>
                   <GlobalSelectionLink
                     className="btn btn-default btn-sm"
                     to={`${baseUrl}${group.id}/tags/${tag.key}/`}
                   >
                     {t('More Details')}
                   </GlobalSelectionLink>
-                </Flex>
+                </DetailsLinkWrapper>
               </PanelHeader>
-              <PanelBody disablePadding={false}>
+              <PanelBody withPadding>
                 <ul style={{listStyleType: 'none', padding: 0, margin: 0}}>
                   {valueChildren}
                 </ul>
               </PanelBody>
             </Panel>
-          </Box>
+          </TagItem>
         );
       });
     }
 
     return (
       <div>
-        <Flex flexWrap="wrap">{children}</Flex>
+        <Container>{children}</Container>
         <Alert type="info">
           {tct(
             'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
@@ -150,5 +160,19 @@ class GroupTags extends React.Component {
     );
   }
 }
+
+const DetailsLinkWrapper = styled('div')`
+  display: flex;
+`;
+
+const Container = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+`;
+
+const TagItem = styled('div')`
+  padding: 0 ${space(1)};
+  width: 50%;
+`;
 
 export default withApi(withOrganization(GroupTags));

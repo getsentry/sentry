@@ -4,12 +4,8 @@ from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule
-from sentry.snuba.models import QueryAggregations
 from sentry.testutils import APITestCase
-
-# from sentry.incidents.endpoints.serializers import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
 
 
 class AlertRuleListEndpointTest(APITestCase):
@@ -29,15 +25,7 @@ class AlertRuleListEndpointTest(APITestCase):
 
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "hello",
-            "level:error",
-            QueryAggregations.TOTAL,
-            10,
-            1,
-        )
+        alert_rule = self.create_alert_rule()
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
@@ -75,8 +63,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
         self.login_as(self.user)
         valid_alert_rule = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "triggers": [
@@ -117,8 +104,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
         self.login_as(self.user)
         rule_one_trigger_no_label = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -146,8 +132,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         )
         self.login_as(self.user)
         rule_one_trigger_only_critical = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -179,8 +164,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.login_as(self.user)
 
         rule_no_triggers = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -200,8 +184,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.login_as(self.user)
 
         rule_one_trigger_only_warning = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -223,7 +206,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_warning
             )
-            assert resp.data == {"nonFieldErrors": [u'First trigger must be labeled "critical"']}
+            assert resp.data == {"nonFieldErrors": [u'Trigger 1 must be labeled "critical"']}
 
     def test_critical_trigger_no_action(self):
         self.create_member(
@@ -232,8 +215,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.login_as(self.user)
 
         rule_one_trigger_only_critical_no_action = {
-            "aggregation": 0,
-            "aggregations": [0],
+            "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
             "projects": [self.project.slug],
@@ -241,7 +223,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "triggers": [
                 {
                     "label": "critical",
-                    "alertThreshold": 200,
+                    "alertThreshold": 75,
                     "resolveThreshold": 100,
                     "thresholdType": 1,
                 }
@@ -252,7 +234,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-            assert resp.data == {"triggers": [{"actions": [u"This field is required."]}]}
+            assert resp.data == {u"nonFieldErrors": [u'"critical" trigger must have an action.']}
 
     def test_invalid_projects(self):
         self.create_member(
@@ -270,7 +252,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 name="an alert",
                 thresholdType=1,
                 query="hi",
-                aggregation=0,
+                aggregate="count()",
                 timeWindow=10,
                 alertThreshold=1000,
                 resolveThreshold=100,

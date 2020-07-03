@@ -1,44 +1,44 @@
 ---
-created: '2019-06-05T11:45:18.542023Z'
+created: '2020-02-26T19:54:39.224248Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: None
+  hash: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
             function*
-              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
           frame (non app frame)
             function*
-              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
           frame (non app frame)
             function*
-              u'<lambda>::operator()'
+              "<lambda>::operator()"
         type (ignored because exception is synthetic)
-          u'log_demo'
+          "log_demo"
         value*
-          u'Holy shit everything is on fire!'
+          "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: '9bb5de55b854491dacc677184c9b019a'
+  hash: "9bb5de55b854491dacc677184c9b019a"
   component:
     system*
       exception*
         stacktrace*
           frame (ignored because only 1 frame is considered by grouping enhancement rule (family:native max-frames=1))
             function*
-              u'Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated'
+              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
           frame (ignored because only 1 frame is considered by grouping enhancement rule (family:native max-frames=1))
             function*
-              u'Scaleform::GFx::AS3::IMEManager::DispatchEvent'
+              "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
           frame*
             function*
-              u'<lambda>::operator()'
+              "<lambda>::operator()"
         type (ignored because exception is synthetic)
-          u'log_demo'
+          "log_demo"
         value (ignored because stacktrace takes precedence)
-          u'Holy shit everything is on fire!'
+          "Holy shit everything is on fire!"

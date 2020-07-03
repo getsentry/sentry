@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+import six
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -12,10 +14,11 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
 )
-from sentry.models import Activity, Group, Release, ReleaseFile
+from sentry.models import Activity, Release, Project
+from sentry.models.release import UnsafeReleaseDeletion
 from sentry.utils.apidocs import scenario, attach_scenarios
-
-ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
+from sentry.snuba.sessions import STATS_PERIODS
+from sentry.api.endpoints.organization_releases import get_stats_period_detail
 
 
 @scenario("RetrieveOrganizationRelease")
@@ -31,7 +34,7 @@ def update_organization_release_scenario(runner):
     release = runner.utils.create_release(runner.default_project, runner.me, version="3000")
     runner.request(
         method="PUT",
-        path="/organization/%s/releases/%s/" % (runner.org.slug, release.version),
+        path="/organizations/%s/releases/%s/" % (runner.org.slug, release.version),
         data={
             "url": "https://vcshub.invalid/user/project/refs/deadbeef1337",
             "ref": "deadbeef1337",
@@ -62,6 +65,15 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         :auth: required
         """
+        project_id = request.GET.get("project")
+        with_health = request.GET.get("health") == "1"
+        summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
+        health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+        if summary_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
+        if health_stats_period and health_stats_period not in STATS_PERIODS:
+            raise ParseError(detail=get_stats_period_detail("healthStatsPeriod", STATS_PERIODS))
+
         try:
             release = Release.objects.get(organization_id=organization.id, version=version)
         except Release.DoesNotExist:
@@ -70,7 +82,22 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        return Response(serialize(release, request.user))
+        if with_health and project_id:
+            try:
+                project = Project.objects.get_from_cache(id=int(project_id))
+            except (ValueError, Project.DoesNotExist):
+                raise ParseError(detail="Invalid project")
+            release._for_project_id = project.id
+
+        return Response(
+            serialize(
+                release,
+                request.user,
+                with_health_data=with_health,
+                summary_stats_period=summary_stats_period,
+                health_stats_period=health_stats_period,
+            )
+        )
 
     @attach_scenarios([update_organization_release_scenario])
     def put(self, request, organization, version):
@@ -156,8 +183,8 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             fetch_commits = not commit_list
             try:
                 release.set_refs(refs, request.user, fetch=fetch_commits)
-            except InvalidRepository as exc:
-                return Response({"refs": [exc.message]}, status=400)
+            except InvalidRepository as e:
+                return Response({"refs": [six.text_type(e)]}, status=400)
 
         if not was_released and release.date_released:
             for project in release.projects.all():
@@ -191,18 +218,9 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        # we don't want to remove the first_release metadata on the Group, and
-        # while people might want to kill a release (maybe to remove files),
-        # removing the release is prevented
-        if Group.objects.filter(first_release=release).exists():
-            return Response({"detail": ERR_RELEASE_REFERENCED}, status=400)
-
-        # TODO(dcramer): this needs to happen in the queue as it could be a long
-        # and expensive operation
-        file_list = ReleaseFile.objects.filter(release=release).select_related("file")
-        for releasefile in file_list:
-            releasefile.file.delete()
-            releasefile.delete()
-        release.delete()
+        try:
+            release.safe_delete()
+        except UnsafeReleaseDeletion as e:
+            return Response({"detail": six.text_type(e)}, status=400)
 
         return Response(status=204)

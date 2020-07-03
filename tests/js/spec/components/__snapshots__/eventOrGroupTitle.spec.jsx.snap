@@ -2,21 +2,28 @@
 
 exports[`EventOrGroupTitle renders with no subtitle when \`type = default\` 1`] = `
 <span>
-  metadata title
+  <GuideAnchor
+    disabled={true}
+    position="bottom"
+    target="issue_title"
+  >
+    metadata title
+  </GuideAnchor>
 </span>
 `;
 
 exports[`EventOrGroupTitle renders with subtitle when \`type = csp\` 1`] = `
 <span>
-  <span
-    style={
-      Object {
-        "marginRight": 10,
-      }
-    }
+  <GuideAnchor
+    disabled={true}
+    position="bottom"
+    target="issue_title"
   >
-    metadata directive
-  </span>
+    <span>
+      metadata directive
+    </span>
+  </GuideAnchor>
+  <Spacer />
   <em
     title="metadata uri"
   >
@@ -28,15 +35,16 @@ exports[`EventOrGroupTitle renders with subtitle when \`type = csp\` 1`] = `
 
 exports[`EventOrGroupTitle renders with subtitle when \`type = error\` 1`] = `
 <span>
-  <span
-    style={
-      Object {
-        "marginRight": 10,
-      }
-    }
+  <GuideAnchor
+    disabled={true}
+    position="bottom"
+    target="issue_title"
   >
-    metadata type
-  </span>
+    <span>
+      metadata type
+    </span>
+  </GuideAnchor>
+  <Spacer />
   <em
     title="culprit"
   >

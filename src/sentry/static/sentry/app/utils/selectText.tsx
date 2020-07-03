@@ -1,4 +1,4 @@
-export function selectText(node: EventTarget): void {
+export function selectText(node: HTMLElement): void {
   if (node instanceof HTMLInputElement && node.type === 'text') {
     node.select();
   } else if (node instanceof Node && window.getSelection) {

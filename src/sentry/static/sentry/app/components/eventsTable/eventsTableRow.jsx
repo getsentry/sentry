@@ -85,19 +85,17 @@ class EventsTableRow extends React.Component {
           </td>
         )}
 
-        {tagList.map(tag => {
-          return (
-            <td key={tag.key}>
-              <div>
-                {tag.key === 'device' ? (
-                  <DeviceName>{tagMap[tag.key]}</DeviceName>
-                ) : (
-                  tagMap[tag.key]
-                )}
-              </div>
-            </td>
-          );
-        })}
+        {tagList.map(tag => (
+          <td key={tag.key}>
+            <div>
+              {tag.key === 'device' ? (
+                <DeviceName value={tagMap[tag.key]} />
+              ) : (
+                tagMap[tag.key]
+              )}
+            </div>
+          </td>
+        ))}
       </tr>
     );
   }

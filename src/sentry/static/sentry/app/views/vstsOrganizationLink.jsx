@@ -65,6 +65,7 @@ export default class VSTSOrganizationLink extends AsyncView {
           <input type="hidden" name="vsts_name" value={this.targetName} />
 
           <SelectField
+            deprecatedSelectControl
             choices={this.organizations}
             clearable={false}
             value={this.defaultChoice}

@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 from sentry.models import Relay
 from sentry.testutils import APITestCase
 
-from semaphore import generate_key_pair
+from sentry_relay import generate_key_pair
 
 
 class RelayRegisterTest(APITestCase):
@@ -24,7 +24,7 @@ class RelayRegisterTest(APITestCase):
         settings.SENTRY_RELAY_WHITELIST_PK.append(six.binary_type(self.public_key))
 
         self.private_key = self.key_pair[0]
-        self.relay_id = six.binary_type(uuid4())
+        self.relay_id = six.binary_type(six.text_type(uuid4()).encode("ascii"))
 
         self.path = reverse("sentry-api-0-relay-register-challenge")
 
@@ -391,7 +391,7 @@ class RelayRegisterTest(APITestCase):
             reverse("sentry-api-0-relay-register-response"),
             data=raw_json,
             content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=six.binary_type(uuid4()),
+            HTTP_X_SENTRY_RELAY_ID=six.binary_type(six.text_type(uuid4()).encode("ascii")),
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 

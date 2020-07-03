@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+
 import ProjectCspReports from 'app/views/settings/projectSecurityHeaders/csp';
 
 describe('ProjectCspReports', function() {
@@ -30,7 +31,6 @@ describe('ProjectCspReports', function() {
       <ProjectCspReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
@@ -46,7 +46,6 @@ describe('ProjectCspReports', function() {
       <ProjectCspReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),
@@ -83,7 +82,6 @@ describe('ProjectCspReports', function() {
       <ProjectCspReports
         organization={org}
         project={project}
-        setProjectNavSection={() => {}}
         {...TestStubs.routerProps({
           params: {orgId: org.slug, projectId: project.slug},
           location: TestStubs.location({pathname: routeUrl}),

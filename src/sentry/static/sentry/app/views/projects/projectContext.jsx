@@ -63,7 +63,6 @@ const ProjectContext = createReactClass({
       errorType: null,
       memberList: [],
       project: null,
-      projectNavSection: null,
     };
   },
 
@@ -222,12 +221,6 @@ const ProjectContext = createReactClass({
         errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
       });
     }
-  },
-
-  setProjectNavSection(section) {
-    this.setState({
-      projectNavSection: section,
-    });
   },
 
   renderBody() {

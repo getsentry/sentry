@@ -7,8 +7,9 @@ from celery import Task
 from collections import namedtuple
 from django.core.urlresolvers import reverse
 from sentry.utils.compat.mock import patch
-from requests.exceptions import RequestException
+from requests.exceptions import Timeout
 
+from sentry.constants import SentryAppStatus
 from sentry.models import Rule, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
@@ -30,16 +31,28 @@ from sentry.tasks.sentry_apps import (
     send_webhooks,
 )
 
+
+def raiseStatuseFalse():
+    return False
+
+
+def raiseStatusTrue():
+    return True
+
+
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
-MockResponse = namedtuple("MockResponse", ["headers", "content", "ok", "status_code"])
-MockResponseInstance = MockResponse({}, {}, True, 200)
-MockFailureResponseInstance = MockResponse({}, {}, False, 400)
+MockResponse = namedtuple(
+    "MockResponse", ["headers", "content", "ok", "status_code", "raise_for_status"]
+)
+MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatuseFalse)
+MockFailureResponseInstance = MockResponse({}, {}, False, 400, raiseStatusTrue)
 MockResponseWithHeadersInstance = MockResponse(
     {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
     {},
     False,
     400,
+    raiseStatusTrue,
 )
 
 
@@ -415,11 +428,12 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization.id
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=RequestException("Timeout"))
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=Timeout)
     def test_saves_error_for_request_timeout(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-
-        with self.assertRaises(RequestException):
+        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
+        # we don't log errors for unpublished and internal apps
+        with self.assertRaises(Timeout):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )

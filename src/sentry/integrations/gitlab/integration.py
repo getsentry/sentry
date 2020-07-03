@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
@@ -15,7 +16,7 @@ from sentry.integrations import (
     IntegrationProvider,
     IntegrationMetadata,
 )
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
@@ -174,6 +175,10 @@ class InstallationForm(forms.Form):
 
 class InstallationConfigView(PipelineView):
     def dispatch(self, request, pipeline):
+        if "goback" in request.GET:
+            pipeline.state.step_index = 0
+            return pipeline.current_step()
+
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -276,7 +281,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "verify_ssl": installation_data["verify_ssl"],
                     "group": installation_data["group"],
                     "include_subgroups": installation_data["include_subgroups"],
-                    "error_message": e.message,
+                    "error_message": six.text_type(e),
                     "error_status": e.code,
                 },
             )

@@ -7,8 +7,8 @@ from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from sentry.utils.compat.mock import patch, Mock
 
+from sentry import options
 from sentry.models import (
     Activity,
     ApiToken,
@@ -30,6 +30,8 @@ from sentry.models import (
     UserOption,
     Release,
 )
+from sentry.utils.compat.mock import patch, Mock
+
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -69,6 +71,32 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(sort_by="date", query="is:unresolved")
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(group.id)
+
+    def test_trace_search(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "contexts": {
+                    "trace": {
+                        "parent_span_id": "8988cec7cc0779c1",
+                        "type": "trace",
+                        "op": "foobar",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                        "span_id": "babaae0d4b7512d9",
+                        "status": "ok",
+                    }
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_valid_response(
+            sort_by="date", query="is:unresolved trace:a7d67cf796774551a95be6543cacd459"
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(event.group.id)
 
     def test_feature_gate(self):
         # ensure there are two or more projects
@@ -116,18 +144,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(sort_by="date", query="timesSeen:>1k")
         assert response.status_code == 400
         assert "Invalid format for numeric search" in response.data["detail"]
-
-    def test_invalid_search_query(self):
-        now = timezone.now()
-        self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
-        self.login_as(user=self.user)
-
-        response = self.get_response(sort_by="date", query="trace:123")
-        assert response.status_code == 400
-        assert (
-            "Invalid value for the trace condition. Value must be a hexadecimal UUID string."
-            in response.data["detail"]
-        )
 
     def test_simple_pagination(self):
         event1 = self.store_event(
@@ -353,22 +369,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release.add_project(project)
         release.add_project(project2)
         event = self.store_event(
-            data={
-                "tags": {"sentry:release": release.version},
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={
-                "tags": {"sentry:release": release.version},
-                "timestamp": iso_format(before_now(seconds=1)),
-            },
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
             project_id=project2.id,
         )
 
         with self.feature("organizations:global-views"):
-            response = self.get_valid_response(**{"first-release": '"%s"' % release.version})
+            response = self.get_valid_response(**{"query": 'first-release:"%s"' % release.version})
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id
@@ -473,6 +483,60 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 default_user_id=self.user.id,
                 organization_id=self.organization.id,
             )
+
+    # This seems like a random override, but this test needed a way to override
+    # the orderby being sent to snuba for a certain call. This function has a simple
+    # return value and can be used to set variables in the snuba payload.
+    @patch("sentry.utils.snuba.get_query_params_to_update_for_projects")
+    def test_assigned_to_pagination(self, patched_params_update):
+        old_sample_size = options.get("snuba.search.hits-sample-size")
+        assert options.set("snuba.search.hits-sample-size", 1)
+
+        days = range(4)
+        days.reverse()
+
+        self.login_as(user=self.user)
+        groups = []
+        for day in days:
+            group = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(days=day)),
+                    "fingerprint": ["group-{}".format(day)],
+                },
+                project_id=self.project.id,
+            ).group
+            groups.append(group)
+
+        assigned_groups = groups[:2]
+        for ag in assigned_groups:
+            ag.update(status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5))
+            GroupAssignee.objects.assign(ag, self.user)
+
+        patched_params_update.side_effect = [
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id], "orderby": ["-last_seen"]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+            (self.organization.id, {"project": [self.project.id]}),
+        ]
+
+        response = self.get_response(limit=1, query="assigned:{}".format(self.user.email))
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(assigned_groups[1].id)
+
+        header_links = parse_link_header(response["Link"])
+        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
+        response = self.get_response(
+            limit=1, cursor=cursor, query="assigned:{}".format(self.user.email)
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(assigned_groups[0].id)
+
+        assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
@@ -1091,7 +1155,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["put-me-in-group-1"],
                     "user": {"id": six.binary_type(i)},
-                    "timestamp": iso_format(self.min_ago - timedelta(seconds=i)),
+                    "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
             )

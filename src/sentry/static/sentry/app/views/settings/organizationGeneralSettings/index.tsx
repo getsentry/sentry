@@ -14,6 +14,7 @@ import {
 import {t, tct} from 'app/locale';
 import Field from 'app/views/settings/components/forms/field';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -64,6 +65,8 @@ class OrganizationGeneralSettings extends React.Component<Props> {
         <SentryDocumentTitle title={t('General Settings')} objSlug={orgId} />
         <div>
           <SettingsPageHeader title={t('Organization Settings')} />
+          <PermissionAlert />
+
           <OrganizationSettingsForm
             {...this.props}
             initialData={organization}
@@ -85,7 +88,6 @@ class OrganizationGeneralSettings extends React.Component<Props> {
                   <LinkWithConfirmation
                     className="btn btn-danger"
                     priority="danger"
-                    size="small"
                     title={t('Remove %s organization', organization && organization.name)}
                     message={
                       <div>

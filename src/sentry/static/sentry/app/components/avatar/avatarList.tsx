@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
-import {User} from 'app/types';
+import {AvatarUser} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Tooltip from 'app/components/tooltip';
@@ -20,7 +20,7 @@ type Mutable<T> = {-readonly [P in keyof T]: T[P]};
 
 type Props = {
   className?: string;
-  users: User[];
+  users: AvatarUser[];
   renderTooltip?: UserAvatar['props']['renderTooltip'];
   tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
 } & DefaultProps;
@@ -65,24 +65,23 @@ export default class AvatarList extends React.Component<Props> {
             </CollapsedUsers>
           </Tooltip>
         )}
-        {visibleUsers.map(user => {
-          return (
-            <StyledAvatar
-              key={`${user.id}-${user.email}`}
-              user={user}
-              size={avatarSize}
-              renderTooltip={renderTooltip}
-              tooltipOptions={tooltipOptions}
-              hasTooltip
-            />
-          );
-        })}
+        {visibleUsers.map(user => (
+          <StyledAvatar
+            key={`${user.id}-${user.email}`}
+            user={user}
+            size={avatarSize}
+            renderTooltip={renderTooltip}
+            tooltipOptions={tooltipOptions}
+            hasTooltip
+          />
+        ))}
       </AvatarListWrapper>
     );
   }
 }
 
-const AvatarListWrapper = styled('div')`
+// used in releases list page to do some alignment
+export const AvatarListWrapper = styled('div')`
   display: flex;
   flex-direction: row-reverse;
 `;
@@ -110,8 +109,8 @@ const CollapsedUsers = styled('div')<{size: number}>`
   position: relative;
   text-align: center;
   font-weight: 600;
-  background-color: ${p => p.theme.borderLight};
-  color: ${p => p.theme.gray2};
+  background-color: ${p => p.theme.gray300};
+  color: ${p => p.theme.gray500};
   font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;

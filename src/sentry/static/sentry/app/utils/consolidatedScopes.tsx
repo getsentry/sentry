@@ -1,6 +1,7 @@
 import invertBy from 'lodash/invertBy';
 import groupBy from 'lodash/groupBy';
 import pick from 'lodash/pick';
+
 import {Permissions} from 'app/types';
 
 const PERMISSION_LEVELS = {
@@ -43,9 +44,7 @@ const permissionLevel = (scope: string): number => {
   return PERMISSION_LEVELS[permission];
 };
 
-const compareScopes = (a: string, b: string) => {
-  return permissionLevel(a) - permissionLevel(b);
-};
+const compareScopes = (a: string, b: string) => permissionLevel(a) - permissionLevel(b);
 
 /**
  * Return the most permissive scope for each resource.

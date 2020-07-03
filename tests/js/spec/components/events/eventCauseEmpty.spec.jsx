@@ -1,5 +1,6 @@
 import React from 'react';
 import moment from 'moment';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
@@ -11,7 +12,10 @@ describe('EventCauseEmpty', function() {
   let putMock;
   const routerContext = TestStubs.routerContext();
   const organization = TestStubs.Organization();
-  const project = TestStubs.Project({platform: 'javascript'});
+  const project = TestStubs.Project({
+    platform: 'javascript',
+    firstEvent: '2020-01-01T23:54:33.831199Z',
+  });
 
   beforeEach(function() {
     MockApiClient.clearMockResponses();

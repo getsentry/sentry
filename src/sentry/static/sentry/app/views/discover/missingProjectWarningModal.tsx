@@ -1,5 +1,6 @@
 import React from 'react';
 import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
+
 import {Organization} from 'app/types';
 import Button from 'app/components/button';
 import {t} from 'app/locale';

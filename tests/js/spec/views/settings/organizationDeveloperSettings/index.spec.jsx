@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {mountWithTheme} from 'sentry-test/enzyme';
+
+import {Client} from 'app/api';
 import OrganizationDeveloperSettings from 'app/views/settings/organizationDeveloperSettings/index';
 import App from 'app/views/app';
 
@@ -98,7 +99,7 @@ describe('Organization Developer Settings', function() {
         },
       });
       Client.addMockResponse({
-        url: '/assistant/',
+        url: '/assistant/?v2',
         body: [],
       });
       Client.addMockResponse({

@@ -6,7 +6,7 @@ import {number, boolean, text} from '@storybook/addon-knobs';
 import LineChart from 'app/components/charts/lineChart';
 import BarChart from 'app/components/charts/barChart';
 
-storiesOf('Charts|Playground')
+storiesOf('Charts|Playground', module)
   .add(
     'Line Chart',
     withInfo('Description')(() => (

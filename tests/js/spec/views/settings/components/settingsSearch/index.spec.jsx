@@ -1,9 +1,9 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {SettingsSearch} from 'app/views/settings/components/settingsSearch';
 import FormSearchStore from 'app/stores/formSearchStore';
-
 import {navigateTo} from 'app/actionCreators/navigation';
 
 jest.mock('jquery');
@@ -48,10 +48,17 @@ describe('SettingsSearch', function() {
       query: 'foo',
       body: [],
     });
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/configs/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       query: 'foo',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/sentry-apps/?status=published',
       body: [],
     });
   });

@@ -1,0 +1,676 @@
+{
+  "_meta": {
+    "breadcrumbs": {
+      "values": {
+        "0": {
+          "data": {
+            "foo": {
+              "": {
+                "len": 25,
+                "rem": [
+                  [
+                    "my_rule",
+                    "s",
+                    0,
+                    10
+                  ]
+                ]
+              }
+            }
+          },
+          "message": {
+            "": {
+              "len": 25,
+              "rem": [
+                [
+                  "my_rule",
+                  "s",
+                  0,
+                  10
+                ]
+              ]
+            }
+          }
+        }
+      }
+    },
+    "contexts": {
+      "app": {
+        "app_name": {
+          "": {
+            "len": 17,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        },
+        "app_version": {
+          "": {
+            "len": 5,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        }
+      },
+      "chrome": {
+        "name": {
+          "": {
+            "len": 6,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        },
+        "version": {
+          "": {
+            "len": 13,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        }
+      },
+      "device": {
+        "arch": {
+          "": {
+            "len": 3,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        }
+      },
+      "node": {
+        "name": {
+          "": {
+            "len": 4,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        },
+        "version": {
+          "": {
+            "len": 5,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        }
+      },
+      "os": {
+        "build": {
+          "": {
+            "len": 5,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        },
+        "kernel_version": {
+          "": {
+            "len": 6,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        },
+        "name": {
+          "": {
+            "len": 8,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        },
+        "version": {
+          "": {
+            "len": 7,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        }
+      },
+      "runtime": {
+        "name": {
+          "": {
+            "len": 8,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        },
+        "version": {
+          "": {
+            "len": 5,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "environment": {
+      "": {
+        "len": 11,
+        "rem": [
+          [
+            "my_rule",
+            "s",
+            0,
+            10
+          ]
+        ]
+      }
+    },
+    "exception": {
+      "values": {
+        "0": {
+          "stacktrace": {
+            "frames": {
+              "0": {
+                "filename": {
+                  "": {
+                    "len": 56,
+                    "rem": [
+                      [
+                        "my_rule",
+                        "s",
+                        0,
+                        10
+                      ]
+                    ]
+                  }
+                },
+                "function": {
+                  "": {
+                    "len": 39,
+                    "rem": [
+                      [
+                        "my_rule",
+                        "s",
+                        0,
+                        10
+                      ]
+                    ]
+                  }
+                },
+                "module": {
+                  "": {
+                    "len": 7,
+                    "rem": [
+                      [
+                        "my_rule",
+                        "s",
+                        0,
+                        10
+                      ]
+                    ]
+                  }
+                },
+                "vars": {
+                  "foo": {
+                    "": {
+                      "rem": [
+                        [
+                          "my_rule",
+                          "s",
+                          0,
+                          10
+                        ]
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "type": {
+            "": {
+              "len": 5,
+              "rem": [
+                [
+                  "my_rule",
+                  "s",
+                  0,
+                  10
+                ]
+              ]
+            }
+          },
+          "value": {
+            "": {
+              "len": 33,
+              "rem": [
+                [
+                  "my_rule",
+                  "s",
+                  0,
+                  10
+                ]
+              ]
+            }
+          }
+        }
+      }
+    },
+    "extra": {
+      "crashed_process": {
+        "": {
+          "len": 7,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      }
+    },
+    "logentry": {
+      "formatted": {
+        "": {
+          "len": 40,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      }
+    },
+    "release": {
+      "": {
+        "len": 26,
+        "rem": [
+          [
+            "my_rule",
+            "s",
+            0,
+            10
+          ]
+        ]
+      }
+    },
+    "request": {
+      "headers": {
+        "0": {
+          "1": {
+            "": {
+              "len": 8,
+              "rem": [
+                [
+                  "my_rule",
+                  "s",
+                  0,
+                  10
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "method": {
+        "": {
+          "len": 8,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      },
+      "query_string": {
+        "0": {
+          "1": {
+            "": {
+              "len": 8,
+              "rem": [
+                [
+                  "my_rule",
+                  "s",
+                  0,
+                  10
+                ]
+              ]
+            }
+          }
+        }
+      },
+      "url": {
+        "": {
+          "len": 8,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      }
+    },
+    "sdk": {
+      "name": {
+        "": {
+          "len": 15,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      },
+      "version": {
+        "": {
+          "len": 5,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      }
+    },
+    "tags": {
+      "0": {
+        "1": {
+          "": {
+            "len": 10,
+            "rem": [
+              [
+                "my_rule",
+                "s",
+                0,
+                10
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "transaction": {
+      "": {
+        "len": 31,
+        "rem": [
+          [
+            "my_rule",
+            "s",
+            0,
+            10
+          ]
+        ]
+      }
+    },
+    "user": {
+      "email": {
+        "": {
+          "len": 8,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      },
+      "id": {
+        "": {
+          "len": 8,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      },
+      "ip_address": {
+        "": {
+          "len": 8,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      },
+      "name": {
+        "": {
+          "len": 8,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      },
+      "username": {
+        "": {
+          "len": 8,
+          "rem": [
+            [
+              "my_rule",
+              "s",
+              0,
+              10
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "breadcrumbs": {
+    "values": [
+      {
+        "category": "foobar",
+        "data": {
+          "foo": "[censored] some other data"
+        },
+        "level": "info",
+        "message": "[censored] some other data",
+        "timestamp": 1532344755.697,
+        "type": "default"
+      }
+    ]
+  },
+  "contexts": {
+    "app": {
+      "app_name": "[censored] some other data",
+      "app_version": "[censored] some other data",
+      "type": "app"
+    },
+    "chrome": {
+      "name": "[censored] some other data",
+      "type": "runtime",
+      "version": "[censored] some other data"
+    },
+    "device": {
+      "arch": "[censored] some other data",
+      "type": "device"
+    },
+    "node": {
+      "name": "[censored] some other data",
+      "type": "runtime",
+      "version": "[censored] some other data"
+    },
+    "os": {
+      "build": "[censored] some other data",
+      "kernel_version": "[censored] some other data",
+      "name": "[censored] some other data",
+      "type": "os",
+      "version": "[censored] some other data"
+    },
+    "runtime": {
+      "name": "[censored] some other data",
+      "type": "runtime",
+      "version": "[censored] some other data"
+    }
+  },
+  "environment": "[censored] some other data",
+  "event_id": "f45706e6390542a2830b8aac75043bf2",
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "colno": 20,
+              "context_line": "crash()",
+              "filename": "[censored] some other data",
+              "function": "[censored] some other data",
+              "in_app": false,
+              "lineno": 282,
+              "module": "[censored] some other data",
+              "post_context": [
+                ""
+              ],
+              "pre_context": [
+                ""
+              ],
+              "vars": {
+                "foo": "[censored] some other data"
+              }
+            }
+          ]
+        },
+        "type": "[censored] some other data",
+        "value": "[censored] some other data"
+      }
+    ]
+  },
+  "extra": {
+    "crashed_process": "[censored] some other data"
+  },
+  "level": "fatal",
+  "logentry": {
+    "formatted": "[censored] some other data"
+  },
+  "release": "[censored] some other data",
+  "request": {
+    "headers": [
+      [
+        "X-Secret-Key",
+        "[censored] some other data"
+      ]
+    ],
+    "method": "[censored] some other data",
+    "query_string": [
+      [
+        "secret_key",
+        "[censored] some other data"
+      ]
+    ],
+    "url": "[censored] some other data"
+  },
+  "sdk": {
+    "name": "[censored] some other data",
+    "version": "[censored] some other data"
+  },
+  "tags": [
+    [
+      "event_type",
+      "[censored] some other data"
+    ]
+  ],
+  "transaction": "[censored] some other data",
+  "user": {
+    "email": "[censored] some other data",
+    "id": "[censored] some other data",
+    "ip_address": "[censored] some other data",
+    "name": "[censored] some other data",
+    "username": "[censored] some other data"
+  }
+}

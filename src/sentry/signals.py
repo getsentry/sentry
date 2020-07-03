@@ -52,14 +52,12 @@ class BetterSignal(Signal):
 
 
 buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])
-event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
-event_discarded = BetterSignal(providing_args=["project"])
-event_dropped = BetterSignal(providing_args=["ip", "data", "project", "reason_code"])
-event_filtered = BetterSignal(providing_args=["ip", "data", "project"])
-event_received = BetterSignal(providing_args=["ip", "project"])
 pending_delete = BetterSignal(providing_args=["instance", "actor"])
 event_processed = BetterSignal(providing_args=["project", "event"])
-event_saved = BetterSignal(providing_args=["project"])
+
+# DEPRECATED
+event_received = BetterSignal(providing_args=["ip", "project"])
+event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
 
 # Organization Onboarding Signals
 project_created = BetterSignal(providing_args=["project", "user", "default_rules"])
@@ -87,12 +85,9 @@ save_search_created = BetterSignal(providing_args=["project", "user"])
 inbound_filter_toggled = BetterSignal(providing_args=["project"])
 sso_enabled = BetterSignal(providing_args=["organization", "user", "provider"])
 data_scrubber_enabled = BetterSignal(providing_args=["organization"])
-alert_rule_created = BetterSignal(providing_args=["project", "rule", "user"])
+alert_rule_created = BetterSignal(providing_args=["project", "rule", "user", "rule_type"])
 repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
-release_commits_updated = BetterSignal(
-    providing_args=["release", "removed_commit_ids", "added_commit_ids"]
-)
 deploy_created = BetterSignal(providing_args=["deploy"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
@@ -109,3 +104,4 @@ monitor_failed = BetterSignal(providing_args=["monitor"])
 # experiments
 join_request_created = BetterSignal(providing_args=["member"])
 join_request_link_viewed = BetterSignal(providing_args=["organization"])
+user_signup = BetterSignal(providing_args=["user", "source"])

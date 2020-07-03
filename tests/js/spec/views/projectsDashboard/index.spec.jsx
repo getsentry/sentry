@@ -1,5 +1,6 @@
 import React from 'react';
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Dashboard} from 'app/views/projectsDashboard';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
@@ -8,19 +9,17 @@ import * as projectsActions from 'app/actionCreators/projects';
 jest.unmock('lodash/debounce');
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
-  const mockDebounce = (fn, timeout) => {
-    return (...args) => {
-      if (debounceMap.has(fn)) {
-        clearTimeout(debounceMap.get(fn));
-      }
-      debounceMap.set(
-        fn,
-        setTimeout(() => {
-          fn.apply(fn, args);
-          debounceMap.delete(fn);
-        }, timeout)
-      );
-    };
+  const mockDebounce = (fn, timeout) => (...args) => {
+    if (debounceMap.has(fn)) {
+      clearTimeout(debounceMap.get(fn));
+    }
+    debounceMap.set(
+      fn,
+      setTimeout(() => {
+        fn.apply(fn, args);
+        debounceMap.delete(fn);
+      }, timeout)
+    );
   };
   return mockDebounce;
 });
@@ -92,6 +91,7 @@ describe('ProjectsDashboard', function() {
         }),
 
         TestStubs.Project({
+          slug: 'project2',
           teams,
           isBookmarked: true,
           firstEvent: true,
@@ -100,7 +100,7 @@ describe('ProjectsDashboard', function() {
 
       const teamsWithTwoProjects = [TestStubs.Team({projects})];
 
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <Dashboard
           teams={teamsWithTwoProjects}
           organization={org}

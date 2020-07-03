@@ -5,6 +5,7 @@ import six
 import time
 
 from django.http import Http404
+from django.conf import settings
 
 from sentry.utils import metrics
 
@@ -28,7 +29,9 @@ class ResponseCodeMiddleware(object):
 
 class RequestTimingMiddleware(object):
     allowed_methods = ("POST", "GET")
-    allowed_paths = ("sentry.web.api", "sentry.api.endpoints")  # Store endpoints
+    allowed_paths = getattr(
+        settings, "SENTRY_REQUEST_METRIC_ALLOWED_PATHS", ("sentry.web.api", "sentry.api.endpoints")
+    )  # Store endpoints
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         if not hasattr(request, "_metric_tags"):

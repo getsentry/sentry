@@ -9,8 +9,8 @@ trap "rm -f ${files_changed_upstream}" EXIT
 
 git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD > "$files_changed_upstream"
 
-grep -E --quiet 'requirements.*\.txt' "$files_changed_upstream" && py="install-sentry-dev "
-grep -E --quiet 'yarn.lock' "$files_changed_upstream"           && js="install-yarn-pkgs "
+grep -E --quiet 'requirements.*\.txt' "$files_changed_upstream" && py="install-py-dev "
+grep -E --quiet 'yarn.lock' "$files_changed_upstream"           && js="install-js-dev "
 grep -E --quiet 'migrations' "$files_changed_upstream"          && migrations="apply-migrations "
 
 [[ "$py" || "$js" || "$migrations" ]] && needs_update=1

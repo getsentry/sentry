@@ -1,722 +1,722 @@
 ---
-created: '2019-05-08T07:33:32.041454Z'
+created: '2020-02-26T19:54:38.988317Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: '4665d486184740231357ab63f4543a8d'
+  hash: "4665d486184740231357ab63f4543a8d"
   component:
     app*
       exception*
         stacktrace*
           frame*
             filename*
-              u'server.php'
+              "server.php"
             context-line*
-              u"require_once __DIR__.'/public/index.php';"
+              "require_once __DIR__.'/public/index.php';"
           frame*
             filename*
-              u'index.php'
+              "index.php"
             function*
-              u'require_once'
+              "require_once"
             context-line*
-              u'$request = Illuminate\\Http\\Request::capture()'
+              "$request = Illuminate\\Http\\Request::capture()"
           frame (non app frame)
             filename*
-              u'kernel.php'
+              "kernel.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Kernel::handle'
+              "Illuminate\\Foundation\\Http\\Kernel::handle"
             context-line*
-              u'$response = $this->sendRequestThroughRouter($request);'
+              "$response = $this->sendRequestThroughRouter($request);"
           frame (non app frame)
             filename*
-              u'kernel.php'
+              "kernel.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Kernel::sendRequestThroughRouter'
+              "Illuminate\\Foundation\\Http\\Kernel::sendRequestThroughRouter"
             context-line*
-              u'->then($this->dispatchToRouter());'
+              "->then($this->dispatchToRouter());"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::then'
+              "Illuminate\\Pipeline\\Pipeline::then"
             context-line*
-              u'return $pipeline($this->passable);'
+              "return $pipeline($this->passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'checkformaintenancemode.php'
+              "checkformaintenancemode.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\CheckForMaintenanceMode::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\CheckForMaintenanceMode::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'validatepostsize.php'
+              "validatepostsize.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'transformsrequest.php'
+              "transformsrequest.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'transformsrequest.php'
+              "transformsrequest.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'trustproxies.php'
+              "trustproxies.php"
             function*
-              u'Fideloper\\Proxy\\TrustProxies::handle'
+              "Fideloper\\Proxy\\TrustProxies::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $destination($passable);'
+              "return $destination($passable);"
           frame (non app frame)
             filename*
-              u'kernel.php'
+              "kernel.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Kernel::Illuminate\\Foundation\\Http\\{closure}'
+              "Illuminate\\Foundation\\Http\\Kernel::Illuminate\\Foundation\\Http\\{closure}"
             context-line*
-              u'return $this->router->dispatch($request);'
+              "return $this->router->dispatch($request);"
           frame (non app frame)
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::dispatch'
+              "Illuminate\\Routing\\Router::dispatch"
             context-line*
-              u'return $this->dispatchToRoute($request);'
+              "return $this->dispatchToRoute($request);"
           frame (non app frame)
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::dispatchToRoute'
+              "Illuminate\\Routing\\Router::dispatchToRoute"
             context-line*
-              u'return $this->runRoute($request, $this->findRoute($request));'
+              "return $this->runRoute($request, $this->findRoute($request));"
           frame (non app frame)
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::runRoute'
+              "Illuminate\\Routing\\Router::runRoute"
             context-line*
-              u'$this->runRouteWithinStack($route, $request)'
+              "$this->runRouteWithinStack($route, $request)"
           frame (non app frame)
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::runRouteWithinStack'
+              "Illuminate\\Routing\\Router::runRouteWithinStack"
             context-line*
-              u'});'
+              "});"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::then'
+              "Illuminate\\Pipeline\\Pipeline::then"
             context-line*
-              u'return $pipeline($this->passable);'
+              "return $pipeline($this->passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'encryptcookies.php'
+              "encryptcookies.php"
             function*
-              u'Illuminate\\Cookie\\Middleware\\EncryptCookies::handle'
+              "Illuminate\\Cookie\\Middleware\\EncryptCookies::handle"
             context-line*
-              u'return $this->encrypt($next($this->decrypt($request)));'
+              "return $this->encrypt($next($this->decrypt($request)));"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'addqueuedcookiestoresponse.php'
+              "addqueuedcookiestoresponse.php"
             function*
-              u'Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse::handle'
+              "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse::handle"
             context-line*
-              u'$response = $next($request);'
+              "$response = $next($request);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'startsession.php'
+              "startsession.php"
             function*
-              u'Illuminate\\Session\\Middleware\\StartSession::handle'
+              "Illuminate\\Session\\Middleware\\StartSession::handle"
             context-line*
-              u'$response = $next($request), $session'
+              "$response = $next($request), $session"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'shareerrorsfromsession.php'
+              "shareerrorsfromsession.php"
             function*
-              u'Illuminate\\View\\Middleware\\ShareErrorsFromSession::handle'
+              "Illuminate\\View\\Middleware\\ShareErrorsFromSession::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'verifycsrftoken.php'
+              "verifycsrftoken.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle"
             context-line*
-              u'return tap($next($request), function ($response) use ($request) {'
+              "return tap($next($request), function ($response) use ($request) {"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame (non app frame)
             filename*
-              u'substitutebindings.php'
+              "substitutebindings.php"
             function*
-              u'Illuminate\\Routing\\Middleware\\SubstituteBindings::handle'
+              "Illuminate\\Routing\\Middleware\\SubstituteBindings::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame (non app frame)
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $destination($passable);'
+              "return $destination($passable);"
           frame (non app frame)
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Router::Illuminate\\Routing\\{closure}"
             context-line*
-              u'$request, $route->run()'
+              "$request, $route->run()"
           frame (non app frame)
             filename*
-              u'route.php'
+              "route.php"
             function*
-              u'Illuminate\\Routing\\Route::run'
+              "Illuminate\\Routing\\Route::run"
             context-line*
-              u'return $this->runCallable();'
+              "return $this->runCallable();"
           frame (non app frame)
             filename*
-              u'route.php'
+              "route.php"
             function*
-              u'Illuminate\\Routing\\Route::runCallable'
+              "Illuminate\\Routing\\Route::runCallable"
             context-line*
-              u"$this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
+              "$this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
           frame*
             filename*
-              u'web.php'
+              "web.php"
             function*
-              u'Illuminate\\Routing\\RouteFileRegistrar::{closure}'
+              "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
             context-line*
-              u"throw new Exception('LARAVEL TEST');"
+              "throw new Exception('LARAVEL TEST');"
         type*
-          u'Exception'
+          "Exception"
         value (ignored because stacktrace takes precedence)
-          u'LARAVEL TEST'
+          "LARAVEL TEST"
 --------------------------------------------------------------------------
 system:
-  hash: '107ed03036d901157372f260bc3df446'
+  hash: "107ed03036d901157372f260bc3df446"
   component:
     system*
       exception*
         stacktrace*
           frame*
             filename*
-              u'server.php'
+              "server.php"
             context-line*
-              u"require_once __DIR__.'/public/index.php';"
+              "require_once __DIR__.'/public/index.php';"
           frame*
             filename*
-              u'index.php'
+              "index.php"
             function*
-              u'require_once'
+              "require_once"
             context-line*
-              u'$request = Illuminate\\Http\\Request::capture()'
+              "$request = Illuminate\\Http\\Request::capture()"
           frame*
             filename*
-              u'kernel.php'
+              "kernel.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Kernel::handle'
+              "Illuminate\\Foundation\\Http\\Kernel::handle"
             context-line*
-              u'$response = $this->sendRequestThroughRouter($request);'
+              "$response = $this->sendRequestThroughRouter($request);"
           frame*
             filename*
-              u'kernel.php'
+              "kernel.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Kernel::sendRequestThroughRouter'
+              "Illuminate\\Foundation\\Http\\Kernel::sendRequestThroughRouter"
             context-line*
-              u'->then($this->dispatchToRouter());'
+              "->then($this->dispatchToRouter());"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::then'
+              "Illuminate\\Pipeline\\Pipeline::then"
             context-line*
-              u'return $pipeline($this->passable);'
+              "return $pipeline($this->passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'checkformaintenancemode.php'
+              "checkformaintenancemode.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\CheckForMaintenanceMode::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\CheckForMaintenanceMode::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'validatepostsize.php'
+              "validatepostsize.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\ValidatePostSize::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'transformsrequest.php'
+              "transformsrequest.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'transformsrequest.php'
+              "transformsrequest.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'trustproxies.php'
+              "trustproxies.php"
             function*
-              u'Fideloper\\Proxy\\TrustProxies::handle'
+              "Fideloper\\Proxy\\TrustProxies::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $destination($passable);'
+              "return $destination($passable);"
           frame*
             filename*
-              u'kernel.php'
+              "kernel.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Kernel::Illuminate\\Foundation\\Http\\{closure}'
+              "Illuminate\\Foundation\\Http\\Kernel::Illuminate\\Foundation\\Http\\{closure}"
             context-line*
-              u'return $this->router->dispatch($request);'
+              "return $this->router->dispatch($request);"
           frame*
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::dispatch'
+              "Illuminate\\Routing\\Router::dispatch"
             context-line*
-              u'return $this->dispatchToRoute($request);'
+              "return $this->dispatchToRoute($request);"
           frame*
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::dispatchToRoute'
+              "Illuminate\\Routing\\Router::dispatchToRoute"
             context-line*
-              u'return $this->runRoute($request, $this->findRoute($request));'
+              "return $this->runRoute($request, $this->findRoute($request));"
           frame*
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::runRoute'
+              "Illuminate\\Routing\\Router::runRoute"
             context-line*
-              u'$this->runRouteWithinStack($route, $request)'
+              "$this->runRouteWithinStack($route, $request)"
           frame*
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::runRouteWithinStack'
+              "Illuminate\\Routing\\Router::runRouteWithinStack"
             context-line*
-              u'});'
+              "});"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::then'
+              "Illuminate\\Pipeline\\Pipeline::then"
             context-line*
-              u'return $pipeline($this->passable);'
+              "return $pipeline($this->passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'encryptcookies.php'
+              "encryptcookies.php"
             function*
-              u'Illuminate\\Cookie\\Middleware\\EncryptCookies::handle'
+              "Illuminate\\Cookie\\Middleware\\EncryptCookies::handle"
             context-line*
-              u'return $this->encrypt($next($this->decrypt($request)));'
+              "return $this->encrypt($next($this->decrypt($request)));"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'addqueuedcookiestoresponse.php'
+              "addqueuedcookiestoresponse.php"
             function*
-              u'Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse::handle'
+              "Illuminate\\Cookie\\Middleware\\AddQueuedCookiesToResponse::handle"
             context-line*
-              u'$response = $next($request);'
+              "$response = $next($request);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'startsession.php'
+              "startsession.php"
             function*
-              u'Illuminate\\Session\\Middleware\\StartSession::handle'
+              "Illuminate\\Session\\Middleware\\StartSession::handle"
             context-line*
-              u'$response = $next($request), $session'
+              "$response = $next($request), $session"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'shareerrorsfromsession.php'
+              "shareerrorsfromsession.php"
             function*
-              u'Illuminate\\View\\Middleware\\ShareErrorsFromSession::handle'
+              "Illuminate\\View\\Middleware\\ShareErrorsFromSession::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'verifycsrftoken.php'
+              "verifycsrftoken.php"
             function*
-              u'Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle'
+              "Illuminate\\Foundation\\Http\\Middleware\\VerifyCsrfToken::handle"
             context-line*
-              u'return tap($next($request), function ($response) use ($request) {'
+              "return tap($next($request), function ($response) use ($request) {"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $callable($passable);'
+              "return $callable($passable);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}'
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
             context-line*
-              u'? $pipe->{$this->method}(...$parameters)'
+              "? $pipe->{$this->method}(...$parameters)"
           frame*
             filename*
-              u'substitutebindings.php'
+              "substitutebindings.php"
             function*
-              u'Illuminate\\Routing\\Middleware\\SubstituteBindings::handle'
+              "Illuminate\\Routing\\Middleware\\SubstituteBindings::handle"
             context-line*
-              u'return $next($request);'
+              "return $next($request);"
           frame*
             filename*
-              u'pipeline.php'
+              "pipeline.php"
             function*
-              u'Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Pipeline::Illuminate\\Routing\\{closure}"
             context-line*
-              u'return $destination($passable);'
+              "return $destination($passable);"
           frame*
             filename*
-              u'router.php'
+              "router.php"
             function*
-              u'Illuminate\\Routing\\Router::Illuminate\\Routing\\{closure}'
+              "Illuminate\\Routing\\Router::Illuminate\\Routing\\{closure}"
             context-line*
-              u'$request, $route->run()'
+              "$request, $route->run()"
           frame*
             filename*
-              u'route.php'
+              "route.php"
             function*
-              u'Illuminate\\Routing\\Route::run'
+              "Illuminate\\Routing\\Route::run"
             context-line*
-              u'return $this->runCallable();'
+              "return $this->runCallable();"
           frame*
             filename*
-              u'route.php'
+              "route.php"
             function*
-              u'Illuminate\\Routing\\Route::runCallable'
+              "Illuminate\\Routing\\Route::runCallable"
             context-line*
-              u"$this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
+              "$this->parametersWithoutNulls(), new ReflectionFunction($this->action['uses'])"
           frame*
             filename*
-              u'web.php'
+              "web.php"
             function*
-              u'Illuminate\\Routing\\RouteFileRegistrar::{closure}'
+              "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
             context-line*
-              u"throw new Exception('LARAVEL TEST');"
+              "throw new Exception('LARAVEL TEST');"
         type*
-          u'Exception'
+          "Exception"
         value (ignored because stacktrace takes precedence)
-          u'LARAVEL TEST'
+          "LARAVEL TEST"

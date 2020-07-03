@@ -46,6 +46,7 @@ class CommitRow extends React.Component<Props> {
             accountSettings: <StyledLink to="/settings/account/emails/" />,
             inviteUser: (
               <StyledLink
+                to=""
                 onClick={() =>
                   openInviteMembersModal({
                     initialData: [
@@ -130,7 +131,7 @@ const EmailWarningIcon = styled(InlineSvg)`
   border-radius: 11px;
   margin-bottom: -25px;
   border: 1px solid ${p => p.theme.white};
-  background: ${p => p.theme.yellowLight};
+  background: ${p => p.theme.yellow300};
 `;
 
 const CommitMessage = styled('div')`
@@ -150,7 +151,7 @@ const Meta = styled(TextOverflow)`
   font-size: 13px;
   line-height: 1.5;
   margin: 0;
-  color: ${p => p.theme.gray3};
+  color: ${p => p.theme.gray600};
 `;
 
 export default styled(CommitRow)`

@@ -6,6 +6,25 @@ from six.moves.urllib.parse import urlparse
 
 from sentry.runner.decorators import configuration, log_options
 
+_DEFAULT_DAEMONS = {
+    "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
+    "cron": ["sentry", "run", "cron", "--autoreload"],
+    "post-process-forwarder": [
+        "sentry",
+        "run",
+        "post-process-forwarder",
+        "--loglevel=debug",
+        "--commit-batch-size=1",
+    ],
+    "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
+    "server": ["sentry", "run", "web"],
+    "storybook": ["yarn", "storybook"],
+}
+
+
+def _get_daemon(name):
+    return (name, _DEFAULT_DAEMONS[name])
+
 
 @click.command()
 @click.option("--reload/--no-reload", default=True, help="Autoreloading of python files.")
@@ -23,15 +42,41 @@ from sentry.runner.decorators import configuration, log_options
 )
 @click.option("--environment", default="development", help="The environment name.")
 @click.option(
+    "--skip-daemons",
+    default=None,
+    required=False,
+    help="List (comma-delimited) of daemons not to start (values: {})".format(
+        ", ".join(sorted(_DEFAULT_DAEMONS.keys()))
+    ),
+)
+@click.option(
     "--experimental-spa/--no-experimental-spa",
     default=False,
     help="This enables running sentry with pure separation of the frontend and backend",
 )
-@click.argument("bind", default="127.0.0.1:8000", metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND")
+@click.argument(
+    "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
+)
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, environment, bind):
+def devserver(
+    reload, watchers, workers, experimental_spa, styleguide, prefix, environment, skip_daemons, bind
+):
     "Starts a lightweight web server for development."
+    skip_daemons = set(skip_daemons.split(",")) if skip_daemons else set()
+    if skip_daemons.difference(_DEFAULT_DAEMONS.keys()):
+        unrecognized_daemons = skip_daemons.difference(_DEFAULT_DAEMONS.keys())
+        raise click.ClickException("Not a daemon name: {}".format(", ".join(unrecognized_daemons)))
+
+    if bind is None:
+        # default configuration, the dev server address depends on weather we have a reverse proxy
+        # in front that splits the requests between Relay and the dev server or we pass everything
+        # to the dev server
+        from django.conf import settings
+
+        port = 8888 if settings.SENTRY_USE_RELAY else 8000
+        bind = "127.0.0.1:{}".format(port)
+
     if ":" in bind:
         host, port = bind.split(":", 1)
         port = int(port)
@@ -42,6 +87,9 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
     import os
 
     os.environ["SENTRY_ENVIRONMENT"] = environment
+    # NODE_ENV *must* use production for any prod-like environment as third party libraries look
+    # for this magic constant
+    os.environ["NODE_ENV"] = "production" if environment.startswith("prod") else environment
 
     from django.conf import settings
     from sentry import options
@@ -92,7 +140,7 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
     daemons = []
 
     if experimental_spa:
-        os.environ["SENTRY_EXPERIMENTAL_SPA"] = "1"
+        os.environ["SENTRY_UI_DEV_ONLY"] = "1"
         if not watchers:
             click.secho(
                 "Using experimental SPA mode without watchers enabled has no effect",
@@ -111,6 +159,7 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
 
         uwsgi_overrides["protocol"] = "http"
 
+        os.environ["FORCE_WEBPACK_DEV_SERVER"] = "1"
         os.environ["SENTRY_WEBPACK_PROXY_PORT"] = "%s" % proxy_port
         os.environ["SENTRY_BACKEND_PORT"] = "%s" % port
 
@@ -146,26 +195,15 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
             )
 
-        daemons += [
-            ("worker", ["sentry", "run", "worker", "-c", "1", "--autoreload"]),
-            ("cron", ["sentry", "run", "cron", "--autoreload"]),
-        ]
+        daemons += [_get_daemon("worker"), _get_daemon("cron")]
 
         from sentry import eventstream
 
         if eventstream.requires_post_process_forwarder():
-            daemons += [
-                (
-                    "relay",
-                    [
-                        "sentry",
-                        "run",
-                        "post-process-forwarder",
-                        "--loglevel=debug",
-                        "--commit-batch-size=1",
-                    ],
-                )
-            ]
+            daemons += [_get_daemon("post-process-forwarder")]
+
+    if settings.SENTRY_USE_RELAY:
+        daemons += [_get_daemon("ingest")]
 
     if needs_https and has_https:
         https_port = six.text_type(parsed_url.port)
@@ -185,12 +223,18 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
             ("https", ["https", "-host", https_host, "-listen", host + ":" + https_port, bind])
         ]
 
+    from sentry.runner.commands.devservices import _prepare_containers
+
+    for name, container_options in _prepare_containers("sentry", silent=True).items():
+        if container_options.get("with_devserver", False):
+            daemons += [(name, ["sentry", "devservices", "attach", "--fast", name])]
+
     # A better log-format for local dev when running through honcho,
     # but if there aren't any other daemons, we don't want to override.
     if daemons:
-        uwsgi_overrides["log-format"] = '"%(method) %(uri) %(proto)" %(status) %(size)'
+        uwsgi_overrides["log-format"] = '"%(method) %(status) %(uri) %(proto)" %(size)'
     else:
-        uwsgi_overrides["log-format"] = '[%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size)'
+        uwsgi_overrides["log-format"] = '[%(ltime)] "%(method) %(status) %(uri) %(proto)" %(size)'
 
     server = SentryHTTPServer(host=host, port=port, workers=1, extra_options=uwsgi_overrides)
 
@@ -209,16 +253,17 @@ def devserver(reload, watchers, workers, experimental_spa, styleguide, prefix, e
     # Make sure that the environment is prepared before honcho takes over
     # This sets all the appropriate uwsgi env vars, etc
     server.prepare_environment()
-    daemons += [("server", ["sentry", "run", "web"])]
+    daemons += [_get_daemon("server")]
 
     if styleguide:
-        daemons += [("storybook", ["./bin/yarn", "storybook"])]
+        daemons += [_get_daemon("storybook")]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
     manager = Manager(Printer(prefix=prefix))
     for name, cmd in daemons:
-        manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
+        if name not in skip_daemons:
+            manager.add_process(name, list2cmdline(cmd), quiet=False, cwd=cwd)
 
     manager.loop()
     sys.exit(manager.returncode)

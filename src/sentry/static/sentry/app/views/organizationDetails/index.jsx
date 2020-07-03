@@ -14,9 +14,6 @@ import NarrowLayout from 'app/components/narrowLayout';
 import OrganizationContext from 'app/views/organizationContext';
 import SentryTypes from 'app/sentryTypes';
 
-import InstallPromptBanner from './installPromptBanner';
-import LightWeightInstallPromptBanner from './lightWeightInstallPromptBanner';
-
 class DeletionInProgress extends Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
@@ -49,7 +46,7 @@ class DeletionPending extends Component {
     this.state = {submitInProgress: false};
   }
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.api = new Client();
   }
 
@@ -128,16 +125,8 @@ class DeletionPending extends Component {
 }
 
 class OrganizationDetailsBody extends Component {
-  static propTypes = {
-    detailed: PropTypes.bool,
-  };
-
   static contextTypes = {
     organization: SentryTypes.Organization,
-  };
-
-  static defaultProps = {
-    detailed: true,
   };
 
   render() {
@@ -152,12 +141,6 @@ class OrganizationDetailsBody extends Component {
     }
     return (
       <React.Fragment>
-        {organization &&
-          (this.props.detailed ? (
-            <InstallPromptBanner organization={organization} />
-          ) : (
-            <LightWeightInstallPromptBanner organization={organization} />
-          ))}
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>

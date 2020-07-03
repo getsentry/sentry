@@ -12,7 +12,7 @@ exports[`Issues Similar View renders initially with loading component 1`] = `
      
     This is an experimental feature. Data may not be immediately available while we process merges.
   </div>
-  <LoadingIndicator />
+  <profiler(LoadingIndicator) />
 </div>
 `;
 
@@ -337,10 +337,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             </h2>
             <StyledSimilarSpectrum>
               <SimilarSpectrum
-                className="css-4unnmj-StyledSimilarSpectrum e1hn3xkk0"
+                className="css-4unnmj-StyledSimilarSpectrum enx6bph0"
               >
                 <div
-                  className="css-4unnmj-StyledSimilarSpectrum e1hn3xkk0"
+                  className="css-4unnmj-StyledSimilarSpectrum enx6bph0"
                 >
                   <span>
                     Similar
@@ -349,35 +349,35 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     colorIndex={4}
                   >
                     <span
-                      className="css-h1r3gt-SpectrumItem e1hn3xkk1"
+                      className="css-h1r3gt-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={3}
                   >
                     <span
-                      className="css-1j6o86h-SpectrumItem e1hn3xkk1"
+                      className="css-1j6o86h-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={2}
                   >
                     <span
-                      className="css-1pl5ll-SpectrumItem e1hn3xkk1"
+                      className="css-1pl5ll-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={1}
                   >
                     <span
-                      className="css-w9x78l-SpectrumItem e1hn3xkk1"
+                      className="css-w9x78l-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <SpectrumItem
                     colorIndex={0}
                   >
                     <span
-                      className="css-arcd4a-SpectrumItem e1hn3xkk1"
+                      className="css-arcd4a-SpectrumItem enx6bph1"
                     />
                   </SpectrumItem>
                   <span>
@@ -395,7 +395,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             className="similar-toolbar"
           >
             <div
-              className="similar-toolbar css-lblm1m-Toolbar e1pdx9kr0"
+              className="similar-toolbar css-jryrm5-Toolbar e1pdx9kr0"
             >
               <SpreadLayout
                 responsive={true}
@@ -450,6 +450,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 <a
                                   className="btn btn-sm btn-default disabled"
                                   disabled={true}
+                                  href="#"
                                   onClick={[Function]}
                                   title="Merging 0 issues"
                                 >
@@ -834,7 +835,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               size="normal"
                             >
                               <div
-                                className="event-issue-header"
+                                data-test-id="event-issue-header"
                               >
                                 <Title
                                   size="normal"
@@ -891,7 +892,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             level="error"
                                           >
                                             <div
-                                              className="css-1ipn9w2-GroupLevel eex8od5"
+                                              className="css-10kyqk5-GroupLevel eex8od5"
                                             >
                                               <Tooltip
                                                 containerDisplayMode="inline-block"
@@ -1056,15 +1057,27 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 }
                                               }
                                             >
-                                              <span
-                                                style={
-                                                  Object {
-                                                    "marginRight": 10,
-                                                  }
-                                                }
+                                              <GuideAnchor
+                                                disabled={true}
+                                                position="bottom"
+                                                target="issue_title"
                                               >
-                                                TypeError
-                                              </span>
+                                                <span>
+                                                  TypeError
+                                                </span>
+                                              </GuideAnchor>
+                                              <Spacer>
+                                                <span
+                                                  style={
+                                                    Object {
+                                                      "display": "inline-block",
+                                                      "width": 10,
+                                                    }
+                                                  }
+                                                >
+                                                   
+                                                </span>
+                                              </Spacer>
                                               <em
                                                 title="length(app/views/groupSimilar/groupSimilarView)"
                                               >
@@ -1259,15 +1272,13 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             >
                               <GroupExtra>
                                 <div
-                                  className="css-1s7tq6o-GroupExtra eec9orn0"
+                                  className="css-q0ziu0-GroupExtra eec9orn0"
                                 >
                                   <GroupShortId
                                     avatar={
                                       <ProjectBadge
                                         avatarSize={14}
-                                        hideAvatar={false}
                                         hideName={true}
-                                        hideOverflow={true}
                                         project={
                                           Object {
                                             "id": "123",
@@ -1283,9 +1294,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       avatar={
                                         <ProjectBadge
                                           avatarSize={14}
-                                          hideAvatar={false}
                                           hideName={true}
-                                          hideOverflow={true}
                                           project={
                                             Object {
                                               "id": "123",
@@ -1302,9 +1311,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         avatar={
                                           <ProjectBadge
                                             avatarSize={14}
-                                            hideAvatar={false}
                                             hideName={true}
-                                            hideOverflow={true}
                                             project={
                                               Object {
                                                 "id": "123",
@@ -1324,9 +1331,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                         >
                                           <ProjectBadge
                                             avatarSize={14}
-                                            hideAvatar={false}
                                             hideName={true}
-                                            hideOverflow={true}
                                             project={
                                               Object {
                                                 "id": "123",
@@ -1363,7 +1368,10 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                                       Object {
                                                         "$$typeof": Symbol(react.forward_ref),
-                                                        "__emotion_base": [Function],
+                                                        "__emotion_base": Object {
+                                                          "$$typeof": Symbol(react.forward_ref),
+                                                          "render": [Function],
+                                                        },
                                                         "__emotion_forwardProp": undefined,
                                                         "__emotion_real": [Circular],
                                                         "__emotion_styles": Array [
@@ -1372,9 +1380,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                           [Function],
                                                           ";flex-shrink:0;",
                                                         ],
-                                                        "defaultProps": Object {
-                                                          "hasTooltip": false,
-                                                        },
+                                                        "defaultProps": undefined,
                                                         "displayName": "StyledAvatar",
                                                         "render": [Function],
                                                         "withComponent": [Function],
@@ -1392,7 +1398,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                   >
                                                     <StyledAvatar
                                                       className="css-0"
-                                                      hasTooltip={false}
                                                       hideName={true}
                                                       project={
                                                         Object {
@@ -1403,9 +1408,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                       }
                                                       size={14}
                                                     >
-                                                      <Avatar
+                                                      <ForwardRef
                                                         className="css-7c3lwm-StyledAvatar e165dl3i1"
-                                                        hasTooltip={false}
                                                         hideName={true}
                                                         project={
                                                           Object {
@@ -1416,8 +1420,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                         }
                                                         size={14}
                                                       >
-                                                        <ProjectAvatar
+                                                        <Avatar
                                                           className="css-7c3lwm-StyledAvatar e165dl3i1"
+                                                          forwardedRef={null}
                                                           hasTooltip={false}
                                                           hideName={true}
                                                           project={
@@ -1429,64 +1434,85 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                           }
                                                           size={14}
                                                         >
-                                                          <PlatformList
+                                                          <ProjectAvatar
                                                             className="css-7c3lwm-StyledAvatar e165dl3i1"
-                                                            consistentWidth={false}
-                                                            direction="right"
+                                                            forwardedRef={null}
                                                             hasTooltip={false}
                                                             hideName={true}
-                                                            max={1}
-                                                            platforms={Array []}
+                                                            project={
+                                                              Object {
+                                                                "id": "123",
+                                                                "name": "Internal",
+                                                                "slug": "project-slug",
+                                                              }
+                                                            }
                                                             size={14}
                                                           >
-                                                            <PlatformIcons
-                                                              className="css-7c3lwm-StyledAvatar e165dl3i1"
-                                                              consistentWidth={false}
-                                                              direction="right"
-                                                              max={1}
-                                                              size={14}
+                                                            <Tooltip
+                                                              containerDisplayMode="inline-block"
+                                                              disabled={true}
+                                                              position="top"
                                                             >
-                                                              <div
-                                                                className="e165dl3i1 css-dyodzz-PlatformIcons-StyledAvatar ezvce7z0"
+                                                              <PlatformList
+                                                                className="css-7c3lwm-StyledAvatar e165dl3i1"
+                                                                consistentWidth={false}
                                                                 direction="right"
+                                                                forwardedRef={null}
+                                                                hideName={true}
                                                                 max={1}
+                                                                platforms={Array []}
                                                                 size={14}
                                                               >
-                                                                <StyledPlatformIcon
-                                                                  platform="default"
+                                                                <PlatformIcons
+                                                                  className="css-7c3lwm-StyledAvatar e165dl3i1"
+                                                                  consistentWidth={false}
+                                                                  direction="right"
+                                                                  max={1}
                                                                   size={14}
                                                                 >
-                                                                  <Component
-                                                                    className="css-7okses-StyledPlatformIcon ezvce7z1"
-                                                                    platform="default"
+                                                                  <div
+                                                                    className="e165dl3i1 css-dyodzz-PlatformIcons-StyledAvatar ezvce7z0"
+                                                                    direction="right"
+                                                                    max={1}
                                                                     size={14}
                                                                   >
-                                                                    <PlatformIcon
-                                                                      className="css-7okses-StyledPlatformIcon ezvce7z1"
+                                                                    <StyledPlatformIcon
                                                                       platform="default"
-                                                                      size="14px"
+                                                                      size={14}
                                                                     >
-                                                                      <img
+                                                                      <Component
                                                                         className="css-7okses-StyledPlatformIcon ezvce7z1"
-                                                                        height="14px"
-                                                                        src={
-                                                                          Object {
-                                                                            "default": Object {
-                                                                              "id": "test",
-                                                                              "viewBox": Object {},
-                                                                            },
-                                                                          }
-                                                                        }
-                                                                        width="14px"
-                                                                      />
-                                                                    </PlatformIcon>
-                                                                  </Component>
-                                                                </StyledPlatformIcon>
-                                                              </div>
-                                                            </PlatformIcons>
-                                                          </PlatformList>
-                                                        </ProjectAvatar>
-                                                      </Avatar>
+                                                                        platform="default"
+                                                                        size={14}
+                                                                      >
+                                                                        <PlatformIcon
+                                                                          className="css-7okses-StyledPlatformIcon ezvce7z1"
+                                                                          platform="default"
+                                                                          size="14px"
+                                                                        >
+                                                                          <img
+                                                                            className="css-7okses-StyledPlatformIcon ezvce7z1"
+                                                                            height="14px"
+                                                                            src={
+                                                                              Object {
+                                                                                "default": Object {
+                                                                                  "id": "test",
+                                                                                  "viewBox": Object {},
+                                                                                },
+                                                                              }
+                                                                            }
+                                                                            width="14px"
+                                                                          />
+                                                                        </PlatformIcon>
+                                                                      </Component>
+                                                                    </StyledPlatformIcon>
+                                                                  </div>
+                                                                </PlatformIcons>
+                                                              </PlatformList>
+                                                            </Tooltip>
+                                                          </ProjectAvatar>
+                                                        </Avatar>
+                                                      </ForwardRef>
                                                     </StyledAvatar>
                                                   </EmotionCssPropInternal>
                                                   <DisplayNameAndDescription>
@@ -1529,29 +1555,11 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     >
                                       <Container>
                                         <div
-                                          className="css-1lz86t0-Container e1f1on0q0"
+                                          className="css-1lz86t0-Container e1fmxtba0"
                                         >
-                                          <EmotionCssPropInternal
-                                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="Times"
-                                            __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
-                                            css={
-                                              Object {
-                                                "map": undefined,
-                                                "name": "1ggv3lw-Times",
-                                                "next": undefined,
-                                                "styles": "
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
-;label:Times;",
-                                                "toString": [Function],
-                                              }
-                                            }
-                                          >
+                                          <FlexWrapper>
                                             <div
-                                              className="css-1ggv3lw-Times"
+                                              className="css-13zgepw-FlexWrapper e1fmxtba1"
                                             >
                                               <TimeSince
                                                 className="hidden-xs hidden-sm"
@@ -1567,14 +1575,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 </time>
                                               </TimeSince>
                                             </div>
-                                          </EmotionCssPropInternal>
+                                          </FlexWrapper>
                                         </div>
                                       </Container>
                                     </Times>
                                   </StyledTimes>
                                   <LoggerAnnotation>
                                     <span
-                                      className="css-ixgywj-EventAnnotation-AnnotationNoMargin-LoggerAnnotation eec9orn6"
+                                      className="css-ifiu8p-EventAnnotation-AnnotationNoMargin-LoggerAnnotation eec9orn5"
                                     >
                                       <Link
                                         onlyActiveOnIndex={false}
@@ -1661,100 +1669,88 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <StyledScoreBar
-                                palette={
-                                  Array [
-                                    "#ec5e44",
-                                    "#f38259",
-                                    "#f9a66d",
-                                    "#98b480",
-                                    "#57be8c",
-                                  ]
-                                }
                                 score={4}
-                                size={40}
-                                thickness={4}
                                 vertical={true}
                               >
                                 <ScoreBar
-                                  className="css-19m1jt3-StyledScoreBar eecxaw40"
-                                  palette={
-                                    Array [
-                                      "#ec5e44",
-                                      "#f38259",
-                                      "#f9a66d",
-                                      "#98b480",
-                                      "#57be8c",
-                                    ]
-                                  }
+                                  className="css-tics7q-StyledScoreBar e1h9dyli0"
                                   score={4}
-                                  size={40}
-                                  thickness={4}
                                   vertical={true}
                                 >
                                   <div
-                                    className="css-19m1jt3-StyledScoreBar eecxaw40"
+                                    className="css-tics7q-StyledScoreBar e1h9dyli0"
                                   >
                                     <Bar
                                       color="#98b480"
                                       key="0"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-1gui0xz-Bar eecxaw41"
+                                        className="css-1gui0xz-Bar e1h9dyli1"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       color="#98b480"
                                       key="1"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-1gui0xz-Bar eecxaw41"
+                                        className="css-1gui0xz-Bar e1h9dyli1"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       color="#98b480"
                                       key="2"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-1gui0xz-Bar eecxaw41"
+                                        className="css-1gui0xz-Bar e1h9dyli1"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       color="#98b480"
                                       key="3"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-1gui0xz-Bar eecxaw41"
+                                        className="css-1gui0xz-Bar e1h9dyli1"
                                         color="#98b480"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-0"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
@@ -1787,96 +1783,84 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               onMouseLeave={[Function]}
                             >
                               <StyledScoreBar
-                                palette={
-                                  Array [
-                                    "#ec5e44",
-                                    "#f38259",
-                                    "#f9a66d",
-                                    "#98b480",
-                                    "#57be8c",
-                                  ]
-                                }
                                 score={0}
-                                size={40}
-                                thickness={4}
                                 vertical={true}
                               >
                                 <ScoreBar
-                                  className="css-19m1jt3-StyledScoreBar eecxaw40"
-                                  palette={
-                                    Array [
-                                      "#ec5e44",
-                                      "#f38259",
-                                      "#f9a66d",
-                                      "#98b480",
-                                      "#57be8c",
-                                    ]
-                                  }
+                                  className="css-tics7q-StyledScoreBar e1h9dyli0"
                                   score={0}
-                                  size={40}
-                                  thickness={4}
                                   vertical={true}
                                 >
                                   <div
-                                    className="css-19m1jt3-StyledScoreBar eecxaw40"
+                                    className="css-tics7q-StyledScoreBar e1h9dyli0"
                                   >
                                     <Bar
                                       empty={true}
                                       key="empty-0"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-1"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-2"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-3"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
                                     <Bar
                                       empty={true}
                                       key="empty-4"
+                                      radius={3}
                                       size={40}
                                       thickness={4}
                                       vertical={true}
                                     >
                                       <div
-                                        className="css-3fvo9r-Bar eecxaw41"
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
                                         size={40}
                                       />
                                     </Bar>
@@ -1910,7 +1894,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
           onCursor={[Function]}
         >
           <Pagination
-            className="css-yneqnx e1vkspke0"
+            className="css-1vzq2o e1vkspke0"
             onCursor={[Function]}
           />
         </Styled(Pagination)>

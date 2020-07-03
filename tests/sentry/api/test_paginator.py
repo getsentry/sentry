@@ -11,10 +11,12 @@ from sentry.api.paginator import (
     OffsetPaginator,
     SequencePaginator,
     GenericOffsetPaginator,
+    CombinedQuerysetPaginator,
     reverse_bisect_left,
 )
-from sentry.models import User
-from sentry.testutils import TestCase
+from sentry.models import User, Rule
+from sentry.incidents.models import AlertRule
+from sentry.testutils import TestCase, APITestCase
 from sentry.utils.cursors import Cursor
 
 
@@ -530,3 +532,77 @@ class GenericOffsetPaginatorTest(TestCase):
         assert list(result2) == [5]
         assert result2.prev == Cursor(0, 0, True, True)
         assert result2.next == Cursor(0, 10, False, False)
+
+
+class CombinedQuerysetPaginatorTest(APITestCase):
+    def test_simple(self):
+        Rule.objects.all().delete()
+
+        alert_rule0 = self.create_alert_rule(name="alertrule0")
+        alert_rule1 = self.create_alert_rule(name="alertrule1")
+        rule1 = Rule.objects.create(label="rule1", project=self.project)
+        alert_rule2 = self.create_alert_rule(name="alertrule2")
+        alert_rule3 = self.create_alert_rule(name="alertrule3")
+        rule2 = Rule.objects.create(label="rule2", project=self.project)
+        rule3 = Rule.objects.create(label="rule3", project=self.project)
+
+        paginator = CombinedQuerysetPaginator(
+            querysets=[AlertRule.objects.all(), Rule.objects.all()], order_by="-date_added",
+        )
+
+        result = paginator.get_result(limit=3, cursor=None)
+        assert len(result) == 3
+        page1_results = list(result)
+        assert page1_results[0].id == rule3.id
+        assert page1_results[1].id == rule2.id
+        assert page1_results[2].id == alert_rule3.id
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[0].id == alert_rule2.id
+        assert page2_results[1].id == rule1.id
+        assert page2_results[2].id == alert_rule1.id
+
+        next_cursor = result.next
+        prev_cursor = result.prev
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page3_results = list(result)
+        print(page3_results)
+        assert len(result) == 2
+        assert page3_results[0].id == alert_rule0.id
+
+        result = paginator.get_result(limit=3, cursor=prev_cursor)
+        assert list(result) == page1_results
+
+        # Test reverse sorting:
+        paginator = CombinedQuerysetPaginator(
+            querysets=[AlertRule.objects.all(), Rule.objects.all()], order_by="date_added"
+        )
+        result = paginator.get_result(limit=3, cursor=None)
+        assert len(result) == 3
+        page1_results = list(result)
+        assert page1_results[0].id == Rule.objects.all().first().id
+        assert page1_results[1].id == alert_rule0.id
+        assert page1_results[2].id == alert_rule1.id
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[0].id == rule1.id
+        assert page2_results[1].id == alert_rule2.id
+        assert page2_results[2].id == alert_rule3.id
+
+        next_cursor = result.next
+        prev_cursor = result.prev
+        result = paginator.get_result(limit=3, cursor=next_cursor)
+        page3_results = list(result)
+        print(page3_results)
+        assert len(result) == 2
+        assert page3_results[0].id == rule2.id
+        assert page3_results[1].id == rule3.id
+
+        result = paginator.get_result(limit=3, cursor=prev_cursor)
+        assert list(result) == page1_results

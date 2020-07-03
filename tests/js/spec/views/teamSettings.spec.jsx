@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TeamStore from 'app/stores/teamStore';
@@ -119,7 +120,7 @@ describe('TeamSettings', function() {
     await tick();
     expect(routerPushMock).toHaveBeenCalledWith('/settings/org/teams/');
 
-    expect(TeamStore.items).toEqual([]);
+    expect(TeamStore.getAll()).toEqual([]);
 
     TeamStore.trigger.mockRestore();
   });

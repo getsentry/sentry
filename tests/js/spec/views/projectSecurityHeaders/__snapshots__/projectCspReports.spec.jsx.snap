@@ -47,15 +47,14 @@ exports[`ProjectCspReports renders 1`] = `
         About
       </PanelHeader>
       <PanelBody
-        direction="column"
-        disablePadding={false}
-        flex={false}
+        flexible={false}
+        withPadding={true}
       >
         <p>
           <span
             key="4"
           >
-            <ForwardRef
+            <ForwardRef(ExternalLink)
               href="https://en.wikipedia.org/wiki/Content_Security_Policy"
               key="1"
             >
@@ -64,7 +63,7 @@ exports[`ProjectCspReports renders 1`] = `
               >
                 Content Security Policy
               </span>
-            </ForwardRef>
+            </ForwardRef(ExternalLink)>
             <span
               key="2"
             >

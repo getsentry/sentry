@@ -58,7 +58,7 @@ class AsanaAuth(BaseOAuth2):
             return None
 
     def auth_complete(self, *args, **kwargs):
-        """Completes loging process, must return user instance"""
+        """Completes logging process, must return user instance"""
         self.process_error(self.data)
         params = self.auth_complete_params(self.validate_state())
 

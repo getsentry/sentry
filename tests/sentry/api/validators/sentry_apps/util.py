@@ -16,7 +16,6 @@ def invalid_schema_with_error_message(message):
         def inner(self, *args, **kwargs):
             with self.assertRaises(ValidationError) as cm:
                 func(self)
-            # assert cm.exception.message == message
             found_message = cm.exception.message
             if found_message != message:
                 assert found_message == message

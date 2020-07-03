@@ -1,6 +1,7 @@
 import moment from 'moment';
 
 import ConfigStore from 'app/stores/configStore';
+import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';
@@ -47,8 +48,6 @@ export function getUserTimezone(): string {
   const user = ConfigStore.get('user');
   return user && user.options && user.options.timezone;
 }
-
-// TODO(billy): The below functions should be refactored to a TimeRangeSelector specific utils
 
 /**
  * Given a UTC date, return a Date object in local time
@@ -186,7 +185,14 @@ export function intervalToMilliseconds(interval: string): number {
  * and converts it into hours
  */
 export function parsePeriodToHours(str: string): number {
-  const [, period, periodLength] = str.match(/([0-9]+)([smhdw])/);
+  const result = parseStatsPeriod(str);
+
+  if (!result) {
+    return -1;
+  }
+
+  const {period, periodLength} = result;
+
   const periodNumber = parseInt(period, 10);
 
   switch (periodLength) {
@@ -204,3 +210,7 @@ export function parsePeriodToHours(str: string): number {
       return -1;
   }
 }
+
+export const use24Hours = () => ConfigStore.get('user')?.options?.clock24Hours;
+
+export const getTimeFormat = () => (use24Hours() ? 'HH:mm' : 'LT');

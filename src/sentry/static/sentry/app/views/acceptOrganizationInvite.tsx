@@ -1,15 +1,16 @@
+import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory} from 'react-router';
+import {urlEncode} from '@sentry/utils';
 import React, {MouseEvent} from 'react';
 import styled from '@emotion/styled';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {logout} from 'app/actionCreators/account';
 import {t, tct} from 'app/locale';
-import {urlEncode} from '@sentry/utils';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import NarrowLayout from 'app/components/narrowLayout';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -76,7 +77,13 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           'Your account ([email]) is already a member of this organization. [switchLink:Switch accounts]?',
           {
             email: user.email,
-            switchLink: <Link href="#" onClick={this.handleLogout} />,
+            switchLink: (
+              <Link
+                to=""
+                data-test-id="existing-member-link"
+                onClick={this.handleLogout}
+              />
+            ),
           }
         )}
       </Alert>
@@ -126,9 +133,9 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
               {t('Create a new account')}
             </Button>
           )}
-          <Link href={this.makeNextUrl('/auth/login/')}>
+          <ExternalLink href={this.makeNextUrl('/auth/login/')} openInNewTab={false}>
             {t('Login using an existing account')}
-          </Link>
+          </ExternalLink>
         </Actions>
       </React.Fragment>
     );

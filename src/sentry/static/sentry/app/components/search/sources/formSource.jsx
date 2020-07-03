@@ -43,7 +43,7 @@ class FormSource extends React.Component {
     this.createSearch(props.searchMap);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.searchMap !== nextProps.searchMap) {
       this.createSearch(nextProps.searchMap);
     }

@@ -16,7 +16,7 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
     def has_feature(self, organization, request):
         return features.has(
             "organizations:discover", organization, actor=request.user
-        ) or features.has("organizations:events-v2", organization, actor=request.user)
+        ) or features.has("organizations:discover-query", organization, actor=request.user)
 
     def get(self, request, organization, query_id):
         """
@@ -43,16 +43,13 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             model = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
-
         serializer = DiscoverSavedQuerySerializer(
             data=request.data, context={"organization": organization}
         )
-
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-
         model.update(
             organization=organization,
             name=data["name"],

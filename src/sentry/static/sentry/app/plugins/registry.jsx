@@ -49,7 +49,7 @@ export default class Registry {
       return;
     }
 
-    const onAssetLoaded = function(asset) {
+    const onAssetLoaded = function() {
       remainingAssets--;
       if (remainingAssets === 0) {
         finishLoad();

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import pickle
 import pytest
 
-from sentry import eventstore
 from sentry.db.models.fields.node import NodeData
 from sentry.eventstore.models import Event
 from sentry.models import Environment
@@ -200,7 +199,24 @@ class EventTest(TestCase):
             project_id=self.project.id,
             event_id="a" * 32,
             snuba_data=snuba.raw_query(
-                selected_columns=[col.value.event_name for col in eventstore.full_columns],
+                selected_columns=[
+                    "event_id",
+                    "project_id",
+                    "group_id",
+                    "timestamp",
+                    "culprit",
+                    "location",
+                    "message",
+                    "title",
+                    "type",
+                    "transaction",
+                    "tags.key",
+                    "tags.value",
+                    "email",
+                    "ip_address",
+                    "user_id",
+                    "username",
+                ],
                 filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
             )["data"][0],
         )
@@ -230,7 +246,7 @@ class EventTest(TestCase):
 
 @pytest.mark.django_db
 def test_renormalization(monkeypatch, factories, task_runner, default_project):
-    from semaphore.processing import StoreNormalizer
+    from sentry_relay.processing import StoreNormalizer
 
     old_normalize = StoreNormalizer.normalize_event
     normalize_mock_calls = []
@@ -239,7 +255,7 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
         normalize_mock_calls.append(1)
         return old_normalize(*args, **kwargs)
 
-    monkeypatch.setattr("semaphore.processing.StoreNormalizer.normalize_event", normalize)
+    monkeypatch.setattr("sentry_relay.processing.StoreNormalizer.normalize_event", normalize)
 
     with task_runner():
         factories.store_event(

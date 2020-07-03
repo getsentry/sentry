@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -17,15 +16,6 @@ import formGroups from 'app/data/forms/cspReports';
 import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectCspReports extends AsyncView {
-  static propTypes = {
-    setProjectNavSection: PropTypes.func,
-  };
-
-  componentWillMount() {
-    super.componentWillMount();
-    this.props.setProjectNavSection('settings');
-  }
-
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
     return [
@@ -91,7 +81,7 @@ export default class ProjectCspReports extends AsyncView {
         <Panel>
           <PanelHeader>{t('About')}</PanelHeader>
 
-          <PanelBody disablePadding={false}>
+          <PanelBody withPadding>
             <p>
               {tct(
                 `[link:Content Security Policy]

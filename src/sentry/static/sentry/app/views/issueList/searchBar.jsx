@@ -2,11 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {SEARCH_TYPES} from 'app/constants';
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import SmartSearchBar from 'app/components/smartSearchBar';
+import SmartSearchBar, {SearchType} from 'app/components/smartSearchBar';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -74,7 +73,6 @@ class IssueListSearchBar extends React.Component {
           ? resp.map(query => ({
               desc: query,
               value: query,
-              className: 'icon-clock',
               type: 'recent-search',
             }))
           : [],
@@ -103,7 +101,7 @@ class IssueListSearchBar extends React.Component {
     const recent = await fetchRecentSearches(
       api,
       organization.slug,
-      SEARCH_TYPES.ISSUE,
+      SearchType.ISSUE,
       fullQuery
     );
     return (recent && recent.map(({query}) => query)) || [];
@@ -115,12 +113,7 @@ class IssueListSearchBar extends React.Component {
   };
 
   render() {
-    const {
-      tagValueLoader, // eslint-disable-line no-unused-vars
-      savedSearch,
-      onSidebarToggle,
-      ...props
-    } = this.props;
+    const {tagValueLoader: _, savedSearch, onSidebarToggle, ...props} = this.props;
 
     return (
       <SmartSearchBarNoLeftCorners
@@ -129,7 +122,7 @@ class IssueListSearchBar extends React.Component {
         hasSearchBuilder
         canCreateSavedSearch
         maxSearchItems={5}
-        savedSearchType={SEARCH_TYPES.ISSUE}
+        savedSearchType={SearchType.ISSUE}
         onGetTagValues={this.getTagValues}
         defaultSearchItems={this.state.defaultSearchItems}
         onSavedRecentSearch={this.handleSavedRecentSearch}

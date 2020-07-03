@@ -2,6 +2,7 @@ import {Modal} from 'react-bootstrap';
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+
 import InviteMembersModal from 'app/components/modals/inviteMembersModal';
 import TeamStore from 'app/stores/teamStore';
 
@@ -53,6 +54,21 @@ describe('InviteMembersModal', function() {
     // 'member' role.
     expect(wrapper.find('RoleSelectControl').props().options).toHaveLength(roles.length);
     expect(wrapper.find('RoleSelectControl Value').text()).toBe('Member');
+  });
+
+  it('renders without organization.access', async function() {
+    const organization = TestStubs.Organization({access: undefined});
+    const wrapper = mountWithTheme(
+      <InviteMembersModal
+        Body={Modal.Body}
+        Header={Modal.Header}
+        Footer={Modal.Footer}
+        organization={organization}
+      />,
+      TestStubs.routerContext()
+    );
+
+    expect(wrapper.find('StyledInviteRow').exists()).toBe(true);
   });
 
   it('can add a second row', async function() {
@@ -215,9 +231,7 @@ describe('InviteMembersModal', function() {
     expect(wrapper.find('StatusMessage').text()).toBe('Sent 2 invites');
     expect(wrapper.find('Button[data-test-id="close"]').exists()).toBe(true);
     expect(wrapper.find('Button[data-test-id="send-more"]').exists()).toBe(true);
-    expect(
-      wrapper.find('SelectControl EmailLabel InlineSvg[src="icon-checkmark-sm"]').exists()
-    ).toBe(true);
+    expect(wrapper.find('SelectControl EmailLabel IconCheckmark').exists()).toBe(true);
 
     // Send more reset the modal
     wrapper.find('Button[data-test-id="send-more"]').simulate('click');
@@ -262,9 +276,7 @@ describe('InviteMembersModal', function() {
       'Sent 0 invites, 1 failed to send.'
     );
 
-    expect(
-      wrapper.find('SelectControl EmailLabel InlineSvg[src="icon-warning-sm"]').exists()
-    ).toBe(true);
+    expect(wrapper.find('SelectControl EmailLabel IconWarning').exists()).toBe(true);
   });
 
   it('can send initial email', async function() {

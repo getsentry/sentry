@@ -518,8 +518,6 @@ def unmerge(
 
         return destination_id
 
-    eventstore.bind_nodes(events, "data")
-
     source_events = []
     destination_events = []
 

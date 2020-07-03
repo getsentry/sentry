@@ -1,19 +1,18 @@
 import React from 'react';
-import InlineSvg from 'app/components/inlineSvg';
-
 import styled from '@emotion/styled';
+
+import InlineSvg from 'app/components/inlineSvg';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
-
-import spaceBg from '../../images/spot/background-space.svg';
 
 type Props = {
   title?: string;
   subtitle?: string;
   isDismissable?: boolean;
   onCloseClick?: () => void;
-};
+  className?: string;
+} & BannerWrapperProps;
 
 class Banner extends React.Component<Props> {
   static defaultProps: Partial<Props> = {
@@ -21,10 +20,18 @@ class Banner extends React.Component<Props> {
   };
 
   render() {
-    const {title, subtitle, isDismissable, onCloseClick, children} = this.props;
+    const {
+      title,
+      subtitle,
+      isDismissable,
+      onCloseClick,
+      children,
+      backgroundImg,
+      className,
+    } = this.props;
 
     return (
-      <BannerWrapper>
+      <BannerWrapper backgroundImg={backgroundImg} className={className}>
         {isDismissable ? (
           <BannerIcon src="icon-close" aria-label={t('Close')} onClick={onCloseClick} />
         ) : null}
@@ -38,23 +45,32 @@ class Banner extends React.Component<Props> {
   }
 }
 
-const BannerWrapper = styled('div')`
-  background-image: url(${spaceBg});
+type BannerWrapperProps = {
+  backgroundImg?: string;
+};
+
+const BannerWrapper = styled('div')<BannerWrapperProps>`
+  background: ${p => {
+    if (p.backgroundImg) {
+      return 'url(' + p.backgroundImg + ')';
+    }
+    return p.theme.gray700;
+  }};
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center center;
   position: relative;
   min-height: 200px;
   margin-bottom: ${space(3)};
-  padding-top: 22%;
   box-shadow: ${p => p.theme.dropShadowLight};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.white};
 
   @media (min-width: ${theme.breakpoints[1]}) {
     min-height: 220px;
   }
 
   @media (min-width: ${theme.breakpoints[3]}) {
-    padding-top: 0;
     min-height: 260px;
   }
 `;
@@ -71,24 +87,28 @@ const BannerContent = styled('div')`
   align-items: center;
   text-align: center;
   padding: ${space(4)};
-`;
 
-const BannerTitle = styled('h1')`
-  margin: ${space(1.5)};
-  color: ${p => p.theme.white};
-
-  @media (min-width: ${theme.breakpoints[1]}) {
-    font-size: 48px;
+  @media (max-width: ${theme.breakpoints[0]}) {
+    position: relative;
   }
 `;
 
-const BannerSubtitle = styled('h4')`
-  margin-bottom: ${space(3)};
-  font-size: ${theme.fontSizeMedium};
-  color: ${p => p.theme.white};
+const BannerTitle = styled('h1')`
+  margin-bottom: ${space(0.25)};
 
   @media (min-width: ${theme.breakpoints[1]}) {
-    font-size: ${theme.fontSizeLarge};
+    margin-top: ${space(2)};
+    margin-bottom: ${space(0.5)};
+    font-size: 42px;
+  }
+`;
+
+const BannerSubtitle = styled('div')`
+  font-size: ${theme.fontSizeMedium};
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    font-size: ${theme.fontSizeExtraLarge};
+    margin-bottom: ${space(1)};
     flex-direction: row;
     min-width: 650px;
   }

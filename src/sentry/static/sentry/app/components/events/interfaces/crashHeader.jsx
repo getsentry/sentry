@@ -1,8 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
+
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import space from 'app/styles/space';
 
 class CrashHeader extends React.Component {
   static propTypes = {
@@ -87,82 +92,120 @@ class CrashHeader extends React.Component {
   render() {
     const {title, beforeTitle, hideGuide, stackView, stackType, newestFirst} = this.props;
 
-    let titleNode = (
-      <h3 className="pull-left">
-        {title}
-        <small style={{marginLeft: 5}}>
-          (
-          <Tooltip title={t('Toggle stacktrace order')}>
-            <a onClick={this.handleToggleOrder} style={{borderBottom: '1px dotted #aaa'}}>
-              {newestFirst ? t('most recent call first') : t('most recent call last')}
-            </a>
-          </Tooltip>
-          )
-        </small>
+    const titleNode = (
+      <h3
+        style={{
+          marginBottom: 0,
+          maxWidth: '100%',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <GuideAnchor target="exception" disabled={hideGuide} position="bottom">
+          {title}
+          <small>
+            (
+            <Tooltip title={t('Toggle stacktrace order')}>
+              <a onClick={this.handleToggleOrder}>
+                {newestFirst ? t('most recent call first') : t('most recent call last')}
+              </a>
+            </Tooltip>
+            )
+          </small>
+        </GuideAnchor>
       </h3>
     );
 
-    if (!hideGuide) {
-      titleNode = (
-        <GuideAnchor target="exception" position="top">
-          {titleNode}
-        </GuideAnchor>
-      );
-    }
-
     return (
-      <div className="crash-title">
-        {beforeTitle}
-        {titleNode}
-        <div className="btn-group" style={{marginLeft: 10}}>
-          {this.hasSystemFrames() && (
-            <a
-              className={
-                (stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'
-              }
-              onClick={() => this.setStackView('app')}
+      <Wrapper className="crash-title">
+        <TitleWrapper>
+          {beforeTitle}
+          {titleNode}
+        </TitleWrapper>
+        <ButtonGroupWrapper>
+          <ButtonGroup merged>
+            {this.hasSystemFrames() && (
+              <Button
+                className={stackView === 'app' ? 'active' : ''}
+                priority={stackView === 'app' ? 'primary' : 'default'}
+                size="xsmall"
+                onClick={() => this.setStackView('app')}
+              >
+                {t('App Only')}
+              </Button>
+            )}
+            <Button
+              className={stackView === 'full' ? 'active' : ''}
+              priority={stackView === 'full' ? 'primary' : 'default'}
+              size="xsmall"
+              onClick={() => this.setStackView('full')}
             >
-              {t('App Only')}
-            </a>
+              {t('Full')}
+            </Button>
+            <Button
+              className={stackView === 'raw' ? 'active' : ''}
+              priority={stackView === 'raw' ? 'primary' : 'default'}
+              onClick={() => this.setStackView('raw')}
+              size="xsmall"
+            >
+              {t('Raw')}
+            </Button>
+          </ButtonGroup>
+          {this.hasMinified() && (
+            <ButtonGroup merged>
+              {[
+                <Button
+                  key="original"
+                  className={stackType === 'original' ? 'active' : ''}
+                  priority={stackType === 'original' ? 'primary' : 'default'}
+                  size="xsmall"
+                  onClick={() => this.setStackType('original')}
+                >
+                  {this.getOriginalButtonLabel()}
+                </Button>,
+                <Button
+                  key="minified"
+                  className={stackType === 'minified' ? 'active' : ''}
+                  priority={stackType === 'minified' ? 'primary' : 'default'}
+                  size="xsmall"
+                  onClick={() => this.setStackType('minified')}
+                >
+                  {this.getMinifiedButtonLabel()}
+                </Button>,
+              ]}
+            </ButtonGroup>
           )}
-          <a
-            className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={() => this.setStackView('full')}
-          >
-            {t('Full')}
-          </a>
-          <a
-            className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={() => this.setStackView('raw')}
-          >
-            {t('Raw')}
-          </a>
-        </div>
-        <div className="btn-group">
-          {this.hasMinified() && [
-            <a
-              key="original"
-              className={
-                (stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'
-              }
-              onClick={() => this.setStackType('original')}
-            >
-              {this.getOriginalButtonLabel()}
-            </a>,
-            <a
-              key="minified"
-              className={
-                (stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'
-              }
-              onClick={() => this.setStackType('minified')}
-            >
-              {this.getMinifiedButtonLabel()}
-            </a>,
-          ]}
-        </div>
-      </div>
+        </ButtonGroupWrapper>
+      </Wrapper>
     );
   }
 }
 
 export default CrashHeader;
+
+const Wrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+`;
+
+const TitleWrapper = styled('span')`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-grow: 1;
+  justify-content: flex-start;
+`;
+
+const ButtonGroup = styled(ButtonBar)`
+  padding-right: ${space(1)};
+`;
+
+const ButtonGroupWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  margin-right: -${space(1)};
+  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+    flex-direction: row;
+  }
+`;

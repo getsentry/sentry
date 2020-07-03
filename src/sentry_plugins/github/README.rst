@@ -33,4 +33,3 @@ Caveats
 
 If you have multiple GitHub identities associated in Sentry, the plugin will just select
 one to use.
-

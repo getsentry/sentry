@@ -14,13 +14,13 @@ import {t} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
-import EventView from 'app/views/eventsV2/eventView';
-import {generateDiscoverResultsRoute} from 'app/views/eventsV2/results';
+import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
+import {IconDelete} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
@@ -92,7 +92,6 @@ class DeleteActions extends React.Component {
   render() {
     return (
       <div className="btn-group">
-        <GuideAnchor target="ignore_delete_discard" />
         <LinkWithConfirmation
           className="group-remove btn btn-default btn-sm"
           title={t('Delete')}
@@ -101,7 +100,7 @@ class DeleteActions extends React.Component {
           )}
           onConfirm={this.props.onDelete}
         >
-          <span className="icon-trash" />
+          <IconDelete size="xs" css={{position: 'relative', top: '1px'}} />
         </LinkWithConfirmation>
         <DropdownLink caret className="group-delete btn btn-default btn-sm">
           <MenuItem onClick={this.openDiscardModal}>
@@ -146,27 +145,21 @@ const GroupDetailsActions = createReactClass({
     const discoverQuery = {
       id: undefined,
       name: group.title || group.type,
-      fields: ['title', 'url', 'count(id)', 'project', 'last_seen'],
-      widths: [400, 200, -1, 200, -1],
-      orderby: '-count_id',
+      fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+      orderby: '-timestamp',
       query: `issue.id:${group.id}`,
-      tags: ['environment', 'release', 'event.type', 'user.email'],
       projects: [project.id],
       version: 2,
-      range: '24h',
+      range: '90d',
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
-
-    return {
-      pathname: generateDiscoverResultsRoute(organization.slug),
-      query: discoverView.generateQueryStringObject(),
-    };
+    return discoverView.getResultsViewUrlTarget(organization.slug);
   },
 
   onDelete() {
     const {group, project, organization} = this.props;
-    addLoadingMessage(t('Delete event..'));
+    addLoadingMessage(t('Delete event\u2026'));
 
     this.props.api.bulkDelete(
       {
@@ -186,7 +179,7 @@ const GroupDetailsActions = createReactClass({
 
   onUpdate(data) {
     const {group, project, organization} = this.props;
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     this.props.api.bulkUpdate(
       {
@@ -239,7 +232,7 @@ const GroupDetailsActions = createReactClass({
   onDiscard() {
     const {group, project, organization} = this.props;
     const id = uniqueId();
-    addLoadingMessage(t('Discarding event..'));
+    addLoadingMessage(t('Discarding event\u2026'));
 
     GroupActions.discard(id, group.id);
 
@@ -276,17 +269,21 @@ const GroupDetailsActions = createReactClass({
 
     return (
       <div className="group-actions">
-        <ResolveActions
-          hasRelease={hasRelease}
-          latestRelease={project.latestRelease}
-          onUpdate={this.onUpdate}
-          orgId={organization.slug}
-          projectId={project.slug}
-          isResolved={isResolved}
-          isAutoResolved={isResolved && group.statusDetails.autoResolved}
-        />
+        <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
+          <ResolveActions
+            hasRelease={hasRelease}
+            latestRelease={project.latestRelease}
+            onUpdate={this.onUpdate}
+            orgId={organization.slug}
+            projectId={project.slug}
+            isResolved={isResolved}
+            isAutoResolved={isResolved && group.statusDetails.autoResolved}
+          />
+        </GuideAnchor>
 
-        <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
+        <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
+          <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
+        </GuideAnchor>
 
         <div className="btn-group">
           <div
@@ -318,7 +315,7 @@ const GroupDetailsActions = createReactClass({
           </div>
         )}
 
-        {orgFeatures.has('events-v2') && (
+        {orgFeatures.has('discover-basic') && (
           <div className="btn-group">
             <Link
               className={buttonClassName}

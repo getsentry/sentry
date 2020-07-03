@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry.utils.http import absolute_uri
 
-from sentry_plugins.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.integrations import FeatureDescription, IntegrationFeatures
 
 from .mixins import BitbucketMixin
 from .repository_provider import BitbucketRepositoryProvider
@@ -40,6 +41,28 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
     conf_title = BitbucketMixin.title
     conf_key = "bitbucket"
     auth_provider = "bitbucket"
+    required_field = "repo"
+    feature_descriptions = [
+        FeatureDescription(
+            """
+            Track commits and releases (learn more
+            [here](https://docs.sentry.io/learn/releases/))
+            """,
+            IntegrationFeatures.COMMITS,
+        ),
+        FeatureDescription(
+            """
+            Create Bitbucket issues from Sentry
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+        FeatureDescription(
+            """
+            Link Sentry issues to existing Bitbucket issues
+            """,
+            IntegrationFeatures.ISSUE_BASIC,
+        ),
+    ]
 
     def get_group_urls(self):
         return super(BitbucketPlugin, self).get_group_urls() + [

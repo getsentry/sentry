@@ -1,17 +1,17 @@
 ---
-created: '2019-05-08T07:29:42.002642Z'
+created: '2020-02-26T19:54:37.468314Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
-  hash: '666766514295bb52812324097cdaf53e'
+  hash: "666766514295bb52812324097cdaf53e"
   component:
     default*
       csp*
         salt* (a static salt)
-          u'script-src'
+          "script-src"
         violation (not a local script violation)
         uri*
-          u'YYY'
+          "YYY"
       message (csp takes precedence)
-        u"Blocked 'script' from 'YYY'"
+        "Blocked 'script' from 'YYY'"

@@ -20,6 +20,7 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
+from sentry.utils.compat import zip
 
 __all__ = ("BaseManager", "OptionManager")
 
@@ -76,6 +77,12 @@ class BaseManager(Manager):
     _queryset_class = BaseQuerySet
 
     def __init__(self, *args, **kwargs):
+        #: Model fields for which we should build up a cache to be used with
+        #: Model.objects.get_from_cache(fieldname=value)`.
+        #:
+        #: Note that each field by its own needs to be a potential primary key
+        #: (uniquely identify a row), so for example organization slug is ok,
+        #: project slug is not.
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
         self._cache_version = kwargs.pop("cache_version", None)
@@ -261,7 +268,7 @@ class BaseManager(Manager):
         the cache key is cleared on save.
         """
         if not self.cache_fields or len(kwargs) > 1:
-            return self.get(**kwargs)
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
         key, value = next(six.iteritems(kwargs))
         pk_name = self.model._meta.pk.name
@@ -317,7 +324,7 @@ class BaseManager(Manager):
 
             return retval
         else:
-            return self.get(**kwargs)
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
     def get_many_from_cache(self, values, key="pk"):
         """
@@ -345,7 +352,7 @@ class BaseManager(Manager):
             key = key.split("__exact", 1)[0]
 
         if key not in self.cache_fields and key != pk_name:
-            return self.filter(**{key + "__in": values})
+            raise ValueError("We cannot cache this query. Just hit the database.")
 
         final_results = []
         cache_lookup_cache_keys = []
