@@ -705,6 +705,8 @@ exports[`Filter default render 1`] = `
                       "modal": 10000,
                       "orgAndUserMenu": 1030,
                       "sentryErrorEmbed": 1090,
+                      "settingsSidebarNav": 1018,
+                      "settingsSidebarNavMask": 1017,
                       "sidebar": 1020,
                       "sidebarPanel": 1019,
                       "toast": 10001,

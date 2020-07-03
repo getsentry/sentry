@@ -260,6 +260,9 @@ const theme = {
     },
 
     globalSelectionHeader: 1009,
+
+    settingsSidebarNavMask: 1017,
+    settingsSidebarNav: 1018,
     sidebarPanel: 1019,
     sidebar: 1020,
     orgAndUserMenu: 1030,

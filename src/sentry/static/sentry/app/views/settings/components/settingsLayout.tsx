@@ -30,8 +30,6 @@ class SettingsLayout extends React.Component<Props, State> {
     routes: PropTypes.array,
   };
 
-  unlisten: () => void;
-
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -49,6 +47,8 @@ class SettingsLayout extends React.Component<Props, State> {
   componentWillUnmount() {
     this.unlisten();
   }
+
+  unlisten: () => void;
 
   toggleNav(navVisible: boolean) {
     this.setState({navVisible});
@@ -136,25 +136,24 @@ const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
 const MaxWidthContainer = styled('div')`
   display: flex;
   max-width: ${p => p.theme.settings.containerWidth};
-  /* min-width: 600px; for small screen sizes, we need a min width to make it semi digestible */
   flex: 1;
 `;
 
 const SidebarWrapper = styled('div')<{isVisible: boolean}>`
-  /* flex-shrink: 0; */
+  flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
   background: ${p => p.theme.white};
   border-right: 1px solid ${p => p.theme.borderLight};
   padding: ${space(4)};
-  /* padding-right: ${space(2)}; */
+  padding-right: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     animation: ${slideInLeft} 100ms ease-in-out;
     display: ${p => (p.isVisible ? 'block' : 'none')};
     position: absolute;
-    z-index: 3;
+    z-index: ${p => p.theme.zIndex.settingsSidebarNav};
     height: 100%;
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    box-shadow: ${p => p.theme.dropShadowHeavy};
     overflow-y: auto;
   }
 `;
@@ -167,7 +166,7 @@ const NavMask = styled('div')<{isVisible: boolean}>`
     height: 100%;
     width: 100%;
     position: absolute;
-    z-index: 2;
+    z-index: ${p => p.theme.zIndex.settingsSidebarNavMask};
     animation: ${fadeIn} 250ms ease-in-out;
   }
 `;
