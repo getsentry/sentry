@@ -50,6 +50,13 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     };
   };
 
+  const getItems = () => {
+    const newThreads = [...threads];
+    const crashIndex = threads.findIndex(thread => !!thread?.crashed);
+    newThreads.splice(crashIndex, 1);
+    return [threads[crashIndex], ...newThreads].map(getDropDownItem);
+  };
+
   const handleOnChange = ({thread}) => {
     if (onChange) {
       onChange(thread);
@@ -58,7 +65,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
 
   return (
     <StyledDropdownAutoComplete
-      items={threads.map(getDropDownItem)}
+      items={getItems()}
       onSelect={handleOnChange}
       align="left"
       alignMenu="left"
