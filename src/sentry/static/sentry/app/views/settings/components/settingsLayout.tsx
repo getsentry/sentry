@@ -91,10 +91,60 @@ class SettingsLayout extends React.Component<Props> {
   }
 }
 
+const SettingsColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
+  min-width: 0; /* fixes problem when child content stretches beyond layout width */
+  footer {
+    margin-top: 0;
+  }
+`;
+
 const HeaderContent = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const NavMenuToggle = styled(Button)`
+  display: none;
+  margin-right: ${space(2)};
+  color: ${p => p.theme.gray5};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+  }
+`;
+
+const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
+  flex: 1;
+`;
+
+const MaxWidthContainer = styled('div')`
+  display: flex;
+  max-width: ${p => p.theme.settings.containerWidth};
+  /* min-width: 600px; for small screen sizes, we need a min width to make it semi digestible */
+  flex: 1;
+`;
+
+const SidebarWrapper = styled('div')`
+  /* flex-shrink: 0; */
+  width: ${p => p.theme.settings.sidebarWidth};
+  background: ${p => p.theme.white};
+  border-right: 1px solid ${p => p.theme.borderLight};
+  padding: ${space(4)};
+  /* padding-right: ${space(2)}; */
+
+  /*  */
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    animation: ${slideInLeft} 100ms ease-in-out;
+    display: ${p => (p.isVisible ? 'block' : 'none')};
+    position: absolute;
+    z-index: 3;
+    height: 100%;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+  }
 `;
 
 const NavMask = styled('div')`
@@ -110,56 +160,10 @@ const NavMask = styled('div')`
   }
 `;
 
-const NavMenuToggle = styled(Button)`
-  display: none;
-  margin-right: ${space(2)};
-  color: ${p => p.theme.gray5};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: block;
-  }
-`;
-
-const MaxWidthContainer = styled('div')`
-  display: flex;
-  max-width: ${p => p.theme.settings.containerWidth};
-  flex: 1;
-`;
-
-const SidebarWrapper = styled('div')`
-  width: ${p => p.theme.settings.sidebarWidth};
-  padding: ${space(4)};
-  border-right: 1px solid ${p => p.theme.borderLight};
-  background: #fff;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    animation: ${slideInLeft} 100ms ease-in-out;
-    display: ${p => (p.isVisible ? 'block' : 'none')};
-    position: absolute;
-    z-index: 3;
-    height: 100%;
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-    overflow-y: auto;
-  }
-`;
-
-const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
-  flex: 1;
-`;
-
-const SettingsColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1; /* so this stretches vertically so that footer is fixed at bottom */
-  min-width: 0; /* fixes problem when child content stretches beyond layout width */
-  footer {
-    margin-top: 0;
-  }
-`;
-
 /**
- * Note: `overflow: hidden` will cause some buttons in `SettingsPageHeader` to
- * be cut off because it has negative margin.  Will also cut off tooltips.
+ * Note: `overflow: hidden` will cause some buttons in `SettingsPageHeader` to be cut off because it has negative margin.
+ * Will also cut off tooltips.
  */
-
 const Content = styled('div')`
   flex: 1;
   padding: ${space(4)};

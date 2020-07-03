@@ -9,9 +9,6 @@ import space from 'app/styles/space';
 const HEADER_Z_INDEX_OFFSET = 5;
 
 const SettingsHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.header + HEADER_Z_INDEX_OFFSET};
