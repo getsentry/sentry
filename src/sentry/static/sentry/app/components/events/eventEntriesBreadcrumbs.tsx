@@ -2,7 +2,7 @@ import React from 'react';
 
 import Feature from 'app/components/acl/feature';
 import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs/breadcrumbs';
-import Breadcrumbs from 'app/components/events/interfaces/breadcrumbsV2/breadcrumbs';
+import Breadcrumbs from 'app/components/events/interfaces/breadcrumbsV2';
 
 type Props = React.ComponentProps<typeof Breadcrumbs>;
 type BreadcrumbsInterfaceProps = React.ComponentProps<typeof BreadcrumbsInterface>;
