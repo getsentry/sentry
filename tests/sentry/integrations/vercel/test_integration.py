@@ -413,6 +413,30 @@ class VercelIntegrationTest(IntegrationTestCase):
             installation.update_organization_config(data)
 
     @responses.activate
+    def test_upgrade_org_config_no_source_code_provider(self):
+        """Test that the function doesn't progress if the Vercel project hasn't been connected to a Git repository"""
+
+        with self.tasks():
+            self.assert_setup_flow()
+
+        project_id = self.project.id
+        org = self.organization
+        data = {
+            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
+        }
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+
+        responses.add(
+            responses.GET,
+            "https://api.vercel.com/v1/projects/%s"
+            % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
+            json={},
+        )
+        with self.assertRaises(IntegrationError):
+            installation.update_organization_config(data)
+
+    @responses.activate
     def test_ui_hook_options(self):
         """Test that the response to the UI hook CORS pre-flight OPTIONS request is handled correctly"""
 
@@ -450,26 +474,3 @@ class VercelIntegrationTest(IntegrationTestCase):
             )
             in resp.content
         )
-
-    def test_upgrade_org_config_no_source_code_provider(self):
-        """Test that the function doesn't progress if the Vercel project hasn't been connected to a Git repository"""
-
-        with self.tasks():
-            self.assert_setup_flow()
-
-        project_id = self.project.id
-        org = self.organization
-        data = {
-            "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
-        }
-        integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(org.id)
-
-        responses.add(
-            responses.GET,
-            "https://api.vercel.com/v1/projects/%s"
-            % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-            json={},
-        )
-        with self.assertRaises(IntegrationError):
-            installation.update_organization_config(data)
