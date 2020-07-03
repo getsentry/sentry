@@ -10,6 +10,7 @@ import {slideInLeft, fadeIn} from 'app/styles/animations';
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
+import {IconClose, IconMenu} from 'app/icons';
 
 type Props = {
   renderNavigation?: () => React.ReactNode;
@@ -65,8 +66,7 @@ class SettingsLayout extends React.Component<Props> {
             <HeaderContent>
               <NavMenuToggle
                 priority="link"
-                iconSize="16px"
-                icon={navVisible ? 'icon-close' : 'icon-activity'}
+                icon={navVisible ? <IconClose /> : <IconMenu />}
                 onClick={() => this.toggleNav(!navVisible)}
               />
               <StyledSettingsBreadcrumb
@@ -110,7 +110,11 @@ const HeaderContent = styled('div')`
 const NavMenuToggle = styled(Button)`
   display: none;
   margin-right: ${space(2)};
-  color: ${p => p.theme.gray5};
+  color: ${p => p.theme.gray600};
+  &:hover,
+  &:focus {
+    color: ${p => p.theme.gray800};
+  }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
   }
