@@ -1,4 +1,5 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -6,18 +7,22 @@ import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {slideInLeft, fadeIn} from 'app/styles/animations';
+import {IconClose, IconMenu} from 'app/icons';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
 import SettingsSearch from './settingsSearch';
-import {IconClose, IconMenu} from 'app/icons';
 
 type Props = {
   renderNavigation?: () => React.ReactNode;
   children: React.ReactNode;
 } & RouteComponentProps<{}, {}>;
 
-class SettingsLayout extends React.Component<Props> {
+type State = {
+  navVisible: boolean;
+};
+
+class SettingsLayout extends React.Component<Props, State> {
   static propTypes = {
     renderNavigation: PropTypes.func,
     route: PropTypes.object,
@@ -25,24 +30,27 @@ class SettingsLayout extends React.Component<Props> {
     routes: PropTypes.array,
   };
 
-  state = {
-    /**
-     * This is used when the screen is small enough that the navigation should
-     * be hidden. On large screens this state will end up unused.
-     */
-    navVisible: false,
-  };
+  unlisten: () => void;
 
-  componentDidMount() {
-    // Close the navigation when navigating. Only on small screens.
-    this.unlisten = this.props.router.listen(() => this.toggleNav(false));
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      /**
+       * This is used when the screen is small enough that the navigation should
+       * be hidden. On large screens this state will end up unused.
+       */
+      navVisible: false,
+    };
+
+    // Close the navigation when navigating.
+    this.unlisten = browserHistory.listen(() => this.toggleNav(false));
   }
 
   componentWillUnmount() {
     this.unlisten();
   }
 
-  toggleNav(navVisible) {
+  toggleNav(navVisible: boolean) {
     this.setState({navVisible});
     const bodyElement = document.getElementsByTagName('body')[0];
 
@@ -112,7 +120,8 @@ const NavMenuToggle = styled(Button)`
   margin-right: ${space(2)};
   color: ${p => p.theme.gray600};
   &:hover,
-  &:focus {
+  &:focus,
+  &:active {
     color: ${p => p.theme.gray800};
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -131,7 +140,7 @@ const MaxWidthContainer = styled('div')`
   flex: 1;
 `;
 
-const SidebarWrapper = styled('div')`
+const SidebarWrapper = styled('div')<{isVisible: boolean}>`
   /* flex-shrink: 0; */
   width: ${p => p.theme.settings.sidebarWidth};
   background: ${p => p.theme.white};
@@ -139,7 +148,6 @@ const SidebarWrapper = styled('div')`
   padding: ${space(4)};
   /* padding-right: ${space(2)}; */
 
-  /*  */
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     animation: ${slideInLeft} 100ms ease-in-out;
     display: ${p => (p.isVisible ? 'block' : 'none')};
@@ -151,7 +159,7 @@ const SidebarWrapper = styled('div')`
   }
 `;
 
-const NavMask = styled('div')`
+const NavMask = styled('div')<{isVisible: boolean}>`
   display: none;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: ${p => (p.isVisible ? 'block' : 'none')};
