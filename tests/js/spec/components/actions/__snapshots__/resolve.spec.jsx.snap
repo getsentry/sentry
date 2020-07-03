@@ -117,16 +117,16 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                 size="xs"
               >
                 <IconCheckmark
-                  className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                  className="css-g5t06q-StyledIconCheckmark enkvoq90"
                   size="xs"
                 >
                   <ForwardRef(SvgIcon)
-                    className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                    className="css-g5t06q-StyledIconCheckmark enkvoq90"
                     data-test-id="icon-check-mark"
                     size="xs"
                   >
                     <svg
-                      className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                      className="css-g5t06q-StyledIconCheckmark enkvoq90"
                       data-test-id="icon-check-mark"
                       fill="currentColor"
                       height="12px"
@@ -574,7 +574,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                                     >
                                       <a
                                         aria-label="Another version"
-                                        className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
+                                        className=" css-dhyg0k-ActionLinkAnchor ehtyk0g0"
                                         data-test-id="action-link-another-version"
                                         disabled={false}
                                         onClick={[Function]}
@@ -705,7 +705,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
           >
             <a
               aria-label="Resolve"
-              className="btn btn-default btn-sm css-1lugp7w-ActionLinkAnchor ehtyk0g0"
+              className="btn btn-default btn-sm css-dhyg0k-ActionLinkAnchor ehtyk0g0"
               data-test-id="action-link-resolve"
               disabled={false}
               onClick={[Function]}
@@ -714,16 +714,16 @@ exports[`ResolveActions without confirmation renders 1`] = `
                 size="xs"
               >
                 <IconCheckmark
-                  className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                  className="css-g5t06q-StyledIconCheckmark enkvoq90"
                   size="xs"
                 >
                   <ForwardRef(SvgIcon)
-                    className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                    className="css-g5t06q-StyledIconCheckmark enkvoq90"
                     data-test-id="icon-check-mark"
                     size="xs"
                   >
                     <svg
-                      className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                      className="css-g5t06q-StyledIconCheckmark enkvoq90"
                       data-test-id="icon-check-mark"
                       fill="currentColor"
                       height="12px"
@@ -896,7 +896,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                     >
                                       <a
                                         aria-label="The next release"
-                                        className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
+                                        className=" css-dhyg0k-ActionLinkAnchor ehtyk0g0"
                                         data-test-id="action-link-the-next-release"
                                         disabled={false}
                                         onClick={[Function]}
@@ -953,7 +953,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                     >
                                       <a
                                         aria-label="The current release"
-                                        className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
+                                        className=" css-dhyg0k-ActionLinkAnchor ehtyk0g0"
                                         data-test-id="action-link-the-current-release"
                                         disabled={false}
                                         onClick={[Function]}
@@ -1010,7 +1010,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
                                     >
                                       <a
                                         aria-label="Another version"
-                                        className=" css-1lugp7w-ActionLinkAnchor ehtyk0g0"
+                                        className=" css-dhyg0k-ActionLinkAnchor ehtyk0g0"
                                         data-test-id="action-link-another-version"
                                         disabled={false}
                                         onClick={[Function]}
