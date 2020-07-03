@@ -286,8 +286,9 @@ class SearchVisitor(NodeVisitor):
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    def __init__(self, allow_boolean=True):
+    def __init__(self, allow_boolean=True, adjust_interval=5):
         self.allow_boolean = allow_boolean
+        self.adjust_interval = adjust_interval
         super(SearchVisitor, self).__init__()
 
     @cached_property
@@ -526,7 +527,7 @@ class SearchVisitor(NodeVisitor):
             return self._handle_basic_filter(search_key, "=", SearchValue(date_value))
 
         try:
-            from_val, to_val = parse_datetime_value(date_value)
+            from_val, to_val = parse_datetime_value(date_value, self.adjust_interval)
         except InvalidQuery as exc:
             raise InvalidSearchQuery(six.text_type(exc))
 
@@ -678,7 +679,7 @@ class SearchVisitor(NodeVisitor):
         return children or node
 
 
-def parse_search_query(query, allow_boolean=True):
+def parse_search_query(query, allow_boolean=True, adjust_interval=5):
     try:
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
@@ -691,7 +692,7 @@ def parse_search_query(query, allow_boolean=True):
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-    return SearchVisitor(allow_boolean).visit(tree)
+    return SearchVisitor(allow_boolean=allow_boolean, adjust_interval=adjust_interval).visit(tree)
 
 
 def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
@@ -831,7 +832,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None):
             return condition
 
 
-def get_filter(query=None, params=None):
+def get_filter(query=None, params=None, adjust_interval=5):
     """
     Returns an eventstore filter given the search text provided by the user and
     URL params
@@ -840,7 +841,9 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query, allow_boolean=False)
+            parsed_terms = parse_search_query(
+                query, allow_boolean=False, adjust_interval=adjust_interval
+            )
         except ParseError as e:
             raise InvalidSearchQuery(
                 u"Parse error: {} (column {:d})".format(e.expr.name, e.column())

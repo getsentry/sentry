@@ -659,6 +659,33 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
             assert len(mock_quantize.mock_calls) == 2
 
+    def test_stats_timestamp_query(self):
+        # Here we create 5 events and search for the event with the timestamp at 5 minutes ago.
+        # Because two of the events are more than a minute away so they will be filtered out,
+        # leaving only 3 events.
+        five_min_ago = before_now(minutes=5).replace(tzinfo=utc, microsecond=0)
+        for i in range(-2, 3):
+            self.store_event(
+                data={
+                    "event_id": chr(ord("c") + i) * 32,
+                    "timestamp": (five_min_ago + timedelta(minutes=i)).isoformat(),
+                },
+                project_id=self.project.id,
+            )
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": (five_min_ago - timedelta(minutes=15)).isoformat(),
+                    "end": (five_min_ago + timedelta(minutes=15)).isoformat(),
+                    "query": "timestamp:{}".format(five_min_ago.isoformat()),
+                    "interval": "1m",
+                    "yAxis": "count()",
+                },
+            )
+        assert sum(point[1][0]["count"] for point in response.data["data"]) == 3
+
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
@@ -1333,6 +1360,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         data = response.data
+        assert False
         assert len(data) == 3
 
         for index, event in enumerate(self.events[:3]):
@@ -1342,3 +1370,39 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
+
+    def test_stats_timestamp_query(self):
+        # Here we create 5 events and search for the event with the timestamp at 5 minutes ago.
+        # Because two of the events are more than a minute away so they will be filtered out,
+        # leaving only 3 events.
+        five_min_ago = before_now(minutes=5).replace(tzinfo=utc, microsecond=0)
+        for i in range(-2, 3):
+            self.store_event(
+                data={
+                    "message": chr(ord("c") + i),
+                    "event_id": chr(ord("c") + i) * 32,
+                    "timestamp": (five_min_ago + timedelta(minutes=i)).isoformat(),
+                },
+                project_id=self.project.id,
+            )
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": (five_min_ago - timedelta(minutes=15)).isoformat(),
+                    "end": (five_min_ago + timedelta(minutes=15)).isoformat(),
+                    "interval": "1m",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["message", "count()"],
+                    "query": "timestamp:{}".format(five_min_ago.isoformat()),
+                    "topEvents": 5,
+                },
+            )
+        # 3 unique events
+        assert len(response.data) == 3
+
+        for value in response.data.values():
+            # each eventhappened once
+            assert sum(point[1][0]["count"] for point in value["data"]) == 1

@@ -490,7 +490,7 @@ def query(
         )
         query = transform_deprecated_functions_in_query(query)
 
-        snuba_filter = get_filter(query, params)
+        snuba_filter = get_filter(query, params, adjust_interval=1)
         if not use_aggregate_conditions:
             snuba_filter.having = []
 
@@ -636,7 +636,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, referen
     selected_columns, _ = transform_deprecated_functions_in_columns(selected_columns)
     query = transform_deprecated_functions_in_query(query)
 
-    snuba_filter = get_filter(query, params)
+    snuba_filter = get_filter(query, params, adjust_interval=1)
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
@@ -961,7 +961,7 @@ def get_pagination_ids(event, query, params, organization, reference_event=None,
     # to use the new function values
     query = transform_deprecated_functions_in_query(query)
 
-    snuba_filter = get_filter(query, params)
+    snuba_filter = get_filter(query, params, adjust_interval=1)
 
     if reference_event:
         ref_conditions = create_reference_event_conditions(reference_event)
@@ -1025,7 +1025,7 @@ def get_facets(query, params, limit=10, referrer=None):
         # to use the new function values
         query = transform_deprecated_functions_in_query(query)
 
-        snuba_filter = get_filter(query, params)
+        snuba_filter = get_filter(query, params, adjust_interval=1)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)

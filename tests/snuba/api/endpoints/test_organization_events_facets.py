@@ -551,3 +551,31 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             )
 
             assert len(mock_quantize.mock_calls) == 2
+
+    def test_facets_timestamp_query(self):
+        # Here we create 5 events and search for the event with the timestamp at 5 minutes ago.
+        # Because two of the events are more than a minute away so they will be filtered out,
+        # leaving only 3 events.
+        five_min_ago = before_now(minutes=5).replace(tzinfo=utc, microsecond=0)
+        for i in range(-2, 3):
+            self.store_event(
+                data={
+                    "event_id": chr(ord("c") + i) * 32,
+                    "timestamp": (five_min_ago + timedelta(minutes=i)).isoformat(),
+                    "tags": {"label": chr(ord("c") + i)},
+                },
+                project_id=self.project.id,
+            )
+        with self.feature(self.feature_list):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"query": "timestamp:{}".format(five_min_ago.isoformat())},
+            )
+        assert response.status_code == 200
+        expected = [
+            {"count": 1, "name": "b", "value": "b"},
+            {"count": 1, "name": "c", "value": "c"},
+            {"count": 1, "name": "d", "value": "d"},
+        ]
+        self.assert_facet(response, "label", expected)

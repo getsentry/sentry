@@ -2682,3 +2682,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                         response.data["detail"]
                         == "You can view up to 20 fields at a time. Please delete some and try again."
                     )
+
+    def test_events_timestamp_query(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        # Here we create 5 events and search for the event with the timestamp at 5 minutes ago.
+        # Because two of the events are more than a minute away so they will be filtered out,
+        # leaving only 3 events.
+        five_min_ago = before_now(minutes=5).replace(tzinfo=utc, microsecond=0)
+        for i in range(-2, 3):
+            self.store_event(
+                data={
+                    "event_id": chr(ord("c") + i) * 32,
+                    "timestamp": (five_min_ago + timedelta(minutes=i)).isoformat(),
+                },
+                project_id=project.id,
+            )
+        response = self.client.get(
+            self.url,
+            {
+                "field": ["id"],
+                "query": "timestamp:{}".format(five_min_ago.isoformat()),
+                "sort": "id",
+            },
+        )
+        assert response.status_code == 200
+        assert response.data["data"] == [
+            {"project.name": project.slug.encode("ascii"), "id": chr(ord("c") + i) * 32}
+            for i in range(-1, 2)
+        ]

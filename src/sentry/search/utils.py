@@ -137,7 +137,7 @@ def parse_datetime_comparison(value):
     raise InvalidQuery(u"{} is not a valid datetime query".format(value))
 
 
-def parse_datetime_value(value):
+def parse_datetime_value(value, adjust_interval):
     # timezones are not supported and are assumed UTC
     if value[-1:] == "Z":
         value = value[:-1]
@@ -172,7 +172,10 @@ def parse_datetime_value(value):
     if result is None:
         raise InvalidQuery(u"{} is not a valid datetime query".format(value))
 
-    return ((result - timedelta(minutes=5), True), (result + timedelta(minutes=6), False))
+    return (
+        (result - timedelta(minutes=adjust_interval), True),
+        (result + timedelta(minutes=adjust_interval + 1), False),
+    )
 
 
 def parse_datetime_expression(value):

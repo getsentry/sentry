@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import mock
 
 from pytz import utc
+from datetime import timedelta
 from rest_framework.exceptions import ParseError
 
 from django.core.urlresolvers import reverse
@@ -157,6 +158,25 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             )
 
             assert len(mock_quantize.mock_calls) == 2
+
+    def test_meta_timestamp_query(self):
+        # Here we create 5 events and search for the event with the timestamp at 5 minutes ago.
+        # Because two of the events are more than a minute away so they will be filtered out,
+        # leaving only 3 events.
+        five_min_ago = before_now(minutes=5).replace(tzinfo=utc, microsecond=0)
+        for i in range(-2, 3):
+            self.store_event(
+                data={
+                    "event_id": chr(ord("c") + i) * 32,
+                    "timestamp": (five_min_ago + timedelta(minutes=i)).isoformat(),
+                },
+                project_id=self.project.id,
+            )
+        response = self.client.get(
+            self.url, {"field": ["id"], "query": "timestamp:{}".format(five_min_ago.isoformat())}
+        )
+        assert response.status_code == 200
+        assert response.data["count"] == 3
 
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):

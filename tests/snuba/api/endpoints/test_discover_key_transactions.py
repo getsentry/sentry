@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
-import pytz
 import six
+
+from pytz import utc
+from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 
@@ -240,7 +242,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_get_key_transactions(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         project2 = self.create_project(name="foo", organization=self.org)
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
 
@@ -291,7 +293,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_get_transaction_with_quotes(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         start_timestamp = iso_format(before_now(minutes=1))
         end_timestamp = iso_format(before_now(minutes=1))
         event_data = load_data("transaction")
@@ -336,7 +338,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_get_transaction_with_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
 
         transactions = [("127.0.0.1", "/foo_transaction/"), ("192.168.0.1", "/blah_transaction/")]
@@ -378,7 +380,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_get_transaction_with_aggregate_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
 
         transactions = [
@@ -424,7 +426,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_get_transaction_with_backslash_and_quotes(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
         event_data["transaction"] = "\\someth\"'ing\\"
 
@@ -630,7 +632,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         data = load_data(
             "transaction",
             timestamp=before_now(hours=1, minutes=30),
@@ -668,7 +670,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_key_transaction_with_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         prototype = {
             "type": "transaction",
             "transaction": "api.issue.delete",
@@ -713,7 +715,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats_with_no_key_transactions(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         data = load_data(
             "transaction",
             timestamp=before_now(hours=1, minutes=30),
@@ -747,7 +749,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats_with_multi_yaxis(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         data = load_data(
             "transaction",
             timestamp=before_now(hours=1, minutes=30),
@@ -792,7 +794,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_key_transaction_stats_with_multi_yaxis_no_key_transactions(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+        mock_now.return_value = before_now().replace(tzinfo=utc)
         data = load_data(
             "transaction",
             timestamp=before_now(hours=1, minutes=30),
@@ -843,3 +845,36 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         url = reverse("sentry-api-0-organization-key-transactions-stats", args=[self.org.slug])
         response = self.client.get(url)
         assert response.status_code == 404
+
+    def test_key_transactions_timestamp_query(self):
+        # Here we create 5 events and search for the event with the timestamp at 5 minutes ago.
+        # Because two of the events are more than a minute away so they will be filtered out,
+        # leaving only 3 events.
+        transaction = "/time_transaction/"
+        five_min_ago = before_now(minutes=5).replace(tzinfo=utc, microsecond=0)
+        for i in range(-2, 3):
+            self.store_event(
+                data={
+                    "event_id": chr(ord("c") + i) * 32,
+                    "timestamp": (five_min_ago + timedelta(minutes=i)).isoformat(),
+                    "transaction": transaction,
+                },
+                project_id=self.project.id,
+            )
+
+        KeyTransaction.objects.create(
+            owner=self.user, organization=self.org, transaction=transaction, project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
+            response = self.client.get(
+                url,
+                {
+                    "project": [self.project.id],
+                    "field": ["id"],
+                    "query": "timestamp:{}".format(five_min_ago.isoformat()),
+                },
+            )
+        assert response.status_code == 200
+        assert response.data["data"] == [{"id": chr(ord("c") + i) * 32} for i in range(-1, 2)]
