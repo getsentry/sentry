@@ -208,10 +208,12 @@ class TableView extends React.Component<TableViewProps> {
       eventView.display === DisplayModes.TOP5 ||
       eventView.display === DisplayModes.DAILYTOP5;
 
+    const count = Math.min(tableData?.data?.length ?? TOP_N, TOP_N);
+
     return (
       <React.Fragment>
         {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
-          <TopResultsIndicator count={TOP_N} index={rowIndex} />
+          <TopResultsIndicator count={count} index={rowIndex} />
         ) : null}
         <CellAction
           column={column}
