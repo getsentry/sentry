@@ -1,28 +1,50 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'app/views/settings/components/tag';
 import {t} from 'app/locale';
+import Highlight from 'app/components/highlight';
+import Tag from 'app/views/settings/components/tag';
 import {Color} from 'app/utils/theme';
 
 import {BreadcrumbLevelType} from './types';
 
 type Props = {
-  level?: BreadcrumbLevelType;
+  level: BreadcrumbLevelType;
+  searchTerm?: string;
 };
 
-const Level = React.memo(({level}: Props) => {
+const Level = React.memo(({level, searchTerm = ''}: Props) => {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
-      return <StyledTag color="red500">{level}</StyledTag>;
+      return (
+        <StyledTag color="red500">
+          <Highlight text={searchTerm}>{t('fatal')}</Highlight>
+        </StyledTag>
+      );
     case BreadcrumbLevelType.ERROR:
-      return <StyledTag color="red400">{level}</StyledTag>;
+      return (
+        <StyledTag color="red400">
+          <Highlight text={searchTerm}>{t('error')}</Highlight>
+        </StyledTag>
+      );
     case BreadcrumbLevelType.INFO:
-      return <StyledTag color="blue400">{level}</StyledTag>;
+      return (
+        <StyledTag color="blue400">
+          <Highlight text={searchTerm}>{t('info')}</Highlight>
+        </StyledTag>
+      );
     case BreadcrumbLevelType.WARNING:
-      return <StyledTag color="orange400">{level}</StyledTag>;
+      return (
+        <StyledTag color="orange400">
+          <Highlight text={searchTerm}>{t('warning')}</Highlight>
+        </StyledTag>
+      );
     default:
-      return <Tag>{level || t('undefined')}</Tag>;
+      return (
+        <Tag>
+          <Highlight text={searchTerm}>{level || t('undefined')}</Highlight>
+        </Tag>
+      );
   }
 });
 

@@ -1,6 +1,6 @@
 import convertCrumbType from './convertCrumbType';
 import getCrumbDetails from './getCrumbDetails';
-import {Breadcrumb} from './types';
+import {Breadcrumb, BreadcrumbLevelType} from './types';
 
 const transformCrumbs = (breadcrumbs: Array<Breadcrumb>) =>
   breadcrumbs.map((breadcrumb, index) => {
@@ -10,6 +10,7 @@ const transformCrumbs = (breadcrumbs: Array<Breadcrumb>) =>
       id: index,
       ...convertedCrumbType,
       ...crumbDetails,
+      level: convertedCrumbType?.level ?? BreadcrumbLevelType.UNDEFINED,
     };
   });
 

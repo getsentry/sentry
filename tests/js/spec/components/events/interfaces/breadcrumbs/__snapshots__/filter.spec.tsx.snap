@@ -1672,7 +1672,16 @@ exports[`Filter default render 1`] = `
                                       className="css-1dx7owx-Tag-StyledTag eio8trv0"
                                       color="blue400"
                                     >
-                                      info
+                                      <Highlight
+                                        text=""
+                                      >
+                                        <HighlightComponent
+                                          className="css-hl9lzc-Highlight em9eqvp0"
+                                          text=""
+                                        >
+                                          info
+                                        </HighlightComponent>
+                                      </Highlight>
                                     </div>
                                   </Component>
                                 </StyledTag>
@@ -1758,7 +1767,16 @@ exports[`Filter default render 1`] = `
                                       className="css-eius55-Tag-StyledTag eio8trv0"
                                       color="red400"
                                     >
-                                      error
+                                      <Highlight
+                                        text=""
+                                      >
+                                        <HighlightComponent
+                                          className="css-hl9lzc-Highlight em9eqvp0"
+                                          text=""
+                                        >
+                                          error
+                                        </HighlightComponent>
+                                      </Highlight>
                                     </div>
                                   </Component>
                                 </StyledTag>

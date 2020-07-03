@@ -13,7 +13,14 @@ type Props = {
 
 const List = React.forwardRef(
   (
-    {displayRelativeTime, onSwitchTimeFormat, orgId, event, breadcrumbs}: Props,
+    {
+      displayRelativeTime,
+      onSwitchTimeFormat,
+      orgId,
+      event,
+      breadcrumbs,
+      searchTerm,
+    }: Props,
     ref: React.Ref<HTMLDivElement>
   ) => (
     <Grid ref={ref}>
@@ -22,6 +29,7 @@ const List = React.forwardRef(
         displayRelativeTime={!!displayRelativeTime}
       />
       <ListBody
+        searchTerm={searchTerm}
         event={event}
         orgId={orgId}
         breadcrumbs={breadcrumbs}
