@@ -93,7 +93,7 @@ class UserFeedbackEmpty extends React.Component<Props> {
       <UserFeedbackLanding>
         <IllustrationContainer>
           <CardComponentContainer>
-            <UserFeedbackIllustration />
+            <StyledUserFeedbackIllustration />
           </CardComponentContainer>
         </IllustrationContainer>
 
@@ -178,6 +178,11 @@ const CardComponentContainer = styled('div')`
     width: 320px;
     max-height: 180px;
   }
+`;
+
+const StyledUserFeedbackIllustration = styled(UserFeedbackIllustration)`
+  width: 100%;
+  height: 100%;
 `;
 
 const ButtonList = styled('div')`

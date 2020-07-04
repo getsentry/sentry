@@ -4,14 +4,7 @@ import styled from '@emotion/styled';
 
 function UserFeedbackIllustration(props: {className?: string}) {
   return (
-    <svg
-      width="479"
-      height="223"
-      viewBox="0 0 479 223"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
+    <svg viewBox="0 0 479 223" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
       <g id="user-feedback" clipPath="url(#clip0)">
         <path fill="#fff" d="M0 0h479v223H0z" />
         <g id="chat-avatar">
