@@ -134,7 +134,7 @@ class Onboarding extends React.Component {
     const step = this.activeStep;
     scrollToElement(`#onboarding_step_${step.id}`, {
       align: 'middle',
-      duration: process.env.IS_CI ? 0 : 300,
+      duration: process.env.IS_CI ? -1 : 300,
     });
   };
 
