@@ -1,8 +1,8 @@
-/* global process */
 import React from 'react';
 import {Global, css} from '@emotion/core';
 
 import {Theme} from 'app/utils/theme';
+import {IS_CI} from 'app/constants';
 
 const styles = (theme: Theme) => css`
   body {
@@ -20,7 +20,7 @@ const styles = (theme: Theme) => css`
    *
    * See https://web.dev/prefers-reduced-motion/
    */
-  ${process.env.IS_CI &&
+  ${IS_CI &&
     css`
       *,
       ::before,

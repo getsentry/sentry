@@ -1,6 +1,8 @@
 import marked from 'marked'; // eslint-disable-line no-restricted-imports
 import dompurify from 'dompurify';
 
+import {IS_CI, NODE_ENV} from 'app/constants';
+
 // Only https and mailto, (e.g. no javascript, vbscript, data protocols)
 const safeLinkPattern = /^(https?:|mailto:)/i;
 
@@ -55,9 +57,7 @@ marked.setOptions({
   //      as a html error, instead of throwing an exception, however none of
   //      our tests are rendering failed markdown so this is likely a safe
   //      tradeoff to turn off off the deprecation warning.
-  //
-  // eslint-disable-next-line no-undef
-  silent: !!process.env.IS_CI || process.env.NODE_ENV === 'test',
+  silent: !!IS_CI || NODE_ENV === 'test',
 });
 
 const sanitizedMarked = (...args: Parameters<typeof marked>) =>
