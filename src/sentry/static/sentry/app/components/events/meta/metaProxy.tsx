@@ -70,7 +70,7 @@ export function withMeta<T>(event: T): T {
 
   // withMeta returns a type that is supposed to be 100% compatible with its
   // input type. Proxy typing on typescript is not really functional enough to
-  // make this work without `any`.
+  // make this work without casting.
   //
   // https://github.com/microsoft/TypeScript/issues/20846
   return new Proxy(event, new MetaProxy((event as any)._meta)) as T;
