@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import zipfile
 from six import BytesIO
 
-from django.test import override_settings
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -46,7 +45,6 @@ PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
 PROGUARD_BUG_SOURCE = b"x"
 
 
-@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     def post_and_retrieve_event(self, data):
         raise NotImplementedError(

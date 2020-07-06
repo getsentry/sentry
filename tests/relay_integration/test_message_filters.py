@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-from django.test import override_settings
 
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models.projectoption import ProjectOption
@@ -13,7 +12,6 @@ from sentry.message_filters import (
 )
 
 
-@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
 class FilterTests(RelayStoreHelper, TransactionTestCase):
     def setUp(self):  # NOQA
         RelayStoreHelper.setUp(self)

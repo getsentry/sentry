@@ -3,9 +3,9 @@
 from __future__ import absolute_import
 
 import os.path
-import responses
-
 from base64 import b64encode
+
+import responses
 
 from sentry.testutils import RelayStoreHelper, TransactionTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now

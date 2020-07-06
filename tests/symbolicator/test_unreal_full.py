@@ -8,7 +8,6 @@ from six import BytesIO
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
 
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models import EventAttachment
@@ -30,7 +29,6 @@ def get_unreal_crash_apple_file():
     return get_fixture_path("unreal_crash_apple")
 
 
-@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
 class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
     # `~/.sentry/config.yml` and run `sentry devservices up`

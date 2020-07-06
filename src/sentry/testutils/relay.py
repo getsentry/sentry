@@ -143,7 +143,7 @@ class RelayStoreHelper(object):
         adjust_settings_for_relay_tests(self.settings)
 
     @pytest.fixture(autouse=True)
-    def setup_fixtures(
+    def relay_setup_fixtures(
         self,
         settings,
         live_server,
@@ -152,6 +152,8 @@ class RelayStoreHelper(object):
         get_relay_unreal_url,
         wait_for_ingest_consumer,
     ):
+        settings.ALLOWED_HOSTS = ["localhost", "testserver", "host.docker.internal"]
+
         self.settings = settings
         self.get_relay_store_url = get_relay_store_url  # noqa
         self.get_relay_minidump_url = get_relay_minidump_url  # noqa

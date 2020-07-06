@@ -8,7 +8,6 @@ from six import BytesIO
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
 
 from sentry import eventstore
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
@@ -63,7 +62,6 @@ REAL_RESOLVING_EVENT_DATA = {
 }
 
 
-@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
 class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     # For these tests to run, write `symbolicator.enabled: true` into your
     # `~/.sentry/config.yml` and run `sentry devservices up`

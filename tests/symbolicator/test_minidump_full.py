@@ -8,7 +8,6 @@ from six import BytesIO
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
 
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models import EventAttachment
@@ -22,7 +21,6 @@ from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 # `~/.sentry/config.yml` and run `sentry devservices up`
 
 
-@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
