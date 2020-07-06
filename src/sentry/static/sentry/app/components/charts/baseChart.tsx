@@ -5,6 +5,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
 import styled from '@emotion/styled';
 
+import {IS_CI} from 'app/constants';
 import {Series} from 'app/types/echarts';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -357,6 +358,7 @@ class BaseChart extends React.Component<Props> {
             ...style,
           }}
           option={{
+            animation: IS_CI ? false : true,
             ...options,
             useUTC: utc,
             color: colors || this.getColorPalette(),
