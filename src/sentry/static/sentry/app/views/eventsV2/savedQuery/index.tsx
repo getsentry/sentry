@@ -262,10 +262,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
 
     return (
-      <ButtonSaved disabled={this.props.disabled}>
+      <Button disabled data-test-id="discover2-savedquery-button-saved">
         <StyledIconBookmark isSolid size="xs" color="yellow400" />
         {t('Saved query')}
-      </ButtonSaved>
+      </Button>
     );
   }
 
@@ -352,9 +352,6 @@ const ButtonGroup = styled('div')`
 const ButtonSaveAs = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   white-space: nowrap;
-`;
-const ButtonSaved = styled(Button)`
-  cursor: not-allowed;
 `;
 const ButtonSaveDropDown = styled('div')`
   padding: ${space(1)};
