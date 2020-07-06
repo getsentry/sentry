@@ -66,7 +66,9 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode;
     renderBodyCell?: (
       column: GridColumnOrder<ColumnKey>,
-      dataRow: DataRow
+      dataRow: DataRow,
+      rowIndex: number,
+      columnIndex: number
     ) => React.ReactNode;
     onResizeColumn?: (
       columnIndex: number,
@@ -331,7 +333,9 @@ class GridEditable<
           ))}
         {columnOrder.map((col, i) => (
           <GridBodyCell key={`${col.key}${i}`}>
-            {grid.renderBodyCell ? grid.renderBodyCell(col, dataRow) : dataRow[col.key]}
+            {grid.renderBodyCell
+              ? grid.renderBodyCell(col, dataRow, row, i)
+              : dataRow[col.key]}
           </GridBodyCell>
         ))}
       </GridRow>
