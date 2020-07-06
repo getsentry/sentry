@@ -208,6 +208,7 @@ jobs:
 
 
     visual-diff:
+      if: ${{ github.ref != 'refs/heads/master' }}
       needs: acceptance
       runs-on: ubuntu-16.04
 
@@ -219,7 +220,6 @@ jobs:
             path: .artifacts/visual-snapshots
 
         - name: Diff snapshots
-          if: ${{ github.ref != 'refs/heads/master' }}
           id: visual-snapshots-diff
           uses: getsentry/action-visual-snapshot@v1
           with:
@@ -230,7 +230,6 @@ jobs:
             gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
         - name: Save diffed snapshots
-          if: always()
           uses: actions/upload-artifact@v2
           with:
             name: visual-snapshots-diff
