@@ -100,7 +100,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         context, config, minidump, log = attachments
 
         assert context.name == "CrashContext.runtime-xml"
-        assert context.file.type == "event.attachment"
+        assert context.file.type == "unreal.context"
         assert context.file.checksum == "835d3e10db5d1799dc625132c819c047261ddcfb"
 
         assert config.name == "CrashReportClient.ini"
@@ -112,7 +112,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert minidump.file.checksum == "089d9fd3b5c0cc4426339ab46ec3835e4be83c0f"
 
         assert log.name == "YetAnother.log"  # Log file is named after the project
-        assert log.file.type == "event.attachment"
+        assert log.file.type == "unreal.logs"
         assert log.file.checksum == "24d1c5f75334cd0912cc2670168d593d5fe6c081"
 
     def test_unreal_apple_crash_with_attachments(self):
@@ -122,7 +122,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         context, config, diagnostics, log, info, minidump = attachments
 
         assert context.name == "CrashContext.runtime-xml"
-        assert context.file.type == "event.attachment"
+        assert context.file.type == "unreal.context"
         assert context.file.checksum == "5d2723a7d25111645702fcbbcb8e1d038db56c6e"
 
         assert config.name == "CrashReportClient.ini"
@@ -134,7 +134,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert diagnostics.file.checksum == "aa271bf4e307a78005410234081945352e8fb236"
 
         assert log.name == "YetAnotherMac.log"  # Log file is named after the project
-        assert log.file.type == "event.attachment"
+        assert log.file.type == "unreal.logs"
         assert log.file.checksum == "735e751a8b6b943dbc0abce0e6d096f4d48a0c1e"
 
         assert info.name == "info.txt"
