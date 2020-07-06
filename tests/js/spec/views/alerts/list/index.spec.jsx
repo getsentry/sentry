@@ -145,7 +145,7 @@ describe('IncidentsList', function() {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('Alerts tell you what went wrong and why');
+    expect(wrapper.find('Onboarding').text()).toContain('More signal, less noise');
   });
 
   it('displays empty state (rules not yet created)', async function() {
@@ -221,6 +221,13 @@ describe('IncidentsList', function() {
         .exists()
     ).toBeFalsy();
 
+    expect(
+      wrapper
+        .find('IncidentPanelItem')
+        .at(0)
+        .find('TimeSince')
+    ).toHaveLength(1);
+
     expect(incidentsMock).toHaveBeenCalledTimes(1);
 
     expect(incidentsMock).toHaveBeenCalledWith(
@@ -245,6 +252,13 @@ describe('IncidentsList', function() {
         .find('Duration')
         .text()
     ).toBe('2 weeks');
+
+    expect(
+      wrapper
+        .find('IncidentPanelItem')
+        .at(0)
+        .find('TimeSince')
+    ).toHaveLength(2);
 
     expect(incidentsMock).toHaveBeenCalledTimes(2);
     // Stats not called for closed incidents

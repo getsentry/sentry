@@ -1,7 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 
 import {t} from 'app/locale';
 import GroupingActions from 'app/actions/groupingActions';

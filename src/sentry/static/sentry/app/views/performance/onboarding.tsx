@@ -14,7 +14,7 @@ function Onboarding() {
       <h3>{t('Pinpoint problems')}</h3>
       <p>
         {t(
-          "You've got this souped up plan. Now what? Get your software set up. We've got transactions to track down."
+          'Something seem slow? Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
         )}
       </p>
       <ButtonList gap={1}>
@@ -39,9 +39,10 @@ function Onboarding() {
 
 const PerfImage = styled('img')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    max-width: unset;
     user-select: none;
     position: absolute;
-    top: 0;
+    top: 50px;
     bottom: 0;
     width: 450px;
     margin-top: auto;

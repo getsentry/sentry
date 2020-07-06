@@ -33,6 +33,7 @@ class IncidentSerializer(Serializer):
         return results
 
     def serialize(self, obj, attrs, user):
+        date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
         return {
             "id": six.text_type(obj.id),
             "identifier": six.text_type(obj.identifier),
@@ -46,7 +47,7 @@ class IncidentSerializer(Serializer):
             "dateStarted": obj.date_started,
             "dateDetected": obj.date_detected,
             "dateCreated": obj.date_added,
-            "dateClosed": obj.date_closed,
+            "dateClosed": date_closed,
         }
 
 

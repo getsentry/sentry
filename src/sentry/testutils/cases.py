@@ -594,7 +594,7 @@ class AcceptanceTestCase(TransactionTestCase):
 
     def dismiss_assistant(self, which=None):
         if which is None:
-            which = ("discover_sidebar", "issue", "issue_stream")
+            which = ("issue", "issue_stream")
         if isinstance(which, six.string_types):
             which = [which]
 
@@ -773,7 +773,7 @@ class SnubaTestCase(BaseTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
+                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events),
             ).status_code
             == 200
         )

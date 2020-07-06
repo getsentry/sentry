@@ -113,14 +113,33 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               title="Resolve"
             >
                
-              <span
-                className="icon-checkmark hidden-xs"
-                style={
-                  Object {
-                    "marginRight": 5,
-                  }
-                }
-              />
+              <StyledIconCheckmark
+                size="xs"
+              >
+                <IconCheckmark
+                  className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                  size="xs"
+                >
+                  <ForwardRef(SvgIcon)
+                    className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                    data-test-id="icon-check-mark"
+                    size="xs"
+                  >
+                    <svg
+                      className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                      data-test-id="icon-check-mark"
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                      />
+                    </svg>
+                  </ForwardRef(SvgIcon)>
+                </IconCheckmark>
+              </StyledIconCheckmark>
               Resolve
             </a>
             <Modal
@@ -691,14 +710,33 @@ exports[`ResolveActions without confirmation renders 1`] = `
               disabled={false}
               onClick={[Function]}
             >
-              <span
-                className="icon-checkmark hidden-xs"
-                style={
-                  Object {
-                    "marginRight": 5,
-                  }
-                }
-              />
+              <StyledIconCheckmark
+                size="xs"
+              >
+                <IconCheckmark
+                  className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                  size="xs"
+                >
+                  <ForwardRef(SvgIcon)
+                    className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                    data-test-id="icon-check-mark"
+                    size="xs"
+                  >
+                    <svg
+                      className="css-1t3bmo8-StyledIconCheckmark enkvoq90"
+                      data-test-id="icon-check-mark"
+                      fill="currentColor"
+                      height="12px"
+                      viewBox="0 0 16 16"
+                      width="12px"
+                    >
+                      <path
+                        d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                      />
+                    </svg>
+                  </ForwardRef(SvgIcon)>
+                </IconCheckmark>
+              </StyledIconCheckmark>
               Resolve
             </a>
           </ActionLinkAnchor>

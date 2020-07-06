@@ -17,12 +17,13 @@ type Props = {
   breadcrumbs: BreadcrumbsWithDetails;
   event: Event;
   orgId: string | null;
+  searchTerm: string;
   relativeTime?: string;
   displayRelativeTime?: boolean;
 };
 
 const ListBody = React.memo(
-  ({orgId, event, breadcrumbs, relativeTime, displayRelativeTime}: Props) => (
+  ({orgId, event, breadcrumbs, relativeTime, displayRelativeTime, searchTerm}: Props) => (
     <React.Fragment>
       {breadcrumbs.map(({color, icon, id, ...crumb}, idx) => {
         const hasError = crumb.type === BreadcrumbType.ERROR;
@@ -36,19 +37,25 @@ const ListBody = React.memo(
               </Tooltip>
             </GridCellLeft>
             <GridCellCategory hasError={hasError} isLastItem={isLastItem}>
-              <Category category={crumb?.category} />
+              <Category category={crumb?.category} searchTerm={searchTerm} />
             </GridCellCategory>
             <GridCell hasError={hasError} isLastItem={isLastItem}>
-              <Data event={event} orgId={orgId} breadcrumb={crumb as Breadcrumb} />
+              <Data
+                event={event}
+                orgId={orgId}
+                breadcrumb={crumb as Breadcrumb}
+                searchTerm={searchTerm}
+              />
             </GridCell>
             <GridCell hasError={hasError} isLastItem={isLastItem}>
-              <Level level={crumb.level} />
+              <Level level={crumb.level} searchTerm={searchTerm} />
             </GridCell>
             <GridCell hasError={hasError} isLastItem={isLastItem}>
               <Time
                 timestamp={crumb?.timestamp}
                 relativeTime={relativeTime}
                 displayRelativeTime={displayRelativeTime}
+                searchTerm={searchTerm}
               />
             </GridCell>
           </React.Fragment>
