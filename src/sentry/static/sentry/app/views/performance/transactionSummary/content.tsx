@@ -17,7 +17,6 @@ import CreateAlertButton from 'app/components/createAlertButton';
 import withProjects from 'app/utils/withProjects';
 import ButtonBar from 'app/components/buttonBar';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Feature from 'app/components/acl/feature';
 
 import TransactionList from './transactionList';
 import UserStats from './userStats';
@@ -101,15 +100,13 @@ class SummaryContent extends React.Component<Props, State> {
     const {eventView, organization, projects} = this.props;
 
     return (
-      <Feature features={['organizations:incidents-performance']}>
-        <CreateAlertButton
-          eventView={eventView}
-          organization={organization}
-          projects={projects}
-          onIncompatibleQuery={this.handleIncompatibleQuery}
-          onSuccess={this.handleCreateAlertSuccess}
-        />
-      </Feature>
+      <CreateAlertButton
+        eventView={eventView}
+        organization={organization}
+        projects={projects}
+        onIncompatibleQuery={this.handleIncompatibleQuery}
+        onSuccess={this.handleCreateAlertSuccess}
+      />
     );
   }
 
