@@ -45,4 +45,16 @@ describe('OrganizationUserFeedback', function() {
     expect(wrapper.find('ActivityItem')).toHaveLength(0);
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
   });
+
+  it('renders not found', function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/activity/',
+      body: [],
+      statusCode: 404,
+    });
+    const wrapper = mount(<OrganizationActivity {...params} />, routerContext);
+
+    expect(wrapper.find('ActivityItem')).toHaveLength(0);
+    expect(wrapper.find('EmptyMessage')).toHaveLength(1);
+  });
 });

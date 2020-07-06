@@ -48,6 +48,15 @@ class OrganizationActivity extends AsyncView<Props, State> {
     );
   }
 
+  renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
+    const {errors} = this.state;
+    const notFound = Object.values(errors).find(resp => resp && resp.status === 404);
+    if (notFound) {
+      return this.renderBody();
+    }
+    return super.renderError(error, disableLog, disableReport);
+  }
+
   renderBody() {
     const {loading, activity, activityPageLinks} = this.state;
 
@@ -56,8 +65,8 @@ class OrganizationActivity extends AsyncView<Props, State> {
         <PageHeading withMargins>{t('Activity')}</PageHeading>
         <Panel>
           {loading && <LoadingIndicator />}
-          {!loading && !activity.length && this.renderEmpty()}
-          {!loading && !!activity.length && (
+          {!loading && !activity?.length && this.renderEmpty()}
+          {!loading && activity?.length > 0 && (
             <div data-test-id="activity-feed-list">
               {activity.map(item => (
                 <ErrorBoundary
