@@ -271,13 +271,21 @@ class Fixtures(object):
         return Factories.create_alert_rule_trigger(alert_rule, *args, **kwargs)
 
     def create_alert_rule_trigger_action(
-        self, alert_rule_trigger=None, target_identifier=None, *args, **kwargs
+        self,
+        alert_rule_trigger=None,
+        target_identifier=None,
+        triggered_for_incident=None,
+        *args,
+        **kwargs
     ):
         if not alert_rule_trigger:
             alert_rule_trigger = self.create_alert_rule_trigger()
 
         if not target_identifier:
             target_identifier = six.text_type(self.user.id)
+
+        if triggered_for_incident is not None:
+            Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)
 
         return Factories.create_alert_rule_trigger_action(
             alert_rule_trigger, target_identifier=target_identifier, **kwargs

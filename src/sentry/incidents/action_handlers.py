@@ -11,6 +11,7 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     TriggerStatus,
     IncidentStatus,
+    IncidentTrigger,
     INCIDENT_STATUS,
 )
 from sentry.utils.email import MessageBuilder
@@ -139,6 +140,8 @@ INCIDENT_STATUS_KEY = {
 
 def generate_incident_trigger_email_context(project, incident, alert_rule_trigger, status):
     trigger = alert_rule_trigger
+    incident_trigger = IncidentTrigger.objects.get(incident=incident, alert_rule_trigger=trigger)
+
     alert_rule = trigger.alert_rule
     snuba_query = alert_rule.snuba_query
     is_active = status == TriggerStatus.ACTIVE
@@ -174,7 +177,7 @@ def generate_incident_trigger_email_context(project, incident, alert_rule_trigge
         "incident_name": incident.title,
         "environment": environment_string,
         "time_window": format_duration(snuba_query.time_window / 60),
-        "triggered_at": trigger.date_added,
+        "triggered_at": incident_trigger.date_added,
         "aggregate": aggregate,
         "query": snuba_query.query,
         "threshold": trigger.alert_threshold if is_active else trigger.resolve_threshold,

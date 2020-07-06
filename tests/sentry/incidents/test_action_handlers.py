@@ -88,8 +88,8 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def test(self):
         status = TriggerStatus.ACTIVE
-        action = self.create_alert_rule_trigger_action()
         incident = self.create_incident()
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
         expected = {
             "link": absolute_uri(
@@ -138,8 +138,10 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         ]
         alert_rule = self.create_alert_rule(environment=environments[0])
         alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
-        action = self.create_alert_rule_trigger_action(alert_rule_trigger=alert_rule_trigger)
         incident = self.create_incident()
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
         assert "prod" == generate_incident_trigger_email_context(
             self.project, incident, action.alert_rule_trigger, status
         ).get("environment")
@@ -148,10 +150,10 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
 @freeze_time()
 class EmailActionHandlerFireTest(TestCase):
     def test_user(self):
-        action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id)
-        )
         incident = self.create_incident(status=IncidentStatus.CRITICAL.value)
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
+        )
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
             handler.fire(1000)
@@ -163,10 +165,10 @@ class EmailActionHandlerFireTest(TestCase):
 @freeze_time()
 class EmailActionHandlerResolveTest(TestCase):
     def test_user(self):
-        action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id)
-        )
         incident = self.create_incident()
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
+        )
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
             incident.status = IncidentStatus.CLOSED.value
