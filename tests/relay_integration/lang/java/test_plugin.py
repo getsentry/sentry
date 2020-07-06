@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import pytest
 import zipfile
 from six import BytesIO
 
+from django.test import override_settings
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -46,7 +46,8 @@ PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
 PROGUARD_BUG_SOURCE = b"x"
 
 
-class BasicResolvingIntegrationTest(object):
+@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
+class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     def post_and_retrieve_event(self, data):
         raise NotImplementedError(
             "post_and_retrieve_event should be implemented in a dervied test class"
@@ -317,10 +318,3 @@ class BasicResolvingIntegrationTest(object):
             "mapping_uuid": u"071207ac-b491-4a74-957c-2c94fd9594f2",
             "type": "proguard_missing_lineno",
         }
-
-
-@pytest.mark.relay_store_integration
-class BasicResolvingIntegrationTestRelay(
-    RelayStoreHelper, TransactionTestCase, BasicResolvingIntegrationTest
-):
-    pass

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import os
 import json
-import pytest
 import responses
 
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
@@ -18,7 +17,7 @@ def load_fixture(name):
         return f.read()
 
 
-class ExampleTestCase(object):
+class ExampleTestCase(RelayStoreHelper, TransactionTestCase):
     def post_and_retrieve_event(self, data):
         raise NotImplementedError(
             "post_and_retrieve_event should be implemented in dervied test class"
@@ -86,8 +85,3 @@ class ExampleTestCase(object):
         assert frame_list[3].function == "onFailure"
         assert frame_list[3].lineno == 5
         assert frame_list[3].filename == "test.js"
-
-
-@pytest.mark.relay_store_integration
-class ExampleTestCaseRelay(RelayStoreHelper, TransactionTestCase, ExampleTestCase):
-    pass

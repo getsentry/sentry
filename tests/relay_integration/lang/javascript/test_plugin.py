@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 import os.path
-import pytest
 import responses
 
 from base64 import b64encode
@@ -34,7 +33,7 @@ def load_fixture(name):
         return fp.read()
 
 
-class JavascriptIntegrationTest(SnubaTestCase):
+class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTestCase):
     def setUp(self):
         super(JavascriptIntegrationTest, self).setUp()
         self.min_ago = iso_format(before_now(minutes=1))
@@ -57,21 +56,6 @@ class JavascriptIntegrationTest(SnubaTestCase):
         }
 
         event = self.post_and_retrieve_event(data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                },
-                debug=True,
-            ):  # debug=True is for coverage
-                self._postWithHeader(data)
-
         contexts = event.interfaces["contexts"].to_json()
         assert contexts.get("os") == {"name": "Windows", "version": "8", "type": "os"}
         assert contexts.get("device") is None
@@ -1374,12 +1358,3 @@ class JavascriptIntegrationTest(SnubaTestCase):
         event = self.post_and_retrieve_event(data)
 
         assert "errors" not in event.data
-
-
-@pytest.mark.relay_store_integration
-class JavascriptIntegrationTestRelay(
-    RelayStoreHelper, TransactionTestCase, JavascriptIntegrationTest
-):
-    def setUp(self):
-        super(JavascriptIntegrationTestRelay, self).setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
