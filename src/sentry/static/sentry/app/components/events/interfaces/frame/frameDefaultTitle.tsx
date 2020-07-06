@@ -4,7 +4,7 @@ import {Meta} from 'app/types';
 import {defined, isUrl} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
-import {IconQuestion} from 'app/icons';
+import {IconQuestion, IconOpen} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {t} from 'app/locale';
@@ -96,12 +96,9 @@ const FrameDefaultTitle = ({frame, platform}: Props) => {
 
     if (frame.absPath && isUrl(frame.absPath)) {
       title.push(
-        <ExternalLink
-          href={frame.absPath}
-          className="icon-open"
-          key="share"
-          onClick={handleExternalLink}
-        />
+        <ExternalLink href={frame.absPath} key="share" onClick={handleExternalLink}>
+          <IconOpen size="xs" />
+        </ExternalLink>
       );
     }
 
