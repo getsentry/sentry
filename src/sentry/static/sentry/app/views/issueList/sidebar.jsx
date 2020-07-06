@@ -6,6 +6,7 @@ import debounce from 'lodash/debounce';
 import map from 'lodash/map';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconClose} from 'app/icons/iconClose';
 import {queryToObj, objToQuery} from 'app/utils/stream';
 import {t} from 'app/locale';
 
@@ -134,7 +135,7 @@ const IssueListSidebar = createReactClass({
                 />
                 {this.state.textFilter && (
                   <a className="search-clear-form" onClick={this.onClearSearch}>
-                    <span className="icon-circle-cross" />
+                    <IconClose />
                   </a>
                 )}
               </form>

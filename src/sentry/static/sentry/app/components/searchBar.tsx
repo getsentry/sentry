@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {IconClose} from 'app/icons/iconClose';
 import {callIfFunction} from 'app/utils/callIfFunction';
 
 type DefaultProps = {
@@ -103,7 +104,7 @@ class SearchBar extends React.PureComponent<Props, State> {
             {this.state.query !== this.props.defaultQuery && (
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
-                  <span className="icon-circle-cross" />
+                  <IconClose />
                 </a>
               </div>
             )}
