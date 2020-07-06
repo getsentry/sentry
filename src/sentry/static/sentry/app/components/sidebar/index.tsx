@@ -417,7 +417,11 @@ class Sidebar extends React.Component<Props, State> {
                       id="performance"
                     />
                   </Feature>
-                  <Feature features={['incidents']} organization={organization}>
+                  <Feature
+                    hookName="feature-disabled:incidents-sidebar-item"
+                    features={['incidents']}
+                    organization={organization}
+                  >
                     <SidebarItem
                       {...sidebarItemProps}
                       onClick={(_id, evt) =>
