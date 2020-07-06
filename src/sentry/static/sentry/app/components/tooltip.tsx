@@ -10,17 +10,53 @@ import {domId} from 'app/utils/domId';
 const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
 
 type DefaultProps = {
+  /**
+   * Position for the tooltip.
+   */
   position: PopperJS.Placement;
+
+  /**
+   * Display mode for the container element
+   */
   containerDisplayMode: React.CSSProperties['display'];
 };
 
 type Props = DefaultProps & {
+  /**
+   * The node to attach the Tooltip to
+   */
   children: React.ReactNode;
+
+  /**
+   * Disable the tooltip display entirely
+   */
   disabled?: boolean;
+
+  /**
+   * The content to show in the tooltip popover
+   */
   title: React.ReactNode;
+
+  /**
+   * Additional style rules for the tooltip content.
+   */
   popperStyle?: React.CSSProperties;
+
+  /**
+   * Time to wait (in milliseconds) before showing the tooltip
+   */
   delay?: number;
+
+  /**
+   * If true, user is able to hover tooltip without it disappearing.
+   * (nice if you want to be able to copy tooltip contents to clipboard)
+   */
   isHoverable?: boolean;
+
+  /**
+   * If child node supports ref forwarding, you can skip apply a wrapper
+   */
+  skipWrapper?: boolean;
 };
 
 type State = {
@@ -29,17 +65,8 @@ type State = {
 
 class Tooltip extends React.Component<Props, State> {
   static propTypes = {
-    /**
-     * Disable the tooltip display entirely
-     */
     disabled: PropTypes.bool,
-    /**
-     * The content to show in the tooltip popover
-     */
     title: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    /**
-     * Position for the tooltip.
-     */
     position: PropTypes.oneOf([
       'bottom',
       'top',
@@ -55,26 +82,11 @@ class Tooltip extends React.Component<Props, State> {
       'right-end',
       'auto',
     ]),
-    /**
-     * Additional style rules for the tooltip content.
-     */
     popperStyle: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-
-    /**
-     * Display mode for the container element
-     */
     containerDisplayMode: PropTypes.string,
-
-    /**
-     * Time to wait (in milliseconds) before showing the tooltip
-     */
     delay: PropTypes.number,
-
-    /**
-     * If true, user is able to hover tooltip without it disappearing.
-     * (nice if you want to be able to copy tooltip contents to clipboard)
-     */
     isHoverable: PropTypes.bool,
+    skipWrapper: PropTypes.bool,
   };
 
   static defaultProps: DefaultProps = {
@@ -155,7 +167,10 @@ class Tooltip extends React.Component<Props, State> {
     // Because we can't rely on the child element implementing forwardRefs we wrap
     // it with a span tag so that popper has ref
 
-    if (React.isValidElement(children) && typeof children.type === 'string') {
+    if (
+      React.isValidElement(children) &&
+      (this.props.skipWrapper || typeof children.type === 'string')
+    ) {
       // Basic DOM nodes can be cloned and have more props applied.
       return React.cloneElement(children, {
         ...propList,
