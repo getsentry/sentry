@@ -134,6 +134,7 @@ class Onboarding extends React.Component {
     const step = this.activeStep;
     scrollToElement(`#onboarding_step_${step.id}`, {
       align: 'middle',
+      // Disable animations in CI - must be < 0 to disable
       duration: process.env.IS_CI ? -1 : 300,
     });
   };
