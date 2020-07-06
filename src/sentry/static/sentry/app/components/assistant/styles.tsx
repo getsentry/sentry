@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import InlineSvg from 'app/components/inlineSvg';
+import {IconClose} from 'app/icons/iconClose';
 import space from 'app/styles/space';
 
 /* styles common to the guide and support cue/drawer. */
@@ -42,7 +43,7 @@ const CueIcon = styled(({hasGuide, ...props}: CueIconProps) => (
   height: 1.33em;
 `;
 
-const CloseIcon = styled(props => <InlineSvg src="icon-close-lg" {...props} />)`
+const CloseIcon = styled(props => <IconClose {...props} />)`
   stroke-width: 3px;
   width: 0.75em;
   height: 0.75em;
