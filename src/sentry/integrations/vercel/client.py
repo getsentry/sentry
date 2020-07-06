@@ -1,7 +1,11 @@
 from __future__ import absolute_import
 
+import logging
+
 from sentry.integrations.client import ApiClient
 from sentry.utils.http import absolute_uri
+
+logger = logging.getLogger("sentry.integrations.vercel.api")
 
 
 class VercelClient(ApiClient):
@@ -39,8 +43,22 @@ class VercelClient(ApiClient):
         return self.get_cached(self.USER_URL)["user"]
 
     def get_projects(self):
-        # TODO: we will need pagination since we are limited to 20
-        return self.get(self.PROJECTS_URL)["projects"]
+        limit = 20
+        params = {"limit": limit}
+        projects = []
+        # no one should have more than 200 projects
+        for i in range(10):
+            resp = self.get(self.PROJECTS_URL, params=params)
+            projects += resp["projects"]
+            # if we have less projects than the limit, we are done
+            if resp["pagination"]["count"] < limit:
+                return projects
+            # continue pagination but increment next by 1
+            params = params.copy()
+            params["since"] = resp["pagination"]["next"] + 1
+        # log the warning if this happens so we can look into solutions
+        logger.warn("Did not finish project pagination", extra={"team_id": self.team_id})
+        return projects
 
     def create_deploy_webhook(self):
         data = {
