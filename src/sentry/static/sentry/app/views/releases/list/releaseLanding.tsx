@@ -1,35 +1,37 @@
 import React from 'react';
-import styled from '@emotion/styled';
-
-import minified from 'sentry-dreamy-components/dist/minified.svg';
-import emails from 'sentry-dreamy-components/dist/emails.svg';
-import issues from 'sentry-dreamy-components/dist/issues.svg';
-import suggestedAssignees from 'sentry-dreamy-components/dist/suggested-assignees.svg';
-import contributors from 'sentry-dreamy-components/dist/contributors.svg';
 
 import {t} from 'app/locale';
 import {Project, Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
+import Placeholder from 'app/components/placeholder';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 
 import ReleaseLandingCard from './releaseLandingCard';
 
-type IllustrationProps = {
-  data: string;
-  className?: string;
-};
+function Illustration({children}: {children: React.ReactNode}) {
+  return <React.Suspense fallback={<Placeholder />}>{children}</React.Suspense>;
+}
 
-// Currently, we need a fallback because <object> doesn't work in msedge,
-// and <img> doesn't work in safari. Hopefully we can choose one soon.
-const Illustration = styled(({data, className}: IllustrationProps) => (
-  <object data={data} className={className}>
-    <img src={data} className={className} />
-  </object>
-))`
-  width: 100%;
-  height: 100%;
-`;
+const IllustrationContributors = React.lazy(() =>
+  import(
+    /* webpackChunkName: "IllustrationContributors" */ './illustrations/contributors'
+  )
+);
+const IllustrationSuggestedAssignees = React.lazy(() =>
+  import(
+    /* webpackChunkName: "IllustrationSuggestedAssignees" */ './illustrations/suggestedAssignees'
+  )
+);
+const IllustrationIssues = React.lazy(() =>
+  import(/* webpackChunkName: "IllustrationIssues" */ './illustrations/issues')
+);
+const IllustrationMinified = React.lazy(() =>
+  import(/* webpackChunkName: "IllustrationMinified" */ './illustrations/minified')
+);
+const IllustrationEmails = React.lazy(() =>
+  import(/* webpackChunkName: "IllustrationEmails" */ './illustrations/emails')
+);
 
 const cards = [
   {
@@ -38,33 +40,53 @@ const cards = [
     message: t(
       'Releases provide additional context, with rich commits, so you know which errors were addressed and which were introduced in a release'
     ),
-    svg: <Illustration data={contributors} />,
+    svg: (
+      <Illustration>
+        <IllustrationContributors />
+      </Illustration>
+    ),
   },
   {
     title: t('Suspect Commits'),
     message: t(
       'Sentry suggests which commit caused an issue and who is likely responsible so you can triage'
     ),
-    svg: <Illustration data={suggestedAssignees} />,
+    svg: (
+      <Illustration>
+        <IllustrationSuggestedAssignees />
+      </Illustration>
+    ),
   },
   {
     title: t('Release Stats'),
     message: t(
       'See the commits in each release, and which issues were introduced or fixed in the release'
     ),
-    svg: <Illustration data={issues} />,
+    svg: (
+      <Illustration>
+        <IllustrationIssues />
+      </Illustration>
+    ),
   },
   {
     title: t('Easy Resolution'),
     message: t(
       'Automatically resolve issues by including the issue number in your commit message'
     ),
-    svg: <Illustration data={minified} />,
+    svg: (
+      <Illustration>
+        <IllustrationMinified />
+      </Illustration>
+    ),
   },
   {
     title: t('Deploy Emails'),
     message: t('Receive email notifications when your code gets deployed'),
-    svg: <Illustration data={emails} />,
+    svg: (
+      <Illustration>
+        <IllustrationEmails />
+      </Illustration>
+    ),
   },
 ];
 
@@ -80,12 +102,9 @@ type State = {
 const ReleaseLanding = withOrganization(
   withProject(
     class ReleaseLanding extends React.Component<ReleaseLandingProps, State> {
-      constructor(props) {
-        super(props);
-        this.state = {
-          stepId: 0,
-        };
-      }
+      state = {
+        stepId: 0,
+      };
 
       componentDidMount() {
         const {organization, project} = this.props;
