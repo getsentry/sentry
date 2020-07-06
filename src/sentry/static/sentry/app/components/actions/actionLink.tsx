@@ -73,5 +73,7 @@ export default class ActionLink extends React.Component<ActionLinkProps> {
   }
 }
 const ActionLinkAnchor = styled('a')<{disabled?: boolean}>`
+  display: flex;
+  align-items: center;
   pointer-events: ${p => (p.disabled ? 'none' : 'auto')};
 `;

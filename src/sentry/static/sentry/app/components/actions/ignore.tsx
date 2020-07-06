@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import styled from '@emotion/styled';
 
+import {IconNot} from 'app/icons';
 import {ResolutionStatusDetails} from 'app/types';
 import {t, tn} from 'app/locale';
 import MenuItem from 'app/components/menuItem';
@@ -11,6 +13,7 @@ import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
 import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 
 enum ModalStates {
   COUNT,
@@ -108,7 +111,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
               data-test-id="button-unresolve"
               onClick={() => onUpdate({status: 'unresolved'})}
             >
-              <span className="icon-ban" />
+              <SoloIconNot size="xs" />
             </a>
           </Tooltip>
         </div>
@@ -149,7 +152,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
-            <span className="icon-ban hidden-xs" style={{marginRight: 5}} />
+            <StyledIconNot size="xs" />
             {t('Ignore')}
           </ActionLink>
 
@@ -294,3 +297,18 @@ export default class IgnoreActions extends React.Component<Props, State> {
     );
   }
 }
+
+const StyledIconNot = styled(IconNot)`
+  margin-right: ${space(0.5)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+// The icon with no text label needs positioning tweaks
+// inside the bootstrap button. Hopefully this can be removed
+// bootstrap buttons are converted.
+const SoloIconNot = styled(IconNot)`
+  position: relative;
+  top: 1px;
+`;
