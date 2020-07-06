@@ -349,7 +349,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function '
             'divide(a,b){"use strict";try{return multip {snip}'
         )
-        assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js"]
+        assert raw_frame.post_context == ["//@ sourceMappingURL=file.sourcemap.js", ""]
         assert raw_frame.lineno == 1
 
         # Since we couldn't expand source for the 2nd frame, both

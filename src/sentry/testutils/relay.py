@@ -136,12 +136,6 @@ class RelayStoreHelper(object):
         assert event is not None
         return event
 
-    def setUp(self):  # NOQA
-        self.auth_header = get_auth_header(
-            "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
-        )
-        adjust_settings_for_relay_tests(self.settings)
-
     @pytest.fixture(autouse=True)
     def relay_setup_fixtures(
         self,
@@ -152,7 +146,11 @@ class RelayStoreHelper(object):
         get_relay_unreal_url,
         wait_for_ingest_consumer,
     ):
-        settings.ALLOWED_HOSTS = ["localhost", "testserver", "host.docker.internal"]
+        self.auth_header = get_auth_header(
+            "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
+        )
+
+        adjust_settings_for_relay_tests(settings)
 
         self.settings = settings
         self.get_relay_store_url = get_relay_store_url  # noqa
