@@ -824,7 +824,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             conditions=[
                 ["type", "=", "transaction"],
-                [["match", ["email", "'(?i)^.*\@sentry\.io$'"]], "=", 1],
+                [["match", ["email", "'(?i)^.*@sentry\.io$'"]], "=", 1],
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
             aggregations=[["count", None, "count"]],
