@@ -13,9 +13,6 @@ from sentry.message_filters import (
 
 
 class FilterTests(RelayStoreHelper, TransactionTestCase):
-    def setUp(self):  # NOQA
-        RelayStoreHelper.setUp(self)
-
     def _get_message(self):
         return {}
 
