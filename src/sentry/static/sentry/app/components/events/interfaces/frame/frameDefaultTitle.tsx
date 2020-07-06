@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Meta} from 'app/types';
 import {defined, isUrl} from 'app/utils';
@@ -9,6 +10,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {t} from 'app/locale';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import space from 'app/styles/space';
 
 import FrameFunctionName from './frameFunctionName';
 import {getPlatform, trimPackage} from './utils';
@@ -96,9 +98,9 @@ const FrameDefaultTitle = ({frame, platform}: Props) => {
 
     if (frame.absPath && isUrl(frame.absPath)) {
       title.push(
-        <ExternalLink href={frame.absPath} key="share" onClick={handleExternalLink}>
+        <StyledExternalLink href={frame.absPath} key="share" onClick={handleExternalLink}>
           <IconOpen size="xs" />
-        </ExternalLink>
+        </StyledExternalLink>
       );
     }
 
@@ -161,5 +163,11 @@ const FrameDefaultTitle = ({frame, platform}: Props) => {
 
   return title;
 };
+
+const StyledExternalLink = styled(ExternalLink)`
+  position: relative;
+  top: 2px;
+  margin-left: ${space(0.5)};
+`;
 
 export default FrameDefaultTitle;
