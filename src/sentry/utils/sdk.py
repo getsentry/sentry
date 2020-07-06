@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function
 
 import inspect
-import logging
 import six
 
 from django.conf import settings
@@ -113,13 +112,6 @@ def get_project_key():
             },
         )
     return key
-
-
-class SentryInternalFilter(logging.Filter):
-    def filter(self, record):
-        # TODO(mattrobenolt): handle an upstream Sentry
-        metrics.incr("internal.uncaptured.logs", skip_internal=False)
-        return True
 
 
 def configure_sdk():
