@@ -192,10 +192,9 @@ class QueryList extends React.Component<Props> {
           dateStatus={dateStatus}
           onEventClick={() => {
             trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
+              eventKey: 'discover_v2.saved_query_click',
+              eventName: 'Discoverv2: Click a saved query',
               organization_id: parseInt(this.props.organization.id, 10),
-              query_name: eventView.name,
             });
           }}
           renderGraph={() => (
