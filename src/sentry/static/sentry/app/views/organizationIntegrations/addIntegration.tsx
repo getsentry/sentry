@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 
 import {IntegrationProvider, Integration, Organization} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';

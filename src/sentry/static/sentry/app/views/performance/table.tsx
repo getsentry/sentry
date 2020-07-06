@@ -5,11 +5,7 @@ import * as ReactRouter from 'react-router';
 import {Organization, Project} from 'app/types';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
-import EventView, {
-  EventData,
-  isFieldSortable,
-  MetaType,
-} from 'app/utils/discover/eventView';
+import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
@@ -62,7 +58,7 @@ class Table extends React.Component<Props, State> {
     widths: [],
   };
 
-  handleCellAction = (column: TableColumn<keyof TableDataRow>, tableMeta: MetaType) => {
+  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization} = this.props;
 
@@ -111,15 +107,9 @@ class Table extends React.Component<Props, State> {
           // Remove query token if it already exists
           delete searchConditions[column.name];
           searchConditions[column.name] = [`>${value}`];
-          const field = {field: column.name, width: column.width};
-
-          // sort descending order
-          const nextEventView = eventView.sortOnField(field, tableMeta, 'desc');
-          const queryStringObject = nextEventView.generateQueryStringObject();
 
           nextLocationQuery = {
             query: stringifyQueryObject(searchConditions),
-            sort: queryStringObject.sort,
           };
 
           break;
@@ -128,15 +118,9 @@ class Table extends React.Component<Props, State> {
           // Remove query token if it already exists
           delete searchConditions[column.name];
           searchConditions[column.name] = [`<${value}`];
-          const field = {field: column.name, width: column.width};
-
-          // sort ascending order
-          const nextEventView = eventView.sortOnField(field, tableMeta, 'asc');
-          const queryStringObject = nextEventView.generateQueryStringObject();
 
           nextLocationQuery = {
             query: stringifyQueryObject(searchConditions),
-            sort: queryStringObject.sort,
           };
 
           break;
@@ -195,7 +179,7 @@ class Table extends React.Component<Props, State> {
           <CellAction
             column={column}
             dataRow={dataRow}
-            handleCellAction={this.handleCellAction(column, tableData.meta)}
+            handleCellAction={this.handleCellAction(column)}
             allowActions={allowActions}
           >
             <Link to={target} onClick={this.handleSummaryClick}>
@@ -214,7 +198,7 @@ class Table extends React.Component<Props, State> {
         <CellAction
           column={column}
           dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column, tableData.meta)}
+          handleCellAction={this.handleCellAction(column)}
           allowActions={allowActions}
         >
           {rendered}

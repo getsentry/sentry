@@ -1,4 +1,3 @@
-/* global process */
 import 'bootstrap/js/alert';
 import 'bootstrap/js/tab';
 import 'bootstrap/js/dropdown';
@@ -20,6 +19,7 @@ import {Integrations} from '@sentry/apm';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 
+import {NODE_ENV, DISABLE_RR_WEB, SPA_DSN} from 'app/constants';
 import {metric} from 'app/utils/analytics';
 import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 import ConfigStore from 'app/stores/configStore';
@@ -29,7 +29,9 @@ import plugins from 'app/plugins';
 import routes from 'app/routes';
 import {normalizeTransactionName} from 'app/utils/apm';
 
-if (process.env.NODE_ENV === 'development') {
+import {setupFavicon} from './favicon';
+
+if (NODE_ENV === 'development') {
   import(
     /* webpackChunkName: "SilenceReactUnsafeWarnings" */ /* webpackMode: "eager" */ 'app/utils/silence-react-unsafe-warnings'
   );
@@ -61,7 +63,7 @@ function getSentryIntegrations(hasReplays: boolean = false) {
       tracingOrigins: ['localhost', 'sentry.io', /^\//],
       debug: {
         spanDebugTimingInfo: true,
-        writeAsBreadcrumbs: true,
+        writeAsBreadcrumbs: false,
       },
       beforeNavigate: (location: Location) => {
         return normalizeTransactionName(appRoutes, location);
@@ -85,7 +87,7 @@ function getSentryIntegrations(hasReplays: boolean = false) {
 }
 
 const hasReplays =
-  window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!process.env.DISABLE_RR_WEB;
+  window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!DISABLE_RR_WEB;
 
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
@@ -93,8 +95,8 @@ Sentry.init({
    * For SPA mode, we need a way to overwrite the default DSN from backend
    * as well as `whitelistUrls`
    */
-  dsn: process.env.SPA_DSN || window.__SENTRY__OPTIONS.dsn,
-  whitelistUrls: process.env.SPA_DSN
+  dsn: SPA_DSN || window.__SENTRY__OPTIONS.dsn,
+  whitelistUrls: SPA_DSN
     ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
     : window.__SENTRY__OPTIONS.whitelistUrls,
   integrations: getSentryIntegrations(hasReplays),
@@ -138,6 +140,10 @@ const render = (Component: React.ComponentType) => {
     }
   }
 };
+
+if (NODE_ENV === 'production') {
+  setupFavicon();
+}
 
 // The password strength component is very heavyweight as it includes the
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load

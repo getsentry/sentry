@@ -12,7 +12,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
 import EventView from 'app/utils/discover/eventView';
-import {DisplayModes} from 'app/utils/discover/types';
+import {TOP_N, DisplayModes} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 
@@ -82,7 +82,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               field={isTopEvents ? apiPayload.field : undefined}
               interval={eventView.interval}
               showDaily={isDaily}
-              topEvents={isTopEvents ? 5 : undefined}
+              topEvents={isTopEvents ? TOP_N : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}

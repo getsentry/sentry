@@ -3,7 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark, IconClose} from 'app/icons';
 import {t} from 'app/locale';
 import Tag from 'app/views/settings/components/tag';
 
@@ -31,9 +31,17 @@ const DebugFileFeature = ({available, feature}: Props) => {
   let icon: React.ReactNode = null;
 
   if (available === true) {
-    icon = <Icon type="success" src="icon-checkmark-sm" />;
+    icon = (
+      <IconWrapper>
+        <IconCheckmark size="sm" color="green500" />
+      </IconWrapper>
+    );
   } else if (available === false) {
-    icon = <Icon type="error" src="icon-close" />;
+    icon = (
+      <IconWrapper>
+        <IconClose size="sm" color="red400" />
+      </IconWrapper>
+    );
   }
 
   return (
@@ -51,8 +59,7 @@ DebugFileFeature.propTypes = {
   feature: PropTypes.oneOf(Object.keys(FEATURE_TOOLTIPS)).isRequired,
 };
 
-const Icon = styled(InlineSvg)<{type: 'error' | 'success'}>`
-  color: ${p => p.theme.alert[p.type].iconColor};
+const IconWrapper = styled('span')`
   margin-right: 1ex;
 `;
 

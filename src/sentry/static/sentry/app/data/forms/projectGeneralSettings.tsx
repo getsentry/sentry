@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {extractMultilineFields} from 'app/utils';
+import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t, tct, tn} from 'app/locale';
 import HintPanelItem from 'app/components/panels/hintPanelItem';
 import PlatformIcon from 'app/components/platformIcon';
@@ -316,7 +316,7 @@ export const fields: {[key: string]: Field} = {
       'Additional field names to match against when scrubbing data. Separate multiple entries with a newline'
     ),
     getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    setValue: val => convertMultilineFieldValue(val),
   },
   safeFields: {
     name: 'safeFields',
@@ -330,7 +330,7 @@ export const fields: {[key: string]: Field} = {
       'Field names which data scrubbers should ignore. Separate multiple entries with a newline'
     ),
     getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    setValue: val => convertMultilineFieldValue(val),
   },
   storeCrashReports: {
     name: 'storeCrashReports',
@@ -343,37 +343,6 @@ export const fields: {[key: string]: Field} = {
     formatLabel: formatStoreCrashReports,
     allowedValues: STORE_CRASH_REPORTS_VALUES,
   },
-  relayPiiConfig: {
-    name: 'relayPiiConfig',
-    type: 'string',
-    label: t('Advanced datascrubber configuration'),
-    placeholder: t('Paste a JSON configuration here.'),
-    multiline: true,
-    monospace: true,
-    autosize: true,
-    inline: false,
-    maxRows: 20,
-    help: tct(
-      'Advanced JSON-based configuration for datascrubbing. Applied in addition to the settings above. [learn_more:Learn more]',
-      {
-        learn_more: (
-          <a href="https://docs.sentry.io/data-management/advanced-datascrubbing/" />
-        ),
-      }
-    ),
-    visible: ({features}) => features.has('datascrubbers-v2'),
-    validate: ({id, form}) => {
-      if (form[id] === '') {
-        return [];
-      }
-      try {
-        JSON.parse(form[id]);
-      } catch (e) {
-        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
-      }
-      return [];
-    },
-  },
   allowedDomains: {
     name: 'allowedDomains',
     type: 'string',
@@ -384,7 +353,7 @@ export const fields: {[key: string]: Field} = {
     label: t('Allowed Domains'),
     help: t('Separate multiple entries with a newline'),
     getValue: val => extractMultilineFields(val),
-    setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+    setValue: val => convertMultilineFieldValue(val),
   },
   scrapeJavaScript: {
     name: 'scrapeJavaScript',

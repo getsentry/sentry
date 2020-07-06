@@ -164,6 +164,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
+  relayPiiConfig: string;
   builtinSymbolSources?: string[];
 } & AvatarProject;
 
@@ -258,6 +259,7 @@ type SentryEventBase = {
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
+  device?: {[key: string]: any};
   packages?: {[key: string]: string};
   user: EventUser;
   message: string;
