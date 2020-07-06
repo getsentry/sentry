@@ -46,11 +46,6 @@ PROGUARD_BUG_SOURCE = b"x"
 
 
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
-    def post_and_retrieve_event(self, data):
-        raise NotImplementedError(
-            "post_and_retrieve_event should be implemented in a dervied test class"
-        )
-
     def test_basic_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
