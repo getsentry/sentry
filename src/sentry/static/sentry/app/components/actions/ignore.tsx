@@ -111,7 +111,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
               data-test-id="button-unresolve"
               onClick={() => onUpdate({status: 'unresolved'})}
             >
-              <IconNot size="xs" />
+              <SoloIconNot size="xs" />
             </a>
           </Tooltip>
         </div>
@@ -303,4 +303,12 @@ const StyledIconNot = styled(IconNot)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
+`;
+
+// The icon with no text label needs positioning tweaks
+// inside the bootstrap button. Hopefully this can be removed
+// bootstrap buttons are converted.
+const SoloIconNot = styled(IconNot)`
+  position: relative;
+  top: 1px;
 `;
