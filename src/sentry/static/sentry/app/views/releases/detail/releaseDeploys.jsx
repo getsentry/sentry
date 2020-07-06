@@ -3,7 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconOpen} from 'app/icons';
 import Link from 'app/components/links/link';
 import RepoLabel from 'app/components/repoLabel';
 import TimeSince from 'app/components/timeSince';
@@ -39,7 +39,7 @@ export default class ReleaseDeploys extends React.Component {
                         <div className="col-xs-6">
                           <ReleaseRepoLabel>
                             {deploy.environment}
-                            <InlineSvg src="icon-open" style={{marginLeft: 6}} />
+                            <StyledIconOpen size="xs" />
                           </ReleaseRepoLabel>
                         </div>
                         <div className="col-xs-6 align-right">
@@ -57,6 +57,10 @@ export default class ReleaseDeploys extends React.Component {
     );
   }
 }
+
+const StyledIconOpen = styled(IconOpen)`
+  margin-left: 6px;
+`;
 
 const ReleaseRepoLabel = styled(RepoLabel)`
   padding: 5px 8px;

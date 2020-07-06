@@ -3,8 +3,10 @@ import React from 'react';
 import isString from 'lodash/isString';
 import isNumber from 'lodash/isNumber';
 import isArray from 'lodash/isArray';
+import styled from '@emotion/styled';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {IconOpen} from 'app/icons';
 import {isUrl} from 'app/utils';
 
 function looksLikeObjectRepr(value) {
@@ -164,7 +166,7 @@ class ContextData extends React.Component {
         if (valueInfo.isString && isUrl(value)) {
           out.push(
             <a key="external" href={value} className="external-icon">
-              <em className="icon-open" />
+              <StyledIconOpen size="xs" />
             </a>
           );
         }
@@ -250,5 +252,10 @@ class ContextData extends React.Component {
 }
 
 ContextData.displayName = 'ContextData';
+
+const StyledIconOpen = styled(IconOpen)`
+  position: relative;
+  top: 1px;
+`;
 
 export default ContextData;

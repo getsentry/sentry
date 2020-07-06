@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import {ReleaseArtifacts} from 'app/views/releases/detail/releaseArtifacts';
@@ -42,7 +42,7 @@ describe('ReleaseArtifacts', function() {
       method: 'DELETE',
     });
 
-    wrapper = mount(
+    wrapper = mountWithTheme(
       <ReleaseArtifacts
         location={{query: {cursor: '0:0:100'}}}
         params={{orgId: '123', projectId: '456', release: 'abcdef'}}
@@ -51,7 +51,7 @@ describe('ReleaseArtifacts', function() {
       />
     );
 
-    wrapperWithPermission = shallow(
+    wrapperWithPermission = mountWithTheme(
       <ReleaseArtifacts
         location={{query: {cursor: '0:0:100'}}}
         params={{orgId: '123', projectId: '456', release: 'abcdef'}}
@@ -73,7 +73,9 @@ describe('ReleaseArtifacts', function() {
     });
 
     it('should have no permission to download', function() {
-      expect(wrapper.find('div.btn > .icon-open')).toHaveLength(2);
+      const buttons = wrapper.find('Button[data-test-id="artifact-download"]');
+      expect(buttons).toHaveLength(2);
+      expect(buttons.first().props().disabled).toBe(true);
     });
 
     it('should have permission to download', function() {
@@ -94,7 +96,9 @@ describe('ReleaseArtifacts', function() {
         ],
       });
 
-      expect(wrapper.find('a.btn > .icon-open')).toHaveLength(2);
+      const buttons = wrapper.find('Button[data-test-id="artifact-download"]');
+      expect(buttons).toHaveLength(2);
+      expect(buttons.first().props().disabled).toBe(false);
     });
   });
 

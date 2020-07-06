@@ -14,9 +14,8 @@ import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Checkbox from 'app/components/checkbox';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
-import {IconChevron} from 'app/icons';
+import {IconChevron, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
 import {Theme} from 'app/utils/theme';
@@ -89,7 +88,7 @@ const TimestampLink = ({date, link}: {date: moment.MomentInput; link?: string}) 
   link ? (
     <ExternalLink href={link}>
       <DateTime date={date} />
-      <StyledInlineSvg src="icon-open" size="12px" />
+      <StyledIconOpen size="12px" />
     </ExternalLink>
   ) : (
     <DateTime date={date} />
@@ -347,7 +346,7 @@ const StyledErrorsOnlyButton = styled(Button)`
   border-bottom-left-radius: 0;
 `;
 
-const StyledInlineSvg = styled(InlineSvg)`
+const StyledIconOpen = styled(IconOpen)`
   margin-left: 6px;
   color: ${p => p.theme.gray600};
 `;

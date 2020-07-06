@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {t} from 'app/locale';
+import {IconOpen} from 'app/icons';
 
 const help = {
   'base-uri': t(
@@ -133,7 +134,7 @@ function getLink(key) {
     <span>
       <a href={href}>developer.mozilla.org</a>
       <a href={href} className="external-icon">
-        <em className="icon-open" />
+        <IconOpen size="xs" />
       </a>
     </span>
   );
