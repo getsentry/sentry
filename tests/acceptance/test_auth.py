@@ -15,8 +15,12 @@ class AuthTest(AcceptanceTestCase):
         self.browser.snapshot(name="login")
 
     def test_no_credentials(self):
+        self.browser.driver.execute_script(
+            "function _prevent(e) { e.preventDefault(); }; document.addEventListener('invalid', _prevent, true);"
+        )
         self.enter_auth("", "")
         self.browser.snapshot(name="login fields required")
+        self.browser.driver.execute_script("document.removeEventListener('invalid', _prevent);")
 
     def test_invalid_credentials(self):
         self.enter_auth("bad-username", "bad-username")
