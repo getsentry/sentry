@@ -143,7 +143,7 @@ def update_snuba_subscription(subscription, old_dataset):
     return subscription
 
 
-def bulk_delete_snuba_subscriptions(subscriptions):
+def bulk_delete_snuba_subscriptions(subscriptions, disable_subscription=False):
     """
     Deletes a list of snuba query subscriptions.
     :param subscriptions: The subscriptions to delete
@@ -151,16 +151,20 @@ def bulk_delete_snuba_subscriptions(subscriptions):
     """
     for subscription in subscriptions:
         # TODO: Batch this up properly once we care about multi-project rules.
-        delete_snuba_subscription(subscription)
+        delete_snuba_subscription(subscription, disable_subscription)
 
 
-def delete_snuba_subscription(subscription):
+def delete_snuba_subscription(subscription, disable_subscription=False):
     """
     Deletes a subscription to a snuba query.
     :param subscription: The subscription to delete
     :return:
     """
-    subscription.update(status=QuerySubscription.Status.DELETING.value)
+    if disable_subscription:
+        subscription.update(status=QuerySubscription.Status.DISABLED.value)
+    else:
+        subscription.update(status=QuerySubscription.Status.DELETING.value)
+
     delete_subscription_from_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )

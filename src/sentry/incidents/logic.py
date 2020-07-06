@@ -799,6 +799,16 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
     )
 
 
+def disable_alert_rule(alert_rule):
+    if alert_rule.status == AlertRuleStatus.DISABLED.value:
+        return
+    with transaction.atomic():
+        alert_rule.update(status=AlertRuleStatus.DISABLED.value)
+        bulk_delete_snuba_subscriptions(
+            alert_rule.snuba_query.subscriptions.all(), disable_subscription=True
+        )
+
+
 def delete_alert_rule(alert_rule):
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.

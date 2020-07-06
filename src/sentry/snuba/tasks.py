@@ -114,7 +114,8 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
             QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
         )
 
-    subscription.delete()
+    if subscription.status == QuerySubscription.Status.DELETING.value:
+        subscription.delete()
 
 
 def build_snuba_filter(dataset, query, aggregate, environment, params=None):
