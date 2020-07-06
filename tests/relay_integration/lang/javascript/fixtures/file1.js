@@ -1,3 +1,4 @@
 function add(a, b) {
-  return a + b; // fôo
+	"use strict";
+	return a + b; // fôo
 }

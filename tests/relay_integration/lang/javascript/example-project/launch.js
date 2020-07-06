@@ -1,12 +1,11 @@
 const fs = require('fs');
-
 const puppeteer = require('puppeteer');
 const stacktraceParser = require('stacktrace-parser');
 
 function convertStack(frames) {
-  return frames.map(item => {
-    const match = item.file.match(/^.*\/(.*?)$/);
-    let fileName, absPath;
+  return frames.map((item) => {
+    var match = item.file.match(/^.*\/(.*?)$/);
+    var fileName, absPath;
     if (match && match[1]) {
       fileName = match[1];
       absPath = 'http://example.com/' + fileName;
@@ -18,12 +17,12 @@ function convertStack(frames) {
       filename: fileName,
       lineno: item.lineNumber,
       colno: item.column,
-      function: item.methodName,
+      'function': item.methodName,
     };
   });
 }
 
-(async () => {
+(async() => {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
   await page.goto('file://' + __dirname + '/index.html');

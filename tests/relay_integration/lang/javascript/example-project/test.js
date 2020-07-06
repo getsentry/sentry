@@ -1,4 +1,4 @@
-const makeAFailure = (function() {
+var makeAFailure = (function() {
   function onSuccess(data) {}
 
   function onFailure(data) {
@@ -6,7 +6,7 @@ const makeAFailure = (function() {
   }
 
   function invoke(data) {
-    let cb = null;
+    var cb = null;
     if (data.failed) {
       cb = onFailure;
     } else {
@@ -16,7 +16,7 @@ const makeAFailure = (function() {
   }
 
   function test() {
-    const data = {failed: true, value: 42};
+    var data = {failed: true, value: 42};
     invoke(data);
   }
 

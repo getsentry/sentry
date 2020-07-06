@@ -1,7 +1,7 @@
 /******/ (function(modules) {
   // webpackBootstrap
   /******/ // The module cache
-  /******/ const installedModules = {}; // The require function
+  /******/ var installedModules = {}; // The require function
   /******/
   /******/ /******/ function __webpack_require__(moduleId) {
     /******/
@@ -10,7 +10,7 @@
       /******/ return installedModules[moduleId].exports;
       /******/
     } // Create a new module (and put it into the cache)
-    /******/ /******/ const module = (installedModules[moduleId] = {
+    /******/ /******/ var module = (installedModules[moduleId] = {
       /******/ i: moduleId,
       /******/ l: false,
       /******/ exports: {},
@@ -49,10 +49,10 @@
   }; // getDefaultExport function for compatibility with non-harmony modules
   /******/
   /******/ /******/ __webpack_require__.n = function(module) {
-    /******/ const getter =
+    /******/ var getter =
       module && module.__esModule
         ? /******/ function getDefault() {
-            return module.default;
+            return module['default'];
           }
         : /******/ function getModuleExports() {
             return module;
@@ -75,21 +75,23 @@
   /******/ [
     /* 0 */
     /***/ function(module, exports, __webpack_require__) {
-      const fs = __webpack_require__(8);
-      const url = __webpack_require__(7);
-      const transports = __webpack_require__(3);
-      const path = __webpack_require__(2);
-      const lsmod = __webpack_require__(21);
-      const stacktrace = __webpack_require__(22);
+      'use strict';
 
-      const ravenVersion = __webpack_require__(11).version;
+      var fs = __webpack_require__(8);
+      var url = __webpack_require__(7);
+      var transports = __webpack_require__(3);
+      var path = __webpack_require__(2);
+      var lsmod = __webpack_require__(21);
+      var stacktrace = __webpack_require__(22);
 
-      const protocolMap = {
+      var ravenVersion = __webpack_require__(11).version;
+
+      var protocolMap = {
         http: 80,
         https: 443,
       };
 
-      let consoleAlerts = {};
+      var consoleAlerts = {};
 
       module.exports.disableConsoleAlerts = function disableConsoleAlerts() {
         consoleAlerts = false;
@@ -111,9 +113,9 @@
       module.exports.extend =
         Object.assign ||
         function(target) {
-          for (let i = 1; i < arguments.length; i++) {
-            const source = arguments[i];
-            for (const key in source) {
+          for (var i = 1; i < arguments.length; i++) {
+            var source = arguments[i];
+            for (var key in source) {
               if (Object.prototype.hasOwnProperty.call(source, key)) {
                 target[key] = source[key];
               }
@@ -127,7 +129,7 @@
         apiKey,
         apiSecret
       ) {
-        const header = ['Sentry sentry_version=5'];
+        var header = ['Sentry sentry_version=5'];
         header.push('sentry_timestamp=' + timestamp);
         header.push('sentry_client=raven-node/' + ravenVersion);
         header.push('sentry_key=' + apiKey);
@@ -141,7 +143,7 @@
           return false;
         }
         try {
-          const parsed = url.parse(dsn),
+          var parsed = url.parse(dsn),
             response = {
               protocol: parsed.protocol.slice(0, -1),
               public_key: parsed.auth.split(':')[0],
@@ -160,7 +162,7 @@
             throw new Error('Invalid transport');
           }
 
-          const index = parsed.pathname.lastIndexOf('/');
+          var index = parsed.pathname.lastIndexOf('/');
           response.path = parsed.pathname.substr(0, index + 1);
           response.project_id = parsed.pathname.substr(index + 1);
           response.port = ~~parsed.port || protocolMap[response.protocol] || 443;
@@ -177,7 +179,7 @@
         return '<unknown>';
       };
 
-      let moduleCache;
+      var moduleCache;
       module.exports.getModules = function getModules() {
         if (!moduleCache) {
           moduleCache = lsmod();
@@ -186,14 +188,14 @@
       };
 
       module.exports.fill = function(obj, name, replacement, track) {
-        const orig = obj[name];
+        var orig = obj[name];
         obj[name] = replacement(orig);
         if (track) {
           track.push([obj, name, orig]);
         }
       };
 
-      const LINES_OF_CONTEXT = 7;
+      var LINES_OF_CONTEXT = 7;
 
       function getFunction(line) {
         try {
@@ -209,7 +211,7 @@
         }
       }
 
-      const mainModule =
+      var mainModule =
         ((__webpack_require__.c[__webpack_require__.s] &&
           __webpack_require__.c[__webpack_require__.s].filename &&
           path.dirname(__webpack_require__.c[__webpack_require__.s].filename)) ||
@@ -219,9 +221,9 @@
         if (!base) base = mainModule;
 
         // It's specifically a module
-        const file = path.basename(filename, '.js');
+        var file = path.basename(filename, '.js');
         filename = path.dirname(filename);
-        let n = filename.lastIndexOf('/node_modules/');
+        var n = filename.lastIndexOf('/node_modules/');
         if (n > -1) {
           // /node_modules/ is 14 chars
           return filename.substr(n + 14).replace(/\//g, '.') + ':' + file;
@@ -230,7 +232,7 @@
         // To be a part of main module, it has to share the same base
         n = (filename + '/').lastIndexOf(base, 0);
         if (n === 0) {
-          let module = filename.substr(base.length).replace(/\//g, '.');
+          var module = filename.substr(base.length).replace(/\//g, '.');
           if (module) module += ':';
           module += file;
           return module;
@@ -242,8 +244,8 @@
         // we're relying on filenames being de-duped already
         if (filenames.length === 0) return setTimeout(cb, 0, {});
 
-        const sourceFiles = {};
-        let numFilesToRead = filenames.length;
+        var sourceFiles = {};
+        var numFilesToRead = filenames.length;
         return filenames.forEach(function(filename) {
           fs.readFile(filename, function(readErr, file) {
             if (!readErr) sourceFiles[filename] = file.toString().split('\n');
@@ -254,14 +256,14 @@
 
       // This is basically just `trim_line` from https://github.com/getsentry/sentry/blob/master/src/sentry/lang/javascript/processor.py#L67
       function snipLine(line, colno) {
-        const ll = line.length;
+        var ll = line.length;
         if (ll <= 150) return line;
         if (colno > ll) colno = ll;
 
-        let start = Math.max(colno - 60, 0);
+        var start = Math.max(colno - 60, 0);
         if (start < 5) start = 0;
 
-        let end = Math.min(start + 140, ll);
+        var end = Math.min(start + 140, ll);
         if (end > ll - 5) end = ll;
         if (end === ll) start = Math.max(end - 140, 0);
 
@@ -279,7 +281,7 @@
       function parseStack(err, cb) {
         if (!err) return cb([]);
 
-        const stack = stacktrace.parse(err);
+        var stack = stacktrace.parse(err);
         if (!stack || !Array.isArray(stack) || !stack.length || !stack[0].getFileName) {
           // the stack is not the useful thing we were expecting :/
           return cb([]);
@@ -288,17 +290,17 @@
         // Sentry expects the stack trace to be oldest -> newest, v8 provides newest -> oldest
         stack.reverse();
 
-        const frames = [];
-        const filesToRead = {};
+        var frames = [];
+        var filesToRead = {};
         stack.forEach(function(line) {
-          const frame = {
+          var frame = {
             filename: line.getFileName() || '',
             lineno: line.getLineNumber(),
             colno: line.getColumnNumber(),
             function: getFunction(line),
           };
 
-          const isInternal =
+          var isInternal =
             line.isNative() ||
             (frame.filename[0] !== '/' &&
               frame.filename[0] !== '.' &&
@@ -321,7 +323,7 @@
         return readSourceFiles(Object.keys(filesToRead), function(sourceFiles) {
           frames.forEach(function(frame) {
             if (frame.filename && sourceFiles[frame.filename]) {
-              const lines = sourceFiles[frame.filename];
+              var lines = sourceFiles[frame.filename];
               try {
                 frame.pre_context = lines
                   .slice(
@@ -364,16 +366,18 @@
     },
     /* 3 */
     /***/ function(module, exports, __webpack_require__) {
-      const events = __webpack_require__(9);
-      const util = __webpack_require__(1);
-      const timeoutReq = __webpack_require__(19);
+      'use strict';
 
-      const http = __webpack_require__(10);
-      const https = __webpack_require__(20);
+      var events = __webpack_require__(9);
+      var util = __webpack_require__(1);
+      var timeoutReq = __webpack_require__(19);
 
-      const agentOptions = {keepAlive: true, maxSockets: 100};
-      const httpAgent = new http.Agent(agentOptions);
-      const httpsAgent = new https.Agent(agentOptions);
+      var http = __webpack_require__(10);
+      var https = __webpack_require__(20);
+
+      var agentOptions = {keepAlive: true, maxSockets: 100};
+      var httpAgent = new http.Agent(agentOptions);
+      var httpsAgent = new https.Agent(agentOptions);
 
       function Transport() {}
       util.inherits(Transport, events.EventEmitter);
@@ -386,38 +390,38 @@
       }
       util.inherits(HTTPTransport, Transport);
       HTTPTransport.prototype.send = function(client, message, headers, eventId, cb) {
-        const options = {
+        var options = {
           hostname: client.dsn.host,
           path: client.dsn.path + 'api/' + client.dsn.project_id + '/store/',
-          headers,
+          headers: headers,
           method: 'POST',
           port: client.dsn.port || this.defaultPort,
           ca: client.ca,
           agent: this.agent,
         };
-        for (const key in this.options) {
+        for (var key in this.options) {
           if (this.options.hasOwnProperty(key)) {
             options[key] = this.options[key];
           }
         }
 
         // prevent off heap memory explosion
-        const _name = this.agent.getName({host: client.dsn.host, port: client.dsn.port});
-        const _requests = this.agent.requests[_name];
+        var _name = this.agent.getName({host: client.dsn.host, port: client.dsn.port});
+        var _requests = this.agent.requests[_name];
         if (_requests && Object.keys(_requests).length > client.maxReqQueueCount) {
           // other feedback strategy
           client.emit('error', new Error('client req queue is full..'));
           return;
         }
 
-        const req = this.transport.request(options, function(res) {
+        var req = this.transport.request(options, function(res) {
           res.setEncoding('utf8');
           if (res.statusCode >= 200 && res.statusCode < 300) {
             client.emit('logged', eventId);
             cb && cb(null, eventId);
           } else {
-            const reason = res.headers['x-sentry-error'];
-            const e = new Error('HTTP Error (' + res.statusCode + '): ' + reason);
+            var reason = res.headers['x-sentry-error'];
+            var e = new Error('HTTP Error (' + res.statusCode + '): ' + reason);
             e.response = res;
             e.statusCode = res.statusCode;
             e.reason = reason;
@@ -429,14 +433,14 @@
           }
 
           // force the socket to drain
-          const noop = function() {};
+          var noop = function() {};
           res.on('data', noop);
           res.on('end', noop);
         });
 
         timeoutReq(req, client.sendTimeout * 1000);
 
-        let cbFired = false;
+        var cbFired = false;
         req.on('error', function(e) {
           client.emit('error', e);
           if (!cbFired) {
@@ -465,13 +469,15 @@
     },
     /* 4 */
     /***/ function(module, exports, __webpack_require__) {
-      const utils = __webpack_require__(0);
+      'use strict';
 
-      const defaultOnConfig = {
+      var utils = __webpack_require__(0);
+
+      var defaultOnConfig = {
         console: true,
       };
 
-      const defaultConfig = {
+      var defaultConfig = {
         console: false,
         http: false,
         pg: false,
@@ -489,13 +495,13 @@
         Raven.instrumentedOriginals = [];
         Raven.instrumentedModules = [];
 
-        const Module = __webpack_require__(28);
+        var Module = __webpack_require__(28);
         utils.fill(
           Module,
           '_load',
           function(origLoad) {
             return function(moduleId, parent, isMain) {
-              const origModule = origLoad.apply(this, arguments);
+              var origModule = origLoad.apply(this, arguments);
               if (
                 config[moduleId] &&
                 Raven.instrumentedModules.indexOf(moduleId) === -1
@@ -530,25 +536,27 @@
 
       function deinstrument(Raven) {
         if (!Raven.instrumentedOriginals) return;
-        let original;
+        var original;
         // eslint-disable-next-line no-cond-assign
         while ((original = Raven.instrumentedOriginals.shift())) {
-          const obj = original[0];
-          const name = original[1];
-          const orig = original[2];
+          var obj = original[0];
+          var name = original[1];
+          var orig = original[2];
           obj[name] = orig;
         }
       }
 
       module.exports = {
-        instrument,
-        deinstrument,
+        instrument: instrument,
+        deinstrument: deinstrument,
       };
 
       /***/
     },
     /* 5 */
     /***/ function(module, exports, __webpack_require__) {
+      'use strict';
+
       /*
  json-stringify-safe
  Like JSON.stringify, but doesn't throw on circular references.
@@ -569,14 +577,14 @@
 
       // https://github.com/ftlabs/js-abbreviate/blob/fa709e5f139e7770a71827b1893f22418097fbda/index.js#L95-L106
       function stringifyError(value) {
-        const err = {
+        var err = {
           // These properties are implemented as magical getters and don't show up in for in
           stack: value.stack,
           message: value.message,
           name: value.name,
         };
 
-        for (const i in value) {
+        for (var i in value) {
           if (Object.prototype.hasOwnProperty.call(value, i)) {
             err[i] = value[i];
           }
@@ -586,8 +594,8 @@
       }
 
       function serializer(replacer, cycleReplacer) {
-        const stack = [];
-        const keys = [];
+        var stack = [];
+        var keys = [];
 
         if (cycleReplacer == null) {
           cycleReplacer = function(key, value) {
@@ -600,7 +608,7 @@
 
         return function(key, value) {
           if (stack.length > 0) {
-            const thisPos = stack.indexOf(this);
+            var thisPos = stack.indexOf(this);
             ~thisPos ? stack.splice(thisPos + 1) : stack.push(this);
             ~thisPos ? keys.splice(thisPos, Infinity, key) : keys.push(key);
 
@@ -612,9 +620,7 @@
           }
 
           return replacer == null
-            ? value instanceof Error
-              ? stringifyError(value)
-              : value
+            ? value instanceof Error ? stringifyError(value) : value
             : replacer.call(this, key, value);
         };
       }
@@ -623,11 +629,13 @@
     },
     /* 6 */
     /***/ function(module, exports, __webpack_require__) {
-      const cookie = __webpack_require__(18);
-      const urlParser = __webpack_require__(7);
-      const stringify = __webpack_require__(5);
+      'use strict';
 
-      const utils = __webpack_require__(0);
+      var cookie = __webpack_require__(18);
+      var urlParser = __webpack_require__(7);
+      var stringify = __webpack_require__(5);
+
+      var utils = __webpack_require__(0);
 
       module.exports.parseText = function parseText(message, kwargs) {
         kwargs = kwargs || {};
@@ -638,7 +646,7 @@
 
       module.exports.parseError = function parseError(err, kwargs, cb) {
         utils.parseStack(err, function(frames) {
-          const name =
+          var name =
             ({}.hasOwnProperty.call(err, 'name') ? err.name : err.constructor.name) + '';
           if (typeof kwargs.message === 'undefined') {
             kwargs.message = name + ': ' + (err.message || '<no message>');
@@ -648,14 +656,14 @@
               type: name,
               value: err.message,
               stacktrace: {
-                frames,
+                frames: frames,
               },
             },
           ];
 
           // Save additional error properties to `extra` under the error type (e.g. `extra.AttributeError`)
-          let extraErrorProps;
-          for (const key in err) {
+          var extraErrorProps;
+          for (var key in err) {
             if (err.hasOwnProperty(key)) {
               if (
                 key !== 'name' &&
@@ -673,7 +681,7 @@
             kwargs.extra[name] = extraErrorProps;
           }
 
-          for (let n = frames.length - 1; n >= 0; n--) {
+          for (var n = frames.length - 1; n >= 0; n--) {
             if (frames[n].in_app) {
               kwargs.culprit = kwargs.culprit || utils.getCulprit(frames[n]);
               break;
@@ -685,27 +693,27 @@
       };
 
       module.exports.parseRequest = function parseRequest(req, parseUser) {
-        const kwargs = {};
+        var kwargs = {};
 
         // headers:
         //   node, express: req.headers
         //   koa: req.header
-        const headers = req.headers || req.header || {};
+        var headers = req.headers || req.header || {};
 
         // method:
         //   node, express, koa: req.method
-        const method = req.method;
+        var method = req.method;
 
         // host:
         //   express: req.hostname in > 4 and req.host in < 4
         //   koa: req.host
         //   node: req.headers.host
-        const host = req.hostname || req.host || headers.host || '<no host>';
+        var host = req.hostname || req.host || headers.host || '<no host>';
 
         // protocol:
         //   node: <n/a>
         //   express, koa: req.protocol
-        const protocol =
+        var protocol =
           req.protocol === 'https' || req.secure || (req.socket || {}).encrypted
             ? 'https'
             : 'http';
@@ -713,23 +721,23 @@
         // url (including path and query string):
         //   node, express: req.originalUrl
         //   koa: req.url
-        const originalUrl = req.originalUrl || req.url;
+        var originalUrl = req.originalUrl || req.url;
 
         // absolute url
-        const absoluteUrl = protocol + '://' + host + originalUrl;
+        var absoluteUrl = protocol + '://' + host + originalUrl;
 
         // query string:
         //   node: req.url (raw)
         //   express, koa: req.query
-        const query = req.query || urlParser.parse(originalUrl || '', true).query;
+        var query = req.query || urlParser.parse(originalUrl || '', true).query;
 
         // cookies:
         //   node, express, koa: req.headers.cookie
-        const cookies = cookie.parse(headers.cookie || '');
+        var cookies = cookie.parse(headers.cookie || '');
 
         // body data:
         //   node, express, koa: req.body
-        let data = req.body;
+        var data = req.body;
         if (['GET', 'HEAD'].indexOf(method) === -1) {
           if (typeof data === 'undefined') {
             data = '<unavailable>';
@@ -746,12 +754,12 @@
         }
 
         // http interface
-        const http = {
-          method,
+        var http = {
+          method: method,
           query_string: query,
-          headers,
-          cookies,
-          data,
+          headers: headers,
+          cookies: cookies,
+          data: data,
           url: absoluteUrl,
         };
 
@@ -767,12 +775,12 @@
         //   function :: req -> user: custom parsing function
         if (parseUser == null) parseUser = ['id', 'username', 'email'];
         if (parseUser) {
-          let user = {};
+          var user = {};
           if (typeof parseUser === 'function') {
             user = parseUser(req);
           } else if (req.user) {
             if (parseUser === true) {
-              for (const key in req.user) {
+              for (var key in req.user) {
                 if ({}.hasOwnProperty.call(req.user, key)) {
                   user[key] = req.user[key];
                 }
@@ -789,7 +797,7 @@
           // client ip:
           //   node: req.connection.remoteAddress
           //   express, koa: req.ip
-          const ip = req.ip || (req.connection && req.connection.remoteAddress);
+          var ip = req.ip || (req.connection && req.connection.remoteAddress);
           if (ip) {
             user.ip_address = ip;
           }
@@ -904,11 +912,13 @@
     },
     /* 12 */
     /***/ function(module, exports, __webpack_require__) {
-      const util = __webpack_require__(1);
-      const utils = __webpack_require__(0);
+      'use strict';
+
+      var util = __webpack_require__(1);
+      var utils = __webpack_require__(0);
 
       module.exports = function(Raven, console, originals) {
-        const wrapConsoleMethod = function(level) {
+        var wrapConsoleMethod = function(level) {
           if (!(level in console)) {
             return;
           }
@@ -917,10 +927,10 @@
             console,
             level,
             function(originalConsoleLevel) {
-              const sentryLevel = level === 'warn' ? 'warning' : level;
+              var sentryLevel = level === 'warn' ? 'warning' : level;
 
               return function() {
-                const args = [].slice.call(arguments);
+                var args = [].slice.call(arguments);
 
                 Raven.captureBreadcrumb({
                   message: util.format.apply(null, args),
@@ -944,12 +954,14 @@
     },
     /* 13 */
     /***/ function(module, exports, __webpack_require__) {
-      const util = __webpack_require__(1);
-      const utils = __webpack_require__(0);
+      'use strict';
+
+      var util = __webpack_require__(1);
+      var utils = __webpack_require__(0);
 
       module.exports = function(Raven, http, originals) {
-        const OrigClientRequest = http.ClientRequest;
-        const ClientRequest = function(options, cb) {
+        var OrigClientRequest = http.ClientRequest;
+        var ClientRequest = function(options, cb) {
           // Note: this won't capture a breadcrumb if a response never comes
           // It would be useful to know if that was the case, though, so
           // todo: revisit to see if we can capture sth indicating response never came
@@ -1023,7 +1035,7 @@
           'get',
           function() {
             return function(options, cb) {
-              const req = http.request(options, cb);
+              var req = http.request(options, cb);
               req.end();
               return req;
             };
@@ -1038,9 +1050,11 @@
     },
     /* 14 */
     /***/ function(module, exports, __webpack_require__) {
+      'use strict';
+
       module.exports = function(Raven, pg, originals) {
         // Using fill helper here is hard because of `this` binding
-        const origQuery = pg.Connection.prototype.query;
+        var origQuery = pg.Connection.prototype.query;
         pg.Connection.prototype.query = function(text) {
           Raven.captureBreadcrumb({
             category: 'postgres',
@@ -1056,16 +1070,16 @@
     },
     /* 15 */
     /***/ function(module, exports, __webpack_require__) {
-      const Raven = __webpack_require__(16);
-      const path = __webpack_require__(2);
-      const foo = __webpack_require__(32);
+      var Raven = __webpack_require__(16);
+      var path = __webpack_require__(2);
+      var foo = __webpack_require__(32);
 
       Raven.config(
         'http://36dfaa7c54664f429aac79ac89d7fb68:b4505a72a8ce4ecd8deb8038124b0909@localhost:8000/8',
         {
           release: process.env.RELEASE,
           dataCallback: function(data) {
-            const stacktrace = data.exception && data.exception[0].stacktrace;
+            var stacktrace = data.exception && data.exception[0].stacktrace;
 
             if (stacktrace && stacktrace.frames) {
               stacktrace.frames.forEach(function(frame) {
@@ -1099,6 +1113,8 @@
     },
     /* 16 */
     /***/ function(module, exports, __webpack_require__) {
+      'use strict';
+
       module.exports = __webpack_require__(17);
       module.exports.utils = __webpack_require__(0);
 
@@ -1112,19 +1128,21 @@
     },
     /* 17 */
     /***/ function(module, exports, __webpack_require__) {
-      const stringify = __webpack_require__(5);
-      const parsers = __webpack_require__(6);
-      const zlib = __webpack_require__(23);
-      const utils = __webpack_require__(0);
-      const uuid = __webpack_require__(24);
-      const transports = __webpack_require__(3);
-      const nodeUtil = __webpack_require__(1); // nodeUtil to avoid confusion with "utils"
-      const events = __webpack_require__(9);
-      const domain = __webpack_require__(27);
+      'use strict';
 
-      const instrumentor = __webpack_require__(4);
+      var stringify = __webpack_require__(5);
+      var parsers = __webpack_require__(6);
+      var zlib = __webpack_require__(23);
+      var utils = __webpack_require__(0);
+      var uuid = __webpack_require__(24);
+      var transports = __webpack_require__(3);
+      var nodeUtil = __webpack_require__(1); // nodeUtil to avoid confusion with "utils"
+      var events = __webpack_require__(9);
+      var domain = __webpack_require__(27);
 
-      const extend = utils.extend;
+      var instrumentor = __webpack_require__(4);
+
+      var extend = utils.extend;
 
       function Raven() {
         this.breadcrumbs = {
@@ -1200,7 +1218,7 @@
           // enabled if a dsn is set
           this._enabled = !!this.dsn;
 
-          const globalContext = (this._globalContext = {});
+          var globalContext = (this._globalContext = {});
           if (options.tags) {
             globalContext.tags = options.tags;
           }
@@ -1231,7 +1249,7 @@
           process.on('uncaughtException', this.uncaughtErrorHandler);
 
           if (this.captureUnhandledRejections) {
-            const self = this;
+            var self = this;
             process.on('unhandledRejection', function(reason) {
               self.captureException(reason, function(sendErr, eventId) {
                 if (!sendErr)
@@ -1262,11 +1280,11 @@
         },
 
         makeErrorHandler: function() {
-          const self = this;
-          let caughtFirstError = false;
-          let caughtSecondError = false;
-          let calledFatalError = false;
-          let firstError;
+          var self = this;
+          var caughtFirstError = false;
+          var caughtSecondError = false;
+          var calledFatalError = false;
+          var firstError;
           return function(err) {
             if (!caughtFirstError) {
               // this is the first uncaught error and the ultimate reason for shutting down
@@ -1327,7 +1345,7 @@
             eventId = this.generateEventId();
           }
 
-          const domainContext = (domain.active && domain.active.sentryContext) || {};
+          var domainContext = (domain.active && domain.active.sentryContext) || {};
           kwargs.user = extend(
             {},
             this._globalContext.user,
@@ -1364,13 +1382,13 @@
             kwargs.request
           );
           if (Object.keys(kwargs.request).length === 0) {
-            const req = this._createRequestObject(
+            var req = this._createRequestObject(
               this._globalContext.req,
               domainContext.req,
               kwargs.req
             );
             if (Object.keys(req).length > 0) {
-              const parseUser =
+              var parseUser =
                 Object.keys(kwargs.user).length === 0 ? this.parseUser : false;
               extend(kwargs, parsers.parseRequest(req, parseUser));
               delete kwargs.req;
@@ -1400,7 +1418,7 @@
             kwargs = this.dataCallback(kwargs);
           }
 
-          let shouldSend = true;
+          var shouldSend = true;
           if (!this._enabled) shouldSend = false;
           if (this.shouldSendCallback && !this.shouldSendCallback(kwargs))
             shouldSend = false;
@@ -1420,12 +1438,12 @@
         },
 
         send: function send(kwargs, cb) {
-          const self = this;
-          const skwargs = stringify(kwargs);
-          const eventId = kwargs.event_id;
+          var self = this;
+          var skwargs = stringify(kwargs);
+          var eventId = kwargs.event_id;
 
           zlib.deflate(skwargs, function(err, buff) {
-            const message = buff.toString('base64'),
+            var message = buff.toString('base64'),
               timestamp = new Date().getTime(),
               headers = {
                 'X-Sentry-Auth': utils.getAuthHeader(
@@ -1448,7 +1466,7 @@
           } else {
             kwargs = kwargs || {};
           }
-          const eventId = this.generateEventId();
+          var eventId = this.generateEventId();
           this.process(eventId, parsers.parseText(message, kwargs), cb);
 
           return eventId;
@@ -1469,8 +1487,8 @@
             kwargs = kwargs || {};
           }
 
-          const self = this;
-          const eventId = this.generateEventId();
+          var self = this;
+          var eventId = this.generateEventId();
           parsers.parseError(err, kwargs, function(kw) {
             self.process(eventId, kw, cb);
           });
@@ -1496,14 +1514,14 @@
             options = {};
           }
 
-          const wrapDomain = domain.create();
+          var wrapDomain = domain.create();
           // todo: better property name than sentryContext, maybe __raven__ or sth?
           wrapDomain.sentryContext = options;
 
           wrapDomain.on('error', this.uncaughtErrorHandler);
-          const wrapped = wrapDomain.bind(func);
+          var wrapped = wrapDomain.bind(func);
 
-          for (const property in func) {
+          for (var property in func) {
             if ({}.hasOwnProperty.call(func, property)) {
               wrapped[property] = func[property];
             }
@@ -1522,9 +1540,9 @@
             func = options;
             options = {};
           }
-          const self = this;
-          const wrapped = function() {
-            const err = arguments[0];
+          var self = this;
+          var wrapped = function() {
+            var err = arguments[0];
             if (err instanceof Error) {
               self.captureException(err, options);
             } else {
@@ -1533,7 +1551,7 @@
           };
 
           // repetitive with wrap
-          for (const property in func) {
+          for (var property in func) {
             if ({}.hasOwnProperty.call(func, property)) {
               wrapped[property] = func[property];
             }
@@ -1571,7 +1589,7 @@
         },
 
         setCallbackHelper: function(propertyName, callback) {
-          const original = this[propertyName];
+          var original = this[propertyName];
           if (typeof callback === 'function') {
             this[propertyName] = function(data) {
               return callback(data, original);
@@ -1584,31 +1602,31 @@
         },
 
         /*
-         * Set the dataCallback option
-         *
-         * @param {function} callback The callback to run which allows the
-         *                            data blob to be mutated before sending
-         * @return {Raven}
-         */
+   * Set the dataCallback option
+   *
+   * @param {function} callback The callback to run which allows the
+   *                            data blob to be mutated before sending
+   * @return {Raven}
+   */
         setDataCallback: function(callback) {
           return this.setCallbackHelper('dataCallback', callback);
         },
 
         /*
-         * Set the shouldSendCallback option
-         *
-         * @param {function} callback The callback to run which allows
-         *                            introspecting the blob before sending
-         * @return {Raven}
-         */
+   * Set the shouldSendCallback option
+   *
+   * @param {function} callback The callback to run which allows
+   *                            introspecting the blob before sending
+   * @return {Raven}
+   */
         setShouldSendCallback: function(callback) {
           return this.setCallbackHelper('shouldSendCallback', callback);
         },
 
         requestHandler: function() {
-          const self = this;
+          var self = this;
           return function(req, res, next) {
-            self.context({req}, function() {
+            self.context({req: req}, function() {
               domain.active.add(req);
               domain.active.add(res);
               next();
@@ -1617,14 +1635,14 @@
         },
 
         errorHandler: function() {
-          const self = this;
+          var self = this;
           return function(err, req, res, next) {
-            const status = err.status || err.statusCode || err.status_code || 500;
+            var status = err.status || err.statusCode || err.status_code || 500;
 
             // skip anything not marked as an internal server error
             if (status < 500) return next(err);
 
-            const eventId = self.captureException(err, {req});
+            var eventId = self.captureException(err, {req: req});
             res.sentry = eventId;
             return next(err);
           };
@@ -1640,7 +1658,7 @@
             },
             breadcrumb
           );
-          const currCtx = this.getContext();
+          var currCtx = this.getContext();
           if (!currCtx.breadcrumbs) currCtx.breadcrumbs = [];
           currCtx.breadcrumbs.push(breadcrumb);
           if (currCtx.breadcrumbs.length > this.maxBreadcrumbs) {
@@ -1651,24 +1669,24 @@
 
         _createRequestObject: function() {
           /**
-           * When using proxy, some of the attributes of req/request objects are non-enumerable.
-           * To make sure, that they are still available to us after we consolidate our sources
-           * (eg. globalContext.request + domainContext.request + kwargs.request),
-           * we manually pull them out from original objects.
-           *
-           * We don't use Object.assign/extend as it's only merging over objects own properties,
-           * and we don't want to go through all of the properties as well, as we simply don't
-           * need all of them.
-           *
-           * So far the only missing piece is `ip`, but we can specify what properties should
-           * be pulled by extending `nonEnumerables` array.
-           **/
-          let sources = Array.from(arguments).filter(function(source) {
+     * When using proxy, some of the attributes of req/request objects are non-enumerable.
+     * To make sure, that they are still available to us after we consolidate our sources
+     * (eg. globalContext.request + domainContext.request + kwargs.request),
+     * we manually pull them out from original objects.
+     *
+     * We don't use Object.assign/extend as it's only merging over objects own properties,
+     * and we don't want to go through all of the properties as well, as we simply don't
+     * need all of them.
+     *
+     * So far the only missing piece is `ip`, but we can specify what properties should
+     * be pulled by extending `nonEnumerables` array.
+     **/
+          var sources = Array.from(arguments).filter(function(source) {
             return Object.prototype.toString.call(source) === '[object Object]';
           });
           sources = [{}].concat(sources);
-          const request = extend.apply(null, sources);
-          const nonEnumberables = ['ip'];
+          var request = extend.apply(null, sources);
+          var nonEnumberables = ['ip'];
 
           nonEnumberables.forEach(function(key) {
             sources.forEach(function(source) {
@@ -1683,14 +1701,14 @@
       // Maintain old API compat, need to make sure arguments length is preserved
       function Client(dsn, options) {
         if (dsn instanceof Client) return dsn;
-        const ravenInstance = new Raven();
+        var ravenInstance = new Raven();
         return ravenInstance.config.apply(ravenInstance, arguments);
       }
       nodeUtil.inherits(Client, Raven);
 
       // Singleton-by-default but not strictly enforced
       // todo these extra export props are sort of an adhoc mess, better way to manage?
-      const defaultInstance = new Raven();
+      var defaultInstance = new Raven();
       defaultInstance.Client = Client;
       defaultInstance.version = __webpack_require__(11).version;
       defaultInstance.disableConsoleAlerts = utils.disableConsoleAlerts;
@@ -1701,76 +1719,77 @@
     },
     /* 18 */
     /***/ function(module, exports, __webpack_require__) {
+      'use strict';
       /*!
-       * cookie
-       * Copyright(c) 2012-2014 Roman Shtylman
-       * Copyright(c) 2015 Douglas Christopher Wilson
-       * MIT Licensed
-       */
+ * cookie
+ * Copyright(c) 2012-2014 Roman Shtylman
+ * Copyright(c) 2015 Douglas Christopher Wilson
+ * MIT Licensed
+ */
 
       /**
-       * Module exports.
-       * @public
-       */
+ * Module exports.
+ * @public
+ */
 
       exports.parse = parse;
       exports.serialize = serialize;
 
       /**
-       * Module variables.
-       * @private
-       */
+ * Module variables.
+ * @private
+ */
 
-      const decode = decodeURIComponent;
-      const encode = encodeURIComponent;
-      const pairSplitRegExp = /; */;
-
-      /**
-       * RegExp to match field-content in RFC 7230 sec 3.2
-       *
-       * field-content = field-vchar [ 1*( SP / HTAB ) field-vchar ]
-       * field-vchar   = VCHAR / obs-text
-       * obs-text      = %x80-FF
-       */
-
-      const fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
+      var decode = decodeURIComponent;
+      var encode = encodeURIComponent;
+      var pairSplitRegExp = /; */;
 
       /**
-       * Parse a cookie header.
-       *
-       * Parse the given cookie header string into an object
-       * The object has the various cookies as keys(names) => values
-       *
-       * @param {string} str
-       * @param {object} [options]
-       * @return {object}
-       * @public
-       */
+ * RegExp to match field-content in RFC 7230 sec 3.2
+ *
+ * field-content = field-vchar [ 1*( SP / HTAB ) field-vchar ]
+ * field-vchar   = VCHAR / obs-text
+ * obs-text      = %x80-FF
+ */
+
+      var fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
+
+      /**
+ * Parse a cookie header.
+ *
+ * Parse the given cookie header string into an object
+ * The object has the various cookies as keys(names) => values
+ *
+ * @param {string} str
+ * @param {object} [options]
+ * @return {object}
+ * @public
+ */
 
       function parse(str, options) {
         if (typeof str !== 'string') {
           throw new TypeError('argument str must be a string');
         }
 
-        const obj = {};
-        const opt = options || {};
-        const pairs = str.split(pairSplitRegExp);
-        const dec = opt.decode || decode;
+        var obj = {};
+        var opt = options || {};
+        var pairs = str.split(pairSplitRegExp);
+        var dec = opt.decode || decode;
 
-        for (let i = 0; i < pairs.length; i++) {
-          const pair = pairs[i];
-          let eq_idx = pair.indexOf('=');
+        for (var i = 0; i < pairs.length; i++) {
+          var pair = pairs[i];
+          var eq_idx = pair.indexOf('=');
 
           // skip things that don't look like key=value
           if (eq_idx < 0) {
             continue;
           }
 
-          const key = pair.substr(0, eq_idx).trim();
-          let val = pair.substr(++eq_idx, pair.length).trim();
+          var key = pair.substr(0, eq_idx).trim();
+          var val = pair.substr(++eq_idx, pair.length).trim();
 
           // quoted values
-          if (val[0] == '"') {
+          if ('"' == val[0]) {
             val = val.slice(1, -1);
           }
 
@@ -1784,24 +1803,24 @@
       }
 
       /**
-       * Serialize data into a cookie header.
-       *
-       * Serialize the a name value pair into a cookie string suitable for
-       * http headers. An optional options object specified cookie parameters.
-       *
-       * serialize('foo', 'bar', { httpOnly: true })
-       *   => "foo=bar; httpOnly"
-       *
-       * @param {string} name
-       * @param {string} val
-       * @param {object} [options]
-       * @return {string}
-       * @public
-       */
+ * Serialize data into a cookie header.
+ *
+ * Serialize the a name value pair into a cookie string suitable for
+ * http headers. An optional options object specified cookie parameters.
+ *
+ * serialize('foo', 'bar', { httpOnly: true })
+ *   => "foo=bar; httpOnly"
+ *
+ * @param {string} name
+ * @param {string} val
+ * @param {object} [options]
+ * @return {string}
+ * @public
+ */
 
       function serialize(name, val, options) {
-        const opt = options || {};
-        const enc = opt.encode || encode;
+        var opt = options || {};
+        var enc = opt.encode || encode;
 
         if (typeof enc !== 'function') {
           throw new TypeError('option encode is invalid');
@@ -1811,16 +1830,16 @@
           throw new TypeError('argument name is invalid');
         }
 
-        const value = enc(val);
+        var value = enc(val);
 
         if (value && !fieldContentRegExp.test(value)) {
           throw new TypeError('argument val is invalid');
         }
 
-        let str = name + '=' + value;
+        var str = name + '=' + value;
 
-        if (opt.maxAge != null) {
-          const maxAge = opt.maxAge - 0;
+        if (null != opt.maxAge) {
+          var maxAge = opt.maxAge - 0;
           if (isNaN(maxAge)) throw new Error('maxAge should be a Number');
           str += '; Max-Age=' + Math.floor(maxAge);
         }
@@ -1858,7 +1877,7 @@
         }
 
         if (opt.sameSite) {
-          const sameSite =
+          var sameSite =
             typeof opt.sameSite === 'string' ? opt.sameSite.toLowerCase() : opt.sameSite;
 
           switch (sameSite) {
@@ -1880,12 +1899,12 @@
       }
 
       /**
-       * Try decoding a string using a decoding function.
-       *
-       * @param {string} str
-       * @param {function} decode
-       * @private
-       */
+ * Try decoding a string using a decoding function.
+ *
+ * @param {string} str
+ * @param {function} decode
+ * @private
+ */
 
       function tryDecode(str, decode) {
         try {
@@ -1899,18 +1918,20 @@
     },
     /* 19 */
     /***/ function(module, exports, __webpack_require__) {
+      'use strict';
+
       module.exports = function(req, time) {
         if (req.timeoutTimer) {
           return req;
         }
 
-        const delays = isNaN(time) ? time : {socket: time, connect: time};
-        const host = req._headers ? ' to ' + req._headers.host : '';
+        var delays = isNaN(time) ? time : {socket: time, connect: time};
+        var host = req._headers ? ' to ' + req._headers.host : '';
 
         if (delays.connect !== undefined) {
           req.timeoutTimer = setTimeout(function timeoutHandler() {
             req.abort();
-            const e = new Error('Connection timed out on request' + host);
+            var e = new Error('Connection timed out on request' + host);
             e.code = 'ETIMEDOUT';
             req.emit('error', e);
           }, delays.connect);
@@ -1943,7 +1964,7 @@
             // than `delays.socket` milliseconds.
             req.setTimeout(delays.socket, function socketTimeoutHandler() {
               req.abort();
-              const e = new Error('Socket timed out on request' + host);
+              var e = new Error('Socket timed out on request' + host);
               e.code = 'ESOCKETTIMEDOUT';
               req.emit('error', e);
             });
@@ -1964,8 +1985,8 @@
     /* 21 */
     /***/ function(module, exports, __webpack_require__) {
       // builtin
-      const fs = __webpack_require__(8);
-      const path = __webpack_require__(2);
+      var fs = __webpack_require__(8);
+      var path = __webpack_require__(2);
 
       // node 0.6 support
       fs.existsSync = fs.existsSync || path.existsSync;
@@ -1974,25 +1995,25 @@
       // we store these to avoid grabbing the modules that were loaded as a result
       // of a dependency module loading its dependencies, we only care about deps our
       // mainprog loads
-      const main_paths =
+      var main_paths =
         (__webpack_require__.c[__webpack_require__.s] &&
           __webpack_require__.c[__webpack_require__.s].paths) ||
         [];
 
       module.exports = function() {
-        const paths = Object.keys(__webpack_require__.c || []);
+        var paths = Object.keys(__webpack_require__.c || []);
 
         // module information
-        const infos = {};
+        var infos = {};
 
         // paths we have already inspected to avoid traversing again
-        const seen = {};
+        var seen = {};
 
         paths.forEach(function(p) {
-          let dir = p;
+          var dir = p;
 
           (function updir() {
-            const orig = dir;
+            var orig = dir;
             dir = path.dirname(orig);
 
             if (!dir || orig === dir || seen[orig]) {
@@ -2001,8 +2022,8 @@
               return updir();
             }
 
-            const pkgfile = path.join(orig, 'package.json');
-            const exists = fs.existsSync(pkgfile);
+            var pkgfile = path.join(orig, 'package.json');
+            var exists = fs.existsSync(pkgfile);
 
             seen[orig] = true;
 
@@ -2012,7 +2033,7 @@
             }
 
             try {
-              const info = JSON.parse(fs.readFileSync(pkgfile, 'utf8'));
+              var info = JSON.parse(fs.readFileSync(pkgfile, 'utf8'));
               infos[info.name] = info.version;
             } catch (e) {}
           })();
@@ -2026,18 +2047,18 @@
     /* 22 */
     /***/ function(module, exports) {
       exports.get = function(belowFn) {
-        const oldLimit = Error.stackTraceLimit;
+        var oldLimit = Error.stackTraceLimit;
         Error.stackTraceLimit = Infinity;
 
-        const dummyObject = {};
+        var dummyObject = {};
 
-        const v8Handler = Error.prepareStackTrace;
+        var v8Handler = Error.prepareStackTrace;
         Error.prepareStackTrace = function(dummyObject, v8StackTrace) {
           return v8StackTrace;
         };
         Error.captureStackTrace(dummyObject, belowFn || exports.get);
 
-        const v8StackTrace = dummyObject.stack;
+        var v8StackTrace = dummyObject.stack;
         Error.prepareStackTrace = v8Handler;
         Error.stackTraceLimit = oldLimit;
 
@@ -2049,8 +2070,8 @@
           return [];
         }
 
-        const self = this;
-        const lines = err.stack.split('\n').slice(1);
+        var self = this;
+        var lines = err.stack.split('\n').slice(1);
 
         return lines
           .map(function(line) {
@@ -2066,22 +2087,22 @@
               });
             }
 
-            const lineMatch = line.match(
+            var lineMatch = line.match(
               /at (?:(.+)\s+)?\(?(?:(.+?):(\d+):(\d+)|([^)]+))\)?/
             );
             if (!lineMatch) {
               return;
             }
 
-            let object = null;
-            let method = null;
-            let functionName = null;
-            let typeName = null;
-            let methodName = null;
-            const isNative = lineMatch[5] === 'native';
+            var object = null;
+            var method = null;
+            var functionName = null;
+            var typeName = null;
+            var methodName = null;
+            var isNative = lineMatch[5] === 'native';
 
             if (lineMatch[1]) {
-              const methodMatch = lineMatch[1].match(/([^\.]+)(?:\.(.+))?/);
+              var methodMatch = lineMatch[1].match(/([^\.]+)(?:\.(.+))?/);
               object = methodMatch[1];
               method = methodMatch[2];
               functionName = lineMatch[1];
@@ -2098,12 +2119,12 @@
               functionName = '';
             }
 
-            const properties = {
+            var properties = {
               fileName: lineMatch[2] || null,
               lineNumber: parseInt(lineMatch[3], 10) || null,
-              functionName,
-              typeName,
-              methodName,
+              functionName: functionName,
+              typeName: typeName,
+              methodName: methodName,
               columnNumber: parseInt(lineMatch[4], 10) || null,
               native: isNative,
             };
@@ -2116,9 +2137,9 @@
       };
 
       exports._createParsedCallSite = function(properties) {
-        const methods = {};
+        var methods = {};
         for (var property in properties) {
-          let prefix = 'get';
+          var prefix = 'get';
           if (property === 'native') {
             prefix = 'is';
           }
@@ -2131,7 +2152,7 @@
           })(property);
         }
 
-        const callSite = Object.create(methods);
+        var callSite = Object.create(methods);
         for (var property in properties) {
           callSite[property] = properties[property];
         }
@@ -2152,19 +2173,19 @@
       // Unique ID creation requires a high quality random # generator.  We feature
       // detect to determine the best RNG source, normalizing to a function that
       // returns 128-bits of randomness, since that's what's usually required
-      const _rng = __webpack_require__(25);
+      var _rng = __webpack_require__(25);
 
       // Maps for number <-> hex string conversion
-      const _byteToHex = [];
-      const _hexToByte = {};
-      for (let i = 0; i < 256; ++i) {
+      var _byteToHex = [];
+      var _hexToByte = {};
+      for (var i = 0; i < 256; ++i) {
         _byteToHex[i] = (i + 0x100).toString(16).substr(1);
         _hexToByte[_byteToHex[i]] = i;
       }
 
       function buff_to_string(buf, offset) {
-        let i = offset || 0;
-        const bth = _byteToHex;
+        var i = offset || 0;
+        var bth = _byteToHex;
         return (
           bth[buf[i++]] +
           bth[buf[i++]] +
@@ -2195,10 +2216,10 @@
       // and http://docs.python.org/library/uuid.html
 
       // random #'s we need to init node and clockseq
-      const _seedBytes = _rng();
+      var _seedBytes = _rng();
 
       // Per 4.5, create and 48-bit node id, (47 random bits + multicast bit = 1)
-      const _nodeId = [
+      var _nodeId = [
         _seedBytes[0] | 0x01,
         _seedBytes[1],
         _seedBytes[2],
@@ -2208,33 +2229,33 @@
       ];
 
       // Per 4.2.2, randomize (14 bit) clockseq
-      let _clockseq = ((_seedBytes[6] << 8) | _seedBytes[7]) & 0x3fff;
+      var _clockseq = ((_seedBytes[6] << 8) | _seedBytes[7]) & 0x3fff;
 
       // Previous uuid creation time
-      let _lastMSecs = 0,
+      var _lastMSecs = 0,
         _lastNSecs = 0;
 
       // See https://github.com/broofa/node-uuid for API details
       function v1(options, buf, offset) {
-        let i = (buf && offset) || 0;
-        const b = buf || [];
+        var i = (buf && offset) || 0;
+        var b = buf || [];
 
         options = options || {};
 
-        let clockseq = options.clockseq !== undefined ? options.clockseq : _clockseq;
+        var clockseq = options.clockseq !== undefined ? options.clockseq : _clockseq;
 
         // UUID timestamps are 100 nano-second units since the Gregorian epoch,
         // (1582-10-15 00:00).  JSNumbers aren't precise enough for this, so
         // time is handled internally as 'msecs' (integer milliseconds) and 'nsecs'
         // (100-nanoseconds offset from msecs) since unix epoch, 1970-01-01 00:00.
-        let msecs = options.msecs !== undefined ? options.msecs : new Date().getTime();
+        var msecs = options.msecs !== undefined ? options.msecs : new Date().getTime();
 
         // Per 4.2.1.2, use count of uuid's generated during the current clock
         // cycle to simulate higher resolution clock
-        let nsecs = options.nsecs !== undefined ? options.nsecs : _lastNSecs + 1;
+        var nsecs = options.nsecs !== undefined ? options.nsecs : _lastNSecs + 1;
 
         // Time since last uuid creation (in msecs)
-        const dt = msecs - _lastMSecs + (nsecs - _lastNSecs) / 10000;
+        var dt = msecs - _lastMSecs + (nsecs - _lastNSecs) / 10000;
 
         // Per 4.2.1.2, Bump clockseq on clock regression
         if (dt < 0 && options.clockseq === undefined) {
@@ -2260,14 +2281,14 @@
         msecs += 12219292800000;
 
         // `time_low`
-        const tl = ((msecs & 0xfffffff) * 10000 + nsecs) % 0x100000000;
+        var tl = ((msecs & 0xfffffff) * 10000 + nsecs) % 0x100000000;
         b[i++] = (tl >>> 24) & 0xff;
         b[i++] = (tl >>> 16) & 0xff;
         b[i++] = (tl >>> 8) & 0xff;
         b[i++] = tl & 0xff;
 
         // `time_mid`
-        const tmh = ((msecs / 0x100000000) * 10000) & 0xfffffff;
+        var tmh = (msecs / 0x100000000 * 10000) & 0xfffffff;
         b[i++] = (tmh >>> 8) & 0xff;
         b[i++] = tmh & 0xff;
 
@@ -2282,8 +2303,8 @@
         b[i++] = clockseq & 0xff;
 
         // `node`
-        const node = options.node || _nodeId;
-        for (let n = 0; n < 6; ++n) {
+        var node = options.node || _nodeId;
+        for (var n = 0; n < 6; ++n) {
           b[i + n] = node[n];
         }
 
@@ -2295,15 +2316,15 @@
       // See https://github.com/broofa/node-uuid for API details
       function v4(options, buf, offset) {
         // Deprecated - 'format' argument, as supported in v1.2
-        const i = (buf && offset) || 0;
+        var i = (buf && offset) || 0;
 
-        if (typeof options === 'string') {
+        if (typeof options == 'string') {
           buf = options == 'binary' ? new Array(16) : null;
           options = null;
         }
         options = options || {};
 
-        const rnds = options.random || (options.rng || _rng)();
+        var rnds = options.random || (options.rng || _rng)();
 
         // Per 4.4, set bits for version and `clock_seq_hi_and_reserved`
         rnds[6] = (rnds[6] & 0x0f) | 0x40;
@@ -2311,7 +2332,7 @@
 
         // Copy bytes to buffer, if provided
         if (buf) {
-          for (let ii = 0; ii < 16; ++ii) {
+          for (var ii = 0; ii < 16; ++ii) {
             buf[i + ii] = rnds[ii];
           }
         }
@@ -2320,7 +2341,7 @@
       }
 
       // Export public API
-      const uuid = v4;
+      var uuid = v4;
       uuid.v1 = v1;
       uuid.v4 = v4;
 
@@ -2330,7 +2351,7 @@
     },
     /* 25 */
     /***/ function(module, exports, __webpack_require__) {
-      const rb = __webpack_require__(26).randomBytes;
+      var rb = __webpack_require__(26).randomBytes;
       module.exports = function() {
         return rb(16);
       };
@@ -2357,7 +2378,7 @@
     },
     /* 29 */
     /***/ function(module, exports, __webpack_require__) {
-      const map = {
+      var map = {
         './console': 12,
         './console.js': 12,
         './http': 13,
@@ -2371,7 +2392,7 @@
         return __webpack_require__(webpackContextResolve(req));
       }
       function webpackContextResolve(req) {
-        const id = map[req];
+        var id = map[req];
         if (!(id + 1))
           // check for number or string
           throw new Error("Cannot find module '" + req + "'.");
@@ -2400,7 +2421,7 @@
     },
     /* 32 */
     /***/ function(module, exports, __webpack_require__) {
-      const bar = __webpack_require__(33);
+      var bar = __webpack_require__(33);
 
       function foo() {
         bar();
@@ -2412,7 +2433,7 @@
     },
     /* 33 */
     /***/ function(module, exports, __webpack_require__) {
-      const path = __webpack_require__(2);
+      var path = __webpack_require__(2);
 
       module.exports = function bar() {
         throw new Error(path.join('foo', 'bar'));
