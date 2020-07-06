@@ -19,7 +19,6 @@ class RuleNameForm extends React.PureComponent<Props> {
           <TextField
             disabled={disabled}
             name="name"
-            type="text"
             label={t('Rule Name')}
             help={t('Give your rule a name so it is easy to manage later')}
             placeholder={t('Something really bad happened')}
