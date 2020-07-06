@@ -1,10 +1,19 @@
 import 'echarts/lib/component/tooltip';
+import {EChartOption} from 'echarts';
 
 import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
+import BaseChart from 'app/components/charts/baseChart';
 
 import {truncationFormatter} from '../utils';
 
-function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
+type ChartProps = React.ComponentProps<typeof BaseChart>;
+
+function defaultFormatAxisLabel(
+  value: number,
+  isTimestamp: boolean,
+  utc: boolean,
+  showTimeInTooltip: boolean
+) {
   if (!isTimestamp) {
     return value;
   }
@@ -13,7 +22,7 @@ function defaultFormatAxisLabel(value, isTimestamp, utc, showTimeInTooltip) {
   return getFormattedDate(value, format, {local: !utc});
 }
 
-function defaultValueFormatter(value) {
+function defaultValueFormatter(value: string | number) {
   if (typeof value === 'number') {
     return value.toLocaleString();
   }
@@ -21,11 +30,11 @@ function defaultValueFormatter(value) {
   return value;
 }
 
-function defaultNameFormatter(value) {
+function defaultNameFormatter(value: string) {
   return value;
 }
 
-function getSeriesValue(series, offset) {
+function getSeriesValue(series: EChartOption.Tooltip.Format, offset: number) {
   if (!series.data) {
     return undefined;
   }
@@ -39,6 +48,18 @@ function getSeriesValue(series, offset) {
   return undefined;
 }
 
+type NeededChartProps = 'isGroupedByDate' | 'showTimeInTooltip' | 'utc';
+
+type TooltipFormatters =
+  | 'truncate'
+  | 'filter'
+  | 'formatAxisLabel'
+  | 'valueFormatter'
+  | 'nameFormatter';
+
+type FormatterOptions = Pick<NonNullable<ChartProps['tooltip']>, TooltipFormatters> &
+  Pick<ChartProps, NeededChartProps>;
+
 function getFormatter({
   filter,
   isGroupedByDate,
@@ -48,8 +69,8 @@ function getFormatter({
   utc,
   valueFormatter = defaultValueFormatter,
   nameFormatter = defaultNameFormatter,
-}) {
-  const getFilter = seriesParam => {
+}: FormatterOptions) {
+  const getFilter = (seriesParam: EChartOption.Tooltip.Format) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
     // has a series using strictly `markLine`s.
     // However, real series will have `data` as a tuple of (label, value) or be
@@ -62,22 +83,27 @@ function getFormatter({
     return true;
   };
 
-  return seriesParamsOrParam => {
+  const formatter: EChartOption.Tooltip['formatter'] = seriesParamsOrParam => {
     // If this is a tooltip for the axis, it will include all series for that axis item.
     // In this case seriesParamsOrParam will be of type `Object[]`
     //
     // Otherwise, it will be an `Object`, and is a tooltip for a single item
-    const isAxisItem = Array.isArray(seriesParamsOrParam);
     const axisFormatterOrDefault = formatAxisLabel || defaultFormatAxisLabel;
 
     // Special tooltip if component is a `markPoint`
-    if (!isAxisItem && seriesParamsOrParam.componentType === 'markPoint') {
-      const timestamp = seriesParamsOrParam.data.coord[0];
+    if (
+      !Array.isArray(seriesParamsOrParam) &&
+      // TODO(ts): The EChart types suggest that this can _only_ be `series`,
+      //           but assuming this code is correct (which I have not
+      //           verified) their types may be wrong.
+      (seriesParamsOrParam.componentType as unknown) === 'markPoint'
+    ) {
+      const timestamp = seriesParamsOrParam.data.coord[0] as number;
       const label = axisFormatterOrDefault(
         timestamp,
-        isGroupedByDate,
-        utc,
-        showTimeInTooltip
+        !!isGroupedByDate,
+        !!utc,
+        !!showTimeInTooltip
       );
       // eCharts sets seriesName as null when `componentType` !== 'series'
       const truncatedName = truncationFormatter(
@@ -101,18 +127,20 @@ function getFormatter({
       ].join('');
     }
 
-    const seriesParams = isAxisItem ? seriesParamsOrParam : [seriesParamsOrParam];
+    const seriesParams = Array.isArray(seriesParamsOrParam)
+      ? seriesParamsOrParam
+      : [seriesParamsOrParam];
 
     // If axis, timestamp comes from axis, otherwise for a single item it is defined in the data attribute.
     // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
     // there is item specific formatting being used.
-    const timestamp = isAxisItem
+    const timestamp = Array.isArray(seriesParamsOrParam)
       ? seriesParams[0].axisValue
       : getSeriesValue(seriesParams[0], 0);
 
     const label =
       seriesParams.length &&
-      axisFormatterOrDefault(timestamp, isGroupedByDate, utc, showTimeInTooltip);
+      axisFormatterOrDefault(timestamp, !!isGroupedByDate, !!utc, !!showTimeInTooltip);
 
     return [
       '<div class="tooltip-series">',
@@ -120,7 +148,7 @@ function getFormatter({
         .filter(getFilter)
         .map(s => {
           const formattedLabel = nameFormatter(
-            truncationFormatter(s.seriesName, truncate)
+            truncationFormatter(s.seriesName ?? '', truncate)
           );
           const value = valueFormatter(getSeriesValue(s, 1), s.seriesName);
           return `<div><span class="tooltip-label">${s.marker} <strong>${formattedLabel}</strong></span> ${value}</div>`;
@@ -131,7 +159,11 @@ function getFormatter({
       `<div class="tooltip-arrow"></div>`,
     ].join('');
   };
+
+  return formatter;
 }
+
+type Props = ChartProps['tooltip'] & Pick<ChartProps, NeededChartProps>;
 
 export default function Tooltip({
   filter,
@@ -144,7 +176,7 @@ export default function Tooltip({
   valueFormatter,
   nameFormatter,
   ...props
-} = {}) {
+}: Props = {}): EChartOption.Tooltip {
   formatter =
     formatter ||
     getFormatter({
@@ -171,35 +203,38 @@ export default function Tooltip({
 
       // Get the left offset of the tip container (the chart)
       // so that we can estimate overflows
-      const chartLeft = dom.parentNode.getBoundingClientRect().left;
+      const chartLeft =
+        dom.parentNode instanceof Element
+          ? dom.parentNode.getBoundingClientRect().left
+          : 0;
 
       // Determine the new left edge.
-      let leftPos = pos[0] - tipWidth / 2;
+      let leftPos = Number(pos[0]) - tipWidth / 2;
       let arrowPosition = '50%';
 
       // And the right edge taking into account the chart left offset
-      const rightEdge = chartLeft + pos[0] + tipWidth / 2;
+      const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
 
       // If the tooltip would leave viewport on the right, pin it.
       // and adjust the arrow position.
       if (rightEdge >= window.innerWidth - 30) {
         leftPos -= rightEdge - window.innerWidth + 30;
-        arrowPosition = `${pos[0] - leftPos}px`;
+        arrowPosition = `${Number(pos[0]) - leftPos}px`;
       }
 
       // If the tooltip would leave viewport on the left, pin it.
       if (leftPos + chartLeft - 20 <= 0) {
         leftPos = chartLeft * -1 + 20;
-        arrowPosition = `${pos[0] - leftPos}px`;
+        arrowPosition = `${Number(pos[0]) - leftPos}px`;
       }
 
       // Reposition the arrow.
-      const arrow = dom.querySelector('.tooltip-arrow');
+      const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
       if (arrow) {
         arrow.style.left = arrowPosition;
       }
 
-      return {left: leftPos, top: pos[1] - tipHeight - 20};
+      return {left: leftPos, top: Number(pos[1]) - tipHeight - 20};
     },
     formatter,
     ...props,

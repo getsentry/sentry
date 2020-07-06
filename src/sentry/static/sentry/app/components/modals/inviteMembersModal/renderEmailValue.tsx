@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import {Value} from 'react-select-legacy';
 
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -22,8 +22,8 @@ function renderEmailValue(status: InviteStatus[string], valueProps) {
         <EmailLabel>
           {children}
           {!status.sent && !status.error && <SendingIndicator />}
-          {status.error && <InlineSvg src="icon-warning-sm" size="10px" />}
-          {status.sent && <InlineSvg src="icon-checkmark-sm" size="10px" />}
+          {status.error && <IconWarning size="10px" />}
+          {status.sent && <IconCheckmark size="10px" />}
         </EmailLabel>
       </Tooltip>
     );
@@ -49,7 +49,7 @@ const EmailValue = styled('div')<{status: InviteStatus[string]}>`
       `};
   }
 
-  .Select-value ${InlineSvg} {
+  .Select-value svg {
     color: ${p => (p.status && p.status.sent ? p.theme.green400 : 'inherit')};
   }
 `;

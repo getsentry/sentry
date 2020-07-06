@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Highlight from 'app/components/highlight';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {defined} from 'app/utils';
@@ -8,6 +9,7 @@ import {defined} from 'app/utils';
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 
 type Props = {
+  searchTerm: string;
   kvData?: Record<string, any>;
 };
 
@@ -31,7 +33,7 @@ class Summary extends React.Component<Props, State> {
   };
 
   renderData = () => {
-    const {kvData} = this.props;
+    const {kvData, searchTerm} = this.props;
 
     if (!kvData) {
       return null;
@@ -45,9 +47,11 @@ class Summary extends React.Component<Props, State> {
         return (
           <Data key={key}>
             <StyledPre>
-              <DataLabel>{`${key}: `}</DataLabel>
+              <DataLabel>
+                <Highlight text={searchTerm}>{`${key}: `}</Highlight>
+              </DataLabel>
               {getBreadcrumbCustomRendererValue({
-                value,
+                value: <Highlight text={searchTerm}>{value}</Highlight>,
                 meta: getMeta(kvData, key),
               })}
             </StyledPre>

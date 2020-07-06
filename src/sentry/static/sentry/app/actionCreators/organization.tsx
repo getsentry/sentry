@@ -84,8 +84,15 @@ export async function fetchOrganizationDetails(
     OrganizationActions.fetchOrgError(err);
 
     if (err.status === 403 || err.status === 401) {
-      if (err.responseJSON?.detail) {
-        addErrorMessage(err.responseJSON.detail);
+      const errMessage =
+        typeof err.responseJSON?.detail === 'string'
+          ? err.responseJSON?.detail
+          : typeof err.responseJSON?.detail?.message === 'string'
+          ? err.responseJSON?.detail.message
+          : null;
+
+      if (errMessage) {
+        addErrorMessage(errMessage);
       }
 
       return;
