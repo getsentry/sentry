@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
