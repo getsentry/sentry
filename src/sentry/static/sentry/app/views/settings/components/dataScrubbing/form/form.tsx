@@ -129,7 +129,7 @@ class Form extends React.Component<Props<Rule, KeysOfUnion<Rule>>, State> {
           {rule.type === RuleType.PATTERN && (
             <Field
               label={t('Regex matches')}
-              help={t('Custom Perl-style regex (PCRE)')}
+              help={t('Custom regular expression (see documentation)')}
               inline={false}
               error={errors?.pattern}
               flexibleControlStateSize
