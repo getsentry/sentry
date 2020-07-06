@@ -12,11 +12,10 @@ from hashlib import md5
 import six
 from django.utils import timezone
 from pkg_resources import resource_string
-from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
+from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, SentryScript
 from sentry.utils.versioning import Version
 from six.moves import reduce
 from sentry.utils.compat import map
@@ -26,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
-CountMinScript = Script(None, resource_string("sentry", "scripts/tsdb/cmsketch.lua"))
+CountMinScript = SentryScript(None, resource_string("sentry", "scripts/tsdb/cmsketch.lua"))
 
 
 class SuppressionWrapper(object):
