@@ -1470,6 +1470,24 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["message"] == "string"
 
+    def test_email_wildcard_condition(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("javascript")
+        data["timestamp"] = self.min_ago
+        self.store_event(data=data, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["stack.filename", "message"], "query": "user.email:*@example.org"},
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["message"] == "string"
+
     def test_transaction_event_type(self):
         self.login_as(user=self.user)
 
