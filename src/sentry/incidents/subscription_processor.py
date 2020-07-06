@@ -115,7 +115,7 @@ class SubscriptionProcessor(object):
             metrics.incr("incidents.alert_rules.ignore_update_missing_incidents")
             return
         elif dataset == "transactions" and not features.has(
-            "organizations:incidents-performance", self.subscription.project.organization
+            "organizations:performance-view", self.subscription.project.organization
         ):
             # They have downgraded since these subscriptions have been created. So we just ignore updates for now.
             metrics.incr("incidents.alert_rules.ignore_update_missing_incidents_performance")

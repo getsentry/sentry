@@ -120,7 +120,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
             ).exclude(status=IncidentStatus.CLOSED.value)
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
-        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             with self.assertChanges(
                 lambda: active_incident().exists(), before=False, after=True
             ), self.tasks():

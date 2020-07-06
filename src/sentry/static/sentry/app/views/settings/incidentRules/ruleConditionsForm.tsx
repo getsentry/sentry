@@ -104,13 +104,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       <Panel>
         <PanelHeader>{t('Configure Rule Conditions')}</PanelHeader>
         <PanelBody>
-          <Feature
-            requireAll
-            features={[
-              'organizations:performance-view',
-              'organizations:incidents-performance',
-            ]}
-          >
+          <Feature requireAll features={['organizations:performance-view']}>
             <FormField required name="dataset" label="Data source">
               {({onChange, onBlur, value, model, label}) => (
                 <RadioGroup
