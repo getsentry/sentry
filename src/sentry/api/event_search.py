@@ -985,8 +985,9 @@ def get_json_meta_type(field_alias, snuba_type):
     alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
+    snuba_json = get_json_type(snuba_type)
     function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
-    if function_match:
+    if function_match and snuba_json != "string":
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.get("result_type"):
             return function_definition.get("result_type")
@@ -994,7 +995,7 @@ def get_json_meta_type(field_alias, snuba_type):
         return "duration"
     if field_alias == "transaction.status":
         return "string"
-    return get_json_type(snuba_type)
+    return snuba_json
 
 
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
