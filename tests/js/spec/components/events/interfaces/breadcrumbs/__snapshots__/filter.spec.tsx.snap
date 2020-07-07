@@ -640,7 +640,7 @@ exports[`Filter default render 1`] = `
                     "red500": "#AC1025",
                     "settings": Object {
                       "containerWidth": "1440px",
-                      "headerHeight": "115px",
+                      "headerHeight": "69px",
                       "maxCrumbWidth": "240px",
                       "sidebarWidth": "220px",
                     },

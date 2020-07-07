@@ -298,7 +298,7 @@ const theme = {
     maxCrumbWidth: '240px',
 
     containerWidth: '1440px',
-    headerHeight: '115px',
+    headerHeight: '69px',
     sidebarWidth: '220px',
   },
 

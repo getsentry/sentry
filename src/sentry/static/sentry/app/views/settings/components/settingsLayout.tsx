@@ -152,7 +152,10 @@ const SidebarWrapper = styled('div')<{isVisible: boolean}>`
     display: ${p => (p.isVisible ? 'block' : 'none')};
     position: absolute;
     z-index: ${p => p.theme.zIndex.settingsSidebarNav};
-    height: 100%;
+    /* offset the height of main navigation and settings breadcrumbs */
+    height: calc(
+      100% - ${p => p.theme.sidebar.mobileHeight} - ${p => p.theme.settings.headerHeight}
+    );
     box-shadow: ${p => p.theme.dropShadowHeavy};
     overflow-y: auto;
   }
