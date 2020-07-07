@@ -337,7 +337,9 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert resp.data["response_type"] == "ephemeral"
         assert not resp.data["replace_original"]
-        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
+        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
+            associate_url=associate_url, user_email=user2.email, org_name=self.org.name
+        )
 
     @responses.activate
     @patch("sentry.api.client.put")
@@ -396,7 +398,9 @@ class StatusActionTest(BaseEventTest):
         )
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
+        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
+            associate_url=associate_url, user_email=self.user.email, org_name=self.org.name
+        )
 
     def test_invalid_token(self):
         resp = self.post_webhook(token="invalid")

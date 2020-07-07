@@ -50,11 +50,7 @@ class SlackActionEndpoint(Endpoint):
         logger.info("slack.action.api-error", extra=logging_data)
 
         return self.respond(
-            {
-                "response_type": "ephemeral",
-                "replace_original": False,
-                "text": error_text,
-            }
+            {"response_type": "ephemeral", "replace_original": False, "text": error_text,}
         )
 
     def on_assign(self, request, identity, group, action):
