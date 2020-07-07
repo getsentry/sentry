@@ -118,7 +118,7 @@ export function loadStatsForProject(api: Client, project: string, params: Update
   _debouncedLoadStats(api, _projectStatsToFetch, params);
 }
 
-export function setActiveProject(project: Project) {
+export function setActiveProject(project: Project | null) {
   ProjectActions.setActive(project);
 }
 
