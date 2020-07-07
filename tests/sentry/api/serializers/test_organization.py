@@ -38,6 +38,7 @@ class OrganizationSerializerTest(TestCase):
                 "discover-basic",
                 "discover-query",
                 "datascrubbers-v2",
+                "artifacts-in-settings",
             ]
         )
 
