@@ -87,7 +87,7 @@ function getSentryIntegrations(hasReplays: boolean = false) {
 }
 
 const hasReplays =
-  window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !!DISABLE_RR_WEB;
+  window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !DISABLE_RR_WEB;
 
 Sentry.init({
   ...window.__SENTRY__OPTIONS,
@@ -109,9 +109,7 @@ if (window.__SENTRY__USER) {
 if (window.__SENTRY__VERSION) {
   Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
 }
-if (hasReplays) {
-  Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
-}
+Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
