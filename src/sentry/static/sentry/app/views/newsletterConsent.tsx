@@ -30,7 +30,7 @@ export default class NewsletterConsent extends React.Component<Props> {
           apiMethod="POST"
           apiEndpoint="/users/me/subscriptions/"
           onSubmitSuccess={() => this.props.onSubmitSuccess?.()}
-          submitLabel="Continue"
+          submitLabel={t('Continue')}
         >
           <RadioBooleanField
             p={0}
