@@ -67,9 +67,7 @@ describe('ProjectMapperField', () => {
       ['23', '2'],
       ['24', '1'],
     ];
-    wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />, {
-      disableLifecycleMethods: true,
-    });
+    wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />);
     wrapper
       .find('DeleteButton')
       .first()
