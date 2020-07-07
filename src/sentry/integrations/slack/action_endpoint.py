@@ -20,7 +20,7 @@ from .utils import build_group_attachment, logger
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 
-UNLINK_IDENTITY_MESSAGE = "Looks like this Slack identity is linked to the Sentry user <{user_email}> who is not a member of organization <{org_name}> used with this Slack integration <{associate_url}|Unlink your identity now>."
+UNLINK_IDENTITY_MESSAGE = "Looks like this Slack identity is linked to the Sentry user *{user_email}* who is not a member of organization *{org_name}* used with this Slack integration <{associate_url}|Unlink your identity now>."
 
 DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 
@@ -51,7 +51,7 @@ class SlackActionEndpoint(Endpoint):
 
         if error.status_code == 403:
             return self.respond(
-                {"response_type": "ephemeral", "replace_original": False, "text": text,}
+                {"response_type": "ephemeral", "replace_original": False, "text": text}
             )
 
         return self.respond(
