@@ -37,7 +37,6 @@ describe('Result', function() {
         />,
         {
           context: {organization},
-          disableLifecycleMethods: false,
         }
       );
     });

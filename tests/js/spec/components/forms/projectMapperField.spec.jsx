@@ -40,7 +40,7 @@ describe('ProjectMapperField', () => {
   });
 
   it('clicking add updates values with current dropdown values', () => {
-    wrapper = mountWithTheme(<RenderField {...props} />, {disableLifecycleMethods: true});
+    wrapper = mountWithTheme(<RenderField {...props} />);
     selectByValue(wrapper, '24', {control: true, name: 'project'});
     selectByValue(wrapper, '1', {control: true, name: 'mappedDropdown'});
 
@@ -67,9 +67,7 @@ describe('ProjectMapperField', () => {
       ['23', '2'],
       ['24', '1'],
     ];
-    wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />, {
-      disableLifecycleMethods: true,
-    });
+    wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />);
     wrapper
       .find('DeleteButton')
       .first()

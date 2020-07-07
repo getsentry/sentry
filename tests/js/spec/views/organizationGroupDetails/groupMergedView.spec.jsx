@@ -67,7 +67,6 @@ describe('Issues -> Merged View', function() {
             group: PropTypes.object,
           },
         ]),
-        disableLifecycleMethods: false,
       }
     );
 
