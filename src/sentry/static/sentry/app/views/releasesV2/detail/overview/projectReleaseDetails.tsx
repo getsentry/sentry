@@ -62,7 +62,7 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
                   )}/`}
                 >
                   <Count value={releaseMeta.releaseFileCount} />{' '}
-                  {tn('file uploaded', 'files uploaded', releaseMeta.releaseFileCount)}
+                  {tn('artifact', 'artifacts', releaseMeta.releaseFileCount)}
                 </Link>
               </TagValue>
             </StyledTr>
