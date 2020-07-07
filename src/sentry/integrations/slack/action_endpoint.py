@@ -42,23 +42,18 @@ class SlackActionEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def api_error(self, error, action_type, logging_data, unauthorized_error_text):
+    def api_error(self, error, action_type, logging_data, error_text):
         logging_data = logging_data.copy()
         logging_data["response"] = six.text_type(error.body)
         logging_data["action_type"] = action_type
         logger.info("slack.action.api-error-pre-message: %s" % six.text_type(logging_data))
         logger.info("slack.action.api-error", extra=logging_data)
 
-        if error.status_code == 403:
-            return self.respond(
-                {"response_type": "ephemeral", "replace_original": False, "text": unauthorized_error_text}
-            )
-
         return self.respond(
             {
                 "response_type": "ephemeral",
                 "replace_original": False,
-                "text": DEFAULT_ERROR_MESSAGE,
+                "text": error_text,
             }
         )
 
@@ -239,11 +234,14 @@ class SlackActionEndpoint(Endpoint):
                     integration.id, group.organization.id, user_id, channel_id, response_url
                 )
 
-                text = UNLINK_IDENTITY_MESSAGE.format(
-                    associate_url=unlinking_url,
-                    user_email=identity.user,
-                    org_name=group.organization.name,
-                )
+                if e.status_code == 403:
+                    text = UNLINK_IDENTITY_MESSAGE.format(
+                        associate_url=unlinking_url,
+                        user_email=identity.user,
+                        org_name=group.organization.name,
+                    )
+                else:
+                    text = DEFAULT_ERROR_MESSAGE
 
                 return self.api_error(e, "status_dialog", logging_data, text)
 
@@ -290,11 +288,14 @@ class SlackActionEndpoint(Endpoint):
                 integration.id, group.organization.id, user_id, channel_id, response_url
             )
 
-            text = UNLINK_IDENTITY_MESSAGE.format(
-                associate_url=unlinking_url,
-                user_email=identity.user,
-                org_name=group.organization.name,
-            )
+            if e.status_code == 403:
+                text = UNLINK_IDENTITY_MESSAGE.format(
+                    associate_url=unlinking_url,
+                    user_email=identity.user,
+                    org_name=group.organization.name,
+                )
+            else:
+                text = DEFAULT_ERROR_MESSAGE
 
             return self.api_error(e, action_type, logging_data, text)
 
