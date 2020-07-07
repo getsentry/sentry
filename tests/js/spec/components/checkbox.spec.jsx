@@ -1,5 +1,4 @@
 import React from 'react';
-import toJson from 'enzyme-to-json';
 
 import {shallow} from 'sentry-test/enzyme';
 
@@ -9,6 +8,6 @@ describe('Checkbox', function() {
   it('renders', function() {
     const component = shallow(<Checkbox />);
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 });

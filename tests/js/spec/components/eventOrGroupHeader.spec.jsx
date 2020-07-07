@@ -1,5 +1,4 @@
 import React from 'react';
-import toJson from 'enzyme-to-json';
 
 import {shallow} from 'sentry-test/enzyme';
 
@@ -37,7 +36,7 @@ describe('EventOrGroupHeader', function() {
         />
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toMatchSnapshot();
     });
 
     it('renders with `type = csp`', function() {
@@ -53,7 +52,7 @@ describe('EventOrGroupHeader', function() {
         />
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toMatchSnapshot();
     });
 
     it('renders with `type = default`', function() {
@@ -69,7 +68,7 @@ describe('EventOrGroupHeader', function() {
         />
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toMatchSnapshot();
     });
   });
 
@@ -95,7 +94,7 @@ describe('EventOrGroupHeader', function() {
         />
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toMatchSnapshot();
     });
 
     it('renders with `type = csp`', function() {
@@ -111,7 +110,7 @@ describe('EventOrGroupHeader', function() {
         />
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toMatchSnapshot();
     });
 
     it('renders with `type = default`', function() {
@@ -127,7 +126,7 @@ describe('EventOrGroupHeader', function() {
         />
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toMatchSnapshot();
     });
 
     it('hides level tag', function() {
@@ -144,7 +143,7 @@ describe('EventOrGroupHeader', function() {
         />
       );
 
-      expect(toJson(component)).toMatchSnapshot();
+      expect(component).toMatchSnapshot();
     });
 
     it('keeps sort in link when query has sort', function() {
