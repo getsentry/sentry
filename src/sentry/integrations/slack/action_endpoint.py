@@ -13,10 +13,14 @@ from sentry.shared_integrations.exceptions import ApiError
 
 from .client import SlackClient
 from .link_identity import build_linking_url
+from .unlink_identity import build_unlinking_url
 from .requests import SlackActionRequest, SlackRequestError
 from .utils import build_group_attachment, logger
 
+
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
+
+UNLINK_IDENTITY_MESSAGE = "Looks like this Slack identity is linked to a user that no longer exists! <{associate_url}|Unlink your identity now>."
 
 RESOLVE_SELECTOR = {
     "label": "Resolve issue",
@@ -42,6 +46,24 @@ class SlackActionEndpoint(Endpoint):
         logging_data["action_type"] = action_type
         logger.info("slack.action.api-error-pre-message: %s" % six.text_type(logging_data))
         logger.info("slack.action.api-error", extra=logging_data)
+
+        if error.status_code == 403:
+            associate_url = build_unlinking_url(
+                logging_data["integration_id"],
+                logging_data["organization_id"],
+                logging_data["slack_user_id"],
+                logging_data["channel_id"],
+                logging_data["response_url"],
+            )
+
+            return self.respond(
+                {
+                    "response_type": "ephemeral",
+                    "replace_original": False,
+                    "text": UNLINK_IDENTITY_MESSAGE.format(associate_url=associate_url),
+                }
+            )
+
         return self.respond(
             {
                 "response_type": "ephemeral",
@@ -164,9 +186,11 @@ class SlackActionEndpoint(Endpoint):
 
         channel_id = data.get("channel", {}).get("id")
         user_id = data.get("user", {}).get("id")
+        response_url = data.get("response_url")
 
         logging_data["channel_id"] = channel_id
         logging_data["slack_user_id"] = user_id
+        logging_data["response_url"] = response_url
 
         integration = slack_request.integration
         logging_data["integration_id"] = integration.id
@@ -202,7 +226,7 @@ class SlackActionEndpoint(Endpoint):
             identity = Identity.objects.get(idp=idp, external_id=user_id)
         except Identity.DoesNotExist:
             associate_url = build_linking_url(
-                integration, group.organization, user_id, channel_id, data.get("response_url")
+                integration, group.organization, user_id, channel_id, response_url
             )
 
             return self.respond(
