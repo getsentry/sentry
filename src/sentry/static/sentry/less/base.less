@@ -160,19 +160,6 @@ h6 {
   line-height: 1.2;
 }
 
-ul,
-ol {
-  padding: 0;
-  list-style-position: inside;
-}
-
-p,
-ul,
-ol,
-blockquote {
-  line-height: 1.5;
-}
-
 h1 {
   font-size: 3.2rem;
 }
@@ -195,6 +182,25 @@ h5 {
 
 h6 {
   font-size: 1.4rem;
+}
+
+ul,
+ol {
+  margin-top: 0;
+  padding: 0;
+  list-style-position: inside;
+
+  ul,
+  ol {
+    margin-bottom: 0;
+  }
+}
+
+p,
+ul,
+ol,
+blockquote {
+  line-height: 1.5;
 }
 
 /**
@@ -677,7 +683,6 @@ optgroup {
 
 // Tables
 // ==========================================================================
-
 //
 // Remove most spacing between table cells.
 //
@@ -690,4 +695,46 @@ table {
 td,
 th {
   padding: 0;
+}
+
+// Description Lists
+// ==========================================================================
+
+dl {
+  margin-top: 0; // Remove browser default
+  margin-bottom: @line-height-computed;
+}
+dt,
+dd {
+  line-height: @line-height-base;
+}
+dt {
+  font-weight: 700;
+}
+dd {
+  margin-left: 0; // Undo browser default
+}
+
+// Horizontal description lists
+//
+// Defaults to being stacked without any of the below styles applied, until the
+// grid breakpoint is reached (default of ~768px).
+
+.dl-horizontal {
+  dd {
+    &:extend(.clearfix all); // Clear the floated `dt` if an empty `dd` is present
+  }
+
+  @media (min-width: @dl-horizontal-breakpoint) {
+    dt {
+      float: left;
+      width: (@dl-horizontal-offset - 20);
+      clear: left;
+      text-align: right;
+      .text-overflow();
+    }
+    dd {
+      margin-left: @dl-horizontal-offset;
+    }
+  }
 }
