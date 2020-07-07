@@ -11,13 +11,18 @@ import DropdownMenu from 'app/components/dropdownMenu';
 import {IconCalendar} from 'app/icons';
 import space from 'app/styles/space';
 
-import InputField from './inputField';
+import InputField, {onEvent} from './inputField';
 
 type Props = Omit<InputField['props'], 'field'>;
 
-function handleChangeDate(onChange, onBlur, date, close) {
-  onChange(date, {});
-  onBlur(date, {});
+function handleChangeDate(
+  onChange: onEvent,
+  onBlur: onEvent,
+  date: Date,
+  close: Function
+) {
+  onChange(date);
+  onBlur(date);
 
   // close dropdown menu
   close();

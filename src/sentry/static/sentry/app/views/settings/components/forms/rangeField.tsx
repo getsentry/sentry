@@ -1,13 +1,13 @@
 import React from 'react';
 
-import InputField from 'app/views/settings/components/forms/inputField';
+import InputField, {onEvent} from 'app/views/settings/components/forms/inputField';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
 type DefaultProps = {
   formatMessageValue?: false | Function;
 };
 
-type DisabledFunction = (props: any) => boolean;
+type DisabledFunction = (props: Omit<Props, 'formatMessageValue'>) => boolean;
 type PlaceholderFunction = () => string;
 
 type Props = DefaultProps &
@@ -17,7 +17,11 @@ type Props = DefaultProps &
     placeholder?: string | PlaceholderFunction;
   };
 
-function onChange(fieldOnChange, value, e) {
+function onChange(
+  fieldOnChange: onEvent,
+  value: number,
+  e: React.FormEvent<HTMLInputElement>
+) {
   fieldOnChange(value, e);
 }
 
