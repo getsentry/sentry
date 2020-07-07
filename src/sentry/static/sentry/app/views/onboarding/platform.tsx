@@ -1,44 +1,50 @@
 import {ClassNames} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {createProject} from 'app/actionCreators/projects';
-import {stepPropTypes} from 'app/views/onboarding/onboarding';
 import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
 import PlatformPicker from 'app/components/platformPicker';
 import ProjectActions from 'app/actions/projectActions';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withTeams from 'app/utils/withTeams';
+import {Client} from 'app/api';
+import {Team} from 'app/types';
+import {PlatformKey} from 'app/data/platformCategories';
 
-class OnboardingPlatform extends React.Component {
-  static propTypes = {
-    ...stepPropTypes,
-    api: PropTypes.object,
-    teams: PropTypes.arrayOf(SentryTypes.Team),
-  };
+import {StepProps} from './types';
 
-  state = {
-    /**
-     * This will be flipped to true immediately before creating the first
-     * project. We use state here to avoid the intermittent prop value where
-     * the project is created but the store hasn't propagated its value to the
-     * component yet, leaving a brief period where the button will flash
-     * between labels / disabled states.
-     */
+type Props = StepProps & {
+  api: Client;
+  teams: Team[];
+};
+
+type State = {
+  /**
+   * This will be flipped to true immediately before creating the first
+   * project. We use state here to avoid the intermittent prop value where
+   * the project is created but the store hasn't propagated its value to the
+   * component yet, leaving a brief period where the button will flash
+   * between labels / disabled states.
+   */
+  firstProjectCreated: boolean;
+  /**
+   * `progressing` indicates that we are moving to the next step. Again, this
+   * is kept as state to avoid intermittent states causing flickering of the
+   * button.
+   */
+  progressing: boolean;
+};
+
+class OnboardingPlatform extends React.Component<Props, State> {
+  state: State = {
     firstProjectCreated: false,
-    /**
-     * `progressing` indicates that we are moving to the next step. Again, this
-     * is kept as state to avoid intermittent states causing flickering of the
-     * button.
-     */
     progressing: false,
   };
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (prevProps.active && !this.props.active) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({progressing: false});
@@ -62,7 +68,7 @@ class OnboardingPlatform extends React.Component {
     return t('Setup Your Project');
   }
 
-  async createFirstProject(platform) {
+  async createFirstProject(platform: PlatformKey) {
     const {api, orgId, teams} = this.props;
 
     if (this.hasFirstProject) {
@@ -84,7 +90,7 @@ class OnboardingPlatform extends React.Component {
     }
   }
 
-  handleSetPlatform = platform => {
+  handleSetPlatform = (platform: PlatformKey) => {
     const {onUpdate, onReturnToStep} = this.props;
 
     if (platform) {
@@ -97,10 +103,16 @@ class OnboardingPlatform extends React.Component {
 
   handleContinue = async () => {
     this.setState({progressing: true});
+    const {platform} = this.props;
+
+    if (platform === null) {
+      return;
+    }
+
     // Create their first project if they don't already have one. This is a
     // no-op if they already have a project.
-    await this.createFirstProject(this.props.platform);
-    this.props.onComplete();
+    await this.createFirstProject(platform);
+    this.props.onComplete({});
   };
 
   render() {
