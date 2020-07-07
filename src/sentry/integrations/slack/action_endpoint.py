@@ -20,7 +20,9 @@ from .utils import build_group_attachment, logger
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 
-UNLINK_IDENTITY_MESSAGE = "Looks like this Slack identity is linked to a user that no longer exists! <{associate_url}|Unlink your identity now>."
+UNLINK_IDENTITY_MESSAGE = "Looks like this Slack identity is linked to the Sentry user <{user_email}> who is not a member of organization <{org_name}> used with this Slack integration <{associate_url}|Unlink your identity now>."
+
+DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 
 RESOLVE_SELECTOR = {
     "label": "Resolve issue",
@@ -40,7 +42,7 @@ class SlackActionEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def api_error(self, error, action_type, logging_data):
+    def api_error(self, error, action_type, logging_data, text):
         logging_data = logging_data.copy()
         logging_data["response"] = six.text_type(error.body)
         logging_data["action_type"] = action_type
@@ -48,27 +50,15 @@ class SlackActionEndpoint(Endpoint):
         logger.info("slack.action.api-error", extra=logging_data)
 
         if error.status_code == 403:
-            associate_url = build_unlinking_url(
-                logging_data["integration_id"],
-                logging_data["organization_id"],
-                logging_data["slack_user_id"],
-                logging_data["channel_id"],
-                logging_data["response_url"],
-            )
-
             return self.respond(
-                {
-                    "response_type": "ephemeral",
-                    "replace_original": False,
-                    "text": UNLINK_IDENTITY_MESSAGE.format(associate_url=associate_url),
-                }
+                {"response_type": "ephemeral", "replace_original": False, "text": text,}
             )
 
         return self.respond(
             {
                 "response_type": "ephemeral",
                 "replace_original": False,
-                "text": "Sentry can't perform that action right now on your behalf!",
+                "text": DEFAULT_ERROR_MESSAGE,
             }
         )
 
@@ -183,7 +173,6 @@ class SlackActionEndpoint(Endpoint):
             return self.respond(status=e.status)
 
         data = slack_request.data
-
         channel_id = data.get("channel", {}).get("id")
         user_id = data.get("user", {}).get("id")
         response_url = data.get("response_url")
@@ -223,7 +212,7 @@ class SlackActionEndpoint(Endpoint):
             return self.respond(status=403)
 
         try:
-            identity = Identity.objects.get(idp=idp, external_id=user_id)
+            identity = Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
         except Identity.DoesNotExist:
             associate_url = build_linking_url(
                 integration, group.organization, user_id, channel_id, response_url
@@ -245,7 +234,18 @@ class SlackActionEndpoint(Endpoint):
             try:
                 self.on_status(request, identity, group, action, data, integration)
             except client.ApiError as e:
-                return self.api_error(e, "status_dialog", logging_data)
+
+                unlinking_url = build_unlinking_url(
+                    integration.id, group.organization.id, user_id, channel_id, response_url
+                )
+
+                text = UNLINK_IDENTITY_MESSAGE.format(
+                    associate_url=unlinking_url,
+                    user_email=identity.user,
+                    org_name=group.organization.name,
+                )
+
+                return self.api_error(e, "status_dialog", logging_data, text)
 
             group = Group.objects.get(id=group.id)
             attachment = build_group_attachment(group, identity=identity, actions=[action])
@@ -285,7 +285,18 @@ class SlackActionEndpoint(Endpoint):
                     self.open_resolve_dialog(data, group, integration)
                     defer_attachment_update = True
         except client.ApiError as e:
-            return self.api_error(e, action_type, logging_data)
+
+            unlinking_url = build_unlinking_url(
+                integration.id, group.organization.id, user_id, channel_id, response_url
+            )
+
+            text = UNLINK_IDENTITY_MESSAGE.format(
+                associate_url=unlinking_url,
+                user_email=identity.user,
+                org_name=group.organization.name,
+            )
+
+            return self.api_error(e, action_type, logging_data, text)
 
         if defer_attachment_update:
             return self.respond()
