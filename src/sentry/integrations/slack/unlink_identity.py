@@ -7,7 +7,7 @@ from django.db import IntegrityError
 from django.http import Http404
 from django.views.decorators.cache import never_cache
 
-from sentry.models import Integration, Identity, IdentityProvider, Organization
+from sentry.models import Identity
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
@@ -16,7 +16,7 @@ from sentry.web.helpers import render_to_response
 from sentry.shared_integrations.exceptions import ApiError
 
 from .client import SlackClient
-from .utils import logger
+from .utils import logger, getIdentity
 
 
 def build_unlinking_url(integration_id, organization_id, slack_id, channel_id, response_url):
@@ -39,24 +39,7 @@ class SlackUnlinkIdentityView(BaseView):
     def handle(self, request, signed_params):
         params = unsign(signed_params.encode("ascii", errors="ignore"))
 
-        try:
-            organization = Organization.objects.get(
-                id__in=request.user.get_orgs(), id=params["organization_id"]
-            )
-        except Organization.DoesNotExist:
-            raise Http404
-
-        try:
-            integration = Integration.objects.get(
-                id=params["integration_id"], organizations=organization
-            )
-        except Integration.DoesNotExist:
-            raise Http404
-
-        try:
-            idp = IdentityProvider.objects.get(external_id=integration.external_id, type="slack")
-        except IdentityProvider.DoesNotExist:
-            raise Http404
+        organization, integration, idp = getIdentity(request, params)
 
         if request.method != "POST":
             return render_to_response(
