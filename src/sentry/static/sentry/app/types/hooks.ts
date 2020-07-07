@@ -4,6 +4,7 @@ import {NavigationSection} from 'app/views/settings/types';
 import {User, Organization, Project, IntegrationProvider} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import SidebarItem from 'app/components/sidebar/sidebarItem';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -294,27 +295,17 @@ type SidebarItemLabelHook = () => React.ComponentType<{
   children: React.ReactNode;
 }>;
 
+type SidebarProps = Pick<
+  React.ComponentProps<typeof SidebarItem>,
+  'orientation' | 'collapsed' | 'hasPanel'
+>;
+
 /**
  * Returns an additional list of sidebar items.
- *
- * TODO(ts): These types should likely come from the Sidebar.tsx itself once it
- * is converted to typescript.
  */
-type SidebarBottomItemsHook = (opts: {
-  organization: Organization;
-  /**
-   * The current orientation of the sidebar.
-   */
-  orientation: 'top' | 'left';
-  /**
-   * Is the sidebar collapsed.
-   */
-  collapsed: boolean;
-  /**
-   * Does the sidebar currently have a panel displayed.
-   */
-  hasPanel: boolean;
-}) => React.ReactNode;
+type SidebarBottomItemsHook = (
+  opts: SidebarProps & {organization: Organization}
+) => React.ReactNode;
 
 /**
  * Wrapper component to allow for customization of the onboarding member
