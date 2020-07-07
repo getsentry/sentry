@@ -90,7 +90,7 @@ class SettingsLayout extends React.Component<Props, State> {
             {typeof renderNavigation === 'function' && (
               <SidebarWrapper isVisible={navVisible}>{renderNavigation()}</SidebarWrapper>
             )}
-            <NavMask isVisible={navVisible} />
+            <NavMask isVisible={navVisible} onClick={() => this.toggleNav(false)} />
             <Content>{children}</Content>
           </MaxWidthContainer>
         </SettingsColumn>

@@ -38,6 +38,7 @@ exports[`SettingsLayout renders 1`] = `
     <MaxWidthContainer>
       <NavMask
         isVisible={false}
+        onClick={[Function]}
       />
       <Content />
     </MaxWidthContainer>
