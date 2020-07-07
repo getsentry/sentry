@@ -17,7 +17,7 @@ import PlatformIconTile from 'app/components/platformIconTile';
 import categoryList from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
-import {IconClose} from 'app/icons';
+import {IconClose, IconProject} from 'app/icons';
 
 const PLATFORM_CATEGORIES = categoryList.concat({id: 'all', name: t('All')});
 
@@ -128,7 +128,7 @@ class PlatformPicker extends React.Component {
         </PlatformList>
         {platformList.length === 0 && (
           <EmptyMessage
-            icon="icon-project"
+            icon={<IconProject size="xl" />}
             title={t("We don't have an SDK for that yet!")}
           >
             {tct(
