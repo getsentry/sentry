@@ -18,7 +18,11 @@ class Dashboards extends React.Component {
     const {organization, children} = this.props;
 
     return (
-      <Feature features={['discover']} renderDisabled>
+      <Feature
+        features={['discover', 'discover-basic']}
+        renderDisabled
+        requireAll={false}
+      >
         <GlobalSelectionHeader showEnvironmentSelector={false}>
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
