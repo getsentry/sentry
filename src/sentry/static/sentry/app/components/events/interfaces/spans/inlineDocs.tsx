@@ -7,6 +7,7 @@ import {Client} from 'app/api';
 import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {PlatformKey} from 'app/data/platformCategories';
 
 type Props = {
   api: Client;
@@ -42,7 +43,7 @@ class InlineDocs extends React.Component<Props, State> {
 
     this.setState({loading: true});
 
-    let tracingPlatform = '';
+    let tracingPlatform: PlatformKey = '';
     switch (platform) {
       case 'sentry.python': {
         tracingPlatform = 'python-tracing';

@@ -1,16 +1,19 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import NavTabs from 'app/components/navTabs';
 
-const itemsShape = PropTypes.shape({
-  title: PropTypes.string.isRequired,
-});
+import {SetupDescriptor} from '.';
 
-const SetupChoices = ({choices, selectedChoice, onSelect}) => (
+type Props = {
+  choices: SetupDescriptor[];
+  selectedChoice: string;
+  onSelect: (choice: string) => void;
+};
+
+const SetupChoices = ({choices, selectedChoice, onSelect}: Props) => (
   <NavTabs underlined>
     {choices.map(({id, title}) => (
-      <li key={id} className={id === selectedChoice ? 'active' : null}>
+      <li key={id} className={id === selectedChoice ? 'active' : undefined}>
         <a
           href="#"
           data-test-id={`onboarding-getting-started-${id}`}
@@ -25,11 +28,5 @@ const SetupChoices = ({choices, selectedChoice, onSelect}) => (
     ))}
   </NavTabs>
 );
-
-SetupChoices.propTypes = {
-  choices: PropTypes.arrayOf(itemsShape),
-  selectedChoice: PropTypes.string,
-  onSelect: PropTypes.func,
-};
 
 export default SetupChoices;
