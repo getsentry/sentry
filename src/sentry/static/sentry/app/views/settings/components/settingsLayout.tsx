@@ -67,16 +67,20 @@ class SettingsLayout extends React.Component<Props, State> {
       children && React.isValidElement(children) ? children.props : this.props;
     const childRoutes = childProps.routes || routes || [];
     const childRoute = childProps.route || route || {};
+    const shouldRenderNavigation = typeof renderNavigation === 'function';
+
     return (
       <React.Fragment>
         <SettingsColumn>
           <SettingsHeader>
             <HeaderContent>
-              <NavMenuToggle
-                priority="link"
-                icon={navVisible ? <IconClose /> : <IconMenu />}
-                onClick={() => this.toggleNav(!navVisible)}
-              />
+              {shouldRenderNavigation && (
+                <NavMenuToggle
+                  priority="link"
+                  icon={navVisible ? <IconClose /> : <IconMenu />}
+                  onClick={() => this.toggleNav(!navVisible)}
+                />
+              )}
               <StyledSettingsBreadcrumb
                 params={params}
                 routes={childRoutes}
@@ -87,8 +91,10 @@ class SettingsLayout extends React.Component<Props, State> {
           </SettingsHeader>
 
           <MaxWidthContainer>
-            {typeof renderNavigation === 'function' && (
-              <SidebarWrapper isVisible={navVisible}>{renderNavigation()}</SidebarWrapper>
+            {shouldRenderNavigation && (
+              <SidebarWrapper isVisible={navVisible}>
+                {renderNavigation!()}
+              </SidebarWrapper>
             )}
             <NavMask isVisible={navVisible} onClick={() => this.toggleNav(false)} />
             <Content>{children}</Content>

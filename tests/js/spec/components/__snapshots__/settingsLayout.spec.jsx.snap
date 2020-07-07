@@ -5,11 +5,6 @@ exports[`SettingsLayout renders 1`] = `
   <SettingsColumn>
     <SettingsHeader>
       <HeaderContent>
-        <NavMenuToggle
-          icon={<ForwardRef(IconMenu) />}
-          onClick={[Function]}
-          priority="link"
-        />
         <StyledSettingsBreadcrumb
           route={Object {}}
           routes={Array []}
