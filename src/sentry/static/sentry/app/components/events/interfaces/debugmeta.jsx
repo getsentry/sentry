@@ -663,7 +663,7 @@ const StyledSearchBar = styled(SearchBar)`
   .search-clear-form {
     top: 5px !important;
   }
-  .icon-search {
+  [data-test-id='icon-search'] {
     top: 8px;
   }
 `;

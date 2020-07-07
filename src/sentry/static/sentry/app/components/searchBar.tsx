@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {callIfFunction} from 'app/utils/callIfFunction';
+import {IconSearch} from 'app/icons';
 
 type DefaultProps = {
   query: string;
@@ -99,7 +100,7 @@ class SearchBar extends React.PureComponent<Props, State> {
               onChange={this.onQueryChange}
               width={width}
             />
-            <span className="icon-search" />
+            <StyledIconSearch data-test-id="icon-search" size="sm" color="gray500" />
             {this.state.query !== this.props.defaultQuery && (
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
@@ -116,6 +117,12 @@ class SearchBar extends React.PureComponent<Props, State> {
 
 const Input = styled('input')`
   width: ${p => (p.width ? p.width : undefined)};
+`;
+
+const StyledIconSearch = styled(IconSearch)`
+  position: absolute;
+  top: 13px;
+  left: 14px;
 `;
 
 export default SearchBar;
