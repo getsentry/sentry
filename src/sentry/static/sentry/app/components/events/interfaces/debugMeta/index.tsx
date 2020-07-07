@@ -1,6 +1,13 @@
 import isNil from 'lodash/isNil';
 import React from 'react';
 import styled from '@emotion/styled';
+import {
+  List,
+  ListRowProps,
+  AutoSizer,
+  CellMeasurer,
+  CellMeasurerCache,
+} from 'react-virtualized';
 
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';
@@ -23,6 +30,7 @@ import {getFileName} from './utils';
 
 const MIN_FILTER_LEN = 3;
 const DEFAULT_CLIP_HEIGHT = 560;
+const PANEL_MAX_HEIGHT = 600;
 
 type Image = React.ComponentProps<typeof DebugImage>['image'];
 
@@ -39,26 +47,81 @@ type Props = DefaultProps & {
 };
 
 type State = {
+  filter: string;
+  debugImages: Array<Image>;
+  filteredImages: Array<Image>;
   showUnused: boolean;
   showDetails: boolean;
-  filter: string;
+  clipHeight: number;
+  foundFrame?: Frame;
+  panelBodyHeight?: number;
 };
 
+const cache = new CellMeasurerCache({
+  fixedWidth: true,
+  defaultHeight: 81,
+});
+
 class DebugMeta extends React.PureComponent<Props, State> {
+  static defaultProps: DefaultProps = {
+    data: {images: []},
+  };
+
   state: State = {
+    filter: '',
+    debugImages: [],
+    filteredImages: [],
     showUnused: false,
     showDetails: false,
-    filter: '',
+    clipHeight: DEFAULT_CLIP_HEIGHT,
   };
 
   componentDidMount() {
     this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange);
+    this.filterImages();
   }
+
+  componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (
+      prevState.showUnused !== this.state.showUnused ||
+      prevState.filter !== this.state.filter
+    ) {
+      this.filterImages();
+    }
+
+    if (
+      prevState.foundFrame !== this.state.foundFrame ||
+      this.state.showDetails !== prevState.showDetails
+    ) {
+      this.updateGrid();
+    }
+
+    if (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0) {
+      this.getPanelBodyHeight();
+    }
+  }
+
   componentWillUnmount() {
-    this.unsubscribeFromStore();
+    if (this.unsubscribeFromStore) {
+      this.unsubscribeFromStore();
+    }
   }
 
   unsubscribeFromStore: any;
+
+  panelBodyRef = React.createRef<HTMLDivElement>();
+  listRef: List | null = null;
+
+  updateGrid() {
+    cache.clearAll();
+    this.listRef?.forceUpdateGrid();
+  }
+
+  getPanelBodyHeight() {
+    this.setState({
+      panelBodyHeight: this.panelBodyRef?.current?.offsetHeight,
+    });
+  }
 
   onStoreChange = (store: {filter: string}) => {
     this.setState({
@@ -109,23 +172,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
     );
   }
 
-  handleChangeShowUnused = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const showUnused = event.target.checked;
-    this.setState({showUnused});
-  };
+  filterImages() {
+    const foundFrame = this.getFrame();
+    // skip null values indicating invalid debug images
+    const debugImages = this.getDebugImages();
+    const filteredImages = debugImages.filter(image => this.filterImage(image));
 
-  handleShowUnused = () => {
-    this.setState({showUnused: true});
-  };
-
-  handleChangeShowDetails = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const showDetails = event.target.checked;
-    this.setState({showDetails});
-  };
-
-  handleChangeFilter = (value = '') => {
-    DebugMetaActions.updateFilter(value);
-  };
+    this.setState({debugImages, filteredImages, foundFrame});
+  }
 
   isValidImage(image: Image) {
     // in particular proguard images do not have a code file, skip them
@@ -139,6 +193,18 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     return true;
+  }
+
+  getFrame(): Frame | undefined {
+    const {
+      event: {entries},
+    } = this.props;
+
+    const frames: Array<Frame> | undefined = entries.find(
+      ({type}) => type === 'exception'
+    )?.data?.values?.[0]?.stacktrace?.frames;
+
+    return frames?.find(frame => frame.instructionAddr === this.state.filter);
   }
 
   getDebugImages() {
@@ -159,10 +225,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
     return filtered;
   }
 
-  getNoImagesMessage(images: Array<Image>) {
-    const {filter, showUnused} = this.state;
+  getNoImagesMessage() {
+    const {filter, showUnused, debugImages} = this.state;
 
-    if (images.length === 0) {
+    if (debugImages.length === 0) {
       return t('No loaded images available.');
     }
 
@@ -186,6 +252,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
           <Checkbox checked={showDetails} onChange={this.handleChangeShowDetails} />
           {t('details')}
         </Label>
+
         <Label>
           <Checkbox
             checked={showUnused || !!filter}
@@ -196,7 +263,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
         </Label>
         <SearchInputWrapper>
           <StyledSearchBar
-            onSearch={this.handleChangeFilter}
+            onChange={this.handleChangeFilter}
+            query={filter}
             placeholder={t('Search images\u2026')}
           />
         </SearchInputWrapper>
@@ -204,19 +272,101 @@ class DebugMeta extends React.PureComponent<Props, State> {
     );
   }
 
+  renderRow = ({index, key, parent, style}: ListRowProps) => {
+    const {orgId, projectId} = this.props;
+    const {filteredImages, showDetails} = this.state;
+
+    return (
+      <CellMeasurer
+        cache={cache}
+        columnIndex={0}
+        key={key}
+        parent={parent}
+        rowIndex={index}
+      >
+        <DebugImage
+          style={style}
+          image={filteredImages[index]}
+          orgId={orgId}
+          projectId={projectId}
+          showDetails={showDetails}
+        />
+      </CellMeasurer>
+    );
+  };
+
+  renderImageList() {
+    const {filteredImages, showDetails, panelBodyHeight, clipHeight} = this.state;
+    const {orgId, projectId} = this.props;
+
+    if (!panelBodyHeight) {
+      return filteredImages.map(filteredImage => (
+        <DebugImage
+          key={filteredImage.debug_id}
+          image={filteredImage}
+          orgId={orgId}
+          projectId={projectId}
+          showDetails={showDetails}
+        />
+      ));
+    }
+
+    return (
+      <AutoSizer disableHeight>
+        {({width}) => (
+          <StyledList
+            ref={(el: List | null) => {
+              this.listRef = el;
+            }}
+            deferredMeasurementCache={cache}
+            height={
+              panelBodyHeight > PANEL_MAX_HEIGHT ? PANEL_MAX_HEIGHT : panelBodyHeight
+            }
+            overscanRowCount={5}
+            rowCount={filteredImages.length}
+            rowHeight={cache.rowHeight}
+            rowRenderer={this.renderRow}
+            width={width}
+            isScrolling={false}
+            overflowHidden={panelBodyHeight > clipHeight}
+          />
+        )}
+      </AutoSizer>
+    );
+  }
+
+  handleOnReveal = () => {
+    const {panelBodyHeight} = this.state;
+
+    if (!panelBodyHeight) {
+      return;
+    }
+
+    this.setState({
+      clipHeight: panelBodyHeight,
+    });
+  };
+
+  handleChangeShowUnused = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const showUnused = event.target.checked;
+    this.setState({showUnused});
+  };
+
+  handleShowUnused = () => {
+    this.setState({showUnused: true});
+  };
+
+  handleChangeShowDetails = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const showDetails = event.target.checked;
+    this.setState({showDetails});
+  };
+
+  handleChangeFilter = (value = '') => {
+    DebugMetaActions.updateFilter(value);
+  };
+
   render() {
-    // skip null values indicating invalid debug images
-    const images = this.getDebugImages();
-
-    const filteredImages = images.filter(image => this.filterImage(image));
-
-    const frames: Array<Frame> | undefined = this.props.event.entries.find(
-      ({type}) => type === 'exception'
-    )?.data?.values?.[0]?.stacktrace?.frames;
-
-    const foundFrame = frames
-      ? frames.find(frame => frame.instructionAddr === this.state.filter)
-      : undefined;
+    const {filteredImages, foundFrame, panelBodyHeight, clipHeight} = this.state;
 
     return (
       <StyledEventDataSection
@@ -231,8 +381,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         <DebugImagesPanel>
-          <ClippedBox clipHeight={DEFAULT_CLIP_HEIGHT}>
-            <PanelBody>
+          <ClippedBox
+            clipHeight={clipHeight}
+            renderedHeight={panelBodyHeight}
+            onReveal={this.handleOnReveal}
+          >
+            <PanelBody forwardRef={this.panelBodyRef}>
               {foundFrame && (
                 <ImageForBar
                   frame={foundFrame}
@@ -240,18 +394,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
                 />
               )}
               {filteredImages.length > 0 ? (
-                filteredImages.map(image => (
-                  <DebugImage
-                    key={image.debug_id}
-                    image={image}
-                    orgId={this.props.orgId}
-                    projectId={this.props.projectId}
-                    showDetails={this.state.showDetails}
-                  />
-                ))
+                this.renderImageList()
               ) : (
                 <EmptyMessage icon={<IconWarning size="xl" />}>
-                  {this.getNoImagesMessage(images)}
+                  {this.getNoImagesMessage()}
                 </EmptyMessage>
               )}
             </PanelBody>
@@ -263,6 +409,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
 }
 
 export default DebugMeta;
+
+const StyledList = styled(List)<{overflowHidden: boolean; height: number}>`
+  ${p => p.overflowHidden && 'overflow: hidden !important;'}
+  height: auto !important;
+  max-height: ${p => p.height}px;
+`;
 
 const Label = styled('label')`
   font-weight: normal;
@@ -286,7 +438,7 @@ const StyledEventDataSection = styled(EventDataSection)`
 
 const DebugImagesPanel = styled(Panel)`
   margin-bottom: ${space(1)};
-  max-height: 600px;
+  max-height: ${PANEL_MAX_HEIGHT}px;
   overflow-y: auto;
   overflow-x: hidden;
 `;
