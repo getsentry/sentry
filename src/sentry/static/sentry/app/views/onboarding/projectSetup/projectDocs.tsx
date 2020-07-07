@@ -15,13 +15,18 @@ import LoadingError from 'app/components/loadingError';
 import Panel from 'app/components/panels/panel';
 import PanelBody from 'app/components/panels/panelBody';
 import PlatformIcon from 'app/components/platformIcon';
-import SentryTypes from 'app/sentryTypes';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import getDynamicText from 'app/utils/getDynamicText';
 import withOrganization from 'app/utils/withOrganization';
 import testableTransition from 'app/utils/testableTransition';
+import {Organization, Project} from 'app/types';
+import {PlatformKey} from 'app/data/platformCategories';
+import {Client} from 'app/api';
+import {Theme} from 'app/utils/theme';
+
+import {StepProps} from '../types';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -29,23 +34,32 @@ import testableTransition from 'app/utils/testableTransition';
  */
 const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
-const recordAnalyticsDocsClicked = ({organization, project, platform}) =>
+type AnalyticsOpts = {
+  organization: Organization;
+  project: Project | null;
+  platform: PlatformKey | null;
+};
+
+const recordAnalyticsDocsClicked = ({organization, project, platform}: AnalyticsOpts) =>
   analytics('onboarding_v2.full_docs_clicked', {
-    org_id: parseInt(organization.id, 10),
-    project: project.slug,
+    org_id: organization.id,
+    project: project?.slug,
     platform,
   });
 
-class ProjectDocs extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    platform: PropTypes.string,
-    scrollTargetId: PropTypes.string,
-  };
+type Props = StepProps & {
+  api: Client;
+  organization: Organization;
+};
 
-  state = {
+type State = {
+  platformDocs: {html: string; link: string} | null;
+  loadedPlatform: PlatformKey | null;
+  hasError: boolean;
+};
+
+class ProjectDocs extends React.Component<Props, State> {
+  state: State = {
     platformDocs: null,
     loadedPlatform: null,
     hasError: false,
@@ -55,7 +69,7 @@ class ProjectDocs extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(nextProps) {
+  componentDidUpdate(nextProps: Props) {
     if (
       nextProps.platform !== this.props.platform ||
       nextProps.project !== this.props.project
@@ -67,7 +81,7 @@ class ProjectDocs extends React.Component {
   fetchData = async () => {
     const {api, project, organization, platform} = this.props;
 
-    if (!project) {
+    if (!project || !platform) {
       return;
     }
 
@@ -113,8 +127,8 @@ class ProjectDocs extends React.Component {
            yet! If you have trouble sending your first event be sure to consult
            the [docsLink:full documentation] for [platform].`,
           {
-            docsLink: <ExternalLink href={platformDocs && platformDocs.link} />,
-            platform: platforms.find(p => p.id === loadedPlatform).name,
+            docsLink: <ExternalLink href={platformDocs?.link} />,
+            platform: platforms.find(p => p.id === loadedPlatform)?.name,
           }
         )}
       </Alert>
@@ -128,7 +142,7 @@ class ProjectDocs extends React.Component {
     const introduction = (
       <Panel>
         <PanelBody withPadding>
-          <PlatformHeading platform={loadedPlatform || platform} />
+          <PlatformHeading platform={loadedPlatform ?? platform ?? 'other'} />
 
           <Description id={scrollTargetId}>
             {tct(
@@ -148,7 +162,7 @@ class ProjectDocs extends React.Component {
               <Button
                 external
                 onClick={this.handleFullDocsClick}
-                href={platformDocs && platformDocs.link}
+                href={platformDocs?.link}
                 size="small"
               >
                 {t('Full Documentation')}
@@ -260,7 +274,10 @@ const PlatformHeading = ({platform}) => (
       <Heading key={platform}>
         <StyledPlatformIcon platform={platform} />
         <Header>
-          {t('%s SDK Installation Guide', platforms.find(p => p.id === platform).name)}
+          {t(
+            '%s SDK Installation Guide',
+            platforms.find(p => p.id === platform)?.name ?? t('Unknown')
+          )}
         </Header>
       </Heading>
     </AnimatePresence>
@@ -271,8 +288,11 @@ PlatformHeading.propTypes = {
   platform: PropTypes.string.isRequired,
 };
 
-const getAlertClass = type => (type === 'default' ? 'alert' : `alert-${type}`);
-const mapAlertStyles = p => type =>
+type AlertType = React.ComponentProps<typeof Alert>['type'];
+
+const getAlertClass = (type: AlertType) => (type === 'muted' ? 'alert' : `alert-${type}`);
+
+const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
   css`
     .${getAlertClass(type)} {
       ${alertStyles({theme: p.theme, type})};
@@ -326,7 +346,7 @@ const DocsWrapper = styled(motion.div)`
     margin-bottom: 0;
   }
 
-  ${p => Object.keys(p.theme.alert).map(mapAlertStyles(p))}
+  ${p => Object.keys(p.theme.alert).map(type => mapAlertStyles(p, type as AlertType))}
 `;
 
 DocsWrapper.defaultProps = {

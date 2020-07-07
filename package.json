@@ -49,6 +49,7 @@
     "@types/react-virtualized": "^9.20.1",
     "@types/reflexbox": "^4.0.0",
     "@types/reflux": "0.4.1",
+    "@types/scroll-to-element": "^2.0.0",
     "algoliasearch": "^3.32.0",
     "babel-loader": "^8.1.0",
     "babel-plugin-add-react-displayname": "^0.0.5",

@@ -5,6 +5,7 @@ import {User, Organization, Project, IntegrationProvider} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
+import {StepProps} from 'app/views/onboarding/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -311,9 +312,7 @@ type SidebarBottomItemsHook = (
  * Wrapper component to allow for customization of the onboarding member
  * invitation component.
  */
-type OnboardingInviteMembersHook = () => React.ComponentType<{
-  organization: Organization;
-}>;
+type OnboardingInviteMembersHook = () => React.ComponentType<StepProps>;
 
 /**
  * The DecoratedIntegrationFeature differs from the IntegrationFeature as it is

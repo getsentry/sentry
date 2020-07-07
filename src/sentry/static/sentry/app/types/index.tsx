@@ -151,6 +151,7 @@ export type AvatarProject = {
 
 export type Project = {
   id: string;
+  dateCreated: string;
   isMember: boolean;
   teams: Team[];
   features: string[];

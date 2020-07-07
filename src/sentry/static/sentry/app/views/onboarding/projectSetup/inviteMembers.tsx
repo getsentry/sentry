@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -11,29 +10,42 @@ import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
 import Panel from 'app/components/panels/panel';
 import SelectField from 'app/views/settings/components/forms/selectField';
-import SentryTypes from 'app/sentryTypes';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
+import {Client} from 'app/api';
+import {Organization, Config, Project, MemberRole} from 'app/types';
+import FormModel from 'app/views/settings/components/forms/model';
 
-const recordAnalyticsUserInvited = ({organization, project}) =>
+import {StepProps} from '../types';
+
+type AnalyticsOpts = {
+  organization: Organization;
+  project: Project | null;
+};
+
+const recordAnalyticsUserInvited = ({organization, project}: AnalyticsOpts) =>
   analytics('onboarding_v2.user_invited', {
-    org_id: parseInt(organization.id, 10),
-    project: project.slug,
+    org_id: organization.id,
+    project: project?.slug,
   });
 
-class InviteMembers extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project.isRequired,
-    config: SentryTypes.Config.isRequired,
-    formProps: PropTypes.object,
-  };
+type Props = StepProps & {
+  api: Client;
+  organization: Organization;
+  config: Config;
+  formProps?: Form['props'];
+};
 
-  state = {
+type State = {
+  invitedEmails: string[];
+  roleList: MemberRole[];
+};
+
+class InviteMembers extends React.Component<Props, State> {
+  state: State = {
     invitedEmails: [],
     roleList: [],
   };
@@ -54,7 +66,7 @@ class InviteMembers extends React.Component {
     return this.props.config.user.email.split('@')[1];
   }
 
-  handleSubmitSuccess = (data, model) => {
+  handleSubmitSuccess = (data: any, model: FormModel) => {
     model.fields.set('email', '');
     this.setState(state => ({invitedEmails: [...state.invitedEmails, data.email]}));
     addSuccessMessage(t('Invited %s to your organization', data.email));
@@ -82,7 +94,7 @@ class InviteMembers extends React.Component {
             apiMethod="POST"
             submitLabel={t('Invite Member')}
             onSubmitSuccess={this.handleSubmitSuccess}
-            initialData={{teams: [project.team.slug]}}
+            initialData={{teams: [project?.teams[0]?.slug]}}
             {...formProps}
           >
             <HelpText>
