@@ -36,6 +36,7 @@ import {
   MetricActionTemplate,
   Trigger,
   Dataset,
+  UnsavedIncidentRule,
 } from '../types';
 import {addOrUpdateRule} from '../actions';
 import RuleConditionsForm from '../ruleConditionsForm';
@@ -52,6 +53,8 @@ type Props = {
 
 type State = {
   triggers: Trigger[];
+  resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
+  thresholdType: UnsavedIncidentRule['thresholdType'];
   projects: Project[];
   triggerErrors: Map<number, {[fieldName: string]: string}>;
 
@@ -89,7 +92,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       environment: rule.environment || null,
       triggerErrors: new Map(),
       availableActions: null,
-      triggers: this.props.rule.triggers,
+      triggers: rule.triggers,
+      resolveThreshold: rule.resolveThreshold,
+      thresholdType: rule.thresholdType,
       projects: [this.props.project],
     };
   }
@@ -131,7 +136,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     errors,
     changeObj?: Partial<Trigger>
   ): boolean => {
-    const {alertThreshold, resolveThreshold} = trigger;
+    const {alertThreshold} = trigger;
+    const {resolveThreshold, thresholdType} = this.state;
 
     // If value and/or other value is empty
     // then there are no checks to perform against
@@ -149,7 +155,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // of 1 or more, and resolve on values of 0 or less. This is valid, but
     // without modifying the values, this boundary case will fail.
     const isValid =
-      trigger.thresholdType === AlertRuleThresholdType.BELOW
+      thresholdType === AlertRuleThresholdType.BELOW
         ? alertThreshold - 1 <= resolveThreshold + 1
         : alertThreshold + 1 >= resolveThreshold - 1;
 
@@ -161,7 +167,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
 
     // Not valid... let's figure out an error message
-    const isBelow = trigger.thresholdType === AlertRuleThresholdType.BELOW;
+    const isBelow = thresholdType === AlertRuleThresholdType.BELOW;
     const thresholdKey = isResolveChanged ? 'resolveThreshold' : 'alertThreshold';
     let errorMessage = '';
 
@@ -217,6 +223,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
    */
   validateTriggers(
     triggers = this.state.triggers,
+    thresholdType = this.state.thresholdType,
     changedTriggerIndex?: number,
     changeObj?: Partial<Trigger>
   ) {
@@ -229,7 +236,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         this.validateFieldInTrigger({
           errors: triggerErrors,
           triggerIndex,
-          isValid: () => !isEmpty(trigger[field]),
+          isValid: () => (trigger.label === 'critical' ? !isEmpty(trigger[field]) : true),
           field,
           message: t('Field is required'),
         });
@@ -246,32 +253,31 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     // If we have 2 triggers, we need to make sure that the critical and warning
     // alert thresholds are valid (e.g. if critical is above x, warning must be less than x)
-    if (triggers.length === 2) {
-      const criticalTriggerIndex = triggers.findIndex(({label}) => label === 'critical');
-      const warningTriggerIndex = criticalTriggerIndex ^ 1;
-      const criticalTrigger = triggers[criticalTriggerIndex];
-      const warningTrigger = triggers[warningTriggerIndex];
+    const criticalTriggerIndex = triggers.findIndex(({label}) => label === 'critical');
+    const warningTriggerIndex = criticalTriggerIndex ^ 1;
+    const criticalTrigger = triggers[criticalTriggerIndex];
+    const warningTrigger = triggers[warningTriggerIndex];
 
-      const warningThreshold = warningTrigger.alertThreshold ?? 0;
-      const criticalThreshold = criticalTrigger.alertThreshold ?? 0;
+    const isEmptyWarningThreshold = isEmpty(warningTrigger.alertThreshold);
+    const warningThreshold = warningTrigger.alertThreshold ?? 0;
+    const criticalThreshold = criticalTrigger.alertThreshold ?? 0;
 
-      const hasError =
-        criticalTrigger.thresholdType === AlertRuleThresholdType.ABOVE
-          ? warningThreshold > criticalThreshold
-          : warningThreshold < criticalThreshold;
+    const hasError =
+      thresholdType === AlertRuleThresholdType.ABOVE
+        ? warningThreshold > criticalThreshold
+        : warningThreshold < criticalThreshold;
 
-      if (hasError) {
-        [criticalTriggerIndex, warningTriggerIndex].forEach(index => {
-          const otherErrors = triggerErrors.get(index) ?? {};
-          triggerErrors.set(index, {
-            ...otherErrors,
-            alertThreshold:
-              criticalTrigger.thresholdType === AlertRuleThresholdType.BELOW
-                ? t('Warning alert threshold must be greater than critical alert')
-                : t('Warning alert threshold must be less than critical alert'),
-          });
+    if (hasError && !isEmptyWarningThreshold) {
+      [criticalTriggerIndex, warningTriggerIndex].forEach(index => {
+        const otherErrors = triggerErrors.get(index) ?? {};
+        triggerErrors.set(index, {
+          ...otherErrors,
+          alertThreshold:
+            thresholdType === AlertRuleThresholdType.BELOW
+              ? t('Warning threshold must be greater than critical alert')
+              : t('Warning threshold must be less than critical alert'),
         });
-      }
+      });
     }
 
     return triggerErrors;
@@ -352,15 +358,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   };
 
   /**
-   * Add a new trigger
-   */
-  handleAddTrigger = () => {
-    this.setState(({triggers}) => ({
-      triggers: [...triggers, {...createDefaultTrigger(), label: 'warning'}],
-    }));
-  };
-
-  /**
    * Callback for when triggers change
    *
    * Re-validate triggers on every change and reset indicators when no errors
@@ -373,7 +370,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.setState(state => {
       let triggerErrors = state.triggerErrors;
 
-      const newTriggerErrors = this.validateTriggers(triggers, triggerIndex, changeObj);
+      const newTriggerErrors = this.validateTriggers(
+        triggers,
+        state.thresholdType,
+        triggerIndex,
+        changeObj
+      );
       triggerErrors = newTriggerErrors;
 
       if (Array.from(newTriggerErrors).length === 0) {
@@ -382,6 +384,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
       return {triggers, triggerErrors};
     });
+  };
+
+  handleThresholdTypeChange = (thresholdType: AlertRuleThresholdType) => {
+    this.setState({thresholdType});
+    this.handleChangeTriggers(this.state.triggers);
+  };
+
+  handleResolveThresholdChange = (
+    resolveThreshold: UnsavedIncidentRule['resolveThreshold']
+  ) => {
+    this.setState({resolveThreshold});
+    this.handleChangeTriggers(this.state.triggers);
   };
 
   handleDeleteRule = async () => {
@@ -411,7 +425,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {organization, ruleId, rule, params, onSubmitSuccess} = this.props;
-    const {query, timeWindow, triggers, aggregate, environment} = this.state;
+    const {
+      query,
+      timeWindow,
+      triggers,
+      aggregate,
+      environment,
+      thresholdType,
+      resolveThreshold,
+    } = this.state;
 
     const queryWithTypeFilter = `${query} ${this.eventTypeFilter}`.trim();
 
@@ -424,6 +446,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         aggregate={aggregate}
         timeWindow={timeWindow}
         environment={environment}
+        resolveThreshold={resolveThreshold}
+        thresholdType={thresholdType}
       />
     );
 
@@ -481,12 +505,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               projects={this.state.projects}
               errors={this.state.triggerErrors}
               triggers={triggers}
+              resolveThreshold={resolveThreshold}
+              thresholdType={thresholdType}
               currentProject={params.projectId}
               organization={organization}
               ruleId={ruleId}
               availableActions={this.state.availableActions}
               onChange={this.handleChangeTriggers}
-              onAdd={this.handleAddTrigger}
+              onThresholdTypeChange={this.handleThresholdTypeChange}
+              onResolveThresholdChange={this.handleResolveThresholdChange}
             />
 
             <RuleNameForm disabled={!hasAccess} />
@@ -504,10 +531,8 @@ export default withProject(RuleFormContainer);
  * We need a default value of empty string for resolveThreshold or else React complains
  * so we also need to remove it if we do not have a value. Note `0` is a valid value.
  */
-function sanitizeTrigger({resolveThreshold, ...trigger}: Trigger): Trigger {
+function sanitizeTrigger({...trigger}: Trigger): Trigger {
   return {
     ...trigger,
-    resolveThreshold:
-      defined(resolveThreshold) && resolveThreshold !== '' ? resolveThreshold : null,
   };
 }

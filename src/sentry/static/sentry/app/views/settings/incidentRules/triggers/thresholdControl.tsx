@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {
   ThresholdControlValue,
@@ -16,11 +17,13 @@ import Tooltip from 'app/components/tooltip';
 type Props = ThresholdControlValue & {
   type: AlertRuleThreshold;
   disabled: boolean;
+  disableThresholdType: boolean;
   onChange: (
     type: AlertRuleThreshold,
     value: ThresholdControlValue,
     e: React.FormEvent
   ) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
 };
 
 type State = {
@@ -76,13 +79,8 @@ class ThresholdControl extends React.Component<Props, State> {
   };
 
   handleTypeChange = ({value}, e) => {
-    const {onChange, type, threshold} = this.props;
-
-    onChange(
-      type,
-      {thresholdType: getThresholdTypeForThreshold(type, value), threshold},
-      e
-    );
+    const {onThresholdTypeChange} = this.props;
+    onThresholdTypeChange(value);
   };
 
   handleDragChange = (delta: number, e: React.MouseEvent) => {
@@ -93,13 +91,22 @@ class ThresholdControl extends React.Component<Props, State> {
 
   render() {
     const {currentValue} = this.state;
-    const {thresholdType, threshold, type, onChange: _, disabled, ...props} = this.props;
+    const {
+      thresholdType,
+      threshold,
+      type,
+      onChange: _,
+      onThresholdTypeChange: __,
+      disabled,
+      disableThresholdType,
+      ...props
+    } = this.props;
     const thresholdName = AlertRuleThreshold.INCIDENT === type ? 'alert' : 'resolve';
 
     return (
       <div {...props}>
         <SelectControl
-          isDisabled={disabled}
+          isDisabled={disabled || disableThresholdType}
           name={`${thresholdName}ThresholdType`}
           value={getThresholdTypeForThreshold(type, thresholdType)}
           options={[
@@ -115,6 +122,8 @@ class ThresholdControl extends React.Component<Props, State> {
           value={currentValue ?? threshold ?? ''}
           onChange={this.handleThresholdChange}
           onBlur={this.handleThresholdBlur}
+          // Disable lastpass autocomplete
+          data-lpignore="true"
         />
         <DragContainer>
           <Tooltip

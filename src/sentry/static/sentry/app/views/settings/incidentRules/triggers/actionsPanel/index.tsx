@@ -9,7 +9,7 @@ import {
   TargetType,
 } from 'app/views/settings/incidentRules/types';
 import {Organization, Project, SelectValue} from 'app/types';
-import {PanelItem} from 'app/components/panels';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
@@ -166,9 +166,9 @@ class ActionsPanel extends React.PureComponent<Props> {
       }));
 
     return (
-      <React.Fragment>
-        <PanelSubHeader>{t('Actions')}</PanelSubHeader>
-        <React.Fragment>
+      <Panel>
+        <PanelHeader>{t('Actions')}</PanelHeader>
+        <PanelBody>
           {loading && <LoadingIndicator />}
           {actions &&
             actions.map((action: Action, i: number) => {
@@ -237,8 +237,8 @@ class ActionsPanel extends React.PureComponent<Props> {
               options={items ?? []}
             />
           </PanelItem>
-        </React.Fragment>
-      </React.Fragment>
+        </PanelBody>
+      </Panel>
     );
   }
 }
