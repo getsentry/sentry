@@ -42,7 +42,7 @@ class SlackActionEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    def api_error(self, error, action_type, logging_data, text):
+    def api_error(self, error, action_type, logging_data, unauthorized_error_text):
         logging_data = logging_data.copy()
         logging_data["response"] = six.text_type(error.body)
         logging_data["action_type"] = action_type
@@ -51,7 +51,7 @@ class SlackActionEndpoint(Endpoint):
 
         if error.status_code == 403:
             return self.respond(
-                {"response_type": "ephemeral", "replace_original": False, "text": text}
+                {"response_type": "ephemeral", "replace_original": False, "text": unauthorized_error_text}
             )
 
         return self.respond(
