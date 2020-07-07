@@ -6,7 +6,6 @@ import jsonschema
 import pytz
 import sentry_sdk
 import six
-from sentry_sdk.tracing import Span
 from confluent_kafka import Consumer, KafkaException, OFFSET_INVALID, TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -125,12 +124,10 @@ class QuerySubscriptionConsumer(object):
 
                 i = i + 1
 
-                with sentry_sdk.start_span(
-                    Span(
-                        op="handle_message",
-                        transaction="query_subscription_consumer_process_message",
-                        sampled=True,
-                    )
+                with sentry_sdk.start_transaction(
+                    op="handle_message",
+                    name="query_subscription_consumer_process_message",
+                    sampled=True,
                 ), metrics.timer("snuba_query_subscriber.handle_message"):
                     self.handle_message(message)
 

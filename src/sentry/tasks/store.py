@@ -9,7 +9,6 @@ from django.utils import timezone
 from django.conf import settings
 
 import sentry_sdk
-from sentry_sdk.tracing import Span
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing, options
@@ -296,12 +295,10 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     :param int start_time: the timestamp when the event was ingested
     :param string event_id: the event identifier
     """
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.symbolicate_event",
-            transaction="TaskSymbolicateEvent",
-            sampled=sample_symbolicate_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.symbolicate_event",
+        name="TaskSymbolicateEvent",
+        sampled=sample_symbolicate_event_apm(),
     ):
         return _do_symbolicate_event(
             cache_key=cache_key,
@@ -318,12 +315,10 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     soft_time_limit=60,
 )
 def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.symbolicate_event_from_reprocessing",
-            transaction="TaskSymbolicateEvent",
-            sampled=sample_symbolicate_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.symbolicate_event_from_reprocessing",
+        name="TaskSymbolicateEvent",
+        sampled=sample_symbolicate_event_apm(),
     ):
         return _do_symbolicate_event(
             cache_key=cache_key,
@@ -553,12 +548,8 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
     :param string event_id: the event identifier
     :param boolean data_has_changed: set to True if the event data was changed in previous tasks
     """
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.process_event",
-            transaction="TaskProcessEvent",
-            sampled=sample_process_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.process_event", name="TaskProcessEvent", sampled=sample_process_event_apm(),
     ):
         return _do_process_event(
             cache_key=cache_key,
@@ -578,12 +569,10 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
 def process_event_from_reprocessing(
     cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs
 ):
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.process_event_from_reprocessing",
-            transaction="TaskProcessEvent",
-            sampled=sample_process_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.process_event_from_reprocessing",
+        name="TaskProcessEvent",
+        sampled=sample_process_event_apm(),
     ):
         return _do_process_event(
             cache_key=cache_key,

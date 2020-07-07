@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from django.conf import settings
 
 from sentry_sdk import Hub
-from sentry_sdk.tracing import Span
 
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
@@ -32,8 +31,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
 
     def post(self, request):
-        with Hub.current.start_span(
-            Span(op="http.server", transaction="RelayProjectConfigsEndpoint", sampled=_sample_apm())
+        with Hub.current.start_transaction(
+            op="http.server", name="RelayProjectConfigsEndpoint", sampled=_sample_apm(),
         ):
             return self._post(request)
 

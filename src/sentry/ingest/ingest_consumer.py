@@ -115,7 +115,7 @@ def trace_func(**span_kwargs):
             span_kwargs["sampled"] = random.random() < getattr(
                 settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0
             )
-            with sentry_sdk.start_span(**span_kwargs):
+            with sentry_sdk.start_transaction(**span_kwargs):
                 return f(*args, **kwargs)
 
         return inner
@@ -123,7 +123,7 @@ def trace_func(**span_kwargs):
     return wrapper
 
 
-@trace_func(transaction="ingest_consumer.process_transactions_batch")
+@trace_func(name="ingest_consumer.process_transactions_batch")
 @metrics.wraps("ingest_consumer.process_transactions_batch")
 def process_transactions_batch(messages, projects):
     if options.get("store.transactions-celery") is True:
@@ -221,12 +221,12 @@ def _do_process_event(message, projects):
     event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
 
 
-@trace_func(transaction="ingest_consumer.process_event")
+@trace_func(name="ingest_consumer.process_event")
 def process_event(message, projects):
     return _do_process_event(message, projects)
 
 
-@trace_func(transaction="ingest_consumer.process_attachment_chunk")
+@trace_func(name="ingest_consumer.process_attachment_chunk")
 @metrics.wraps("ingest_consumer.process_attachment_chunk")
 def process_attachment_chunk(message, projects):
     payload = message["payload"]
@@ -240,7 +240,7 @@ def process_attachment_chunk(message, projects):
     )
 
 
-@trace_func(transaction="ingest_consumer.process_individual_attachment")
+@trace_func(name="ingest_consumer.process_individual_attachment")
 @metrics.wraps("ingest_consumer.process_individual_attachment")
 def process_individual_attachment(message, projects):
     event_id = message["event_id"]
@@ -296,7 +296,7 @@ def process_individual_attachment(message, projects):
     attachment.delete()
 
 
-@trace_func(transaction="ingest_consumer.process_userreport")
+@trace_func(name="ingest_consumer.process_userreport")
 @metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message, projects):
     project_id = int(message["project_id"])
