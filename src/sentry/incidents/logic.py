@@ -406,29 +406,34 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
         )
     ]
 
-    # We want to include the specific buckets for the incident start and closed times,
-    # so that there's no need to interpolate to show them on the frontend. If they're
-    # cleanly divisible by the `time_window` then there's no need to fetch, since
-    # they'll be included in the standard results anyway.
-    extra_buckets = []
-    if int(to_timestamp(incident.date_started)) % time_window:
-        extra_buckets.append(incident.date_started)
-    if incident.date_closed and int(to_timestamp(incident.date_closed)) % time_window:
-        extra_buckets.append(incident.date_closed.replace(second=0, microsecond=0))
-
     # We make extra queries to fetch these buckets
-    for bucket_start in extra_buckets:
+    def build_extra_query_params(bucket_start):
         extra_bucket_query_params = build_incident_query_params(
             incident, start=bucket_start, end=bucket_start + timedelta(seconds=time_window)
         )
         aggregations = extra_bucket_query_params.pop("aggregations")[0]
-        snuba_params.append(
-            SnubaQueryParams(
-                aggregations=[(aggregations[0], aggregations[1], "count")],
-                limit=1,
-                **extra_bucket_query_params
-            )
+        return SnubaQueryParams(
+            aggregations=[(aggregations[0], aggregations[1], "count")],
+            limit=1,
+            **extra_bucket_query_params
         )
+
+    # We want to include the specific buckets for the incident start and closed times,
+    # so that there's no need to interpolate to show them on the frontend. If they're
+    # cleanly divisible by the `time_window` then there's no need to fetch, since
+    # they'll be included in the standard results anyway.
+    start_query_params = None
+    extra_buckets = []
+    if int(to_timestamp(incident.date_started)) % time_window:
+        start_query_params = build_extra_query_params(incident.date_started)
+        snuba_params.append(start_query_params)
+        extra_buckets.append(incident.date_started)
+
+    if incident.date_closed:
+        date_closed = incident.date_closed.replace(second=0, microsecond=0)
+        if int(to_timestamp(date_closed)) % time_window:
+            snuba_params.append(build_extra_query_params(date_closed))
+            extra_buckets.append(date_closed)
 
     results = bulk_raw_query(snuba_params, referrer="incidents.get_incident_event_stats")
     # Once we receive the results, if we requested extra buckets we now need to label
@@ -438,10 +443,14 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
     merged_data = list(chain(*[r["data"] for r in results]))
     merged_data.sort(key=lambda row: row["time"])
     results[0]["data"] = merged_data
+    # When an incident has just been created it's possible for the actual incident start
+    # date to be greater than the latest bucket for the query. Get the actual end date
+    # here.
+    end_date = snuba_params[0].end
+    if start_query_params:
+        end_date = max(end_date, start_query_params.end)
 
-    return SnubaTSResult(
-        results[0], snuba_params[0].start, snuba_params[0].end, snuba_params[0].rollup
-    )
+    return SnubaTSResult(results[0], snuba_params[0].start, end_date, snuba_params[0].rollup)
 
 
 def get_incident_aggregates(
