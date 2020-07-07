@@ -43,7 +43,6 @@ __all__ = (
     "key_transaction_query",
     "timeseries_query",
     "top_events_timeseries",
-    "get_pagination_ids",
     "get_facets",
     "transform_results",
     "zerofill",
@@ -941,65 +940,6 @@ def top_events_timeseries(
 def get_id(result):
     if result:
         return result[1]
-
-
-def get_pagination_ids(event, query, params, organization, reference_event=None, referrer=None):
-    """
-    High-level API for getting pagination data for an event + filter
-
-    The provided event is used as a reference event to find events
-    that are older and newer than the current one.
-
-    event (Event) The event to find related events for.
-    query (str) Filter query string to create conditions from.
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-    reference_event (ReferenceEvent) A reference event object. Used to generate additional
-                                    conditions based on the provided reference.
-    referrer (str|None) A referrer string to help locate the origin of this query.
-    """
-    # TODO(evanh): This can be removed once we migrate the frontend / saved queries
-    # to use the new function values
-    query = transform_deprecated_functions_in_query(query)
-
-    snuba_filter = get_filter(query, params)
-
-    if reference_event:
-        ref_conditions = create_reference_event_conditions(reference_event)
-        if ref_conditions:
-            snuba_filter.conditions.extend(ref_conditions)
-
-    result = {
-        "next": eventstore.get_next_event_id(event, filter=snuba_filter),
-        "previous": eventstore.get_prev_event_id(event, filter=snuba_filter),
-        "latest": eventstore.get_latest_event_id(event, filter=snuba_filter),
-        "oldest": eventstore.get_earliest_event_id(event, filter=snuba_filter),
-    }
-
-    # translate project ids to slugs
-
-    project_ids = set([tuple[0] for tuple in result.values() if tuple])
-
-    project_slugs = {}
-    projects = Project.objects.filter(
-        id__in=list(project_ids), organization=organization, status=ProjectStatus.VISIBLE
-    ).values("id", "slug")
-
-    for project in projects:
-        project_slugs[project["id"]] = project["slug"]
-
-    def into_pagination_record(project_slug_event_id):
-
-        if not project_slug_event_id:
-            return None
-
-        project_id = int(project_slug_event_id[0])
-
-        return "{}:{}".format(project_slugs[project_id], project_slug_event_id[1])
-
-    for key, value in result.items():
-        result[key] = into_pagination_record(value)
-
-    return PaginationResult(**result)
 
 
 def get_facets(query, params, limit=10, referrer=None):
