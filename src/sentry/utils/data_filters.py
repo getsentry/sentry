@@ -43,4 +43,4 @@ class FilterTypes(object):
 
 
 def get_filter_key(flt):
-    return to_camel_case_name(flt.spec.id.replace("-", "_"))
+    return to_camel_case_name(flt.id.replace("-", "_"))
