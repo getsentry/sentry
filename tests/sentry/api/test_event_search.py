@@ -1235,6 +1235,15 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
+    def test_timestamp_filter(self):
+        _filter = get_filter("timestamp:2020-07-09T00:00:00+00:00")
+        assert _filter.conditions == [
+            ["timestamp", ">=", datetime.datetime(2020, 7, 9, 0, 0, 0, tzinfo=timezone.utc)],
+            ["timestamp", "<", datetime.datetime(2020, 7, 9, 0, 0, 1, tzinfo=timezone.utc)],
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
     def test_environment_param(self):
         params = {"environment": ["", "prod"]}
         _filter = get_filter("", params)

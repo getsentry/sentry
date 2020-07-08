@@ -291,8 +291,9 @@ class SearchVisitor(NodeVisitor):
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    def __init__(self, allow_boolean=True):
+    def __init__(self, allow_boolean=True, exact_timestamp=False):
         self.allow_boolean = allow_boolean
+        self.exact_timestamp = exact_timestamp
         super(SearchVisitor, self).__init__()
 
     @cached_property
@@ -531,7 +532,9 @@ class SearchVisitor(NodeVisitor):
             return self._handle_basic_filter(search_key, "=", SearchValue(date_value))
 
         try:
-            from_val, to_val = parse_datetime_value(date_value)
+            from_val, to_val = parse_datetime_value(
+                date_value, exact_timestamp=self.exact_timestamp
+            )
         except InvalidQuery as exc:
             raise InvalidSearchQuery(six.text_type(exc))
 
@@ -683,7 +686,7 @@ class SearchVisitor(NodeVisitor):
         return children or node
 
 
-def parse_search_query(query, allow_boolean=True):
+def parse_search_query(query, allow_boolean=True, exact_timestamp=False):
     try:
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
@@ -696,7 +699,7 @@ def parse_search_query(query, allow_boolean=True):
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-    return SearchVisitor(allow_boolean).visit(tree)
+    return SearchVisitor(allow_boolean, exact_timestamp).visit(tree)
 
 
 def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
@@ -845,7 +848,7 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query, allow_boolean=False)
+            parsed_terms = parse_search_query(query, allow_boolean=False, exact_timestamp=True)
         except ParseError as e:
             raise InvalidSearchQuery(
                 u"Parse error: {} (column {:d})".format(e.expr.name, e.column())
