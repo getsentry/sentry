@@ -58,7 +58,7 @@ def translate(pat):
             res += re.escape(pat[i])
             i += 1
         elif c == "*":
-            res = res + ".*"
+            res += ".*"
         # TODO: We're disabling everything except for wildcard matching for the
         # moment. Just commenting this code out for the moment, since there's a
         # reasonable chance we'll add this back in in the future.
@@ -82,8 +82,13 @@ def translate(pat):
         #         elif stuff[0] == '^':
         #             stuff = '\\' + stuff
         #         res = '%s[%s]' % (res, stuff)
+        # In py3.7 only characters that can have special meaning in a regular expression are escaped
+        # introduced that here so we don't escape those either
+        # https://github.com/python/cpython/blob/3.7/Lib/re.py#L252
+        elif c in "()[]?*+-|^$\\.&~# \t\n\r\v\f":
+            res += re.escape(c)
         else:
-            res = res + re.escape(c)
+            res += c
     return "^" + res + "$"
 
 

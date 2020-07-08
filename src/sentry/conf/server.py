@@ -800,7 +800,7 @@ SENTRY_FEATURES = {
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
     # Move release artifacts to settings.
-    "organizations:artifacts-in-settings": False,
+    "organizations:artifacts-in-settings": True,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -840,8 +840,6 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable incidents performance feature
-    "organizations:incidents-performance": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,

@@ -1,5 +1,4 @@
 import React from 'react';
-import toJson from 'enzyme-to-json';
 
 import {shallow} from 'sentry-test/enzyme';
 
@@ -13,7 +12,7 @@ describe('SpreadLayout', function() {
       </SpreadLayout>
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders with multiple children', function() {
@@ -24,6 +23,6 @@ describe('SpreadLayout', function() {
       </SpreadLayout>
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 });

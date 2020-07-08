@@ -208,9 +208,9 @@ class BaseApiClient(object):
             tags={self.integration_type: self.name},
         )
 
-        with sentry_sdk.start_span(
+        with sentry_sdk.start_transaction(
             op=u"{}.http".format(self.integration_type),
-            transaction=u"{}.http_response.{}".format(self.integration_type, self.name),
+            name=u"{}.http_response.{}".format(self.integration_type, self.name),
         ) as span:
             try:
                 resp = getattr(session, method.lower())(

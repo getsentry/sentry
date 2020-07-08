@@ -61,7 +61,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.GET,
             "https://api.vercel.com/v4/projects/%s" % team_query,
-            json={"projects": []},
+            json={"projects": [], "pagination": {"count": 0}},
         )
 
         responses.add(

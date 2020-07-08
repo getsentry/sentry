@@ -1,17 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {action} from '@storybook/addon-actions';
+import {number, boolean} from '@storybook/addon-knobs';
+import {storiesOf} from '@storybook/react';
+import {withInfo} from '@storybook/addon-info';
 
+import {Panel} from 'app/components/panels';
 import {
   Form as LegacyForm,
   TextField as LegacyTextField,
   PasswordField,
   BooleanField,
 } from 'app/components/forms';
-import {Panel} from 'app/components/panels';
-import {action} from '@storybook/addon-actions';
-import {number, boolean} from '@storybook/addon-knobs';
-import {storiesOf} from '@storybook/react';
-import {withInfo} from '@storybook/addon-info';
 import DatePickerField from 'app/views/settings/components/forms/datePickerField';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
@@ -46,7 +46,10 @@ UndoButton.contextTypes = {
 
 // eslint-disable-next-line
 storiesOf('Forms|Old/Form', module)
-  .add('empty', withInfo('Empty form')(() => <LegacyForm onSubmit={action('submit')} />))
+  .add(
+    'empty',
+    withInfo('Empty form')(() => <LegacyForm onSubmit={action('submit')} />)
+  )
   .add(
     'with Cancel',
     withInfo('Adds a "Cancel" button when `onCancel` is defined')(() => (
@@ -152,6 +155,7 @@ storiesOf('Forms|Old/Fields', module)
     })(() => (
       <LegacyForm>
         <BooleanField name="field" />
+        <BooleanField name="disabled-field" disabled disabledReason="This is off." />
       </LegacyForm>
     ))
   );

@@ -3,19 +3,24 @@ import {motion, AnimatePresence} from 'framer-motion';
 import styled from '@emotion/styled';
 
 import {analytics} from 'app/utils/analytics';
-import {stepPropTypes} from 'app/views/onboarding/onboarding';
 import {t} from 'app/locale';
 import HookOrDefault from 'app/components/hookOrDefault';
-import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
 import testableTransition from 'app/utils/testableTransition';
+import {Organization} from 'app/types';
 
+import {StepProps} from '../types';
 import InviteMembers from './inviteMembers';
 import LearnMore from './learnMore';
 import ProjectDocs from './projectDocs';
 import SetupChoices from './setupChoices';
 
-const recordAnalyticsOptionSelected = ({organization, choice}) =>
+type AnalyticsOpts = {
+  organization: Organization;
+  choice: string;
+};
+
+const recordAnalyticsOptionSelected = ({organization, choice}: AnalyticsOpts) =>
   analytics('onboarding_v2.setup_choice_selected', {
     org_id: parseInt(organization.id, 10),
     choice,
@@ -28,7 +33,13 @@ const InviteMembersComponent = HookOrDefault({
   defaultComponent: InviteMembers,
 });
 
-const SETUP_CHOICES = [
+export type SetupDescriptor = {
+  id: string;
+  title: string;
+  component: React.ComponentType<StepProps>;
+};
+
+const SETUP_CHOICES: SetupDescriptor[] = [
   {
     id: 'install-guide',
     title: t('Installation Guide'),
@@ -48,17 +59,20 @@ const SETUP_CHOICES = [
 
 const DEFAULT_SETUP_OPTION = 'install-guide';
 
-class OnboardingProjectSetup extends React.Component {
-  static propTypes = {
-    ...stepPropTypes,
-    organization: SentryTypes.Organization,
-  };
+type Props = StepProps & {
+  organization: Organization;
+};
 
-  state = {
+type State = {
+  selectedChoice: string;
+};
+
+class OnboardingProjectSetup extends React.Component<Props, State> {
+  state: State = {
     selectedChoice: DEFAULT_SETUP_OPTION,
   };
 
-  handleSelect = id => {
+  handleSelect = (id: string) => {
     const {organization} = this.props;
     this.setState({selectedChoice: id});
     recordAnalyticsOptionSelected({organization, choice: id});
@@ -66,7 +80,7 @@ class OnboardingProjectSetup extends React.Component {
 
   render() {
     const {selectedChoice} = this.state;
-    const SelectedComponent = SETUP_CHOICES.find(item => item.id === selectedChoice)
+    const SelectedComponent = SETUP_CHOICES.find(item => item.id === selectedChoice)!
       .component;
 
     return (

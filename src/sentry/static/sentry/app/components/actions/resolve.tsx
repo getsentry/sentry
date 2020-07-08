@@ -237,8 +237,6 @@ class ResolveActions extends React.Component<Props, State> {
 }
 
 const StyledIconCheckmark = styled(IconCheckmark)`
-  position: relative;
-  top: 1px;
   margin-right: ${space(0.5)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;

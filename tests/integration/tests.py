@@ -488,10 +488,10 @@ class SentryWsgiRemoteTest(TransactionTestCase):
 
         def new_disable_transaction_events():
             with configure_scope() as scope:
-                assert scope.span.sampled
-                assert scope.span.transaction
+                assert scope.transaction
+                assert scope.transaction.sampled
                 disable_transaction_events()
-                assert not scope.span.sampled
+                assert not scope.transaction.sampled
 
             calls.append(1)
 
