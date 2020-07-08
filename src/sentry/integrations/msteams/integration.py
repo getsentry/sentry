@@ -41,7 +41,7 @@ FEATURES = [
 INSTALL_NOTICE_TEXT = "INSTALL TEXT"
 
 external_install = {
-    "url": u"https://google.com",
+    "url": u"https://google.com",  # TODO: set correct URL
     "buttonText": _("Teams Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }
@@ -77,7 +77,6 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         team_id = state[self.key]["team_id"]
         client = MsTeamsClient()
-        # TODO: might need to update for member installation
         team = client.get_team_info(team_id)
         # TODO: actually store token stuff :)
         integration = {
@@ -90,8 +89,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
 
 class MsTeamsPipelineView(PipelineView):
     """
-        This pipeline step handles
-
+    This pipeline step just binds the team ID for now
     """
 
     def dispatch(self, request, pipeline):
