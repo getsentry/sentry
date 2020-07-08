@@ -493,18 +493,14 @@ def send_incident_alert_notification(action, incident, metric_value):
         logger.info("rule.fail.slack_post", extra={"error": six.text_type(e)})
 
 
-def getIdentity(request, params):
+def get_identity(user, organization_id, integration_id):
     try:
-        organization = Organization.objects.get(
-            id__in=request.user.get_orgs(), id=params["organization_id"]
-        )
+        organization = Organization.objects.get(id__in=user.get_orgs(), id=organization_id)
     except Organization.DoesNotExist:
         raise Http404
 
     try:
-        integration = Integration.objects.get(
-            id=params["integration_id"], organizations=organization
-        )
+        integration = Integration.objects.get(id=integration_id, organizations=organization)
     except Integration.DoesNotExist:
         raise Http404
 

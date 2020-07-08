@@ -50,7 +50,7 @@ class SlackActionEndpoint(Endpoint):
         logger.info("slack.action.api-error", extra=logging_data)
 
         return self.respond(
-            {"response_type": "ephemeral", "replace_original": False, "text": error_text,}
+            {"response_type": "ephemeral", "replace_original": False, "text": error_text}
         )
 
     def on_assign(self, request, identity, group, action):
@@ -226,13 +226,11 @@ class SlackActionEndpoint(Endpoint):
                 self.on_status(request, identity, group, action, data, integration)
             except client.ApiError as e:
 
-                unlinking_url = build_unlinking_url(
-                    integration.id, group.organization.id, user_id, channel_id, response_url
-                )
-
                 if e.status_code == 403:
                     text = UNLINK_IDENTITY_MESSAGE.format(
-                        associate_url=unlinking_url,
+                        associate_url=build_unlinking_url(
+                            integration.id, group.organization.id, user_id, channel_id, response_url
+                        ),
                         user_email=identity.user,
                         org_name=group.organization.name,
                     )
@@ -280,13 +278,11 @@ class SlackActionEndpoint(Endpoint):
                     defer_attachment_update = True
         except client.ApiError as e:
 
-            unlinking_url = build_unlinking_url(
-                integration.id, group.organization.id, user_id, channel_id, response_url
-            )
-
             if e.status_code == 403:
                 text = UNLINK_IDENTITY_MESSAGE.format(
-                    associate_url=unlinking_url,
+                    associate_url=build_unlinking_url(
+                        integration.id, group.organization.id, user_id, channel_id, response_url
+                    ),
                     user_email=identity.user,
                     org_name=group.organization.name,
                 )

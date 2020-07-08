@@ -16,7 +16,7 @@ from sentry.web.helpers import render_to_response
 from sentry.shared_integrations.exceptions import ApiError
 
 from .client import SlackClient
-from .utils import logger, getIdentity
+from .utils import logger, get_identity
 
 
 def build_linking_url(integration, organization, slack_id, channel_id, response_url):
@@ -39,7 +39,9 @@ class SlackLinkIdentityView(BaseView):
     def handle(self, request, signed_params):
         params = unsign(signed_params.encode("ascii", errors="ignore"))
 
-        organization, integration, idp = getIdentity(request, params)
+        organization, integration, idp = get_identity(
+            request.user, params["organization_id"], params["integration_id"]
+        )
 
         if request.method != "POST":
             return render_to_response(
