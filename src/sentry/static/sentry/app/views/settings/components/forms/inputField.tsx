@@ -14,7 +14,7 @@ type Props = {
     'value' | 'placeholder' | 'disabled' | 'onBlur'
   >;
 
-export type onEvent = (value: any, event?: React.FormEvent<HTMLInputElement>) => void;
+export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
 export default class InputField extends React.Component<Props> {
   static propTypes = {

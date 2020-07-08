@@ -40,7 +40,7 @@ export default function DatePickerField(props: Props) {
         return (
           <DropdownMenu keepMenuOpen>
             {({isOpen, getRootProps, getActorProps, getMenuProps, actions}) => (
-              <DatePickerWrapper {...getRootProps()}>
+              <div {...getRootProps()}>
                 <InputWrapper id={id} {...getActorProps()} isOpen={isOpen}>
                   <StyledInput readOnly value={dateString} />
                   <CalendarIcon>
@@ -59,7 +59,7 @@ export default function DatePickerField(props: Props) {
                     />
                   </CalendarMenu>
                 )}
-              </DatePickerWrapper>
+              </div>
             )}
           </DropdownMenu>
         );
@@ -72,7 +72,6 @@ type InputWrapperProps = {
   isOpen: boolean;
 };
 
-const DatePickerWrapper = styled('div')``;
 const InputWrapper = styled('div')<InputWrapperProps>`
   ${inputStyles}
   cursor: text;
@@ -89,7 +88,7 @@ const StyledInput = styled('input')`
 
 const CalendarMenu = styled('div')`
   display: flex;
-  background: white;
+  background: ${p => p.theme.white};
   position: absolute;
   left: 0;
   border: 1px solid ${p => p.theme.borderDark};

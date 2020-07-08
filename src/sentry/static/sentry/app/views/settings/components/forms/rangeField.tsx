@@ -19,7 +19,7 @@ type Props = DefaultProps &
 
 function onChange(
   fieldOnChange: onEvent,
-  value: number,
+  value: number | '',
   e: React.FormEvent<HTMLInputElement>
 ) {
   fieldOnChange(value, e);
