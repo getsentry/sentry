@@ -151,6 +151,7 @@ export type AvatarProject = {
 
 export type Project = {
   id: string;
+  dateCreated: string;
   isMember: boolean;
   teams: Team[];
   features: string[];
@@ -164,6 +165,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
+  relayPiiConfig: string;
   builtinSymbolSources?: string[];
 } & AvatarProject;
 
@@ -1321,3 +1323,26 @@ export type Widget = {
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
+
+export type PlatformType = 'java' | 'csharp' | 'other';
+
+export type Frame = {
+  filename: string;
+  module: string;
+  map: string;
+  preventCollapse: () => void;
+  errors: Array<any>;
+  context: Array<[number, string]>;
+  vars: {[key: string]: any};
+  inApp: boolean;
+  function?: string;
+  absPath?: string;
+  rawFunction?: string;
+  platform: PlatformType;
+  lineNo?: number;
+  colNo?: number;
+  package?: string;
+  origAbsPath?: string;
+  mapUrl?: string;
+  instructionAddr?: string;
+};

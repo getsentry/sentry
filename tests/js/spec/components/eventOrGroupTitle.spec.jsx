@@ -1,5 +1,4 @@
 import React from 'react';
-import toJson from 'enzyme-to-json';
 
 import {shallow} from 'sentry-test/enzyme';
 
@@ -28,7 +27,7 @@ describe('EventOrGroupTitle', function() {
       />
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders with subtitle when `type = csp`', function() {
@@ -43,7 +42,7 @@ describe('EventOrGroupTitle', function() {
       />
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders with no subtitle when `type = default`', function() {
@@ -58,6 +57,6 @@ describe('EventOrGroupTitle', function() {
       />
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 });

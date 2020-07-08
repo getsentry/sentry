@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from django.conf import settings
 
 from sentry_sdk import Hub
-from sentry_sdk.tracing import Span
 
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
@@ -32,8 +31,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
 
     def post(self, request):
-        with Hub.current.start_span(
-            Span(op="http.server", transaction="RelayProjectConfigsEndpoint", sampled=_sample_apm())
+        with Hub.current.start_transaction(
+            op="http.server", name="RelayProjectConfigsEndpoint", sampled=_sample_apm(),
         ):
             return self._post(request)
 
@@ -64,9 +63,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
                     orgs = {o.id: o for o in orgs if request.relay.has_org_access(o)}
             else:
                 orgs = {}
-            org_options = {
-                i: OrganizationOption.objects.get_all_values(i) for i in six.iterkeys(orgs)
-            }
+
+            with metrics.timer("relay_project_configs.fetching_org_options.duration"):
+                for org_id in six.iterkeys(orgs):
+                    OrganizationOption.objects.get_all_values(org_id)
 
         with Hub.current.start_span(op="relay_fetch_keys"):
             project_keys = {}
@@ -97,7 +97,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
                         project,
-                        org_options=org_options.get(organization.id) or {},
                         full_config=full_config_requested,
                         project_keys=project_keys.get(project.id) or [],
                     )

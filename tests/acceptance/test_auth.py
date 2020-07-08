@@ -15,6 +15,9 @@ class AuthTest(AcceptanceTestCase):
         self.browser.snapshot(name="login")
 
     def test_no_credentials(self):
+        self.browser.driver.execute_script(
+            "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
+        )
         self.enter_auth("", "")
         self.browser.snapshot(name="login fields required")
 

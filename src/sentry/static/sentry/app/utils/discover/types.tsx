@@ -1,6 +1,8 @@
 import {t} from 'app/locale';
 import {SelectValue} from 'app/types';
 
+export const TOP_N = 5;
+
 export enum DisplayModes {
   DEFAULT = 'default',
   PREVIOUS = 'previous',

@@ -51,7 +51,6 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.path = u"/organizations/{}/discover/".format(self.org.slug)
-        self.dismiss_assistant("discover_sidebar")
 
     def test_no_access(self):
         self.browser.get(self.path)

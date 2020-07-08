@@ -13,7 +13,7 @@ FOREVER_CACHE = "max-age=315360000"
 NEVER_CACHE = "max-age=0, no-cache, no-store, must-revalidate"
 
 
-def dev_favicon(request):
+def dev_favicon(request, extension):
     document_root, path = resolve("sentry/images/favicon_dev.png")
     return static.serve(request, path, document_root=document_root)
 
