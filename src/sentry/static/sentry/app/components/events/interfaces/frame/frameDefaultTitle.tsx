@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Meta} from 'app/types';
+import {Frame, PlatformType, Meta} from 'app/types';
 import {defined, isUrl} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
@@ -15,7 +15,6 @@ import space from 'app/styles/space';
 import FrameFunctionName from './frameFunctionName';
 import {getPlatform, trimPackage} from './utils';
 import FrameDefaultTitleOriginalSourceInfo from './frameDefaultTitleOriginalSourceInfo';
-import {Frame, PlatformType} from './types';
 
 type Props = {
   frame: Frame;
