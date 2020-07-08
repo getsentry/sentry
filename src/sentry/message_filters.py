@@ -80,7 +80,7 @@ def get_filter_state(filter_id, project):
         raise FilterNotRegistered(filter_id)
 
     filter_state = ProjectOption.objects.get_value(
-        project=project, key=u"filters:{}".format(flt.spec.id)
+        project=project, key=u"filters:{}".format(flt.id)
     )
 
     if filter_state is None:
