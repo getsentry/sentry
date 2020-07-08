@@ -60,9 +60,7 @@ assert (
 
 model_backends = {
     # model: (read, write)
-    model: ("redis", "redis")
-    if model not in SnubaTSDB.non_outcomes_query_settings
-    else ("snuba", "dummy")
+    model: ("redis", "redis") if model not in SnubaTSDB.model_query_settings else ("snuba", "dummy")
     for model in BaseTSDB.models
 }
 
@@ -106,9 +104,9 @@ class RedisSnubaTSDBMeta(type):
 class RedisSnubaTSDB(BaseTSDB):
     def __init__(self, switchover_timestamp=None, **options):
         """
-        A TSDB backend that uses the Snuba outcomes dataset for certain models
-        instead of reading/writing to redis. Reading will trigger a Snuba
-        query, while writing is a noop as Snuba reads from outcomes.
+        A TSDB backend that uses the Snuba outcomes and events datasets as far
+        as possible instead of reading/writing to redis. Reading will trigger a
+        Snuba query, while writing is a noop as Snuba reads from outcomes.
 
         Note: Using this backend requires you to start Snuba outcomes consumers
         (not to be confused with the outcomes consumers in Sentry itself).

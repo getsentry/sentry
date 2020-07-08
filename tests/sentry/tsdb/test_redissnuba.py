@@ -18,10 +18,12 @@ def get_callargs(model):
 
 
 def test_redissnuba_connects_to_correct_backend():
-    should_resolve_to_redis = set(list(TSDBModel)) - set(
-        SnubaTSDB.non_outcomes_query_settings.keys()
-    )
-    should_resolve_to_snuba = SnubaTSDB.non_outcomes_query_settings.keys()
+    should_resolve_to_redis = set(list(TSDBModel)) - set(SnubaTSDB.model_query_settings.keys())
+    should_resolve_to_snuba = set(SnubaTSDB.model_query_settings.keys())
+
+    # Assert redissnuba routes outcomes-based tsdb metrics to snuba
+    assert TSDBModel.project_total_received in should_resolve_to_snuba
+    assert TSDBModel.organization_total_received in should_resolve_to_snuba
 
     methods = set(method_specifications.keys()) - set(["flush"])
 
