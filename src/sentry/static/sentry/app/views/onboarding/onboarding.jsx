@@ -1,4 +1,3 @@
-/* global process */
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
@@ -7,6 +6,7 @@ import {motion, AnimatePresence} from 'framer-motion';
 import scrollToElement from 'scroll-to-element';
 import styled from '@emotion/styled';
 
+import {IS_CI} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import Hook from 'app/components/hook';
@@ -134,7 +134,8 @@ class Onboarding extends React.Component {
     const step = this.activeStep;
     scrollToElement(`#onboarding_step_${step.id}`, {
       align: 'middle',
-      duration: process.env.IS_CI ? 0 : 300,
+      // Disable animations in CI - must be < 0 to disable
+      duration: IS_CI ? -1 : 300,
     });
   };
 

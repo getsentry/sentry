@@ -712,11 +712,7 @@ LOGGING = {
     "handlers": {
         "null": {"class": "logging.NullHandler"},
         "console": {"class": "sentry.logging.handlers.StructLogHandler"},
-        "internal": {
-            "level": "ERROR",
-            "filters": ["sentry:internal"],
-            "class": "sentry_sdk.integrations.logging.EventHandler",
-        },
+        "internal": {"level": "ERROR", "class": "sentry_sdk.integrations.logging.EventHandler"},
         "metrics": {
             "level": "WARNING",
             "filters": ["important_django_request"],
@@ -724,12 +720,11 @@ LOGGING = {
         },
         "django_internal": {
             "level": "WARNING",
-            "filters": ["sentry:internal", "important_django_request"],
+            "filters": ["important_django_request"],
             "class": "sentry_sdk.integrations.logging.EventHandler",
         },
     },
     "filters": {
-        "sentry:internal": {"()": "sentry.utils.sdk.SentryInternalFilter"},
         "important_django_request": {
             "()": "sentry.logging.handlers.MessageContainsFilter",
             "contains": ["CSRF"],
@@ -805,7 +800,7 @@ SENTRY_FEATURES = {
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
     # Move release artifacts to settings.
-    "organizations:artifacts-in-settings": False,
+    "organizations:artifacts-in-settings": True,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -845,8 +840,6 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable incidents performance feature
-    "organizations:incidents-performance": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,

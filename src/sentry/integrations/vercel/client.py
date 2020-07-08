@@ -1,7 +1,11 @@
 from __future__ import absolute_import
 
+import logging
+
 from sentry.integrations.client import ApiClient
 from sentry.utils.http import absolute_uri
+
+logger = logging.getLogger("sentry.integrations.vercel.api")
 
 
 class VercelClient(ApiClient):
@@ -11,25 +15,28 @@ class VercelClient(ApiClient):
 
     TEAMS_URL = "/v1/teams/%s"
     USER_URL = "/www/user"
+    PROJECT_URL = "/v1/projects/%s"
     PROJECTS_URL = "/v4/projects/"
     WEBHOOK_URL = "/v1/integrations/webhooks"
     ENV_VAR_URL = "/v4/projects/%s/env"
     GET_ENV_VAR_URL = "/v5/projects/%s/env"
     SECRETS_URL = "/v2/now/secrets"
-    GET_SECRET_URL = "/v3/now/secrets/%s"
+    DELETE_ENV_VAR_URL = "/v4/projects/%s/env/%s"
 
     def __init__(self, access_token, team_id=None):
         super(VercelClient, self).__init__()
         self.access_token = access_token
         self.team_id = team_id
 
-    def request(self, method, path, data=None, params=None):
+    def request(self, method, path, data=None, params=None, allow_text=False):
         if self.team_id:
             # always need to use the team_id as a param for requests
             params = params or {}
             params["teamId"] = self.team_id
         headers = {"Authorization": u"Bearer {}".format(self.access_token)}
-        return self._request(method, path, headers=headers, data=data, params=params)
+        return self._request(
+            method, path, headers=headers, data=data, params=params, allow_text=allow_text
+        )
 
     def get_team(self):
         assert self.team_id
@@ -39,8 +46,25 @@ class VercelClient(ApiClient):
         return self.get_cached(self.USER_URL)["user"]
 
     def get_projects(self):
-        # TODO: we will need pagination since we are limited to 20
-        return self.get(self.PROJECTS_URL)["projects"]
+        limit = 20
+        params = {"limit": limit}
+        projects = []
+        # no one should have more than 200 projects
+        for i in range(10):
+            resp = self.get(self.PROJECTS_URL, params=params)
+            projects += resp["projects"]
+            # if we have less projects than the limit, we are done
+            if resp["pagination"]["count"] < limit:
+                return projects
+            # continue pagination but increment next by 1
+            params = params.copy()
+            params["since"] = resp["pagination"]["next"] + 1
+        # log the warning if this happens so we can look into solutions
+        logger.warn("Did not finish project pagination", extra={"team_id": self.team_id})
+        return projects
+
+    def get_source_code_provider(self, vercel_project_id):
+        return self.get(self.PROJECT_URL % vercel_project_id)["link"]["type"]
 
     def create_deploy_webhook(self):
         data = {
@@ -54,9 +78,6 @@ class VercelClient(ApiClient):
     def get_env_vars(self, vercel_project_id):
         return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
 
-    def get_secret(self, name):
-        return self.get(self.GET_SECRET_URL % name.lower())["uid"]
-
     def create_secret(self, vercel_project_id, name, value):
         data = {"name": name, "value": value}
         response = self.post(self.SECRETS_URL, data=data)["uid"]
@@ -66,3 +87,11 @@ class VercelClient(ApiClient):
         data = {"key": key, "value": value, "target": "production"}
         response = self.post(self.ENV_VAR_URL % vercel_project_id, data=data)
         return response
+
+    def update_env_variable(self, vercel_project_id, key, value):
+        self.delete(
+            self.DELETE_ENV_VAR_URL % (vercel_project_id, key),
+            allow_text=True,
+            params={"target": "production"},
+        )
+        return self.create_env_variable(vercel_project_id, key, value)

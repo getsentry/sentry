@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
 
 import {Thread} from 'app/types/events';
 import {Event, EntryTypeData} from 'app/types';
@@ -50,7 +51,12 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     };
   };
 
-  const handleOnChange = ({thread}) => {
+  const getItems = () => {
+    const [crashed, notCrashed] = partition(threads, thread => !!thread?.crashed);
+    return [...crashed, ...notCrashed].map(getDropDownItem);
+  };
+
+  const handleOnChange = ({thread}: {thread: Thread}) => {
     if (onChange) {
       onChange(thread);
     }
@@ -58,7 +64,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
 
   return (
     <StyledDropdownAutoComplete
-      items={threads.map(getDropDownItem)}
+      items={getItems()}
       onSelect={handleOnChange}
       align="left"
       alignMenu="left"
