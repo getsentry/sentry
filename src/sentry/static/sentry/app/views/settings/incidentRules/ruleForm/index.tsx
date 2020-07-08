@@ -324,18 +324,26 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       return;
     }
 
-    const {organization, params, rule, onSubmitSuccess} = this.props;
+    const {organization, params, rule, onSubmitSuccess, location} = this.props;
     const {ruleId} = this.props.params;
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     try {
       addLoadingMessage();
-      const resp = await addOrUpdateRule(this.api, organization.slug, params.projectId, {
-        ...rule,
-        ...model.getTransformedData(),
-        triggers: this.state.triggers.map(sanitizeTrigger),
-      });
+      const resp = await addOrUpdateRule(
+        this.api,
+        organization.slug,
+        params.projectId,
+        {
+          ...rule,
+          ...model.getTransformedData(),
+          triggers: this.state.triggers.map(sanitizeTrigger),
+        },
+        {
+          referrer: location?.query?.referrer,
+        }
+      );
       addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
       if (onSubmitSuccess) {
         onSubmitSuccess(resp, model);

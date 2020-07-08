@@ -4,7 +4,6 @@ from copy import deepcopy
 
 from rest_framework import status
 from rest_framework.response import Response
-from six.moves.urllib.parse import urlparse, parse_qs
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
@@ -70,11 +69,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
         if serializer.is_valid():
             alert_rule = serializer.save()
-            # Parse referrer query param from referer http header
-            referer = request.META.get("HTTP_REFERER")
-            urlparts = urlparse(referer)
-            qs = parse_qs(urlparts.query)
-            referrer = qs.get("referrer")[0] if len(qs.get("referrer", [])) > 0 else None
+            referrer = request.query_params.get("referrer")
             alert_rule_created.send_robust(
                 user=request.user,
                 project=project,
