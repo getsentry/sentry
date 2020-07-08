@@ -16,7 +16,7 @@ import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import InlineSvg from 'app/components/inlineSvg';
-import {combineStatus} from 'app/components/events/interfaces/debugmeta';
+import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
 import {IconRefresh, IconAdd, IconSubtract} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 

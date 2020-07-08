@@ -1,7 +1,7 @@
 import React from 'react';
 import {css} from '@emotion/core';
 
-import {SentryAppComponent} from 'app/types';
+import {Frame, SentryAppComponent} from 'app/types';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
 import ClippedBox from 'app/components/clippedBox';
@@ -12,8 +12,6 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
 import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
-
-import {Frame} from './types';
 
 type Props = {
   frame: Frame;

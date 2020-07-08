@@ -2,11 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
-import {Meta} from 'app/types';
+import {Meta, Frame} from 'app/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-
-import {Frame} from './types';
 
 type Props = {
   frame: Frame;

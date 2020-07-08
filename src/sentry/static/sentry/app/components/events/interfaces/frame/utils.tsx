@@ -1,4 +1,4 @@
-import {PlatformType} from './types';
+import {PlatformType} from 'app/types';
 
 export function trimPackage(pkg: string) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');

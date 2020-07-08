@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
 import FrameFunctionName from 'app/components/events/interfaces/frame/frameFunctionName';
-import {Frame} from 'app/components/events/interfaces/frame/types';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {Frame} from 'app/types';
 
 type Props = {
   frame: Frame;

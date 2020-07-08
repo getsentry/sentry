@@ -1,4 +1,4 @@
-import {Frame} from 'app/components/events/interfaces/frame/types';
+import {Frame} from 'app/types';
 
 export type StackViewType = 'app' | 'full' | 'raw';
 

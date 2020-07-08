@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {PlatformType} from 'app/components/events/interfaces/frame/types';
 import {defined} from 'app/utils';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {Panel} from 'app/components/panels';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SentryTypes from 'app/sentryTypes';
 import {Stacktrace, StackViewType} from 'app/types/stacktrace';
+import {PlatformType} from 'app/types';
 
 type Props = {
   stackView: StackViewType;
