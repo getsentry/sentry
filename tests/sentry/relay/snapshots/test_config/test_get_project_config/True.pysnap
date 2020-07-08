@@ -1,5 +1,5 @@
 ---
-created: '2020-03-03T15:00:38.166505Z'
+created: '2020-07-08T19:22:25.717243Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -76,7 +76,7 @@ config:
     localhost:
       isEnabled: false
     webCrawlers:
-      isEnabled: true
+      isEnabled: false
   groupingConfig:
     enhancements: eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY
     id: newstyle:2019-10-29

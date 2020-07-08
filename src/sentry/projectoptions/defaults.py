@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 5
+LATEST_EPOCH = 6
 
 # grouping related configs
 #
@@ -53,7 +53,7 @@ register(
 register(key="filters:legacy-browsers", epoch_defaults={1: "0"})
 
 # Default legacy-browsers filter
-register(key="filters:web-crawlers", epoch_defaults={1: "1"})
+register(key="filters:web-crawlers", epoch_defaults={1: "1", 6: "0"})
 
 # Default legacy-browsers filter
 register(key="filters:browser-extensions", epoch_defaults={1: "0"})
