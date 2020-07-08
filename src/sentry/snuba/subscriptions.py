@@ -143,7 +143,7 @@ def update_snuba_subscription(subscription, old_dataset):
     return subscription
 
 
-def bulk_delete_snuba_subscriptions(subscriptions, disable_subscription=False):
+def bulk_delete_snuba_subscriptions(subscriptions):
     """
     Deletes a list of snuba query subscriptions.
     :param subscriptions: The subscriptions to delete
@@ -151,19 +151,40 @@ def bulk_delete_snuba_subscriptions(subscriptions, disable_subscription=False):
     """
     for subscription in subscriptions:
         # TODO: Batch this up properly once we care about multi-project rules.
-        delete_snuba_subscription(subscription, disable_subscription)
+        delete_snuba_subscription(subscription)
 
 
-def delete_snuba_subscription(subscription, disable_subscription=False):
+def delete_snuba_subscription(subscription):
     """
     Deletes a subscription to a snuba query.
     :param subscription: The subscription to delete
     :return:
     """
-    if disable_subscription:
-        subscription.update(status=QuerySubscription.Status.DISABLED.value)
-    else:
-        subscription.update(status=QuerySubscription.Status.DELETING.value)
+    subscription.update(status=QuerySubscription.Status.DELETING.value)
+
+    delete_subscription_from_snuba.apply_async(
+        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    )
+
+
+def bulk_disable_snuba_subscriptions(subscriptions):
+    """
+    Disables a list of snuba query subscriptions.
+    :param subscriptions: The subscriptions to disable
+    :return:
+    """
+    for subscription in subscriptions:
+        # TODO: Batch this up properly once we care about multi-project rules.
+        disable_snuba_subscription(subscription)
+
+
+def disable_snuba_subscription(subscription):
+    """
+    Disables a subscription to a snuba query.
+    :param subscription: The subscription to disable
+    :return:
+    """
+    subscription.update(status=QuerySubscription.Status.DISABLED.value)
 
     delete_subscription_from_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
