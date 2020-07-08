@@ -99,10 +99,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {event} = this.state;
 
     if (!event) {
-      return this.renderWrapper(<NotFound />);
+      return <NotFound />;
     }
 
-    return this.renderWrapper(this.renderContent(event));
+    return this.renderContent(event);
   }
 
   renderContent(event: Event) {
@@ -192,22 +192,18 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
 
     if (notFound) {
-      return this.renderWrapper(<NotFound />);
+      return <NotFound />;
     }
     if (permissionDenied) {
-      return this.renderWrapper(
+      return (
         <LoadingError message={t('You do not have permission to view that event.')} />
       );
     }
 
-    return this.renderWrapper(super.renderError(error, true, true));
+    return super.renderError(error, true, true);
   }
 
-  renderLoading() {
-    return this.renderWrapper(super.renderLoading());
-  }
-
-  renderWrapper(children: React.ReactNode) {
+  renderComponent() {
     const {organization} = this.props;
 
     return (
@@ -215,7 +211,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         title={t('Performance - Event Details')}
         objSlug={organization.slug}
       >
-        <React.Fragment>{children}</React.Fragment>
+        {super.renderComponent()}
       </SentryDocumentTitle>
     );
   }
