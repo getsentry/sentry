@@ -331,7 +331,18 @@ function generateAdditionalConditions(
     // match their name.
     if (dataRow.hasOwnProperty(dataKey)) {
       const value = dataRow[dataKey];
-      const nextValue = value === null || value === undefined ? '' : String(value).trim();
+      // if the value will be quoted, then do not trim it as the whitespaces
+      // may be important to the query and should not be trimmed
+      const shouldQuote =
+        value === null || value === undefined
+          ? false
+          : /[\s\(\)\\"]/g.test(String(value).trim());
+      const nextValue =
+        value === null || value === undefined
+          ? ''
+          : shouldQuote
+          ? String(value)
+          : String(value).trim();
 
       switch (column.field) {
         case 'timestamp':
