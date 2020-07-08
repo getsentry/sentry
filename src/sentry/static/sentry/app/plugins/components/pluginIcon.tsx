@@ -6,6 +6,7 @@ import sentry from 'app/../images/logos/logo-sentry.svg';
 import amixr from 'app/../images/logos/logo-amixr.svg';
 import asana from 'app/../images/logos/logo-asana.svg';
 import asayer from 'app/../images/logos/logo-asayer.svg';
+import aws from 'app/../images/logos/logo-aws.svg';
 import bitbucket from 'app/../images/logos/logo-bitbucket.svg';
 import bitbucketserver from 'app/../images/logos/logo-bitbucket-server.svg';
 import campfire from 'app/../images/logos/logo-campfire.svg';
@@ -57,6 +58,7 @@ export const ICON_PATHS = {
   urls: sentry,
   webhooks: sentry,
 
+  'amazon-sqs': aws,
   amixr,
   asana,
   asayer,
@@ -114,8 +116,6 @@ const PluginIcon = styled('div')<Props>`
   width: ${p => p.size}px;
   border-radius: 2px;
   border: 0;
-  /* this is so that there aren't gray boxes before load */
-  background-color: #fff;
   display: inline-block;
   background-size: contain;
   background-position: center center;
