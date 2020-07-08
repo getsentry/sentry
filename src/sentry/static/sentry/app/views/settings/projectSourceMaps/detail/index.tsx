@@ -160,7 +160,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
             </Title>
           }
           action={
-            <ButtonBar gap={1}>
+            <StyledButtonBar gap={1}>
               <ReleaseButton
                 to={`/organizations/${orgId}/releases/${encodeURIComponent(
                   name
@@ -184,7 +184,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
                 onSearch={this.handleSearch}
                 query={this.getQuery()}
               />
-            </ButtonBar>
+            </StyledButtonBar>
           }
         />
 
@@ -227,6 +227,10 @@ const StyledSettingsPageHeader = styled(SettingsPageHeader)`
 const Title = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: flex-start;
 `;
 
 const StyledPanelTable = styled(PanelTable)`
