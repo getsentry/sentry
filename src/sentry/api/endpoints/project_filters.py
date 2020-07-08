@@ -17,7 +17,7 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
 
         """
         results = []
-        for flt in message_filters.get_all_filters():
+        for flt in message_filters.get_all_filter_specs():
             filter_spec = flt.spec
             results.append(
                 {

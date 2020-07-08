@@ -8,9 +8,9 @@ from sentry.signals import inbound_filter_toggled
 from sentry.utils.data_filters import FilterStatKeys, get_filter_key
 
 
-def get_all_filters():
+def get_all_filter_specs():
     """
-    Returns a list of the existing event filters
+    Return metadata about the filters known by Sentry.
 
     An event filter is a function that receives a project_config and an event data payload and returns a tuple
     (should_filter:bool, filter_reason: string | None) representing
@@ -110,7 +110,7 @@ def _filter_from_filter_id(filter_id):
     """
     Returns the corresponding filter for a filter id or None if no filter with the given id found
     """
-    for flt in get_all_filters():
+    for flt in get_all_filter_specs():
         if flt.spec.id == filter_id:
             return flt
     return None

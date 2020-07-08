@@ -12,7 +12,7 @@ from sentry import quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.message_filters import get_all_filters
+from sentry.message_filters import get_all_filter_specs
 from sentry.utils.data_filters import FilterTypes, FilterStatKeys, get_filter_key
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
@@ -45,7 +45,7 @@ def get_public_key_configs(project, full_config, project_keys=None):
 def get_filter_settings(project):
     filter_settings = {}
 
-    for flt in get_all_filters():
+    for flt in get_all_filter_specs():
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
         filter_settings[filter_id] = settings

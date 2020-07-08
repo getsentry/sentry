@@ -19,7 +19,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
 
         """
         current_filter = None
-        for flt in message_filters.get_all_filters():
+        for flt in message_filters.get_all_filter_specs():
             if flt.spec.id == filter_id:
                 current_filter = flt
                 break
