@@ -20,6 +20,7 @@ type Props = {
 
 type State = {
   navVisible: boolean;
+  navOffsetTop: number;
 };
 
 class SettingsLayout extends React.Component<Props, State> {
@@ -38,7 +39,14 @@ class SettingsLayout extends React.Component<Props, State> {
        * be hidden. On large screens this state will end up unused.
        */
       navVisible: false,
+      /**
+       * Offset mobile settings navigation by the height of main navigation,
+       * settings breadcrumbs and optional warnings.
+       */
+      navOffsetTop: 0,
     };
+
+    this.headerRef = React.createRef();
 
     // Close the navigation when navigating.
     this.unlisten = browserHistory.listen(() => this.toggleNav(false));
@@ -49,18 +57,29 @@ class SettingsLayout extends React.Component<Props, State> {
   }
 
   unlisten: () => void;
+  headerRef: React.RefObject<HTMLDivElement>;
 
   toggleNav(navVisible: boolean) {
-    this.setState({navVisible});
-    const bodyElement = document.getElementsByTagName('body')[0];
+    // when the navigation is opened, body should be scroll-locked
+    this.toggleBodyScrollLock(navVisible);
 
-    // XXX(epurkhiser): The 'modal-open' class scroll-locks the body
-    bodyElement.classList[navVisible ? 'add' : 'remove']('modal-open');
+    this.setState({
+      navOffsetTop: this.headerRef.current?.getBoundingClientRect().bottom ?? 0,
+      navVisible,
+    });
+  }
+
+  toggleBodyScrollLock(lock: boolean) {
+    const bodyElement = document.getElementsByTagName('body')[0];
+    window.scrollTo(0, 0);
+    bodyElement.style.overflow = lock ? 'hidden' : 'visible';
+    bodyElement.style.position = lock ? 'fixed' : 'static';
+    bodyElement.style.width = lock ? '100%' : 'auto';
   }
 
   render() {
     const {params, routes, route, router, renderNavigation, children} = this.props;
-    const {navVisible} = this.state;
+    const {navVisible, navOffsetTop} = this.state;
 
     // We want child's view's props
     const childProps =
@@ -72,7 +91,7 @@ class SettingsLayout extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <SettingsColumn>
-          <SettingsHeader>
+          <SettingsHeader ref={this.headerRef}>
             <HeaderContent>
               {shouldRenderNavigation && (
                 <NavMenuToggle
@@ -92,7 +111,7 @@ class SettingsLayout extends React.Component<Props, State> {
 
           <MaxWidthContainer>
             {shouldRenderNavigation && (
-              <SidebarWrapper isVisible={navVisible}>
+              <SidebarWrapper isVisible={navVisible} offsetTop={navOffsetTop}>
                 {renderNavigation!()}
               </SidebarWrapper>
             )}
@@ -145,7 +164,7 @@ const MaxWidthContainer = styled('div')`
   flex: 1;
 `;
 
-const SidebarWrapper = styled('div')<{isVisible: boolean}>`
+const SidebarWrapper = styled('div')<{isVisible: boolean; offsetTop: number}>`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
   background: ${p => p.theme.white};
@@ -154,16 +173,14 @@ const SidebarWrapper = styled('div')<{isVisible: boolean}>`
   padding-right: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    animation: ${slideInLeft} 100ms ease-in-out;
     display: ${p => (p.isVisible ? 'block' : 'none')};
-    position: absolute;
-    z-index: ${p => p.theme.zIndex.settingsSidebarNav};
-    /* offset the height of main navigation and settings breadcrumbs */
-    height: calc(
-      100% - ${p => p.theme.sidebar.mobileHeight} - ${p => p.theme.settings.headerHeight}
-    );
-    box-shadow: ${p => p.theme.dropShadowHeavy};
+    position: fixed;
+    top: ${p => p.offsetTop}px;
+    bottom: 0;
     overflow-y: auto;
+    animation: ${slideInLeft} 100ms ease-in-out;
+    z-index: ${p => p.theme.zIndex.settingsSidebarNav};
+    box-shadow: ${p => p.theme.dropShadowHeavy};
   }
 `;
 
