@@ -70,6 +70,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             alert_rule = serializer.save()
             referrer = request.query_params.get("referrer")
+            session_id = request.query_params.get("sessionId")
             alert_rule_created.send_robust(
                 user=request.user,
                 project=project,
@@ -77,6 +78,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                 rule_type="metric",
                 sender=self,
                 referrer=referrer,
+                session_id=session_id,
             )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
