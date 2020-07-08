@@ -444,7 +444,7 @@ const StyledSearchBar = styled(SearchBar)`
     border-bottom-left-radius: 0;
   }
   .search-clear-form,
-  [data-test-id='icon-search'] {
+  .search-input-icon {
     top: 0 !important;
     height: 32px;
     display: flex;
