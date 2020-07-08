@@ -235,6 +235,7 @@ export class RenderField extends React.Component<RenderProps, State> {
             value={selectedMappedValue}
           />
           <StyledAddProjectButton
+            type="button"
             disabled={!selectedSentryProjectId || !selectedMappedValue}
             size="small"
             priority="primary"
