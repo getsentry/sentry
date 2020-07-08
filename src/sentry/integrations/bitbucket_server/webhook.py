@@ -67,7 +67,7 @@ class PushEventWebhook(Webhook):
             from_hash = None if change.get("fromHash") == "0" * 40 else change.get("fromHash")
             for commit in client.get_commits(
                 project_name, repo_name, from_hash, change.get("toHash")
-            )["values"]:
+            ):
 
                 if IntegrationRepositoryProvider.should_ignore_commit(commit["message"]):
                     continue

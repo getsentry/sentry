@@ -108,7 +108,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                     client, repo.config["project"], repo.config["repo"], c["id"]
                 ),
             }
-            for c in commit_list["values"]
+            for c in commit_list
         ]
 
     def compare_commits(self, repo, start_sha, end_sha):
@@ -117,12 +117,12 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
 
         try:
             if "0" * 40 == start_sha or start_sha is None:
-                res = client.get_last_commits(repo.config["project"], repo.config["repo"])
+                commit_list = client.get_last_commits(repo.config["project"], repo.config["repo"])
             else:
-                res = client.get_commits(
+                commit_list = client.get_commits(
                     repo.config["project"], repo.config["repo"], start_sha, end_sha
                 )
-            return self._format_commits(client, repo, res)
+            return self._format_commits(client, repo, commit_list)
         except Exception as e:
             installation.raise_error(e)
 
@@ -142,13 +142,13 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
 
         return self._transform_patchset(commit_files)
 
-    def _transform_patchset(self, diff):
+    def _transform_patchset(self, values):
         """Convert the patch data from Bitbucket into our internal format
 
         See sentry.models.Release.set_commits
         """
         changes = []
-        for change in diff["values"]:
+        for change in values:
             if change["type"] == "MODIFY":
                 changes.append({"path": change["path"]["toString"], "type": "M"})
             if change["type"] == "ADD":
