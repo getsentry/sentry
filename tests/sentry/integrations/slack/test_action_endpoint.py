@@ -21,8 +21,9 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.utils import json
-from sentry.integrations.slack.action_endpoint import LINK_IDENTITY_MESSAGE
+from sentry.integrations.slack.action_endpoint import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
 from sentry.integrations.slack.link_identity import build_linking_url
+from sentry.integrations.slack.unlink_identity import build_unlinking_url
 
 
 class BaseEventTest(APITestCase):
@@ -329,12 +330,16 @@ class StatusActionTest(BaseEventTest):
         )
         self.group1 = Group.objects.get(id=self.group1.id)
 
-        assert resp.status_code == 200, resp.content
-        assert not self.group1.get_status() == GroupStatus.IGNORED
+        associate_url = build_unlinking_url(
+            self.integration.id, self.org.id, "slack_id2", "C065W1189", self.response_url
+        )
 
+        assert resp.status_code == 200, resp.content
         assert resp.data["response_type"] == "ephemeral"
         assert not resp.data["replace_original"]
-        assert resp.data["text"] == "Sentry can't perform that action right now on your behalf!"
+        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
+            associate_url=associate_url, user_email=user2.email, org_name=self.org.name
+        )
 
     @responses.activate
     @patch("sentry.api.client.put")
@@ -388,8 +393,14 @@ class StatusActionTest(BaseEventTest):
 
         client_put.asser_called()
 
+        associate_url = build_unlinking_url(
+            self.integration.id, self.org.id, "slack_id", "C065W1189", self.response_url
+        )
+
         assert resp.status_code == 200, resp.content
-        assert resp.data["text"] == "Sentry can't perform that action right now on your behalf!"
+        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
+            associate_url=associate_url, user_email=self.user.email, org_name=self.org.name
+        )
 
     def test_invalid_token(self):
         resp = self.post_webhook(token="invalid")

@@ -4,10 +4,10 @@ import six
 
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError
-from django.utils import timezone
+from django.http import Http404
 from django.views.decorators.cache import never_cache
 
-from sentry.models import Identity, IdentityStatus
+from sentry.models import Identity
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
@@ -19,22 +19,22 @@ from .client import SlackClient
 from .utils import logger, get_identity
 
 
-def build_linking_url(integration, organization, slack_id, channel_id, response_url):
+def build_unlinking_url(integration_id, organization_id, slack_id, channel_id, response_url):
     signed_params = sign(
-        integration_id=integration.id,
-        organization_id=organization.id,
+        integration_id=integration_id,
+        organization_id=organization_id,
         slack_id=slack_id,
         channel_id=channel_id,
         response_url=response_url,
     )
 
     return absolute_uri(
-        reverse("sentry-integration-slack-link-identity", kwargs={"signed_params": signed_params})
+        reverse("sentry-integration-slack-unlink-identity", kwargs={"signed_params": signed_params})
     )
 
 
-class SlackLinkIdentityView(BaseView):
-    @transaction_start("SlackLinkIdentityView")
+class SlackUnlinkIdentityView(BaseView):
+    @transaction_start("SlackUnlinkIdentityView")
     @never_cache
     def handle(self, request, signed_params):
         params = unsign(signed_params.encode("ascii", errors="ignore"))
@@ -45,30 +45,23 @@ class SlackLinkIdentityView(BaseView):
 
         if request.method != "POST":
             return render_to_response(
-                "sentry/auth-link-identity.html",
+                "sentry/auth-unlink-identity.html",
                 request=request,
                 context={"organization": organization, "provider": integration.get_provider()},
             )
 
-        # TODO(epurkhiser): We could do some fancy slack querying here to
-        # render a nice linking page with info about the user their linking.
-
-        # Link the user with the identity. Handle the case where the user is linked to a
-        # different identity or the identity is linked to a different user.
-        defaults = {"status": IdentityStatus.VALID, "date_verified": timezone.now()}
+        # Delete the wrong slack identity.
         try:
-            identity, created = Identity.objects.get_or_create(
-                idp=idp, user=request.user, external_id=params["slack_id"], defaults=defaults
-            )
-            if not created:
-                identity.update(**defaults)
-        except IntegrityError:
-            Identity.reattach(idp, params["slack_id"], request.user, defaults)
+            identity = Identity.objects.get(idp=idp, external_id=params["slack_id"])
+            identity.delete()
+        except IntegrityError as e:
+            logger.error("slack.unlink.integrity-error", extra=e)
+            raise Http404
 
         payload = {
             "replace_original": False,
             "response_type": "ephemeral",
-            "text": "Your Slack identity has been linked to your Sentry account. You're good to go!",
+            "text": "Your Slack identity has been unlinked from your Sentry account.",
         }
 
         client = SlackClient()
@@ -82,10 +75,10 @@ class SlackLinkIdentityView(BaseView):
             #
             # XXX(epurkhiser): Yes the error string has a space in it.
             if message != "Expired url":
-                logger.error("slack.link-notify.response-error", extra={"error": message})
+                logger.error("slack.unlink-notify.response-error", extra={"error": message})
 
         return render_to_response(
-            "sentry/slack-linked.html",
+            "sentry/slack-unlinked.html",
             request=request,
             context={"channel_id": params["channel_id"], "team_id": integration.external_id},
         )

@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.http import Http404
 
 from sentry import tagstore
 from sentry import options
@@ -24,7 +25,9 @@ from sentry.models import (
     Project,
     User,
     Identity,
+    IdentityProvider,
     Integration,
+    Organization,
     Team,
     ReleaseProject,
 )
@@ -488,3 +491,22 @@ def send_incident_alert_notification(action, incident, metric_value):
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
         logger.info("rule.fail.slack_post", extra={"error": six.text_type(e)})
+
+
+def get_identity(user, organization_id, integration_id):
+    try:
+        organization = Organization.objects.get(id__in=user.get_orgs(), id=organization_id)
+    except Organization.DoesNotExist:
+        raise Http404
+
+    try:
+        integration = Integration.objects.get(id=integration_id, organizations=organization)
+    except Integration.DoesNotExist:
+        raise Http404
+
+    try:
+        idp = IdentityProvider.objects.get(external_id=integration.external_id, type="slack")
+    except IdentityProvider.DoesNotExist:
+        raise Http404
+
+    return organization, integration, idp
