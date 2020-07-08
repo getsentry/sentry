@@ -1,12 +1,12 @@
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import aws from 'app/../images/logos/logo-aws.svg';
 
 import placeholder from 'app/../images/logos/logo-default.svg';
 import sentry from 'app/../images/logos/logo-sentry.svg';
 import amixr from 'app/../images/logos/logo-amixr.svg';
 import asana from 'app/../images/logos/logo-asana.svg';
 import asayer from 'app/../images/logos/logo-asayer.svg';
-import aws from 'app/../images/logos/logo-aws.svg';
 import bitbucket from 'app/../images/logos/logo-bitbucket.svg';
 import bitbucketserver from 'app/../images/logos/logo-bitbucket-server.svg';
 import campfire from 'app/../images/logos/logo-campfire.svg';
