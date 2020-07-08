@@ -892,7 +892,7 @@ export const DividerLine = styled('div')`
   &.hovering {
     background-color: ${p => p.theme.gray800};
     width: 2px;
-    cursor: col-resize;
+    cursor: ew-resize;
   }
 `;
 

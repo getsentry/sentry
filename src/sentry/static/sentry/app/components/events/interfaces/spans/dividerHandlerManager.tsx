@@ -120,10 +120,12 @@ export class Provider extends React.Component<PropType, StateType> {
 
     selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.backgroundColor = 'rgba(73,80,87,0.75)';
+      dividerDOM.style.cursor = 'col-resize';
     });
 
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.display = 'block';
+      dividerDOM.style.cursor = 'col-resize';
     });
   };
 
@@ -172,10 +174,12 @@ export class Provider extends React.Component<PropType, StateType> {
 
     selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.backgroundColor = '';
+      dividerDOM.style.cursor = '';
     });
 
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.display = 'none';
+      dividerDOM.style.cursor = '';
     });
 
     this.setState({
