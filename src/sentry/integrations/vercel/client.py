@@ -56,9 +56,9 @@ class VercelClient(ApiClient):
             # if we have less projects than the limit, we are done
             if resp["pagination"]["count"] < limit:
                 return projects
-            # continue pagination but increment next by 1
+            # continue pagination by setting the until parameter
             params = params.copy()
-            params["since"] = resp["pagination"]["next"] + 1
+            params["until"] = resp["pagination"]["next"]
         # log the warning if this happens so we can look into solutions
         logger.warn("Did not finish project pagination", extra={"team_id": self.team_id})
         return projects
