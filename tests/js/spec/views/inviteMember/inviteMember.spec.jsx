@@ -90,6 +90,19 @@ describe('InviteMember', function() {
   });
 
   it('should use invite/add language based on config', function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/testOrg/members/me/',
+      body: {
+        roles: [
+          {
+            id: '1',
+            name: 'member',
+            desc: 'a normal member',
+            allowed: true,
+          },
+        ],
+      },
+    });
     jest.spyOn(ConfigStore, 'getConfig').mockImplementation(() => ({
       id: 1,
       invitesEnabled: false,
@@ -97,7 +110,6 @@ describe('InviteMember', function() {
 
     const wrapper = shallow(<InviteMember {...baseProps} />, {
       ...baseContext,
-      disableLifecycleMethods: true,
     });
     wrapper.setState({
       loading: false,
