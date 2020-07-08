@@ -164,3 +164,27 @@ def delete_snuba_subscription(subscription):
     delete_subscription_from_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )
+
+
+def bulk_enable_snuba_subscriptions(subscriptions):
+    """
+    enables a list of snuba query subscriptions.
+    :param subscriptions: The subscriptions to enable
+    :return:
+    """
+    for subscription in subscriptions:
+        # TODO: Batch this up properly once we care about multi-project rules.
+        enable_snuba_subscription(subscription)
+
+
+def enable_snuba_subscription(subscription):
+    """
+    enables a subscription to a snuba query.
+    :param subscription: The subscription to enable
+    :return:
+    """
+    subscription.update(status=QuerySubscription.Status.CREATING.value)
+
+    create_subscription_in_snuba.apply_async(
+        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    )
