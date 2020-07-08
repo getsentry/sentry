@@ -8,7 +8,7 @@ import DropDownButton from './dropdownButton';
 import OptionsGroup from './optionsGroup';
 import {OptionType, OptionLevel, Option} from './types';
 
-type OptionsGroupType = React.ComponentProps<typeof OptionsGroup>;
+type OnClick = React.ComponentProps<typeof OptionsGroup>['onClick'];
 type Options = [Array<OptionType>, Array<OptionLevel>];
 
 type Props = {
@@ -76,7 +76,7 @@ class Filter extends React.Component<Props, State> {
     });
   };
 
-  handleClick = (...args: Parameters<OptionsGroupType['onClick']>) => {
+  handleClick = (...args: Parameters<OnClick>) => {
     const [type, option] = args;
     const {onFilter, options} = this.props;
 
