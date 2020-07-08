@@ -69,6 +69,11 @@ class PerformanceLanding extends React.Component<Props, State> {
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.overview.view',
+      eventName: 'Performance Views: Transaction overview view',
+      organization_id: parseInt(organization.id, 10),
+    });
   }
 
   componentDidUpdate(prevProps: Props) {
