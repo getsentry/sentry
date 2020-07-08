@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 
 import {Frame, SentryAppComponent} from 'app/types';
@@ -12,6 +13,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import {parseAssembly} from 'app/components/events/interfaces/utils';
 import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
+import space from 'app/styles/space';
 
 type Props = {
   frame: Frame;
@@ -104,10 +106,10 @@ const FrameContext = ({
         })}
 
       {(hasContextRegisters || hasContextVars) && (
-        <ClippedBox clipHeight={100}>
+        <StyledClippedBox clipHeight={100}>
           {hasContextRegisters && <FrameRegisters data={registers} key="registers" />}
           {hasContextVars && <FrameVariables data={frame.vars} key="vars" />}
-        </ClippedBox>
+        </StyledClippedBox>
       )}
 
       {hasAssembly && (
@@ -118,3 +120,22 @@ const FrameContext = ({
 };
 
 export default FrameContext;
+
+const StyledClippedBox = styled(ClippedBox)`
+  bottom: 0;
+  margin-left: 0;
+  margin-right: 0;
+
+  :first-of-type {
+    margin-top: 0;
+  }
+
+  :first-child {
+    margin-top: -${space(3)};
+  }
+
+  > *: first-child {
+    padding-top: 0;
+    border-top: none;
+  }
+`;
