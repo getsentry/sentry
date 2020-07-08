@@ -1,5 +1,6 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
+import styled from '@emotion/styled';
 
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
 import {NavigationSection, NavigationProps} from 'app/views/settings/types';
@@ -44,14 +45,21 @@ class SettingsNavigation extends React.Component<Props> {
     const navWithHooks = navigationObjects.concat(hookConfigs);
 
     return (
-      <div>
+      <PositionStickyWrapper>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
         {hooks.map((Hook, i) => React.cloneElement(Hook, {key: `hook-${i}`}))}
-      </div>
+      </PositionStickyWrapper>
     );
   }
 }
+
+const PositionStickyWrapper = styled('div')`
+  position: sticky;
+  top: 100px;
+  overflow: scroll;
+  height: calc(100vh - 98px);
+`;
 
 export default SettingsNavigation;
