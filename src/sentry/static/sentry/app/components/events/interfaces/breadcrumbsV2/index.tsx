@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import omit from 'lodash/omit';
 import partition from 'lodash/partition';
+import {isEqual} from 'lodash';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -27,7 +28,6 @@ import List from './list';
 import Level from './level';
 import Icon from './icon';
 import {aroundContentStyle} from './styles';
-import {isEqual} from 'lodash';
 
 const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 const ISO_STRING_DATE_AND_TIME_DIVISION = 10;
