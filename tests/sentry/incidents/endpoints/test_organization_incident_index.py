@@ -28,7 +28,7 @@ class IncidentListEndpointTest(APITestCase):
         other_incident = self.create_incident(status=IncidentStatus.CLOSED.value)
 
         self.login_as(self.user)
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
             resp = self.get_valid_response(self.organization.slug)
 
         assert resp.data == serialize([other_incident, incident])
@@ -39,7 +39,7 @@ class IncidentListEndpointTest(APITestCase):
         closed_incident = self.create_incident(status=IncidentStatus.CLOSED.value)
         self.login_as(self.user)
 
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
             resp_closed = self.get_valid_response(self.organization.slug, status="closed")
             resp_open = self.get_valid_response(self.organization.slug, status="open")
 
@@ -58,7 +58,7 @@ class IncidentListEndpointTest(APITestCase):
 
         self.login_as(self.user)
 
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
             resp_filter_env = self.get_valid_response(self.organization.slug, environment=env.name)
             resp_no_env_filter = self.get_valid_response(self.organization.slug)
 
