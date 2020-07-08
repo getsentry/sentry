@@ -5,7 +5,7 @@ from sentry.integrations.client import ApiClient
 
 
 class MsTeamsClient(ApiClient):
-    integration = "msteams"
+    integration_name = "msteams"
     # TODO(steve): make base url configurable
     base_url = "https://smba.trafficmanager.net/amer"
 
@@ -32,7 +32,7 @@ class MsTeamsClient(ApiClient):
 
 class OauthMsTeamsClient(ApiClient):
     base_url = "https://login.microsoftonline.com/botframework.com"
-    integration = "msteams_oauth"
+    integration_name = "msteams_oauth"
 
     TOKEN_URL = "/oauth2/v2.0/token"
 
