@@ -15,6 +15,7 @@ type DefaultProps = {
 type Props = {
   clipHeight: number;
   title?: string;
+  className?: string;
 } & DefaultProps;
 
 type State = {
@@ -75,10 +76,15 @@ class ClippedBox extends React.PureComponent<Props, State> {
 
   render() {
     const {isClipped, isRevealed} = this.state;
-    const {title, children, clipHeight, btnText} = this.props;
+    const {title, children, clipHeight, btnText, className} = this.props;
 
     return (
-      <ClipWrapper clipHeight={clipHeight} isClipped={isClipped} isRevealed={isRevealed}>
+      <ClipWrapper
+        clipHeight={clipHeight}
+        isClipped={isClipped}
+        isRevealed={isRevealed}
+        className={className}
+      >
         {title && <Title>{title}</Title>}
         {children}
         {isClipped && (
@@ -103,7 +109,7 @@ const ClipWrapper = styled('div', {
   margin-left: -${space(3)};
   margin-right: -${space(3)};
   padding: ${space(2)} ${space(3)} 0;
-  border-top: 1px solid ${p => p.theme.borderDark};
+  border-top: 1px solid ${p => p.theme.borderLighter};
   transition: all 5s ease-in-out;
 
   /* For "Show More" animation */
