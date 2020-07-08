@@ -12,6 +12,8 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
+from sentry.pipeline import PipelineView
+from .client import MsTeamsClient
 
 logger = logging.getLogger("sentry.integrations.msteams")
 
@@ -62,9 +64,37 @@ class MsTeamsIntegration(IntegrationInstallation):
 
 class MsTeamsIntegrationProvider(IntegrationProvider):
     key = "msteams"
-    name = "Microsoft Teams (new)"
+    name = "Microsoft Teams (development)"
     requires_feature_flag = True
     can_add = False
     metadata = metadata
     integration_cls = MsTeamsIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
+
+    def get_pipeline_views(self):
+        return [MsTeamsPipelineView()]
+
+    def build_integration(self, state):
+        team_id = state[self.key]["team_id"]
+        client = MsTeamsClient()
+        # TODO: might need to update for member installation
+        team = client.get_team_info(team_id)
+        # TODO: actually store token stuff :)
+        integration = {
+            "name": team["name"],
+            "external_id": team_id,
+            "metadata": {},
+        }
+        return integration
+
+
+class MsTeamsPipelineView(PipelineView):
+    """
+        This pipeline step handles
+
+    """
+
+    def dispatch(self, request, pipeline):
+        team_id = request.GET.get("team_id")
+        pipeline.bind_state("team_id", team_id)
+        return pipeline.next_step()
