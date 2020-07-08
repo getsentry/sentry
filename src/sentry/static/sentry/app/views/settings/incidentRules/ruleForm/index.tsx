@@ -4,10 +4,7 @@ import React from 'react';
 
 import {Organization, Project} from 'app/types';
 import FormModel from 'app/views/settings/components/forms/model';
-import {
-  createDefaultTrigger,
-  DATASET_EVENT_TYPE_FILTERS,
-} from 'app/views/settings/incidentRules/constants';
+import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
@@ -134,10 +131,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     triggerIndex: number,
     trigger: Trigger,
     errors,
-    changeObj?: Partial<Trigger>
+    resolveThreshold: number | '' | null
   ): boolean => {
     const {alertThreshold} = trigger;
-    const {resolveThreshold, thresholdType} = this.state;
+    const {thresholdType} = this.state;
 
     // If value and/or other value is empty
     // then there are no checks to perform against
@@ -160,7 +157,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         : alertThreshold + 1 >= resolveThreshold - 1;
 
     const otherErrors = errors.get(triggerIndex) || {};
-    const isResolveChanged = changeObj?.hasOwnProperty('resolveThreshold');
 
     if (isValid) {
       return true;
@@ -168,10 +164,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     // Not valid... let's figure out an error message
     const isBelow = thresholdType === AlertRuleThresholdType.BELOW;
-    const thresholdKey = isResolveChanged ? 'resolveThreshold' : 'alertThreshold';
     let errorMessage = '';
 
-    if (isResolveChanged) {
+    if (typeof resolveThreshold !== 'number') {
       errorMessage = isBelow
         ? t('Resolution threshold must be greater than alert')
         : t('Resolution threshold must be less than alert');
@@ -183,7 +178,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     errors.set(triggerIndex, {
       ...otherErrors,
-      [thresholdKey]: errorMessage,
+      alertThreshold: errorMessage,
     });
 
     return false;
@@ -224,8 +219,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   validateTriggers(
     triggers = this.state.triggers,
     thresholdType = this.state.thresholdType,
-    changedTriggerIndex?: number,
-    changeObj?: Partial<Trigger>
+    resolveThreshold = this.state.resolveThreshold,
+    changedTriggerIndex?: number
   ) {
     const triggerErrors = new Map();
 
@@ -247,7 +242,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         changedTriggerIndex ?? triggerIndex,
         trigger,
         triggerErrors,
-        changeObj
+        resolveThreshold
       );
     });
 
@@ -362,19 +357,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
    *
    * Re-validate triggers on every change and reset indicators when no errors
    */
-  handleChangeTriggers = (
-    triggers: Trigger[],
-    triggerIndex?: number,
-    changeObj?: Partial<Trigger>
-  ) => {
+  handleChangeTriggers = (triggers: Trigger[], triggerIndex?: number) => {
     this.setState(state => {
       let triggerErrors = state.triggerErrors;
 
       const newTriggerErrors = this.validateTriggers(
         triggers,
         state.thresholdType,
-        triggerIndex,
-        changeObj
+        state.resolveThreshold,
+        triggerIndex
       );
       triggerErrors = newTriggerErrors;
 
@@ -387,15 +378,25 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   };
 
   handleThresholdTypeChange = (thresholdType: AlertRuleThresholdType) => {
-    this.setState({thresholdType});
-    this.handleChangeTriggers(this.state.triggers);
+    const {triggers} = this.state;
+
+    const triggerErrors = this.validateTriggers(triggers, thresholdType);
+    this.setState(state => ({
+      thresholdType,
+      triggerErrors: new Map([...triggerErrors, ...state.triggerErrors]),
+    }));
   };
 
   handleResolveThresholdChange = (
     resolveThreshold: UnsavedIncidentRule['resolveThreshold']
   ) => {
-    this.setState({resolveThreshold});
-    this.handleChangeTriggers(this.state.triggers);
+    const {triggers} = this.state;
+
+    const triggerErrors = this.validateTriggers(triggers, undefined, resolveThreshold);
+    this.setState(state => ({
+      resolveThreshold,
+      triggerErrors: new Map([...triggerErrors, ...state.triggerErrors]),
+    }));
   };
 
   handleDeleteRule = async () => {
