@@ -125,7 +125,7 @@ const StyledClippedBox = styled(ClippedBox)`
   margin-left: 0;
   margin-right: 0;
 
-  :first-of-type {
+  &:first-of-type {
     margin-top: 0;
   }
 
@@ -133,7 +133,7 @@ const StyledClippedBox = styled(ClippedBox)`
     margin-top: -${space(3)};
   }
 
-  > *: first-child {
+  > *:first-child {
     padding-top: 0;
     border-top: none;
   }
