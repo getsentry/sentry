@@ -70,13 +70,11 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
         if serializer.is_valid():
             alert_rule = serializer.save()
-            referrer = None
+            # Parse referrer query param from referer http header
             referer = request.META.get("HTTP_REFERER")
-            if referer:
-                urlparts = urlparse(referer)
-                qs = parse_qs(urlparts.query)
-                if len(qs.get("referrer", [])) > 0:
-                    referrer = qs.get("referrer")[0]
+            urlparts = urlparse(referer)
+            qs = parse_qs(urlparts.query)
+            referrer = qs.get("referrer")[0] if len(qs.get("referrer", [])) > 0 else None
             alert_rule_created.send_robust(
                 user=request.user,
                 project=project,
