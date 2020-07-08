@@ -13,6 +13,7 @@ from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.signals import alert_rule_created
+from sentry.snuba.dataset import Dataset
 from sentry.models import Rule, RuleStatus
 
 
@@ -24,7 +25,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:incidents-performance", project.organization):
             # Filter to only error alert rules
-            alert_rules = alert_rules.filter(snuba_query__dataset="events")
+            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events)
 
         return self.paginate(
             request,
