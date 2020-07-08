@@ -1,22 +1,28 @@
 import styled from '@emotion/styled';
 import {keyframes} from '@emotion/core';
+import {withTheme} from 'emotion-theming';
 import React from 'react';
+
+import {Theme} from 'app/utils/theme';
 
 import SvgIcon from './svgIcon';
 
 type Props = React.ComponentProps<typeof SvgIcon> & {
+  theme: Theme;
+
   /**
    * Renders a pink purple gradient on the icon
    */
   gradient?: boolean;
+
   /**
    * Adds an animated shine to the icon
    */
   withShine?: boolean;
 };
 
-const IconBusiness = React.forwardRef(function IconBusiness(
-  {gradient = false, withShine = false, ...props}: Props,
+function IconBusinessComponent(
+  {gradient = false, withShine = false, theme, ...props}: Props,
   ref: React.Ref<SVGSVGElement>
 ) {
   return (
@@ -27,7 +33,7 @@ const IconBusiness = React.forwardRef(function IconBusiness(
       />
 
       <mask id="icon-power-features-mask">
-        <use href="#power-feature" xlinkHref="#power-feature" color="white" />
+        <use href="#power-feature" xlinkHref="#power-feature" color={theme.white} />
       </mask>
 
       <rect
@@ -59,7 +65,9 @@ const IconBusiness = React.forwardRef(function IconBusiness(
       )}
     </SvgIcon>
   );
-});
+}
+
+const IconBusiness = React.forwardRef(withTheme(IconBusinessComponent));
 
 IconBusiness.displayName = 'IconBusiness';
 
