@@ -217,13 +217,13 @@ class ProjectKey(Model):
         if settings.JS_SDK_LOADER_CDN_URL:
             return "%s%s.min.js" % (settings.JS_SDK_LOADER_CDN_URL, self.public_key)
         else:
-            endpoint = self.get_endpoint()
+            endpoint = self.get_endpoint(can_use_org_subdomains=False)
             return "%s%s" % (
                 endpoint,
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
             )
 
-    def get_endpoint(self, public=True):
+    def get_endpoint(self, public=True, can_use_org_subdomains=True):
         if public:
             endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
         else:
@@ -232,7 +232,9 @@ class ProjectKey(Model):
         if not endpoint:
             endpoint = options.get("system.url-prefix")
 
-        if features.has("organizations:org-subdomains", self.project.organization):
+        if can_use_org_subdomains and features.has(
+            "organizations:org-subdomains", self.project.organization
+        ):
             urlparts = urlparse(endpoint)
             if urlparts.scheme and urlparts.netloc:
                 endpoint = "%s://%s.%s%s" % (
