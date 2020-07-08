@@ -1,34 +1,41 @@
-/* global process */
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import DocumentTitle from 'react-document-title';
-import PropTypes from 'prop-types';
 import React from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import scrollToElement from 'scroll-to-element';
 import styled from '@emotion/styled';
 
+import {IS_CI} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import Hook from 'app/components/hook';
 import InlineSvg from 'app/components/inlineSvg';
-import OnboardingPlatform from 'app/views/onboarding/platform';
-import OnboardingProjectSetup from 'app/views/onboarding/projectSetup';
-import OnboardingWelcome from 'app/views/onboarding/welcome';
 import PageHeading from 'app/components/pageHeading';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import testableTransition from 'app/utils/testableTransition';
+import {Organization, Project} from 'app/types';
 
-const recordAnalyticStepComplete = ({organization, project, step}) =>
+import {StepDescriptor, StepData} from './types';
+import OnboardingPlatform from './platform';
+import OnboardingProjectSetup from './projectSetup';
+import OnboardingWelcome from './welcome';
+
+type AnalyticsOpts = {
+  organization: Organization;
+  project: Project | null;
+  step: StepDescriptor;
+};
+
+const recordAnalyticStepComplete = ({organization, project, step}: AnalyticsOpts) =>
   analytics('onboarding_v2.step_compete', {
     org_id: parseInt(organization.id, 10),
     project: project ? project.slug : null,
     step: step.id,
   });
 
-const ONBOARDING_STEPS = [
+const ONBOARDING_STEPS: StepDescriptor[] = [
   {
     id: 'welcome',
     title: t('Welcome to Sentry'),
@@ -46,24 +53,29 @@ const ONBOARDING_STEPS = [
   },
 ];
 
-const stepShape = PropTypes.shape({
-  id: PropTypes.string,
-  title: PropTypes.string,
-  Component: PropTypes.func,
-});
+type RouteParams = {
+  orgId: string;
+  step: string;
+};
 
-class Onboarding extends React.Component {
-  static propTypes = {
-    steps: PropTypes.arrayOf(stepShape),
-    projects: PropTypes.arrayOf(SentryTypes.Project),
-    organization: SentryTypes.Organization,
+type DefaultProps = {
+  steps: StepDescriptor[];
+};
+
+type Props = RouteComponentProps<RouteParams, {}> &
+  DefaultProps & {
+    organization: Organization;
+    projects: Project[];
   };
 
-  static defaultProps = {
+type State = StepData;
+
+class Onboarding extends React.Component<Props, State> {
+  static defaultProps: DefaultProps = {
     steps: ONBOARDING_STEPS,
   };
 
-  state = {};
+  state: State = {};
 
   componentDidMount() {
     this.validateActiveStep();
@@ -90,21 +102,21 @@ class Onboarding extends React.Component {
 
   get firstProject() {
     const sortedProjects = this.props.projects.sort(
-      (a, b) => new Date(a.dateCreated) - new Date(b.dateCreated)
+      (a, b) => new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime()
     );
 
     return sortedProjects.length > 0 ? sortedProjects[0] : null;
   }
 
   get projectPlatform() {
-    return this.state.platform || (this.firstProject && this.firstProject.platform);
+    return this.state.platform ?? this.firstProject?.platform ?? null;
   }
 
-  handleUpdate = data => {
+  handleUpdate = (data: StepData) => {
     this.setState(data);
   };
 
-  handleNextStep(step, data) {
+  handleNextStep(step: StepDescriptor, data: StepData) {
     this.handleUpdate(data);
 
     if (step !== this.activeStep) {
@@ -123,7 +135,7 @@ class Onboarding extends React.Component {
     browserHistory.push(`/onboarding/${orgId}/${nextStep.id}/`);
   }
 
-  handleReturnToStep(step, data) {
+  handleReturnToStep(step: StepDescriptor, data: StepData) {
     const {orgId} = this.props.params;
 
     this.handleUpdate(data);
@@ -134,7 +146,9 @@ class Onboarding extends React.Component {
     const step = this.activeStep;
     scrollToElement(`#onboarding_step_${step.id}`, {
       align: 'middle',
-      duration: process.env.IS_CI ? 0 : 300,
+      offset: 0,
+      // Disable animations in CI - must be < 0 to disable
+      duration: IS_CI ? -1 : 300,
     });
   };
 
@@ -259,7 +273,7 @@ const ProgressBar = styled('div')`
   }
 `;
 
-const ProgressStep = styled('div')`
+const ProgressStep = styled('div')<{active: boolean}>`
   position: relative;
   width: 16px;
   height: 16px;
@@ -283,7 +297,7 @@ ProgressStatus.defaultProps = {
   transition: testableTransition(),
 };
 
-const OnboardingStep = styled(motion.div)`
+const OnboardingStep = styled(motion.div)<{active: boolean}>`
   margin: 70px 0;
   margin-left: -20px;
   padding-left: 18px;
@@ -312,17 +326,6 @@ OnboardingStep.defaultProps = {
   animate: {opacity: 1, y: 0},
   exit: {opacity: 0, y: 100},
   transition: testableTransition(),
-};
-
-export const stepPropTypes = {
-  scrollTargetId: PropTypes.string,
-  active: PropTypes.bool,
-  orgId: PropTypes.string,
-  project: SentryTypes.Project,
-  platform: PropTypes.string,
-  onReturnToStep: PropTypes.func,
-  onComplete: PropTypes.func,
-  onUpdate: PropTypes.func,
 };
 
 export default withOrganization(withProjects(Onboarding));

@@ -201,37 +201,22 @@ jobs:
 
         - name: Save snapshots
           if: always()
-          uses: actions/upload-artifact@v2
+          uses: getsentry/action-visual-snapshot@v2
           with:
-            name: visual-snapshots
-            path: .artifacts/visual-snapshots
+            save-only: true
+            snapshot-path: .artifacts/visual-snapshots
 
 
     visual-diff:
+      if: ${{ github.ref != 'refs/heads/master' }}
       needs: acceptance
       runs-on: ubuntu-16.04
 
       steps:
-        - name: Download base snapshots
-          uses: actions/download-artifact@v2
-          with:
-            name: visual-snapshots
-            path: .artifacts/visual-snapshots
-
         - name: Diff snapshots
-          if: ${{ github.ref != 'refs/heads/master' }}
           id: visual-snapshots-diff
-          uses: getsentry/action-visual-snapshot@v1
+          uses: getsentry/action-visual-snapshot@v2
           with:
             githubToken: ${{ secrets.GITHUB_TOKEN }}
-            snapshot-path: .artifacts/visual-snapshots
-            diff-path: .artifacts/visual-snapshots-diff
             gcs-bucket: 'sentry-visual-snapshots'
             gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
-
-        - name: Save diffed snapshots
-          if: always()
-          uses: actions/upload-artifact@v2
-          with:
-            name: visual-snapshots-diff
-            path: ${{ steps.visual-snapshots-diff.outputs.diff-path }}

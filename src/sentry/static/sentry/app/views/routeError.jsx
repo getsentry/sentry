@@ -1,5 +1,4 @@
 import {withRouter} from 'react-router';
-import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/react';
@@ -77,7 +76,7 @@ class RouteError extends React.Component {
     if (this._timeout) {
       window.clearTimeout(this._timeout);
     }
-    $('.sentry-error-embed-wrapper').remove();
+    document.querySelector('.sentry-error-embed-wrapper')?.remove();
   }
 
   render() {

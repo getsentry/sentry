@@ -374,8 +374,7 @@ class Breadcrumbs extends React.Component<Props, State> {
             />
             <StyledSearchBar
               placeholder={t('Search breadcrumbs\u2026')}
-              onChange={this.handleSearch}
-              query={searchTerm}
+              onSearch={this.handleSearch}
             />
           </Search>
         }

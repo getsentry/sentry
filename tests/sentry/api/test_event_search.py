@@ -1095,7 +1095,26 @@ class GetSnubaQueryArgsTest(TestCase):
         _filter = get_filter("release:3.1.* user.email:*@example.com")
         assert _filter.conditions == [
             [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "=", 1],
-            [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^.*@example\\.com$'"]], "=", 1],
+        ]
+        assert _filter.filter_keys == {}
+
+    def test_wildcard_with_unicode(self):
+        _filter = get_filter(
+            u"message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
+        )
+        assert _filter.conditions == [
+            [
+                [
+                    "match",
+                    [
+                        "message",
+                        u"'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
+                    ],
+                ],
+                "=",
+                1,
+            ]
         ]
         assert _filter.filter_keys == {}
 
@@ -1110,20 +1129,23 @@ class GetSnubaQueryArgsTest(TestCase):
                 [["isNull", ["release"]], "=", 1],
                 [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
             ],
-            [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^.*@example\\.com$'"]], "=", 1],
         ]
         assert _filter.filter_keys == {}
 
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
             [["match", ["release", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
-            [["match", ["user.email", "'(?i)^\*\\@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^\*@example\\.com$'"]], "=", 1],
         ]
         assert get_filter("release:\\\\\\*").conditions == [
             [["match", ["release", "'(?i)^\\\\\\*$'"]], "=", 1]
         ]
         assert get_filter("release:\\\\*").conditions == [
             [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
+        ]
+        assert get_filter("message:.*?").conditions == [
+            [["match", ["message", "'(?i)\..*\?'"]], "=", 1]
         ]
 
     def test_wildcard_array_field(self):

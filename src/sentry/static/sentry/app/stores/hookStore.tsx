@@ -29,6 +29,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:events-page',
   'feature-disabled:events-sidebar-item',
   'feature-disabled:grid-editable-actions',
+  'feature-disabled:incidents-sidebar-item',
   'feature-disabled:performance-page',
   'feature-disabled:performance-sidebar-item',
   'feature-disabled:project-selector-checkbox',
