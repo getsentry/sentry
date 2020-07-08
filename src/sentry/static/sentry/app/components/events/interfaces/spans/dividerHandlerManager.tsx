@@ -114,6 +114,8 @@ export class Provider extends React.Component<PropType, StateType> {
     window.addEventListener('mousemove', this.onDragMove);
     window.addEventListener('mouseup', this.onDragEnd);
 
+    this.setHover(true);
+
     // indicate drag has begun
 
     this.isDragging = true;
@@ -124,8 +126,16 @@ export class Provider extends React.Component<PropType, StateType> {
     });
 
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
-      dividerDOM.style.display = 'block';
       dividerDOM.style.cursor = 'col-resize';
+
+      const {parentNode} = dividerDOM;
+
+      if (!parentNode) {
+        return;
+      }
+
+      const container = parentNode as HTMLDivElement;
+      container.style.display = 'block';
     });
   };
 
@@ -147,8 +157,16 @@ export class Provider extends React.Component<PropType, StateType> {
 
     const dividerHandlePositionString = toPercent(this.dividerHandlePosition);
 
-    selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
-      dividerDOM.style.left = dividerHandlePositionString;
+    selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
+      const {parentNode} = dividerDOM;
+
+      if (!parentNode) {
+        return;
+      }
+
+      const container = parentNode as HTMLDivElement;
+
+      container.style.width = `calc(${dividerHandlePositionString} + 0.5px)`;
     });
   };
 
@@ -172,14 +190,24 @@ export class Provider extends React.Component<PropType, StateType> {
 
     this.isDragging = false;
 
+    this.setHover(false);
+
     selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.backgroundColor = '';
       dividerDOM.style.cursor = '';
     });
 
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
-      dividerDOM.style.display = 'none';
       dividerDOM.style.cursor = '';
+
+      const {parentNode} = dividerDOM;
+
+      if (!parentNode) {
+        return;
+      }
+
+      const container = parentNode as HTMLDivElement;
+      container.style.display = 'none';
     });
 
     this.setState({

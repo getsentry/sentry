@@ -10,6 +10,7 @@ import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
 import {TableDataRow} from 'app/views/eventsV2/table/types';
 import {IconChevron, IconWarning} from 'app/icons';
+import globalTheme from 'app/utils/theme';
 
 import {
   toPercent,
@@ -169,6 +170,25 @@ const getDurationDisplay = ({
     return 'left';
   }
   return 'inset';
+};
+
+const getBackgroundColor = ({
+  showStriping,
+  showDetail,
+  theme,
+}: {
+  showStriping?: boolean;
+  showDetail?: boolean;
+  theme: any;
+}) => {
+  if (!theme) {
+    return theme.white;
+  }
+
+  if (showDetail) {
+    return theme.gray800;
+  }
+  return showStriping ? theme.gray100 : theme.white;
 };
 
 type SpanBarProps = {
@@ -672,58 +692,43 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     if (this.state.showDetail) {
       // we would like to hide the divider lines when the span details
       // has been expanded
-      return null;
+      return (
+        <DividerLine
+          style={{
+            position: 'relative',
+            backgroundColor: getBackgroundColor({
+              theme: globalTheme,
+              showDetail: true,
+            }),
+          }}
+        />
+      );
     }
 
-    const {
-      dividerPosition,
-      addDividerLineRef,
-      addGhostDividerLineRef,
-    } = dividerHandlerChildrenProps;
+    const {addDividerLineRef} = dividerHandlerChildrenProps;
 
-    // We display the ghost divider line for whenever the divider line is being dragged.
-    // The ghost divider line indicates the original position of the divider line
-    const ghostDivider = (
+    return (
       <DividerLine
-        ref={addGhostDividerLineRef()}
+        ref={addDividerLineRef()}
         style={{
-          left: toPercent(dividerPosition),
-          display: 'none',
+          position: 'relative',
         }}
+        onMouseEnter={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseLeave={() => {
+          dividerHandlerChildrenProps.setHover(false);
+        }}
+        onMouseOver={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseDown={dividerHandlerChildrenProps.onDragStart}
         onClick={event => {
-          // the ghost divider line should not be interactive.
           // we prevent the propagation of the clicks from this component to prevent
           // the span detail from being opened.
           event.stopPropagation();
         }}
       />
-    );
-
-    return (
-      <React.Fragment>
-        {ghostDivider}
-        <DividerLine
-          ref={addDividerLineRef()}
-          style={{
-            left: toPercent(dividerPosition),
-          }}
-          onMouseEnter={() => {
-            dividerHandlerChildrenProps.setHover(true);
-          }}
-          onMouseLeave={() => {
-            dividerHandlerChildrenProps.setHover(false);
-          }}
-          onMouseOver={() => {
-            dividerHandlerChildrenProps.setHover(true);
-          }}
-          onMouseDown={dividerHandlerChildrenProps.onDragStart}
-          onClick={event => {
-            // we prevent the propagation of the clicks from this component to prevent
-            // the span detail from being opened.
-            event.stopPropagation();
-          }}
-        />
-      </React.Fragment>
     );
   }
 
@@ -748,27 +753,34 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const duration = Math.abs(endTimestamp - startTimestamp);
     const durationString = getHumanDuration(duration);
     const bounds = this.getBounds();
-    const {dividerPosition} = dividerHandlerChildrenProps;
+    const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
     const displaySpanBar = defined(bounds.left) && defined(bounds.width);
     const durationDisplay = getDurationDisplay(bounds);
 
     return (
       <SpanRowCellContainer showDetail={this.state.showDetail}>
         <SpanRowCell
+          data-type="span-row-cell"
           showDetail={this.state.showDetail}
           style={{
-            left: 0,
-            width: toPercent(dividerPosition),
+            width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+          }}
+          onClick={() => {
+            this.toggleDisplayDetail();
           }}
         >
           {this.renderTitle()}
         </SpanRowCell>
+        {this.renderDivider(dividerHandlerChildrenProps)}
         <SpanRowCell
+          data-type="span-row-cell"
           showDetail={this.state.showDetail}
           showStriping={spanNumber % 2 !== 0}
           style={{
-            left: toPercent(dividerPosition),
-            width: toPercent(1 - dividerPosition),
+            width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+          }}
+          onClick={() => {
+            this.toggleDisplayDetail();
           }}
         >
           {displaySpanBar && (
@@ -792,7 +804,25 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           )}
           {this.renderCursorGuide()}
         </SpanRowCell>
-        {this.renderDivider(dividerHandlerChildrenProps)}
+        <DividerLineGhostContainer
+          style={{
+            width: `calc(${toPercent(dividerPosition)} + 0.5px)`,
+            display: 'none',
+          }}
+        >
+          <DividerLine
+            ref={addGhostDividerLineRef()}
+            style={{
+              right: 0,
+            }}
+            onClick={event => {
+              // the ghost divider line should not be interactive.
+              // we prevent the propagation of the clicks from this component to prevent
+              // the span detail from being opened.
+              event.stopPropagation();
+            }}
+          />
+        </DividerLineGhostContainer>
       </SpanRowCellContainer>
     );
   }
@@ -810,9 +840,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         visible={isSpanVisible}
         showBorder={this.state.showDetail}
         data-test-id="span-row"
-        onClick={() => {
-          this.toggleDisplayDetail();
-        }}
       >
         <DividerHandlerManager.Consumer>
           {(
@@ -825,43 +852,27 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 }
 
-const getBackgroundColor = ({
-  showStriping,
-  showDetail,
-  theme,
-}: {
-  showStriping?: boolean;
-  showDetail?: boolean;
-  theme: any;
-}) => {
-  if (!theme) {
-    return theme.white;
-  }
-
-  if (showDetail) {
-    return theme.gray800;
-  }
-  return showStriping ? theme.gray100 : theme.white;
-};
-
 type SpanRowCellProps = OmitHtmlDivProps<{
   showStriping?: boolean;
   showDetail?: boolean;
 }>;
 
 const SpanRowCell = styled('div')<SpanRowCellProps>`
-  position: absolute;
+  position: relative;
   padding: ${space(0.5)} 1px;
   height: 100%;
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
+  transition: background-color 125ms ease-in-out;
   color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
 `;
 
 const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
+  display: flex;
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
-  :hover > div {
+
+  &:hover > div[data-type='span-row-cell'] {
     background-color: ${p => (p.showDetail ? p.theme.gray800 : p.theme.gray200)};
   }
 `;
@@ -875,25 +886,28 @@ const CursorGuide = styled('div')`
   height: 100%;
 `;
 
-export const DividerLine = styled('div')`
+const DividerLine = styled('div')`
   background-color: ${p => p.theme.gray400};
   position: absolute;
   height: 100%;
   width: 1px;
-  transform: translateX(-50%);
-  transition: all 125ms ease-in-out;
-  border-width: 0 2px;
-  border-color: rgba(0, 0, 0, 0);
-  border-style: solid;
-  box-sizing: content-box;
-  background-clip: content-box;
+  transition: background-color 125ms ease-in-out;
   z-index: ${zIndex.dividerLine};
 
   &.hovering {
     background-color: ${p => p.theme.gray800};
     width: 2px;
+    transform: translateX(-25%);
+    margin-right: -1px;
+
     cursor: ew-resize;
   }
+`;
+
+const DividerLineGhostContainer = styled('div')`
+  position: absolute;
+  width: 100%;
+  height: 100%;
 `;
 
 const SpanBarTitleContainer = styled('div')`
