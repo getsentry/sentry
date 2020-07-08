@@ -435,6 +435,18 @@ describe('getExpandedResults()', function() {
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('project.name:whoosh');
   });
+
+  it('should not trim values that need to be quoted', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'title'}],
+    });
+    // needs to be quoted because of whitespace in middle
+    const event = {title: 'hello there '};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('title:"hello there "');
+  });
 });
 
 describe('downloadAsCsv', function() {
