@@ -23,7 +23,6 @@ from sentry.constants import (
     MAX_SECS_IN_FUTURE,
     MAX_SECS_IN_PAST,
 )
-from sentry.message_filters import should_filter_event
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     get_grouping_config_dict_for_event_data,
@@ -70,12 +69,7 @@ from sentry.signals import first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.data_filters import (
-    is_valid_ip,
-    is_valid_release,
-    is_valid_error_message,
-    FilterStatKeys,
-)
+from sentry.utils.data_filters import FilterStatKeys
 from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
@@ -366,41 +360,6 @@ class EventManager(object):
         )
 
         self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
-
-    def should_filter(self):
-        """
-        returns (result: bool, reason: string or None)
-        Result is True if an event should be filtered
-        The reason for filtering is passed along as a string
-        so that we can store it in metrics
-        """
-        for name in SECURITY_REPORT_INTERFACES:
-            if name in self._data:
-                interface = get_interface(name)
-                if interface.to_python(self._data[name]).should_filter(self._project):
-                    return (True, FilterStatKeys.INVALID_CSP)
-
-        if self._client_ip and not is_valid_ip(self.project_config, self._client_ip):
-            return (True, FilterStatKeys.IP_ADDRESS)
-
-        release = self._data.get("release")
-        if release and not is_valid_release(self.project_config, release):
-            return (True, FilterStatKeys.RELEASE_VERSION)
-
-        error_message = (
-            get_path(self._data, "logentry", "formatted")
-            or get_path(self._data, "logentry", "message")
-            or ""
-        )
-        if error_message and not is_valid_error_message(self.project_config, error_message):
-            return (True, FilterStatKeys.ERROR_MESSAGE)
-
-        for exc in get_path(self._data, "exception", "values", filter=True, default=[]):
-            message = u": ".join([_f for _f in map(exc.get, ["type", "value"]) if _f])
-            if message and not is_valid_error_message(self.project_config, message):
-                return (True, FilterStatKeys.ERROR_MESSAGE)
-
-        return should_filter_event(self.project_config, self._data)
 
     def get_data(self):
         return self._data

@@ -11,7 +11,6 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface, INPUT_SCHEMAS
 from sentry.utils import json
 from sentry.utils.cache import memoize
-from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import trim
 from sentry.web.helpers import render_to_string
 
@@ -112,9 +111,6 @@ class SecurityReport(Interface):
     def get_title(self):
         return self.title
 
-    def should_filter(self, project=None):
-        raise NotImplementedError
-
     def get_origin(self):
         """
         The document URL that generated this report
@@ -181,9 +177,6 @@ class Hpkp(SecurityReport):
     def get_referrer(self):
         return None
 
-    def should_filter(self, project=None):
-        return False
-
 
 class ExpectStaple(SecurityReport):
     """
@@ -243,9 +236,6 @@ class ExpectStaple(SecurityReport):
     def get_referrer(self):
         return None
 
-    def should_filter(self, project=None):
-        return False
-
 
 class ExpectCT(SecurityReport):
     """
@@ -296,9 +286,6 @@ class ExpectCT(SecurityReport):
 
     def get_referrer(self):
         return None
-
-    def should_filter(self, project=None):
-        return False
 
 
 class Csp(SecurityReport):
@@ -415,21 +402,6 @@ class Csp(SecurityReport):
         return render_to_string(
             "sentry/partial/interfaces/csp_email.html", {"data": self.get_api_context()}
         )
-
-    def should_filter(self, project=None):
-        disallowed = ()
-        paths = ["blocked_uri", "source_file"]
-        uris = [getattr(self, path) for path in paths if hasattr(self, path)]
-
-        if project is None or bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
-            disallowed += DEFAULT_DISALLOWED_SOURCES
-        if project is not None:
-            disallowed += tuple(project.get_option("sentry:csp_ignored_sources", []))
-
-        if disallowed and any(is_valid_origin(uri, allowed=disallowed) for uri in uris):
-            return True
-
-        return False
 
     def _sanitized_blocked_uri(self):
         # HACK: This is 100% to work around Stripe urls
