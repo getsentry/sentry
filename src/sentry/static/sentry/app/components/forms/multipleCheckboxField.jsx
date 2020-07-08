@@ -4,6 +4,7 @@ import classNames from 'classnames';
 
 import FormField from 'app/components/forms/formField';
 import Tooltip from 'app/components/tooltip';
+import {IconQuestion} from 'app/icons';
 import {defined} from 'app/utils';
 
 export default class MultipleCheckboxField extends FormField {
@@ -66,7 +67,7 @@ export default class MultipleCheckboxField extends FormField {
               {shouldShowDisabledReason && (
                 <Tooltip title={disabledReason}>
                   <span className="disabled-indicator">
-                    <span className="icon-question" />
+                    <IconQuestion size="xs" />
                   </span>
                 </Tooltip>
               )}
