@@ -850,7 +850,14 @@ SENTRY_FEATURES = {
     # issues on external services.
     "organizations:integrations-issue-sync": True,
     # Enable interface functionality to receive event hooks.
-    "organizations:integrations-event-hooks": False,
+    "organizations:integrations-event-hooks": True,
+    # Enable integration functionality to work with alert rules
+    "organizations:integrations-alert-rule": True,
+    # Enable integration functionality to work with alert rules (specifically chat integrations)
+    "organizations:integrations-chat-unfurl": True,
+    # Enable integration functionality to work with alert rules (specifically indicdent)
+    # management integrations)
+    "organizations:integrations-incident-management": True,
     # Enable the Vercel integration
     "organizations:integrations-vercel": False,
     # Enable data forwarding functionality for organizations.
