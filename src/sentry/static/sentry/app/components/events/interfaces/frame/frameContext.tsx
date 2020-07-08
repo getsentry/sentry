@@ -122,7 +122,6 @@ const FrameContext = ({
 export default FrameContext;
 
 const StyledClippedBox = styled(ClippedBox)`
-  bottom: 0;
   margin-left: 0;
   margin-right: 0;
 
