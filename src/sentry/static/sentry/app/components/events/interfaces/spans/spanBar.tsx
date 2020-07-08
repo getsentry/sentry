@@ -804,25 +804,28 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           )}
           {this.renderCursorGuide()}
         </SpanRowCell>
-        <DividerLineGhostContainer
-          style={{
-            width: `calc(${toPercent(dividerPosition)} + 0.5px)`,
-            display: 'none',
-          }}
-        >
-          <DividerLine
-            ref={addGhostDividerLineRef()}
+        {!this.state.showDetail && (
+          <DividerLineGhostContainer
             style={{
-              right: 0,
+              width: `calc(${toPercent(dividerPosition)} + 0.5px)`,
+              display: 'none',
             }}
-            onClick={event => {
-              // the ghost divider line should not be interactive.
-              // we prevent the propagation of the clicks from this component to prevent
-              // the span detail from being opened.
-              event.stopPropagation();
-            }}
-          />
-        </DividerLineGhostContainer>
+          >
+            <DividerLine
+              ref={addGhostDividerLineRef()}
+              style={{
+                right: 0,
+              }}
+              className="hovering"
+              onClick={event => {
+                // the ghost divider line should not be interactive.
+                // we prevent the propagation of the clicks from this component to prevent
+                // the span detail from being opened.
+                event.stopPropagation();
+              }}
+            />
+          </DividerLineGhostContainer>
+        )}
       </SpanRowCellContainer>
     );
   }
@@ -893,6 +896,17 @@ const DividerLine = styled('div')`
   width: 1px;
   transition: background-color 125ms ease-in-out;
   z-index: ${zIndex.dividerLine};
+
+  /* enhanced hit-box */
+  &:after {
+    content: '';
+    z-index: -1;
+    position: absolute;
+    left: -2px;
+    top: 0;
+    width: 5px;
+    height: 100%;
+  }
 
   &.hovering {
     background-color: ${p => p.theme.gray800};
