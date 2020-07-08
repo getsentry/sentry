@@ -1,9 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 
 import {PageContent} from 'app/styles/organization';
 import {t} from 'app/locale';
 import DetailedError from 'app/components/errors/detailedError';
+
+type Props = RouteComponentProps<{}, {}>;
+
+type State = {
+  error: string | null;
+};
 
 /**
  * This component performs a client-side redirect to Event Details given only
@@ -15,12 +22,12 @@ import DetailedError from 'app/components/errors/detailedError';
  * See:
  * https://github.com/getsentry/sentry/blob/824c03089907ad22a9282303a5eaca33989ce481/src/sentry/web/urls.py#L578
  */
-class ProjectEventRedirect extends React.Component {
+class ProjectEventRedirect extends React.Component<Props, State> {
   static propTypes = {
     router: PropTypes.object,
   };
 
-  state = {
+  state: State = {
     error: null,
   };
 
@@ -62,16 +69,15 @@ class ProjectEventRedirect extends React.Component {
   }
 
   render() {
-    if (this.state.error) {
-      return (
-        <DetailedError
-          heading={t('Not found')}
-          message={this.state.error}
-          hideSupportLinks
-        />
-      );
-    }
-    return <PageContent />;
+    return this.state.error ? (
+      <DetailedError
+        heading={t('Not found')}
+        message={this.state.error}
+        hideSupportLinks
+      />
+    ) : (
+      <PageContent />
+    );
   }
 }
 

@@ -1,8 +1,10 @@
-import {withRouter} from 'react-router';
+import {withRouter, RouteComponentProps} from 'react-router';
 import React from 'react';
 
 import {setActiveProject} from 'app/actionCreators/projects';
 import {setLastRoute} from 'app/actionCreators/navigation';
+
+type Props = RouteComponentProps<{}, {}>;
 
 /**
  * This is the parent container for organization-level views such
@@ -10,10 +12,11 @@ import {setLastRoute} from 'app/actionCreators/navigation';
  *
  * Currently is just used to unset active project
  */
-class OrganizationRoot extends React.Component {
+class OrganizationRoot extends React.Component<Props> {
   componentDidMount() {
     setActiveProject(null);
   }
+
   componentWillUnmount() {
     const {location} = this.props;
     const {pathname, search} = location;
