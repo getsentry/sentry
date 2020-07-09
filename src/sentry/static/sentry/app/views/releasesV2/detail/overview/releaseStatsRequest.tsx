@@ -4,6 +4,7 @@ import omitBy from 'lodash/omitBy';
 import isEqual from 'lodash/isEqual';
 import meanBy from 'lodash/meanBy';
 import mean from 'lodash/mean';
+import round from 'lodash/round';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -373,21 +374,23 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       },
     };
 
-    const sessionDurationAverage = Math.round(
+    const sessionDurationAverage =
       mean(
         responseData
           .map(([timeframe, values]) => {
             chartData.data.push({
               name: timeframe * 1000,
-              value: Math.round(values.duration_p50),
+              value: round(values.duration_p50, values.duration_p50 > 60 ? 0 : 3),
             });
 
             return values.duration_p50;
           })
           .filter(duration => defined(duration))
-      ) || 0
+      ) ?? 0;
+
+    const summary = getExactDuration(
+      round(sessionDurationAverage, sessionDurationAverage > 60 ? 0 : 3)
     );
-    const summary = getExactDuration(sessionDurationAverage ?? 0);
 
     return {chartData: [chartData], chartSummary: summary};
   }
