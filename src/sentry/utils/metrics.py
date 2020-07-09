@@ -25,7 +25,7 @@ def global_tags(_all_threads=False, **tags):
     if _all_threads:
         stack = _GLOBAL_TAGS
     else:
-        if not hasattr(_GLOBAL_TAGS, "stack"):
+        if not hasattr(_THREAD_LOCAL_TAGS, "stack"):
             stack = _THREAD_LOCAL_TAGS.stack = []
         else:
             stack = _THREAD_LOCAL_TAGS.stack
