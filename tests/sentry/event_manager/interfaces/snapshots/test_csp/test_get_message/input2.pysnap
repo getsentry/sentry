@@ -1,12 +1,9 @@
 ---
-created: '2020-07-09T12:04:06.695090Z'
+created: '2020-07-09T22:22:50.665631Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_csp.py
 ---
-culprit: script-src 'unsafe-inline'
 errors: null
-message: Blocked unsafe inline 'script'
-origin: http://example.com/foo
 to_json:
   blocked_uri: ''
   document_uri: http://example.com/foo

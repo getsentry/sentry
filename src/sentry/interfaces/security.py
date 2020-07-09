@@ -165,6 +165,14 @@ class Csp(SecurityReport):
 
     title = "CSP Report"
 
+    @classmethod
+    def to_python(cls, data):
+        data.setdefault("document_uri", None)
+        data.setdefault("violated_directive", None)
+        data.setdefault("blocked_uri", None)
+        data.setdefault("effective_directive", None)
+        return cls(**data)
+
     def to_string(self, is_public=False, **kwargs):
         return json.dumps({"csp-report": self.get_api_context()}, indent=2)
 
