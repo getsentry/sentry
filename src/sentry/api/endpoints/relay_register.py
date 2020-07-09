@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import ipaddress
 import six
 
 from rest_framework.response import Response
@@ -42,13 +43,15 @@ def is_internal_relay(request, public_key):
     """
     Checks if the relay is allowed to register, otherwise raises an exception
     """
-    if (
-        settings.DEBUG
-        or request.META.get("REMOTE_ADDR", None) in settings.INTERNAL_IPS
-        or public_key in settings.SENTRY_RELAY_WHITELIST_PK
-    ):
+    if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
         return True
-    return False
+
+    # Allow requests from internal IPs
+    internal_ips = (
+        ipaddress.ip_network(six.text_type(v), strict=False) for v in settings.INTERNAL_IPS
+    )
+    request_ip = ipaddress.ip_address(six.text_type(request.META["REMOTE_ADDR"]))
+    return any(request_ip in network for network in internal_ips)
 
 
 class RelayRegisterChallengeEndpoint(Endpoint):
