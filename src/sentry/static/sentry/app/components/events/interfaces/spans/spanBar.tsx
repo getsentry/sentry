@@ -690,8 +690,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) {
     if (this.state.showDetail) {
-      // we would like to hide the divider lines when the span details
-      // has been expanded
+      // Mock component to preserve layout spacing
       return (
         <DividerLine
           style={{
