@@ -4,7 +4,7 @@ from __future__ import absolute_import, print_function
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models.projectoption import ProjectOption
 from sentry.utils.safe import set_path
-from sentry.message_filters import (
+from sentry.inbound_filters import (
     _localhost_filter,
     _browser_extensions_filter,
     _web_crawlers_filter,

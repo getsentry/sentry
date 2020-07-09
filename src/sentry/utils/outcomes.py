@@ -12,7 +12,7 @@ import time
 from sentry import tsdb, options
 from sentry.constants import DataCategory
 from sentry.utils import json, metrics
-from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
 from sentry.utils.pubsub import KafkaPublisher
 

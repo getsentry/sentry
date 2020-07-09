@@ -39,7 +39,7 @@ from sentry.models import (
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
-from sentry.utils.data_filters import FilterStatKeys
+from sentry.inbound_filters import FilterStatKeys
 
 
 def make_event(**kwargs):
