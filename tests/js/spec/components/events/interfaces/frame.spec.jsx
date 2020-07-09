@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {mount} from 'sentry-test/enzyme';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Frame from 'app/components/events/interfaces/frame/frame';
 
@@ -21,7 +21,7 @@ describe('Frame', function() {
     });
 
     it('should render the source map information as a HTML string', function() {
-      const frame = mount(<Frame data={data} components={[]} />);
+      const frame = mountWithTheme(<Frame data={data} components={[]} />);
 
       expect(frame.find('Tooltip').prop('title')).toMatchSnapshot();
     });
@@ -37,7 +37,7 @@ describe('Frame', function() {
         ],
       };
 
-      const frame = mount(<Frame data={data} components={[]} isExpanded />);
+      const frame = mountWithTheme(<Frame data={data} components={[]} isExpanded />);
       expect(frame.find('ContextLine')).toMatchSnapshot();
     });
 
@@ -63,7 +63,7 @@ describe('Frame', function() {
         rsp: '0x00007ffedfdff7c0',
       };
 
-      const frame = mount(
+      const frame = mountWithTheme(
         <Frame data={data} registers={registers} components={[]} isExpanded />
       );
       expect(frame.find('FrameRegisters').prop('data')).toEqual(registers);
@@ -73,7 +73,7 @@ describe('Frame', function() {
       data = {};
       const registers = {};
 
-      const frame = mount(
+      const frame = mountWithTheme(
         <Frame data={data} registers={registers} components={[]} isExpanded />
       );
       expect(frame.find('FrameRegisters')).toHaveLength(0);
@@ -93,7 +93,7 @@ describe('Frame', function() {
         },
       };
 
-      const frame = mount(<Frame data={data} components={[]} isExpanded />);
+      const frame = mountWithTheme(<Frame data={data} components={[]} isExpanded />);
       expect(frame.find('FrameVariables').prop('data')).toEqual(data.vars);
     });
   });
