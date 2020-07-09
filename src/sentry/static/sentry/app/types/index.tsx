@@ -222,7 +222,7 @@ export type EventAttachment = {
   event_id: string;
 };
 
-export type EntryTypeData = {[key: string]: any | any[]};
+export type EntryTypeData = Record<string, any | Array<any>>;
 
 type EntryType = {
   data: EntryTypeData;
