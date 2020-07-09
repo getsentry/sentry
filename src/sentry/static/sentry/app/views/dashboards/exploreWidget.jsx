@@ -129,7 +129,7 @@ class ExploreWidget extends React.Component {
         title={
           flags.discover2
             ? t('Explore data in the Discover')
-            : t('You do not have access to the Discover. Click to learn more.')
+            : t('You do not have access to Discover. Click to learn more.')
         }
       >
         <IconTelescope size="xs" />
