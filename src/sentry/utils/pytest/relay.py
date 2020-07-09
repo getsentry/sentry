@@ -147,8 +147,8 @@ def get_relay_store_url(relay_server):
 
 @pytest.fixture
 def get_relay_minidump_url(relay_server):
-    def inner(project_id):
-        return "{}/api/{}/minidump/".format(relay_server["url"], project_id)
+    def inner(project_id, key):
+        return "{}/api/{}/minidump/?sentry_key={}".format(relay_server["url"], project_id, key)
 
     return inner
 

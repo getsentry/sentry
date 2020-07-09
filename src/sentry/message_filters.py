@@ -111,7 +111,7 @@ def _filter_from_filter_id(filter_id):
     Returns the corresponding filter for a filter id or None if no filter with the given id found
     """
     for flt in get_all_filter_specs():
-        if flt.spec.id == filter_id:
+        if flt.id == filter_id:
             return flt
     return None
 
@@ -146,15 +146,6 @@ def _get_filter_settings(project_config, flt):
     """
     filter_settings = project_config.config.get("filterSettings", {})
     return filter_settings.get(get_filter_key(flt), None)
-
-
-def _is_filter_enabled(project_config, flt):
-    filter_options = _get_filter_settings(project_config, flt)
-
-    if filter_options is None:
-        raise ValueError("unknown filter", flt.spec.id)
-
-    return filter_options["isEnabled"]
 
 
 _localhost_filter = _FilterSpec(

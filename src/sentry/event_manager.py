@@ -120,19 +120,6 @@ def validate_and_set_timestamp(data, timestamp):
             data["timestamp"] = float(timestamp)
 
 
-def parse_client_as_sdk(value):
-    if not value:
-        return {}
-    try:
-        name, version = value.split("/", 1)
-    except ValueError:
-        try:
-            name, version = value.split(" ", 1)
-        except ValueError:
-            return {}
-    return {"name": name, "version": version}
-
-
 def plugin_is_regression(group, event):
     project = event.project
     for plugin in plugins.for_project(project):
@@ -218,20 +205,6 @@ class ScoreClause(Func):
             sql = "log(times_seen) * 600 + last_seen::abstime::int"
 
         return (sql, [])
-
-
-def add_meta_errors(errors, meta):
-    for field_meta in meta:
-        original_value = field_meta.get().get("val")
-
-        for i, (err_type, err_data) in enumerate(field_meta.iter_errors()):
-            error = dict(err_data)
-            error["type"] = err_type
-            if field_meta.path:
-                error["name"] = field_meta.path
-            if i == 0 and original_value is not None:
-                error["value"] = original_value
-            errors.append(error)
 
 
 class EventManager(object):
