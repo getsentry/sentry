@@ -7,6 +7,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentStatus
+from sentry.snuba.dataset import Dataset
 
 
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
@@ -41,6 +42,10 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
                 incidents = incidents.filter(status=IncidentStatus.CRITICAL.value)
             elif query_status == "closed":
                 incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
+
+        if not features.has("organizations:performance-view", organization):
+            # Filter to only error alerts
+            incidents = incidents.filter(alert_rule__snuba_query__dataset=Dataset.Events.value)
 
         return self.paginate(
             request,
