@@ -33,24 +33,25 @@ class SettingsLayout extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.state = {
-      /**
-       * This is used when the screen is small enough that the navigation should
-       * be hidden. On large screens this state will end up unused.
-       */
-      navVisible: false,
-      /**
-       * Offset mobile settings navigation by the height of main navigation,
-       * settings breadcrumbs and optional warnings.
-       */
-      navOffsetTop: 0,
-    };
 
     this.headerRef = React.createRef();
 
     // Close the navigation when navigating.
     this.unlisten = browserHistory.listen(() => this.toggleNav(false));
   }
+
+  state = {
+    /**
+     * This is used when the screen is small enough that the navigation should
+     * be hidden. On large screens this state will end up unused.
+     */
+    navVisible: false,
+    /**
+     * Offset mobile settings navigation by the height of main navigation,
+     * settings breadcrumbs and optional warnings.
+     */
+    navOffsetTop: 0,
+  };
 
   componentWillUnmount() {
     this.unlisten();
@@ -89,37 +90,35 @@ class SettingsLayout extends React.Component<Props, State> {
     const shouldRenderNavigation = typeof renderNavigation === 'function';
 
     return (
-      <React.Fragment>
-        <SettingsColumn>
-          <SettingsHeader ref={this.headerRef}>
-            <HeaderContent>
-              {shouldRenderNavigation && (
-                <NavMenuToggle
-                  priority="link"
-                  icon={navVisible ? <IconClose /> : <IconMenu />}
-                  onClick={() => this.toggleNav(!navVisible)}
-                />
-              )}
-              <StyledSettingsBreadcrumb
-                params={params}
-                routes={childRoutes}
-                route={childRoute}
-              />
-              <SettingsSearch routes={routes} router={router} params={params} />
-            </HeaderContent>
-          </SettingsHeader>
-
-          <MaxWidthContainer>
+      <SettingsColumn>
+        <SettingsHeader ref={this.headerRef}>
+          <HeaderContent>
             {shouldRenderNavigation && (
-              <SidebarWrapper isVisible={navVisible} offsetTop={navOffsetTop}>
-                {renderNavigation!()}
-              </SidebarWrapper>
+              <NavMenuToggle
+                priority="link"
+                icon={navVisible ? <IconClose /> : <IconMenu />}
+                onClick={() => this.toggleNav(!navVisible)}
+              />
             )}
-            <NavMask isVisible={navVisible} onClick={() => this.toggleNav(false)} />
-            <Content>{children}</Content>
-          </MaxWidthContainer>
-        </SettingsColumn>
-      </React.Fragment>
+            <StyledSettingsBreadcrumb
+              params={params}
+              routes={childRoutes}
+              route={childRoute}
+            />
+            <SettingsSearch routes={routes} router={router} params={params} />
+          </HeaderContent>
+        </SettingsHeader>
+
+        <MaxWidthContainer>
+          {shouldRenderNavigation && (
+            <SidebarWrapper isVisible={navVisible} offsetTop={navOffsetTop}>
+              {renderNavigation!()}
+            </SidebarWrapper>
+          )}
+          <NavMask isVisible={navVisible} onClick={() => this.toggleNav(false)} />
+          <Content>{children}</Content>
+        </MaxWidthContainer>
+      </SettingsColumn>
     );
   }
 }
