@@ -64,10 +64,15 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
         `
       : css`
           background: ${p.theme.gray700};
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
         `}
+
+  ${p =>
+    p.backgroundComponent &&
+    css`
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    `}
   position: relative;
   margin-bottom: ${space(3)};
   box-shadow: ${p => p.theme.dropShadowLight};
