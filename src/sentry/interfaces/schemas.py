@@ -266,6 +266,7 @@ TAGS_TUPLES_SCHEMA = {
 
 TAGS_SCHEMA = {"anyOf": [TAGS_DICT_SCHEMA, TAGS_TUPLES_SCHEMA]}
 
+# XXX(markus): Remove in favor of Relay's schema definition
 EVENT_SCHEMA = {
     "type": "object",
     "properties": {

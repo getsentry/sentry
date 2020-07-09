@@ -1,5 +1,5 @@
 ---
-created: '2020-02-07T14:42:38.524701Z'
+created: '2020-07-06T21:32:31.094138Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -82,7 +82,6 @@ contexts:
     misc_cpu_vendor: GenuineIntel
     misc_number_of_cores: 6
     misc_number_of_cores_inc_hyperthread: 6
-    misc_primary_gpu_brand: Parallels Display Adapter (WDDM)
     platform_name: WindowsNoEditor
     portable_call_stack: YetAnother 0x00000000544e0000 + 703394 YetAnother 0x00000000544e0000
       + 281f2ee YetAnother 0x00000000544e0000 + 2a26dd3 YetAnother 0x00000000544e0000

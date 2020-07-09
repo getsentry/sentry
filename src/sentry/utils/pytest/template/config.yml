@@ -11,4 +11,9 @@ processing:
   enabled: true
   kafka_config:
     - {name: "bootstrap.servers", value: "${KAFKA_HOST}:9093"}
+  topics:
+    events: ingest-events
+    attachments: ingest-events
+    transactions: ingest-events
+    outcomes: outcomes
   redis: redis://${REDIS_HOST}:6379

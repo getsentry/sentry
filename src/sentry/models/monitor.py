@@ -166,7 +166,7 @@ class Monitor(Model):
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        from sentry.coreapi import ClientApiHelper
+        from sentry.coreapi import insert_data_to_database_legacy
         from sentry.event_manager import EventManager
         from sentry.models import Project
         from sentry.signals import monitor_failed
@@ -201,7 +201,6 @@ class Monitor(Model):
         )
         event_manager.normalize()
         data = event_manager.get_data()
-        helper = ClientApiHelper(project_id=self.project_id)
-        helper.insert_data_to_database(data)
+        insert_data_to_database_legacy(data)
         monitor_failed.send(monitor=self, sender=type(self))
         return True

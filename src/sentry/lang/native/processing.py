@@ -6,10 +6,10 @@ import six
 
 from sentry.event_manager import validate_and_set_timestamp
 from sentry.lang.native.error import write_error, SymbolicationFailed
-from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE, is_minidump_event
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.lang.native.unreal import APPLECRASHREPORT_ATTACHMENT_TYPE, is_applecrashreport_event
 from sentry.lang.native.utils import (
+    is_minidump_event,
+    is_applecrashreport_event,
     get_sdk_from_event,
     native_images_from_data,
     is_native_platform,
@@ -30,6 +30,12 @@ logger = logging.getLogger(__name__)
 
 
 IMAGE_STATUS_FIELDS = frozenset(("unwind_status", "debug_status"))
+
+# Attachment type used for minidump files
+MINIDUMP_ATTACHMENT_TYPE = "event.minidump"
+
+# Attachment type used for Apple Crash Reports
+APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
 
 def _merge_frame(new_frame, symbolicated):

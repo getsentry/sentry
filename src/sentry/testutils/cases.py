@@ -86,7 +86,6 @@ from .skips import requires_snuba
 from .helpers import (
     AuthProvider,
     Feature,
-    get_auth_header,
     TaskRunner,
     override_options,
     parse_queries,
@@ -228,135 +227,12 @@ class BaseTestCase(Fixtures, Exam):
     def _makePostMessage(self, data):
         return base64.b64encode(self._makeMessage(data))
 
-    def _postWithHeader(self, data, key=None, secret=None, protocol=None, **extra):
-        if key is None:
-            key = self.projectkey.public_key
-            secret = self.projectkey.secret_key
-
-        message = self._makePostMessage(data)
-        with self.tasks():
-            resp = self.client.post(
-                reverse("sentry-api-store"),
-                message,
-                content_type="application/octet-stream",
-                HTTP_X_SENTRY_AUTH=get_auth_header("_postWithHeader/0.0.0", key, secret, protocol),
-                **extra
-            )
-        return resp
-
-    def _postCspWithHeader(self, data, key=None, **extra):
-        if isinstance(data, dict):
-            body = json.dumps({"csp-report": data})
-        elif isinstance(data, six.string_types):
-            body = data
-        path = reverse("sentry-api-csp-report", kwargs={"project_id": self.project.id})
-        path += "?sentry_key=%s" % self.projectkey.public_key
-        with self.tasks():
-            return self.client.post(
-                path,
-                data=body,
-                content_type="application/csp-report",
-                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                **extra
-            )
-
-    def _postMinidumpWithHeader(
-        self, upload_file_minidump, data=None, key=None, raw=False, **extra
-    ):
-        if raw:
-            data = upload_file_minidump.read()
-            extra.setdefault("content_type", "application/octet-stream")
-        else:
-            data = dict(data or {})
-            data["upload_file_minidump"] = upload_file_minidump
-
-        path = reverse("sentry-api-minidump", kwargs={"project_id": self.project.id})
-        path += "?sentry_key=%s" % self.projectkey.public_key
-        with self.tasks():
-            return self.client.post(path, data=data, HTTP_USER_AGENT=DEFAULT_USER_AGENT, **extra)
-
-    def _postUnrealWithHeader(self, upload_unreal_crash, data=None, key=None, **extra):
-        path = reverse(
-            "sentry-api-unreal",
-            kwargs={"project_id": self.project.id, "sentry_key": self.projectkey.public_key},
-        )
-        with self.tasks():
-            return self.client.post(
-                path,
-                data=upload_unreal_crash,
-                content_type="application/octet-stream",
-                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                **extra
-            )
-
-    def _postEventAttachmentWithHeader(self, attachment, **extra):
-        path = reverse(
-            "sentry-api-event-attachment",
-            kwargs={"project_id": self.project.id, "event_id": self.event.event_id},
-        )
-
-        key = self.projectkey.public_key
-        secret = self.projectkey.secret_key
-
-        with self.tasks():
-            return self.client.post(
-                path,
-                attachment,
-                # HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                HTTP_X_SENTRY_AUTH=get_auth_header("_postWithHeader/0.0.0", key, secret, 7),
-                **extra
-            )
-
-    def _getWithReferer(self, data, key=None, referer="sentry.io", protocol="4"):
-        if key is None:
-            key = self.projectkey.public_key
-
-        headers = {}
-        if referer is not None:
-            headers["HTTP_REFERER"] = referer
-
-        message = self._makeMessage(data)
-        qs = {
-            "sentry_version": protocol,
-            "sentry_client": "raven-js/lol",
-            "sentry_key": key,
-            "sentry_data": message,
-        }
-        with self.tasks():
-            resp = self.client.get(
-                "%s?%s" % (reverse("sentry-api-store", args=(self.project.pk,)), urlencode(qs)),
-                **headers
-            )
-        return resp
-
-    def _postWithReferer(self, data, key=None, referer="sentry.io", protocol="4"):
-        if key is None:
-            key = self.projectkey.public_key
-
-        headers = {}
-        if referer is not None:
-            headers["HTTP_REFERER"] = referer
-
-        message = self._makeMessage(data)
-        qs = {"sentry_version": protocol, "sentry_client": "raven-js/lol", "sentry_key": key}
-        with self.tasks():
-            resp = self.client.post(
-                "%s?%s" % (reverse("sentry-api-store", args=(self.project.pk,)), urlencode(qs)),
-                data=message,
-                content_type="application/json",
-                **headers
-            )
-        return resp
-
     def options(self, options):
         """
         A context manager that temporarily sets a global option and reverts
         back to the original value when exiting the context.
         """
         return override_options(options)
-
-    _postWithSignature = _postWithHeader
-    _postWithNewSignature = _postWithHeader
 
     def assert_valid_deleted_log(self, deleted_log, original_object):
         assert deleted_log is not None
