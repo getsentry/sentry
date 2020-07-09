@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {slideInLeft, fadeIn} from 'app/styles/animations';
@@ -95,7 +96,8 @@ class SettingsLayout extends React.Component<Props, State> {
             {shouldRenderNavigation && (
               <NavMenuToggle
                 priority="link"
-                icon={navVisible ? <IconClose /> : <IconMenu />}
+                label={t('Open the menu')}
+                icon={navVisible ? <IconClose aria-hidden /> : <IconMenu aria-hidden />}
                 onClick={() => this.toggleNav(!navVisible)}
               />
             )}
