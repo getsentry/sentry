@@ -32,7 +32,11 @@ class Banner extends React.Component<Props> {
     } = this.props;
 
     return (
-      <BannerWrapper backgroundImg={backgroundImg} className={className}>
+      <BannerWrapper
+        backgroundComponent={backgroundComponent}
+        backgroundImg={backgroundImg}
+        className={className}
+      >
         {backgroundComponent}
         {isDismissable ? (
           <StyledIconClose aria-label={t('Close')} onClick={onCloseClick} />
