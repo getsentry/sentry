@@ -23,7 +23,6 @@ def make_csp_snapshot(insta_snapshot):
                 "message": interface and interface.get_message(),
                 "culprit": interface and interface.get_culprit(),
                 "origin": interface and interface.get_origin(),
-                "tags": interface and interface.get_tags(),
             }
         )
 
@@ -82,16 +81,6 @@ def test_coerce_blocked_uri_if_missing(make_csp_snapshot):
 )
 def test_get_culprit(make_csp_snapshot, input):
     make_csp_snapshot(input)
-
-
-def test_get_tags_stripe(make_csp_snapshot):
-    make_csp_snapshot(
-        dict(
-            document_uri="https://example.com",
-            blocked_uri="https://api.stripe.com/v1/tokens?card[number]=xxx",
-            effective_directive="script-src",
-        )
-    )
 
 
 @pytest.mark.parametrize(

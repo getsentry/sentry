@@ -11,8 +11,8 @@ class ProjectFilterDetailsTest(APITestCase):
         project = self.create_project(name="Bar", slug="bar", teams=[team])
         url = "/api/0/projects/%s/%s/filters/browser-extensions/" % (org.slug, project.slug)
 
-        project.update_option("filters:browser-extension", "0")
-        response = self.client.put(url, json={"active": True})
+        project.update_option("filters:browser-extensions", "0")
+        response = self.client.put(url, format="json", data={"active": True})
         assert response.status_code == 201
 
-        assert project.get_option("filters:browser-extension") == "1"
+        assert project.get_option("filters:browser-extensions") == "1"
