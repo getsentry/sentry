@@ -11,7 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 type Props = RouteComponentProps<{orgId: string}, {}> & {organization: Organization};
 
 const TeamCreate = ({organization, router, params}: Props) => (
-  <SentryDocumentTitle title="Create Team" objSlug={params.orgId}>
+  <SentryDocumentTitle title={t('Create Team')} objSlug={params.orgId}>
     <NarrowLayout>
       <h3>{t('Create a New Team')}</h3>
 
