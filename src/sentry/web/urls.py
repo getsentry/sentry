@@ -76,7 +76,6 @@ urlpatterns += [
         api.crossdomain_xml,
         name="sentry-api-crossdomain-xml",
     ),
-    url(r"^api/store/schema$", api.StoreSchemaView.as_view(), name="sentry-api-store-schema"),
     # Frontend client config
     url(r"^api/client-config/?$", api.ClientConfigView.as_view(), name="sentry-api-client-config"),
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash

@@ -4,7 +4,6 @@ import logging
 import time
 
 import ipaddress
-import jsonschema
 import six
 
 from datetime import timedelta
@@ -31,11 +30,6 @@ from sentry.grouping.api import (
     get_fingerprinting_config_for_project,
     GroupingConfigNotFound,
 )
-from sentry.coreapi import (
-    APIError,
-    APIForbidden,
-)
-from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
     Activity,
@@ -282,51 +276,6 @@ class EventManager(object):
         self._normalized = False
         self.project_config = project_config
         self.sent_at = sent_at
-
-    def process_csp_report(self):
-        """Only called from the CSP report endpoint."""
-        data = self._data
-
-        try:
-            interface = get_interface(data.pop("interface"))
-            report = data.pop("report")
-        except KeyError:
-            raise APIForbidden("No report or interface data")
-
-        # To support testing, we can either accept a built interface instance, or the raw data in
-        # which case we build the instance ourselves
-        try:
-            instance = report if isinstance(report, interface) else interface.from_raw(report)
-        except jsonschema.ValidationError as e:
-            raise APIError("Invalid security report: %s" % str(e).splitlines()[0])
-
-        def clean(d):
-            return dict([x for x in d.items() if x[1]])
-
-        data.update(
-            {
-                "logger": "csp",
-                "message": instance.get_message(),
-                "culprit": instance.get_culprit(),
-                instance.path: instance.to_json(),
-                "tags": instance.get_tags(),
-                "errors": [],
-                "user": {"ip_address": self._client_ip},
-                # Construct a faux Http interface based on the little information we have
-                # This is a bit weird, since we don't have nearly enough
-                # information to create an Http interface, but
-                # this automatically will pick up tags for the User-Agent
-                # which is actually important here for CSP
-                "request": {
-                    "url": instance.get_origin(),
-                    "headers": clean(
-                        {"User-Agent": self._user_agent, "Referer": instance.get_referrer()}
-                    ),
-                },
-            }
-        )
-
-        self._data = data
 
     def normalize(self, project_id=None):
         with metrics.timer("events.store.normalize.duration"):

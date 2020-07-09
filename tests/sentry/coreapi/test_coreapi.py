@@ -8,15 +8,12 @@ from sentry.coreapi import (
     APIUnauthorized,
     Auth,
     ClientApiHelper,
-    ClientAuthHelper,
 )
 from sentry.interfaces.base import get_interface
 from sentry.testutils import TestCase
 
 
 class BaseAPITest(TestCase):
-    auth_helper_cls = ClientAuthHelper
-
     def setUp(self):
         self.user = self.create_user("coreapi@example.com")
         self.team = self.create_team(name="Foo")
