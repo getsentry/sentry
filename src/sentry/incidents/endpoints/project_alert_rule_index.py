@@ -23,7 +23,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         Fetches alert rules and legacy rules for an organization
         """
         alert_rules = AlertRule.objects.fetch_for_project(project)
-        if not features.has("organizations:incidents-performance", project.organization):
+        if not features.has("organizations:performance-view", project.organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
@@ -51,7 +51,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         alert_rules = AlertRule.objects.fetch_for_project(project)
-        if not features.has("organizations:incidents-performance", project.organization):
+        if not features.has("organizations:performance-view", project.organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 

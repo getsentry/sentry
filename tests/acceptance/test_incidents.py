@@ -6,7 +6,7 @@ import pytz
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
-FEATURE_NAME = ["organizations:incidents", "organizations:incidents-performance"]
+FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
