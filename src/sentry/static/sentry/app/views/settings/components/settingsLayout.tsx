@@ -140,7 +140,8 @@ const HeaderContent = styled('div')`
 
 const NavMenuToggle = styled(Button)`
   display: none;
-  margin-right: ${space(2)};
+  margin: -${space(1)} ${space(1)} -${space(1)} -${space(1)};
+  padding: ${space(1)};
   color: ${p => p.theme.gray600};
   &:hover,
   &:focus,
