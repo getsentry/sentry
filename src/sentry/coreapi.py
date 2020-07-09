@@ -44,7 +44,7 @@ class APIForbidden(APIError):
 
 
 def insert_data_to_database_legacy(
-    self, data, start_time=None, from_reprocessing=False, attachments=None
+    data, start_time=None, from_reprocessing=False, attachments=None
 ):
     """
     Yet another "fast path" to ingest an event without making it go
