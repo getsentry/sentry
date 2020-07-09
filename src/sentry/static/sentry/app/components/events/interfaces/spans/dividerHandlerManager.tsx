@@ -108,6 +108,7 @@ export class Provider extends React.Component<PropType, StateType> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor does not select text during a drag
