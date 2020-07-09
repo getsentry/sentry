@@ -53,13 +53,11 @@ class ResultsChart extends React.Component<ResultsChartProps> {
 
     const {utc} = getParams(location.query);
     const apiPayload = eventView.getEventsAPIPayload(location);
+    const display = eventView.getDisplayMode();
     const isTopEvents =
-      eventView.display === DisplayModes.TOP5 ||
-      eventView.display === DisplayModes.DAILYTOP5;
+      display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
 
-    const isDaily =
-      eventView.display === DisplayModes.DAILYTOP5 ||
-      eventView.display === DisplayModes.DAILY;
+    const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
 
     return (
       <React.Fragment>
@@ -77,8 +75,8 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               start={start}
               end={end}
               period={globalSelection.statsPeriod}
-              disablePrevious={eventView.display !== DisplayModes.PREVIOUS}
-              disableReleases={eventView.display !== DisplayModes.RELEASES}
+              disablePrevious={display !== DisplayModes.PREVIOUS}
+              disableReleases={display !== DisplayModes.RELEASES}
               field={isTopEvents ? apiPayload.field : undefined}
               interval={eventView.interval}
               showDaily={isDaily}

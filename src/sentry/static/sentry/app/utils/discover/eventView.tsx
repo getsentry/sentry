@@ -1008,12 +1008,18 @@ class EventView {
   }
 
   getDisplayOptions(): SelectValue<string>[] {
-    if (!this.start && !this.end) {
-      return DISPLAY_MODE_OPTIONS;
-    }
     return DISPLAY_MODE_OPTIONS.map(item => {
       if (item.value === DisplayModes.PREVIOUS) {
-        return {...item, disabled: true};
+        if (this.start || this.end) {
+          return {...item, disabled: true};
+        }
+      } else if (
+        item.value === DisplayModes.TOP5 ||
+        item.value === DisplayModes.DAILYTOP5
+      ) {
+        if (this.getAggregateFields().length === 0) {
+          return {...item, disabled: true};
+        }
       }
       return item;
     });

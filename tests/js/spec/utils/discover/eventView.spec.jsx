@@ -2351,7 +2351,11 @@ describe('EventView.getDisplayOptions()', function() {
   };
 
   it('should return default options', function() {
-    const eventView = new EventView(state);
+    const eventView = new EventView({
+      ...state,
+      // there needs to exist an aggregate or TOP 5 modes will be disabled
+      fields: [{field: 'count()'}],
+    });
 
     expect(eventView.getDisplayOptions()).toEqual(DISPLAY_MODE_OPTIONS);
   });
@@ -2366,6 +2370,18 @@ describe('EventView.getDisplayOptions()', function() {
     const options = eventView.getDisplayOptions();
     expect(options[1].value).toEqual('previous');
     expect(options[1].disabled).toBeTruthy();
+  });
+
+  it('should disable top 5 period/daily if no aggregates present', function() {
+    const eventView = new EventView({
+      ...state,
+    });
+
+    const options = eventView.getDisplayOptions();
+    expect(options[3].value).toEqual('top5');
+    expect(options[3].disabled).toBeTruthy();
+    expect(options[5].value).toEqual('dailytop5');
+    expect(options[5].disabled).toBeTruthy();
   });
 });
 
@@ -2390,10 +2406,10 @@ describe('EventView.getDisplayMode()', function() {
   it('should return current mode when not disabled', function() {
     const eventView = new EventView({
       ...state,
-      display: DisplayModes.TOP5,
+      display: DisplayModes.DAILY,
     });
     const displayMode = eventView.getDisplayMode();
-    expect(displayMode).toEqual(DisplayModes.TOP5);
+    expect(displayMode).toEqual(DisplayModes.DAILY);
   });
 
   it('should return default mode when disabled', function() {
