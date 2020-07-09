@@ -1,4 +1,4 @@
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -12,11 +12,9 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 const ERROR_NAME = 'Permission Denied';
 
-class PermissionDenied extends React.Component {
-  static propTypes = {
-    routes: PropTypes.array,
-  };
+type Props = WithRouterProps;
 
+class PermissionDenied extends React.Component<Props> {
   static contextTypes = {
     organization: PropTypes.object,
     project: PropTypes.object,
@@ -43,7 +41,8 @@ class PermissionDenied extends React.Component {
         <PageContent>
           <LoadingError
             message={tct(
-              'Your role does not have the necessary permissions to access this resource, please read more about [link:organizational roles]',
+              `Your role does not have the necessary permissions to access this
+               resource, please read more about [link:organizational roles]`,
               {
                 link: <ExternalLink href="https://docs.sentry.io/learn/membership/" />,
               }
