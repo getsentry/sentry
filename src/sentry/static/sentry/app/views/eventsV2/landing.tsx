@@ -31,7 +31,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {DEFAULT_EVENT_VIEW} from './data';
 import {getPrebuiltQueries} from './utils';
 import QueryList from './queryList';
-import backgroundSpace from '../../../images/spot/background-space.svg';
+import BackgroundSpace from './backgroundSpace';
 
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
@@ -224,7 +224,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         subtitle={t(
           'Customize and save queries by search conditions, event fields, and tags'
         )}
-        backgroundImg={backgroundSpace}
+        backgroundImg={<BackgroundSpace />}
         onCloseClick={this.handleClick}
       >
         <StarterButton
