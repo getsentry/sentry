@@ -128,7 +128,7 @@ class ExploreWidget extends React.Component {
         target={!flags.discover2 ? '_blank' : ''}
         title={
           flags.discover2
-            ? t('Explore data in the Discover')
+            ? t('Explore data in Discover')
             : t('You do not have access to Discover. Click to learn more.')
         }
       >
