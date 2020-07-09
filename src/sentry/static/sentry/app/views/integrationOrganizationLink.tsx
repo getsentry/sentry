@@ -151,7 +151,9 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
       const {selectedOrgSlug} = this.state;
       const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
       this.trackInstallationStart();
-      window.location.assign(`/extensions/vercel/configure/?${urlEncode(query)}`);
+      window.location.assign(
+        `/extensions/${this.integrationSlug}/configure/?${urlEncode(query)}`
+      );
     });
   }
 
