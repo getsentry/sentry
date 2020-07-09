@@ -27,6 +27,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import {getPrebuiltQueries} from './utils';
@@ -57,6 +58,7 @@ type Props = {
 
 type State = {
   isBannerHidden: boolean;
+  isSmallBanner: boolean;
   savedQueries: SavedQuery[];
   savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
@@ -68,6 +70,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     router: PropTypes.object.isRequired,
   };
 
+  mq = window.matchMedia?.(`(max-width: ${theme.breakpoints[1]})`);
+
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -77,8 +81,27 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     // local component state
     isBannerHidden: checkIsBannerHidden(),
+    isSmallBanner: this.mq?.matches,
     savedQueries: [],
     savedQueriesPageLinks: '',
+  };
+
+  componentDidMount() {
+    if (this.mq) {
+      this.mq.addListener(this.handleMediaQueryChange);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.mq) {
+      this.mq.removeListener(this.handleMediaQueryChange);
+    }
+  }
+
+  handleMediaQueryChange = (changed: MediaQueryListEvent) => {
+    this.setState({
+      isSmallBanner: changed.matches,
+    });
   };
 
   shouldReload = true;
@@ -224,10 +247,11 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         subtitle={t(
           'Customize and save queries by search conditions, event fields, and tags'
         )}
-        backgroundImg={<BackgroundSpace />}
+        backgroundComponent={<BackgroundSpace />}
         onCloseClick={this.handleClick}
       >
         <StarterButton
+          size={this.state.isSmallBanner ? 'xsmall' : undefined}
           to={to}
           onClick={() => {
             trackAnalyticsEvent({
@@ -239,7 +263,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         >
           {t('Build a new query')}
         </StarterButton>
-        <StarterButton href="https://docs.sentry.io/performance-monitoring/discover-queries/">
+        <StarterButton
+          size={this.state.isSmallBanner ? 'xsmall' : undefined}
+          href="https://docs.sentry.io/performance-monitoring/discover-queries/"
+        >
           {t('Read the docs')}
         </StarterButton>
       </Banner>

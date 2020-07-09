@@ -46,7 +46,7 @@ const cls11 = css`
 `;
 
 const cls12 = css`
-  fill: #ff7d7f;
+  fill: #d35bab;
 `;
 const cls13 = css`
   fill: #ce5d9e;
@@ -68,11 +68,11 @@ const hover = keyframes`
 
 const Twinkles = styled('path')`
   ${cls12};
-  ${twinkles};
+  animation: ${twinkles} 2s infinite;
 `;
 
 const TwinklesDelay = styled('path')`
-  ${twinkles};
+  animation: ${twinkles} 2s infinite;
   animation-delay: 1s;
   ${cls13};
 `;
@@ -198,7 +198,7 @@ export default function BackgroundSpace() {
       <g
         id="planet"
         css={css`
-          ${hover}
+          animation: ${hover} 10s infinite;
         `}
       >
         <g>

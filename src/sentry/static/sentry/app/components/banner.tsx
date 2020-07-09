@@ -1,10 +1,10 @@
+import {css} from '@emotion/core';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import {IconClose} from 'app/icons/iconClose';
-import theme from 'app/utils/theme';
-import space from 'app/styles/space';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 type Props = {
   title?: string;
@@ -27,12 +27,13 @@ class Banner extends React.Component<Props> {
       onCloseClick,
       children,
       backgroundImg,
+      backgroundComponent,
       className,
     } = this.props;
 
     return (
-      <BannerWrapper className={className}>
-        {backgroundImg}
+      <BannerWrapper backgroundImg={backgroundImg} className={className}>
+        {backgroundComponent}
         {isDismissable ? (
           <StyledIconClose aria-label={t('Close')} onClick={onCloseClick} />
         ) : null}
@@ -47,31 +48,37 @@ class Banner extends React.Component<Props> {
 }
 
 type BannerWrapperProps = {
-  backgroundImg?: React.ReactNode;
+  backgroundImg?: string;
+  backgroundComponent?: React.ReactNode;
 };
 
 const BannerWrapper = styled('div')<BannerWrapperProps>`
-  background: ${p => {
-    if (p.backgroundImg) {
-      return 'url(' + p.backgroundImg + ')';
-    }
-    return p.theme.gray700;
-  }};
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center center;
+  ${p =>
+    p.backgroundImg
+      ? css`
+          background: url(${p.backgroundImg});
+          background-repeat: no-repeat;
+          background-size: cover;
+          background-position: center center;
+          min-height: 200px;
+        `
+      : css`
+          background: ${p.theme.gray700};
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        `}
   position: relative;
-  min-height: 200px;
   margin-bottom: ${space(3)};
   box-shadow: ${p => p.theme.dropShadowLight};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.white};
 
-  @media (min-width: ${theme.breakpoints[1]}) {
-    min-height: 220px;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    min-height: 170px;
   }
 
-  @media (min-width: ${theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     min-height: 260px;
   }
 `;
@@ -89,15 +96,19 @@ const BannerContent = styled('div')`
   text-align: center;
   padding: ${space(4)};
 
-  @media (max-width: ${theme.breakpoints[0]}) {
-    position: relative;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    padding: ${space(0)};
   }
 `;
 
 const BannerTitle = styled('h1')`
   margin-bottom: ${space(0.25)};
 
-  @media (min-width: ${theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    font-size: 24px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin-top: ${space(2)};
     margin-bottom: ${space(0.5)};
     font-size: 42px;
@@ -105,10 +116,13 @@ const BannerTitle = styled('h1')`
 `;
 
 const BannerSubtitle = styled('div')`
-  font-size: ${theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeMedium};
 
-  @media (min-width: ${theme.breakpoints[1]}) {
-    font-size: ${theme.fontSizeExtraLarge};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    font-size: ${p => p.theme.fontSizeSmall};
+  }
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    font-size: ${p => p.theme.fontSizeExtraLarge};
     margin-bottom: ${space(1)};
     flex-direction: row;
     min-width: 650px;
@@ -120,7 +134,7 @@ const BannerActions = styled('div')`
   justify-content: center;
   width: 100%;
 
-  @media (min-width: ${theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     width: auto;
   }
 `;
