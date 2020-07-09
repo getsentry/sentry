@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {IconChat, IconCheckmark, IconEllipsis} from 'app/icons';
+import {IconChat, IconCheckmark, IconEllipsis, IconMute, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -87,8 +87,8 @@ class CompactIssueHeader extends React.Component {
           <StyledErrorLevel size="12px" level={data.level} title={data.level} />
           <h3 className="truncate">
             <Link to={issueLink || ''}>
-              <span className="icon icon-soundoff" />
-              <span className="icon icon-star-solid" />
+              <IconMute size="xs" />
+              <IconStar isSolid size="xs" />
               {this.getTitle()}
             </Link>
           </h3>
@@ -248,7 +248,7 @@ const CompactIssue = createReactClass({
                 <a
                   onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}
                 >
-                  <span className="icon-star-solid" />
+                  <IconStar isSolid size="xs" />
                 </a>
               </li>
               <li>

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {css} from '@emotion/core';
 import capitalize from 'lodash/capitalize';
 
+import {IconMute, IconStar} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
@@ -75,8 +76,16 @@ class EventOrGroupHeader extends React.Component {
             </Tooltip>
           </GroupLevel>
         )}
-        {!hideIcons && data.status === 'ignored' && <Muted className="icon-soundoff" />}
-        {!hideIcons && data.isBookmarked && <Starred className="icon-star-solid" />}
+        {!hideIcons && data.status === 'ignored' && (
+          <IconWrapper>
+            <IconMute color="red400" size="sm" />
+          </IconWrapper>
+        )}
+        {!hideIcons && data.isBookmarked && (
+          <IconWrapper>
+            <IconStar isSolid color="orange300" size="sm" />
+          </IconWrapper>
+        )}
         <EventOrGroupTitle
           {...this.props}
           style={{fontWeight: data.hasSeen ? 400 : 600}}
@@ -153,19 +162,11 @@ const Message = styled('div')`
   font-size: 14px;
 `;
 
-const iconStyles = css`
-  font-size: 14px;
+const IconWrapper = styled('span')`
+  position: relative;
+  top: 2px;
+
   margin-right: 5px;
-`;
-
-const Muted = styled('span')`
-  ${iconStyles};
-  color: ${p => p.theme.red400};
-`;
-
-const Starred = styled('span')`
-  ${iconStyles};
-  color: ${p => p.theme.orange300};
 `;
 
 const GroupLevel = styled('div')`

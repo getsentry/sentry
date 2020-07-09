@@ -20,7 +20,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
-import {IconDelete} from 'app/icons';
+import {IconDelete, IconStar} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
@@ -291,7 +291,7 @@ const GroupDetailsActions = createReactClass({
             title={t('Bookmark')}
             onClick={this.onToggleBookmark}
           >
-            <span className="icon-star-solid" />
+            <IconStar isSolid size="xs" />
           </div>
         </div>
 
