@@ -1,5 +1,5 @@
 ---
-created: '2020-07-09T11:06:49.909757Z'
+created: '2020-07-09T11:33:30.140674Z'
 creator: sentry
 source: tests/sentry/api/endpoints/test_project_filters.py
 ---
@@ -20,7 +20,7 @@ source: tests/sentry/api/endpoints/test_project_filters.py
   hello: legacy-browsers - Filter out known errors from legacy browsers
   id: legacy-browsers
   name: Filter out known errors from legacy browsers
-- active: true
+- active: false
   description: Some crawlers may execute pages in incompatible ways which then cause
     errors that are unlikely to be seen by a normal user.
   hello: web-crawlers - Filter out known web crawlers
