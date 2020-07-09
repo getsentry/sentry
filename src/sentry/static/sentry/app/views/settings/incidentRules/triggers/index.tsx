@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -15,6 +14,7 @@ import {
   MetricActionTemplate,
   Trigger,
   UnsavedIncidentRule,
+  Action,
 } from '../types';
 
 type Props = {
@@ -62,15 +62,25 @@ class Triggers extends React.Component<Props> {
     onChange(updatedTriggers, triggerIndex, changeObj);
   };
 
-  handleAddAction = (action: Action) => {
-    // const {onChange, trigger, triggerIndex} = this.props;
-    // const actions = [...trigger.actions, action];
-    // onChange(triggerIndex, {...trigger, actions} as Trigger, {actions});
+  handleAddAction = (triggerIndex: number, action: Action) => {
+    const {onChange, triggers} = this.props;
+    const trigger = triggers[triggerIndex];
+    const actions = [...trigger.actions, action];
+    const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, {
+      ...trigger,
+      actions,
+    });
+    onChange(updatedTriggers, triggerIndex, {actions});
   };
 
-  handleChangeActions = (actions: Action[]): void => {
-    // const {onChange, trigger, triggerIndex} = this.props;
-    // onChange(triggerIndex, {...trigger, actions}, {actions});
+  handleChangeActions = (triggerIndex: number, actions: Action[]): void => {
+    const {onChange, triggers} = this.props;
+    const trigger = triggers[triggerIndex];
+    const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, {
+      ...trigger,
+      actions,
+    });
+    onChange(updatedTriggers, triggerIndex, {actions});
   };
 
   render() {
@@ -118,8 +128,7 @@ class Triggers extends React.Component<Props> {
           currentProject={currentProject}
           organization={organization}
           projects={projects}
-          // actions={trigger.actions}
-          actions={[]}
+          triggers={triggers}
           onChange={this.handleChangeActions}
           onAdd={this.handleAddAction}
         />

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import isPropValid from '@emotion/is-prop-valid';
 
 import {
   ThresholdControlValue,
