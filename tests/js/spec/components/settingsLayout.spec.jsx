@@ -53,4 +53,24 @@ describe('SettingsLayout', function() {
 
     expect(wrapper.find('Navigation')).toHaveLength(1);
   });
+
+  it('can toggle mobile navigation', function() {
+    const Navigation = () => <div>Navigation</div>;
+    const wrapper = shallow(
+      <SettingsLayout
+        router={TestStubs.router()}
+        route={{}}
+        routes={[]}
+        renderNavigation={() => <Navigation />}
+      />
+    );
+
+    expect(wrapper.find('NavMask').prop('isVisible')).toBeFalsy();
+    expect(wrapper.find('SidebarWrapper').prop('isVisible')).toBeFalsy();
+
+    wrapper.find('NavMenuToggle').simulate('click');
+
+    expect(wrapper.find('NavMask').prop('isVisible')).toBeTruthy();
+    expect(wrapper.find('SidebarWrapper').prop('isVisible')).toBeTruthy();
+  });
 });
