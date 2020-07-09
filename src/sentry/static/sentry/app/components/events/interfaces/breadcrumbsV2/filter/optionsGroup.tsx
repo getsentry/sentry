@@ -18,11 +18,6 @@ type Props = {
 const OptionsGroup = ({type, options, onClick}: Props) => {
   const handleClick = (option: Option) => (event: React.MouseEvent<HTMLLIElement>) => {
     event.stopPropagation();
-
-    if (option.isDisabled) {
-      return;
-    }
-
     onClick(type, option);
   };
 
@@ -35,11 +30,10 @@ const OptionsGroup = ({type, options, onClick}: Props) => {
             key={option.type}
             isChecked={option.isChecked}
             onClick={handleClick(option)}
-            isDisabled={option.isDisabled}
           >
             {option.symbol}
             <ListItemDescription>{option.description}</ListItemDescription>
-            <CheckboxFancy isChecked={option.isChecked} isDisabled={option.isDisabled} />
+            <CheckboxFancy isChecked={option.isChecked} />
           </ListItem>
         ))}
       </List>
@@ -67,14 +61,13 @@ const List = styled('ul')`
   padding: 0;
 `;
 
-const ListItem = styled('li')<{isChecked?: boolean; isDisabled?: boolean}>`
+const ListItem = styled('li')<{isChecked?: boolean}>`
   display: grid;
   grid-template-columns: max-content 1fr max-content;
   grid-column-gap: ${space(1)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.borderDark};
-  cursor: ${p => (p.isDisabled ? 'not-allowed' : 'pointer')};
   :hover {
     background-color: ${p => p.theme.gray100};
   }

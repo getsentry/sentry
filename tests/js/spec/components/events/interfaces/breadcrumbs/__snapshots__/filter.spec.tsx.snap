@@ -2,7 +2,6 @@
 
 exports[`Filter default render 1`] = `
 <Filter
-  onCheckAll={[MockFunction]}
   onFilter={[MockFunction]}
   options={
     Array [
@@ -10,7 +9,6 @@ exports[`Filter default render 1`] = `
         Object {
           "description": "HTTP request",
           "isChecked": true,
-          "isDisabled": false,
           "levels": Array [
             "info",
           ],
@@ -30,7 +28,6 @@ exports[`Filter default render 1`] = `
         Object {
           "description": "Transaction",
           "isChecked": true,
-          "isDisabled": false,
           "levels": Array [
             "error",
           ],
@@ -50,7 +47,6 @@ exports[`Filter default render 1`] = `
         Object {
           "description": "User Action",
           "isChecked": true,
-          "isDisabled": false,
           "levels": Array [
             "info",
           ],
@@ -70,7 +66,6 @@ exports[`Filter default render 1`] = `
         Object {
           "description": "Navigation",
           "isChecked": true,
-          "isDisabled": false,
           "levels": Array [
             "info",
           ],
@@ -90,7 +85,6 @@ exports[`Filter default render 1`] = `
         Object {
           "description": "Debug",
           "isChecked": true,
-          "isDisabled": false,
           "levels": Array [
             "info",
           ],
@@ -110,7 +104,6 @@ exports[`Filter default render 1`] = `
         Object {
           "description": "Error",
           "isChecked": true,
-          "isDisabled": false,
           "levels": Array [
             "error",
           ],
@@ -131,7 +124,6 @@ exports[`Filter default render 1`] = `
       Array [
         Object {
           "isChecked": true,
-          "isDisabled": false,
           "symbol": <UNDEFINED
             level="info"
           />,
@@ -139,7 +131,6 @@ exports[`Filter default render 1`] = `
         },
         Object {
           "isChecked": true,
-          "isDisabled": false,
           "symbol": <UNDEFINED
             level="error"
           />,
@@ -727,90 +718,6 @@ exports[`Filter default render 1`] = `
                   onMouseLeave={[Function]}
                   width="240px"
                 >
-                  <Header
-                    checkedQuantity={8}
-                    isAllChecked={false}
-                    onCheckAll={[Function]}
-                  >
-                    <Wrapper>
-                      <div
-                        className="css-3q7twp-Wrapper ej4ytze0"
-                      >
-                        <CheckboxWrapper
-                          onClick={[Function]}
-                        >
-                          <div
-                            className="css-qa49kf-CheckboxWrapper ej4ytze1"
-                            onClick={[Function]}
-                          >
-                            <span>
-                              <span
-                                key="4"
-                              >
-                                <span
-                                  key="1"
-                                >
-                                  8
-                                </span>
-                                <span
-                                  key="2"
-                                >
-                                   checked
-                                </span>
-                              </span>
-                            </span>
-                            <CheckboxFancy
-                              isChecked={false}
-                              isIndeterminate={true}
-                              size="16px"
-                            >
-                              <Component
-                                className="css-wyd0n8-CheckboxFancy e1i89tzt0"
-                                isChecked={false}
-                                isIndeterminate={true}
-                                size="16px"
-                              >
-                                <div
-                                  aria-checked={false}
-                                  className="css-wyd0n8-CheckboxFancy e1i89tzt0"
-                                  data-test-id="checkbox-fancy"
-                                  role="checkbox"
-                                >
-                                  <CheckboxFancyContent
-                                    isChecked={false}
-                                    isIndeterminate={true}
-                                  >
-                                    <IconSubtract
-                                      color="white"
-                                      size="70%"
-                                    >
-                                      <ForwardRef(SvgIcon)
-                                        color="white"
-                                        data-test-id="icon-subtract"
-                                        size="70%"
-                                      >
-                                        <svg
-                                          data-test-id="icon-subtract"
-                                          fill="#FFFFFF"
-                                          height="70%"
-                                          viewBox="0 0 16 16"
-                                          width="70%"
-                                        >
-                                          <path
-                                            d="M14,8.75H2a.75.75,0,0,1,0-1.5H14a.75.75,0,0,1,0,1.5Z"
-                                          />
-                                        </svg>
-                                      </ForwardRef(SvgIcon)>
-                                    </IconSubtract>
-                                  </CheckboxFancyContent>
-                                </div>
-                              </Component>
-                            </CheckboxFancy>
-                          </div>
-                        </CheckboxWrapper>
-                      </div>
-                    </Wrapper>
-                  </Header>
                   <OptionsGroup
                     onClick={[Function]}
                     options={
@@ -818,7 +725,6 @@ exports[`Filter default render 1`] = `
                         Object {
                           "description": "HTTP request",
                           "isChecked": true,
-                          "isDisabled": false,
                           "levels": Array [
                             "info",
                           ],
@@ -838,7 +744,6 @@ exports[`Filter default render 1`] = `
                         Object {
                           "description": "Transaction",
                           "isChecked": true,
-                          "isDisabled": false,
                           "levels": Array [
                             "error",
                           ],
@@ -858,7 +763,6 @@ exports[`Filter default render 1`] = `
                         Object {
                           "description": "User Action",
                           "isChecked": true,
-                          "isDisabled": false,
                           "levels": Array [
                             "info",
                           ],
@@ -878,7 +782,6 @@ exports[`Filter default render 1`] = `
                         Object {
                           "description": "Navigation",
                           "isChecked": true,
-                          "isDisabled": false,
                           "levels": Array [
                             "info",
                           ],
@@ -898,7 +801,6 @@ exports[`Filter default render 1`] = `
                         Object {
                           "description": "Debug",
                           "isChecked": true,
-                          "isDisabled": false,
                           "levels": Array [
                             "info",
                           ],
@@ -918,7 +820,6 @@ exports[`Filter default render 1`] = `
                         Object {
                           "description": "Error",
                           "isChecked": true,
-                          "isDisabled": false,
                           "levels": Array [
                             "error",
                           ],
@@ -953,12 +854,11 @@ exports[`Filter default render 1`] = `
                         >
                           <ListItem
                             isChecked={true}
-                            isDisabled={false}
                             key="http"
                             onClick={[Function]}
                           >
                             <li
-                              className="css-1y2halr-ListItem e1cujor52"
+                              className="css-7g0svi-ListItem e1cujor52"
                               onClick={[Function]}
                             >
                               <Memo()
@@ -1017,20 +917,17 @@ exports[`Filter default render 1`] = `
                               </ListItemDescription>
                               <CheckboxFancy
                                 isChecked={true}
-                                isDisabled={false}
                                 isIndeterminate={false}
                                 size="16px"
                               >
                                 <Component
                                   className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                   isChecked={true}
-                                  isDisabled={false}
                                   isIndeterminate={false}
                                   size="16px"
                                 >
                                   <div
                                     aria-checked={true}
-                                    aria-disabled={false}
                                     className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                     data-test-id="checkbox-fancy"
                                     role="checkbox"
@@ -1069,12 +966,11 @@ exports[`Filter default render 1`] = `
                           </ListItem>
                           <ListItem
                             isChecked={true}
-                            isDisabled={false}
                             key="transaction"
                             onClick={[Function]}
                           >
                             <li
-                              className="css-1y2halr-ListItem e1cujor52"
+                              className="css-7g0svi-ListItem e1cujor52"
                               onClick={[Function]}
                             >
                               <Memo()
@@ -1124,20 +1020,17 @@ exports[`Filter default render 1`] = `
                               </ListItemDescription>
                               <CheckboxFancy
                                 isChecked={true}
-                                isDisabled={false}
                                 isIndeterminate={false}
                                 size="16px"
                               >
                                 <Component
                                   className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                   isChecked={true}
-                                  isDisabled={false}
                                   isIndeterminate={false}
                                   size="16px"
                                 >
                                   <div
                                     aria-checked={true}
-                                    aria-disabled={false}
                                     className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                     data-test-id="checkbox-fancy"
                                     role="checkbox"
@@ -1176,12 +1069,11 @@ exports[`Filter default render 1`] = `
                           </ListItem>
                           <ListItem
                             isChecked={true}
-                            isDisabled={false}
                             key="ui"
                             onClick={[Function]}
                           >
                             <li
-                              className="css-1y2halr-ListItem e1cujor52"
+                              className="css-7g0svi-ListItem e1cujor52"
                               onClick={[Function]}
                             >
                               <Memo()
@@ -1234,20 +1126,17 @@ exports[`Filter default render 1`] = `
                               </ListItemDescription>
                               <CheckboxFancy
                                 isChecked={true}
-                                isDisabled={false}
                                 isIndeterminate={false}
                                 size="16px"
                               >
                                 <Component
                                   className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                   isChecked={true}
-                                  isDisabled={false}
                                   isIndeterminate={false}
                                   size="16px"
                                 >
                                   <div
                                     aria-checked={true}
-                                    aria-disabled={false}
                                     className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                     data-test-id="checkbox-fancy"
                                     role="checkbox"
@@ -1286,12 +1175,11 @@ exports[`Filter default render 1`] = `
                           </ListItem>
                           <ListItem
                             isChecked={true}
-                            isDisabled={false}
                             key="navigation"
                             onClick={[Function]}
                           >
                             <li
-                              className="css-1y2halr-ListItem e1cujor52"
+                              className="css-7g0svi-ListItem e1cujor52"
                               onClick={[Function]}
                             >
                               <Memo()
@@ -1344,20 +1232,17 @@ exports[`Filter default render 1`] = `
                               </ListItemDescription>
                               <CheckboxFancy
                                 isChecked={true}
-                                isDisabled={false}
                                 isIndeterminate={false}
                                 size="16px"
                               >
                                 <Component
                                   className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                   isChecked={true}
-                                  isDisabled={false}
                                   isIndeterminate={false}
                                   size="16px"
                                 >
                                   <div
                                     aria-checked={true}
-                                    aria-disabled={false}
                                     className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                     data-test-id="checkbox-fancy"
                                     role="checkbox"
@@ -1396,12 +1281,11 @@ exports[`Filter default render 1`] = `
                           </ListItem>
                           <ListItem
                             isChecked={true}
-                            isDisabled={false}
                             key="debug"
                             onClick={[Function]}
                           >
                             <li
-                              className="css-1y2halr-ListItem e1cujor52"
+                              className="css-7g0svi-ListItem e1cujor52"
                               onClick={[Function]}
                             >
                               <Memo()
@@ -1451,20 +1335,17 @@ exports[`Filter default render 1`] = `
                               </ListItemDescription>
                               <CheckboxFancy
                                 isChecked={true}
-                                isDisabled={false}
                                 isIndeterminate={false}
                                 size="16px"
                               >
                                 <Component
                                   className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                   isChecked={true}
-                                  isDisabled={false}
                                   isIndeterminate={false}
                                   size="16px"
                                 >
                                   <div
                                     aria-checked={true}
-                                    aria-disabled={false}
                                     className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                     data-test-id="checkbox-fancy"
                                     role="checkbox"
@@ -1503,12 +1384,11 @@ exports[`Filter default render 1`] = `
                           </ListItem>
                           <ListItem
                             isChecked={true}
-                            isDisabled={false}
                             key="error"
                             onClick={[Function]}
                           >
                             <li
-                              className="css-1y2halr-ListItem e1cujor52"
+                              className="css-7g0svi-ListItem e1cujor52"
                               onClick={[Function]}
                             >
                               <Memo()
@@ -1558,20 +1438,17 @@ exports[`Filter default render 1`] = `
                               </ListItemDescription>
                               <CheckboxFancy
                                 isChecked={true}
-                                isDisabled={false}
                                 isIndeterminate={false}
                                 size="16px"
                               >
                                 <Component
                                   className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                   isChecked={true}
-                                  isDisabled={false}
                                   isIndeterminate={false}
                                   size="16px"
                                 >
                                   <div
                                     aria-checked={true}
-                                    aria-disabled={false}
                                     className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                     data-test-id="checkbox-fancy"
                                     role="checkbox"
@@ -1618,7 +1495,6 @@ exports[`Filter default render 1`] = `
                       Array [
                         Object {
                           "isChecked": true,
-                          "isDisabled": false,
                           "symbol": <UNDEFINED
                             level="info"
                           />,
@@ -1626,7 +1502,6 @@ exports[`Filter default render 1`] = `
                         },
                         Object {
                           "isChecked": true,
-                          "isDisabled": false,
                           "symbol": <UNDEFINED
                             level="error"
                           />,
@@ -1650,12 +1525,11 @@ exports[`Filter default render 1`] = `
                         >
                           <ListItem
                             isChecked={true}
-                            isDisabled={false}
                             key="info"
                             onClick={[Function]}
                           >
                             <li
-                              className="css-1y2halr-ListItem e1cujor52"
+                              className="css-7g0svi-ListItem e1cujor52"
                               onClick={[Function]}
                             >
                               <Memo()
@@ -1693,20 +1567,17 @@ exports[`Filter default render 1`] = `
                               </ListItemDescription>
                               <CheckboxFancy
                                 isChecked={true}
-                                isDisabled={false}
                                 isIndeterminate={false}
                                 size="16px"
                               >
                                 <Component
                                   className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                   isChecked={true}
-                                  isDisabled={false}
                                   isIndeterminate={false}
                                   size="16px"
                                 >
                                   <div
                                     aria-checked={true}
-                                    aria-disabled={false}
                                     className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                     data-test-id="checkbox-fancy"
                                     role="checkbox"
@@ -1745,12 +1616,11 @@ exports[`Filter default render 1`] = `
                           </ListItem>
                           <ListItem
                             isChecked={true}
-                            isDisabled={false}
                             key="error"
                             onClick={[Function]}
                           >
                             <li
-                              className="css-1y2halr-ListItem e1cujor52"
+                              className="css-7g0svi-ListItem e1cujor52"
                               onClick={[Function]}
                             >
                               <Memo()
@@ -1788,20 +1658,17 @@ exports[`Filter default render 1`] = `
                               </ListItemDescription>
                               <CheckboxFancy
                                 isChecked={true}
-                                isDisabled={false}
                                 isIndeterminate={false}
                                 size="16px"
                               >
                                 <Component
                                   className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                   isChecked={true}
-                                  isDisabled={false}
                                   isIndeterminate={false}
                                   size="16px"
                                 >
                                   <div
                                     aria-checked={true}
-                                    aria-disabled={false}
                                     className="css-wyd0n8-CheckboxFancy e1i89tzt0"
                                     data-test-id="checkbox-fancy"
                                     role="checkbox"
