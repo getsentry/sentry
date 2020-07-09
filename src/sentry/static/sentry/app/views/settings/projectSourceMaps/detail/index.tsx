@@ -23,6 +23,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import Confirm from 'app/components/confirm';
 import Version from 'app/components/version';
 import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
@@ -159,7 +160,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
             </Title>
           }
           action={
-            <ButtonBar gap={1}>
+            <StyledButtonBar gap={1}>
               <ReleaseButton
                 to={`/organizations/${orgId}/releases/${encodeURIComponent(
                   name
@@ -183,7 +184,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
                 onSearch={this.handleSearch}
                 query={this.getQuery()}
               />
-            </ButtonBar>
+            </StyledButtonBar>
           }
         />
 
@@ -207,11 +208,19 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
 const StyledSettingsPageHeader = styled(SettingsPageHeader)`
   /*
-    ugly selector to make overflow ellipsis work
+    ugly selector to make header work on mobile
     we can refactor this once we start making other settings more responsive
   */
-  > div > div {
-    min-width: 0;
+  > div {
+    @media (max-width: ${p => p.theme.breakpoints[2]}) {
+      display: block;
+    }
+    > div {
+      min-width: 0;
+      @media (max-width: ${p => p.theme.breakpoints[2]}) {
+        margin-bottom: ${space(2)};
+      }
+    }
   }
 `;
 
@@ -220,8 +229,12 @@ const Title = styled('div')`
   align-items: center;
 `;
 
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: flex-start;
+`;
+
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content 120px;
+  grid-template-columns: minmax(220px, 1fr) max-content 120px;
 `;
 
 const ReleaseButton = styled(Button)`

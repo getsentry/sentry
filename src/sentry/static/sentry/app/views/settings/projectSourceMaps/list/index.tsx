@@ -168,7 +168,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns:
-    1fr max-content minmax(85px, max-content) minmax(260px, max-content)
+    minmax(120px, 1fr) max-content minmax(85px, max-content) minmax(265px, max-content)
     75px;
 `;
 
