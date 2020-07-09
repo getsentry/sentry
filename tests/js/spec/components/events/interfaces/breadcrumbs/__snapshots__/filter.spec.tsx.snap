@@ -703,7 +703,7 @@ exports[`Filter default render 1`] = `
                       "traceView": Object {
                         "dividerLine": 909,
                         "minimapContainer": 999,
-                        "rowInfoMessage": 900,
+                        "rowInfoMessage": 910,
                         "spanTreeToggler": 900,
                       },
                     },

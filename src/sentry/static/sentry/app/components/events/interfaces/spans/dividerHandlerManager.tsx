@@ -108,11 +108,14 @@ export class Provider extends React.Component<PropType, StateType> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor does not select text during a drag
     window.addEventListener('mousemove', this.onDragMove);
     window.addEventListener('mouseup', this.onDragEnd);
+
+    this.setHover(true);
 
     // indicate drag has begun
 
@@ -120,10 +123,20 @@ export class Provider extends React.Component<PropType, StateType> {
 
     selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.backgroundColor = 'rgba(73,80,87,0.75)';
+      dividerDOM.style.cursor = 'col-resize';
     });
 
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
-      dividerDOM.style.display = 'block';
+      dividerDOM.style.cursor = 'col-resize';
+
+      const {parentNode} = dividerDOM;
+
+      if (!parentNode) {
+        return;
+      }
+
+      const container = parentNode as HTMLDivElement;
+      container.style.display = 'block';
     });
   };
 
@@ -145,8 +158,16 @@ export class Provider extends React.Component<PropType, StateType> {
 
     const dividerHandlePositionString = toPercent(this.dividerHandlePosition);
 
-    selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
-      dividerDOM.style.left = dividerHandlePositionString;
+    selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
+      const {parentNode} = dividerDOM;
+
+      if (!parentNode) {
+        return;
+      }
+
+      const container = parentNode as HTMLDivElement;
+
+      container.style.width = `calc(${dividerHandlePositionString} + 0.5px)`;
     });
   };
 
@@ -170,12 +191,24 @@ export class Provider extends React.Component<PropType, StateType> {
 
     this.isDragging = false;
 
+    this.setHover(false);
+
     selectRefs(this.dividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.backgroundColor = '';
+      dividerDOM.style.cursor = '';
     });
 
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
-      dividerDOM.style.display = 'none';
+      dividerDOM.style.cursor = '';
+
+      const {parentNode} = dividerDOM;
+
+      if (!parentNode) {
+        return;
+      }
+
+      const container = parentNode as HTMLDivElement;
+      container.style.display = 'none';
     });
 
     this.setState({

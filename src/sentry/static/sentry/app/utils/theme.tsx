@@ -240,8 +240,8 @@ const theme = {
     },
     traceView: {
       spanTreeToggler: 900,
-      rowInfoMessage: 900,
       dividerLine: 909,
+      rowInfoMessage: 910,
       minimapContainer: 999,
     },
 

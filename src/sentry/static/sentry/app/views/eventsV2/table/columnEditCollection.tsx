@@ -143,6 +143,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor can drag anywhere
