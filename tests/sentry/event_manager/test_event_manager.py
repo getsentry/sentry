@@ -1041,7 +1041,7 @@ class EventManagerTest(TestCase):
             assert o.kwargs["reason"] == FilterStatKeys.DISCARDED_HASH
 
         o = mock_track_outcome.mock_calls[0]
-        assert o.kwargs["category"] == DataCategory.DEFAULT
+        assert o.kwargs["category"] == DataCategory.ERROR
 
         for o in mock_track_outcome.mock_calls[1:]:
             assert o.kwargs["category"] == DataCategory.ATTACHMENT
@@ -1123,7 +1123,7 @@ class EventManagerTest(TestCase):
             manager.save(1)
 
         assert_mock_called_once_with_partial(
-            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.DEFAULT
+            mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.ERROR
         )
 
     def test_attachment_accepted_outcomes(self):
@@ -1152,7 +1152,7 @@ class EventManagerTest(TestCase):
             assert o.kwargs["quantity"] == 5
 
         final = mock_track_outcome.mock_calls[2]
-        assert final.kwargs["category"] == DataCategory.DEFAULT
+        assert final.kwargs["category"] == DataCategory.ERROR
 
     def test_attachment_filtered_outcomes(self):
         manager = EventManager(make_event(message="foo"), project=self.project)
@@ -1188,7 +1188,7 @@ class EventManagerTest(TestCase):
         # Last outcome is the event
         o = mock_track_outcome.mock_calls[2]
         assert o.kwargs["outcome"] == Outcome.ACCEPTED
-        assert o.kwargs["category"] == DataCategory.DEFAULT
+        assert o.kwargs["category"] == DataCategory.ERROR
 
     def test_checksum_rehashed(self):
         checksum = "invalid checksum hash"
