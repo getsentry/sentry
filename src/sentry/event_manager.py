@@ -3,14 +3,16 @@ from __future__ import absolute_import, print_function
 import logging
 import time
 
+
 import ipaddress
 import six
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
+from pytz import UTC
 
 from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
@@ -1258,6 +1260,79 @@ def filter_attachments_for_group(attachments, job):
     return filtered
 
 
+def save_attachment(
+    cache_key, attachment, project, event_id, key_id=None, group_id=None, start_time=None
+):
+    """
+    Persists a cached event attachments into the file store.
+
+    Emits one outcome, either ACCEPTED on success or INVALID(missing_chunks) if
+    retrieving the attachment data fails.
+
+    :param cache_key:  The cache key at which the attachment is stored for
+                       debugging purposes.
+    :param attachment: The ``CachedAttachment`` instance to store.
+    :param project:    The project model that this attachment belongs to.
+    :param event_id:   Identifier of the event that this attachment belongs to.
+                       The event does not have to be stored yet.
+    :param key_id:     Optional identifier of the DSN that was used to ingest
+                       the attachment.
+    :param group_id:   Optional group identifier for the event. May be empty if
+                       the event has not been stored yet, or if it is not
+                       grouped.
+    :param start_time: UNIX Timestamp (float) when the attachment was ingested.
+                       If missing, the current time is used.
+    """
+    if start_time is not None:
+        timestamp = to_datetime(start_time)
+    else:
+        timestamp = datetime.utcnow().replace(tzinfo=UTC)
+
+    try:
+        data = attachment.data
+    except MissingAttachmentChunks:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=key_id,
+            outcome=Outcome.INVALID,
+            reason="missing_chunks",
+            timestamp=timestamp,
+            event_id=event_id,
+            category=DataCategory.ATTACHMENT,
+        )
+
+        logger.exception("Missing chunks for cache_key=%s", cache_key)
+        return
+
+    file = File.objects.create(
+        name=attachment.name,
+        type=attachment.type,
+        headers={"Content-Type": attachment.content_type},
+    )
+    file.putfile(six.BytesIO(data))
+
+    EventAttachment.objects.create(
+        event_id=event_id,
+        project_id=project.id,
+        group_id=group_id,
+        name=attachment.name,
+        file=file,
+    )
+
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=timestamp,
+        event_id=event_id,
+        category=DataCategory.ATTACHMENT,
+        quantity=attachment.size or 1,
+    )
+
+
 def save_attachments(cache_key, attachments, job):
     """
     Persists cached event attachments into the file store.
@@ -1271,48 +1346,14 @@ def save_attachments(cache_key, attachments, job):
     event = job["event"]
 
     for attachment in attachments:
-        try:
-            data = attachment.data
-        except MissingAttachmentChunks:
-            track_outcome(
-                org_id=event.project.organization_id,
-                project_id=job["project_id"],
-                key_id=job["key_id"],
-                outcome=Outcome.INVALID,
-                reason="missing_chunks",
-                timestamp=to_datetime(job["start_time"]),
-                event_id=event.event_id,
-                category=DataCategory.ATTACHMENT,
-            )
-
-            logger.exception("Missing chunks for cache_key=%s", cache_key)
-            continue
-
-        file = File.objects.create(
-            name=attachment.name,
-            type=attachment.type,
-            headers={"Content-Type": attachment.content_type},
-        )
-        file.putfile(six.BytesIO(data))
-
-        EventAttachment.objects.create(
-            event_id=event.event_id,
-            project_id=event.project_id,
-            group_id=event.group_id,
-            name=attachment.name,
-            file=file,
-        )
-
-        track_outcome(
-            org_id=event.project.organization_id,
-            project_id=job["project_id"],
+        save_attachment(
+            cache_key,
+            attachment,
+            event.project,
+            event.event_id,
             key_id=job["key_id"],
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=to_datetime(job["start_time"]),
-            event_id=event.event_id,
-            category=DataCategory.ATTACHMENT,
-            quantity=attachment.size or 1,
+            group_id=event.group_id,
+            start_time=job["start_time"],
         )
 
 
