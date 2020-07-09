@@ -317,7 +317,7 @@ const StyledSearchBar = styled(SearchBar)`
   .search-clear-form {
     top: 5px !important;
   }
-  .icon-search {
+  .search-input-icon {
     top: 8px;
   }
 `;
