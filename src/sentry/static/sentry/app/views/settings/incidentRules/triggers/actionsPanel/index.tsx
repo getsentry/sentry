@@ -50,7 +50,7 @@ type Props = {
   triggers: Trigger[];
   className?: string;
   onAdd: (triggerIndex: number, action: Action) => void;
-  onChange: (triggerIndex: number, actions: Action[]) => void;
+  onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
 };
 
 /**
@@ -88,7 +88,7 @@ class ActionsPanel extends React.PureComponent<Props> {
       targetIdentifier: value,
     };
 
-    onChange(triggerIndex, replaceAtArrayIndex(actions, index, newAction));
+    onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   }
 
   handleAddAction = () => {
@@ -118,11 +118,59 @@ class ActionsPanel extends React.PureComponent<Props> {
     const triggerIndex = 0;
     onAdd(triggerIndex, action);
   };
+
   handleDeleteAction = (triggerIndex: number, index: number) => {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
 
-    onChange(triggerIndex, removeAtArrayIndex(actions, index));
+    onChange(triggerIndex, triggers, removeAtArrayIndex(actions, index));
+  };
+
+  handleChangeActionLevel = (
+    triggerIndex: number,
+    index: number,
+    value: SelectValue<number>
+  ) => {
+    const {triggers, onChange} = this.props;
+    const action = triggers[triggerIndex].actions[index];
+
+    // Because we're moving it beween two different triggers the position of the
+    // action could change, try to change it less by pushing or unshifting
+    const position = value.value === 1 ? 'unshift' : 'push';
+    triggers[value.value].actions[position](action);
+    onChange(value.value, triggers, triggers[value.value].actions);
+    this.handleDeleteAction(triggerIndex, index);
+  };
+
+  handleChangeActionType = (
+    triggerIndex: number,
+    index: number,
+    value: SelectValue<ActionType>
+  ) => {
+    const {triggers, onChange, availableActions} = this.props;
+    const {actions} = triggers[triggerIndex];
+    const actionConfig = availableActions?.find(
+      availableAction => this.getActionUniqueKey(availableAction) === value.value
+    );
+
+    if (!actionConfig) {
+      addErrorMessage(t('There was a problem changing an action'));
+      Sentry.captureException(new Error('Unable to change an action type'));
+      return;
+    }
+
+    const newAction: Action = {
+      type: actionConfig.type,
+      targetType:
+        actionConfig &&
+        actionConfig.allowedTargetTypes &&
+        actionConfig.allowedTargetTypes.length > 0
+          ? actionConfig.allowedTargetTypes[0]
+          : null,
+      targetIdentifier: '',
+      integrationId: actionConfig.integrationId,
+    };
+    onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
   handleChangeTarget = (
@@ -138,7 +186,7 @@ class ActionsPanel extends React.PureComponent<Props> {
       targetIdentifier: '',
     };
 
-    onChange(triggerIndex, replaceAtArrayIndex(actions, index, newAction));
+    onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
 
   handleChangeTargetIdentifier = (
@@ -193,7 +241,6 @@ class ActionsPanel extends React.PureComponent<Props> {
         <PanelBody>
           {loading && <LoadingIndicator />}
           {triggers.map((trigger, triggerIndex) => {
-            const isCritical = triggerIndex === 0;
             const {actions} = trigger;
             return (
               actions &&
@@ -207,11 +254,11 @@ class ActionsPanel extends React.PureComponent<Props> {
                 return (
                   <PanelItemGrid key={i}>
                     <SelectControl
-                      name="select-action"
-                      aria-label={t('Select an Action')}
+                      name="select-level"
+                      aria-label={t('Select a status level')}
                       isDisabled={disabled || loading}
-                      placeholder={t('Select Action')}
-                      onChange={this.handleAddAction}
+                      placeholder={t('Select Level')}
+                      onChange={this.handleChangeActionLevel.bind(this, triggerIndex, i)}
                       value={triggerIndex}
                       options={levels}
                     />
@@ -221,7 +268,7 @@ class ActionsPanel extends React.PureComponent<Props> {
                       aria-label={t('Select an Action')}
                       isDisabled={disabled || loading}
                       placeholder={t('Select Action')}
-                      onChange={this.handleAddAction}
+                      onChange={this.handleChangeActionType.bind(this, triggerIndex, i)}
                       value={this.getActionUniqueKey(action)}
                       options={items ?? []}
                     />
@@ -282,6 +329,7 @@ class ActionsPanel extends React.PureComponent<Props> {
           })}
           <StyledPanelItem>
             <Button
+              disabled={disabled || loading}
               size="small"
               icon={<IconAdd isCircled color="gray500" />}
               onClick={this.handleAddAction}

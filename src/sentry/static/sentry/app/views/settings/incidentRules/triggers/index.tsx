@@ -73,8 +73,12 @@ class Triggers extends React.Component<Props> {
     onChange(updatedTriggers, triggerIndex, {actions});
   };
 
-  handleChangeActions = (triggerIndex: number, actions: Action[]): void => {
-    const {onChange, triggers} = this.props;
+  handleChangeActions = (
+    triggerIndex: number,
+    triggers: Trigger[],
+    actions: Action[]
+  ): void => {
+    const {onChange} = this.props;
     const trigger = triggers[triggerIndex];
     const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, {
       ...trigger,

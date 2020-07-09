@@ -17,16 +17,10 @@ import {
   AlertRuleThresholdType,
   Trigger,
   UnsavedIncidentRule,
-  Action,
   MetricActionTemplate,
   ThresholdControlValue,
   UnsavedTrigger,
 } from '../types';
-
-type AlertRuleThresholdKey = {
-  [AlertRuleThreshold.INCIDENT]: 'alertThreshold';
-  [AlertRuleThreshold.RESOLUTION]: 'resolveThreshold';
-};
 
 type Props = {
   api: Client;
@@ -48,6 +42,21 @@ type Props = {
   onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
 };
+
+const CriticalIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.red400};
+  margin-right: ${space(1)};
+`;
+
+const WarningIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.yellow400};
+  margin-right: ${space(1)};
+`;
+
+const ResolvedIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.green400};
+  margin-right: ${space(1)};
+`;
 
 class TriggerForm extends React.PureComponent<Props> {
   // Overwritten in ResolvedTriggerForm
@@ -232,20 +241,5 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     );
   }
 }
-
-const CriticalIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.red400};
-  margin-right: ${space(1)};
-`;
-
-const WarningIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.yellow400};
-  margin-right: ${space(1)};
-`;
-
-const ResolvedIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.green400};
-  margin-right: ${space(1)};
-`;
 
 export default withConfig(withApi(TriggerFormContainer));
