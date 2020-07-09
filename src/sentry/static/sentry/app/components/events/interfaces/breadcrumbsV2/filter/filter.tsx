@@ -64,15 +64,18 @@ class Filter extends React.Component<Props, State> {
     return checkedQuantity;
   };
 
-  filterOptionsFirstStep = <T extends Option>(options: Array<T>, option: T): Array<T> => {
-    return options.map(opt => {
-      if (isEqual(opt, option)) {
+  filterOptionsFirstStep = <T extends Option>(
+    options: Array<T>,
+    filterOption: T
+  ): Array<T> => {
+    return options.map(option => {
+      if (isEqual(option, filterOption)) {
         return {
-          ...opt,
-          isChecked: !opt.isChecked,
+          ...option,
+          isChecked: !option.isChecked,
         };
       }
-      return opt;
+      return option;
     });
   };
 
