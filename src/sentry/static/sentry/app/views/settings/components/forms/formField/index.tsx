@@ -17,6 +17,8 @@ import space from 'app/styles/space';
 import Alert from 'app/components/alert';
 import FormModel from 'app/views/settings/components/forms/model';
 
+import {FieldValue} from '../type';
+
 /**
  * Some fields don't need to implement their own onChange handlers, in
  * which case we will receive an Event, but if they do we should handle
@@ -88,6 +90,7 @@ type Props = {
   placeholder?: ObserverOrValue<string>;
   visible?: boolean | ((props: Props) => boolean);
   formatMessageValue?: boolean | Function; //used in prettyFormString
+  transformInput?: (value: FieldValue) => FieldValue;
   defaultValue?: any; //TODO(TS): Do we need this?
   resetOnError?: boolean;
 } & Omit<FieldControl['props'], typeof propsToObserver[number]> &
