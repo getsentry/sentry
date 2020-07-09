@@ -25,7 +25,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
         alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:incidents-performance", project.organization):
             # Filter to only error alert rules
-            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events)
+            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
         return self.paginate(
             request,
@@ -50,9 +50,14 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
+        alert_rules = AlertRule.objects.fetch_for_project(project)
+        if not features.has("organizations:incidents-performance", project.organization):
+            # Filter to only error alert rules
+            alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+
         return self.paginate(
             request,
-            queryset=AlertRule.objects.fetch_for_project(project),
+            queryset=alert_rules,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),

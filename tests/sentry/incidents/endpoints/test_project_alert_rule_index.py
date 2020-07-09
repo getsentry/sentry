@@ -11,7 +11,8 @@ from freezegun import freeze_time
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils import TestCase, APITestCase
+from sentry.testutils import APITestCase
+from sentry.snuba.models import QueryDatasets
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
@@ -38,10 +39,23 @@ class AlertRuleListEndpointTest(APITestCase):
         alert_rule = self.create_alert_rule()
 
         self.login_as(self.user)
-        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
+        with self.feature("organizations:incidents"):
             resp = self.get_valid_response(self.organization.slug, self.project.slug)
 
         assert resp.data == serialize([alert_rule])
+
+    def test_no_perf_alerts(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule()
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            assert resp.data == serialize([alert_rule])
+
+        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
+            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            assert resp.data == serialize([perf_alert_rule, alert_rule])
 
     def test_no_feature(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -125,7 +139,22 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert resp.status_code == 403
 
 
-class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, TestCase):
+class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
+    endpoint = "sentry-api-0-project-combined-rules"
+
+    def test_no_perf_alerts(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.create_alert_rule()
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            assert perf_alert_rule.id not in [x["id"] for x in list(resp.data)]
+
+        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
+            resp = self.get_valid_response(self.organization.slug, self.project.slug)
+            assert perf_alert_rule.id in [int(x["id"]) for x in list(resp.data)]
+
     def setup_project_and_rules(self):
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
