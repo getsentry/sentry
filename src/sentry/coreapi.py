@@ -43,17 +43,6 @@ class APIForbidden(APIError):
     http_status = 403
 
 
-class Auth(object):
-    def __init__(
-        self, client=None, version=None, secret_key=None, public_key=None, is_public=False
-    ):
-        self.client = client
-        self.version = version
-        self.secret_key = secret_key
-        self.public_key = public_key
-        self.is_public = is_public
-
-
 def insert_data_to_database_legacy(
     self, data, start_time=None, from_reprocessing=False, attachments=None
 ):
