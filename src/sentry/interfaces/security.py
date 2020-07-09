@@ -11,7 +11,6 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface, INPUT_SCHEMAS
 from sentry.utils import json
 from sentry.utils.cache import memoize
-from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import trim
 from sentry.web.helpers import render_to_string
 
@@ -82,16 +81,6 @@ class SecurityReport(Interface):
     title = None
 
     @classmethod
-    def from_raw(cls, raw):
-        """
-        Constructs the interface from a raw security report request body
-
-        This is usually slightly different than to_python as it needs to
-        do some extra validation, data extraction / default setting.
-        """
-        raise NotImplementedError
-
-    @classmethod
     def to_python(cls, data):
         # TODO(markus): Relay does not validate security interfaces yet
         is_valid, errors = validate_and_default_interface(data, cls.path)
@@ -104,15 +93,6 @@ class SecurityReport(Interface):
         raise NotImplementedError
 
     def get_message(self):
-        raise NotImplementedError
-
-    def get_tags(self):
-        raise NotImplementedError
-
-    def get_title(self):
-        return self.title
-
-    def should_filter(self, project=None):
         raise NotImplementedError
 
     def get_origin(self):
@@ -167,22 +147,12 @@ class Hpkp(SecurityReport):
     def get_message(self):
         return u"Public key pinning validation failed for '{self.hostname}'".format(self=self)
 
-    def get_tags(self):
-        return [
-            ("port", six.text_type(self.port)),
-            ("include-subdomains", json.dumps(self.include_subdomains)),
-            ("hostname", self.hostname),
-        ]
-
     def get_origin(self):
         # not quite origin, but the domain that failed pinning
         return self.hostname
 
     def get_referrer(self):
         return None
-
-    def should_filter(self, project=None):
-        return False
 
 
 class ExpectStaple(SecurityReport):
@@ -208,33 +178,11 @@ class ExpectStaple(SecurityReport):
 
     title = "Expect-Staple Report"
 
-    @classmethod
-    def from_raw(cls, raw):
-        # Validate the raw data against the input schema (raises on failure)
-        schema = INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
-
-        # For Expect-Staple, the values we want are nested under the
-        # 'expect-staple-report' key.
-        raw = raw["expect-staple-report"]
-        # Trim values and convert keys to use underscores
-        kwargs = {k.replace("-", "_"): trim(v, 1024) for k, v in six.iteritems(raw)}
-
-        return cls.to_python(kwargs)
-
     def get_culprit(self):
         return self.hostname
 
     def get_message(self):
         return u"Expect-Staple failed for '{self.hostname}'".format(self=self)
-
-    def get_tags(self):
-        return (
-            ("port", six.text_type(self.port)),
-            ("hostname", self.hostname),
-            ("response_status", self.response_status),
-            ("cert_status", self.cert_status),
-        )
 
     def get_origin(self):
         # not quite origin, but the domain that failed pinning
@@ -242,9 +190,6 @@ class ExpectStaple(SecurityReport):
 
     def get_referrer(self):
         return None
-
-    def should_filter(self, project=None):
-        return False
 
 
 class ExpectCT(SecurityReport):
@@ -268,27 +213,11 @@ class ExpectCT(SecurityReport):
 
     title = "Expect-CT Report"
 
-    @classmethod
-    def from_raw(cls, raw):
-        # Validate the raw data against the input schema (raises on failure)
-        schema = INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
-
-        # For Expect-CT, the values we want are nested under the 'expect-ct-report' key.
-        raw = raw["expect-ct-report"]
-        # Trim values and convert keys to use underscores
-        kwargs = {k.replace("-", "_"): trim(v, 1024) for k, v in six.iteritems(raw)}
-
-        return cls.to_python(kwargs)
-
     def get_culprit(self):
         return self.hostname
 
     def get_message(self):
         return u"Expect-CT failed for '{self.hostname}'".format(self=self)
-
-    def get_tags(self):
-        return (("port", six.text_type(self.port)), ("hostname", self.hostname))
 
     def get_origin(self):
         # not quite origin, but the domain that failed pinning
@@ -296,9 +225,6 @@ class ExpectCT(SecurityReport):
 
     def get_referrer(self):
         return None
-
-    def should_filter(self, project=None):
-        return False
 
 
 class Csp(SecurityReport):
@@ -320,31 +246,6 @@ class Csp(SecurityReport):
     display_score = 1300
 
     title = "CSP Report"
-
-    @classmethod
-    def from_raw(cls, raw):
-        # Firefox doesn't send effective-directive, so parse it from
-        # violated-directive but prefer effective-directive when present
-        #
-        # refs: https://bugzil.la/1192684#c8
-        try:
-            report = raw["csp-report"]
-            report["effective-directive"] = report.get(
-                "effective-directive", report["violated-directive"].split(None, 1)[0]
-            )
-        except (KeyError, IndexError):
-            pass
-
-        # Validate the raw data against the input schema (raises on failure)
-        schema = INPUT_SCHEMAS[cls.path]
-        jsonschema.validate(raw, schema)
-
-        # For CSP, the values we want are nested under the 'csp-report' key.
-        raw = raw["csp-report"]
-        # Trim values and convert keys to use underscores
-        kwargs = {k.replace("-", "_"): trim(v, 1024) for k, v in six.iteritems(raw)}
-
-        return cls.to_python(kwargs)
 
     def get_message(self):
         templates = {
@@ -396,12 +297,6 @@ class Csp(SecurityReport):
         bits = [d for d in self.violated_directive.split(" ") if d]
         return " ".join([bits[0]] + [self._normalize_value(b) for b in bits[1:]])
 
-    def get_tags(self):
-        return [
-            ("effective-directive", self.effective_directive),
-            ("blocked-uri", self._sanitized_blocked_uri()),
-        ]
-
     def get_origin(self):
         return self.document_uri
 
@@ -415,21 +310,6 @@ class Csp(SecurityReport):
         return render_to_string(
             "sentry/partial/interfaces/csp_email.html", {"data": self.get_api_context()}
         )
-
-    def should_filter(self, project=None):
-        disallowed = ()
-        paths = ["blocked_uri", "source_file"]
-        uris = [getattr(self, path) for path in paths if hasattr(self, path)]
-
-        if project is None or bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
-            disallowed += DEFAULT_DISALLOWED_SOURCES
-        if project is not None:
-            disallowed += tuple(project.get_option("sentry:csp_ignored_sources", []))
-
-        if disallowed and any(is_valid_origin(uri, allowed=disallowed) for uri in uris):
-            return True
-
-        return False
 
     def _sanitized_blocked_uri(self):
         # HACK: This is 100% to work around Stripe urls

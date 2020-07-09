@@ -6,11 +6,10 @@ import logging
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, allow_cors_options
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, Organization, OrganizationIntegration, OrganizationStatus
 from sentry.utils.http import absolute_uri
-from sentry.web.api import allow_cors_options
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.integrations.vercel")
