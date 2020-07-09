@@ -916,6 +916,11 @@ const DividerLine = styled('div')`
     margin-right: -2px;
 
     cursor: ew-resize;
+
+    &:after {
+      left: -2px;
+      width: 7px;
+    }
   }
 `;
 
