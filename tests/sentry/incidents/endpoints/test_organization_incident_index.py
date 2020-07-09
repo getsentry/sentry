@@ -5,6 +5,7 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.incidents.models import IncidentStatus
 from sentry.testutils import APITestCase
+from sentry.snuba.models import QueryDatasets
 
 
 class IncidentListEndpointTest(APITestCase):
@@ -74,3 +75,20 @@ class IncidentListEndpointTest(APITestCase):
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
+
+    def test_no_perf_alerts(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        # alert_rule = self.create_alert_rule()
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+
+        perf_incident = self.create_incident(alert_rule=perf_alert_rule)
+        incident = self.create_incident()
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug)
+            assert resp.data == serialize([incident])
+
+        with self.feature(["organizations:incidents", "organizations:incidents-performance"]):
+            resp = self.get_valid_response(self.organization.slug)
+            assert resp.data == serialize([incident, perf_incident])

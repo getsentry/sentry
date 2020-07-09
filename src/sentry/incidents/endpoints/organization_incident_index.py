@@ -45,7 +45,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
         if not features.has("organizations:incidents-performance", organization):
             # Filter to only error alerts
-            incidents = incidents.filter(alert_rule__snuba_query__dataset=Dataset.Events)
+            incidents = incidents.filter(alert_rule__snuba_query__dataset=Dataset.Events.value)
 
         return self.paginate(
             request,
