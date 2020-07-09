@@ -355,7 +355,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             "organization": organization,
             "overview": internal_integration_overview.strip(),
             "user": user,
-            "scopes": ["project:releases"],
+            "scopes": ["project:releases", "project:read", "project:write"],
         }
         # create the internal integration and link it to the join table
         sentry_app = InternalCreator.run(**data)

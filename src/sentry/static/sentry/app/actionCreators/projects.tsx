@@ -3,6 +3,7 @@ import debounce from 'lodash/debounce';
 import {Query} from 'history';
 
 import {Client} from 'app/api';
+import {PlatformKey} from 'app/data/platformCategories';
 import {Project, Team} from 'app/types';
 import {
   addLoadingMessage,
@@ -118,7 +119,7 @@ export function loadStatsForProject(api: Client, project: string, params: Update
   _debouncedLoadStats(api, _projectStatsToFetch, params);
 }
 
-export function setActiveProject(project: Project) {
+export function setActiveProject(project: Project | null) {
   ProjectActions.setActive(project);
 }
 
@@ -333,7 +334,7 @@ export function loadDocs(
   api: Client,
   orgSlug: string,
   projectSlug: string,
-  platform: string
+  platform: PlatformKey
 ) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }

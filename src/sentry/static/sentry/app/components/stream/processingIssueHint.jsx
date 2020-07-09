@@ -1,11 +1,13 @@
 import React from 'react';
-import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
+import {IconWarning, IconSettings} from 'app/icons';
 import TimeSince from 'app/components/timeSince';
 import {t, tn, tct} from 'app/locale';
+import space from 'app/styles/space';
 
 class ProcessingIssueHint extends React.Component {
   static propTypes = {
@@ -35,13 +37,13 @@ class ProcessingIssueHint extends React.Component {
     if (showProject) {
       project = (
         <span>
-          <strong>{projectId}</strong> &mdash;
+          <strong>{projectId}</strong> &mdash;{' '}
         </span>
       );
     }
 
     if (issue.numIssues > 0) {
-      icon = <span className="icon icon-alert" />;
+      icon = <IconWarning size="sm" color="red400" />;
       text = tn(
         'There is %s issue blocking event processing',
         'There are %s issues blocking event processing',
@@ -59,7 +61,7 @@ class ProcessingIssueHint extends React.Component {
       className['alert-error'] = true;
       showButton = true;
     } else if (issue.issuesProcessing > 0) {
-      icon = <span className="icon icon-processing play" />;
+      icon = <IconSettings size="sm" color="blue400" />;
       className['alert-info'] = true;
       text = tn(
         'Reprocessing %s event …',
@@ -67,7 +69,7 @@ class ProcessingIssueHint extends React.Component {
         issue.issuesProcessing
       );
     } else if (issue.resolveableIssues > 0) {
-      icon = <span className="icon icon-processing" />;
+      icon = <IconSettings size="sm" color="yellow400" />;
       className['alert-warning'] = true;
       text = tn(
         'There is %s event pending reprocessing.',
@@ -81,21 +83,32 @@ class ProcessingIssueHint extends React.Component {
     }
     return (
       <Container className={classNames(className)}>
+        <span>
+          {icon} {project}
+          <strong>{text}</strong> {lastEvent}
+        </span>
         {showButton && (
-          <Link to={link} className="btn btn-default btn-sm pull-right">
+          <Button size="xsmall" to={link}>
             {t('Show details')}
-          </Link>
+          </Button>
         )}
-        {icon} {project}
-        <strong>{text}</strong> {lastEvent}{' '}
       </Container>
     );
   }
 }
 
 const Container = styled('div')`
+  display: flex;
+  justify-content: space-between;
+
   margin: -1px -1px 0;
   padding: 10px 16px;
+
+  svg {
+    position: relative;
+    top: 3px;
+    margin-right: ${space(0.5)};
+  }
 `;
 
 export default ProcessingIssueHint;
