@@ -911,9 +911,9 @@ const DividerLine = styled('div')`
 
   &.hovering {
     background-color: ${p => p.theme.gray800};
-    width: 2px;
-    transform: translateX(-25%);
-    margin-right: -1px;
+    width: 3px;
+    transform: translateX(-1px);
+    margin-right: -2px;
 
     cursor: ew-resize;
   }
