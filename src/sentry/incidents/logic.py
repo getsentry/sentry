@@ -810,8 +810,9 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
 
 
 def enable_alert_rule(alert_rule):
-    if alert_rule.status == AlertRuleStatus.PENDING.value:
+    if alert_rule.status != AlertRuleStatus.DISABLED.value:
         return
+
     with transaction.atomic():
         alert_rule.update(status=AlertRuleStatus.PENDING.value)
         bulk_enable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
