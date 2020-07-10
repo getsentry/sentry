@@ -1642,6 +1642,31 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
+    def test_difference_function(self):
+        fields = ["difference(transaction.duration,100)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["abs(minus(duration, 100))", None, "difference_transaction_duration_100"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["difference(transaction,100)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert (
+            "difference(transaction,100): column argument invalid: transaction is not a duration column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["difference(transaction.duration,blah)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert (
+            "difference(transaction.duration,blah): target argument invalid: blah is not a number"
+            in six.text_type(err)
+        )
+
     def test_eps_function(self):
         fields = ["eps(3600)"]
         result = resolve_field_list(fields, eventstore.Filter())
