@@ -2423,6 +2423,26 @@ describe('EventView.getDisplayMode()', function() {
     const displayMode = eventView.getDisplayMode();
     expect(displayMode).toEqual(DisplayModes.DEFAULT);
   });
+
+  it('top 5 should fallback to default when disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      // the lack of an aggregate will disable the TOP5 mode
+      display: DisplayModes.TOP5,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DEFAULT);
+  });
+
+  it('top 5 daily should fallback to daily when disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      // the lack of an aggregate will disable the DAILYTOP5 mode
+      display: DisplayModes.DAILYTOP5,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DAILY);
+  });
 });
 
 describe('EventView.getAggregateFields()', function() {

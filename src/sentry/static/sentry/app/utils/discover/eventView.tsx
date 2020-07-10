@@ -26,7 +26,12 @@ import {
   generateFieldAsString,
 } from './fields';
 import {getSortField} from './fieldRenderers';
-import {CHART_AXIS_OPTIONS, DisplayModes, DISPLAY_MODE_OPTIONS} from './types';
+import {
+  CHART_AXIS_OPTIONS,
+  DisplayModes,
+  DISPLAY_MODE_OPTIONS,
+  DISPLAY_MODE_FALLBACK_OPTIONS,
+} from './types';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -1026,12 +1031,13 @@ class EventView {
   }
 
   getDisplayMode() {
+    const display = this.display ?? DisplayModes.DEFAULT;
     const displayOptions = this.getDisplayOptions();
-    const selectedOption = displayOptions.find(option => option.value === this.display);
+    const selectedOption = displayOptions.find(option => option.value === display);
     if (selectedOption && !selectedOption.disabled) {
-      return this.display ?? DisplayModes.DEFAULT;
+      return display;
     }
-    return DisplayModes.DEFAULT;
+    return DISPLAY_MODE_FALLBACK_OPTIONS[display];
   }
 }
 
