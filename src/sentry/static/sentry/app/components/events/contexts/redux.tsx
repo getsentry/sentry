@@ -3,6 +3,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
+import ClippedBox from 'app/components/clippedBox';
 
 type Props = {
   alias: string;
@@ -21,7 +22,11 @@ class ReduxContextType extends React.Component<Props> {
   }
 
   render() {
-    return <ContextBlock knownData={this.getKnownData()} />;
+    return (
+      <ClippedBox clipHeight={250}>
+        <ContextBlock knownData={this.getKnownData()} />
+      </ClippedBox>
+    );
   }
 }
 
