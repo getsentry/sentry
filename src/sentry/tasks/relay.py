@@ -40,11 +40,17 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
     projectconfig_debounce_cache.mark_task_done(project_id, organization_id)
 
     if project_id:
-        projects = [Project.objects.get_from_cache(id=project_id)]
+        try:
+            projects = [Project.objects.get_from_cache(id=project_id)]
+        except Project.DoesNotExist:
+            projects = []
     elif organization_id:
         # XXX(markus): I feel like we should be able to cache this but I don't
         # want to add another method to src/sentry/db/models/manager.py
-        projects = Project.objects.filter(organization_id=organization_id)
+        projects = list(Project.objects.filter(organization_id=organization_id))
+
+    if not projects:
+        return
 
     if generate:
         project_keys = {}

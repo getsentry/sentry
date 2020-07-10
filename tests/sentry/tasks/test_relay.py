@@ -202,3 +202,9 @@ def test_projectkeys(default_project, task_runner, redis_cache):
         pk.delete()
 
     assert not redis_cache.get(default_project.id)["publicKeys"]
+
+
+@pytest.mark.django_db
+def test_delete_project(default_project, task_runner, redis_cache):
+    with task_runner():
+        default_project.delete()
