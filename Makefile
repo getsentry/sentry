@@ -4,7 +4,7 @@ WEBPACK := NODE_ENV=production yarn webpack
 # Currently, this is only required to install black via pre-commit.
 REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
 
-bootstrap: develop init-config run-dependent-services create-db apply-migrations
+bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
 develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
 
