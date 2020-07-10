@@ -58,11 +58,13 @@ class ClippedBox extends React.PureComponent<Props, State> {
       return;
     }
 
-    // eslint-disable-next-line react/no-find-dom-node
-    const renderedHeight = (ReactDOM.findDOMNode(this) as HTMLElement).offsetHeight;
+    if (!this.props.renderedHeight) {
+      // eslint-disable-next-line react/no-find-dom-node
+      const renderedHeight = (ReactDOM.findDOMNode(this) as HTMLElement).offsetHeight;
 
-    if (renderedHeight < this.props.clipHeight) {
-      this.reveal();
+      if (renderedHeight < this.props.clipHeight) {
+        this.reveal();
+      }
     }
   }
 
