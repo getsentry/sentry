@@ -87,6 +87,7 @@ class CreateIncidentTest(TestCase):
         incident_type = IncidentType.ALERT_TRIGGERED
         title = "hello"
         date_started = timezone.now() - timedelta(minutes=5)
+        date_detected = timezone.now() - timedelta(minutes=4)
         alert_rule = self.create_alert_rule()
 
         self.record_event.reset_mock()
@@ -95,6 +96,7 @@ class CreateIncidentTest(TestCase):
             type_=incident_type,
             title=title,
             date_started=date_started,
+            date_detected=date_detected,
             projects=[self.project],
             alert_rule=alert_rule,
         )
@@ -103,20 +105,22 @@ class CreateIncidentTest(TestCase):
         assert incident.type == incident_type.value
         assert incident.title == title
         assert incident.date_started == date_started
-        assert incident.date_detected == date_started
+        assert incident.date_detected == date_detected
         assert incident.alert_rule == alert_rule
         assert IncidentProject.objects.filter(
             incident=incident, project__in=[self.project]
         ).exists()
         assert (
             IncidentActivity.objects.filter(
-                incident=incident, type=IncidentActivityType.STARTED.value, date_added=date_started
+                incident=incident,
+                type=IncidentActivityType.DETECTED.value,
+                date_added=date_detected,
             ).count()
             == 1
         )
         assert (
             IncidentActivity.objects.filter(
-                incident=incident, type=IncidentActivityType.DETECTED.value
+                incident=incident, type=IncidentActivityType.CREATED.value
             ).count()
             == 1
         )
@@ -1331,7 +1335,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
-        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration = Integration.objects.create(external_id="1", provider="msteams")
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1354,7 +1358,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
     def test_msteams_not_existing(self, mock_get_channel_id):
-        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration = Integration.objects.create(external_id="1", provider="msteams")
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1444,7 +1448,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
-        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration = Integration.objects.create(external_id="1", provider="msteams")
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1467,7 +1471,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
     def test_msteams_not_existing(self, mock_get_channel_id):
-        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration = Integration.objects.create(external_id="1", provider="msteams")
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC

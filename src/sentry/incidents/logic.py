@@ -100,9 +100,9 @@ def create_incident(
                 )
 
         create_incident_activity(
-            incident, IncidentActivityType.STARTED, user=user, date_added=date_started
+            incident, IncidentActivityType.DETECTED, user=user, date_added=date_detected
         )
-        create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
+        create_incident_activity(incident, IncidentActivityType.CREATED, user=user)
         analytics.record(
             "incident.created",
             incident_id=incident.id,
