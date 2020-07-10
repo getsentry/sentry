@@ -297,9 +297,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   getListHeight() {
-    const {showUnused, panelBodyHeight} = this.state;
+    const {showUnused, showDetails, panelBodyHeight} = this.state;
 
-    if (!panelBodyHeight || panelBodyHeight > PANEL_MAX_HEIGHT || showUnused) {
+    if (
+      !panelBodyHeight ||
+      panelBodyHeight > PANEL_MAX_HEIGHT ||
+      showUnused ||
+      showDetails
+    ) {
       return PANEL_MAX_HEIGHT;
     }
 
