@@ -1,4 +1,5 @@
 import {Release} from '@sentry/release-parser';
+import round from 'lodash/round';
 
 import {t, tn} from 'app/locale';
 import {CommitAuthor, User} from 'app/types';
@@ -87,7 +88,7 @@ export function getDuration(
 
 export function getExactDuration(seconds: number, abbreviation: boolean = false) {
   const convertDuration = (secs: number, abbr: boolean) => {
-    const value = Math.abs(secs * 1000);
+    const value = round(Math.abs(secs * 1000));
 
     const divideBy = (time: number) => {
       return {quotient: Math.floor(value / time), remainder: value % time};

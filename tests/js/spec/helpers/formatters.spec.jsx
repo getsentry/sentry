@@ -56,6 +56,7 @@ describe('formatters', function() {
     });
 
     it('should format in the right way', () => {
+      expect(getExactDuration(2.030043848568126)).toEqual('2 seconds 30 milliseconds');
       expect(getExactDuration(0.2)).toEqual('200 milliseconds');
       expect(getExactDuration(13)).toEqual('13 seconds');
       expect(getExactDuration(60)).toEqual('1 minute');

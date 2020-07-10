@@ -55,6 +55,10 @@ export const decideReleasesVersion = async hasNewReleases => {
   }
 };
 
+export const roundDuration = (seconds: number) => {
+  return round(seconds, seconds > 60 ? 0 : 3);
+};
+
 export const getCrashFreePercent = (
   percent: number,
   decimalThreshold = 95,
