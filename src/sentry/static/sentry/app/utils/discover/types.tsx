@@ -21,6 +21,15 @@ export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DAILYTOP5, label: t('Top 5 Daily')},
 ];
 
+export const DISPLAY_MODE_FALLBACK_OPTIONS = {
+  [DisplayModes.DEFAULT]: DisplayModes.DEFAULT,
+  [DisplayModes.PREVIOUS]: DisplayModes.DEFAULT,
+  [DisplayModes.RELEASES]: DisplayModes.DEFAULT,
+  [DisplayModes.TOP5]: DisplayModes.DEFAULT,
+  [DisplayModes.DAILY]: DisplayModes.DAILY,
+  [DisplayModes.DAILYTOP5]: DisplayModes.DAILY,
+};
+
 // default list of yAxis options
 export const CHART_AXIS_OPTIONS = [
   {label: 'count()', value: 'count()'},
