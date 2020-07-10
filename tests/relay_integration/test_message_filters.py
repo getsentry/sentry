@@ -1,11 +1,10 @@
 from __future__ import absolute_import, print_function
 
-from django.test import override_settings
 
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models.projectoption import ProjectOption
 from sentry.utils.safe import set_path
-from sentry.message_filters import (
+from sentry.ingest.inbound_filters import (
     _localhost_filter,
     _browser_extensions_filter,
     _web_crawlers_filter,
@@ -13,17 +12,13 @@ from sentry.message_filters import (
 )
 
 
-@override_settings(ALLOWED_HOSTS=["localhost", "testserver", "host.docker.internal"])
 class FilterTests(RelayStoreHelper, TransactionTestCase):
-    def setUp(self):  # NOQA
-        RelayStoreHelper.setUp(self)
-
     def _get_message(self):
         return {}
 
     def _set_filter_state(self, flt, state):
         ProjectOption.objects.set_value(
-            project=self.project, key=u"filters:{}".format(flt.spec.id), value=state
+            project=self.project, key=u"filters:{}".format(flt.id), value=state
         )
 
     def test_should_not_filter_simple_messages(self):

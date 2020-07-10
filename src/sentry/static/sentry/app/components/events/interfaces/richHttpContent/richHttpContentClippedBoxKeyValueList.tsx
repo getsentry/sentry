@@ -50,7 +50,7 @@ const RichHttpContentClippedBoxKeyValueList = ({
   }
 
   return (
-    <ClippedBox title={title} defaultCollapsed={defaultCollapsed}>
+    <ClippedBox title={title} defaultClipped={defaultCollapsed}>
       <ErrorBoundary mini>{getContent(transformedData)}</ErrorBoundary>
     </ClippedBox>
   );

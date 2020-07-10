@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
+import logging
+
 from oauthlib.oauth1 import SIGNATURE_RSA
 from requests_oauthlib import OAuth1
 from six.moves.urllib.parse import parse_qsl
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError
+
+logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
 
 class BitbucketServerAPIPath(object):
@@ -139,11 +143,15 @@ class BitbucketServer(ApiClient):
             auth=self.get_auth(),
         )
 
-    def get_commits(self, project, repo, fromHash, toHash):
-        return self.get(
+    def get_commits(self, project, repo, from_hash, to_hash, limit=1000):
+        logger.info(
+            "Loading commits",
+            extra={"repo": repo, "project": project, "from_hash": from_hash, "to_hash": to_hash},
+        )
+
+        return self._get_values(
             BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
-            auth=self.get_auth(),
-            params={"since": fromHash, "until": toHash, "merges": "exclude"},
+            {"limit": limit, "since": from_hash, "until": to_hash, "merges": "exclude"},
         )
 
     def get_last_commits(self, project, repo, limit=10):
@@ -151,12 +159,16 @@ class BitbucketServer(ApiClient):
             BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
             auth=self.get_auth(),
             params={"merges": "exclude", "limit": limit},
+        )["values"]
+
+    def get_commit_filechanges(self, project, repo, commit, limit=1000):
+        logger.info(
+            "Loading filechanges", extra={"repo": repo, "project": project, "commit": commit}
         )
 
-    def get_commit_filechanges(self, project, repo, commit):
-        return self.get(
+        return self._get_values(
             BitbucketServerAPIPath.commit_changes.format(project=project, repo=repo, commit=commit),
-            auth=self.get_auth(),
+            {"limit": limit},
         )
 
     def get_auth(self):
@@ -168,3 +180,40 @@ class BitbucketServer(ApiClient):
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
         )
+
+    def _get_values(self, uri, params, max_pages=1000000):
+        values = []
+        start = 0
+
+        logger.info(
+            "Loading values for paginated uri",
+            extra={"uri": uri, "max_pages": max_pages, "params": params},
+        )
+
+        for i in range(max_pages):
+            new_params = dict.copy(params)
+            new_params["start"] = start
+            logger.debug(
+                "Loading values for paginated uri starting from %s",
+                start,
+                extra={"uri": uri, "params": new_params},
+            )
+            data = self.get(uri, auth=self.get_auth(), params=new_params)
+            logger.debug(
+                "%s values loaded", len(data["values"]), extra={"uri": uri, "params": new_params}
+            )
+
+            values += data["values"]
+
+            if "isLastPage" not in data or data["isLastPage"]:
+                logger.debug("Reached last page for paginated uri", extra={"uri": uri})
+                return values
+            else:
+                start = data["nextPageStart"]
+
+        logger.warn(
+            "Reached max number of pages (%s) for paginated uri. Values will be missing.",
+            max_pages,
+            extra={"uri": uri, "params": params},
+        )
+        return values
