@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from '@emotion/styled';
 
 import {
   addErrorMessage,
@@ -100,7 +101,9 @@ class DeleteActions extends React.Component {
           )}
           onConfirm={this.props.onDelete}
         >
-          <IconDelete size="xs" css={{position: 'relative', top: '1px'}} />
+          <IconWrapper>
+            <IconDelete size="xs" />
+          </IconWrapper>
         </LinkWithConfirmation>
         <DropdownLink caret className="group-delete btn btn-default btn-sm">
           <MenuItem onClick={this.openDiscardModal}>
@@ -291,7 +294,9 @@ const GroupDetailsActions = createReactClass({
             title={t('Bookmark')}
             onClick={this.onToggleBookmark}
           >
-            <IconStar isSolid size="xs" />
+            <IconWrapper>
+              <IconStar isSolid size="xs" />
+            </IconWrapper>
           </div>
         </div>
 
@@ -330,6 +335,11 @@ const GroupDetailsActions = createReactClass({
     );
   },
 });
+
+const IconWrapper = styled('span')`
+  position: relative;
+  top: 1px;
+`;
 
 export {GroupDetailsActions};
 

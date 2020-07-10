@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import isPropValid from '@emotion/is-prop-valid';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
@@ -75,7 +74,9 @@ BookmarkStar.propTypes = {
   onToggle: PropTypes.func,
 };
 
-const Star = styled(IconStar, {shouldForwardProp: isPropValid})<{isBookmarked: boolean}>`
+const Star = styled(IconStar, {shouldForwardProp: p => p !== 'isBookmarked'})<{
+  isBookmarked: boolean;
+}>`
   color: ${p => (p.isBookmarked ? p.theme.orange300 : p.theme.gray400)};
 
   &:hover {

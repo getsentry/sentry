@@ -78,12 +78,12 @@ class EventOrGroupHeader extends React.Component {
         )}
         {!hideIcons && data.status === 'ignored' && (
           <IconWrapper>
-            <IconMute color="red400" size="sm" />
+            <IconMute color="red400" />
           </IconWrapper>
         )}
         {!hideIcons && data.isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid color="orange300" size="sm" />
+            <IconStar isSolid color="orange300" />
           </IconWrapper>
         )}
         <EventOrGroupTitle
