@@ -15,7 +15,7 @@ class ReduxContextType extends React.Component<Props> {
     return [
       {
         key: 'value',
-        subject: t('Value'),
+        subject: t('Latest State'),
         value: this.props.data,
       },
     ];
