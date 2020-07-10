@@ -15,12 +15,15 @@ type DefaultProps = {
 type Props = {
   clipHeight: number;
   title?: string;
+  renderedHeight?: number;
+  onReveal?: () => void;
   className?: string;
 } & DefaultProps;
 
 type State = {
   isClipped: boolean;
   isRevealed: boolean;
+  renderedHeight?: number;
 };
 
 class ClippedBox extends React.PureComponent<Props, State> {
@@ -33,23 +36,24 @@ class ClippedBox extends React.PureComponent<Props, State> {
   state: State = {
     isClipped: !!this.props.defaultClipped,
     isRevealed: false, // True once user has clicked "Show More" button
+    renderedHeight: this.props.renderedHeight,
   };
 
   componentDidMount() {
     // eslint-disable-next-line react/no-find-dom-node
     const renderedHeight = (ReactDOM.findDOMNode(this) as HTMLElement).offsetHeight;
-
-    if (!this.state.isClipped && renderedHeight > this.props.clipHeight) {
-      /*eslint react/no-did-mount-set-state:0*/
-      // okay if this causes re-render; cannot determine until
-      // rendered first anyways
-      this.setState({
-        isClipped: true,
-      });
-    }
+    this.calcHeight(renderedHeight);
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (prevState.renderedHeight !== this.props.renderedHeight) {
+      this.setRenderedHeight();
+    }
+
+    if (prevState.renderedHeight !== this.state.renderedHeight) {
+      this.calcHeight(this.state.renderedHeight);
+    }
+
     if (this.state.isRevealed || !this.state.isClipped) {
       return;
     }
@@ -62,11 +66,38 @@ class ClippedBox extends React.PureComponent<Props, State> {
     }
   }
 
+  setRenderedHeight() {
+    this.setState({
+      renderedHeight: this.props.renderedHeight,
+    });
+  }
+
+  calcHeight(renderedHeight?: number) {
+    if (!renderedHeight) {
+      return;
+    }
+
+    if (!this.state.isClipped && renderedHeight > this.props.clipHeight) {
+      /*eslint react/no-did-mount-set-state:0*/
+      // okay if this causes re-render; cannot determine until
+      // rendered first anyways
+      this.setState({
+        isClipped: true,
+      });
+    }
+  }
+
   reveal = () => {
+    const {onReveal} = this.props;
+
     this.setState({
       isClipped: false,
       isRevealed: true,
     });
+
+    if (onReveal) {
+      onReveal();
+    }
   };
 
   handleClickReveal = (event: React.MouseEvent) => {

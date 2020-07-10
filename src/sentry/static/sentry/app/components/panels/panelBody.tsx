@@ -11,10 +11,19 @@ type FlexComponentProps = Omit<React.ComponentPropsWithoutRef<typeof Flex>, 'the
 type Props = FlexComponentProps & {
   flexible?: boolean;
   withPadding?: boolean;
+  forwardRef?: React.Ref<HTMLDivElement>;
 };
 
-const PanelBody: React.FunctionComponent<Props> = ({flexible, ...props}: Props) => (
-  <FlexBox {...props} {...(flexible ? {flexDirection: 'column'} : null)} />
+const PanelBody: React.FunctionComponent<Props> = ({
+  flexible,
+  forwardRef,
+  ...props
+}: Props) => (
+  <FlexBox
+    {...props}
+    ref={forwardRef}
+    {...(flexible ? {flexDirection: 'column'} : null)}
+  />
 );
 
 PanelBody.propTypes = {
