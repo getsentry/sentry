@@ -590,7 +590,7 @@ INTERFACE_SCHEMAS = {
 def validator_for_interface(name):
     if name not in INTERFACE_SCHEMAS:
         return None
-    return jsonschema.Draft4Validator(
+    return jsonschema.Draft7Validator(
         INTERFACE_SCHEMAS[name],
         types={"array": (list, tuple)},
         format_checker=jsonschema.FormatChecker(),
