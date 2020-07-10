@@ -70,6 +70,14 @@ class Browser(object):
         self._has_initialized_cookie_store = True
         return self
 
+    def set_emulated_media(self, features, media=""):
+        """
+        This is used to emulate different media features (e.g. color scheme)
+        """
+        return self.driver.execute_cdp_cmd(
+            "Emulation.setEmulatedMedia", {"media": media, "features": features}
+        )
+
     def element(self, selector=None, xpath=None):
         """
         Get an element from the page. This method will wait for the element to show up.
@@ -420,6 +428,8 @@ def browser(request, percy, live_server):
     request.addfinalizer(fin)
 
     browser = Browser(driver, live_server, percy)
+
+    browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
 
     if hasattr(request, "cls"):
         request.cls.browser = browser
