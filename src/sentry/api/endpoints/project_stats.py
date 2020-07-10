@@ -7,7 +7,7 @@ from sentry.api.base import DocSection, EnvironmentMixin, StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment
-from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 

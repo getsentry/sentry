@@ -35,7 +35,7 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
-from sentry.utils.data_filters import FilterTypes
+from sentry.ingest.inbound_filters import FilterTypes
 from sentry.utils.compat import zip
 
 STATUS_LABELS = {

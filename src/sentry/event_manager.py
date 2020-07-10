@@ -65,7 +65,7 @@ from sentry.signals import first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.data_filters import FilterStatKeys
+from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
