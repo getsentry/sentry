@@ -46,7 +46,7 @@ def is_internal_relay(request, public_key):
     if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
         return True
 
-    return is_internal_ip(is_internal_ip)
+    return is_internal_ip(request)
 
 
 class RelayRegisterChallengeEndpoint(Endpoint):
