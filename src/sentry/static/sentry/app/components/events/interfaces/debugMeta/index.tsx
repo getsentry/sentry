@@ -78,6 +78,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   componentDidMount() {
     this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange);
+    cache.clearAll();
     this.filterImages();
   }
 
@@ -295,6 +296,16 @@ class DebugMeta extends React.PureComponent<Props, State> {
     );
   };
 
+  getListHeight() {
+    const {showUnused, panelBodyHeight} = this.state;
+
+    if (!panelBodyHeight || panelBodyHeight > PANEL_MAX_HEIGHT || showUnused) {
+      return PANEL_MAX_HEIGHT;
+    }
+
+    return panelBodyHeight;
+  }
+
   renderImageList() {
     const {filteredImages, showDetails, panelBodyHeight, clipHeight} = this.state;
     const {orgId, projectId} = this.props;
@@ -319,9 +330,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
               this.listRef = el;
             }}
             deferredMeasurementCache={cache}
-            height={
-              panelBodyHeight > PANEL_MAX_HEIGHT ? PANEL_MAX_HEIGHT : panelBodyHeight
-            }
+            height={this.getListHeight()}
             overscanRowCount={5}
             rowCount={filteredImages.length}
             rowHeight={cache.rowHeight}
