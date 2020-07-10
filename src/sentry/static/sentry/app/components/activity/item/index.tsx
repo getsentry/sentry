@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {AvatarUser} from 'app/types';
 import DateTime from 'app/components/dateTime';
@@ -23,9 +24,14 @@ type Props = {
   id?: string;
 
   /**
-   * If supplied, will show the time since this date
+   * If supplied, will show the time that the activity started
    */
-  date?: string | Date;
+  dateCreated?: string | Date;
+
+  /**
+   * If supplied, will show the time that the activity ended
+   */
+  dateEnded?: string | Date;
 
   /**
    * Used to render an avatar for the author. Currently can be a user, otherwise
@@ -66,14 +72,19 @@ function ActivityItem({
   bubbleProps,
   className,
   children,
-  date,
+  dateCreated,
+  dateEnded,
   footer,
   id,
   header,
   hideDate = false,
   showTime = false,
 }: Props) {
-  const showDate = !hideDate && date;
+  const showDateCreated = !hideDate && dateCreated;
+  const showDateEnded = !hideDate && dateEnded;
+  const timeOnly = Boolean(
+    dateCreated && dateEnded && moment(dateCreated).date() === moment(dateEnded).date()
+  );
 
   return (
     <ActivityItemWrapper data-test-id="activity-item" className={className}>
@@ -89,8 +100,30 @@ function ActivityItem({
           <ActivityHeader>
             <ActivityHeaderContent>{header}</ActivityHeaderContent>
 
-            {date && showDate && !showTime && <StyledTimeSince date={date} />}
-            {date && showDate && showTime && <StyledDateTime timeOnly date={date} />}
+            {dateCreated &&
+              showDateCreated &&
+              !showDateEnded &&
+              (showTime ? (
+                <StyledDateTime timeOnly date={dateCreated} />
+              ) : (
+                <StyledTimeSince date={dateCreated} />
+              ))}
+
+            {dateCreated && dateEnded && showDateCreated && showDateEnded && (
+              <StyledDateTimeWindow>
+                <StyledDateTime
+                  timeOnly={timeOnly}
+                  timeAndDay={!timeOnly}
+                  date={dateCreated}
+                />
+                {' - '}
+                <StyledDateTime
+                  timeOnly={timeOnly}
+                  timeAndDay={!timeOnly}
+                  date={dateEnded}
+                />
+              </StyledDateTimeWindow>
+            )}
           </ActivityHeader>
         )}
 
@@ -166,6 +199,10 @@ const StyledTimeSince = styled(TimeSince)`
 `;
 
 const StyledDateTime = styled(DateTime)`
+  color: ${p => p.theme.gray500};
+`;
+
+const StyledDateTimeWindow = styled('div')`
   color: ${p => p.theme.gray500};
 `;
 

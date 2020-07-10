@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {t, tct} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
@@ -52,6 +53,14 @@ class StatusItem extends React.Component<Props> {
     const currentTrigger = getTriggerName(activity.value);
     const previousTrigger = getTriggerName(activity.previousValue);
 
+    const dateEnded =
+      isStarted && incident && incident.alertRule
+        ? moment(activity.dateCreated)
+            .add(incident?.alertRule.timeWindow, 'minutes')
+            .utc()
+            .format()
+        : undefined;
+
     return (
       <ActivityItem
         showTime={showTime}
@@ -88,10 +97,13 @@ class StatusItem extends React.Component<Props> {
                 : tct('[user] created an alert', {
                     user: <StatusValue>{authorName}</StatusValue>,
                   }))}
-            {isStarted && t('Trigger conditions were met')}
+            {isStarted && t('Trigger conditions were met for the interval')}
           </div>
         }
-        date={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
+        dateCreated={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
+        dateEnded={
+          dateEnded ? getDynamicText({value: dateEnded, fixed: new Date(0)}) : undefined
+        }
       />
     );
   }
