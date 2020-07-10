@@ -27,6 +27,8 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
 
         try:
             self.browser.click('[aria-label="Open the menu"]')
+            self.browser.wait_until("body.scroll-lock")
+
         except Exception:
             pass
 

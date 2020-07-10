@@ -32,15 +32,6 @@ class SettingsLayout extends React.Component<Props, State> {
     routes: PropTypes.array,
   };
 
-  constructor(props: Props) {
-    super(props);
-
-    this.headerRef = React.createRef();
-
-    // Close the navigation when navigating.
-    this.unlisten = browserHistory.listen(() => this.toggleNav(false));
-  }
-
   state = {
     /**
      * This is used when the screen is small enough that the navigation should
@@ -54,12 +45,17 @@ class SettingsLayout extends React.Component<Props, State> {
     navOffsetTop: 0,
   };
 
+  componentDidMount() {
+    // Close the navigation when navigating.
+    this.unlisten = browserHistory.listen(() => this.toggleNav(false));
+  }
+
   componentWillUnmount() {
     this.unlisten();
   }
 
-  unlisten: () => void;
-  headerRef: React.RefObject<HTMLDivElement>;
+  unlisten!: () => void;
+  headerRef = React.createRef<HTMLDivElement>();
 
   toggleNav(navVisible: boolean) {
     // when the navigation is opened, body should be scroll-locked
