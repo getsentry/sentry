@@ -391,8 +391,6 @@ exports[`ProjectCard renders 1`] = `
                                         >
                                           <PlatformList
                                             className="css-1neg7x4-StyledAvatar e165dl3i1"
-                                            consistentWidth={false}
-                                            direction="right"
                                             forwardedRef={null}
                                             max={1}
                                             platforms={
@@ -410,7 +408,7 @@ exports[`ProjectCard renders 1`] = `
                                               size={18}
                                             >
                                               <div
-                                                className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar ezvce7z0"
+                                                className="e165dl3i1 css-corue1-PlatformIcons-StyledAvatar e1n7dwy90"
                                                 direction="right"
                                                 max={1}
                                                 size={18}
@@ -421,17 +419,17 @@ exports[`ProjectCard renders 1`] = `
                                                   size={18}
                                                 >
                                                   <Component
-                                                    className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                    className="css-pkjq7x-StyledPlatformIcon e1n7dwy91"
                                                     platform="javascript"
                                                     size={18}
                                                   >
                                                     <PlatformIcon
-                                                      className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                      className="css-pkjq7x-StyledPlatformIcon e1n7dwy91"
                                                       platform="javascript"
                                                       size="18px"
                                                     >
                                                       <img
-                                                        className="css-d510pr-StyledPlatformIcon ezvce7z1"
+                                                        className="css-pkjq7x-StyledPlatformIcon e1n7dwy91"
                                                         height="18px"
                                                         src={
                                                           Object {

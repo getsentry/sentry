@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 const PLATFORM_TO_ICON = {
@@ -81,13 +80,6 @@ const PlatformIcon = ({platform, size, width, height, ...props}: Props) => {
       {...props}
     />
   );
-};
-
-PlatformIcon.propTypes = {
-  platform: PropTypes.string.isRequired,
-  size: PropTypes.string,
-  width: PropTypes.string,
-  height: PropTypes.string,
 };
 
 export default PlatformIcon;

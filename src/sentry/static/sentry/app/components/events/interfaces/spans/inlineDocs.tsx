@@ -43,7 +43,7 @@ class InlineDocs extends React.Component<Props, State> {
 
     this.setState({loading: true});
 
-    let tracingPlatform: PlatformKey = '';
+    let tracingPlatform: PlatformKey;
     switch (platform) {
       case 'sentry.python': {
         tracingPlatform = 'python-tracing';
