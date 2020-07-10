@@ -63,6 +63,10 @@ DebugFileFeature.propTypes = {
   feature: PropTypes.oneOf(Object.keys(FEATURE_TOOLTIPS)).isRequired,
 };
 
+DebugFileFeature.defaultProps = {
+  available: true,
+};
+
 const IconWrapper = styled('span')`
   margin-right: 1ex;
 `;

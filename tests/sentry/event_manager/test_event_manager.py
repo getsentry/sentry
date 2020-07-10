@@ -7,7 +7,6 @@ from sentry.utils.compat import mock
 import pytest
 import uuid
 
-from collections import namedtuple
 from datetime import datetime, timedelta
 from django.utils import timezone
 from time import time
@@ -40,8 +39,7 @@ from sentry.models import (
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 from sentry.testutils import assert_mock_called_once_with_partial, TestCase
-from sentry.utils.data_filters import FilterStatKeys
-from sentry.relay.config import get_project_config
+from sentry.ingest.inbound_filters import FilterStatKeys
 
 
 def make_event(**kwargs):
@@ -1200,42 +1198,6 @@ class EventManagerTest(TestCase):
 
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
         assert sorted(hashes) == sorted([hash_from_values(checksum), checksum])
-
-    @mock.patch("sentry.event_manager.is_valid_error_message")
-    def test_should_filter_message(self, mock_is_valid_error_message):
-        TestItem = namedtuple("TestItem", "value formatted result")
-
-        items = [
-            TestItem({"type": "UnfilteredException"}, "UnfilteredException", True),
-            TestItem(
-                {"value": "This is an unfiltered exception."},
-                "This is an unfiltered exception.",
-                True,
-            ),
-            TestItem(
-                {"type": "UnfilteredException", "value": "This is an unfiltered exception."},
-                "UnfilteredException: This is an unfiltered exception.",
-                True,
-            ),
-            TestItem(
-                {"type": "FilteredException", "value": "This is a filtered exception."},
-                "FilteredException: This is a filtered exception.",
-                False,
-            ),
-        ]
-
-        data = {"exception": {"values": [item.value for item in items]}}
-
-        project_config = get_project_config(self.project)
-        manager = EventManager(data, project=self.project, project_config=project_config)
-
-        mock_is_valid_error_message.side_effect = [item.result for item in items]
-
-        assert manager.should_filter() == (True, FilterStatKeys.ERROR_MESSAGE)
-
-        assert mock_is_valid_error_message.call_args_list == [
-            mock.call(project_config, item.formatted) for item in items
-        ]
 
     def test_legacy_attributes_moved(self):
         event = make_event(

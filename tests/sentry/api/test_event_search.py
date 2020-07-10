@@ -1191,6 +1191,11 @@ class GetSnubaQueryArgsTest(TestCase):
             ]
         ]
 
+    def test_message_with_newlines(self):
+        assert get_filter('message:"nice \n a newline\n"').conditions == [
+            [["positionCaseInsensitive", ["message", "'nice \n a newline\n'"]], "!=", 0]
+        ]
+
     def test_malformed_groups(self):
         with pytest.raises(InvalidSearchQuery):
             get_filter("(user.email:foo@example.com OR user.email:bar@example.com")

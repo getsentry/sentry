@@ -26,9 +26,19 @@ describe('NoProjectMessage', function() {
     ).toBe(true);
   });
 
-  it('has "Join a Team" button', function() {
+  it('has no "Join a Team" button when projects are missing', function() {
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} />,
+      TestStubs.routerContext()
+    );
+    expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(0);
+  });
+
+  it('has a "Join a Team" button when no projects but org has projects', function() {
+    const wrapper = mountWithTheme(
+      <NoProjectMessage
+        organization={{...org, projects: [TestStubs.Project({hasAccess: false})]}}
+      />,
       TestStubs.routerContext()
     );
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(1);
@@ -36,7 +46,13 @@ describe('NoProjectMessage', function() {
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function() {
     const wrapper = mountWithTheme(
-      <NoProjectMessage organization={TestStubs.Organization({access: []})} />,
+      <NoProjectMessage
+        organization={{
+          ...org,
+          projects: [TestStubs.Project({hasAccess: false})],
+          access: [],
+        }}
+      />,
       TestStubs.routerContext()
     );
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]').prop('disabled')).toBe(

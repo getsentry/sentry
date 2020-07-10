@@ -266,6 +266,7 @@ TAGS_TUPLES_SCHEMA = {
 
 TAGS_SCHEMA = {"anyOf": [TAGS_DICT_SCHEMA, TAGS_TUPLES_SCHEMA]}
 
+# XXX(markus): Remove in favor of Relay's schema definition
 EVENT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -589,7 +590,7 @@ INTERFACE_SCHEMAS = {
 def validator_for_interface(name):
     if name not in INTERFACE_SCHEMAS:
         return None
-    return jsonschema.Draft4Validator(
+    return jsonschema.Draft7Validator(
         INTERFACE_SCHEMAS[name],
         types={"array": (list, tuple)},
         format_checker=jsonschema.FormatChecker(),
