@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import json
 import pytest
+import time
 from uuid import uuid4
 import responses
 from datetime import timedelta
@@ -45,6 +46,8 @@ from sentry.incidents.logic import (
     get_triggers_for_alert_rule,
     ProjectsNotAssociatedWithAlertRuleError,
     subscribe_to_incident,
+    enable_alert_rule,
+    disable_alert_rule,
     update_alert_rule,
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
@@ -70,7 +73,7 @@ from sentry.incidents.models import (
     IncidentType,
     TimeSeriesSnapshot,
 )
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -1038,6 +1041,37 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
+
+class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
+    @fixture
+    def alert_rule(self):
+        return self.create_alert_rule()
+
+    def test(self):
+        with self.tasks():
+            alert_rule_id = self.alert_rule.id
+            disable_alert_rule(alert_rule)
+            self.alert_rule.update(status=AlertRuleStatus.DISABLED.value)
+            print("enabling rule!")
+            enable_alert_rule(self.alert_rule)
+            print("enabled")
+            assert AlertRule.objects.filter(id=alert_rule_id).exists()
+            print("getting rule")
+            alert_rule = AlertRule.objects.get(id=alert_rule_id)
+            print("alert_rule snuba query:",alert_rule.snuba_query)
+
+            assert alert_rule.status == AlertRuleStatus.PENDING.value
+            for subscription in alert_rule.snuba_query.subscriptions.all():
+                assert subscription.status == QuerySubscription.Status.CREATING.value
+
+            meow = AlertRule.objects.get(id=alert_rule_id)
+            meow.refresh_from_db()
+            print("snuba query:",meow.snuba_query)
+            for subscription in meow.snuba_query.subscriptions.all():
+                print("checking subsciprtion:", subscription, subscription.id, subscription.subscription_id)
+                print("new status:",subscription.status)
+                subscription.refresh_from_db()
+                assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
 
 class TestGetExcludedProjectsForAlertRule(TestCase):

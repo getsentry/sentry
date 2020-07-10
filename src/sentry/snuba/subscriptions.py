@@ -184,7 +184,7 @@ def enable_snuba_subscription(subscription):
     :return:
     """
     subscription.update(status=QuerySubscription.Status.CREATING.value)
-
+    print("enabling...applying async task...")
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )
