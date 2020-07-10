@@ -70,7 +70,9 @@ class SettingsLayout extends React.Component<Props, State> {
   toggleBodyScrollLock(lock: boolean) {
     const bodyElement = document.getElementsByTagName('body')[0];
 
-    window.scrollTo(0, 0);
+    if (window.scrollTo) {
+      window.scrollTo(0, 0);
+    }
     bodyElement.classList[lock ? 'add' : 'remove']('scroll-lock');
   }
 
