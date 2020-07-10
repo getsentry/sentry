@@ -12,7 +12,12 @@ from sentry import quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
-from sentry.inbound_filters import get_all_filter_specs, FilterTypes, FilterStatKeys, get_filter_key
+from sentry.ingest.inbound_filters import (
+    get_all_filter_specs,
+    FilterTypes,
+    FilterStatKeys,
+    get_filter_key,
+)
 from sentry.utils.http import get_origins
 from sentry.utils.sdk import configure_scope
 from sentry.relay.utils import to_camel_case_name
