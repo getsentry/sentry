@@ -4,7 +4,6 @@ import omitBy from 'lodash/omitBy';
 import isEqual from 'lodash/isEqual';
 import meanBy from 'lodash/meanBy';
 import mean from 'lodash/mean';
-import round from 'lodash/round';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -21,7 +20,7 @@ import CHART_PALETTE from 'app/constants/chartPalette';
 
 import {YAxis} from './chart/releaseChartControls';
 import {getInterval, getReleaseEventView} from './chart/utils';
-import {displayCrashFreePercent, getCrashFreePercent} from '../../utils';
+import {displayCrashFreePercent, getCrashFreePercent, roundDuration} from '../../utils';
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>
@@ -380,7 +379,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           .map(([timeframe, values]) => {
             chartData.data.push({
               name: timeframe * 1000,
-              value: round(values.duration_p50, values.duration_p50 > 60 ? 0 : 3),
+              value: roundDuration(values.duration_p50),
             });
 
             return values.duration_p50;
@@ -388,9 +387,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           .filter(duration => defined(duration))
       ) ?? 0;
 
-    const summary = getExactDuration(
-      round(sessionDurationAverage, sessionDurationAverage > 60 ? 0 : 3)
-    );
+    const summary = getExactDuration(roundDuration(sessionDurationAverage));
 
     return {chartData: [chartData], chartSummary: summary};
   }
