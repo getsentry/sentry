@@ -38,29 +38,21 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     Task to create a corresponding subscription in Snuba from a `QuerySubscription` in
     Sentry. We store the snuba subscription id locally on success.
     """
-    print("running task!")
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
     except QuerySubscription.DoesNotExist:
         metrics.incr("snuba.subscriptions.create.subscription_does_not_exist")
-        print("no exist")
         return
     if subscription.status != QuerySubscription.Status.CREATING.value:
         metrics.incr("snuba.subscriptions.create.incorrect_status")
-        print("not create", subscription, subscription.id, subscription.status)
         return
     if subscription.subscription_id is not None:
         metrics.incr("snuba.subscriptions.create.already_created_in_snuba")
-        print("already created in snuba.")
         return
-    print("creating in snuba!")
     subscription_id = _create_in_snuba(subscription)
-    print("updating status")
     subscription.update(
         status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id
     )
-    print("updated subsciprtion:", subscription, subscription.id, subscription.subscription_id)
-    print("new status:", subscription.status)
 
 
 @instrumented_task(

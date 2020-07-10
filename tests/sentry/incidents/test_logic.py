@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 import json
 import pytest
-import time
 from uuid import uuid4
 import responses
 from datetime import timedelta
@@ -1050,35 +1049,20 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test(self):
         with self.tasks():
-            alert_rule_id = self.alert_rule.id
-            disable_alert_rule(alert_rule)
-            self.alert_rule.update(status=AlertRuleStatus.DISABLED.value)
-            print("enabling rule!")
+            disable_alert_rule(self.alert_rule)
+            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+            assert alert_rule.status == AlertRuleStatus.DISABLED.value
+            for subscription in alert_rule.snuba_query.subscriptions.all():
+                assert subscription.status == QuerySubscription.Status.DISABLED.value
+
             enable_alert_rule(self.alert_rule)
-            print("enabled")
-            assert AlertRule.objects.filter(id=alert_rule_id).exists()
-            print("getting rule")
-            alert_rule = AlertRule.objects.get(id=alert_rule_id)
-            print("alert_rule snuba query:", alert_rule.snuba_query)
+            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
 
             assert alert_rule.status == AlertRuleStatus.PENDING.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
-                assert subscription.status == QuerySubscription.Status.CREATING.value
-
-            meow = AlertRule.objects.get(id=alert_rule_id)
-            meow.refresh_from_db()
-            print("snuba query:", meow.snuba_query)
-            for subscription in meow.snuba_query.subscriptions.all():
-                print(
-                    "checking subsciprtion:",
-                    subscription,
-                    subscription.id,
-                    subscription.subscription_id,
-                )
-                print("new status:", subscription.status)
-                subscription.refresh_from_db()
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
-                
+
+
 class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
     def alert_rule(self):

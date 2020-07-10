@@ -184,7 +184,7 @@ def disable_snuba_subscription(subscription):
     :param subscription: The subscription to disable
     :return:
     """
-    subscription.update(status=QuerySubscription.Status.DISABLED.value)
+    subscription.update(status=QuerySubscription.Status.DISABLED.value, subscription_id=None)
 
     delete_subscription_from_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
@@ -209,7 +209,6 @@ def enable_snuba_subscription(subscription):
     :return:
     """
     subscription.update(status=QuerySubscription.Status.CREATING.value)
-    print("enabling...applying async task...")
     create_subscription_in_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )
