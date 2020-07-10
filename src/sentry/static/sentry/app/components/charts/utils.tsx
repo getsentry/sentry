@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import {GlobalSelection} from 'app/types';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {parsePeriodToHours} from 'app/utils/dates';
+import {getFormattedDate, getTimeFormat, parsePeriodToHours} from 'app/utils/dates';
 import {escape} from 'app/utils';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
@@ -101,4 +101,39 @@ export function canIncludePreviousPeriod(
 
   // otherwise true
   return !!includePrevious;
+}
+
+export function formatAxisLabelInterval(
+  value: number,
+  isTimestamp: boolean,
+  utc: boolean,
+  showTimeInTooltip: boolean,
+  timeWindowMillis: number
+) {
+  if (!isTimestamp) {
+    return value;
+  }
+
+  if (!timeWindowMillis) {
+    const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
+    return getFormattedDate(value, format, {local: !utc});
+  }
+
+  const now = moment();
+  const bucketStart = moment(value);
+  const bucketEnd = moment(value + timeWindowMillis);
+
+  const showYear = now.year() !== bucketStart.year() || now.year() !== bucketEnd.year();
+  const showEndDate = bucketStart.date() !== bucketEnd.date();
+
+  const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${
+    showTimeInTooltip ? getTimeFormat() : ''
+  }`.trim();
+  const formatEnd = `${showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : ''}${
+    showTimeInTooltip ? getTimeFormat() : ''
+  }`.trim();
+
+  return `${getFormattedDate(bucketStart, formatStart, {
+    local: !utc,
+  })} - ${getFormattedDate(bucketEnd, formatEnd, {local: !utc})}`;
 }

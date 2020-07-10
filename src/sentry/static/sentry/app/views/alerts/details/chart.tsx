@@ -4,11 +4,11 @@ import moment from 'moment';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import {Trigger} from 'app/views/settings/incidentRules/types';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import MarkLine from 'app/components/charts/components/markLine';
+import {formatAxisLabelInterval} from 'app/components/charts/utils';
 
 import closedSymbol from './closedSymbol';
 import startedSymbol from './startedSymbol';
@@ -110,39 +110,14 @@ const Chart = (props: Props) => {
   const timeWindowMillis = timeWindow * 60 * 1000;
 
   const tooltip = {
-    formatAxisLabel(
-      value: number,
-      isTimestamp: boolean,
-      utc: boolean,
-      showTimeInTooltip: boolean
-    ) {
-      if (!isTimestamp) {
-        return value;
-      }
-
-      if (!timeWindow) {
-        const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
-        return getFormattedDate(value, format, {local: !utc});
-      }
-
-      const now = moment();
-      const bucketStart = moment(value);
-      const bucketEnd = moment(value + timeWindowMillis);
-
-      let format = '';
-
-      if (now.year() !== bucketStart.year()) {
-        format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
-      } else if (bucketStart.date() !== bucketEnd.date()) {
-        format = `MMM D ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
-      } else {
-        format = getTimeFormat();
-      }
-
-      return `${getFormattedDate(bucketStart, format, {
-        local: !utc,
-      })} - ${getFormattedDate(bucketEnd, format, {local: !utc})}`;
-    },
+    formatAxisLabel: (value, isTimestamp, utc, showTimeInTooltip) =>
+      formatAxisLabelInterval(
+        value,
+        isTimestamp,
+        utc,
+        showTimeInTooltip,
+        timeWindowMillis
+      ),
   };
 
   return (
