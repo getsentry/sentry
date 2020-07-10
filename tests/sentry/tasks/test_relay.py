@@ -206,5 +206,9 @@ def test_projectkeys(default_project, task_runner, redis_cache):
 
 @pytest.mark.django_db
 def test_delete_project(default_project, task_runner, redis_cache):
+    redis_cache.set_many({default_project.id: "foo"})
+
     with task_runner():
-        default_project.delete()
+        schedule_update_config_cache(generate=False, project_id=default_project.id + 1)
+
+    assert not redis_cache.get(default_project.id)

@@ -43,14 +43,22 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
         try:
             projects = [Project.objects.get_from_cache(id=project_id)]
         except Project.DoesNotExist:
-            projects = []
+            metrics.incr(
+                "relay.projectconfig_cache.project_not_found", tags={"update_reason": update_reason}
+            )
+            return
+
     elif organization_id:
         # XXX(markus): I feel like we should be able to cache this but I don't
         # want to add another method to src/sentry/db/models/manager.py
         projects = list(Project.objects.filter(organization_id=organization_id))
 
-    if not projects:
-        return
+        if not projects:
+            metrics.incr(
+                "relay.projectconfig_cache.organization_has_no_projects",
+                tags={"update_reason": update_reason},
+            )
+            return
 
     if generate:
         project_keys = {}
@@ -70,7 +78,7 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
 
     metrics.incr(
         "relay.projectconfig_cache.done",
-        tags={"generate": generate, "update_reason": update_reason},
+        tags={"generate": generate, "update_reason": update_reason, "count": len(projects)},
     )
 
 
