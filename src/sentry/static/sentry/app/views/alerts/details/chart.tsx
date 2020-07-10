@@ -4,6 +4,7 @@ import moment from 'moment';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import {Trigger} from 'app/views/settings/incidentRules/types';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
@@ -44,10 +45,11 @@ type Props = {
   started: string;
   closed?: string;
   triggers?: Trigger[];
+  timeWindow: number;
 };
 
 const Chart = (props: Props) => {
-  const {aggregate, data, started, closed, triggers} = props;
+  const {aggregate, data, started, closed, triggers, timeWindow} = props;
   const startedTs = started && moment.utc(started).unix();
   const closedTs = closed && moment.utc(closed).unix();
   const chartData = data.map(([ts, val]) => [
@@ -103,6 +105,45 @@ const Chart = (props: Props) => {
       return p;
     })
   );
+
+  // alert rule time window is in minutes but x-axis
+  const timeWindowMillis = timeWindow * 60 * 1000;
+
+  const tooltip = {
+    formatAxisLabel(
+      value: number,
+      isTimestamp: boolean,
+      utc: boolean,
+      showTimeInTooltip: boolean
+    ) {
+      if (!isTimestamp) {
+        return value;
+      }
+
+      if (!timeWindow) {
+        const format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
+        return getFormattedDate(value, format, {local: !utc});
+      }
+
+      const now = moment();
+      const bucketStart = moment(value);
+      const bucketEnd = moment(value + timeWindowMillis);
+
+      let format = '';
+
+      if (now.year() !== bucketStart.year()) {
+        format = `MMM D, YYYY ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
+      } else if (bucketStart.date() !== bucketEnd.date()) {
+        format = `MMM D ${showTimeInTooltip ? getTimeFormat() : ''}`.trim();
+      } else {
+        format = getTimeFormat();
+      }
+
+      return `${getFormattedDate(bucketStart, format, {
+        local: !utc,
+      })} - ${getFormattedDate(bucketEnd, format, {local: !utc})}`;
+    },
+  };
 
   return (
     <LineChart
@@ -236,6 +277,7 @@ const Chart = (props: Props) => {
             data: [],
           },
       ].filter(Boolean)}
+      tooltip={tooltip}
     />
   );
 };
