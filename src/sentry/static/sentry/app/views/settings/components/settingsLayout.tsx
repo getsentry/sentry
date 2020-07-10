@@ -20,7 +20,15 @@ type Props = {
 } & RouteComponentProps<{}, {}>;
 
 type State = {
+  /**
+   * This is used when the screen is small enough that the navigation should
+   * be hidden. On large screens this state will end up unused.
+   */
   navVisible: boolean;
+  /**
+   * Offset mobile settings navigation by the height of main navigation,
+   * settings breadcrumbs and optional warnings.
+   */
   navOffsetTop: number;
 };
 
@@ -33,15 +41,7 @@ class SettingsLayout extends React.Component<Props, State> {
   };
 
   state = {
-    /**
-     * This is used when the screen is small enough that the navigation should
-     * be hidden. On large screens this state will end up unused.
-     */
     navVisible: false,
-    /**
-     * Offset mobile settings navigation by the height of main navigation,
-     * settings breadcrumbs and optional warnings.
-     */
     navOffsetTop: 0,
   };
 
