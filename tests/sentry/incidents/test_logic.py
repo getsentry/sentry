@@ -1042,6 +1042,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
 
+
 class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
     def alert_rule(self):
@@ -1058,7 +1059,7 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
             assert AlertRule.objects.filter(id=alert_rule_id).exists()
             print("getting rule")
             alert_rule = AlertRule.objects.get(id=alert_rule_id)
-            print("alert_rule snuba query:",alert_rule.snuba_query)
+            print("alert_rule snuba query:", alert_rule.snuba_query)
 
             assert alert_rule.status == AlertRuleStatus.PENDING.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
@@ -1066,10 +1067,15 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
 
             meow = AlertRule.objects.get(id=alert_rule_id)
             meow.refresh_from_db()
-            print("snuba query:",meow.snuba_query)
+            print("snuba query:", meow.snuba_query)
             for subscription in meow.snuba_query.subscriptions.all():
-                print("checking subsciprtion:", subscription, subscription.id, subscription.subscription_id)
-                print("new status:",subscription.status)
+                print(
+                    "checking subsciprtion:",
+                    subscription,
+                    subscription.id,
+                    subscription.subscription_id,
+                )
+                print("new status:", subscription.status)
                 subscription.refresh_from_db()
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 

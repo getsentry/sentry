@@ -60,7 +60,7 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
         status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id
     )
     print("updated subsciprtion:", subscription, subscription.id, subscription.subscription_id)
-    print("new status:",subscription.status)
+    print("new status:", subscription.status)
 
 
 @instrumented_task(
