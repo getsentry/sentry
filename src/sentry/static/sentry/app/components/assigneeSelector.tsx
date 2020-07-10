@@ -270,7 +270,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                   py={0}
                 >
                   <IconContainer>
-                    <ClearAssigneeIcon />
+                    <ClearAssigneeIcon isCircled size="14px" />
                   </IconContainer>
                   <Label>{t('Clear Assignee')}</Label>
                 </MenuItemWrapper>
@@ -285,7 +285,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               >
                 <MenuItemWrapper>
                   <IconContainer>
-                    <InviteMemberIcon />
+                    <InviteMemberIcon isCircled size="14px" />
                   </IconContainer>
                   <Label>{t('Invite Member')}</Label>
                 </MenuItemWrapper>
@@ -344,11 +344,6 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
 export default AssigneeSelector;
 export {AssigneeSelectorComponent};
 
-const getSvgStyle = () => `
-  font-size: 16px;
-  opacity: 0.3;
-`;
-
 const StyledIconUser = styled(IconUser)`
   /* We need this to center with Avatar */
   margin-right: 2px;
@@ -387,12 +382,12 @@ const Label = styled(TextOverflow)`
   margin-left: 6px;
 `;
 
-const ClearAssigneeIcon = styled(props => <IconClose {...props} size="xs" isCircled />)`
-  ${getSvgStyle};
+const ClearAssigneeIcon = styled(IconClose)`
+  opacity: 0.3;
 `;
 
-const InviteMemberIcon = styled(props => <IconAdd {...props} size="xs" isCircled />)`
-  ${getSvgStyle};
+const InviteMemberIcon = styled(IconAdd)`
+  opacity: 0.3;
 `;
 
 const StyledChevron = styled(IconChevron)`
