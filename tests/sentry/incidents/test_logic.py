@@ -1057,7 +1057,6 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
 
             enable_alert_rule(self.alert_rule)
             alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
-
             assert alert_rule.status == AlertRuleStatus.PENDING.value
             for subscription in alert_rule.snuba_query.subscriptions.all():
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
@@ -1069,15 +1068,12 @@ class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
         return self.create_alert_rule()
 
     def test(self):
-        alert_rule_id = self.alert_rule.id
         with self.tasks():
             disable_alert_rule(self.alert_rule)
-
-        assert AlertRule.objects.filter(id=alert_rule_id).exists()
-        alert_rule = AlertRule.objects.get(id=alert_rule_id)
-        assert alert_rule.status == AlertRuleStatus.DISABLED.value
-        for subscription in alert_rule.snuba_query.subscriptions.all():
-            assert subscription.status == QuerySubscription.Status.DISABLED.value
+            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+            assert alert_rule.status == AlertRuleStatus.DISABLED.value
+            for subscription in alert_rule.snuba_query.subscriptions.all():
+                assert subscription.status == QuerySubscription.Status.DISABLED.value
 
 
 class TestGetExcludedProjectsForAlertRule(TestCase):
