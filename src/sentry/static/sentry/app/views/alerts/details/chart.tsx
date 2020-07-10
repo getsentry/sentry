@@ -8,7 +8,6 @@ import {Trigger} from 'app/views/settings/incidentRules/types';
 import LineChart from 'app/components/charts/lineChart';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import MarkLine from 'app/components/charts/components/markLine';
-import {formatAxisLabelInterval} from 'app/components/charts/utils';
 
 import closedSymbol from './closedSymbol';
 import startedSymbol from './startedSymbol';
@@ -45,11 +44,10 @@ type Props = {
   started: string;
   closed?: string;
   triggers?: Trigger[];
-  timeWindow: number;
 };
 
 const Chart = (props: Props) => {
-  const {aggregate, data, started, closed, triggers, timeWindow} = props;
+  const {aggregate, data, started, closed, triggers} = props;
   const startedTs = started && moment.utc(started).unix();
   const closedTs = closed && moment.utc(closed).unix();
   const chartData = data.map(([ts, val]) => [
@@ -105,20 +103,6 @@ const Chart = (props: Props) => {
       return p;
     })
   );
-
-  // alert rule time window is in minutes but x-axis
-  const timeWindowMillis = timeWindow * 60 * 1000;
-
-  const tooltip = {
-    formatAxisLabel: (value, isTimestamp, utc, showTimeInTooltip) =>
-      formatAxisLabelInterval(
-        value,
-        isTimestamp,
-        utc,
-        showTimeInTooltip,
-        timeWindowMillis
-      ),
-  };
 
   return (
     <LineChart
@@ -252,7 +236,6 @@ const Chart = (props: Props) => {
             data: [],
           },
       ].filter(Boolean)}
-      tooltip={tooltip}
     />
   );
 };

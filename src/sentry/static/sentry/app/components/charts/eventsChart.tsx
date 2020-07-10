@@ -7,7 +7,7 @@ import {Client} from 'app/api';
 import {DateString, OrganizationSummary} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {t} from 'app/locale';
-import {formatAxisLabelInterval, getInterval} from 'app/components/charts/utils';
+import {getInterval} from 'app/components/charts/utils';
 import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
@@ -284,7 +284,7 @@ class EventsChart extends React.Component<Props> {
       previousName ?? yAxis ? t('previous %s', yAxis) : undefined;
     const currentSeriesName = currentName ?? yAxis;
 
-    const getTooltip = timeWindowMillis => ({
+    const tooltip = {
       truncate: 80,
       valueFormatter(value: number) {
         switch (aggregateOutputType(yAxis)) {
@@ -300,15 +300,7 @@ class EventsChart extends React.Component<Props> {
             return value;
         }
       },
-      formatAxisLabel: (value, isTimestamp, _utc, showTimeInTooltip) =>
-        formatAxisLabelInterval(
-          value,
-          isTimestamp,
-          _utc,
-          showTimeInTooltip,
-          timeWindowMillis
-        ),
-    });
+    };
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, true);
 
     let chartImplementation = ({
@@ -329,21 +321,13 @@ class EventsChart extends React.Component<Props> {
         );
       }
       const seriesData = results ? results : timeseriesData;
-      const timeWindowMillis =
-        seriesData &&
-        seriesData[0] &&
-        seriesData[0].data.length > 1 &&
-        typeof seriesData[0].data[1].name === 'number' &&
-        typeof seriesData[0].data[0].name === 'number'
-          ? seriesData[0].data[1].name - seriesData[0].data[0].name
-          : undefined;
 
       return (
         <TransitionChart loading={loading} reloading={reloading}>
           <TransparentLoadingMask visible={reloading} />
           <Chart
             {...zoomRenderProps}
-            tooltip={getTooltip(timeWindowMillis)}
+            tooltip={tooltip}
             loading={loading}
             reloading={reloading}
             utc={utc}

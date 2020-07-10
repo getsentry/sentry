@@ -214,6 +214,10 @@ type Props = {
    */
   utc?: boolean;
   /**
+   * Bucket size to display time range in chart tooltip
+   */
+  bucketSize?: number;
+  /**
    * Inline styles
    */
   style?: React.CSSProperties;
@@ -336,6 +340,14 @@ class BaseChart extends React.Component<Props> {
         )
       : [XAxis(), XAxis()];
 
+    // Maybe changing the series type to types/echarts Series[] would be a better solution
+    // @ts-ignore
+    const bucketSize =
+      series && series.length && series[0].data && series[0].data.length > 1
+        ? // @ts-ignore
+          series[0].data[1][0] - series[0].data[0][0]
+        : undefined;
+
     return (
       <ChartContainer>
         <ReactEchartsCore
@@ -365,7 +377,13 @@ class BaseChart extends React.Component<Props> {
             grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
             tooltip:
               tooltip !== null
-                ? Tooltip({showTimeInTooltip, isGroupedByDate, utc, ...tooltip})
+                ? Tooltip({
+                    showTimeInTooltip,
+                    isGroupedByDate,
+                    utc,
+                    bucketSize,
+                    ...tooltip,
+                  })
                 : undefined,
             legend: legend ? Legend({...legend}) : undefined,
             yAxis: yAxisOrCustom,
