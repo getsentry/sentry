@@ -113,13 +113,13 @@ function ActivityItem({
               <StyledDateTimeWindow>
                 <StyledDateTime
                   timeOnly={timeOnly}
-                  timeAndDay={!timeOnly}
+                  timeAndDate={!timeOnly}
                   date={dateCreated}
                 />
                 {' - '}
                 <StyledDateTime
                   timeOnly={timeOnly}
-                  timeAndDay={!timeOnly}
+                  timeAndDate={!timeOnly}
                   date={dateEnded}
                 />
               </StyledDateTimeWindow>
