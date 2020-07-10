@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from jsonschema import Draft4Validator
+from jsonschema import Draft7Validator
 from requests.exceptions import Timeout
 
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
@@ -34,7 +34,7 @@ SCHEMA_LIST = {"select": SELECT_OPTIONS_SCHEMA, "issue_link": ISSUE_LINKER_SCHEM
 
 def validate(instance, schema_type):
     schema = SCHEMA_LIST[schema_type]
-    v = Draft4Validator(schema)
+    v = Draft7Validator(schema)
 
     if not v.is_valid(instance):
         return False
