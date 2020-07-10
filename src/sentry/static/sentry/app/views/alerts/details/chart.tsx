@@ -10,7 +10,7 @@ import MarkPoint from 'app/components/charts/components/markPoint';
 import MarkLine from 'app/components/charts/components/markLine';
 
 import closedSymbol from './closedSymbol';
-import detectedSymbol from './detectedSymbol';
+import startedSymbol from './startedSymbol';
 
 type Data = [number, {count: number}[]];
 /**
@@ -41,22 +41,22 @@ function getNearbyIndex(data: Data[], needle: number) {
 type Props = {
   data: Data[];
   aggregate: string;
-  detected: string;
+  started: string;
   closed?: string;
   triggers?: Trigger[];
 };
 
 const Chart = (props: Props) => {
-  const {aggregate, data, detected, closed, triggers} = props;
-  const detectedTs = detected && moment.utc(detected).unix();
+  const {aggregate, data, started, closed, triggers} = props;
+  const startedTs = started && moment.utc(started).unix();
   const closedTs = closed && moment.utc(closed).unix();
   const chartData = data.map(([ts, val]) => [
     ts * 1000,
     val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
   ]);
 
-  const detectedCoordinate = detectedTs
-    ? chartData[getNearbyIndex(data, detectedTs)]
+  const startedCoordinate = startedTs
+    ? chartData[getNearbyIndex(data, startedTs)]
     : undefined;
   const showClosedMarker =
     data && closedTs && data[data.length - 1] && data[data.length - 1][0] >= closedTs
@@ -124,9 +124,9 @@ const Chart = (props: Props) => {
               {
                 labelForValue: seriesName,
                 seriesName,
-                symbol: `image://${detectedSymbol}`,
+                symbol: `image://${startedSymbol}`,
                 name: t('Alert Triggered'),
-                coord: detectedCoordinate,
+                coord: startedCoordinate,
               },
               ...(closedTs
                 ? [

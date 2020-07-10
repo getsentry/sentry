@@ -223,7 +223,7 @@ export default class DetailsBody extends React.Component<Props> {
                     triggers={incident.alertRule.triggers}
                     aggregate={incident.alertRule.aggregate}
                     data={stats.eventStats.data}
-                    detected={incident.dateDetected}
+                    started={incident.dateStarted}
                     closed={incident.dateClosed || undefined}
                   />
                 ) : (
