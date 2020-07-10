@@ -60,6 +60,12 @@ const PositionStickyWrapper = styled('div')`
   top: 100px;
   overflow: scroll;
   height: calc(100vh - 98px);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 export default SettingsNavigation;
