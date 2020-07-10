@@ -395,7 +395,7 @@ class SourceField extends React.Component<Props, State> {
         />
         {showSuggestions && suggestions.length > 0 && (
           <React.Fragment>
-            <Suggestions ref={this.suggestionList} data-test-id="source">
+            <Suggestions ref={this.suggestionList} data-test-id="source-suggestions">
               {suggestions.slice(0, 50).map((suggestion, index) => (
                 <Suggestion
                   key={suggestion.value}

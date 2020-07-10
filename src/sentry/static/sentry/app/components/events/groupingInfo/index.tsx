@@ -184,6 +184,7 @@ export const GroupingConfigItem = styled('span')<{
   font-family: ${p => p.theme.text.familyMono};
   opacity: ${p => (p.isHidden ? 0.5 : null)};
   font-weight: ${p => (p.isActive ? 'bold' : null)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const VariantDivider = styled('hr')`

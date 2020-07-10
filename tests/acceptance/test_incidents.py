@@ -6,7 +6,7 @@ import pytz
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
-FEATURE_NAME = "organizations:incidents"
+FEATURE_NAME = ["organizations:incidents", "organizations:performance-view"]
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
@@ -49,4 +49,5 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_test_id("incident-title")
 
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.blur()
             self.browser.snapshot("incidents - details")

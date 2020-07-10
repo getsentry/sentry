@@ -1,7 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 
-import {Panel, PanelItem, PanelBody, PanelAlert} from 'app/components/panels';
+import {IconQuestion, IconSettings} from 'app/icons';
+import {Panel, PanelAlert, PanelTable} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
 import Access from 'app/components/acl/access';
@@ -248,7 +250,7 @@ class ProjectProcessingIssues extends React.Component {
         <span className="description">{description}</span>{' '}
         {helpLink && (
           <a href={helpLink} className="help-link">
-            <span className="icon-question" />
+            <IconQuestion size="xs" />
           </a>
         )}
       </div>
@@ -331,21 +333,13 @@ class ProjectProcessingIssues extends React.Component {
     let processingRow = null;
     if (this.state.processingIssues.issuesProcessing > 0) {
       processingRow = (
-        <PanelItem className="alert-info">
-          <div className="row row-flex row-center-vertically">
-            <div className="col-sm-12">
-              <span
-                className="icon icon-processing play"
-                style={{display: 'inline', marginRight: 12}}
-              />
-              {tn(
-                'Reprocessing %s event …',
-                'Reprocessing %s events …',
-                this.state.processingIssues.issuesProcessing
-              )}
-            </div>
-          </div>
-        </PanelItem>
+        <StyledPanelAlert type="info" icon={<IconSettings size="sm" />}>
+          {tn(
+            'Reprocessing %s event …',
+            'Reprocessing %s events …',
+            this.state.processingIssues.issuesProcessing
+          )}
+        </StyledPanelAlert>
       );
     }
 
@@ -367,31 +361,19 @@ class ProjectProcessingIssues extends React.Component {
             )}
           </Access>
         </h3>
-        <div className="panel panel-default">
-          <div className="panel-heading panel-heading-bold hidden-xs">
-            <div className="row">
-              <div className="col-sm-3">{t('Problem')}</div>
-              <div className="col-sm-5">{t('Details')}</div>
-              <div className="col-sm-2">{t('Events')}</div>
-              <div className="col-sm-2">{t('Last seen')}</div>
-            </div>
-          </div>
-          <PanelBody>
-            {processingRow}
-            {this.state.processingIssues.issues.map((item, idx) => (
-              <PanelItem key={idx}>
-                <div className="row row-flex row-center-vertically">
-                  <div className="col-sm-3">{this.renderProblem(item)}</div>
-                  <div className="col-sm-5">{this.renderDetails(item)}</div>
-                  <div className="col-sm-2">{item.numEvents + ''}</div>
-                  <div className="col-sm-2">
-                    <TimeSince date={item.lastSeen} />
-                  </div>
-                </div>
-              </PanelItem>
-            ))}
-          </PanelBody>
-        </div>
+        <PanelTable headers={[t('Problem'), t('Details'), t('Events'), t('Last seen')]}>
+          {processingRow}
+          {this.state.processingIssues.issues.map((item, idx) => (
+            <React.Fragment key={idx}>
+              <div>{this.renderProblem(item)}</div>
+              <div>{this.renderDetails(item)}</div>
+              <div>{item.numEvents + ''}</div>
+              <div>
+                <TimeSince date={item.lastSeen} />
+              </div>
+            </React.Fragment>
+          ))}
+        </PanelTable>
       </div>
     );
   };
@@ -452,6 +434,10 @@ class ProjectProcessingIssues extends React.Component {
     );
   }
 }
+
+const StyledPanelAlert = styled(PanelAlert)`
+  grid-column: 1/5;
+`;
 
 export {ProjectProcessingIssues};
 

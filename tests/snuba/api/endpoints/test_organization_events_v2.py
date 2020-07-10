@@ -1470,6 +1470,24 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["meta"]["message"] == "string"
 
+    def test_email_wildcard_condition(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = load_data("javascript")
+        data["timestamp"] = self.min_ago
+        self.store_event(data=data, project_id=project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"field": ["stack.filename", "message"], "query": "user.email:*@example.org"},
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["meta"]["message"] == "string"
+
     def test_transaction_event_type(self):
         self.login_as(user=self.user)
 
@@ -1838,6 +1856,38 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             data = response.data["data"]
             assert len(data) == 1
             assert data[0]["count_id"] == 0
+
+    def test_tag_that_looks_like_aggregation(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        data = {
+            "message": "Failure state",
+            "timestamp": self.two_min_ago,
+            "tags": {"count_diff": 99},
+        }
+        self.store_event(data, project_id=project.id)
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["message", "count_diff", "count()"],
+                    "query": "",
+                    "project": [project.id],
+                    "statsPeriod": "24h",
+                },
+            )
+            assert response.status_code == 200, response.content
+            meta = response.data["meta"]
+            assert "string" == meta["count_diff"], "tags should not be counted as integers"
+            assert "string" == meta["message"]
+            assert "integer" == meta["count"]
+            assert 1 == len(response.data["data"])
+            data = response.data["data"][0]
+            assert "99" == data["count_diff"]
+            assert "Failure state" == data["message"]
+            assert 1 == data["count"]
 
     def test_aggregate_negation(self):
         self.login_as(user=self.user)

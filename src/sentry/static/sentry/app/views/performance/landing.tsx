@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
-import FeatureBadge from 'app/components/featureBadge';
 import SearchBar from 'app/views/events/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -69,6 +68,11 @@ class PerformanceLanding extends React.Component<Props, State> {
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.overview.view',
+      eventName: 'Performance Views: Transaction overview view',
+      organization_id: parseInt(organization.id, 10),
+    });
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -239,9 +243,7 @@ class PerformanceLanding extends React.Component<Props, State> {
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
-                <div>
-                  {t('Performance')} <FeatureBadge type="beta" />
-                </div>
+                <div>{t('Performance')}</div>
                 {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
               </StyledPageHeader>
               {this.renderError()}

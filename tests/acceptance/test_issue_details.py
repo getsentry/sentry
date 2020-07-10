@@ -169,6 +169,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.go_to_subtab("Comments")
 
         self.browser.wait_until_test_id("activity-item")
+        self.browser.blur()
         self.browser.snapshot("issue activity python")
 
     def test_resolved(self):

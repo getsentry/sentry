@@ -5,6 +5,7 @@ import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';
 import GroupList from 'app/components/issues//groupList';
 import {t} from 'app/locale';
+import {IconOpen} from 'app/icons';
 
 const ReleaseNewEvents = props => {
   const {release} = props;
@@ -12,7 +13,7 @@ const ReleaseNewEvents = props => {
 
   return (
     <div>
-      <Alert icon="icon-open" iconSize="14px" type="warning">
+      <Alert icon={<IconOpen size="14px" />} type="warning">
         <Link
           to={{
             pathname: `/organizations/${orgId}/issues/`,

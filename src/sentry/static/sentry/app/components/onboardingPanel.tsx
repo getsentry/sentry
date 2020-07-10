@@ -31,7 +31,7 @@ const Container = styled('div')`
     justify-content: center;
     flex-wrap: wrap;
     min-height: 300px;
-    max-width: 1200px;
+    max-width: 1000px;
     margin: 0 auto;
   }
 
@@ -49,6 +49,7 @@ const StyledBox = styled('div')`
 `;
 
 const IlloBox = styled(StyledBox)`
+  position: relative;
   min-height: 100px;
   max-width: 300px;
   margin: ${space(2)} auto;

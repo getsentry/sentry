@@ -22,7 +22,6 @@ import Deploys from './deploys';
 import ReleaseStatsRequest from './releaseStatsRequest';
 import {YAxis} from './chart/releaseChartControls';
 import SwitchReleasesButton from '../../utils/switchReleasesButton';
-
 import {ReleaseContext} from '..';
 
 type RouteParams = {

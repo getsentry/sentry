@@ -1,6 +1,6 @@
 import capitalize from 'lodash/capitalize';
 import React from 'react';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import HookStore from 'app/stores/hookStore';
 import {

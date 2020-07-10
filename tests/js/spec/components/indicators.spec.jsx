@@ -49,7 +49,12 @@ describe('Indicators', function() {
     IndicatorStore.remove(indicator);
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('ToastIndicator').prop('_pose')).toBe('exit');
+    expect(
+      wrapper
+        .find('ToastIndicator div')
+        .first()
+        .prop('style').opacity
+    ).toBe(0);
   });
 
   // This is a common pattern used throughout the code for API calls
@@ -93,7 +98,12 @@ describe('Indicators', function() {
     clearIndicators();
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('ToastIndicator').prop('_pose')).toBe('exit');
+    expect(
+      wrapper
+        .find('ToastIndicator div')
+        .first()
+        .prop('style').opacity
+    ).toBe(0);
   });
 
   it('adds and replaces toast by calling action creators', function() {
@@ -162,7 +172,11 @@ describe('Indicators', function() {
     clearIndicators();
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('ToastIndicator[_pose="exit"]')).toHaveLength(3);
+    expect(
+      wrapper
+        .find('ToastIndicator div[style]')
+        .everyWhere(div => div.prop('style').opacity === 0)
+    ).toBe(true);
   });
 
   it('dismisses on click', function() {
@@ -175,7 +189,12 @@ describe('Indicators', function() {
     wrapper.find('ToastIndicator').simulate('click');
     jest.runAllTimers();
     wrapper.update();
-    expect(wrapper.find('ToastIndicator').prop('_pose')).toBe('exit');
+    expect(
+      wrapper
+        .find('ToastIndicator div')
+        .first()
+        .prop('style').opacity
+    ).toBe(0);
   });
 
   it('hides after 10s', function() {
@@ -198,6 +217,11 @@ describe('Indicators', function() {
     expect(wrapper.find('Indicators').prop('items')).toHaveLength(0);
 
     // Animation is exiting
-    expect(wrapper.find('ToastIndicator').prop('_pose')).toBe('exit');
+    expect(
+      wrapper
+        .find('ToastIndicator div')
+        .first()
+        .prop('style').opacity
+    ).toBe(0);
   });
 });

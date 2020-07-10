@@ -36,7 +36,9 @@ class VercelExtensionConfigurationTest(TestCase):
         )
 
         responses.add(
-            responses.GET, "https://api.vercel.com/v4/projects/", json={"projects": []},
+            responses.GET,
+            "https://api.vercel.com/v4/projects/",
+            json={"projects": [], "pagination": {"count": 0}},
         )
 
         responses.add(

@@ -1,0 +1,9 @@
+<Page>
+{% block main %}
+    <Box display="flex" justifyContent="space-between">
+      <P>
+        • <Link href="{{ link }}">Add to project for {{ org }}</Link><BR />
+      </P>
+    </Box>
+{% endblock %}
+</Page>

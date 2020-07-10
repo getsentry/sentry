@@ -6,7 +6,6 @@ import pytest
 from sentry.utils.compat.mock import patch
 from datetime import datetime, timedelta
 
-from sentry import eventstore
 from sentry.api.event_search import InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.testutils import TestCase, SnubaTestCase
@@ -824,7 +823,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             conditions=[
                 ["type", "=", "transaction"],
-                [["match", ["email", "'(?i)^.*\@sentry\.io$'"]], "=", 1],
+                [["match", ["email", "'(?i)^.*@sentry\.io$'"]], "=", 1],
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
             aggregations=[["count", None, "count"]],
@@ -1929,164 +1928,6 @@ class CreateReferenceEventConditionsTest(SnubaTestCase, TestCase):
 
 def format_project_event(project_slug, event_id):
     return "{}:{}".format(project_slug, event_id)
-
-
-class GetPaginationIdsTest(SnubaTestCase, TestCase):
-    def setUp(self):
-        super(GetPaginationIdsTest, self).setUp()
-
-        self.project = self.create_project()
-        self.project_2 = self.create_project()
-        self.min_ago = before_now(minutes=1)
-        self.day_ago = before_now(days=1)
-
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=4)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=3)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=2)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "e" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=2, seconds=30)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project_2.id,
-        )
-        self.event = eventstore.get_event_by_id(self.project.id, "b" * 32)
-
-    def test_no_related_events(self):
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:bar",
-            {"project_id": [self.project.id], "start": self.min_ago, "end": self.day_ago},
-            self.organization,
-        )
-        assert result.previous is None
-        assert result.next is None
-        assert result.oldest is None
-        assert result.latest is None
-
-    def test_invalid_conditions(self):
-        with pytest.raises(InvalidSearchQuery):
-            discover.get_pagination_ids(
-                self.event,
-                "foo:(11",
-                {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
-                self.organization,
-            )
-
-    def test_matching_conditions(self):
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:1",
-            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
-            self.organization,
-        )
-        assert result.previous == format_project_event(self.project.slug, "a" * 32)
-        assert result.next == format_project_event(self.project.slug, "c" * 32)
-        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
-        assert result.latest == format_project_event(self.project.slug, "c" * 32)
-
-    def test_reference_event_matching(self):
-        # Create an event that won't match the reference
-        self.store_event(
-            data={
-                "event_id": "d" * 32,
-                "message": "completely bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(minutes=2)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        reference = discover.ReferenceEvent(
-            self.organization, "{}:{}".format(self.project.slug, self.event.event_id), ["message"]
-        )
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:1",
-            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
-            self.organization,
-            reference_event=reference,
-        )
-        assert result.previous == format_project_event(self.project.slug, "a" * 32)
-        assert result.next == format_project_event(self.project.slug, "c" * 32)
-        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
-        assert result.latest == format_project_event(self.project.slug, "c" * 32)
-
-    def test_date_params_included(self):
-        # Create an event that is outside the date range
-        self.store_event(
-            data={
-                "event_id": "d" * 32,
-                "message": "very bad",
-                "type": "default",
-                "platform": "python",
-                "timestamp": iso_format(before_now(days=2)),
-                "tags": {"foo": "1"},
-            },
-            project_id=self.project.id,
-        )
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:1",
-            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
-            self.organization,
-        )
-        assert result.previous == format_project_event(self.project.slug, "a" * 32)
-        assert result.next == format_project_event(self.project.slug, "c" * 32)
-        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
-        assert result.latest == format_project_event(self.project.slug, "c" * 32)
-
-    def test_multi_projects(self):
-        result = discover.get_pagination_ids(
-            self.event,
-            "foo:1",
-            {
-                "project_id": [self.project.id, self.project_2.id],
-                "end": self.min_ago,
-                "start": self.day_ago,
-            },
-            self.organization,
-        )
-
-        assert result.previous == format_project_event(self.project.slug, "a" * 32)
-        assert result.next == format_project_event(self.project_2.slug, "e" * 32)
-        assert result.oldest == format_project_event(self.project.slug, "a" * 32)
-        assert result.latest == format_project_event(self.project.slug, "c" * 32)
 
 
 class GetFacetsTest(SnubaTestCase, TestCase):

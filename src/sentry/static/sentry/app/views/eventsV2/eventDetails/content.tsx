@@ -136,10 +136,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {event} = this.state;
 
     if (!event) {
-      return this.renderWrapper(<NotFound />);
+      return <NotFound />;
     }
 
-    return this.renderWrapper(this.renderContent(event));
+    return this.renderContent(event);
   }
 
   renderContent(event: Event) {
@@ -262,63 +262,26 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
 
     if (notFound) {
-      return this.renderWrapper(<NotFound />);
+      return <NotFound />;
     }
     if (permissionDenied) {
-      return this.renderWrapper(
+      return (
         <LoadingError message={t('You do not have permission to view that event.')} />
       );
     }
 
-    return this.renderWrapper(super.renderError(error, true, true));
+    return super.renderError(error, true, true);
   }
 
-  renderLoading() {
-    return this.renderWrapper(super.renderLoading());
-  }
-
-  // TODO(mark) convert this its sibling in performance to use renderComponent() provided by asynccomponent.
-  renderWrapper(children: React.ReactNode) {
-    const {organization, location, eventView} = this.props;
+  renderComponent() {
+    const {eventView, organization} = this.props;
     const {event} = this.state;
 
-    return (
-      <EventDetailsWrapper
-        organization={organization}
-        location={location}
-        eventView={eventView}
-        event={event}
-      >
-        {children}
-      </EventDetailsWrapper>
-    );
-  }
-}
-
-type EventDetailsWrapperProps = {
-  organization: Organization;
-  location: Location;
-  eventView: EventView;
-  event: Event | undefined;
-  children: React.ReactNode;
-};
-
-class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
-  getDocumentTitle = (): string => {
-    const {event, eventView} = this.props;
-
-    return generateTitle({
-      eventView,
-      event,
-    });
-  };
-
-  render() {
-    const {organization, children} = this.props;
+    const title = generateTitle({eventView, event});
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
-        <React.Fragment>{children}</React.Fragment>
+      <SentryDocumentTitle title={title} objSlug={organization.slug}>
+        {super.renderComponent()}
       </SentryDocumentTitle>
     );
   }
