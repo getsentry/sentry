@@ -343,19 +343,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                 {this.renderBanner()}
                 {this.renderActions()}
                 {this.renderComponent()}
-                <Feature
-                  features={['organizations:discover']}
-                  organization={organization}
-                >
-                  <div>
-                    <SwitchLink
-                      href={`/organizations/${organization.slug}/discover/`}
-                      onClick={this.onGoLegacyDiscover}
-                    >
-                      {t('Go to Legacy Discover')}
-                    </SwitchLink>
-                  </div>
-                </Feature>
               </PageContent>
             </LightWeightNoProjectMessage>
           </StyledPageContent>
@@ -397,11 +384,6 @@ const StyledButton = styled(Button)`
 
 const StarterButton = styled(Button)`
   margin: ${space(1)};
-`;
-
-const SwitchLink = styled('a')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-left: ${space(1)};
 `;
 
 export default withOrganization(DiscoverLanding);
