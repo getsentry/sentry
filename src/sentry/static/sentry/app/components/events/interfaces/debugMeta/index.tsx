@@ -1,6 +1,7 @@
 import isNil from 'lodash/isNil';
 import React from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 import {
   List,
   ListRowProps,
@@ -91,7 +92,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     if (
-      prevState.foundFrame !== this.state.foundFrame ||
+      !isEqual(prevState.foundFrame, this.state.foundFrame) ||
       this.state.showDetails !== prevState.showDetails
     ) {
       this.updateGrid();
@@ -119,9 +120,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   getPanelBodyHeight() {
-    this.setState({
-      panelBodyHeight: this.panelBodyRef?.current?.offsetHeight,
-    });
+    const panelBodyHeight = this.panelBodyRef?.current?.offsetHeight;
+
+    if (!panelBodyHeight) {
+      return;
+    }
+
+    this.setState({panelBodyHeight});
   }
 
   onStoreChange = (store: {filter: string}) => {
@@ -395,27 +400,27 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         <DebugImagesPanel>
-          <ClippedBox
-            clipHeight={clipHeight}
-            renderedHeight={panelBodyHeight}
-            onReveal={this.handleOnReveal}
-          >
-            <PanelBody forwardRef={this.panelBodyRef}>
+          {filteredImages.length > 0 ? (
+            <ClippedBox
+              clipHeight={clipHeight}
+              renderedHeight={panelBodyHeight}
+              onReveal={this.handleOnReveal}
+            >
               {foundFrame && (
                 <ImageForBar
                   frame={foundFrame}
                   onShowAllImages={this.handleChangeFilter}
                 />
               )}
-              {filteredImages.length > 0 ? (
-                this.renderImageList()
-              ) : (
-                <EmptyMessage icon={<IconWarning size="xl" />}>
-                  {this.getNoImagesMessage()}
-                </EmptyMessage>
-              )}
-            </PanelBody>
-          </ClippedBox>
+              <PanelBody forwardRef={this.panelBodyRef}>
+                {this.renderImageList()}
+              </PanelBody>
+            </ClippedBox>
+          ) : (
+            <EmptyMessage icon={<IconWarning size="xl" />}>
+              {this.getNoImagesMessage()}
+            </EmptyMessage>
+          )}
         </DebugImagesPanel>
       </StyledEventDataSection>
     );
