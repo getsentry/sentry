@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(name="sentry.tasks.reprocess_events", queue="events.reprocess_events")
 def reprocess_events(project_id, **kwargs):
     from sentry.models import ProcessingIssue
-    from sentry.coreapi import ClientApiHelper
+    from sentry.coreapi import insert_data_to_database_legacy
     from sentry import app
 
     lock_key = "events:reprocess_events:%s" % project_id
@@ -26,9 +26,8 @@ def reprocess_events(project_id, **kwargs):
         with lock.acquire():
             raw_events, have_more = ProcessingIssue.objects.find_resolved(project_id)
             if raw_events:
-                helper = ClientApiHelper()
                 for raw_event in raw_events:
-                    helper.insert_data_to_database(raw_event.data.data, from_reprocessing=True)
+                    insert_data_to_database_legacy(raw_event.data.data, from_reprocessing=True)
                     create_reprocessing_report(project_id=project_id, event_id=raw_event.event_id)
                     # Here we only delete the raw event but leave the
                     # reprocessing report alive.  When the queue

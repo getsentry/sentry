@@ -4,6 +4,7 @@ import React from 'react';
 import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
+import {IconNext, IconPrevious} from 'app/icons';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -95,9 +96,8 @@ class GroupEventToolbar extends React.Component {
         to={{pathname: `${baseEventsPath}oldest/`, query: location.query}}
         disabled={!evt.previousEventID}
         aria-label={t('Oldest')}
-      >
-        <span className="icon-skip-back" />
-      </Button>,
+        icon={<IconPrevious size="xs" />}
+      />,
       <Button
         size="small"
         key="prev"
@@ -123,9 +123,8 @@ class GroupEventToolbar extends React.Component {
         to={{pathname: `${baseEventsPath}latest/`, query: location.query}}
         disabled={!evt.nextEventID}
         aria-label={t('Newest')}
-      >
-        <span className="icon-skip-forward" />
-      </Button>,
+        icon={<IconNext size="xs" />}
+      />,
     ];
 
     // TODO: possible to define this as a route in react-router, but without a corresponding

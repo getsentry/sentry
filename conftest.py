@@ -22,14 +22,6 @@ def pytest_configure(config):
     # always install plugins for the tests
     install_sentry_plugins()
 
-    # add custom test markers
-    config.addinivalue_line(
-        "markers",
-        "sentry_store_integration: mark test as using the sentry store endpoint and therefore using legacy code",
-    )
-    config.addinivalue_line(
-        "markers", "relay_store_integration: mark test as using the relay store endpoint"
-    )
     config.addinivalue_line("markers", "obsolete: mark test as obsolete and soon to be removed")
 
 

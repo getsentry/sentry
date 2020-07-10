@@ -3,7 +3,6 @@ import {BreadcrumbType, BreadcrumbLevelType} from '../types';
 type OptionBase = {
   symbol: React.ReactElement;
   isChecked: boolean;
-  isDisabled: boolean;
   description?: string;
 };
 
