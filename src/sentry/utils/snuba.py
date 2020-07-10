@@ -50,7 +50,9 @@ MAX_HASHES = 5000
 MAX_FIELDS = 20
 
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
-QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
+# Match any text surrounded by quotes, can't use `.*` here since it
+# doesn't include new lines,
+QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
