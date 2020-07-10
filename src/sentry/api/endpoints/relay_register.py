@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import ipaddress
 import six
 
 from rest_framework.response import Response
@@ -12,6 +11,7 @@ from django.utils import timezone
 from sentry.cache import default_cache
 from sentry.utils import json
 from sentry.models import Relay
+from sentry.auth.system import is_internal_ip
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
@@ -46,12 +46,7 @@ def is_internal_relay(request, public_key):
     if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
         return True
 
-    # Allow requests from internal IPs
-    internal_ips = (
-        ipaddress.ip_network(six.text_type(v), strict=False) for v in settings.INTERNAL_IPS
-    )
-    request_ip = ipaddress.ip_address(six.text_type(request.META["REMOTE_ADDR"]))
-    return any(request_ip in network for network in internal_ips)
+    return is_internal_ip(is_internal_ip)
 
 
 class RelayRegisterChallengeEndpoint(Endpoint):
