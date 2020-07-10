@@ -45,6 +45,7 @@ from sentry.incidents.logic import (
     get_triggers_for_alert_rule,
     ProjectsNotAssociatedWithAlertRuleError,
     subscribe_to_incident,
+    enable_alert_rule,
     disable_alert_rule,
     update_alert_rule,
     update_alert_rule_trigger_action,
@@ -1039,6 +1040,27 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
+
+
+class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
+    @fixture
+    def alert_rule(self):
+        return self.create_alert_rule()
+
+    def test(self):
+        with self.tasks():
+            disable_alert_rule(self.alert_rule)
+            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+            assert alert_rule.status == AlertRuleStatus.DISABLED.value
+            for subscription in alert_rule.snuba_query.subscriptions.all():
+                assert subscription.status == QuerySubscription.Status.DISABLED.value
+
+            enable_alert_rule(self.alert_rule)
+            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+
+            assert alert_rule.status == AlertRuleStatus.PENDING.value
+            for subscription in alert_rule.snuba_query.subscriptions.all():
+                assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
 
 class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
