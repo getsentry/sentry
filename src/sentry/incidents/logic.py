@@ -37,6 +37,7 @@ from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
     bulk_enable_snuba_subscriptions,
+    bulk_disable_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
     update_snuba_query,
@@ -816,6 +817,13 @@ def enable_alert_rule(alert_rule):
     with transaction.atomic():
         alert_rule.update(status=AlertRuleStatus.PENDING.value)
         bulk_enable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
+
+def disable_alert_rule(alert_rule):
+    if alert_rule.status == AlertRuleStatus.DISABLED.value:
+        return
+    with transaction.atomic():
+        alert_rule.update(status=AlertRuleStatus.DISABLED.value)
+        bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
 
 def delete_alert_rule(alert_rule):

@@ -161,6 +161,31 @@ def delete_snuba_subscription(subscription):
     :return:
     """
     subscription.update(status=QuerySubscription.Status.DELETING.value)
+
+    delete_subscription_from_snuba.apply_async(
+        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    )
+
+
+def bulk_disable_snuba_subscriptions(subscriptions):
+    """
+    Disables a list of snuba query subscriptions.
+    :param subscriptions: The subscriptions to disable
+    :return:
+    """
+    for subscription in subscriptions:
+        # TODO: Batch this up properly once we care about multi-project rules.
+        disable_snuba_subscription(subscription)
+
+
+def disable_snuba_subscription(subscription):
+    """
+    Disables a subscription to a snuba query.
+    :param subscription: The subscription to disable
+    :return:
+    """
+    subscription.update(status=QuerySubscription.Status.DISABLED.value)
+
     delete_subscription_from_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
     )
