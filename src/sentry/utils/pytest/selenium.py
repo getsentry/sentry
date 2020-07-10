@@ -429,9 +429,7 @@ def browser(request, percy, live_server):
 
     browser = Browser(driver, live_server, percy)
 
-    browser.set_emulated_media(
-        [{"name": "prefers-reduced-motion", "value": "reduce"},]
-    )
+    browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
 
     if hasattr(request, "cls"):
         request.cls.browser = browser
