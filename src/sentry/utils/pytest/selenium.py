@@ -243,9 +243,20 @@ class Browser(object):
             # wait for images to be loaded
             self.wait_for_images_loaded()
 
+            size = self.driver.get_window_size()
+
+            # Note: this will fail if these directories do not exist
             self.save_screenshot(
                 u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
             )
+
+            self.driver.set_window_size(375, 812)
+            self.save_screenshot(
+                u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
+            )
+
+            # reset window size
+            self.driver.set_window_size(size["width"], size["height"])
 
         self.percy.snapshot(name=name)
         return self
