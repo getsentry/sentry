@@ -97,7 +97,9 @@ def update_subscription_in_snuba(query_subscription_id, old_dataset=None, **kwar
 def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     """
     Task to delete a corresponding subscription in Snuba from a `QuerySubscription` in
-    Sentry. Deletes the local subscription once we've successfully removed from Snuba.
+    Sentry.
+    If the local subscription is marked for deletion (as opposed to disabled),
+    then we delete the local subscription once we've successfully removed from Snuba.
     """
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
