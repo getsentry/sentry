@@ -385,7 +385,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
             return values.duration_p50;
           })
           .filter(duration => defined(duration))
-      ) ?? 0;
+      ) || 0;
 
     const summary = getExactDuration(roundDuration(sessionDurationAverage));
 
