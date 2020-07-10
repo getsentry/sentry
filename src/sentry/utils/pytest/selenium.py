@@ -251,9 +251,9 @@ class Browser(object):
             # wait for images to be loaded
             self.wait_for_images_loaded()
 
-            self.save_screenshot(
-                u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
-            )
+            # TODO: Might be helpful to have an option to choose what to snapshot
+            el = self.driver.find_element_by_tag_name("body")
+            el.screenshot(u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name)))
 
         self.percy.snapshot(name=name)
         return self
