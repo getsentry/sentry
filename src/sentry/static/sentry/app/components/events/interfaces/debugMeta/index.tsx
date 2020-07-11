@@ -93,7 +93,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     if (
       !isEqual(prevState.foundFrame, this.state.foundFrame) ||
-      this.state.showDetails !== prevState.showDetails
+      this.state.showDetails !== prevState.showDetails ||
+      prevState.showUnused !== this.state.showUnused ||
+      (prevState.filter && !this.state.filter)
     ) {
       this.updateGrid();
     }
