@@ -340,13 +340,13 @@ class BaseChart extends React.Component<Props> {
         )
       : [XAxis(), XAxis()];
 
-    // Maybe changing the series type to types/echarts Series[] would be a better solution
-    const bucketSize =
-      // @ts-ignore
-      series && series.length && series[0].data && series[0].data.length > 1
-        ? // @ts-ignore
-          series[0].data[1][0] - series[0].data[0][0]
-        : undefined;
+    // @ts-ignore Maybe changing the series type to types/echarts Series[] would be a better solution
+    // and can't use ignore for multiline blocks
+    const seriesValid = series.length && series[0].data && series[0].data.length > 1;
+    // @ts-ignore
+    const seriesData = seriesValid ? series[0].data : undefined;
+    // @ts-ignore
+    const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
     return (
       <ChartContainer>
