@@ -7,21 +7,10 @@ import {Theme} from 'app/utils/theme';
 
 import SvgIcon from './svgIcon';
 
-type Props = React.ComponentProps<typeof SvgIcon> & {
+type WrappedProps = React.ComponentProps<typeof SvgIcon> & {
   theme: Theme;
-
-  /**
-   * Renders a pink purple gradient on the icon
-   */
-  gradient?: boolean;
-
-  /**
-   * Adds an animated shine to the icon
-   */
-  withShine?: boolean;
-
   forwardRef: React.Ref<SVGSVGElement>;
-};
+} & Props;
 
 const IconBusinessComponent = withTheme(function IconBusinessComponent({
   gradient = false,
@@ -29,7 +18,7 @@ const IconBusinessComponent = withTheme(function IconBusinessComponent({
   theme,
   forwardRef,
   ...props
-}: Props) {
+}: WrappedProps) {
   return (
     <SvgIcon {...props} ref={forwardRef}>
       <path
@@ -72,11 +61,21 @@ const IconBusinessComponent = withTheme(function IconBusinessComponent({
   );
 });
 
-const IconBusiness = React.forwardRef(
-  (props: Omit<Props, 'forwardRef'>, ref: React.Ref<SVGSVGElement>) => (
-    <IconBusinessComponent {...props} forwardRef={ref} />
-  )
-);
+type Props = {
+  /**
+   * Renders a pink purple gradient on the icon
+   */
+  gradient?: boolean;
+
+  /**
+   * Adds an animated shine to the icon
+   */
+  withShine?: boolean;
+};
+
+const IconBusiness = React.forwardRef((props: Props, ref: React.Ref<SVGSVGElement>) => (
+  <IconBusinessComponent {...props} forwardRef={ref} />
+));
 
 IconBusiness.displayName = 'IconBusiness';
 
