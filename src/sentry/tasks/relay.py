@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 
 from django.conf import settings
+import sentry_sdk
+from sentry.utils.sdk import set_current_project
 
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -30,6 +32,17 @@ def update_config_cache(generate, organization_id=None, project_id=None, update_
     from sentry.models import Project, ProjectKey
     from sentry.relay import projectconfig_cache
     from sentry.relay.config import get_project_config
+
+    if project_id:
+        set_current_project(project_id)
+
+    if organization_id:
+        # Cannot use bind_organization_context here because we do not have a
+        # model and don't want to fetch one
+        sentry_sdk.set_tag("organization_id", organization_id)
+
+    sentry_sdk.set_tag("update_reason", update_reason)
+    sentry_sdk.set_tag("generate", generate)
 
     # Delete key before generating configs such that we never have an outdated
     # but valid cache.
