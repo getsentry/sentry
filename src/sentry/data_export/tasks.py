@@ -13,6 +13,8 @@ from django.core.files.base import ContentFile
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 
+import sentry_sdk
+
 from sentry.models import (
     AssembleChecksumMismatch,
     DEFAULT_BLOB_SIZE,
@@ -57,100 +59,110 @@ def assemble_download(
     environment_id=None,
     **kwargs
 ):
-    first_page = offset == 0
-
-    try:
-        if first_page:
-            logger.info("dataexport.start", extra={"data_export_id": data_export_id})
-        data_export = ExportedData.objects.get(id=data_export_id)
-        if first_page:
-            metrics.incr("dataexport.start", tags={"success": True}, sample_rate=1.0)
-        logger.info("dataexport.run", extra={"data_export_id": data_export_id, "offset": offset})
-    except ExportedData.DoesNotExist as error:
-        if first_page:
-            metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
-        logger.exception(error)
-        return
-
-    try:
-        # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
-        if export_limit is None:
-            export_limit = EXPORTED_ROWS_LIMIT
-        else:
-            export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
-
-        processor = get_processor(data_export, environment_id)
-
-        with tempfile.TemporaryFile() as tf:
-            writer = csv.DictWriter(tf, processor.header_fields, extrasaction="ignore")
-            if first_page:
-                writer.writeheader()
-
-            # the position in the file at the end of the headers
-            starting_pos = tf.tell()
-
-            # the row offset relative to the start of the current task
-            # this offset tells you the number of rows written during this batch fragment
-            fragment_offset = 0
-
-            # the absolute row offset from the beginning of the export
-            next_offset = offset + fragment_offset
-
-            while True:
-                # the number of rows to export in the next batch fragment
-                fragment_row_count = min(batch_size, max(export_limit - next_offset, 1))
-
-                rows = process_rows(processor, data_export, fragment_row_count, next_offset)
-                writer.writerows(rows)
-
-                fragment_offset += len(rows)
-                next_offset = offset + fragment_offset
-
-                if (
-                    not rows
-                    or len(rows) < batch_size
-                    # the batch may exceed MAX_BATCH_SIZE but immediately stops
-                    or tf.tell() - starting_pos >= MAX_BATCH_SIZE
-                ):
-                    break
-
-            tf.seek(0)
-            new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
-            bytes_written += new_bytes_written
-    except ExportError as error:
-        return data_export.email_failure(message=six.text_type(error))
-    except Exception as error:
-        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
-        logger.error(
-            "dataexport.error: %s",
-            six.text_type(error),
-            extra={"query": data_export.payload, "org": data_export.organization_id},
-        )
-        capture_exception(error)
+    with sentry_sdk.start_transaction(
+        op="task.data_export.assemble", name="DataExportAssemble", sampled=True,
+    ):
+        first_page = offset == 0
 
         try:
-            current.retry()
-        except MaxRetriesExceededError:
-            metrics.incr(
-                "dataexport.end",
-                tags={"success": False, "error": six.text_type(error)},
-                sample_rate=1.0,
+            if first_page:
+                logger.info("dataexport.start", extra={"data_export_id": data_export_id})
+            data_export = ExportedData.objects.get(id=data_export_id)
+            if first_page:
+                metrics.incr("dataexport.start", tags={"success": True}, sample_rate=1.0)
+            logger.info(
+                "dataexport.run", extra={"data_export_id": data_export_id, "offset": offset}
             )
-            return data_export.email_failure(message="Internal processing failure")
-    else:
-        if rows and len(rows) >= batch_size and new_bytes_written and next_offset < export_limit:
-            assemble_download.delay(
-                data_export_id,
-                export_limit=export_limit,
-                batch_size=batch_size,
-                offset=next_offset,
-                bytes_written=bytes_written,
-                environment_id=environment_id,
+        except ExportedData.DoesNotExist as error:
+            if first_page:
+                metrics.incr("dataexport.start", tags={"success": False}, sample_rate=1.0)
+            logger.exception(error)
+            return
+
+        try:
+            # ensure that the export limit is set and capped at EXPORTED_ROWS_LIMIT
+            if export_limit is None:
+                export_limit = EXPORTED_ROWS_LIMIT
+            else:
+                export_limit = min(export_limit, EXPORTED_ROWS_LIMIT)
+
+            processor = get_processor(data_export, environment_id)
+
+            with tempfile.TemporaryFile() as tf:
+                writer = csv.DictWriter(tf, processor.header_fields, extrasaction="ignore")
+                if first_page:
+                    writer.writeheader()
+
+                # the position in the file at the end of the headers
+                starting_pos = tf.tell()
+
+                # the row offset relative to the start of the current task
+                # this offset tells you the number of rows written during this batch fragment
+                fragment_offset = 0
+
+                # the absolute row offset from the beginning of the export
+                next_offset = offset + fragment_offset
+
+                while True:
+                    # the number of rows to export in the next batch fragment
+                    fragment_row_count = min(batch_size, max(export_limit - next_offset, 1))
+
+                    rows = process_rows(processor, data_export, fragment_row_count, next_offset)
+                    writer.writerows(rows)
+
+                    fragment_offset += len(rows)
+                    next_offset = offset + fragment_offset
+
+                    if (
+                        not rows
+                        or len(rows) < batch_size
+                        # the batch may exceed MAX_BATCH_SIZE but immediately stops
+                        or tf.tell() - starting_pos >= MAX_BATCH_SIZE
+                    ):
+                        break
+
+                tf.seek(0)
+                new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
+                bytes_written += new_bytes_written
+        except ExportError as error:
+            return data_export.email_failure(message=six.text_type(error))
+        except Exception as error:
+            metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
+            logger.error(
+                "dataexport.error: %s",
+                six.text_type(error),
+                extra={"query": data_export.payload, "org": data_export.organization_id},
             )
+            capture_exception(error)
+
+            try:
+                current.retry()
+            except MaxRetriesExceededError:
+                metrics.incr(
+                    "dataexport.end",
+                    tags={"success": False, "error": six.text_type(error)},
+                    sample_rate=1.0,
+                )
+                return data_export.email_failure(message="Internal processing failure")
         else:
-            metrics.timing("dataexport.row_count", next_offset, sample_rate=1.0)
-            metrics.timing("dataexport.file_size", bytes_written, sample_rate=1.0)
-            merge_export_blobs.delay(data_export_id)
+            if (
+                rows
+                and len(rows) >= batch_size
+                and new_bytes_written
+                and next_offset < export_limit
+            ):
+                assemble_download.delay(
+                    data_export_id,
+                    export_limit=export_limit,
+                    batch_size=batch_size,
+                    offset=next_offset,
+                    bytes_written=bytes_written,
+                    environment_id=environment_id,
+                )
+            else:
+                metrics.timing("dataexport.row_count", next_offset, sample_rate=1.0)
+                metrics.timing("dataexport.file_size", bytes_written, sample_rate=1.0)
+                merge_export_blobs.delay(data_export_id)
 
 
 def get_processor(data_export, environment_id):
@@ -235,60 +247,65 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
 
 @instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
 def merge_export_blobs(data_export_id, **kwargs):
-    try:
-        data_export = ExportedData.objects.get(id=data_export_id)
-    except ExportedData.DoesNotExist as error:
-        logger.exception(error)
-        return
+    with sentry_sdk.start_transaction(
+        op="task.data_export.merge", name="DataExportMerge", sampled=True,
+    ):
+        try:
+            data_export = ExportedData.objects.get(id=data_export_id)
+        except ExportedData.DoesNotExist as error:
+            logger.exception(error)
+            return
 
-    # adapted from `putfile` in  `src/sentry/models/file.py`
-    try:
-        with transaction.atomic():
-            file = File.objects.create(
-                name=data_export.file_name, type="export.csv", headers={"Content-Type": "text/csv"},
+        # adapted from `putfile` in  `src/sentry/models/file.py`
+        try:
+            with transaction.atomic():
+                file = File.objects.create(
+                    name=data_export.file_name,
+                    type="export.csv",
+                    headers={"Content-Type": "text/csv"},
+                )
+                size = 0
+                file_checksum = sha1(b"")
+
+                for export_blob in ExportedDataBlob.objects.filter(
+                    data_export=data_export
+                ).order_by("offset"):
+                    blob = export_blob.blob
+                    FileBlobIndex.objects.create(file=file, blob=blob, offset=size)
+                    size += blob.size
+                    blob_checksum = sha1(b"")
+
+                    for chunk in blob.getfile().chunks():
+                        blob_checksum.update(chunk)
+                        file_checksum.update(chunk)
+
+                    if blob.checksum != blob_checksum.hexdigest():
+                        raise AssembleChecksumMismatch("Checksum mismatch")
+
+                file.size = size
+                file.checksum = file_checksum.hexdigest()
+                file.save()
+                data_export.finalize_upload(file=file)
+
+                time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
+                metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)
+                logger.info("dataexport.end", extra={"data_export_id": data_export_id})
+                metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
+        except Exception as error:
+            metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
+            metrics.incr(
+                "dataexport.end",
+                tags={"success": False, "error": six.text_type(error)},
+                sample_rate=1.0,
             )
-            size = 0
-            file_checksum = sha1(b"")
-
-            for export_blob in ExportedDataBlob.objects.filter(data_export=data_export).order_by(
-                "offset"
-            ):
-                blob = export_blob.blob
-                FileBlobIndex.objects.create(file=file, blob=blob, offset=size)
-                size += blob.size
-                blob_checksum = sha1(b"")
-
-                for chunk in blob.getfile().chunks():
-                    blob_checksum.update(chunk)
-                    file_checksum.update(chunk)
-
-                if blob.checksum != blob_checksum.hexdigest():
-                    raise AssembleChecksumMismatch("Checksum mismatch")
-
-            file.size = size
-            file.checksum = file_checksum.hexdigest()
-            file.save()
-            data_export.finalize_upload(file=file)
-
-            time_elapsed = (timezone.now() - data_export.date_added).total_seconds()
-            metrics.timing("dataexport.duration", time_elapsed, sample_rate=1.0)
-            logger.info("dataexport.end", extra={"data_export_id": data_export_id})
-            metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
-    except Exception as error:
-        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
-        metrics.incr(
-            "dataexport.end",
-            tags={"success": False, "error": six.text_type(error)},
-            sample_rate=1.0,
-        )
-        logger.error(
-            "dataexport.error: %s",
-            six.text_type(error),
-            extra={"query": data_export.payload, "org": data_export.organization_id},
-        )
-        capture_exception(error)
-        if isinstance(error, IntegrityError):
-            message = "Failed to save the assembled file."
-        else:
-            message = "Internal processing failure."
-        return data_export.email_failure(message=message)
+            logger.error(
+                "dataexport.error: %s",
+                six.text_type(error),
+                extra={"query": data_export.payload, "org": data_export.organization_id},
+            )
+            capture_exception(error)
+            if isinstance(error, IntegrityError):
+                message = "Failed to save the assembled file."
+            else:
+                message = "Internal processing failure."
+            return data_export.email_failure(message=message)
