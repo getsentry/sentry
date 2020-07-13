@@ -204,9 +204,9 @@ class TableView extends React.Component<TableViewProps> {
     }
     const fieldRenderer = getFieldRenderer(String(column.key), tableData.meta);
 
+    const display = eventView.getDisplayMode();
     const isTopEvents =
-      eventView.display === DisplayModes.TOP5 ||
-      eventView.display === DisplayModes.DAILYTOP5;
+      display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
 
     const count = Math.min(tableData?.data?.length ?? TOP_N, TOP_N);
 
