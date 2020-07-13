@@ -136,8 +136,17 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   onDisable = (integration: Integration) => {
     let url: string;
-    const [domainName, orgName] = integration.domainName.split('/');
 
+    if (integration.provider.key === 'vercel') {
+      // kind of a hack since this isn't what the url was stored for
+      // but it's exactly what we need and contains the configuration id
+      // e.g. https://vercel.com/dashboard/integrations/icfg_ySlF4UDnHcIPrAAXjGEiwtxo
+      url = integration.configOrganization[0].nextButton.url;
+      window.open(url, '_blank');
+      return;
+    }
+
+    const [domainName, orgName] = integration.domainName.split('/');
     if (integration.accountType === 'User') {
       url = `https://${domainName}/settings/installations/`;
     } else {
