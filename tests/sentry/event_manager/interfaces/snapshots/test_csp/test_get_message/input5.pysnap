@@ -1,14 +1,10 @@
 ---
-created: '2020-07-09T12:04:06.730817Z'
+created: '2020-07-09T22:22:50.696501Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_csp.py
 ---
-culprit: ''
 errors: null
-message: Blocked 'script' from 'data:'
-origin: http://example.com/foo
 to_json:
   blocked_uri: data:text/plain;base64,SGVsbG8sIFdvcmxkIQ%3D%3D
   document_uri: http://example.com/foo
   effective_directive: script-src
-  violated_directive: ''
