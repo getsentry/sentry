@@ -148,7 +148,7 @@ class TeamProjects extends React.Component {
             <Button
               size="small"
               disabled={!canWrite}
-              icon={<StyledIconSubtract isCircled size="xs" />}
+              icon={<IconSubtract isCircled size="xs" />}
               onClick={() => {
                 this.handleLinkProject(project, 'remove');
               }}
@@ -221,12 +221,6 @@ class TeamProjects extends React.Component {
     );
   }
 }
-
-const StyledIconSubtract = styled(IconSubtract)`
-  min-height: 1.25em;
-  min-width: 1.25em;
-  margin-right: ${space(1)};
-`;
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
