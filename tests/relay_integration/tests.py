@@ -1,36 +1,99 @@
 from __future__ import absolute_import, print_function
 
-import os
-
-from sentry import eventstore
-
-from django.core.urlresolvers import reverse
-from exam import fixture
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-def get_fixture_path(name):
-    return os.path.join(os.path.dirname(__file__), "fixtures", name)
-
-
-def load_fixture(name):
-    with open(get_fixture_path(name)) as fp:
-        return fp.read()
-
-
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
-    @fixture
-    def path(self):
-        return reverse("sentry-api-store")
-
-    def get_event(self, event_id):
-        instance = eventstore.get_event_by_id(self.project.id, event_id)
-        return instance
-
     # used to be test_ungzipped_data
     def test_simple_data(self):
         event_data = {"message": "hello", "timestamp": iso_format(before_now(seconds=1))}
         event = self.post_and_retrieve_event(event_data)
-
         assert event.message == "hello"
+
+    def test_csp(self):
+        event_data = {
+            "csp-report": {
+                "document-uri": "https://example.com/foo/bar",
+                "referrer": "https://www.google.com/",
+                "violated-directive": "default-src self",
+                "original-policy": "default-src self; report-uri /csp-hotline.php",
+                "blocked-uri": "http://evilhackerscripts.com",
+            }
+        }
+
+        event = self.post_and_retrieve_security_report(event_data)
+        assert event.message == "Blocked 'default-src' from 'evilhackerscripts.com'"
+
+    def test_hpkp(self):
+        event_data = {
+            "date-time": "2014-04-06T13:00:50Z",
+            "hostname": "www.example.com",
+            "port": 443,
+            "effective-expiration-date": "2014-05-01T12:40:50Z",
+            "include-subdomains": False,
+            "served-certificate-chain": [
+                "-----BEGIN CERTIFICATE-----\n MIIEBDCCAuygBQUAMEIxCzAJBgNVBAYTAlVT\n -----END CERTIFICATE-----"
+            ],
+            "validated-certificate-chain": [
+                "-----BEGIN CERTIFICATE-----\n MIIEBDCCAuygAwIBAgIDCzAJBgNVBAYTAlVT\n -----END CERTIFICATE-----"
+            ],
+            "known-pins": [
+                'pin-sha256="d6qzRu9zOECb90Uez27xWltNsj0e1Md7GkYYkVoZWmM="',
+                'pin-sha256="E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g="',
+            ],
+        }
+
+        event = self.post_and_retrieve_security_report(event_data)
+        assert event.message == "Public key pinning validation failed for 'www.example.com'"
+        assert event.group.title == "Public key pinning validation failed for 'www.example.com'"
+
+    def test_expect_ct(self):
+        event_data = {
+            "expect-ct-report": {
+                "date-time": "2014-04-06T13:00:50Z",
+                "hostname": "www.example.com",
+                "port": 443,
+                "effective-expiration-date": "2014-05-01T12:40:50Z",
+                "served-certificate-chain": [
+                    "-----BEGIN CERTIFICATE-----\nABC\n-----END CERTIFICATE-----"
+                ],
+                "validated-certificate-chain": [
+                    "-----BEGIN CERTIFICATE-----\nCDE\n-----END CERTIFICATE-----"
+                ],
+                "scts": [
+                    {
+                        "version": 1,
+                        "status": "invalid",
+                        "source": "embedded",
+                        "serialized_sct": "ABCD==",
+                    }
+                ],
+            }
+        }
+
+        event = self.post_and_retrieve_security_report(event_data)
+        assert event.message == "Expect-CT failed for 'www.example.com'"
+        assert event.group.title == "Expect-CT failed for 'www.example.com'"
+
+    def test_expect_staple(self):
+        event_data = {
+            "expect-staple-report": {
+                "date-time": "2014-04-06T13:00:50Z",
+                "hostname": "www.example.com",
+                "port": 443,
+                "response-status": "ERROR_RESPONSE",
+                "cert-status": "REVOKED",
+                "effective-expiration-date": "2014-05-01T12:40:50Z",
+                "served-certificate-chain": [
+                    "-----BEGIN CERTIFICATE-----\nABC\n-----END CERTIFICATE-----"
+                ],
+                "validated-certificate-chain": [
+                    "-----BEGIN CERTIFICATE-----\nCDE\n-----END CERTIFICATE-----"
+                ],
+            }
+        }
+
+        event = self.post_and_retrieve_security_report(event_data)
+        assert event.message == "Expect-Staple failed for 'www.example.com'"
+        assert event.group.title == "Expect-Staple failed for 'www.example.com'"
