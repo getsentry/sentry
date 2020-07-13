@@ -44,6 +44,7 @@ type Props = {
   routes: PlainRoute[];
   rule: IncidentRule;
   ruleId?: string;
+  sessionId?: string;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
@@ -288,13 +289,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   // don't want to update the filter on every input change, just on blurs and
   // searches.
   handleFilterUpdate = (query: string) => {
-    const {organization} = this.props;
+    const {organization, sessionId} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'alert_builder.filter',
       eventName: 'Alert Builder: Filter',
       query,
       organization_id: organization.id,
+      session_id: sessionId,
     });
 
     this.setState({query});
@@ -325,18 +327,27 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       return;
     }
 
-    const {organization, params, rule, onSubmitSuccess} = this.props;
+    const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     try {
       addLoadingMessage();
-      const resp = await addOrUpdateRule(this.api, organization.slug, params.projectId, {
-        ...rule,
-        ...model.getTransformedData(),
-        triggers: this.state.triggers.map(sanitizeTrigger),
-      });
+      const resp = await addOrUpdateRule(
+        this.api,
+        organization.slug,
+        params.projectId,
+        {
+          ...rule,
+          ...model.getTransformedData(),
+          triggers: this.state.triggers.map(sanitizeTrigger),
+        },
+        {
+          referrer: location?.query?.referrer,
+          sessionId,
+        }
+      );
       addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
       if (onSubmitSuccess) {
         onSubmitSuccess(resp, model);

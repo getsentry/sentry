@@ -1,9 +1,0 @@
-{
-    "csp-report": {
-        "blocked-uri": "http://notlocalhost:8000/lol.css",
-        "document-uri": "http://notlocalhost:8000/",
-        "original-policy": "default-src 'none'; style-src http://cdn.example.com; report-uri http://requestb.in/1im8m061",
-        "referrer": "",
-        "violated-directive": "style-src http://cdn.example.com"
-    }
-}

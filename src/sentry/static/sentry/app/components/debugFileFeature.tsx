@@ -24,7 +24,7 @@ const FEATURE_TOOLTIPS = {
 
 type Props = {
   feature: 'symtab' | 'debug' | 'unwind' | 'sources';
-  available?: true;
+  available?: boolean;
 };
 
 const DebugFileFeature = ({available, feature}: Props) => {
@@ -54,9 +54,17 @@ const DebugFileFeature = ({available, feature}: Props) => {
   );
 };
 
+DebugFileFeature.defaultProps = {
+  available: true,
+};
+
 DebugFileFeature.propTypes = {
   available: PropTypes.bool,
   feature: PropTypes.oneOf(Object.keys(FEATURE_TOOLTIPS)).isRequired,
+};
+
+DebugFileFeature.defaultProps = {
+  available: true,
 };
 
 const IconWrapper = styled('span')`

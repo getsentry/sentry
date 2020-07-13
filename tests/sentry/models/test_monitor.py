@@ -47,8 +47,8 @@ class MonitorTestCase(TestCase):
             2019, 2, 1, 1, 10, 20, tzinfo=timezone.utc
         )
 
-    @patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
-    def test_mark_failed_default_params(self, mock_insert_data_to_database):
+    @patch("sentry.coreapi.insert_data_to_database_legacy")
+    def test_mark_failed_default_params(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -58,9 +58,9 @@ class MonitorTestCase(TestCase):
         )
         assert monitor.mark_failed()
 
-        assert len(mock_insert_data_to_database.mock_calls) == 1
+        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
-        event = mock_insert_data_to_database.mock_calls[0].args[0]
+        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
 
         assert dict(
             event,
@@ -84,8 +84,8 @@ class MonitorTestCase(TestCase):
             }
         ) == dict(event)
 
-    @patch("sentry.coreapi.ClientApiHelper.insert_data_to_database")
-    def test_mark_failed_with_reason(self, mock_insert_data_to_database):
+    @patch("sentry.coreapi.insert_data_to_database_legacy")
+    def test_mark_failed_with_reason(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -95,9 +95,9 @@ class MonitorTestCase(TestCase):
         )
         assert monitor.mark_failed(reason=MonitorFailure.DURATION)
 
-        assert len(mock_insert_data_to_database.mock_calls) == 1
+        assert len(mock_insert_data_to_database_legacy.mock_calls) == 1
 
-        event = mock_insert_data_to_database.mock_calls[0].args[0]
+        event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
 
         assert dict(
             event,

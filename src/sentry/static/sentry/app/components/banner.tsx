@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
+import {IconClose} from 'app/icons/iconClose';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
@@ -33,7 +33,7 @@ class Banner extends React.Component<Props> {
     return (
       <BannerWrapper backgroundImg={backgroundImg} className={className}>
         {isDismissable ? (
-          <BannerIcon src="icon-close" aria-label={t('Close')} onClick={onCloseClick} />
+          <StyledIconClose aria-label={t('Close')} onClick={onCloseClick} />
         ) : null}
         <BannerContent>
           <BannerTitle>{title}</BannerTitle>
@@ -124,7 +124,7 @@ const BannerActions = styled('div')`
   }
 `;
 
-const BannerIcon = styled(InlineSvg)`
+const StyledIconClose = styled(IconClose)`
   position: absolute;
   display: block;
   top: ${space(2)};

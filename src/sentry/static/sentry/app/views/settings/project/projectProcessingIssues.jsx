@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconSettings} from 'app/icons';
+import {IconQuestion, IconSettings} from 'app/icons';
 import {Panel, PanelAlert, PanelTable} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
@@ -250,7 +250,7 @@ class ProjectProcessingIssues extends React.Component {
         <span className="description">{description}</span>{' '}
         {helpLink && (
           <a href={helpLink} className="help-link">
-            <span className="icon-question" />
+            <IconQuestion size="xs" />
           </a>
         )}
       </div>

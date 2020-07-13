@@ -6,6 +6,9 @@ from sentry.testutils import AcceptanceTestCase
 class AuthTest(AcceptanceTestCase):
     def enter_auth(self, username, password):
         self.browser.get("/auth/login/")
+        self.browser.driver.execute_script(
+            "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
+        )
         self.browser.find_element_by_id("id_username").send_keys(username)
         self.browser.find_element_by_id("id_password").send_keys(password)
         self.browser.find_element_by_xpath("//button[contains(text(), 'Continue')]").click()
@@ -15,9 +18,6 @@ class AuthTest(AcceptanceTestCase):
         self.browser.snapshot(name="login")
 
     def test_no_credentials(self):
-        self.browser.driver.execute_script(
-            "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
-        )
         self.enter_auth("", "")
         self.browser.snapshot(name="login fields required")
 

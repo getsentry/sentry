@@ -116,6 +116,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor can drag outside of the
@@ -244,6 +245,7 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor can drag outside of the

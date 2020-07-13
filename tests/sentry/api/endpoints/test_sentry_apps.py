@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from sentry.constants import SentryAppStatus
 from sentry.utils import json
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import Feature, with_feature
 from sentry.models import (
     SentryApp,
     SentryAppInstallationToken,
@@ -435,14 +435,15 @@ class PostSentryAppsTest(SentryAppsTest):
     def test_cannot_create_with_error_created_hook_without_flag(self):
         self.login_as(user=self.user)
 
-        kwargs = {"events": ("error",)}
-        response = self._post(**kwargs)
+        with Feature({"organizations:integrations-event-hooks": False}):
+            kwargs = {"events": ("error",)}
+            response = self._post(**kwargs)
 
-        assert response.status_code == 403, response.content
-        assert (
-            response.content
-            == '{"non_field_errors":["Your organization does not have access to the \'error\' resource subscription."]}'
-        )
+            assert response.status_code == 403, response.content
+            assert (
+                response.content
+                == '{"non_field_errors":["Your organization does not have access to the \'error\' resource subscription."]}'
+            )
 
     def test_allows_empty_schema(self):
         self.login_as(self.user)
