@@ -76,7 +76,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               end={end}
               period={globalSelection.statsPeriod}
               disablePrevious={display !== DisplayModes.PREVIOUS}
-              disableReleases={display !== DisplayModes.RELEASES}
+              disableReleases={isDaily}
               field={isTopEvents ? apiPayload.field : undefined}
               interval={eventView.interval}
               showDaily={isDaily}
