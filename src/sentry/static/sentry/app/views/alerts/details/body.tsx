@@ -221,6 +221,7 @@ export default class DetailsBody extends React.Component<Props> {
                 {incident && stats ? (
                   <Chart
                     triggers={incident.alertRule.triggers}
+                    resolveThreshold={incident.alertRule.resolveThreshold}
                     aggregate={incident.alertRule.aggregate}
                     data={stats.eventStats.data}
                     detected={incident.dateDetected}
