@@ -1,7 +1,7 @@
 import React from 'react';
 import map from 'lodash/map';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {Organization, SentryTransactionEvent} from 'app/types';
 import {Client} from 'app/api';

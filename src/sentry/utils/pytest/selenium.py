@@ -70,6 +70,14 @@ class Browser(object):
         self._has_initialized_cookie_store = True
         return self
 
+    def set_emulated_media(self, features, media=""):
+        """
+        This is used to emulate different media features (e.g. color scheme)
+        """
+        return self.driver.execute_cdp_cmd(
+            "Emulation.setEmulatedMedia", {"media": media, "features": features}
+        )
+
     def element(self, selector=None, xpath=None):
         """
         Get an element from the page. This method will wait for the element to show up.
@@ -190,6 +198,25 @@ class Browser(object):
 
         return self
 
+    def wait_for_images_loaded(self, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(
+            lambda driver: driver.execute_script(
+                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
+            )
+        )
+
+        return self
+
+    def blur(self):
+        """
+        Find focused elements and call blur. Useful for snapshot testing that can potentially capture
+        the text cursor blinking
+        """
+        self.driver.execute_script("document.querySelectorAll(':focus').forEach(el => el.blur())")
+
+        return self
+
     @property
     def switch_to(self):
         return self.driver.switch_to
@@ -221,6 +248,9 @@ class Browser(object):
                 time.sleep(1)
 
         if os.environ.get("VISUAL_SNAPSHOT_ENABLE") == "1":
+            # wait for images to be loaded
+            self.wait_for_images_loaded()
+
             self.save_screenshot(
                 u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
             )
@@ -398,6 +428,8 @@ def browser(request, percy, live_server):
     request.addfinalizer(fin)
 
     browser = Browser(driver, live_server, percy)
+
+    browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
 
     if hasattr(request, "cls"):
         request.cls.browser = browser

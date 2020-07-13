@@ -134,7 +134,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     key = "pagerduty"
     name = "PagerDuty"
     metadata = metadata
-    features = frozenset([IntegrationFeatures.ALERT_RULE])
+    features = frozenset([IntegrationFeatures.ALERT_RULE, IntegrationFeatures.INCIDENT_MANAGEMENT])
     integration_cls = PagerDutyIntegration
 
     setup_dialog_config = {"width": 600, "height": 900}

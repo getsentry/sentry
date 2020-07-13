@@ -1,7 +1,7 @@
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import moment from 'moment';
-import qs from 'query-string';
+import * as qs from 'query-string';
 
 import {Client} from 'app/api';
 

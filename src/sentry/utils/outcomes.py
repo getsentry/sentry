@@ -12,7 +12,7 @@ import time
 from sentry import tsdb, options
 from sentry.constants import DataCategory
 from sentry.utils import json, metrics
-from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -176,5 +176,9 @@ def track_outcome(
     metrics.incr(
         "events.outcomes",
         skip_internal=True,
-        tags={"outcome": outcome.name.lower(), "reason": reason},
+        tags={
+            "outcome": outcome.name.lower(),
+            "reason": reason,
+            "category": category.api_name() if category is not None else "null",
+        },
     )

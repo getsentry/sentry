@@ -5,87 +5,76 @@
 {% load sentry_assets %}
 
 {% block activity %}
-    <table>
-      <tr>
-        <td>
-        <h3 class="alert-title">
-            <a class="alert-title-link" href="{{ link }}">{{ incident_name }}</a>
-        </h3>
-        </td>
-        <td>
-          <div class="alert-header">
-          Status
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          Created on {{ triggered_at }}
-        </td>
-        <td>
-          {% if is_critical %}
-            <img class="alert-critical" src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-exclamation.png' %}" width="16px" height="16px" alt="Critical" />
-          {% elif is_warning %}
-            <img class="alert-warning" src="{% absolute_asset_url 'sentry' 'images/email/icon-warning.png' %}" width="16px" height="16px" alt="Warning" />
-          {% endif %}
-
-          <span class="alert-status">{{ status }}</span>
-        </td>
-      </tr>
-    </table>
-
-
-    <hr />
+  <div class="alert-title">
+    <h3>
+      <a class="alert-title-link" href="{{ link }}">{{ incident_name }}</a>
+    </h3>
+    <p>
+      Triggered on {{ triggered_at }}
+    </p>
+  </div>
 
   {% if enhanced_privacy %}
     <div class="notice">
       Details about this alert are not shown in this email since enhanced privacy
       controls are enabled. For more details about this alert, <a href="{{ link }}">view on Sentry.</a>
     </div>
-
   {% else %}
+    <div class="alert-info-container alert-container-{{ status_key }}">
+      <h4>
+        <span class="alert-badge">{{ status }} alert</span>
+      </h4>
       <table class="alert-rule-table">
         <thead>
+          <th>
+            Threshold
+          </th>
           <th>
             Metric
           </th>
           <th>
             Environment
           </th>
-          <th>
-            Threshold
-          </th>
-          <th>
-            Time Interval
-          </th>
         </thead>
 
         <tbody>
         <tr>
+          <td>
+            {{ threshold_direction_string }} {{ threshold }}
+          </td>
           <td>
             {{ aggregate }}
           </td>
           <td>
             {{ environment }}
           </td>
-        <td>
-          {{ threshold_direction_string }} {{ threshold }}
-          </td>
+        </tbody>
+
+        <thead>
+          <th>
+            Time Interval
+          </th>
+          <th>
+            Filter
+          </th>
+          <th>
+            Project
+          </th>
+        </thead>
+
+        <tbody>
+        <tr>
           <td>
             {{ time_window }}
           </td>
-
-
+          <td>
+            {{ query }}
+          </td>
+          <td>
+            {{ project_slug }}
+          </td>
         </tbody>
       </table>
-
-      <div>
-        <div class="alert-header">
-          Query
-        </div>
-        <div class="alert-query-box">
-          {{ query }}
-        </div>
-      </div>
+    </div>
   {% endif %}
 {% endblock %}

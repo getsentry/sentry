@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {IconChat, IconEllipsis} from 'app/icons';
+import {IconChat, IconCheckmark, IconEllipsis, IconMute, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -86,11 +86,11 @@ class CompactIssueHeader extends React.Component {
         <IssueHeaderMetaWrapper>
           <StyledErrorLevel size="12px" level={data.level} title={data.level} />
           <h3 className="truncate">
-            <Link to={issueLink || ''}>
-              <span className="icon icon-soundoff" />
-              <span className="icon icon-star-solid" />
+            <IconLink to={issueLink || ''}>
+              {data.status === 'ignored' && <IconMute size="xs" />}
+              {data.isBookmarked && <IconStar isSolid size="xs" />}
               {this.getTitle()}
-            </Link>
+            </IconLink>
           </h3>
         </IssueHeaderMetaWrapper>
         <div className="event-extra">
@@ -99,10 +99,10 @@ class CompactIssueHeader extends React.Component {
           </span>
           {data.numComments !== 0 && (
             <span>
-              <ChatLink to={`${basePath}${data.id}/activity/`} className="comments">
+              <IconLink to={`${basePath}${data.id}/activity/`} className="comments">
                 <IconChat size="xs" color={commentColor} />
                 <span className="tag-count">{data.numComments}</span>
-              </ChatLink>
+              </IconLink>
             </span>
           )}
           <span className="culprit">{this.getMessage()}</span>
@@ -236,20 +236,20 @@ const CompactIssue = createReactClass({
               title={<IconEllipsis size="xs" />}
             >
               <li>
-                <a
+                <IconLink
                   onClick={this.onUpdate.bind(this, {
                     status: issue.status !== 'resolved' ? 'resolved' : 'unresolved',
                   })}
                 >
-                  <span className="icon-checkmark" />
-                </a>
+                  <IconCheckmark size="xs" />
+                </IconLink>
               </li>
               <li>
-                <a
+                <IconLink
                   onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}
                 >
-                  <span className="icon-star-solid" />
-                </a>
+                  <IconStar isSolid size="xs" />
+                </IconLink>
               </li>
               <li>
                 <SnoozeAction
@@ -280,7 +280,7 @@ const StyledErrorLevel = styled(ErrorLevel)`
   margin-right: ${space(1)};
 `;
 
-const ChatLink = styled(Link)`
+const IconLink = styled(Link)`
   & > svg {
     margin-right: ${space(0.5)};
   }

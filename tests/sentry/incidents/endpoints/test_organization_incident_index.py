@@ -5,6 +5,7 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.incidents.models import IncidentStatus
 from sentry.testutils import APITestCase
+from sentry.snuba.models import QueryDatasets
 
 
 class IncidentListEndpointTest(APITestCase):
@@ -28,7 +29,7 @@ class IncidentListEndpointTest(APITestCase):
         other_incident = self.create_incident(status=IncidentStatus.CLOSED.value)
 
         self.login_as(self.user)
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_valid_response(self.organization.slug)
 
         assert resp.data == serialize([other_incident, incident])
@@ -39,7 +40,7 @@ class IncidentListEndpointTest(APITestCase):
         closed_incident = self.create_incident(status=IncidentStatus.CLOSED.value)
         self.login_as(self.user)
 
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp_closed = self.get_valid_response(self.organization.slug, status="closed")
             resp_open = self.get_valid_response(self.organization.slug, status="open")
 
@@ -58,7 +59,7 @@ class IncidentListEndpointTest(APITestCase):
 
         self.login_as(self.user)
 
-        with self.feature("organizations:incidents"):
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp_filter_env = self.get_valid_response(self.organization.slug, environment=env.name)
             resp_no_env_filter = self.get_valid_response(self.organization.slug)
 
@@ -74,3 +75,20 @@ class IncidentListEndpointTest(APITestCase):
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
+
+    def test_no_perf_alerts(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        # alert_rule = self.create_alert_rule()
+        perf_alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+
+        perf_incident = self.create_incident(alert_rule=perf_alert_rule)
+        incident = self.create_incident()
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug)
+            assert resp.data == serialize([incident])
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_valid_response(self.organization.slug)
+            assert resp.data == serialize([incident, perf_incident])

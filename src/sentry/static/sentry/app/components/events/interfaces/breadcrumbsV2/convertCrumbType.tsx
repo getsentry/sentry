@@ -45,6 +45,13 @@ function convertCrumbType(breadcrumb: Breadcrumb): Breadcrumb {
     }
   }
 
+  if (!Object.values(BreadcrumbType).includes(breadcrumb.type)) {
+    return {
+      ...breadcrumb,
+      type: BreadcrumbType.DEFAULT,
+    };
+  }
+
   return breadcrumb;
 }
 

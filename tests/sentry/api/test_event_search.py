@@ -41,18 +41,21 @@ def test_get_json_meta_type():
     assert get_json_meta_type("transaction", "Char") == "string"
     assert get_json_meta_type("foo", "unknown") == "string"
     assert get_json_meta_type("other", "") == "string"
-    assert get_json_meta_type("avg_duration", "number") == "duration"
-    assert get_json_meta_type("duration", "number") == "duration"
-    assert get_json_meta_type("p50", "number") == "duration"
-    assert get_json_meta_type("p75", "number") == "duration"
-    assert get_json_meta_type("p95", "number") == "duration"
-    assert get_json_meta_type("p99", "number") == "duration"
-    assert get_json_meta_type("p100", "number") == "duration"
-    assert get_json_meta_type("apdex_transaction_duration_300", "number") == "number"
-    assert get_json_meta_type("failure_rate", "number") == "percentage"
-    assert get_json_meta_type("impact_300", "number") == "number"
-    assert get_json_meta_type("user_misery_300", "number") == "number"
-    assert get_json_meta_type("percentile_transaction_duration_0_95", "number") == "duration"
+    assert get_json_meta_type("avg_duration", "") == "duration"
+    assert get_json_meta_type("duration", "UInt64") == "duration"
+    assert get_json_meta_type("p50", "Float32") == "duration"
+    assert get_json_meta_type("p75", "Float32") == "duration"
+    assert get_json_meta_type("p95", "Float32") == "duration"
+    assert get_json_meta_type("p99", "Float32") == "duration"
+    assert get_json_meta_type("p100", "Float32") == "duration"
+    assert get_json_meta_type("apdex_transaction_duration_300", "Float32") == "number"
+    assert get_json_meta_type("failure_rate", "Float32") == "percentage"
+    assert get_json_meta_type("impact_300", "Float32") == "number"
+    assert get_json_meta_type("user_misery_300", "Float32") == "number"
+    assert get_json_meta_type("percentile_transaction_duration_0_95", "Float32") == "duration"
+    assert get_json_meta_type("count_thing", "UInt64") == "integer"
+    assert get_json_meta_type("count_thing", "String") == "string"
+    assert get_json_meta_type("count_thing", "Nullable(String)") == "string"
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -1092,7 +1095,26 @@ class GetSnubaQueryArgsTest(TestCase):
         _filter = get_filter("release:3.1.* user.email:*@example.com")
         assert _filter.conditions == [
             [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "=", 1],
-            [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^.*@example\\.com$'"]], "=", 1],
+        ]
+        assert _filter.filter_keys == {}
+
+    def test_wildcard_with_unicode(self):
+        _filter = get_filter(
+            u"message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
+        )
+        assert _filter.conditions == [
+            [
+                [
+                    "match",
+                    [
+                        "message",
+                        u"'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
+                    ],
+                ],
+                "=",
+                1,
+            ]
         ]
         assert _filter.filter_keys == {}
 
@@ -1107,20 +1129,23 @@ class GetSnubaQueryArgsTest(TestCase):
                 [["isNull", ["release"]], "=", 1],
                 [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
             ],
-            [["match", ["user.email", "'(?i)^.*\\@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^.*@example\\.com$'"]], "=", 1],
         ]
         assert _filter.filter_keys == {}
 
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
             [["match", ["release", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
-            [["match", ["user.email", "'(?i)^\*\\@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^\*@example\\.com$'"]], "=", 1],
         ]
         assert get_filter("release:\\\\\\*").conditions == [
             [["match", ["release", "'(?i)^\\\\\\*$'"]], "=", 1]
         ]
         assert get_filter("release:\\\\*").conditions == [
             [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
+        ]
+        assert get_filter("message:.*?").conditions == [
+            [["match", ["message", "'(?i)\..*\?'"]], "=", 1]
         ]
 
     def test_wildcard_array_field(self):
@@ -1164,6 +1189,11 @@ class GetSnubaQueryArgsTest(TestCase):
                 "=",
                 0,
             ]
+        ]
+
+    def test_message_with_newlines(self):
+        assert get_filter('message:"nice \n a newline\n"').conditions == [
+            [["positionCaseInsensitive", ["message", "'nice \n a newline\n'"]], "!=", 0]
         ]
 
     def test_malformed_groups(self):
