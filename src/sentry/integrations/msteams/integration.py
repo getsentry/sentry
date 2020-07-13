@@ -13,7 +13,7 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry.pipeline import PipelineView
-from .client import MsTeamsClient
+from .client import MsTeamsClient, get_token_data
 
 logger = logging.getLogger("sentry.integrations.msteams")
 
@@ -75,14 +75,23 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         return [MsTeamsPipelineView()]
 
     def build_integration(self, state):
-        team_id = state[self.key]["team_id"]
-        client = MsTeamsClient()
+        data = state[self.key]
+        team_id = data["team_id"]
+        service_url = data["service_url"]
+
+        token_data = get_token_data()
+        access_token = token_data["access_token"]
+
+        client = MsTeamsClient(access_token, service_url)
         team = client.get_team_info(team_id)
-        # TODO: actually store token stuff :)
         integration = {
             "name": team["name"],
             "external_id": team_id,
-            "metadata": {},
+            "metadata": {
+                "access_token": access_token,
+                "expires_at": token_data["expires_at"],
+                "service_url": service_url,
+            },
         }
         return integration
 

@@ -1,25 +1,23 @@
 from __future__ import absolute_import
 
+import time
+
 from six.moves.urllib.parse import urlencode
+
+from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.utils.http import absolute_uri
-from sentry.utils.signing import sign
 
 
-class MsTeamsClient(ApiClient):
+# one minute
+EXPIRATION_OFFSET = 60
+
+
+# this abstract client does not handle setting the base url or auth token
+class MsTeamsAbstractClient(ApiClient):
     integration_name = "msteams"
-    # TODO(steve): make base url configurable
-    base_url = "https://smba.trafficmanager.net/amer"
-
     TEAM_URL = "/v3/teams/%s"
     ACTIVITY_URL = "/v3/conversations/%s/activities"
-
-    def __init__(self, access_token=None):
-        super(MsTeamsClient, self).__init__()
-        # TODO(steve): copy how Github does it
-        if not access_token:
-            access_token = get_token()
-        self.access_token = access_token
 
     def request(self, method, path, data=None, params=None):
         headers = {"Authorization": u"Bearer {}".format(self.access_token)}
@@ -31,9 +29,7 @@ class MsTeamsClient(ApiClient):
     def send_message(self, conversation_id, data):
         return self.post(self.ACTIVITY_URL % conversation_id, data=data)
 
-    def send_welcome_message(self, conversation_id):
-        # sign the params so this can't be forged
-        signed_params = sign(team_id=conversation_id)
+    def send_welcome_message(self, conversation_id, signed_params):
         url = u"%s?signed_params=%s" % (
             absolute_uri("/extensions/msteams/configure/"),
             signed_params,
@@ -93,14 +89,48 @@ class MsTeamsClient(ApiClient):
         self.send_message(conversation_id, payload)
 
 
-class OauthMsTeamsClient(ApiClient):
+class MsTeamsClient(MsTeamsAbstractClient):
+    def __init__(self, access_token, service_url):
+        super(MsTeamsClient, self).__init__()
+        self.access_token = access_token
+        self.base_url = service_url.rstrip("/")
+
+
+class MsTeamsIntegrationClient(MsTeamsAbstractClient):
+    def __init__(self, integration):
+        super(MsTeamsIntegrationClient, self).__init__()
+        self.integration = integration
+
+    @property
+    def metadata(self):
+        return self.integration.metadata
+
+    @property
+    def base_url(self):
+        return self.metadata["service_url"].rstrip("/")
+
+    @property
+    def access_token(self):
+        access_token = self.metadata.get("access_token")
+        expires_at = self.metadata.get("expires_at")
+
+        # if the token is expired, refresh it and save  it
+        if expires_at <= int(time.time()):
+            token_data = get_token_data()
+            access_token = token_data["access_token"]
+            self.metadata.update(token_data)
+            self.integration.save()
+        return access_token
+
+
+class OAuthMsTeamsClient(ApiClient):
     base_url = "https://login.microsoftonline.com/botframework.com"
     integration_name = "msteams_oauth"
 
     TOKEN_URL = "/oauth2/v2.0/token"
 
     def __init__(self, client_id, client_secret):
-        super(OauthMsTeamsClient, self).__init__()
+        super(OAuthMsTeamsClient, self).__init__()
         self.client_id = client_id
         self.client_secret = client_secret
 
@@ -115,12 +145,11 @@ class OauthMsTeamsClient(ApiClient):
         return self.post(self.TOKEN_URL, data=urlencode(data), headers=headers, json=False)
 
 
-# TODO(steve): copy how Github does it
-def get_token():
-    from sentry import options
-
+def get_token_data():
     client_id = options.get("msteams.client-id")
     client_secret = options.get("msteams.client-secret")
-    client = OauthMsTeamsClient(client_id, client_secret)
+    client = OAuthMsTeamsClient(client_id, client_secret)
     resp = client.exchange_token()
-    return resp["access_token"]
+    # calculate the expiration date but offset because of the delay in receiving the response
+    expires_at = int(time.time()) + int(resp["expires_in"]) - EXPIRATION_OFFSET
+    return {"access_token": resp["access_token"], "expires_at": expires_at}
