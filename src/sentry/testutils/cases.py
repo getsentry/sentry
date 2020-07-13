@@ -20,7 +20,6 @@ __all__ = (
     "OrganizationDashboardWidgetTestCase",
 )
 
-import base64
 import os
 import os.path
 import pytest
@@ -212,20 +211,34 @@ class BaseTestCase(Fixtures, Exam):
             return fp.read()
 
     def _pre_setup(self):
+        pass
+
+    def _post_teardown(self):
+        pass
+
+    @pytest.fixture(autouse=True)
+    def pre_setup_and_post_teardown(self):
+        """
+        Massive hack to make py.test --pdb work correctly. When pytest is
+        passed this flag, it refuses to call _post_teardown() after any failing
+        or xfailing test, causing leaking teststate to crash subsequent tests
+        as well.
+
+        To fix this issue we make sure _pre_setup and _post_teardown are noops,
+        and drive the underlying code from Django using this fixture, which
+        seems to be correctly set up and torn down by pytest.
+
+        In the end the amount of times _pre_setup and _post_teardown are called
+        for regular tests does not change, it's always before/after each test
+        function.
+        """
         super(BaseTestCase, self)._pre_setup()
 
         cache.clear()
         ProjectOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
-
-    def _post_teardown(self):
+        yield
         super(BaseTestCase, self)._post_teardown()
-
-    def _makeMessage(self, data):
-        return json.dumps(data).encode("utf-8")
-
-    def _makePostMessage(self, data):
-        return base64.b64encode(self._makeMessage(data))
 
     def options(self, options):
         """
@@ -694,21 +707,6 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
-
-    def __wrap_event(self, event, data, primary_hash):
-        # TODO: Abstract and combine this with the stream code in
-        #       getsentry once it is merged, so that we don't alter one
-        #       without updating the other.
-        return {
-            "group_id": event.group_id,
-            "event_id": event.event_id,
-            "project_id": event.project_id,
-            "message": event.message,
-            "platform": event.platform,
-            "datetime": event.datetime,
-            "data": dict(data),
-            "primary_hash": primary_hash,
-        }
 
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
