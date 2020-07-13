@@ -11,9 +11,6 @@ from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
-# Regex to parse OS versions from a minidump OS string.
-VERSION_RE = re.compile(r"(\d+\.\d+\.\d+)\s+(.*)")
-
 # Regex to guess whether we're dealing with Windows or Unix paths.
 WINDOWS_PATH_RE = re.compile(r"^([a-z]:\\|\\\\)", re.IGNORECASE)
 
@@ -133,3 +130,25 @@ def convert_crashreport_count(value):
     if value is None:
         return STORE_CRASH_REPORTS_DEFAULT
     return int(value)
+
+
+def is_minidump_event(data):
+    """
+    Checks whether an event indicates that it has an associated minidump.
+
+    This requires the event to have a special marker payload. It is written by
+    ``write_minidump_placeholder``.
+    """
+    exceptions = get_path(data, "exception", "values", filter=True)
+    return get_path(exceptions, 0, "mechanism", "type") == "minidump"
+
+
+def is_applecrashreport_event(data):
+    """
+    Checks whether an event indicates that it has an apple crash report.
+
+    This requires the event to have a special marker payload. It is written by
+    ``write_applecrashreport_placeholder``.
+    """
+    exceptions = get_path(data, "exception", "values", filter=True)
+    return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"

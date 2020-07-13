@@ -1455,8 +1455,6 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                             >
                                                               <PlatformList
                                                                 className="css-7c3lwm-StyledAvatar e165dl3i1"
-                                                                consistentWidth={false}
-                                                                direction="right"
                                                                 forwardedRef={null}
                                                                 hideName={true}
                                                                 max={1}
@@ -1471,7 +1469,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                                   size={14}
                                                                 >
                                                                   <div
-                                                                    className="e165dl3i1 css-dyodzz-PlatformIcons-StyledAvatar ezvce7z0"
+                                                                    className="e165dl3i1 css-dyodzz-PlatformIcons-StyledAvatar e1n7dwy90"
                                                                     direction="right"
                                                                     max={1}
                                                                     size={14}
@@ -1481,17 +1479,17 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                                       size={14}
                                                                     >
                                                                       <Component
-                                                                        className="css-7okses-StyledPlatformIcon ezvce7z1"
+                                                                        className="css-f6mbrk-StyledPlatformIcon e1n7dwy91"
                                                                         platform="default"
                                                                         size={14}
                                                                       >
                                                                         <PlatformIcon
-                                                                          className="css-7okses-StyledPlatformIcon ezvce7z1"
+                                                                          className="css-f6mbrk-StyledPlatformIcon e1n7dwy91"
                                                                           platform="default"
                                                                           size="14px"
                                                                         >
                                                                           <img
-                                                                            className="css-7okses-StyledPlatformIcon ezvce7z1"
+                                                                            className="css-f6mbrk-StyledPlatformIcon e1n7dwy91"
                                                                             height="14px"
                                                                             src={
                                                                               Object {
