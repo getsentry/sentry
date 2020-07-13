@@ -6,7 +6,7 @@ import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
-import Link from 'app/components/links/link';
+import ExternalLink from 'app/components/links/externalLink';
 import {SentryAppComponent} from 'app/types';
 
 type Props = {
@@ -39,9 +39,10 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
           <OpenInLink
             key={component.uuid}
             data-test-id={`stacktrace-link-${slug}`}
-            to={url}
+            href={url}
             onClick={onClickRecordInteraction}
             onContextMenu={onClickRecordInteraction}
+            openInNewTab
           >
             <SentryAppIcon slug={slug} />
             <OpenInName>{t(`${component.sentryApp.name}`)}</OpenInName>
@@ -71,7 +72,7 @@ const OpenInContainer = styled('div')<{columnQuantity: number}>`
   white-space: nowrap;
 `;
 
-const OpenInLink = styled(Link)`
+const OpenInLink = styled(ExternalLink)`
   display: inline-grid;
   align-items: center;
   grid-template-columns: max-content auto;
