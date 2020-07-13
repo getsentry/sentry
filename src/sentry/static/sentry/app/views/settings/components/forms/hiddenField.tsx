@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import InputField from './inputField';
 
-export default class HiddenField extends React.Component {
-  render() {
-    return <HiddenInputField {...this.props} type="hidden" />;
-  }
+type Props = Omit<InputField['props'], 'type'>;
+
+export default function HiddenField(props: Props) {
+  return <HiddenInputField {...props} type="hidden" />;
 }
 
 const HiddenInputField = styled(InputField)`
