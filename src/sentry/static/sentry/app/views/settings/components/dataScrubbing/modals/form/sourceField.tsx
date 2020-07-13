@@ -281,7 +281,7 @@ class SourceField extends React.Component<Props, State> {
       return;
     }
 
-    const isPossiblyARegularExpression = RegExp('^/.*/g?$').test(value);
+    const isMaybeRegExp = RegExp('^/.*/g?$').test(value);
 
     if (help) {
       if (!isPossiblyARegularExpression) {
