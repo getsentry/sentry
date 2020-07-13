@@ -1261,8 +1261,8 @@ FUNCTIONS = {
         "result_type": "duration",
     },
     # Currently only being used by the baseline PoC
-    "difference": {
-        "name": "difference",
+    "absolute_delta": {
+        "name": "absolute_delta",
         "args": [DurationColumn("column"), NumberRange("target", 0, None)],
         "transform": u"abs(minus({column}, {target:g}))",
         "result_type": "duration",

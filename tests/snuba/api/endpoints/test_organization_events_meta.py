@@ -262,7 +262,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
 
         assert data["id"] == "a" * 32
         assert data["transaction.duration"] == 60000
-        assert data["p50"] == 80000
+        assert data["p50"] == "80000"
 
     def test_get_baseline_with_different_function(self):
         for index, event_id in enumerate(["a" * 32, "b" * 32]):

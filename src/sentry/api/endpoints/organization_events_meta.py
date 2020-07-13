@@ -70,13 +70,13 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
                 if baseline_value is None:
                     return Response(status=404)
 
-            difference_column = "difference(transaction.duration,{})".format(baseline_value)
+            delta_column = "absolute_delta(transaction.duration,{})".format(baseline_value)
 
             result = discover.query(
-                selected_columns=["timestamp", "id", "transaction.duration", difference_column],
+                selected_columns=["timestamp", "id", "transaction.duration", delta_column],
                 # Find the most recent transaction that's closest to the baseline value
                 # id as the last item for consistent results
-                orderby=[get_function_alias(difference_column), "-timestamp", "id"],
+                orderby=[get_function_alias(delta_column), "-timestamp", "id"],
                 params=params,
                 query=request.GET.get("query"),
                 limit=1,
