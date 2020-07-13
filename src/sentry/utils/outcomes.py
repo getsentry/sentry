@@ -43,9 +43,9 @@ def track_outcome(
     it should only be called at the point we know the final outcome for the
     event (invalid, rate_limited, accepted, discarded, etc.)
 
-    This increments all the relevant legacy RedisTSDB counters, as well as
-    sending a single metric event to Kafka which can be used to reconstruct the
-    counters with SnubaTSDB.
+    This sends the "outcome" message to Kafka which is used by Snuba to serve
+    data for SnubaTSDB and RedisSnubaTSDB, such as # of rate-limited/filtered
+    events.
     """
     global outcomes_publisher
     if outcomes_publisher is None:
