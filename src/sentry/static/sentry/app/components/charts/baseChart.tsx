@@ -340,9 +340,10 @@ class BaseChart extends React.Component<Props> {
         )
       : [XAxis(), XAxis()];
 
-    // @ts-ignore Maybe changing the series type to types/echarts Series[] would be a better solution
+    // Maybe changing the series type to types/echarts Series[] would be a better solution
     // and can't use ignore for multiline blocks
-    const seriesValid = series.length && series[0].data && series[0].data.length > 1;
+    // @ts-ignore
+    const seriesValid = series && series[0]?.data && series[0].data.length > 1;
     // @ts-ignore
     const seriesData = seriesValid ? series[0].data : undefined;
     // @ts-ignore
