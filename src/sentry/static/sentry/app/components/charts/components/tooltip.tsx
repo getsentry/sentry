@@ -41,7 +41,7 @@ function defaultFormatAxisLabel(
 
   return `${getFormattedDate(bucketStart, formatStart, {
     local: !utc,
-  })} - ${getFormattedDate(bucketEnd, formatEnd, {local: !utc})}`;
+  })} — ${getFormattedDate(bucketEnd, formatEnd, {local: !utc})}`;
 }
 
 function defaultValueFormatter(value: string | number) {

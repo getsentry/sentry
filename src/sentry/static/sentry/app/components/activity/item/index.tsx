@@ -116,7 +116,7 @@ function ActivityItem({
                   timeAndDate={!timeOnly}
                   date={dateCreated}
                 />
-                {' - '}
+                {' — '}
                 <StyledDateTime
                   timeOnly={timeOnly}
                   timeAndDate={!timeOnly}
