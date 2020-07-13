@@ -106,7 +106,10 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         metrics.incr("snuba.subscriptions.delete.subscription_does_not_exist")
         return
 
-    if subscription.status != QuerySubscription.Status.DELETING.value:
+    if (
+        subscription.status != QuerySubscription.Status.DELETING.value
+        and subscription.status != QuerySubscription.Status.DISABLED.value
+    ):
         metrics.incr("snuba.subscriptions.delete.incorrect_status")
         return
 
@@ -117,6 +120,8 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
     if subscription.status == QuerySubscription.Status.DELETING.value:
         subscription.delete()
+    else:
+        subscription.update(subscription_id=None)
 
 
 def build_snuba_filter(dataset, query, aggregate, environment, params=None):

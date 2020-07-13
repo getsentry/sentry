@@ -184,7 +184,7 @@ def disable_snuba_subscription(subscription):
     :param subscription: The subscription to disable
     :return:
     """
-    subscription.update(status=QuerySubscription.Status.DISABLED.value, subscription_id=None)
+    subscription.update(status=QuerySubscription.Status.DISABLED.value)
 
     delete_subscription_from_snuba.apply_async(
         kwargs={"query_subscription_id": subscription.id}, countdown=5
