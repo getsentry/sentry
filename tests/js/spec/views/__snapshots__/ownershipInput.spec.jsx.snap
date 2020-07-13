@@ -1213,7 +1213,6 @@ exports[`Project Ownership Input renders 1`] = `
     }
   >
     <StyledTextArea
-      async={false}
       autoCapitalize="off"
       autoComplete="off"
       autoCorrect="off"
@@ -1222,12 +1221,10 @@ exports[`Project Ownership Input renders 1`] = `
 path:src/example/pipeline/* person@sentry.io #infra
 url:http://example.com/settings/* #product
 tags.sku_class:enterprise #enterprise"
-      rows={1}
       spellCheck="false"
       value="new"
     >
-      <TextareaAutosize
-        async={false}
+      <ForwardRef
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
@@ -1237,16 +1234,16 @@ tags.sku_class:enterprise #enterprise"
 path:src/example/pipeline/* person@sentry.io #infra
 url:http://example.com/settings/* #product
 tags.sku_class:enterprise #enterprise"
-        rows={1}
         spellCheck="false"
         value="new"
       >
-        <textarea
+        <TextareaAutosizeClass
           async={false}
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
           className="css-1ws5ptf-StyledTextArea en3n9di3"
+          innerRef={null}
           onChange={[Function]}
           placeholder="#example usage
 path:src/example/pipeline/* person@sentry.io #infra
@@ -1255,8 +1252,24 @@ tags.sku_class:enterprise #enterprise"
           rows={1}
           spellCheck="false"
           value="new"
-        />
-      </TextareaAutosize>
+        >
+          <textarea
+            async={false}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            className="css-1ws5ptf-StyledTextArea en3n9di3"
+            onChange={[Function]}
+            placeholder="#example usage
+path:src/example/pipeline/* person@sentry.io #infra
+url:http://example.com/settings/* #product
+tags.sku_class:enterprise #enterprise"
+            rows={1}
+            spellCheck="false"
+            value="new"
+          />
+        </TextareaAutosizeClass>
+      </ForwardRef>
     </StyledTextArea>
     <ActionBar>
       <div
