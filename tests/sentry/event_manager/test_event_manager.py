@@ -45,7 +45,6 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 def make_event(**kwargs):
     result = {
         "event_id": uuid.uuid1().hex,
-        "message": "foo",
         "level": logging.ERROR,
         "logger": "default",
         "tags": [],
@@ -745,6 +744,7 @@ class EventManagerTest(TestCase):
             manager = EventManager(
                 make_event(
                     **{
+                        "message": "foo",
                         "event_id": uuid.uuid1().hex,
                         "environment": "beta",
                         "release": release_version,
@@ -883,7 +883,8 @@ class EventManagerTest(TestCase):
         assert group.data.get("metadata") == {
             "directive": "script-src",
             "uri": "example.com",
-            "message": "Blocked 'script' from 'example.com'",
+            # Relay will add a logentry that fixes this title, just not as part of StoreNormalizer
+            "title": "<unlabeled event>",
         }
 
     def test_transaction_event_type(self):

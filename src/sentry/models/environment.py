@@ -47,8 +47,7 @@ class Environment(Model):
     def is_valid_name(cls, value):
         """Limit length and reject problematic bytes
 
-        If you change the rules here also update the event ingestion schema
-        in sentry.interfaces.schemas
+        If you change the rules here also update the event ingestion schema in Relay.
         """
         if len(value) > ENVIRONMENT_NAME_MAX_LENGTH:
             return False
