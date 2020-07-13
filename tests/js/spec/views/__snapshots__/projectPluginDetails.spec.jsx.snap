@@ -747,7 +747,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                                           size={20}
                                         >
                                           <div
-                                            className="css-10inpvs-PluginIcon-StyledPluginIcon e1ueudyh1"
+                                            className="css-7jhc8m-PluginIcon-StyledPluginIcon e1ueudyh1"
                                             size={20}
                                           />
                                         </StyledPluginIcon>
