@@ -82,7 +82,7 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
                 params=params,
                 query=request.GET.get("query"),
                 limit=2,
-                referrer="api.transaciton-baseline.get_id",
+                referrer="api.transaction-baseline.get_id",
             )
 
         return Response(result["data"][0])
