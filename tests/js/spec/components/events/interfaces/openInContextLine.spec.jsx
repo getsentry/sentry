@@ -63,7 +63,7 @@ describe('OpenInContextLine', function() {
       const stacktraceLinkFoo = wrapper.find(
         'OpenInLink[data-test-id="stacktrace-link-foo"]'
       );
-      expect(stacktraceLinkFoo.prop('to')).toEqual(url);
+      expect(stacktraceLinkFoo.prop('href')).toEqual(url);
       expect(stacktraceLinkFoo.text()).toEqual('Foo');
       expect(
         wrapper.find('OpenInLink[data-test-id="stacktrace-link-tesla"]').text()
