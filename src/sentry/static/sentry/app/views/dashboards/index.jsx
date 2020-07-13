@@ -19,7 +19,7 @@ class Dashboards extends React.Component {
 
     return (
       <Feature
-        features={['discover', 'discover-basic']}
+        features={['discover', 'discover-query']}
         renderDisabled
         requireAll={false}
       >
