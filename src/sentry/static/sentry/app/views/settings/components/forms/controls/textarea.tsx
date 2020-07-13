@@ -6,9 +6,8 @@ import isPropValid from '@emotion/is-prop-valid';
 
 import {inputStyles} from 'app/styles/input';
 
-type TextAreaProps = Omit<React.HTMLProps<HTMLTextAreaElement>, 'ref'>;
 type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
-type Props = TextAreaProps &
+type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
   InputProps & {
     /**
      * Enable autosizing of the textarea.
