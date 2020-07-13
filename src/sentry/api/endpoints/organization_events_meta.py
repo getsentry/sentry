@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import re
 import sentry_sdk
-import six
 
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
@@ -41,6 +40,9 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 class OrganizationEventBaseline(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         """ Find the event id with the closest value to an aggregate for a given query """
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
             span.set_data("organization", organization)
             try:
@@ -64,11 +66,7 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
                     limit=1,
                     referrer="api.transaction-baseline.get_value",
                 )
-                baseline_value = (
-                    six.text_type(result["data"][0].get(baseline_alias))
-                    if "data" in result
-                    else None
-                )
+                baseline_value = result["data"][0].get(baseline_alias) if "data" in result else None
                 if baseline_value is None:
                     return Response(status=404)
 
@@ -81,11 +79,13 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
                 orderby=[get_function_alias(difference_column), "-timestamp", "id"],
                 params=params,
                 query=request.GET.get("query"),
-                limit=2,
+                limit=1,
                 referrer="api.transaction-baseline.get_id",
             )
 
-        return Response(result["data"][0])
+        baseline_data = result["data"][0]
+        baseline_data[baseline_alias] = baseline_value
+        return Response(baseline_data)
 
 
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')

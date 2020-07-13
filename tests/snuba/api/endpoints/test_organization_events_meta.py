@@ -195,6 +195,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
 
         assert data["id"] == "b" * 32
         assert data["transaction.duration"] == 120000
+        assert data["p50"] == 120000.0
 
     def test_get_baseline_duration_tie(self):
         for index, event_id in enumerate(
@@ -217,6 +218,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
 
         assert data["id"] == "b" * 32
         assert data["transaction.duration"] == 60000
+        assert data["p50"] == 60000
 
     def test_get_baseline_duration_and_timestamp_tie(self):
         for event_id in ["b" * 32, "a" * 32]:  # b then a so we know its not id breaking the tie
@@ -237,6 +239,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
 
         assert data["id"] == "a" * 32
         assert data["transaction.duration"] == 60000
+        assert data["p50"] == 60000
 
     def test_get_baseline_with_computed_value(self):
         data = self.prototype.copy()
@@ -259,6 +262,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
 
         assert data["id"] == "a" * 32
         assert data["transaction.duration"] == 60000
+        assert data["p50"] == 80000
 
     def test_get_baseline_with_different_function(self):
         for index, event_id in enumerate(["a" * 32, "b" * 32]):
@@ -282,6 +286,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
 
         assert data["id"] == "b" * 32
         assert data["transaction.duration"] == 120000
+        assert data["max_transaction_duration"] == 120000
 
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
