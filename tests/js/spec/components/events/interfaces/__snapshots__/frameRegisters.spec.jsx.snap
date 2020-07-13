@@ -11,7 +11,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -50,13 +50,39 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconFilter
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="css-5my71s-Toggle e1e1y5ql2"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </IconFilter>
                   </Toggle>
                 </span>
               </Container>
@@ -72,7 +98,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -111,13 +137,39 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconFilter
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <ForwardRef(SvgIcon)
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <svg
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        fill="currentColor"
+                        height="12px"
+                        onClick={[Function]}
+                        viewBox="0 0 16 16"
+                        width="12px"
+                      >
+                        <path
+                          d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                        />
+                        <path
+                          d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                        />
+                        <path
+                          d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                        />
+                      </svg>
+                    </ForwardRef(SvgIcon)>
+                  </IconFilter>
                 </Toggle>
               </span>
             </Container>
@@ -135,7 +187,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -174,13 +226,39 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconFilter
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="css-5my71s-Toggle e1e1y5ql2"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </IconFilter>
                   </Toggle>
                 </span>
               </Container>
@@ -196,7 +274,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -235,13 +313,39 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconFilter
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <ForwardRef(SvgIcon)
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <svg
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        fill="currentColor"
+                        height="12px"
+                        onClick={[Function]}
+                        viewBox="0 0 16 16"
+                        width="12px"
+                      >
+                        <path
+                          d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                        />
+                        <path
+                          d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                        />
+                        <path
+                          d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                        />
+                      </svg>
+                    </ForwardRef(SvgIcon)>
+                  </IconFilter>
                 </Toggle>
               </span>
             </Container>
@@ -259,7 +363,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -298,13 +402,39 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconFilter
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="css-5my71s-Toggle e1e1y5ql2"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </IconFilter>
                   </Toggle>
                 </span>
               </Container>
@@ -320,7 +450,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -359,13 +489,39 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconFilter
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <ForwardRef(SvgIcon)
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <svg
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        fill="currentColor"
+                        height="12px"
+                        onClick={[Function]}
+                        viewBox="0 0 16 16"
+                        width="12px"
+                      >
+                        <path
+                          d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                        />
+                        <path
+                          d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                        />
+                        <path
+                          d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                        />
+                      </svg>
+                    </ForwardRef(SvgIcon)>
+                  </IconFilter>
                 </Toggle>
               </span>
             </Container>
@@ -388,7 +544,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -427,13 +583,39 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconFilter
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="css-5my71s-Toggle e1e1y5ql2"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </IconFilter>
                   </Toggle>
                 </span>
               </Container>
@@ -449,7 +631,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -488,13 +670,39 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconFilter
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <ForwardRef(SvgIcon)
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <svg
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        fill="currentColor"
+                        height="12px"
+                        onClick={[Function]}
+                        viewBox="0 0 16 16"
+                        width="12px"
+                      >
+                        <path
+                          d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                        />
+                        <path
+                          d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                        />
+                        <path
+                          d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                        />
+                      </svg>
+                    </ForwardRef(SvgIcon)>
+                  </IconFilter>
                 </Toggle>
               </span>
             </Container>
@@ -512,7 +720,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -551,13 +759,39 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconFilter
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="css-5my71s-Toggle e1e1y5ql2"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </IconFilter>
                   </Toggle>
                 </span>
               </Container>
@@ -573,7 +807,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -612,13 +846,39 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconFilter
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <ForwardRef(SvgIcon)
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <svg
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        fill="currentColor"
+                        height="12px"
+                        onClick={[Function]}
+                        viewBox="0 0 16 16"
+                        width="12px"
+                      >
+                        <path
+                          d="M15.19,2.53H.81A.75.75,0,0,1,.81,1H15.19a.75.75,0,1,1,0,1.5Z"
+                        />
+                        <path
+                          d="M11.63,15H4.36a.75.75,0,0,1,0-1.5h7.27a.75.75,0,0,1,0,1.5Z"
+                        />
+                        <path
+                          d="M13.41,8.75H2.58a.75.75,0,0,1,0-1.5H13.41a.75.75,0,0,1,0,1.5Z"
+                        />
+                      </svg>
+                    </ForwardRef(SvgIcon)>
+                  </IconFilter>
                 </Toggle>
               </span>
             </Container>
