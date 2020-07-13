@@ -64,7 +64,6 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
           background-repeat: no-repeat;
           background-size: cover;
           background-position: center center;
-          min-height: 200px;
         `
       : css`
           background: ${p.theme.gray700};
@@ -82,14 +81,6 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   box-shadow: ${p => p.theme.dropShadowLight};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.white};
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    min-height: 170px;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    min-height: 260px;
-  }
 `;
 
 const BannerContent = styled('div')`

@@ -242,7 +242,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const to = eventView.getResultsViewUrlTarget(organization.slug);
 
     return (
-      <Banner
+      <StyledBanner
         title={t('Discover Trends')}
         subtitle={t(
           'Customize and save queries by search conditions, event fields, and tags'
@@ -269,7 +269,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         >
           {t('Read the docs')}
         </StarterButton>
-      </Banner>
+      </StyledBanner>
     );
   }
 
@@ -411,6 +411,10 @@ const StyledButton = styled(Button)`
 
 const StarterButton = styled(Button)`
   margin: ${space(1)};
+`;
+
+const StyledBanner = styled(Banner)`
+  max-height: 260px;
 `;
 
 export default withOrganization(DiscoverLanding);
