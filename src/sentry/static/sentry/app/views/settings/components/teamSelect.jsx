@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import {DEFAULT_DEBOUNCE_DURATION, TEAMS_PER_PAGE} from 'app/constants';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -178,7 +179,11 @@ const TeamRow = props => {
         onConfirm={() => onRemove(team)}
         disabled={disabled}
       >
-        <Button size="xsmall" icon="icon-circle-subtract" disabled={disabled}>
+        <Button
+          size="xsmall"
+          icon={<IconSubtract isCircled size="xs" />}
+          disabled={disabled}
+        >
           {t('Remove')}
         </Button>
       </Confirm>

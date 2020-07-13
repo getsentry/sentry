@@ -13,7 +13,12 @@ exports[`ApiTokenRow renders 1`] = `
       </TextCopyInput>
     </InputWrapper>
     <forwardRef<Button>
-      icon="icon-circle-subtract"
+      icon={
+        <ForwardRef(IconSubtract)
+          isCircled={true}
+          size="xs"
+        />
+      }
       onClick={[Function]}
       size="small"
     >

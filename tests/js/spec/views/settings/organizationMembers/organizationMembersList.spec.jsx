@@ -120,7 +120,7 @@ describe('OrganizationMembersList', function() {
     );
 
     wrapper
-      .find('Button[icon="icon-circle-subtract"]')
+      .find('Button[data-test-id="remove"]')
       .at(0)
       .simulate('click');
 
@@ -150,7 +150,7 @@ describe('OrganizationMembersList', function() {
     );
 
     wrapper
-      .find('Button[icon="icon-circle-subtract"]')
+      .find('Button[data-test-id="remove"]')
       .at(0)
       .simulate('click');
 

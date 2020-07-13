@@ -3,6 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {PanelItem} from 'app/components/panels';
+import {IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
@@ -32,7 +33,11 @@ class ApiTokenRow extends React.Component {
               {getDynamicText({value: token.token, fixed: 'PERCY_AUTH_TOKEN'})}
             </TextCopyInput>
           </InputWrapper>
-          <Button size="small" onClick={this.handleRemove} icon="icon-circle-subtract">
+          <Button
+            size="small"
+            onClick={this.handleRemove}
+            icon={<IconSubtract isCircled size="xs" />}
+          >
             {t('Remove')}
           </Button>
         </Controls>
