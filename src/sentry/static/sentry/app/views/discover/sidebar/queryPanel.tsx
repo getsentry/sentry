@@ -19,7 +19,7 @@ export default class QueryPanel extends React.Component<QueryPanelProps> {
           <PageHeading>{title}</PageHeading>
 
           <QueryPanelCloseLink to="" onClick={onClose}>
-            <IconClose size="xl" />
+            <IconClose color="gray400" />
           </QueryPanelCloseLink>
         </QueryPanelTitle>
         {this.props.children}

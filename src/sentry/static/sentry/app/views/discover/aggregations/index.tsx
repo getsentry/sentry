@@ -67,7 +67,7 @@ export default class Aggregations extends React.Component<AggregationsProps> {
             />
             <div>
               <Link to="" onClick={() => this.removeRow(idx)}>
-                <IconClose isCircled size="xl" />
+                <IconClose isCircled />
               </Link>
             </div>
           </SelectListItem>

@@ -66,7 +66,7 @@ export default class Conditions extends React.Component<ConditionsProps> {
             />
             <div>
               <a onClick={() => this.removeRow(idx)}>
-                <IconClose isCircled size="xl" />
+                <IconClose isCircled />
               </a>
             </div>
           </SelectListItem>
