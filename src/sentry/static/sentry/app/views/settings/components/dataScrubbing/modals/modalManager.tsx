@@ -28,13 +28,16 @@ type Values = FormProps['values'];
 type EventId = NonNullable<FormProps['eventId']>;
 type SourceSuggestions = FormProps['sourceSuggestions'];
 
-type Props<T extends ProjectId> = ModalRenderProps & {
+type Props<T> = ModalRenderProps & {
   onSubmitSuccess: (data: T extends undefined ? Organization : Project) => void;
+  onGetNewRules: (values: Values) => Array<Rule>;
   orgSlug: Organization['slug'];
   api: Client;
   endpoint: string;
   savedRules: Array<Rule>;
+  title: string;
   projectId?: T;
+  initialState?: Partial<Values>;
 };
 
 type State = {
@@ -42,23 +45,18 @@ type State = {
   requiredValues: Array<keyof Values>;
   errors: FormProps['errors'];
   isFormValid: boolean;
-  title: string;
   sourceSuggestions: SourceSuggestions;
   eventId: EventId;
 };
 
-class ModalManager<
-  T extends ProjectId = undefined,
-  P extends Props<T> = Props<T>,
-  S extends State = State
-> extends React.Component<P, S> {
+class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State> {
   state = this.getDefaultState();
 
   componentDidMount() {
     this.handleValidateForm();
   }
 
-  componentDidUpdate(_prevProps: Props<T>, prevState: S) {
+  componentDidUpdate(_prevProps: Props<T>, prevState: State) {
     if (!isEqual(prevState.values, this.state.values)) {
       this.handleValidateForm();
     }
@@ -71,36 +69,31 @@ class ModalManager<
     }
   }
 
-  getDefaultState(): Readonly<S> {
-    const values: Values = {
-      type: RuleType.CREDITCARD,
-      method: MethodType.MASK,
-      source: '',
-      placeholder: '',
-      pattern: '',
-    };
+  getDefaultState(): Readonly<State> {
     const {eventId, sourceSuggestions} = fetchSourceGroupData();
+    const values = this.getInitialValues();
     return {
       values,
       requiredValues: this.getRequiredValues(values),
       errors: {},
       isFormValid: false,
-      title: this.getTitle(),
       eventId: {
         value: eventId,
         status: !eventId ? EventIdStatus.UNDEFINED : EventIdStatus.LOADED,
       },
       sourceSuggestions,
-    } as Readonly<S>;
+    } as Readonly<State>;
   }
 
-  getTitle(): string {
-    return '';
-  }
-
-  getNewRules(): Array<Rule> {
-    // Child has to implement this
-    throw new Error('Not implemented');
+  getInitialValues() {
+    const {initialState} = this.props;
+    return {
+      type: initialState?.type ?? RuleType.CREDITCARD,
+      method: initialState?.method ?? MethodType.MASK,
+      source: initialState?.source ?? '',
+      placeholder: initialState?.placeholder ?? '',
+      pattern: initialState?.pattern ?? '',
+    };
   }
 
   getRequiredValues(values: Values) {
@@ -227,8 +220,8 @@ class ModalManager<
   };
 
   handleSave = async () => {
-    const {endpoint, api, onSubmitSuccess, closeModal} = this.props;
-    const newRules = this.getNewRules();
+    const {endpoint, api, onSubmitSuccess, closeModal, onGetNewRules} = this.props;
+    const newRules = onGetNewRules(this.state.values);
 
     try {
       const data = await submitRules(api, endpoint, newRules);
@@ -279,7 +272,9 @@ class ModalManager<
   };
 
   render() {
-    const {values, errors, title, isFormValid, eventId, sourceSuggestions} = this.state;
+    const {values, errors, isFormValid, eventId, sourceSuggestions} = this.state;
+    const {title} = this.props;
+
     return (
       <Modal
         {...this.props}

@@ -124,8 +124,8 @@ describe('Edit Modal', () => {
     expect(regexField.find('Tooltip').prop('title')).toEqual(regexFieldHelp);
 
     if (rule.type === RuleType.PATTERN) {
-      const placeholderInput = regexField.find('input');
-      expect(placeholderInput.prop('value')).toEqual(rule.pattern);
+      const regexFieldInput = regexField.find('input');
+      expect(regexFieldInput.prop('value')).toEqual(rule.pattern);
     }
 
     // Event ID
