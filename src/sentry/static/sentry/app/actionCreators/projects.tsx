@@ -319,7 +319,7 @@ export function createProject(
 ) {
   return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
     method: 'POST',
-    data: {name, platform, defaultRules: options?.defaultRules},
+    data: {name, platform, default_rules: options?.defaultRules},
   });
 }
 
