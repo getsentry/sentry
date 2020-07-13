@@ -5,6 +5,7 @@ import {Team, MemberRole} from 'app/types';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import RoleSelectControl from 'app/components/roleSelectControl';
+import {IconClose} from 'app/icons/iconClose';
 
 import renderEmailValue from './renderEmailValue';
 import {InviteStatus} from './types';
@@ -103,7 +104,7 @@ const InviteRowControl = ({
     </div>
     <Button
       borderless
-      icon="icon-close"
+      icon={<IconClose />}
       size="zero"
       onClick={onRemove}
       disabled={disableRemove}

@@ -167,6 +167,7 @@ export const SelectListItem = styled('div')`
   display: grid;
   grid-template-columns: auto ${space(2)};
   grid-gap: ${space(1)};
+  align-items: center;
   margin-top: ${space(0.5)};
 `;
 
@@ -297,7 +298,8 @@ export const QueryPanelTitle = styled('div')`
 `;
 
 export const QueryPanelCloseLink = styled(Link)`
-  color: ${p => p.theme.gray400};
+  display: flex;
+  align-content: center;
 `;
 
 export const QueryActions = styled('div')`

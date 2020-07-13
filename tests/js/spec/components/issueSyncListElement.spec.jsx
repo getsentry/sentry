@@ -35,7 +35,7 @@ describe('AlertLink', function() {
     );
 
     expect(onClose).not.toHaveBeenCalled();
-    wrapper.find('OpenCloseIcon').simulate('click');
+    wrapper.find('StyledIcon').simulate('click');
     expect(onClose).toHaveBeenCalled();
   });
 });

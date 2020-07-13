@@ -54,7 +54,7 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders the add icon', () => {
-      expect(wrapper.find('AddRemoveIcon').prop('isLinked')).toBe(false);
+      expect(wrapper.find('StyledIcon IconAdd')).toHaveLength(1);
     });
 
     it('opens the modal', () => {
@@ -183,7 +183,7 @@ describe('SentryAppExternalIssueActions', () => {
     });
 
     it('renders the remove issue button', () => {
-      expect(wrapper.find('AddRemoveIcon').prop('isLinked')).toBe(true);
+      expect(wrapper.find('StyledIcon IconClose')).toHaveLength(1);
     });
 
     it('deletes a Linked Issue', () => {
@@ -192,7 +192,7 @@ describe('SentryAppExternalIssueActions', () => {
         method: 'DELETE',
       });
 
-      wrapper.find('AddRemoveIcon').simulate('click');
+      wrapper.find('StyledIcon').simulate('click');
 
       expect(request).toHaveBeenCalled();
     });

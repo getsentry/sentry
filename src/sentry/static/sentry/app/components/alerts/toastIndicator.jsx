@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconCheckmark, IconClose} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import testableTransition from 'app/utils/testableTransition';
 
@@ -90,9 +90,9 @@ function ToastIndicator({indicator, onDismiss, className, ...props}) {
   };
 
   if (type === 'success') {
-    icon = <InlineSvg src="icon-circle-check" size="24px" />;
+    icon = <IconCheckmark size="lg" isCircled />;
   } else if (type === 'error') {
-    icon = <InlineSvg src="icon-circle-close" size="24px" />;
+    icon = <IconClose size="lg" isCircled />;
   }
 
   // TODO(billy): Remove ref- className after removing usage from getsentry
