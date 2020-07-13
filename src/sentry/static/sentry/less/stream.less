@@ -99,44 +99,6 @@
       }
     }
 
-    .icon-star-solid,
-    .icon-soundoff {
-      padding-right: 5px;
-      font-size: 95%;
-      position: relative;
-      .transition(all 0.2s ease-in-out);
-      width: auto;
-    }
-
-    .icon-star-solid {
-      font-size: 15px;
-      display: none;
-      color: @yellow-orange;
-      overflow: hidden;
-    }
-
-    .icon-soundoff {
-      display: none;
-      font-size: 90%;
-      top: 1px;
-      color: @red;
-      width: auto;
-      overflow: hidden;
-      padding-left: 1px;
-    }
-
-    &.isBookmarked {
-      .icon-star-solid {
-        display: inline-block;
-      }
-    }
-
-    &.isIgnored {
-      .icon-soundoff {
-        display: inline-block;
-      }
-    }
-
     &.isUnprocessed {
       background: lighten(@purple-light, 30%);
 
@@ -516,49 +478,11 @@
 
   .issue {
     h3 {
-      .icon-star-solid,
-      .icon-soundoff {
-        padding-right: 5px;
-        font-size: 12px;
-        position: relative;
-        .transition(all 0.2s ease-in-out);
-        width: auto;
-      }
-
-      .icon-star-solid {
-        font-size: 14px;
-        top: -1px;
-        display: none;
-        color: @yellow-orange;
-        overflow: hidden;
-      }
-
-      .icon-soundoff {
-        display: none;
-        top: 1px;
-        color: @red;
-        width: auto;
-        overflow: hidden;
-        padding-left: 1px;
-      }
-
       em {
         font-style: normal;
         font-size: 14px;
         color: @60;
         font-weight: normal;
-      }
-    }
-
-    &.isBookmarked {
-      h3 .icon-star-solid {
-        display: inline-block;
-      }
-    }
-
-    &.isIgnored {
-      h3 .icon-soundoff {
-        display: inline-block;
       }
     }
 
