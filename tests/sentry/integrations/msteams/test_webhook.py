@@ -34,9 +34,6 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url, data=EXAMPLE_MEMBER_ADDED, format="json",
         )
 
-        # integration = Integration.objects.get(provider="msteams")
-        # installation = integration.get_installation(self.organization.id)
-
         body = responses.calls[0].request.body
         assert body == urlencode(
             {

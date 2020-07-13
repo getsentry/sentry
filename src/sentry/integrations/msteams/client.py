@@ -13,7 +13,7 @@ from sentry.utils.http import absolute_uri
 EXPIRATION_OFFSET = 60
 
 
-# this abstract client does not handle setting the base url or auth token
+# MsTeamsAbstractClient abstract client does not handle setting the base url or auth token
 class MsTeamsAbstractClient(ApiClient):
     integration_name = "msteams"
     TEAM_URL = "/v3/teams/%s"
@@ -89,6 +89,8 @@ class MsTeamsAbstractClient(ApiClient):
         self.send_message(conversation_id, payload)
 
 
+# MsTeamsClient is used with the access token and service url as arguments to the constructor
+# It will not handle token refreshing
 class MsTeamsClient(MsTeamsAbstractClient):
     def __init__(self, access_token, service_url):
         super(MsTeamsClient, self).__init__()
@@ -96,6 +98,7 @@ class MsTeamsClient(MsTeamsAbstractClient):
         self.base_url = service_url.rstrip("/")
 
 
+# MsTeamsIntegrationClient is used with an existing integration object and handles token refreshing
 class MsTeamsIntegrationClient(MsTeamsAbstractClient):
     def __init__(self, integration):
         super(MsTeamsIntegrationClient, self).__init__()
@@ -123,6 +126,7 @@ class MsTeamsIntegrationClient(MsTeamsAbstractClient):
         return access_token
 
 
+# OAuthMsTeamsClient is used only for the exchanging the token
 class OAuthMsTeamsClient(ApiClient):
     base_url = "https://login.microsoftonline.com/botframework.com"
     integration_name = "msteams_oauth"
