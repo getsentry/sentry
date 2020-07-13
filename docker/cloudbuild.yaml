@@ -25,7 +25,7 @@ steps:
   entrypoint: 'bash'
   env:
   - 'SENTRY_IMAGE=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA'
-  - 'SENTRY_TEST_HOST=http://web:9000'
+  - 'SENTRY_TEST_HOST=http://nginx'
   - 'CI=1'
   args:
   - '-e'
@@ -40,8 +40,8 @@ steps:
     ./install.sh
     docker-compose run --rm web createuser --superuser --email test@example.com --password test123TEST
     docker-compose up -d
-    timeout 20 bash -c 'until $(curl -Isf -o /dev/null http://web:9000); do printf "."; sleep 0.5; done' || docker-compose logs web
-    ./test.sh
+    timeout 20 bash -c 'until $(curl -Isf -o /dev/null http://nginx); do printf "."; sleep 0.5; done' || docker-compose logs web
+    ./test.sh || docker-compose logs nginx web relay
   timeout: 300s
 - name: 'gcr.io/cloud-builders/docker'
   secretEnv: ['DOCKER_PASSWORD']
