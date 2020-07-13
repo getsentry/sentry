@@ -502,6 +502,9 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
+CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
@@ -728,7 +731,7 @@ LOGGING = {
         "important_django_request": {
             "()": "sentry.logging.handlers.MessageContainsFilter",
             "contains": ["CSRF"],
-        },
+        }
     },
     "root": {"level": "NOTSET", "handlers": ["console", "internal"]},
     # LOGGING.overridable is a list of loggers including root that will change
@@ -800,7 +803,7 @@ SENTRY_FEATURES = {
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
     # Move release artifacts to settings.
-    "organizations:artifacts-in-settings": False,
+    "organizations:artifacts-in-settings": True,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -840,8 +843,6 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable incidents performance feature
-    "organizations:incidents-performance": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -849,9 +850,18 @@ SENTRY_FEATURES = {
     # issues on external services.
     "organizations:integrations-issue-sync": True,
     # Enable interface functionality to receive event hooks.
-    "organizations:integrations-event-hooks": False,
+    "organizations:integrations-event-hooks": True,
+    # Enable integration functionality to work with alert rules
+    "organizations:integrations-alert-rule": True,
+    # Enable integration functionality to work with alert rules (specifically chat integrations)
+    "organizations:integrations-chat-unfurl": True,
+    # Enable integration functionality to work with alert rules (specifically indicdent)
+    # management integrations)
+    "organizations:integrations-incident-management": True,
     # Enable the Vercel integration
     "organizations:integrations-vercel": False,
+    # Enable the MsTeams integration
+    "organizations:integrations-msteams": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -1566,6 +1576,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
+    "sentry.integrations.msteams.MsTeamsIntegrationProvider",
 )
 
 

@@ -30,10 +30,12 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
+    IncidentTrigger,
     IncidentActivity,
     IncidentProject,
     IncidentSeen,
     IncidentType,
+    TriggerStatus,
 )
 from sentry.mediators import (
     sentry_apps,
@@ -905,6 +907,15 @@ class Factories(object):
 
         return create_alert_rule_trigger(
             alert_rule, label, threshold_type, alert_threshold, resolve_threshold
+        )
+
+    @staticmethod
+    def create_incident_trigger(incident, alert_rule_trigger, status=None):
+        if status is None:
+            status = TriggerStatus.ACTIVE.value
+
+        return IncidentTrigger.objects.create(
+            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status,
         )
 
     @staticmethod

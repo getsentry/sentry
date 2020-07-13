@@ -11,6 +11,7 @@ from django.utils import timezone
 from sentry.cache import default_cache
 from sentry.utils import json
 from sentry.models import Relay
+from sentry.auth.system import is_internal_ip
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
@@ -42,13 +43,10 @@ def is_internal_relay(request, public_key):
     """
     Checks if the relay is allowed to register, otherwise raises an exception
     """
-    if (
-        settings.DEBUG
-        or request.META.get("REMOTE_ADDR", None) in settings.INTERNAL_IPS
-        or public_key in settings.SENTRY_RELAY_WHITELIST_PK
-    ):
+    if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
         return True
-    return False
+
+    return is_internal_ip(request)
 
 
 class RelayRegisterChallengeEndpoint(Endpoint):

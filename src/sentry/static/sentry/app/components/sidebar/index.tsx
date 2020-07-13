@@ -31,7 +31,6 @@ import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
-import localStorage from 'app/utils/localStorage';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -267,19 +266,10 @@ class Sidebar extends React.Component<Props, State> {
     if (!organization || !organization.features) {
       return sidebarState;
     }
-    const optState = localStorage.getItem('discover:version');
     const features = organization.features;
 
     if (features.includes('discover-basic')) {
-      // If there is no opt-out state show discover2
-      if (!optState || optState === '2') {
-        sidebarState.discover2 = true;
-      }
-      // User wants discover1
-      if (optState === '1') {
-        sidebarState.discover1 = true;
-        sidebarState.events = true;
-      }
+      sidebarState.discover2 = true;
       return sidebarState;
     }
 
@@ -417,7 +407,11 @@ class Sidebar extends React.Component<Props, State> {
                       id="performance"
                     />
                   </Feature>
-                  <Feature features={['incidents']} organization={organization}>
+                  <Feature
+                    hookName="feature-disabled:incidents-sidebar-item"
+                    features={['incidents']}
+                    organization={organization}
+                  >
                     <SidebarItem
                       {...sidebarItemProps}
                       onClick={(_id, evt) =>
@@ -463,7 +457,11 @@ class Sidebar extends React.Component<Props, State> {
                 </SidebarSection>
 
                 <SidebarSection>
-                  <Feature features={['discover']} organization={organization}>
+                  <Feature
+                    features={['discover', 'discover-basic']}
+                    organization={organization}
+                    requireAll={false}
+                  >
                     <SidebarItem
                       {...sidebarItemProps}
                       index

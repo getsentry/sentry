@@ -1,5 +1,5 @@
 ---
-created: '2020-02-07T14:42:34.863069Z'
+created: '2020-07-06T21:32:23.619726Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -89,7 +89,6 @@ contexts:
     misc_cpu_vendor: GenuineIntel
     misc_number_of_cores: 4
     misc_number_of_cores_inc_hyperthread: 8
-    misc_primary_gpu_brand: Radeon Pro 560
     platform_name: MacNoEditor
     portable_call_stack: YetAnotherMac 0x000000000864e000 + a52132 YetAnotherMac 0x000000000864e000
       + 35ed85b YetAnotherMac 0x000000000864e000 + 3611c29 YetAnotherMac 0x000000000864e000

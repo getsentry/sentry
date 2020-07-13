@@ -72,13 +72,7 @@ const TypeChooserCards = ({onChange, organization, selected}: Props) => {
           {t('Metric Alert')}
           <FeatureBadge type="beta" />
         </RadioLabel>
-        <Feature
-          requireAll
-          features={[
-            'organizations:performance-view',
-            'organizations:incidents-performance',
-          ]}
-        >
+        <Feature requireAll features={['organizations:performance-view']}>
           {({hasFeature}) =>
             hasFeature ? (
               <React.Fragment>

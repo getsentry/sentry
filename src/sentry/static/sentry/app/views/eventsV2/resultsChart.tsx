@@ -12,7 +12,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
 import EventView from 'app/utils/discover/eventView';
-import {DisplayModes} from 'app/utils/discover/types';
+import {TOP_N, DisplayModes} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 
@@ -53,13 +53,11 @@ class ResultsChart extends React.Component<ResultsChartProps> {
 
     const {utc} = getParams(location.query);
     const apiPayload = eventView.getEventsAPIPayload(location);
+    const display = eventView.getDisplayMode();
     const isTopEvents =
-      eventView.display === DisplayModes.TOP5 ||
-      eventView.display === DisplayModes.DAILYTOP5;
+      display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
 
-    const isDaily =
-      eventView.display === DisplayModes.DAILYTOP5 ||
-      eventView.display === DisplayModes.DAILY;
+    const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
 
     return (
       <React.Fragment>
@@ -77,12 +75,12 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               start={start}
               end={end}
               period={globalSelection.statsPeriod}
-              disablePrevious={eventView.display !== DisplayModes.PREVIOUS}
-              disableReleases={eventView.display !== DisplayModes.RELEASES}
+              disablePrevious={display !== DisplayModes.PREVIOUS}
+              disableReleases={display !== DisplayModes.RELEASES}
               field={isTopEvents ? apiPayload.field : undefined}
               interval={eventView.interval}
               showDaily={isDaily}
-              topEvents={isTopEvents ? 5 : undefined}
+              topEvents={isTopEvents ? TOP_N : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}

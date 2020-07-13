@@ -1,4 +1,3 @@
-/* global process */
 import React from 'react';
 import {Global, css} from '@emotion/core';
 
@@ -16,24 +15,21 @@ const styles = (theme: Theme) => css`
   }
 
   /**
-   * TODO: This should apply to the prefer-reduced-motion media query
-   *
    * See https://web.dev/prefers-reduced-motion/
    */
-  ${process.env.IS_CI &&
-    css`
-      *,
-      ::before,
-      ::after {
-        animation-delay: -1ms !important;
-        animation-duration: 0ms !important;
-        animation-iteration-count: 1 !important;
-        background-attachment: initial !important;
-        scroll-behavior: auto !important;
-        transition-duration: 0s !important;
-        transition-delay: 0s !important;
-      }
-    `}
+  @media (prefers-reduced-motion) {
+    *,
+    ::before,
+    ::after {
+      animation-delay: -1ms !important;
+      animation-duration: 0ms !important;
+      animation-iteration-count: 1 !important;
+      background-attachment: initial !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+    }
+  }
 `;
 
 /**

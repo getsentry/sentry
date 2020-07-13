@@ -30,7 +30,7 @@ class ReleaseLandingCard extends React.Component {
     const {card, cardsLength, step} = this.props;
     const finalStep = step === cardsLength - 1;
     return (
-      <OnboardingPanel image={<div>{card.svg}</div>}>
+      <OnboardingPanel image={card.svg}>
         <h3>{card.title}</h3>
         {card.disclaimer && <Disclaimer>{card.disclaimer}</Disclaimer>}
         <p>{card.message}</p>
