@@ -72,9 +72,11 @@ const IconBusinessComponent = withTheme(function IconBusinessComponent({
   );
 });
 
-const IconBusiness = React.forwardRef((props, ref: React.Ref<SVGSVGElement>) => (
-  <IconBusinessComponent {...props} forwardRef={ref} />
-));
+const IconBusiness = React.forwardRef(
+  (props: Omit<Props, 'forwardRef'>, ref: React.Ref<SVGSVGElement>) => (
+    <IconBusinessComponent {...props} forwardRef={ref} />
+  )
+);
 
 IconBusiness.displayName = 'IconBusiness';
 
