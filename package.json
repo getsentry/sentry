@@ -198,7 +198,7 @@
     "build": "yarn webpack --output-path=public"
   },
   "volta": {
-    "node": "10.21.0",
+    "node": "12.18.2",
     "yarn": "1.22.4"
   }
 }
