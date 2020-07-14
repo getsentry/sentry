@@ -43,7 +43,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            self.base_url + "/installations/{}/access_tokens".format(self.installation_id),
+            self.base_url + "/app/installations/{}/access_tokens".format(self.installation_id),
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
 

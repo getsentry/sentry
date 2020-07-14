@@ -21,7 +21,9 @@ class GitHubEnterpriseAppsClient(GitHubClientMixin):
 
     def create_token(self):
         return self.post(
-            u"/installations/{}/access_tokens".format(self.integration.metadata["installation_id"]),
+            u"/app/installations/{}/access_tokens".format(
+                self.integration.metadata["installation_id"]
+            ),
             headers={
                 "Authorization": "Bearer %s" % self.get_jwt(),
                 # TODO(jess): remove this whenever it's out of preview
