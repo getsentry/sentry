@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Meta} from 'app/types';
 import Tooltip from 'app/components/tooltip';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {IconFilter} from 'app/icons';
+import {IconSliders} from 'app/icons';
 import {t} from 'app/locale';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
@@ -80,7 +80,7 @@ const FixedWidth = styled('span')`
   margin-right: 1ex;
 `;
 
-const Toggle = styled(IconFilter)`
+const Toggle = styled(IconSliders)`
   opacity: 0.33;
   cursor: pointer;
 
