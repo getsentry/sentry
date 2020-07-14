@@ -337,7 +337,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 p={2}
               >
                 <div
-                  className="css-rp7iak-PanelItem-StyledPanelItem eqsa6vb1"
+                  className="css-rp7iak-PanelItem-StyledPanelItem eqsa6vb0"
                 >
                   <ProjectItem
                     organization={
@@ -627,6 +627,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   >
                     <forwardRef<Button>
                       disabled={false}
+                      icon={
+                        <ForwardRef(IconSubtract)
+                          isCircled={true}
+                          size="xs"
+                        />
+                      }
                       onClick={[Function]}
                       size="small"
                     >
@@ -634,11 +640,18 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         align="center"
                         disabled={false}
                         forwardRef={null}
+                        icon={
+                          <ForwardRef(IconSubtract)
+                            isCircled={true}
+                            size="xs"
+                          />
+                        }
                         onClick={[Function]}
                         size="small"
                       >
                         <StyledButton
                           aria-disabled={false}
+                          aria-label="Remove"
                           disabled={false}
                           forwardRef={null}
                           onClick={[Function]}
@@ -647,6 +660,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <Component
                             aria-disabled={false}
+                            aria-label="Remove"
                             className="css-8od3q1-StyledButton edwq9my0"
                             forwardRef={null}
                             onClick={[Function]}
@@ -655,6 +669,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           >
                             <button
                               aria-disabled={false}
+                              aria-label="Remove"
                               className="css-8od3q1-StyledButton edwq9my0"
                               onClick={[Function]}
                               role="button"
@@ -667,34 +682,40 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 <span
                                   className="css-n7mdnv-ButtonLabel edwq9my1"
                                 >
-                                  <RemoveIcon>
-                                    <Component
-                                      className="css-1d2szfl-RemoveIcon eqsa6vb0"
+                                  <Icon
+                                    hasChildren={true}
+                                    size="small"
+                                  >
+                                    <span
+                                      className="css-1hbuack-Icon edwq9my2"
+                                      size="small"
                                     >
-                                      <InlineSvg
-                                        className="css-1d2szfl-RemoveIcon eqsa6vb0"
-                                        src="icon-circle-subtract"
+                                      <IconSubtract
+                                        isCircled={true}
+                                        size="xs"
                                       >
-                                        <ForwardRef
-                                          className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
-                                          src="icon-circle-subtract"
+                                        <ForwardRef(SvgIcon)
+                                          data-test-id="icon-subtract"
+                                          size="xs"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
-                                            height="1em"
-                                            viewBox={Object {}}
-                                            width="1em"
+                                            data-test-id="icon-subtract"
+                                            fill="currentColor"
+                                            height="12px"
+                                            viewBox="0 0 16 16"
+                                            width="12px"
                                           >
-                                            <use
-                                              href="#test"
-                                              xlinkHref="#test"
+                                            <path
+                                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                            />
+                                            <path
+                                              d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
                                             />
                                           </svg>
-                                        </ForwardRef>
-                                      </InlineSvg>
-                                    </Component>
-                                  </RemoveIcon>
-                                   
+                                        </ForwardRef(SvgIcon)>
+                                      </IconSubtract>
+                                    </span>
+                                  </Icon>
                                   Remove
                                 </span>
                               </ButtonLabel>
@@ -711,7 +732,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 p={2}
               >
                 <div
-                  className="css-rp7iak-PanelItem-StyledPanelItem eqsa6vb1"
+                  className="css-rp7iak-PanelItem-StyledPanelItem eqsa6vb0"
                 >
                   <ProjectItem
                     organization={
@@ -991,6 +1012,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   >
                     <forwardRef<Button>
                       disabled={false}
+                      icon={
+                        <ForwardRef(IconSubtract)
+                          isCircled={true}
+                          size="xs"
+                        />
+                      }
                       onClick={[Function]}
                       size="small"
                     >
@@ -998,11 +1025,18 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         align="center"
                         disabled={false}
                         forwardRef={null}
+                        icon={
+                          <ForwardRef(IconSubtract)
+                            isCircled={true}
+                            size="xs"
+                          />
+                        }
                         onClick={[Function]}
                         size="small"
                       >
                         <StyledButton
                           aria-disabled={false}
+                          aria-label="Remove"
                           disabled={false}
                           forwardRef={null}
                           onClick={[Function]}
@@ -1011,6 +1045,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <Component
                             aria-disabled={false}
+                            aria-label="Remove"
                             className="css-8od3q1-StyledButton edwq9my0"
                             forwardRef={null}
                             onClick={[Function]}
@@ -1019,6 +1054,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           >
                             <button
                               aria-disabled={false}
+                              aria-label="Remove"
                               className="css-8od3q1-StyledButton edwq9my0"
                               onClick={[Function]}
                               role="button"
@@ -1031,34 +1067,40 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 <span
                                   className="css-n7mdnv-ButtonLabel edwq9my1"
                                 >
-                                  <RemoveIcon>
-                                    <Component
-                                      className="css-1d2szfl-RemoveIcon eqsa6vb0"
+                                  <Icon
+                                    hasChildren={true}
+                                    size="small"
+                                  >
+                                    <span
+                                      className="css-1hbuack-Icon edwq9my2"
+                                      size="small"
                                     >
-                                      <InlineSvg
-                                        className="css-1d2szfl-RemoveIcon eqsa6vb0"
-                                        src="icon-circle-subtract"
+                                      <IconSubtract
+                                        isCircled={true}
+                                        size="xs"
                                       >
-                                        <ForwardRef
-                                          className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
-                                          src="icon-circle-subtract"
+                                        <ForwardRef(SvgIcon)
+                                          data-test-id="icon-subtract"
+                                          size="xs"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
-                                            height="1em"
-                                            viewBox={Object {}}
-                                            width="1em"
+                                            data-test-id="icon-subtract"
+                                            fill="currentColor"
+                                            height="12px"
+                                            viewBox="0 0 16 16"
+                                            width="12px"
                                           >
-                                            <use
-                                              href="#test"
-                                              xlinkHref="#test"
+                                            <path
+                                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                            />
+                                            <path
+                                              d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
                                             />
                                           </svg>
-                                        </ForwardRef>
-                                      </InlineSvg>
-                                    </Component>
-                                  </RemoveIcon>
-                                   
+                                        </ForwardRef(SvgIcon)>
+                                      </IconSubtract>
+                                    </span>
+                                  </Icon>
                                   Remove
                                 </span>
                               </ButtonLabel>
