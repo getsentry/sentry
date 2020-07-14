@@ -98,7 +98,7 @@ class Event(object):
         if column in self._snuba_data:
             return parse_date(self._snuba_data[column]).replace(tzinfo=pytz.utc)
 
-        timestamp = self.data.get("timestamp")
+        timestamp = float(self.data.get("timestamp") or self.data.get("received")) 
         date = datetime.fromtimestamp(timestamp)
         date = date.replace(tzinfo=pytz.utc)
         return date
