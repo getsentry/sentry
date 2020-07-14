@@ -69,11 +69,11 @@ describe('EventIdField', () => {
     expect(eventIdField.find('FieldError')).toHaveLength(1);
     const closeIcon = eventIdField.find('CloseIcon');
     expect(closeIcon).toHaveLength(1);
-    expect(closeIcon.find('Tooltip').prop('title')).toEqual('Clear Event ID');
+    expect(closeIcon.find('Tooltip').prop('title')).toEqual('Clear event ID');
     const fieldErrorReason = eventIdField.find('FieldErrorReason');
     expect(fieldErrorReason).toHaveLength(1);
     expect(fieldErrorReason.text()).toEqual(
-      'An error occurred while fetching the suggestions based on this Event ID.'
+      'An error occurred while fetching the suggestions based on this event ID.'
     );
   });
 

@@ -129,7 +129,7 @@ describe('Edit Modal', () => {
     }
 
     // Event ID
-    expect(wrapper.find('Toggle').text()).toEqual('Use Event ID for auto-completion');
+    expect(wrapper.find('Toggle').text()).toEqual('Use event ID for auto-completion');
 
     // Source Field
     const sourceGroup = wrapper.find('SourceGroup');

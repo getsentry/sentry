@@ -93,7 +93,7 @@ describe('Add Modal', () => {
     expect(typeFieldProps.options).toEqual(typeFieldOptions);
 
     // Event ID
-    expect(wrapper.find('Toggle').text()).toEqual('Use Event ID for auto-completion');
+    expect(wrapper.find('Toggle').text()).toEqual('Use event ID for auto-completion');
 
     // Source Field
     const sourceGroup = wrapper.find('SourceGroup');

@@ -12,36 +12,35 @@ import {IconChevron} from 'app/icons';
 import EventIdField from './eventIdField';
 import SelectField from './selectField';
 import SourceField from './sourceField';
-import {getRuleLabel, getMethodLabel} from '../../utils';
+import {getRuleLabel, getMethodLabel} from '../utils';
 import {
   MethodType,
   RuleType,
   Rule,
   SourceSuggestion,
-  KeysOfUnion,
   EventId,
-} from '../../types';
+  Errors,
+  KeysOfUnion,
+} from '../types';
 
-type Values = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
-
-type Props<V extends Values, K extends keyof V> = {
-  values: V;
-  errors: Partial<V>;
-  sourceSuggestions: Array<SourceSuggestion>;
+type Props<R extends Rule, K extends KeysOfUnion<R>> = {
+  rule: R;
+  onChange: (stateProperty: K, value: R[K]) => void;
   onValidate: (field: K) => () => void;
-  onChange: (field: K, value: string) => void;
-  eventId: EventId;
-  onUpdateEventId: (eventId: string) => void;
+  onUpdateEventId?: (eventId: string) => void;
+  errors: Errors;
+  sourceSuggestions?: Array<SourceSuggestion>;
+  eventId?: EventId;
 };
 
 type State = {
   displayEventId: boolean;
 };
 
-class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
+class Form extends React.Component<Props<Rule, KeysOfUnion<Rule>>, State> {
   state: State = {displayEventId: !!this.props.eventId?.value};
 
-  handleChange = <K extends keyof Values>(field: K) => (
+  handleChange = <K extends KeysOfUnion<Rule>>(field: K) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     this.props.onChange(field, event.target.value);
@@ -53,22 +52,21 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
 
   render() {
     const {
-      values,
+      rule,
       onChange,
       errors,
       onValidate,
-      sourceSuggestions,
       onUpdateEventId,
+      sourceSuggestions,
       eventId,
     } = this.props;
-    const {method, type, source} = values;
+    const {method, type, source} = rule;
     const {displayEventId} = this.state;
 
     return (
       <React.Fragment>
-        <FieldGroup hasTwoColumns={values.method === MethodType.REPLACE}>
+        <FieldGroup hasTwoColumns={rule.method === MethodType.REPLACE}>
           <Field
-            data-test-id="method-field"
             label={t('Method')}
             help={t('What to do')}
             inline={false}
@@ -87,9 +85,8 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
               onChange={({value}) => onChange('method', value)}
             />
           </Field>
-          {values.method === MethodType.REPLACE && (
+          {rule.method === MethodType.REPLACE && (
             <Field
-              data-test-id="placeholder-field"
               label={t('Custom Placeholder (Optional)')}
               help={t('It will replace the default placeholder [Filtered]')}
               inline={false}
@@ -102,14 +99,13 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
                 name="placeholder"
                 placeholder={`[${t('Filtered')}]`}
                 onChange={this.handleChange('placeholder')}
-                value={values.placeholder}
+                value={rule.placeholder}
               />
             </Field>
           )}
         </FieldGroup>
-        <FieldGroup hasTwoColumns={values.type === RuleType.PATTERN}>
+        <FieldGroup hasTwoColumns={rule.type === RuleType.PATTERN}>
           <Field
-            data-test-id="type-field"
             label={t('Data Type')}
             help={t(
               'What to look for. Use an existing pattern or define your own using regular expressions.'
@@ -130,9 +126,8 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
               onChange={({value}) => onChange('type', value)}
             />
           </Field>
-          {values.type === RuleType.PATTERN && (
+          {rule.type === RuleType.PATTERN && (
             <Field
-              data-test-id="regex-field"
               label={t('Regex matches')}
               help={t('Custom regular expression (see documentation)')}
               inline={false}
@@ -147,31 +142,34 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
                 name="pattern"
                 placeholder={t('[a-zA-Z0-9]+')}
                 onChange={this.handleChange('pattern')}
-                value={values.pattern}
+                value={rule.pattern}
                 onBlur={onValidate('pattern')}
               />
             </Field>
           )}
         </FieldGroup>
-        <ToggleWrapper>
-          {displayEventId ? (
-            <Toggle priority="link" onClick={this.handleToggleEventId}>
-              {t('Hide event ID field')}
-              <IconChevron direction="up" size="xs" />
-            </Toggle>
-          ) : (
-            <Toggle priority="link" onClick={this.handleToggleEventId}>
-              {t('Use event ID for auto-completion')}
-              <IconChevron direction="down" size="xs" />
-            </Toggle>
-          )}
-        </ToggleWrapper>
+        {onUpdateEventId && (
+          <React.Fragment>
+            <ToggleWrapper>
+              {displayEventId ? (
+                <Toggle priority="link" onClick={this.handleToggleEventId}>
+                  {t('Hide event ID field')}
+                  <IconChevron direction="up" size="xs" />
+                </Toggle>
+              ) : (
+                <Toggle priority="link" onClick={this.handleToggleEventId}>
+                  {t('Use event ID for auto-completion')}
+                  <IconChevron direction="down" size="xs" />
+                </Toggle>
+              )}
+            </ToggleWrapper>
+          </React.Fragment>
+        )}
         <SourceGroup isExpanded={displayEventId}>
-          {displayEventId && (
+          {onUpdateEventId && displayEventId && (
             <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
           )}
           <Field
-            data-test-id="source-field"
             label={t('Source')}
             help={t('Where to look. In the simplest case this can be an attribute name.')}
             inline={false}
@@ -224,7 +222,10 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
 `;
 
 const RegularExpression = styled(Input)`
-  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.fontSizeSmall};
+  input {
+    font-family: ${p => p.theme.text.familyMono};
+  }
 `;
 
 const ToggleWrapper = styled('div')`

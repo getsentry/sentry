@@ -284,7 +284,7 @@ class SourceField extends React.Component<Props, State> {
     const isMaybeRegExp = RegExp('^/.*/g?$').test(value);
 
     if (help) {
-      if (!isPossiblyARegularExpression) {
+      if (!isMaybeRegExp) {
         this.setState({
           help: '',
         });
@@ -292,7 +292,7 @@ class SourceField extends React.Component<Props, State> {
       return;
     }
 
-    if (isPossiblyARegularExpression) {
+    if (isMaybeRegExp) {
       this.setState({
         help: t("You might want to change Data Type's value to 'Regex matches'"),
       });
