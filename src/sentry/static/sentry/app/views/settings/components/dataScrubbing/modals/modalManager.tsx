@@ -19,7 +19,7 @@ import {
 import submitRules from '../submitRules';
 import Form from './form';
 import Modal from './modal';
-import handleError from './handleError';
+import handleError, {ErrorType} from './handleError';
 import {valueSuggestions} from '../utils';
 import {fetchSourceGroupData, saveToSourceGroupData} from './utils';
 
@@ -177,7 +177,7 @@ class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State>
 
   convertRequestError(error: ReturnType<typeof handleError>) {
     switch (error.type) {
-      case 'invalid-selector':
+      case ErrorType.InvalidSelector:
         this.setState(prevState => ({
           errors: {
             ...prevState.errors,
@@ -185,7 +185,7 @@ class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State>
           },
         }));
         break;
-      case 'regex-parse':
+      case ErrorType.RegexParse:
         this.setState(prevState => ({
           errors: {
             ...prevState.errors,

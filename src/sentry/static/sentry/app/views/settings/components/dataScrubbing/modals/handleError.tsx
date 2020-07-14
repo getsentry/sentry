@@ -1,7 +1,13 @@
 import {t} from 'app/locale';
 
+export enum ErrorType {
+  Unknown = 'unknown',
+  InvalidSelector = 'invalid-selector',
+  RegexParse = 'regex-parse',
+}
+
 type Error = {
-  type: 'unknown' | 'invalid-selector' | 'regex-parse';
+  type: ErrorType;
   message: string;
 };
 
@@ -14,7 +20,7 @@ function handleError(error: XhrError): Error {
 
   if (!errorMessage) {
     return {
-      type: 'unknown',
+      type: ErrorType.Unknown,
       message: t('Unknown error occurred while saving data scrubbing rule'),
     };
   }
@@ -24,7 +30,7 @@ function handleError(error: XhrError): Error {
       if (line.startsWith('1 | ')) {
         const selector = line.slice(3);
         return {
-          type: 'invalid-selector',
+          type: ErrorType.InvalidSelector,
           message: t('Invalid source value: %s', selector),
         };
       }
@@ -36,7 +42,7 @@ function handleError(error: XhrError): Error {
       if (line.startsWith('error:')) {
         const regex = line.slice(6).replace(/at line \d+ column \d+/, '');
         return {
-          type: 'regex-parse',
+          type: ErrorType.RegexParse,
           message: t('Invalid regex: %s', regex),
         };
       }
@@ -44,7 +50,7 @@ function handleError(error: XhrError): Error {
   }
 
   return {
-    type: 'unknown',
+    type: ErrorType.Unknown,
     message: t('An unknown error occurred while saving data scrubbing rule'),
   };
 }
