@@ -1642,6 +1642,31 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
         assert result["groupby"] == []
 
+    def test_absolute_delta_function(self):
+        fields = ["absolute_delta(transaction.duration,100)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["abs(minus(duration, 100))", None, "absolute_delta_transaction_duration_100"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["absolute_delta(transaction,100)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert (
+            "absolute_delta(transaction,100): column argument invalid: transaction is not a duration column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["absolute_delta(transaction.duration,blah)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert (
+            "absolute_delta(transaction.duration,blah): target argument invalid: blah is not a number"
+            in six.text_type(err)
+        )
+
     def test_eps_function(self):
         fields = ["eps(3600)"]
         result = resolve_field_list(fields, eventstore.Filter())
