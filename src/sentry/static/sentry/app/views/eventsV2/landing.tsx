@@ -415,6 +415,10 @@ const StarterButton = styled(Button)`
 
 const StyledBanner = styled(Banner)`
   max-height: 220px;
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    max-height: 260px;
+  }
 `;
 
 export default withOrganization(DiscoverLanding);
