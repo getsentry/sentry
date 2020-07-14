@@ -93,6 +93,30 @@ class RelayStoreHelper(object):
         assert event is not None
         return event
 
+    def post_and_retrieve_security_report(self, data):
+        url = self.get_relay_security_url(self.project.id, self.projectkey.public_key)
+        responses.add_passthru(url)
+
+        event_ids = {
+            event.event_id
+            for event in eventstore.get_events(eventstore.Filter(project_ids=[self.project.id]))
+        }
+
+        def has_new_event():
+            # Hack: security report endpoint does not return event ID
+            for event in eventstore.get_events(eventstore.Filter(project_ids=[self.project.id])):
+                if event.event_id not in event_ids:
+                    return event
+
+        resp = requests.post(url, json=data)
+
+        assert resp.ok
+
+        event = self.wait_for_ingest_consumer(has_new_event)
+        # check that we found it in Snuba
+        assert event
+        return event
+
     def post_and_try_retrieve_event(self, data):
         try:
             return self.post_and_retrieve_event(data)
@@ -139,6 +163,7 @@ class RelayStoreHelper(object):
         get_relay_store_url,
         get_relay_minidump_url,
         get_relay_unreal_url,
+        get_relay_security_url,
         wait_for_ingest_consumer,
     ):
         self.auth_header = get_auth_header(
@@ -151,4 +176,5 @@ class RelayStoreHelper(object):
         self.get_relay_store_url = get_relay_store_url  # noqa
         self.get_relay_minidump_url = get_relay_minidump_url  # noqa
         self.get_relay_unreal_url = get_relay_unreal_url  # noqa
+        self.get_relay_security_url = get_relay_security_url  # noqa
         self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)  # noqa

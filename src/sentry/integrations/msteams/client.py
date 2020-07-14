@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from six.moves.urllib.parse import urlencode
 from sentry.integrations.client import ApiClient
+from sentry.utils.http import absolute_uri
+from sentry.utils.signing import sign
 
 
 class MsTeamsClient(ApiClient):
@@ -28,6 +30,67 @@ class MsTeamsClient(ApiClient):
 
     def send_message(self, conversation_id, data):
         return self.post(self.ACTIVITY_URL % conversation_id, data=data)
+
+    def send_welcome_message(self, conversation_id):
+        # sign the params so this can't be forged
+        signed_params = sign(team_id=conversation_id)
+        url = u"%s?signed_params=%s" % (
+            absolute_uri("/extensions/msteams/configure/"),
+            signed_params,
+        )
+        # TODO: Refactor message creation
+        # TODO: Tweak welcome message appearance to perfection
+        logo = {
+            "type": "Image",
+            "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
+            "size": "Medium",
+        }
+        welcome = {
+            "type": "TextBlock",
+            "weight": "Bolder",
+            "size": "Large",
+            "text": "Welcome to Sentry for Teams!",
+            "wrap": True,
+        }
+        description = {
+            "type": "TextBlock",
+            "text": "The Sentry app for Teams allows you to be notified in real-time when an error pops up, using customizable alert rules.",
+            "wrap": True,
+        }
+        instruction = {
+            "type": "TextBlock",
+            "text": "Please click [here](%s) to get started with using Sentry for Microsoft Teams."
+            % url,
+            "wrap": True,
+        }
+        card = {
+            "type": "AdaptiveCard",
+            "body": [
+                {
+                    "type": "ColumnSet",
+                    "columns": [
+                        {"type": "Column", "items": [logo], "width": "auto"},
+                        {
+                            "type": "Column",
+                            "items": [welcome],
+                            "width": "stretch",
+                            "verticalContentAlignment": "Center",
+                        },
+                    ],
+                },
+                description,
+                instruction,
+            ],
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "version": "1.2",
+        }
+        payload = {
+            "type": "message",
+            "attachments": [
+                {"contentType": "application/vnd.microsoft.card.adaptive", "content": card}
+            ],
+        }
+        self.send_message(conversation_id, payload)
 
 
 class OauthMsTeamsClient(ApiClient):

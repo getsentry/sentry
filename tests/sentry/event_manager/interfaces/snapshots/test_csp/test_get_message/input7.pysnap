@@ -1,14 +1,10 @@
 ---
-created: '2020-07-09T12:04:06.754430Z'
+created: '2020-07-09T22:22:50.717311Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_csp.py
 ---
-culprit: ''
 errors: null
-message: Blocked 'style' from 'fonts.google.com'
-origin: http://example.com/foo
 to_json:
   blocked_uri: http://fonts.google.com/foo
   document_uri: http://example.com/foo
   effective_directive: style-src-elem
-  violated_directive: ''

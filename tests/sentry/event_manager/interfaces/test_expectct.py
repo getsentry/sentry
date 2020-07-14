@@ -37,8 +37,3 @@ interface_json = {
 
 def test_basic(make_expectct_snapshot):
     make_expectct_snapshot(interface_json)
-
-
-def test_invalid_format(make_expectct_snapshot):
-    # invalid keys are just removed
-    make_expectct_snapshot({"hostname": "www.example.com", "date_time": "Not an RFC3339 datetime"})

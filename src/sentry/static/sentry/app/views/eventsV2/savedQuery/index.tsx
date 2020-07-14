@@ -194,9 +194,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   handleCreateAlertSuccess = () => {
     const {organization} = this.props;
     trackAnalyticsEvent({
-      eventKey: 'discover_v2.create_alert',
-      eventName: 'Discoverv2: Create alert from discover',
-      organization_id: parseInt(organization.id, 10),
+      eventKey: 'discover_v2.create_alert_clicked',
+      eventName: 'Discoverv2: Create alert clicked',
+      status: 'success',
+      organization_id: organization.id,
+      url: window.location.href,
     });
   };
 
@@ -316,6 +318,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           projects={projects}
           onIncompatibleQuery={onIncompatibleAlertQuery}
           onSuccess={this.handleCreateAlertSuccess}
+          referrer="discover"
           data-test-id="discover2-create-from-discover"
         />
       </Feature>
