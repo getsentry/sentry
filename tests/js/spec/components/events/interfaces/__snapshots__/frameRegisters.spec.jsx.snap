@@ -11,7 +11,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -50,13 +50,75 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconSliders
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <EmotionCssPropInternal
+                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                          Object {
+                            "$$typeof": Symbol(react.forward_ref),
+                            "propTypes": Object {
+                              "color": [Function],
+                              "size": [Function],
+                              "viewBox": [Function],
+                            },
+                            "render": [Function],
+                          }
+                        }
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        css={
+                          Object {
+                            "map": undefined,
+                            "name": "gkc929-IconSliders",
+                            "next": undefined,
+                            "styles": "transform:rotate(0deg);;label:IconSliders;",
+                            "toString": [Function],
+                          }
+                        }
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          onClick={[Function]}
+                          size="xs"
+                        >
+                          <svg
+                            className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                            fill="currentColor"
+                            height="12px"
+                            onClick={[Function]}
+                            viewBox="0 0 16 16"
+                            width="12px"
+                          >
+                            <path
+                              d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                            />
+                            <path
+                              d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                            />
+                            <path
+                              d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                            />
+                            <path
+                              d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </EmotionCssPropInternal>
+                    </IconSliders>
                   </Toggle>
                 </span>
               </Container>
@@ -72,7 +134,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -111,13 +173,75 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconSliders
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <EmotionCssPropInternal
+                      __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                        Object {
+                          "$$typeof": Symbol(react.forward_ref),
+                          "propTypes": Object {
+                            "color": [Function],
+                            "size": [Function],
+                            "viewBox": [Function],
+                          },
+                          "render": [Function],
+                        }
+                      }
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      css={
+                        Object {
+                          "map": undefined,
+                          "name": "gkc929-IconSliders",
+                          "next": undefined,
+                          "styles": "transform:rotate(0deg);;label:IconSliders;",
+                          "toString": [Function],
+                        }
+                      }
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                          />
+                          <path
+                            d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                          />
+                          <path
+                            d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </EmotionCssPropInternal>
+                  </IconSliders>
                 </Toggle>
               </span>
             </Container>
@@ -135,7 +259,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -174,13 +298,75 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconSliders
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <EmotionCssPropInternal
+                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                          Object {
+                            "$$typeof": Symbol(react.forward_ref),
+                            "propTypes": Object {
+                              "color": [Function],
+                              "size": [Function],
+                              "viewBox": [Function],
+                            },
+                            "render": [Function],
+                          }
+                        }
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        css={
+                          Object {
+                            "map": undefined,
+                            "name": "gkc929-IconSliders",
+                            "next": undefined,
+                            "styles": "transform:rotate(0deg);;label:IconSliders;",
+                            "toString": [Function],
+                          }
+                        }
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          onClick={[Function]}
+                          size="xs"
+                        >
+                          <svg
+                            className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                            fill="currentColor"
+                            height="12px"
+                            onClick={[Function]}
+                            viewBox="0 0 16 16"
+                            width="12px"
+                          >
+                            <path
+                              d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                            />
+                            <path
+                              d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                            />
+                            <path
+                              d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                            />
+                            <path
+                              d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </EmotionCssPropInternal>
+                    </IconSliders>
                   </Toggle>
                 </span>
               </Container>
@@ -196,7 +382,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -235,13 +421,75 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconSliders
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <EmotionCssPropInternal
+                      __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                        Object {
+                          "$$typeof": Symbol(react.forward_ref),
+                          "propTypes": Object {
+                            "color": [Function],
+                            "size": [Function],
+                            "viewBox": [Function],
+                          },
+                          "render": [Function],
+                        }
+                      }
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      css={
+                        Object {
+                          "map": undefined,
+                          "name": "gkc929-IconSliders",
+                          "next": undefined,
+                          "styles": "transform:rotate(0deg);;label:IconSliders;",
+                          "toString": [Function],
+                        }
+                      }
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                          />
+                          <path
+                            d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                          />
+                          <path
+                            d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </EmotionCssPropInternal>
+                  </IconSliders>
                 </Toggle>
               </span>
             </Container>
@@ -259,7 +507,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -298,13 +546,75 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconSliders
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <EmotionCssPropInternal
+                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                          Object {
+                            "$$typeof": Symbol(react.forward_ref),
+                            "propTypes": Object {
+                              "color": [Function],
+                              "size": [Function],
+                              "viewBox": [Function],
+                            },
+                            "render": [Function],
+                          }
+                        }
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        css={
+                          Object {
+                            "map": undefined,
+                            "name": "gkc929-IconSliders",
+                            "next": undefined,
+                            "styles": "transform:rotate(0deg);;label:IconSliders;",
+                            "toString": [Function],
+                          }
+                        }
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          onClick={[Function]}
+                          size="xs"
+                        >
+                          <svg
+                            className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                            fill="currentColor"
+                            height="12px"
+                            onClick={[Function]}
+                            viewBox="0 0 16 16"
+                            width="12px"
+                          >
+                            <path
+                              d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                            />
+                            <path
+                              d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                            />
+                            <path
+                              d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                            />
+                            <path
+                              d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </EmotionCssPropInternal>
+                    </IconSliders>
                   </Toggle>
                 </span>
               </Container>
@@ -320,7 +630,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -359,13 +669,75 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconSliders
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <EmotionCssPropInternal
+                      __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                        Object {
+                          "$$typeof": Symbol(react.forward_ref),
+                          "propTypes": Object {
+                            "color": [Function],
+                            "size": [Function],
+                            "viewBox": [Function],
+                          },
+                          "render": [Function],
+                        }
+                      }
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      css={
+                        Object {
+                          "map": undefined,
+                          "name": "gkc929-IconSliders",
+                          "next": undefined,
+                          "styles": "transform:rotate(0deg);;label:IconSliders;",
+                          "toString": [Function],
+                        }
+                      }
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                          />
+                          <path
+                            d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                          />
+                          <path
+                            d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </EmotionCssPropInternal>
+                  </IconSliders>
                 </Toggle>
               </span>
             </Container>
@@ -388,7 +760,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -427,13 +799,75 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconSliders
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <EmotionCssPropInternal
+                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                          Object {
+                            "$$typeof": Symbol(react.forward_ref),
+                            "propTypes": Object {
+                              "color": [Function],
+                              "size": [Function],
+                              "viewBox": [Function],
+                            },
+                            "render": [Function],
+                          }
+                        }
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        css={
+                          Object {
+                            "map": undefined,
+                            "name": "gkc929-IconSliders",
+                            "next": undefined,
+                            "styles": "transform:rotate(0deg);;label:IconSliders;",
+                            "toString": [Function],
+                          }
+                        }
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          onClick={[Function]}
+                          size="xs"
+                        >
+                          <svg
+                            className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                            fill="currentColor"
+                            height="12px"
+                            onClick={[Function]}
+                            viewBox="0 0 16 16"
+                            width="12px"
+                          >
+                            <path
+                              d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                            />
+                            <path
+                              d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                            />
+                            <path
+                              d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                            />
+                            <path
+                              d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </EmotionCssPropInternal>
+                    </IconSliders>
                   </Toggle>
                 </span>
               </Container>
@@ -449,7 +883,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -488,13 +922,75 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconSliders
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <EmotionCssPropInternal
+                      __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                        Object {
+                          "$$typeof": Symbol(react.forward_ref),
+                          "propTypes": Object {
+                            "color": [Function],
+                            "size": [Function],
+                            "viewBox": [Function],
+                          },
+                          "render": [Function],
+                        }
+                      }
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      css={
+                        Object {
+                          "map": undefined,
+                          "name": "gkc929-IconSliders",
+                          "next": undefined,
+                          "styles": "transform:rotate(0deg);;label:IconSliders;",
+                          "toString": [Function],
+                        }
+                      }
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                          />
+                          <path
+                            d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                          />
+                          <path
+                            d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </EmotionCssPropInternal>
+                  </IconSliders>
                 </Toggle>
               </span>
             </Container>
@@ -512,7 +1008,7 @@ Array [
     >
       <FixedWidth>
         <span
-          className="css-5okdek-FixedWidth e1e1y5ql1"
+          className="css-cb9msf-FixedWidth e1e1y5ql1"
         >
           <AnnotatedText
             meta={null}
@@ -551,13 +1047,75 @@ Array [
                   onMouseLeave={[Function]}
                 >
                   <Toggle
-                    className="icon-filter"
                     onClick={[Function]}
+                    size="xs"
                   >
-                    <span
-                      className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                    <IconSliders
+                      className="css-5my71s-Toggle e1e1y5ql2"
                       onClick={[Function]}
-                    />
+                      size="xs"
+                    >
+                      <EmotionCssPropInternal
+                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                          Object {
+                            "$$typeof": Symbol(react.forward_ref),
+                            "propTypes": Object {
+                              "color": [Function],
+                              "size": [Function],
+                              "viewBox": [Function],
+                            },
+                            "render": [Function],
+                          }
+                        }
+                        className="css-5my71s-Toggle e1e1y5ql2"
+                        css={
+                          Object {
+                            "map": undefined,
+                            "name": "gkc929-IconSliders",
+                            "next": undefined,
+                            "styles": "transform:rotate(0deg);;label:IconSliders;",
+                            "toString": [Function],
+                          }
+                        }
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          onClick={[Function]}
+                          size="xs"
+                        >
+                          <svg
+                            className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                            fill="currentColor"
+                            height="12px"
+                            onClick={[Function]}
+                            viewBox="0 0 16 16"
+                            width="12px"
+                          >
+                            <path
+                              d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                            />
+                            <path
+                              d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                            />
+                            <path
+                              d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                            />
+                            <path
+                              d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                            />
+                            <path
+                              d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </EmotionCssPropInternal>
+                    </IconSliders>
                   </Toggle>
                 </span>
               </Container>
@@ -573,7 +1131,7 @@ Array [
   >
     <FixedWidth>
       <span
-        className="css-5okdek-FixedWidth e1e1y5ql1"
+        className="css-cb9msf-FixedWidth e1e1y5ql1"
       >
         <AnnotatedText
           meta={null}
@@ -612,13 +1170,75 @@ Array [
                 onMouseLeave={[Function]}
               >
                 <Toggle
-                  className="icon-filter"
                   onClick={[Function]}
+                  size="xs"
                 >
-                  <span
-                    className="icon-filter css-120ji34-Toggle e1e1y5ql2"
+                  <IconSliders
+                    className="css-5my71s-Toggle e1e1y5ql2"
                     onClick={[Function]}
-                  />
+                    size="xs"
+                  >
+                    <EmotionCssPropInternal
+                      __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconSliders"
+                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                        Object {
+                          "$$typeof": Symbol(react.forward_ref),
+                          "propTypes": Object {
+                            "color": [Function],
+                            "size": [Function],
+                            "viewBox": [Function],
+                          },
+                          "render": [Function],
+                        }
+                      }
+                      className="css-5my71s-Toggle e1e1y5ql2"
+                      css={
+                        Object {
+                          "map": undefined,
+                          "name": "gkc929-IconSliders",
+                          "next": undefined,
+                          "styles": "transform:rotate(0deg);;label:IconSliders;",
+                          "toString": [Function],
+                        }
+                      }
+                      onClick={[Function]}
+                      size="xs"
+                    >
+                      <ForwardRef(SvgIcon)
+                        className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                        onClick={[Function]}
+                        size="xs"
+                      >
+                        <svg
+                          className="e1e1y5ql2 css-1i97kmy-IconSliders-Toggle"
+                          fill="currentColor"
+                          height="12px"
+                          onClick={[Function]}
+                          viewBox="0 0 16 16"
+                          width="12px"
+                        >
+                          <path
+                            d="M4.33,14a2.86,2.86,0,1,1,2.86-2.85A2.86,2.86,0,0,1,4.33,14Zm0-4.21a1.36,1.36,0,1,0,1.36,1.36A1.35,1.35,0,0,0,4.33,9.75Z"
+                          />
+                          <path
+                            d="M11.71,7.75a2.86,2.86,0,1,1,2.85-2.86A2.86,2.86,0,0,1,11.71,7.75Zm0-4.21a1.36,1.36,0,1,0,1.35,1.35A1.36,1.36,0,0,0,11.71,3.54Z"
+                          />
+                          <path
+                            d="M15.19,11.86H6.44a.75.75,0,0,1,0-1.5h8.75a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M2.23,11.86H.81a.75.75,0,0,1,0-1.5H2.23a.75.75,0,1,1,0,1.5Z"
+                          />
+                          <path
+                            d="M15.19,5.64H13.81a.75.75,0,0,1,0-1.5h1.38a.75.75,0,0,1,0,1.5Z"
+                          />
+                          <path
+                            d="M9.6,5.64H.81a.75.75,0,1,1,0-1.5H9.6a.75.75,0,0,1,0,1.5Z"
+                          />
+                        </svg>
+                      </ForwardRef(SvgIcon)>
+                    </EmotionCssPropInternal>
+                  </IconSliders>
                 </Toggle>
               </span>
             </Container>
