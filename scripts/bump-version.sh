@@ -8,5 +8,6 @@ OLD_VERSION="$1"
 NEW_VERSION="$2"
 
 sed -i -e "s/^VERSION = "'".*"'"\$/VERSION = "'"'"$NEW_VERSION"'"'"/" setup.py
+sed -i -e "s/\(Change Date:\s*\)[-0-9]\+\$/\\1$(date +'%Y-%m-%d' -d '3 years')/" LICENSE
 
 echo "New version: $NEW_VERSION"
