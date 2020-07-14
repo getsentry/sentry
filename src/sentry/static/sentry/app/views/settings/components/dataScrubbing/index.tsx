@@ -55,7 +55,11 @@ class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
     this.loadOrganizationRules();
   }
 
-  componentDidUpdate(_prevProps: Props<T>, prevState: State) {
+  componentDidUpdate(prevProps: Props<T>, prevState: State) {
+    if (prevProps.relayPiiConfig !== this.props.relayPiiConfig) {
+      this.loadRelayPiiConfig();
+      return;
+    }
     if (prevState.relayPiiConfig !== this.state.relayPiiConfig) {
       this.loadRules();
     }

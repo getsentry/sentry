@@ -2,6 +2,7 @@ import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import {APIRequestMethod} from 'app/api';
 import {t} from 'app/locale';
@@ -135,6 +136,12 @@ export default class Form extends React.Component<Props> {
       saveOnBlur: this.props.saveOnBlur,
       form: this.model,
     };
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (!isEqual(prevProps.initialData, this.props.initialData)) {
+      this.model.setInitialData(this.props.initialData);
+    }
   }
 
   componentWillUnmount() {
