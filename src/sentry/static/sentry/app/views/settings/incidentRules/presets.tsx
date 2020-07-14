@@ -159,6 +159,9 @@ function makeGenericTransactionCta(opts: {
     const summaryUrl = transactionSummaryRouteWithQuery({
       orgSlug,
       transaction,
+      projectID: projects
+        .filter(({slug}) => incident.projects.includes(slug))
+        .map(({id}) => id),
       query: {...period},
     });
 

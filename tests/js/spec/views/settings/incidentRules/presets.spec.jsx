@@ -175,6 +175,7 @@ describe('Incident Presets', function() {
         expect(transactionSummaryRouteWithQuery).toHaveBeenCalledWith({
           orgSlug: org.slug,
           transaction: 'do_work',
+          projectID: [],
           query: {
             start: '1970-01-01T00:00:00',
             end: '1970-01-01T00:02:00',
@@ -254,6 +255,7 @@ describe('Incident Presets', function() {
         expect(transactionSummaryRouteWithQuery).toHaveBeenCalledWith({
           orgSlug: org.slug,
           transaction: 'do_work',
+          projectID: [],
           query: {
             start: '1970-01-01T00:00:00',
             end: '1970-01-01T00:02:00',
@@ -332,6 +334,7 @@ describe('Incident Presets', function() {
         expect(transactionSummaryRouteWithQuery).toHaveBeenCalledWith({
           orgSlug: org.slug,
           transaction: 'do_work',
+          projectID: [],
           query: {
             start: '1970-01-01T00:00:00',
             end: '1970-01-01T00:02:00',
