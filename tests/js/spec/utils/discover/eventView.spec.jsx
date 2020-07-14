@@ -2378,10 +2378,10 @@ describe('EventView.getDisplayOptions()', function() {
     });
 
     const options = eventView.getDisplayOptions();
-    expect(options[3].value).toEqual('top5');
-    expect(options[3].disabled).toBeTruthy();
-    expect(options[5].value).toEqual('dailytop5');
-    expect(options[5].disabled).toBeTruthy();
+    expect(options[2].value).toEqual('top5');
+    expect(options[2].disabled).toBeTruthy();
+    expect(options[4].value).toEqual('dailytop5');
+    expect(options[4].disabled).toBeTruthy();
   });
 });
 

@@ -1031,7 +1031,10 @@ class EventView {
   }
 
   getDisplayMode() {
-    const display = this.display ?? DisplayModes.DEFAULT;
+    const mode = this.display ?? DisplayModes.DEFAULT;
+    const display = (Object.values(DisplayModes) as string[]).includes(mode)
+      ? mode
+      : DisplayModes.DEFAULT;
     const displayOptions = this.getDisplayOptions();
     const selectedOption = displayOptions.find(option => option.value === display);
     if (selectedOption && !selectedOption.disabled) {

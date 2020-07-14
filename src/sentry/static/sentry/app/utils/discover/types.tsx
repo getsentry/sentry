@@ -6,7 +6,6 @@ export const TOP_N = 5;
 export enum DisplayModes {
   DEFAULT = 'default',
   PREVIOUS = 'previous',
-  RELEASES = 'releases',
   TOP5 = 'top5',
   DAILY = 'daily',
   DAILYTOP5 = 'dailytop5',
@@ -15,7 +14,6 @@ export enum DisplayModes {
 export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DEFAULT, label: t('Total Period')},
   {value: DisplayModes.PREVIOUS, label: t('Previous Period')},
-  {value: DisplayModes.RELEASES, label: t('Release Markers')},
   {value: DisplayModes.TOP5, label: t('Top 5 Period')},
   {value: DisplayModes.DAILY, label: t('Total Daily')},
   {value: DisplayModes.DAILYTOP5, label: t('Top 5 Daily')},
@@ -24,7 +22,6 @@ export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
 export const DISPLAY_MODE_FALLBACK_OPTIONS = {
   [DisplayModes.DEFAULT]: DisplayModes.DEFAULT,
   [DisplayModes.PREVIOUS]: DisplayModes.DEFAULT,
-  [DisplayModes.RELEASES]: DisplayModes.DEFAULT,
   [DisplayModes.TOP5]: DisplayModes.DEFAULT,
   [DisplayModes.DAILY]: DisplayModes.DAILY,
   [DisplayModes.DAILYTOP5]: DisplayModes.DAILY,
