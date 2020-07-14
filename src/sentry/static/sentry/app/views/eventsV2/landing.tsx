@@ -414,7 +414,7 @@ const StarterButton = styled(Button)`
 `;
 
 const StyledBanner = styled(Banner)`
-  max-height: 260px;
+  max-height: 220px;
 `;
 
 export default withOrganization(DiscoverLanding);
