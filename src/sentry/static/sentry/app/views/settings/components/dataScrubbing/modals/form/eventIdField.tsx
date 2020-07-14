@@ -8,24 +8,22 @@ import space from 'app/styles/space';
 import Field from 'app/views/settings/components/forms/field';
 
 import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
-import {EventIdStatus, EventId} from '../types';
+import {EventIdStatus, EventId} from '../../types';
+import {saveToSourceGroupData} from '../utils';
 
 type Props = {
   onUpdateEventId: (eventId: string) => void;
-  eventId?: EventId;
+  eventId: EventId;
   disabled?: boolean;
 };
 
 type State = {
   value: string;
-  status?: EventIdStatus;
+  status: EventIdStatus;
 };
 
 class EventIdField extends React.Component<Props, State> {
-  state = {
-    value: this.props.eventId?.value || '',
-    status: this.props.eventId?.status,
-  };
+  state: State = {...this.props.eventId};
 
   componentDidUpdate(prevProps: Props) {
     if (!isEqual(prevProps.eventId, this.props.eventId)) {
@@ -33,11 +31,43 @@ class EventIdField extends React.Component<Props, State> {
     }
   }
 
-  loadState = () => {
+  loadState() {
     this.setState({
       ...this.props.eventId,
     });
-  };
+  }
+
+  getErrorMessage(): string | undefined {
+    const {status} = this.state;
+
+    switch (status) {
+      case EventIdStatus.INVALID:
+        return t('This event ID is invalid.');
+      case EventIdStatus.ERROR:
+        return t(
+          'An error occurred while fetching the suggestions based on this event ID.'
+        );
+      case EventIdStatus.NOT_FOUND:
+        return t('The chosen event ID was not found in projects you have access to.');
+      default:
+        return undefined;
+    }
+  }
+
+  isEventIdValid(): boolean {
+    const {value, status} = this.state;
+
+    if (value && value.length !== 32) {
+      if (status !== EventIdStatus.INVALID) {
+        saveToSourceGroupData({value, status});
+        this.setState({status: EventIdStatus.INVALID});
+      }
+
+      return false;
+    }
+
+    return true;
+  }
 
   handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const eventId = event.target.value.replace(/-/g, '').trim();
@@ -45,20 +75,9 @@ class EventIdField extends React.Component<Props, State> {
     if (eventId !== this.state.value) {
       this.setState({
         value: eventId,
-        status: undefined,
+        status: EventIdStatus.UNDEFINED,
       });
     }
-  };
-
-  isEventIdValid = (): boolean => {
-    const {value} = this.state;
-
-    if (value && value.length !== 32) {
-      this.setState({status: EventIdStatus.INVALID});
-      return false;
-    }
-
-    return true;
   };
 
   handleBlur = (event: React.FocusEvent<HTMLInputElement>) => {
@@ -80,25 +99,8 @@ class EventIdField extends React.Component<Props, State> {
   handleClickIconClose = () => {
     this.setState({
       value: '',
-      status: undefined,
+      status: EventIdStatus.UNDEFINED,
     });
-  };
-
-  getErrorMessage = (): string | undefined => {
-    const {status} = this.state;
-
-    switch (status) {
-      case EventIdStatus.INVALID:
-        return t('This event ID is invalid.');
-      case EventIdStatus.ERROR:
-        return t(
-          'An error occurred while fetching the suggestions based on this Event ID.'
-        );
-      case EventIdStatus.NOT_FOUND:
-        return t('The chosen event ID was not found in projects you have access to.');
-      default:
-        return undefined;
-    }
   };
 
   render() {
@@ -107,6 +109,7 @@ class EventIdField extends React.Component<Props, State> {
 
     return (
       <Field
+        data-test-id="event-id-field"
         label={t('Event ID (Optional)')}
         help={t(
           'Providing an event ID will automatically provide you a list of suggested sources'

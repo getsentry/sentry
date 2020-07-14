@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
 import {IconClose, IconCheckmark} from 'app/icons';
 
-import {EventIdStatus} from '../types';
+import {EventIdStatus} from '../../types';
 
 type Props = {
   onClickIconClose: () => void;
@@ -20,7 +20,7 @@ const EventIdFieldStatusIcon = ({status, onClickIconClose}: Props) => {
     case EventIdStatus.NOT_FOUND:
       return (
         <CloseIcon onClick={onClickIconClose}>
-          <Tooltip title={t('Clear Event ID')}>
+          <Tooltip title={t('Clear event ID')}>
             <StyledIconClose size="xs" />
           </Tooltip>
         </CloseIcon>

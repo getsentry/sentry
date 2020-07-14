@@ -7,15 +7,15 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import TextOverflow from 'app/components/textOverflow';
 import {defined} from 'app/utils';
 
-import {unarySuggestions, binarySuggestions} from '../utils';
+import {unarySuggestions, binarySuggestions} from '../../utils';
 import SourceSuggestionExamples from './sourceSuggestionExamples';
-import {SourceSuggestion, SourceSuggestionType} from '../types';
+import {SourceSuggestion, SourceSuggestionType} from '../../types';
 
 type Props = {
   value: string;
   onChange: (value: string) => void;
   isRegExMatchesSelected: boolean;
-  suggestions?: Array<SourceSuggestion>;
+  suggestions: Array<SourceSuggestion>;
   error?: string;
   onBlur?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
 };
@@ -68,7 +68,7 @@ class SourceField extends React.Component<Props, State> {
     return this.props.suggestions || [];
   }
 
-  getFilteredSuggestions = (value: string, type: SourceSuggestionType) => {
+  getFilteredSuggestions(value: string, type: SourceSuggestionType) {
     let valuesToBeFiltered: Array<SourceSuggestion> = [];
 
     switch (type) {
@@ -94,11 +94,9 @@ class SourceField extends React.Component<Props, State> {
     );
 
     return filteredSuggestions;
-  };
+  }
 
-  getNewSuggestions = (
-    fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>
-  ) => {
+  getNewSuggestions(fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>) {
     const lastFieldValue = fieldValues[fieldValues.length - 1];
     const penultimateFieldValue = fieldValues[fieldValues.length - 2];
 
@@ -159,9 +157,9 @@ class SourceField extends React.Component<Props, State> {
     }
 
     return this.getFilteredSuggestions(lastFieldValue?.value, lastFieldValue?.type);
-  };
+  }
 
-  loadFieldValues = (newValue: string) => {
+  loadFieldValues(newValue: string) {
     const fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>> = [];
 
     const splittedValue = newValue.split(' ');
@@ -211,9 +209,9 @@ class SourceField extends React.Component<Props, State> {
       activeSuggestion: 0,
       suggestions: filteredSuggestions,
     });
-  };
+  }
 
-  scrollToSuggestion = () => {
+  scrollToSuggestion() {
     const {activeSuggestion, hideCaret} = this.state;
 
     this.suggestionList?.current?.children[activeSuggestion].scrollIntoView({
@@ -227,22 +225,9 @@ class SourceField extends React.Component<Props, State> {
         hideCaret: true,
       });
     }
-  };
+  }
 
-  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
-    this.loadFieldValues(newValue);
-    this.props.onChange(newValue);
-  };
-
-  handleClickOutside = () => {
-    this.setState({
-      showSuggestions: false,
-      hideCaret: false,
-    });
-  };
-
-  handleChangeParentValue = () => {
+  changeParentValue() {
     const {onChange} = this.props;
     const {fieldValues} = this.state;
     const newValue: Array<string> = [];
@@ -257,11 +242,11 @@ class SourceField extends React.Component<Props, State> {
     }
 
     onChange(newValue.join(' '));
-  };
+  }
 
-  getNewFieldValues = (
+  getNewFieldValues(
     suggestion: SourceSuggestion
-  ): Array<SourceSuggestion | Array<SourceSuggestion>> => {
+  ): Array<SourceSuggestion | Array<SourceSuggestion>> {
     const fieldValues = [...this.state.fieldValues];
     const lastFieldValue = fieldValues[fieldValues.length - 1];
 
@@ -283,6 +268,52 @@ class SourceField extends React.Component<Props, State> {
     }
 
     return fieldValues;
+  }
+
+  checkPossiblyRegExMatchExpression(value: string) {
+    const {isRegExMatchesSelected} = this.props;
+    const {help} = this.state;
+
+    if (isRegExMatchesSelected) {
+      if (help) {
+        this.setState({help: ''});
+      }
+      return;
+    }
+
+    const isMaybeRegExp = RegExp('^/.*/g?$').test(value);
+
+    if (help) {
+      if (!isMaybeRegExp) {
+        this.setState({
+          help: '',
+        });
+      }
+      return;
+    }
+
+    if (isMaybeRegExp) {
+      this.setState({
+        help: t("You might want to change Data Type's value to 'Regex matches'"),
+      });
+    }
+  }
+
+  toggleSuggestions(showSuggestions: boolean) {
+    this.setState({showSuggestions});
+  }
+
+  handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    this.loadFieldValues(newValue);
+    this.props.onChange(newValue);
+  };
+
+  handleClickOutside = () => {
+    this.setState({
+      showSuggestions: false,
+      hideCaret: false,
+    });
   };
 
   handleClickSuggestionItem = (suggestion: SourceSuggestion) => () => {
@@ -294,9 +325,7 @@ class SourceField extends React.Component<Props, State> {
         showSuggestions: false,
         hideCaret: false,
       },
-      () => {
-        this.handleChangeParentValue();
-      }
+      this.changeParentValue
     );
   };
 
@@ -337,41 +366,8 @@ class SourceField extends React.Component<Props, State> {
     }
   };
 
-  toggleSuggestions = (showSuggestions: boolean) => {
-    this.setState({showSuggestions});
-  };
-
   handleFocus = () => {
     this.toggleSuggestions(true);
-  };
-
-  checkPossiblyRegExMatchExpression = (value: string) => {
-    const {isRegExMatchesSelected} = this.props;
-    const {help} = this.state;
-
-    if (isRegExMatchesSelected) {
-      if (help) {
-        this.setState({help: ''});
-      }
-      return;
-    }
-
-    const isPossiblyARegularExpression = RegExp('^/.*/g?$').test(value);
-
-    if (help) {
-      if (!isPossiblyARegularExpression) {
-        this.setState({
-          help: '',
-        });
-      }
-      return;
-    }
-
-    if (isPossiblyARegularExpression) {
-      this.setState({
-        help: t("You might want to change Data Type's value to 'Regex matches'"),
-      });
-    }
   };
 
   render() {

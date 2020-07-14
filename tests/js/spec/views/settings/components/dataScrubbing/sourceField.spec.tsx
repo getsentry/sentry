@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SourceField from 'app/views/settings/components/dataScrubbing/form/sourceField';
+import SourceField from 'app/views/settings/components/dataScrubbing/modals/form/sourceField';
 import {
   binarySuggestions,
   unarySuggestions,
