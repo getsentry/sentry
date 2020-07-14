@@ -146,16 +146,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
    */
-  handleAddAlertRule = (e: React.MouseEvent) => {
-    const {router, params} = this.props;
-    e.preventDefault();
-    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
-  };
-
-  /**
-   * Incidents list is currently at the organization level, but the link needs to
-   * go down to a specific project scope.
-   */
   handleNavigateToSettings = (e: React.MouseEvent) => {
     const {router, params} = this.props;
     e.preventDefault();
@@ -400,7 +390,10 @@ const AddAlertRuleButton = ({router, params, organization}: Props) => (
         onClick={e => {
           e.preventDefault();
 
-          navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
+          navigateTo(
+            `/settings/${params.orgId}/projects/:projectId/alerts/new/?referrer=alert_stream`,
+            router
+          );
         }}
         priority="primary"
         href="#"

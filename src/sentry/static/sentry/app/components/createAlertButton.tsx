@@ -134,12 +134,14 @@ type Props = React.ComponentProps<typeof Button> & {
    */
   eventView: EventView;
   organization: Organization;
+  referrer?: string;
   /**
    * Called when the current eventView does not meet the requirements of alert rules
    * @returns a function that takes an alert close function argument
    */
   onIncompatibleQuery: (
-    incompatibleAlertNoticeFn: (onAlertClose: () => void) => React.ReactNode
+    incompatibleAlertNoticeFn: (onAlertClose: () => void) => React.ReactNode,
+    errors: IncompatibleQueryProperties
   ) => void;
   /**
    * Called when the user is redirected to the alert builder
@@ -181,6 +183,7 @@ function CreateAlertButton({
   projects,
   eventView,
   organization,
+  referrer,
   onIncompatibleQuery,
   onSuccess,
   ...buttonProps
@@ -210,19 +213,23 @@ function CreateAlertButton({
         query: {
           ...eventView.generateQueryStringObject(),
           createFromDiscover: true,
+          referrer,
         },
       };
 
   const handleClick = (event: React.MouseEvent) => {
     if (hasErrors) {
       event.preventDefault();
-      onIncompatibleQuery((onAlertClose: () => void) => (
-        <IncompatibleQueryAlert
-          incompatibleQuery={errors}
-          eventView={eventView}
-          onClose={onAlertClose}
-        />
-      ));
+      onIncompatibleQuery(
+        (onAlertClose: () => void) => (
+          <IncompatibleQueryAlert
+            incompatibleQuery={errors}
+            eventView={eventView}
+            onClose={onAlertClose}
+          />
+        ),
+        errors
+      );
       return;
     }
 

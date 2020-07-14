@@ -3,8 +3,8 @@ import React from 'react';
 import {BannerContainer, BannerSummary} from 'app/components/events/styles';
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
+import {IconMute} from 'app/icons';
 import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import {ResolutionStatusDetails} from 'app/types';
 
 type Props = {
@@ -62,7 +62,7 @@ class MutedBox extends React.PureComponent<Props> {
   render = () => (
     <BannerContainer priority="default">
       <BannerSummary>
-        <span className="icon icon-soundoff" style={{color: theme.red400}} />
+        <IconMute color="red400" size="sm" />
         <span>
           {this.renderReason()}&nbsp;&mdash;&nbsp;
           {t(

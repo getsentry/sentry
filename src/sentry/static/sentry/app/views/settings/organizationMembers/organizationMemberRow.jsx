@@ -8,7 +8,7 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import InlineSvg from 'app/components/inlineSvg';
-import {IconMail} from 'app/icons';
+import {IconClose, IconMail, IconSubtract} from 'app/icons';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
@@ -165,7 +165,12 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   orgName,
                 })}
               >
-                <Button icon="icon-circle-subtract" size="small" busy={this.state.busy}>
+                <Button
+                  data-test-id="remove"
+                  icon={<IconSubtract isCircled size="xs" />}
+                  size="small"
+                  busy={this.state.busy}
+                >
                   {t('Remove')}
                 </Button>
               </Confirm>
@@ -176,7 +181,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
                 disabled
                 size="small"
                 title={t('You do not have access to remove members')}
-                icon="icon-circle-subtract"
+                icon={<IconSubtract isCircled size="xs" />}
               >
                 {t('Remove')}
               </Button>
@@ -195,7 +200,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   orgName,
                 })}
               >
-                <Button priority="danger" size="small" icon="icon-exit">
+                <Button priority="danger" size="small" icon={<IconClose size="xs" />}>
                   {t('Leave')}
                 </Button>
               </Confirm>
@@ -204,7 +209,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
             {showLeaveButton && !memberCanLeave && (
               <Button
                 size="small"
-                icon="icon-exit"
+                icon={<IconClose size="xs" />}
                 disabled
                 title={t(
                   'You cannot leave this organization as you are the only organization owner.'
