@@ -23,6 +23,8 @@ class BaseAlertRuleSerializerTest(object):
         assert result["dataset"] == alert_rule.snuba_query.dataset
         assert result["query"] == alert_rule.snuba_query.query
         assert result["aggregate"] == alert_rule.snuba_query.aggregate
+        assert result["thresholdType"] == alert_rule.threshold_type
+        assert result["resolveThreshold"] == alert_rule.resolve_threshold
         assert result["timeWindow"] == alert_rule.snuba_query.time_window / 60
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
@@ -71,6 +73,13 @@ class BaseAlertRuleSerializerTest(object):
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
         alert_rule = self.create_alert_rule()
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result)
+
+    def test_threshold_type_resolve_threshold(self):
+        alert_rule = self.create_alert_rule(
+            threshold_type=AlertRuleThresholdType.BELOW, resolve_threshold=500
+        )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
 

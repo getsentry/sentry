@@ -134,6 +134,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         )
 
         test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params.update({"name": "what"})
 
         self.login_as(self.user)
@@ -148,6 +149,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
     def test_not_updated_fields(self):
         test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = self.alert_rule.resolve_threshold
         test_params["aggregate"] = self.alert_rule.snuba_query.aggregate
 
         self.create_member(
