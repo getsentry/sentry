@@ -45,7 +45,7 @@ class EventIdField extends React.Component<Props, State> {
         return t('This event ID is invalid.');
       case EventIdStatus.ERROR:
         return t(
-          'An error occurred while fetching the suggestions based on this Event ID.'
+          'An error occurred while fetching the suggestions based on this event ID.'
         );
       case EventIdStatus.NOT_FOUND:
         return t('The chosen event ID was not found in projects you have access to.');
