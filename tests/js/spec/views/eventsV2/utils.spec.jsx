@@ -411,7 +411,7 @@ describe('getExpandedResults()', function() {
       title: 'bogus',
     };
     const result = getExpandedResults(view, {trace: 'abc123'}, event);
-    expect(result.query).toEqual('event.type:error title:bogus trace:abc123');
+    expect(result.query).toEqual('event.type:error trace:abc123 title:bogus');
   });
 
   it('applies project as condition if present', () => {

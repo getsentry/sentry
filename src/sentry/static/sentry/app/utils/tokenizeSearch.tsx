@@ -1,93 +1,176 @@
-import flatMap from 'lodash/flatMap';
-
 import {escapeDoubleQuotes} from 'app/utils';
 
-export type QueryResults = {
-  /**
-   * The text portion of the string query
-   */
-  query: string[];
-  [k: string]: string[];
+export enum TokenType {
+  OP,
+  TAG,
+  QUERY,
+}
+
+export type Token = {
+  type: TokenType;
+  key?: string;
+  value: string;
 };
 
+export class QueryResults {
+  tagValues: object;
+  tokens: Token[];
+
+  constructor(strTokens: string[]) {
+    this.tokens = [];
+    this.tagValues = {};
+    for (let token of strTokens) {
+      let tokenState = TokenType.QUERY;
+
+      if (['OR', 'AND'].includes(token.toUpperCase())) {
+        this.addOp(token.toUpperCase());
+        continue;
+      }
+
+      if (token.startsWith('(')) {
+        const parenMatch = token.match(/^\(+/g);
+        if (parenMatch) {
+          this.addOp(parenMatch[0]);
+          token = token.replace(/^\(+/g, '');
+        }
+      }
+
+      // Traverse the token and determine if it is a tag
+      // condition or bare words.
+      for (let i = 0, len = token.length; i < len; i++) {
+        const char = token[i];
+
+        if (i === 0 && (char === '"' || char === ':')) {
+          break;
+        }
+
+        // We may have entered a tag condition
+        if (char === ':') {
+          const nextChar = token[i + 1] || '';
+          if ([':', ' '].includes(nextChar)) {
+            tokenState = TokenType.QUERY;
+          } else {
+            tokenState = TokenType.TAG;
+          }
+          break;
+        }
+      }
+
+      let trailingParen: string = '';
+      if (token.endsWith(')')) {
+        const parenMatch = token.match(/\)+$/g);
+        if (parenMatch) {
+          trailingParen = parenMatch[0];
+          token = token.replace(/\)+$/g, '');
+        }
+      }
+
+      if (tokenState === TokenType.QUERY) {
+        this.addQuery(token);
+      } else if (tokenState === TokenType.TAG) {
+        this.addStringTag(token);
+      }
+
+      if (trailingParen !== '') {
+        this.addOp(trailingParen);
+      }
+    }
+  }
+
+  formatString() {
+    const formattedTokens: string[] = [];
+    for (const token of this.tokens) {
+      switch (token.type) {
+        case TokenType.TAG:
+          if (token.value === '' || token.value === null) {
+            formattedTokens.push(`${token.key}:""`);
+          } else if (/[\s\(\)\\"]/g.test(token.value)) {
+            formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
+          } else {
+            formattedTokens.push(`${token.key}:${token.value}`);
+          }
+          break;
+        default:
+          formattedTokens.push(token.value);
+      }
+    }
+    return formattedTokens.join(' ').trim();
+  }
+
+  addStringTag(value: string) {
+    const [key, tag] = formatTag(value);
+    this.addTag(key, [tag]);
+  }
+
+  addTag(key: string, tags: string[]) {
+    for (const t of tags) {
+      this.tagValues[key] = Array.isArray(this.tagValues[key])
+        ? [...this.tagValues[key], t]
+        : [t];
+      const token: Token = {type: TokenType.TAG, key, value: t};
+      this.tokens.push(token);
+    }
+  }
+
+  setTag(key: string, tags: string[]) {
+    this.removeTag(key);
+    this.addTag(key, tags);
+  }
+
+  getTags(key: string) {
+    return this.tagValues[key];
+  }
+
+  removeTag(key: string) {
+    this.tokens = this.tokens.filter(token => token.key !== key);
+    delete this.tagValues[key];
+  }
+
+  addQuery(value: string) {
+    const token: Token = {type: TokenType.QUERY, value: formatQuery(value)};
+    this.tokens.push(token);
+  }
+
+  addOp(value: string) {
+    const token: Token = {type: TokenType.OP, value};
+    this.tokens.push(token);
+  }
+
+  get query(): string[] {
+    return this.tokens.filter(t => t.type === TokenType.QUERY).map(t => t.value);
+  }
+
+  set query(values: string[]) {
+    this.tokens = this.tokens.filter(t => t.type !== TokenType.QUERY);
+    for (const v of values) {
+      this.addQuery(v);
+    }
+  }
+
+  copy() {
+    const q = new QueryResults([]);
+    q.tagValues = {...this.tagValues};
+    q.tokens = [...this.tokens];
+    return q;
+  }
+}
+
 /**
- * Tokenize a search into an object
+ * Tokenize a search into a QueryResult
  *
- * Example:
- *   tokenizeSearch('is:resolved foo bar tag:value');
- *   {
- *     is ['resolved'],
- *     query: ['foo', 'bar'],
- *     tag: ['value'],
- *   }
  *
  * Should stay in sync with src.sentry.search.utils:tokenize_query
  */
 export function tokenizeSearch(query: string) {
   const tokens = splitSearchIntoTokens(query);
-
-  const searchParams: {query: string[]; tags: string[]} = {
-    query: [],
-    tags: [],
-  };
-
-  for (const token of tokens) {
-    let tokenState: 'query' | 'tags' = 'query';
-
-    // Traverse the token and determine if it is a tag
-    // condition or bare words.
-    for (let i = 0, len = token.length; i < len; i++) {
-      const char = token[i];
-
-      if (i === 0 && (char === '"' || char === ':')) {
-        break;
-      }
-
-      // We may have entered a tag condition
-      if (char === ':') {
-        const nextChar = token[i + 1] || '';
-        if ([':', ' '].includes(nextChar)) {
-          tokenState = 'query';
-        } else {
-          tokenState = 'tags';
-        }
-        break;
-      }
-    }
-    searchParams[tokenState].push(token);
-  }
-
-  const results: QueryResults = {
-    query: searchParams.query.map(formatQuery),
-  };
-
-  for (const tag of searchParams.tags) {
-    const [key, value] = formatTag(tag);
-    results[key] = Array.isArray(results[key]) ? [...results[key], value] : [value];
-  }
-
-  return results;
+  return new QueryResults(tokens);
 }
 
 /**
  * Convert a QueryResults object back to a query string
  */
 export function stringifyQueryObject(results: QueryResults) {
-  const {query, ...tags} = results;
-
-  const stringTags = flatMap(Object.entries(tags), ([k, values]) =>
-    values.map(tag => {
-      if (tag === '' || tag === null) {
-        return `${k}:""`;
-      }
-      if (/[\s\(\)\\"]/g.test(tag)) {
-        return `${k}:"${escapeDoubleQuotes(tag)}"`;
-      }
-      return `${k}:${tag}`;
-    })
-  );
-
-  return `${query.join(' ')} ${stringTags.join(' ')}`.trim();
+  return results.formatString();
 }
 
 /**
@@ -151,8 +234,8 @@ function formatTag(tag: string) {
 }
 
 /**
- * Strips enclosing quotes from a query, if present.
+ * Strips enclosing quotes and parens from a query, if present.
  */
 function formatQuery(query: string) {
-  return query.replace(/^"+|"+$/g, '');
+  return query.replace(/^["\(]+|["\)]+$/g, '');
 }
