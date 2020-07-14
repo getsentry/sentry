@@ -3,15 +3,16 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
+import {IconInfo, IconClose, IconCheckmark, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 
 type Props = React.ComponentProps<typeof Alert>;
 
 const DEFAULT_ICONS = {
-  info: 'icon-circle-info',
-  error: 'icon-circle-close',
-  warning: 'icon-circle-exclamation',
-  success: 'icon-circle-success',
+  info: <IconInfo />,
+  error: <IconClose isCircled />,
+  warning: <IconWarning />,
+  success: <IconCheckmark isCircled />,
 };
 
 // Margin bottom should probably be a different prop
