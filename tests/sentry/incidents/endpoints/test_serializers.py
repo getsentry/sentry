@@ -463,7 +463,6 @@ class TestAlertRuleTriggerSerializer(TestCase):
         assert serializer.errors == {
             "label": field_is_required,
             "alertThreshold": field_is_required,
-            "actions": field_is_required,
         }
 
     def test_threshold_type(self):

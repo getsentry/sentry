@@ -312,12 +312,15 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         assert len(resp.data["triggers"][1]["actions"]) == 1
 
-        # Delete the last one, make sure API errors since we have to have an action.
+        # Delete the last one.
         serialized_alert_rule["triggers"][1]["actions"].pop()
 
         with self.feature("organizations:incidents"):
-            resp = self.get_response(self.organization.slug, alert_rule.id, **serialized_alert_rule)
-            assert resp.status_code == 400
+            resp = self.get_valid_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        assert len(resp.data["triggers"][1]["actions"]) == 0
 
     def test_update_trigger_action_type(self):
         self.create_member(
