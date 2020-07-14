@@ -1,6 +1,7 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -47,6 +48,7 @@ class ProjectSecurityAndPrivacy extends AsyncView<ProjectSecurityAndPrivacyProps
           apiMethod={apiMethod}
           apiEndpoint={endpoint}
           onSubmitSuccess={this.handleUpdateProject}
+          onSubmitError={() => addErrorMessage('Unable to save change')}
         >
           <JsonForm
             title={t('Security & Privacy')}

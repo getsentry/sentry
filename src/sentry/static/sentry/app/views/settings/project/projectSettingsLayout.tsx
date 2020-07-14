@@ -16,7 +16,7 @@ function ProjectSettingsLayout({params, organization, children, ...props}: Props
   const {orgId, projectId} = params;
 
   return (
-    <ProjectContext skipReload orgId={orgId} projectId={projectId}>
+    <ProjectContext orgId={orgId} projectId={projectId}>
       <SettingsLayout
         params={params}
         {...props}
