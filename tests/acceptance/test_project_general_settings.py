@@ -19,3 +19,17 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
         self.browser.get(path)
         self.browser.wait_until_not(".loading-indicator")
         self.browser.snapshot("project settings - general settings")
+
+    def test_mobile_menu(self):
+        path = u"/{}/{}/settings/".format(self.org.slug, self.project.slug)
+        self.browser.get(path)
+        self.browser.wait_until_not(".loading-indicator")
+
+        try:
+            self.browser.click('[aria-label="Open the menu"]')
+            self.browser.wait_until("body.scroll-lock")
+
+        except Exception:
+            pass
+
+        self.browser.snapshot("project settings - mobile menu")
