@@ -279,7 +279,11 @@ describe('Query Builder', function() {
     let queryBuilder;
     beforeEach(function() {
       const project = TestStubs.Project({id: '1'});
-      const projectWithoutMembership = TestStubs.Project({id: '2', isMember: false});
+      const projectWithoutMembership = TestStubs.Project({
+        id: '2',
+        hasAccess: false,
+        isMember: false,
+      });
       queryBuilder = createQueryBuilder(
         {},
         TestStubs.Organization({projects: [project, projectWithoutMembership]})
