@@ -124,9 +124,11 @@ class RuleRow extends React.Component<Props, State> {
                   </TriggerDescription>
                 </Trigger>
                 <Actions key={`actions-${i}`} hideBorder={hideBorder}>
-                  {trigger.actions?.map((action, j) => (
-                    <Action key={j}>{action.desc}</Action>
-                  ))}
+                  {trigger.actions?.length
+                    ? trigger.actions.map((action, j) => (
+                        <Action key={j}>{action.desc}</Action>
+                      ))
+                    : t('None')}
                 </Actions>
               </React.Fragment>
             );
