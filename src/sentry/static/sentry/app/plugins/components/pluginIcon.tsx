@@ -1,3 +1,4 @@
+import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
@@ -105,23 +106,31 @@ export const ICON_PATHS = {
   zulip,
 };
 
+type PluginIconComponentProps = {
+  className?: string;
+  pluginId?: string;
+};
+
+function PluginIconComponent({pluginId, className}: PluginIconComponentProps) {
+  return (
+    <div className={className}>
+      <object data={(pluginId && ICON_PATHS[pluginId]) || DEFAULT_ICON} />
+    </div>
+  );
+}
+
 type Props = {
   pluginId?: string;
   size?: number;
 };
 
-const PluginIcon = styled('div')<Props>`
+const PluginIcon = styled(PluginIconComponent)<Props>`
   position: relative;
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
-  background-size: contain;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-image: url(${({pluginId}) =>
-    (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
 `;
 
 PluginIcon.defaultProps = {
