@@ -137,8 +137,8 @@ const _perfume = new Perfume({
 
     Sentry.setTag('perfume', 'yes');
 
-    console.log('transaction', transaction);
-    console.log('manualTransaction', manualTransaction);
+    // console.log('transaction', transaction);
+    // console.log('manualTransaction', manualTransaction);
 
     switch (metricName) {
       // case 'navigationTiming':
@@ -162,11 +162,11 @@ const _perfume = new Perfume({
       case 'tbt5S':
       case 'tbt10S':
       case 'tbtFinal':
-        console.log(`metrics.${metricName}`, data);
+        // console.log(`metrics.${metricName}`, data);
         Sentry.setTag(`metrics.${metricName}`, String(data));
         break;
       default:
-        console.log('default', options);
+        // console.log('default', options);
         break;
     }
 
