@@ -5,7 +5,7 @@ import responses
 from six.moves.urllib.parse import urlencode
 
 from sentry.models import Integration
-from sentry.integrations.msteams.client import MsTeamsIntegrationClient
+from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.testutils import TestCase
 from sentry.utils.compat.mock import patch
 
@@ -27,7 +27,7 @@ class MsTeamsClientTest(TestCase):
             json=access_json,
         )
 
-        self.client = MsTeamsIntegrationClient(self.integration)
+        self.client = MsTeamsClient(self.integration)
 
     @responses.activate
     def test_token_refreshes(self):

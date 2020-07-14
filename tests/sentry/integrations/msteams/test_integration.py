@@ -76,7 +76,5 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_installation(self):
-        """Test that the function doesn't progress if there is no active DSN"""
-
         with self.tasks():
             self.assert_setup_flow()

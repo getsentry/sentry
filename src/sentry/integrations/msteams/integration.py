@@ -13,7 +13,7 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry.pipeline import PipelineView
-from .client import MsTeamsClient, get_token_data
+from .client import MsTeamsPreInstallClient, get_token_data
 
 logger = logging.getLogger("sentry.integrations.msteams")
 
@@ -82,7 +82,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         token_data = get_token_data()
         access_token = token_data["access_token"]
 
-        client = MsTeamsClient(access_token, service_url)
+        client = MsTeamsPreInstallClient(access_token, service_url)
         team = client.get_team_info(team_id)
         integration = {
             "name": team["name"],
