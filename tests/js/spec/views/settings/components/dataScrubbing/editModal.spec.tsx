@@ -193,7 +193,7 @@ describe('Edit Modal', () => {
     sourceFieldInput.simulate('change', {target: {value: valueSuggestions[2].value}});
 
     // Save rule
-    const saveButton = wrapper.find('[aria-label="Save rule"]').hostNodes();
+    const saveButton = wrapper.find('[aria-label="Save Rule"]').hostNodes();
     expect(saveButton.exists()).toBe(true);
     saveButton.simulate('click');
 
