@@ -13,7 +13,6 @@ import withConfig from 'app/utils/withConfig';
 import space from 'app/styles/space';
 
 import {
-  AlertRuleThreshold,
   AlertRuleThresholdType,
   Trigger,
   UnsavedIncidentRule,
@@ -87,7 +86,7 @@ class TriggerForm extends React.PureComponent<Props> {
    * Handler for threshold changes coming from slider or chart.
    * Needs to sync state with the form.
    */
-  handleChangeThreshold = (type: AlertRuleThreshold, value: ThresholdControlValue) => {
+  handleChangeThreshold = (value: ThresholdControlValue) => {
     const {onChange, trigger} = this.props;
 
     onChange(
@@ -112,7 +111,7 @@ class TriggerForm extends React.PureComponent<Props> {
         <ThresholdControl
           disabled={disabled}
           disableThresholdType={!isCritical}
-          type={AlertRuleThreshold.INCIDENT}
+          type={trigger.label}
           thresholdType={this.getThresholdType()}
           threshold={trigger.alertThreshold}
           onChange={this.handleChangeThreshold}
@@ -194,7 +193,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     } = this.props;
 
     const resolveTrigger: UnsavedTrigger = {
-      label: 'resolved',
+      label: 'resolve',
       alertThreshold: resolveThreshold,
       actions: [],
     };

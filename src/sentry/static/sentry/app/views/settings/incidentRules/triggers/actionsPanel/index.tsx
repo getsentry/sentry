@@ -232,10 +232,11 @@ class ActionsPanel extends React.PureComponent<Props> {
       <Panel>
         <PanelHeader>{t('Actions')}</PanelHeader>
         <PanelBody withPadding>
-          <FieldLabel>Add an action</FieldLabel>
+          <FieldLabel>{t('Add an action')}</FieldLabel>
           <FieldHelp>
-            We can send you an email or activate an integration when any of the thresholds
-            above are met.
+            {t(
+              'We can send you an email or activate an integration when any of the thresholds above are met.'
+            )}
           </FieldHelp>
         </PanelBody>
         <PanelBody>
