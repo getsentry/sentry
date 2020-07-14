@@ -219,12 +219,21 @@ class QueryField extends React.Component<Props> {
               kind: 'column',
               value: fieldParameter,
               required: param.required,
-              options: Object.values(fieldOptions).filter(
-                ({value}) =>
-                  (value.kind === FieldValueKind.FIELD ||
-                    value.kind === FieldValueKind.TAG) &&
-                  param.columnTypes.includes(value.meta.dataType)
-              ),
+              options: Object.values(fieldOptions).filter(({value}) => {
+                if (
+                  value.kind === FieldValueKind.FIELD ||
+                  value.kind === FieldValueKind.TAG
+                ) {
+                  if (
+                    param.columnTypes.includes('duration') &&
+                    value.meta.name.startsWith('metrics.')
+                  ) {
+                    return true;
+                  }
+
+                  return param.columnTypes.includes(value.meta.dataType);
+                }
+              }),
             };
           }
 

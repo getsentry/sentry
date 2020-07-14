@@ -100,15 +100,21 @@ const FIELD_FORMATTERS: FieldFormatters = {
   },
   duration: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
-        {typeof data[field] === 'number' ? (
-          <Duration seconds={data[field] / 1000} fixedDigits={2} abbreviation />
-        ) : (
-          emptyValue
-        )}
-      </NumberContainer>
-    ),
+    renderFunc: (field, data) => {
+      if (field.startsWith('metrics.') || field.includes('metrics_')) {
+        return <NumberContainer>{String(data[field])}</NumberContainer>;
+      }
+
+      return (
+        <NumberContainer>
+          {typeof data[field] === 'number' ? (
+            <Duration seconds={data[field] / 1000} fixedDigits={2} abbreviation />
+          ) : (
+            emptyValue
+          )}
+        </NumberContainer>
+      );
+    },
   },
   integer: {
     isSortable: true,
