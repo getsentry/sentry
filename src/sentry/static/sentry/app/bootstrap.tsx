@@ -6,6 +6,7 @@ import 'focus-visible';
 import 'app/utils/statics-setup';
 import 'app/utils/emotion-setup';
 
+import Perfume from 'perfume.js';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -110,6 +111,70 @@ if (window.__SENTRY__VERSION) {
   Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
 }
 Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
+
+let previousTransactionName: string | undefined = undefined;
+
+const _perfume = new Perfume({
+  analyticsTracker: options => {
+    const {metricName, data, navigatorInformation} = options;
+
+    const transaction = Sentry.getCurrentHub()
+      .getScope()
+      ?.getTransaction();
+
+    if (transaction) {
+      previousTransactionName = transaction?.name;
+    }
+
+    let manualTransaction: typeof transaction = undefined;
+
+    if (!transaction) {
+      // ensure there's always a transaction to attach a metric to
+      manualTransaction = Sentry.startTransaction({
+        name: previousTransactionName ?? 'frontend-metric',
+      });
+    }
+
+    Sentry.setTag('perfume', 'yes');
+
+    console.log('transaction', transaction);
+    console.log('manualTransaction', manualTransaction);
+
+    switch (metricName) {
+      // case 'navigationTiming':
+      //   if (data && data.timeToFirstByte) {
+      //     myAnalyticsTool.track('navigationTiming', data);
+      //   }
+      //   break;
+      // case 'networkInformation':
+      //   if (data && data.effectiveType) {
+      //     myAnalyticsTool.track('networkInformation', data);
+      //   }
+      //   break;
+      case 'fp':
+      case 'fcp':
+      case 'fid':
+      case 'lcp':
+      case 'lcpFinal':
+      case 'cls':
+      case 'clsFinal':
+      case 'tbt':
+      case 'tbt5S':
+      case 'tbt10S':
+      case 'tbtFinal':
+        console.log(`metrics.${metricName}`, data);
+        Sentry.setTag(`metrics.${metricName}`, String(data));
+        break;
+      default:
+        console.log('default', options);
+        break;
+    }
+
+    if (manualTransaction) {
+      manualTransaction.finish();
+    }
+  },
+});
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
