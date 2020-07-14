@@ -412,29 +412,19 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     'Trigger {} must be labeled "{}"'.format(i + 1, expected_label)
                 )
         critical = triggers[0]
-        data["threshold_type"] = threshold_type = data.get(
-            "threshold_type",
-            AlertRuleThresholdType(
+        if "threshold_type" in data:
+            threshold_type = data["threshold_type"]
+            for trigger in triggers:
+                trigger["threshold_type"] = threshold_type.value
+        else:
+            data["threshold_type"] = threshold_type = AlertRuleThresholdType(
                 critical.get("threshold_type", AlertRuleThresholdType.ABOVE.value)
-            ),
-        )
-        self._validate_trigger_thresholds(threshold_type, critical, data.get("resolve_threshold"))
-
-        if len(triggers) == 2:
-            warning = triggers[1]
-            if critical["threshold_type"] != warning["threshold_type"]:
-                raise serializers.ValidationError(
-                    "Must have matching threshold types (i.e. critical and warning "
-                    "triggers must both be an upper or lower bound)"
-                )
-            self._validate_trigger_thresholds(
-                threshold_type, warning, data.get("resolve_threshold")
             )
-            self._validate_critical_warning_triggers(threshold_type, critical, warning)
 
-        # Temporarily fetch resolve threshold from the triggers if one isn't explicitly
-        # passed to the alert rule.
-        if "resolve_threshold" not in data:
+        if "resolve_threshold" in data:
+            for trigger in triggers:
+                trigger["resolve_threshold"] = data["resolve_threshold"]
+        else:
             trigger_resolve_thresholds = [
                 trigger["resolve_threshold"]
                 for trigger in triggers
@@ -448,9 +438,20 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 )
             else:
                 data["resolve_threshold"] = None
-        else:
-            for trigger in triggers:
-                trigger["resolve_threshold"] = data["resolve_threshold"]
+
+        self._validate_trigger_thresholds(threshold_type, critical, data.get("resolve_threshold"))
+
+        if len(triggers) == 2:
+            warning = triggers[1]
+            if critical["threshold_type"] != warning["threshold_type"]:
+                raise serializers.ValidationError(
+                    "Must have matching threshold types (i.e. critical and warning "
+                    "triggers must both be an upper or lower bound)"
+                )
+            self._validate_trigger_thresholds(
+                threshold_type, warning, data.get("resolve_threshold")
+            )
+            self._validate_critical_warning_triggers(threshold_type, critical, warning)
 
         # Triggers have passed checks. Check that all triggers have at least one action now.
         for trigger in triggers:
