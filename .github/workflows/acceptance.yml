@@ -194,6 +194,7 @@ jobs:
           if: always()
           run: |
             mkdir -p .artifacts/visual-snapshots/acceptance
+            mkdir -p .artifacts/visual-snapshots/acceptance-mobile
             make run-acceptance
           env:
             USE_SNUBA: 1

@@ -251,9 +251,37 @@ class Browser(object):
             # wait for images to be loaded
             self.wait_for_images_loaded()
 
-            self.save_screenshot(
+            size = self.driver.get_window_size()
+
+            # take full page screenshot
+            # adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
+            required_height = self.driver.execute_script(
+                "return document.body.parentNode.scrollHeight"
+            )
+            self.driver.set_window_size(size["width"], required_height)
+
+            # Note: below will fail if these directories do not exist
+
+            # finds body tag to screenshot in order to avoid scrollbar
+            self.driver.find_element_by_tag_name("body").screenshot(
                 u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
             )
+
+            # switch to mobile width and a fixed height
+            self.driver.set_window_size(375, 812)
+
+            # grab full height at the mobile width
+            required_height = self.driver.execute_script(
+                "return document.body.parentNode.scrollHeight"
+            )
+            self.driver.set_window_size(375, required_height)
+
+            self.driver.find_element_by_tag_name("body").screenshot(
+                u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
+            )
+
+            # reset window size
+            self.driver.set_window_size(size["width"], size["height"])
 
         self.percy.snapshot(name=name)
         return self
