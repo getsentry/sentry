@@ -18,11 +18,11 @@
   cursor: pointer;
   background-image: none; // Reset unusual Firefox-on-Android default style; see https://github.com/necolas/normalize.css/issues/214
   border: 1px solid transparent;
+  user-select: none;
   .button-size(
     @padding-base-vertical; @padding-base-horizontal; @font-size-base; @line-height-base;
       @btn-border-radius-base
   );
-  .user-select(none);
 
   &,
   &:active,
@@ -44,7 +44,7 @@
   &.active {
     background-image: none;
     outline: 0;
-    .box-shadow(inset 0 3px 5px rgba(0, 0, 0, 0.125));
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
   }
 
   &.disabled,
@@ -52,7 +52,7 @@
   fieldset[disabled] & {
     cursor: @cursor-disabled;
     .opacity(0.65);
-    .box-shadow(none);
+    box-shadow: none;
   }
 
   a& {
@@ -104,7 +104,7 @@
   &[disabled],
   fieldset[disabled] & {
     background-color: transparent;
-    .box-shadow(none);
+    box-shadow: none;
   }
   &,
   &:hover,

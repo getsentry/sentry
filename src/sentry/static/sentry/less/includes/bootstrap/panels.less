@@ -10,7 +10,7 @@
   background-color: @panel-bg;
   border: 1px solid transparent;
   border-radius: @panel-border-radius;
-  .box-shadow(0 1px 1px rgba(0, 0, 0, 0.05));
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
 }
 
 // Panel contents
@@ -23,7 +23,7 @@
 .panel-heading {
   padding: @panel-heading-padding;
   border-bottom: 1px solid transparent;
-  .border-top-radius((@panel-border-radius - 1));
+  border-top-radius: (@panel-border-radius - 1);
 
   > .dropdown .dropdown-toggle {
     color: inherit;
@@ -51,7 +51,7 @@
   padding: @panel-footer-padding;
   background-color: @panel-footer-bg;
   border-top: 1px solid @panel-inner-border;
-  .border-bottom-radius((@panel-border-radius - 1));
+  border-bottom-radius: (@panel-border-radius - 1);
 }
 
 // List groups in panels
@@ -73,7 +73,7 @@
     &:first-child {
       .list-group-item:first-child {
         border-top: 0;
-        .border-top-radius((@panel-border-radius - 1));
+        border-top-radius: (@panel-border-radius - 1);
       }
     }
 
@@ -81,13 +81,13 @@
     &:last-child {
       .list-group-item:last-child {
         border-bottom: 0;
-        .border-bottom-radius((@panel-border-radius - 1));
+        border-bottom-radius: (@panel-border-radius - 1);
       }
     }
   }
   > .panel-heading + .panel-collapse > .list-group {
     .list-group-item:first-child {
-      .border-top-radius(0);
+      border-top-radius: 0;
     }
   }
 }
@@ -120,7 +120,7 @@
   // Add border top radius for first one
   > .table:first-child,
   > .table-responsive:first-child > .table:first-child {
-    .border-top-radius((@panel-border-radius - 1));
+    border-top-radius: (@panel-border-radius - 1);
 
     > thead:first-child,
     > tbody:first-child {
@@ -142,7 +142,7 @@
   // Add border bottom radius for last one
   > .table:last-child,
   > .table-responsive:last-child > .table:last-child {
-    .border-bottom-radius((@panel-border-radius - 1));
+    border-bottom-radius: (@panel-border-radius - 1);
 
     > tbody:last-child,
     > tfoot:last-child {

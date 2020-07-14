@@ -88,11 +88,11 @@
     border-bottom: 1px solid @trim;
     padding-right: 10px;
     background: #fff;
-    .transition(all 0.4s ease-in-out);
+    transition: all 0.4s ease-in-out;
 
     &.hoverable {
       cursor: pointer;
-      .transition(all 0s ease-in-out);
+      transition: all 0s ease-in-out;
 
       &:hover {
         background-color: @white-dark;
@@ -151,7 +151,7 @@
         left: -1px;
         width: 3px;
         z-index: 100;
-        .transition(all 0.2s ease-in-out);
+        transition: all 0.2s ease-in-out;
         background: @yellow;
       }
     }
@@ -295,7 +295,7 @@
   .event-count {
     span {
       .stream-count;
-      .transition(all linear 0.3s);
+      transition: all linear 0.3s;
 
       &.ng-update {
         background: rgba(255, 252, 82, 0.75);
@@ -680,7 +680,7 @@
   .stream-content,
   .stream-sidebar {
     float: left;
-    .transition(all 0.2s ease-in-out);
+    transition: all 0.2s ease-in-out;
   }
 
   .stream-content {

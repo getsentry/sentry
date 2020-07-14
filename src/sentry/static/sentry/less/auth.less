@@ -107,7 +107,7 @@ section.org-login {
       text-align: center;
       line-height: 20px;
       font-size: 12px;
-      .transition(0.1s opacity linear);
+      transition: 0.1s opacity linear;
     }
 
     &:hover {
@@ -123,7 +123,8 @@ section.org-login {
     right: 0;
 
     .avatar {
-      .square(118px);
+      width: 118px;
+      height: 118px;
       border-radius: 3px;
     }
   }
@@ -187,7 +188,7 @@ div.u2f-box {
     margin-left: -25px;
     margin-top: -9px;
     opacity: 0;
-    .transition(all ease-in 0.4s);
+    transition: all ease-in 0.4s;
 
     .dot {
       display: inline-block;
@@ -222,7 +223,7 @@ div.u2f-box {
     background-size: 100px 100px;
     width: 100px;
     height: 100px;
-    .transition(opacity 0.3s);
+    transition: opacity 0.3s;
   }
 
   div.device-failed {

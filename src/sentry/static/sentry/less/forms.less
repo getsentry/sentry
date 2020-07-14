@@ -18,7 +18,9 @@
     color: @gray-dark;
   }
 
-  .placeholder(@gray-light);
+  &::placeholder {
+    color: lighten(@gray, 28);
+  }
 
   &:focus {
     border-color: darken(@gray-lighter, 4);
