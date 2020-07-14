@@ -1504,7 +1504,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     # Hack for metrics
     for i, column in enumerate(columns):
         if not isinstance(column, (list, tuple)) and column.startswith("metrics."):
-            columns.append(["toInt32OrNull", [column], "`{}`".format(column)])
+            columns.append(["toFloat32OrNull", [column], "`{}`".format(column)])
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -1558,7 +1558,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     if aggregations:
         for column in columns:
             if isinstance(column, (list, tuple)):
-                if column[0] == "transform" or column[0] == "toInt32OrNull":
+                if column[0] == "transform" or column[0] == "toFloat32OrNull":
                     # When there's a project transform, we already group by project_id
                     continue
                 groupby.append(column[2])
