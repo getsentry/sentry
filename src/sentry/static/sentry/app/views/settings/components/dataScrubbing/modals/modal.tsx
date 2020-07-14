@@ -31,7 +31,7 @@ const Modal = ({
       <ButtonBar gap={1.5}>
         <Button onClick={closeModal}>{t('Cancel')}</Button>
         <Button onClick={onSave} disabled={disabled} priority="primary">
-          {t('Save Key')}
+          {t('Save Rule')}
         </Button>
       </ButtonBar>
     </Footer>
