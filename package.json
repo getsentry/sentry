@@ -93,6 +93,7 @@
     "optimize-css-assets-webpack-plugin": "^5.0.1",
     "papaparse": "^5.2.0",
     "parseurl": "^1.3.2",
+    "perfume.js": "^5.1.0",
     "platformicons": "2.0.3",
     "po-catalog-loader": "2.0.0",
     "prop-types": "^15.6.0",

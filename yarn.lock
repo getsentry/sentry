@@ -11545,6 +11545,11 @@ performance-now@^2.1.0:
   resolved "https://registry.yarnpkg.com/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
   integrity sha1-Ywn04OX6kT7BxpMHrjZLSzd8nns=
 
+perfume.js@^5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/perfume.js/-/perfume.js-5.1.0.tgz#d63825ad5579b5558f1e67a4dc0623606ff60834"
+  integrity sha512-ICZ54+V/6v7Qa40oQw7JtA0wcczYJb3azx+g8FP5u1ZawIEjnzAIVeBBkclkfqN1y25p9qjKjhJqvdzk9kugQg==
+
 picomatch@^2.0.5:
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-2.2.1.tgz#21bac888b6ed8601f831ce7816e335bc779f0a4a"
