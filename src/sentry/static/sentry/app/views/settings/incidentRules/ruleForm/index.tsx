@@ -4,7 +4,6 @@ import React from 'react';
 
 import {Organization, Project} from 'app/types';
 import FormModel from 'app/views/settings/components/forms/model';
-import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
@@ -36,6 +35,7 @@ import {
   UnsavedIncidentRule,
 } from '../types';
 import {addOrUpdateRule} from '../actions';
+import {createDefaultTrigger, DATASET_EVENT_TYPE_FILTERS} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
 
 type Props = {
@@ -79,6 +79,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   getDefaultState(): State {
     const {rule} = this.props;
+
+    // Warning trigger is removed if it is blank when saving
+    if (rule.triggers.length !== 2) {
+      rule.triggers.push(createDefaultTrigger('warning'));
+    }
 
     return {
       ...super.getDefaultState(),
@@ -232,7 +237,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         this.validateFieldInTrigger({
           errors: triggerErrors,
           triggerIndex,
-          isValid: () => (trigger.label === 'critical' ? !isEmpty(trigger[field]) : true),
+          isValid: (): boolean => {
+            if (trigger.label === 'critical') {
+              return !isEmpty(trigger[field]);
+            }
+
+            // If warning trigger has actions, it must have a value
+            return trigger.actions.length === 0 || !isEmpty(trigger[field]);
+          },
           field,
           message: t('Field is required'),
         });
@@ -329,6 +341,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const {organization, params, rule, onSubmitSuccess, location, sessionId} = this.props;
     const {ruleId} = this.props.params;
+    const {resolveThreshold, triggers, thresholdType} = this.state;
+
+    // Remove empty warning trigger
+    const sanitizedTriggers = triggers.filter(
+      trigger => trigger.label !== 'warning' || !isEmpty(trigger.alertThreshold)
+    );
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
@@ -341,7 +359,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         {
           ...rule,
           ...model.getTransformedData(),
-          triggers: this.state.triggers.map(sanitizeTrigger),
+          triggers: sanitizedTriggers,
+          resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
+          thresholdType,
         },
         {
           referrer: location?.query?.referrer,
@@ -538,13 +558,3 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
 export {RuleFormContainer};
 export default withProject(RuleFormContainer);
-
-/**
- * We need a default value of empty string for resolveThreshold or else React complains
- * so we also need to remove it if we do not have a value. Note `0` is a valid value.
- */
-function sanitizeTrigger({...trigger}: Trigger): Trigger {
-  return {
-    ...trigger,
-  };
-}
