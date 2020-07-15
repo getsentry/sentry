@@ -16,7 +16,6 @@ import {
   AlertRuleThresholdType,
   Trigger,
   UnsavedIncidentRule,
-  MetricActionTemplate,
   ThresholdControlValue,
   UnsavedTrigger,
 } from '../types';
@@ -37,37 +36,14 @@ type Props = {
   trigger: Trigger;
   triggerIndex: number;
   isCritical: boolean;
+  fieldHelp: React.ReactNode;
+  triggerLabel: React.ReactNode;
 
   onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
 };
 
 class TriggerForm extends React.PureComponent<Props> {
-  // Overwritten in ResolvedTriggerForm
-  getThresholdType = () => {
-    return this.props.thresholdType;
-  };
-
-  getTriggerLabel = (): React.ReactNode => {
-    const {isCritical} = this.props;
-    const triggerLabel = isCritical ? t('Critical Status') : t('Warning Status');
-    // eslint-disable-next-line no-use-before-define
-    const TriggerIndicator = isCritical ? CriticalIndicator : WarningIndicator;
-    return (
-      <React.Fragment>
-        <TriggerIndicator size={12} />
-        {triggerLabel}
-      </React.Fragment>
-    );
-  };
-
-  getFieldHelp = (): React.ReactNode => {
-    const {isCritical} = this.props;
-    return tct('The threshold that will activate the [severity] status.', {
-      severity: isCritical ? t('critical') : t('warning'),
-    });
-  };
-
   /**
    * Handler for threshold changes coming from slider or chart.
    * Needs to sync state with the form.
@@ -85,12 +61,21 @@ class TriggerForm extends React.PureComponent<Props> {
   };
 
   render() {
-    const {disabled, error, trigger, isCritical, onThresholdTypeChange} = this.props;
+    const {
+      disabled,
+      error,
+      trigger,
+      isCritical,
+      thresholdType,
+      fieldHelp,
+      triggerLabel,
+      onThresholdTypeChange,
+    } = this.props;
 
     return (
       <Field
-        label={this.getTriggerLabel()}
-        help={this.getFieldHelp()}
+        label={triggerLabel}
+        help={fieldHelp}
         required={isCritical}
         error={error && error.alertThreshold}
       >
@@ -98,7 +83,7 @@ class TriggerForm extends React.PureComponent<Props> {
           disabled={disabled}
           disableThresholdType={!isCritical}
           type={trigger.label}
-          thresholdType={this.getThresholdType()}
+          thresholdType={thresholdType}
           threshold={trigger.alertThreshold}
           onChange={this.handleChangeThreshold}
           onThresholdTypeChange={onThresholdTypeChange}
@@ -108,34 +93,17 @@ class TriggerForm extends React.PureComponent<Props> {
   }
 }
 
-class ResolvedTriggerForm extends TriggerForm {
-  getThresholdType = () => {
-    // Flip rule thresholdType to opposite
-    return +!this.props.thresholdType;
-  };
-
-  getTriggerLabel = () => {
-    return (
-      <React.Fragment>
-        <ResolvedIndicator size={12} />
-        {t('Resolved Status')}
-      </React.Fragment>
-    );
-  };
-
-  getFieldHelp = () => {
-    return t('The threshold that will activate the resolved status.');
-  };
-}
-
 type TriggerFormContainerProps = Omit<
   React.ComponentProps<typeof TriggerForm>,
-  'onChange' | 'isCritical' | 'error' | 'triggerIndex' | 'trigger'
+  | 'onChange'
+  | 'isCritical'
+  | 'error'
+  | 'triggerIndex'
+  | 'trigger'
+  | 'fieldHelp'
+  | 'triggerHelp'
+  | 'triggerLabel'
 > & {
-  api: Client;
-  availableActions: MetricActionTemplate[] | null;
-  organization: Organization;
-  projects: Project[];
   triggers: Trigger[];
   errors?: Map<number, {[fieldName: string]: string}>;
   onChange: (triggerIndex: number, trigger: Trigger, changeObj: Partial<Trigger>) => void;
@@ -188,6 +156,8 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       <React.Fragment>
         {triggers.map((trigger, index) => {
           const isCritical = index === 0;
+          // eslint-disable-next-line no-use-before-define
+          const TriggerIndicator = isCritical ? CriticalIndicator : WarningIndicator;
           return (
             <TriggerForm
               key={index}
@@ -202,23 +172,40 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               projects={projects}
               triggerIndex={index}
               isCritical={isCritical}
+              fieldHelp={tct('The threshold that will activate the [severity] status.', {
+                severity: isCritical ? t('critical') : t('warning'),
+              })}
+              triggerLabel={
+                <React.Fragment>
+                  <TriggerIndicator size={12} />
+                  {isCritical ? t('Critical Status') : t('Warning Status')}
+                </React.Fragment>
+              }
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
             />
           );
         })}
-        <ResolvedTriggerForm
+        <TriggerForm
           api={api}
           config={config}
           disabled={disabled}
           error={errors && errors.get(2)}
           trigger={resolveTrigger}
-          thresholdType={thresholdType}
+          // Flip rule thresholdType to opposite
+          thresholdType={+!thresholdType}
           resolveThreshold={resolveThreshold}
           organization={organization}
           projects={projects}
           triggerIndex={2}
           isCritical={false}
+          fieldHelp={t('The threshold that will activate the resolved status.')}
+          triggerLabel={
+            <React.Fragment>
+              <ResolvedIndicator size={12} />
+              {t('Resolved Status')}
+            </React.Fragment>
+          }
           onChange={this.handleChangeResolveTrigger}
           onThresholdTypeChange={onThresholdTypeChange}
         />

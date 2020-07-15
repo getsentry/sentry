@@ -111,7 +111,6 @@ class Triggers extends React.Component<Props> {
             <TriggerForm
               disabled={disabled}
               errors={errors}
-              availableActions={availableActions}
               organization={organization}
               projects={projects}
               triggers={triggers}
