@@ -62,14 +62,11 @@ describe('Incident Rules Form', function() {
      * Note this isn't necessarily the desired behavior, as it is just documenting the behavior
      */
     it('creates a rule', async function() {
+      const rule = TestStubs.IncidentRule();
       const wrapper = createWrapper({
         rule: {
-          dataset: 'events',
-          aggregate: 'count()',
-          query: '',
-          projects: [project.slug],
-          timeWindow: 60,
-          triggers: [],
+          ...rule,
+          id: undefined,
         },
       });
 

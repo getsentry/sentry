@@ -24,6 +24,8 @@ type Props = {
   environment: string | null;
   aggregate: IncidentRule['aggregate'];
   triggers: Trigger[];
+  resolveThreshold: IncidentRule['resolveThreshold'];
+  thresholdType: IncidentRule['thresholdType'];
 };
 
 /**
@@ -40,6 +42,8 @@ class TriggersChart extends React.PureComponent<Props> {
       query,
       aggregate,
       triggers,
+      resolveThreshold,
+      thresholdType,
       environment,
     } = this.props;
 
@@ -76,6 +80,8 @@ class TriggersChart extends React.PureComponent<Props> {
                     maxValue={maxValue ? maxValue.value : maxValue}
                     data={timeseriesData}
                     triggers={triggers}
+                    resolveThreshold={resolveThreshold}
+                    thresholdType={thresholdType}
                   />
                 </React.Fragment>
               )}

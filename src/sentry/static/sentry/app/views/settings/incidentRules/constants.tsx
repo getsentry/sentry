@@ -46,12 +46,10 @@ export const transactionFieldConfig: OptionConfig = {
   fields: ['transaction.duration'],
 };
 
-export function createDefaultTrigger(): Trigger {
+export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
   return {
-    label: 'critical',
+    label,
     alertThreshold: '',
-    resolveThreshold: '',
-    thresholdType: AlertRuleThresholdType.ABOVE,
     actions: [],
   };
 }
@@ -62,9 +60,11 @@ export function createDefaultRule(): UnsavedIncidentRule {
     aggregate: DEFAULT_AGGREGATE,
     query: '',
     timeWindow: 1,
-    triggers: [createDefaultTrigger()],
+    triggers: [createDefaultTrigger('critical'), createDefaultTrigger('warning')],
     projects: [],
     environment: null,
+    resolveThreshold: '',
+    thresholdType: AlertRuleThresholdType.ABOVE,
   };
 }
 

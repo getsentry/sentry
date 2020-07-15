@@ -5,8 +5,6 @@ export function IncidentTrigger(params) {
     dateCreated: '2019-09-24T18:07:47.714Z',
     id: '1',
     label: 'critical',
-    resolveThreshold: 36,
-    thresholdType: 0,
     actions: [],
     ...params,
   };
