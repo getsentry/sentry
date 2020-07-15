@@ -46,9 +46,9 @@ class ThresholdControl extends React.Component<Props, State> {
       return;
     }
 
-    // Only call onChnage if the new number is valid, and not partially typed
+    // Only call onChange if the new number is valid, and not partially typed
     // (eg writing out the decimal '5.')
-    if (/(\.|0)$/.test(value)) {
+    if (/\.+0*$/.test(value)) {
       this.setState({currentValue: value});
       return;
     }
