@@ -417,8 +417,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             analytics.record(
                 "releases.create",
                 user_id=request.user.id,
-                organization_id=project.organization_id,
-                project_id=project.id,
+                organization_id=organization.id,
+                project_ids=[projects[i].id for i in projects],
                 source=get_source_from_user_agent(request),
             )
             return Response(serialize(release, request.user), status=status)

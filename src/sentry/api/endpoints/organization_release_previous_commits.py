@@ -49,7 +49,9 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
 
         analytics.record(
             "releases.set-commits.local",
+            user_id=request.user.id,
             organization_id=organization.id,
+            project_ids=[project.id for project in release.projects.all()],
             source=get_source_from_user_agent(request),
         )
 
