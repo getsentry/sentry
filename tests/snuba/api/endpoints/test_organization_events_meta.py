@@ -196,6 +196,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
         assert data["id"] == "b" * 32
         assert data["transaction.duration"] == 120000
         assert data["p50"] == 120000.0
+        assert data["project"] == self.project.slug
 
     def test_get_baseline_duration_tie(self):
         for index, event_id in enumerate(

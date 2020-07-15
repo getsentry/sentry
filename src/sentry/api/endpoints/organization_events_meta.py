@@ -73,7 +73,13 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
             delta_column = "absolute_delta(transaction.duration,{})".format(baseline_value)
 
             result = discover.query(
-                selected_columns=["timestamp", "id", "transaction.duration", delta_column],
+                selected_columns=[
+                    "project",
+                    "timestamp",
+                    "id",
+                    "transaction.duration",
+                    delta_column,
+                ],
                 # Find the most recent transaction that's closest to the baseline value
                 # id as the last item for consistent results
                 orderby=[get_function_alias(delta_column), "-timestamp", "id"],
