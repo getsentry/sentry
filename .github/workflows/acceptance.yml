@@ -6,6 +6,53 @@ on:
   pull_request:
 
 jobs:
+    jest:
+      runs-on: ubuntu-latest
+      env:
+        VISUAL_SNAPSHOT_ENABLE: 1
+      steps:
+        # Checkout codebase
+        - uses: actions/checkout@v1
+
+        # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+        - name: Get yarn cache directory path
+          id: yarn-cache-dir-path
+          run: echo "::set-output name=dir::$(yarn cache dir)"
+
+        # Use nvmrc so we don't have yet another place node version is defined
+        - name: Get node version from .nvmrc
+          id: nvmrc
+          run: echo "::set-output name=version::$(cat .nvmrc)"
+
+        # yarn cache
+        - uses: actions/cache@v1
+          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+          with:
+            path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-yarn-
+
+        # Setup node
+        - uses: actions/setup-node@v1
+          with:
+            node-version: ${{ steps.nvmrc.outputs.version }}
+
+        - name: Install dependencies
+          run: yarn install --frozen-lockfile
+
+        - name: jest
+          run: |
+            NODE_ENV=production yarn build-css
+            yarn test-ci
+
+        - name: Save snapshots
+          if: always()
+          uses: getsentry/action-visual-snapshot@v2
+          with:
+            save-only: true
+            snapshot-path: .artifacts/visual-snapshots
+
     acceptance:
       runs-on: ubuntu-16.04
       continue-on-error: true
@@ -153,10 +200,9 @@ jobs:
             save-only: true
             snapshot-path: .artifacts/visual-snapshots
 
-
     visual-diff:
       if: ${{ github.ref != 'refs/heads/master' }}
-      needs: acceptance
+      needs: [acceptance, jest]
       runs-on: ubuntu-16.04
 
       steps:

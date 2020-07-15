@@ -1,4 +1,6 @@
 /*eslint-env node*/
+const path = require('path'); // eslint-disable-line
+
 module.exports = {
   verbose: false,
   collectCoverageFrom: [
@@ -17,13 +19,14 @@ module.exports = {
   },
   modulePaths: ['<rootDir>/src/sentry/static/sentry'],
   modulePathIgnorePatterns: ['<rootDir>/src/sentry/static/sentry/dist'],
+  preset: '@visual-snapshot/jest',
   setupFiles: [
     '<rootDir>/src/sentry/static/sentry/app/utils/silence-react-unsafe-warnings.js',
     '<rootDir>/tests/js/throw-on-react-error.js',
     '<rootDir>/tests/js/setup.js',
     'jest-canvas-mock',
   ],
-  setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.js'],
+  setupFilesAfterEnv: ['@visual-snapshot/jest', '<rootDir>/tests/js/setupFramework.js'],
   testMatch: ['<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
   unmockedModulePathPatterns: [
@@ -47,4 +50,17 @@ module.exports = {
       },
     ],
   ],
+
+  testEnvironmentOptions: {
+    output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
+    includeCss: path.resolve(
+      __dirname,
+      'src',
+      'sentry',
+      'static',
+      'sentry',
+      'dist',
+      'sentry.css'
+    ),
+  },
 };
