@@ -1,6 +1,10 @@
 import React from 'react';
 
+<<<<<<< HEAD
 import {shallow, mountWithTheme} from 'sentry-test/enzyme';
+=======
+import {mountWithTheme} from 'sentry-test/enzyme';
+>>>>>>> 9ff46eb5ff... update tests to use `toSnapshot` and `mountWithTheme`
 
 import GroupActions from 'app/views/organizationGroupDetails/actions';
 import ConfigStore from 'app/stores/configStore';
@@ -14,7 +18,7 @@ describe('GroupActions', function() {
 
   describe('render()', function() {
     it('renders correctly', function() {
-      const wrapper = shallow(
+      const wrapper = mountWithTheme(
         <GroupActions
           group={TestStubs.Group({
             id: '1337',
@@ -32,7 +36,7 @@ describe('GroupActions', function() {
           })}
         />
       );
-      expect(wrapper).toMatchSnapshot();
+      expect(wrapper).toSnapshot();
     });
   });
 
