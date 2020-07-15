@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
-import {toTitleCase, defined} from 'app/utils';
+import {defined} from 'app/utils';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
@@ -33,7 +33,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import {getIncidentMetricPreset} from '../utils';
+import {getIncidentMetricPreset, DATA_SOURCE_LABELS} from '../utils';
 
 type Props = {
   incident?: Incident;
@@ -81,7 +81,7 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <RuleDetails>
         <span>{t('Data Source')}</span>
-        <span>{t(toTitleCase(incident.alertRule?.dataset))}</span>
+        <span>{DATA_SOURCE_LABELS[incident.alertRule?.dataset]}</span>
 
         <span>{t('Metric')}</span>
         <span>{incident.alertRule?.aggregate}</span>
