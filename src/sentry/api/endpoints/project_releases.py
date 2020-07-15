@@ -157,7 +157,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
             analytics.record(
                 "release.created",
-                user_id=request.user.id,
+                user_id=request.user.id if request.user and request.user.id else None,
                 organization_id=project.organization_id,
                 project_ids=[project.id],
                 source=get_source_from_user_agent(request),
