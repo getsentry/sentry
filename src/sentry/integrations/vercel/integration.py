@@ -5,6 +5,7 @@ import six
 import logging
 
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.serializers import ValidationError
 
 
 from sentry.integrations import (
@@ -179,11 +180,17 @@ class VercelIntegration(IntegrationInstallation):
             sentry_project = Project.objects.get(id=sentry_project_id)
             enabled_dsn = ProjectKey.get_default(project=sentry_project)
             if not enabled_dsn:
-                raise IntegrationError("You must have an enabled DSN to continue!")
+                raise ValidationError(
+                    {"project_mappings": ["You must have an enabled DSN to continue!"]}
+                )
             source_code_provider = self.get_source_code_provider(vercel_client, vercel_project_id)
             if not source_code_provider:
-                raise IntegrationError(
-                    "You must connect your Vercel project to a Git repository to continue!"
+                raise ValidationError(
+                    {
+                        "project_mappings": [
+                            "You must connect your Vercel project to a Git repository to continue!"
+                        ]
+                    }
                 )
             sentry_project_dsn = enabled_dsn.get_dsn(public=True)
             uuid = uuid4().hex
