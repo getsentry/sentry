@@ -3276,10 +3276,10 @@
   dependencies:
     eslint-visitor-keys "^1.1.0"
 
-"@visual-snapshot/jest-environment@^1.0.8":
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/@visual-snapshot/jest-environment/-/jest-environment-1.0.8.tgz#7cd61bf6b4013f324e7fc2346ba080e0ba43e90d"
-  integrity sha512-z3k4qgTaWcX+DG7LE0+23Yw6KFN+xjchbPDNm9VSMttGDO2t8PRCs0icBIykWIw9sKjgGnvmtTMlmRAUpP28vQ==
+"@visual-snapshot/jest-environment@^1.0.9":
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/@visual-snapshot/jest-environment/-/jest-environment-1.0.9.tgz#2e0e30a3c8981081ac7d62d54fcbfbe639b2c6bb"
+  integrity sha512-Fk+DUc5a3ZFTQzscWIkAUl1Zo5tkNpyaZtlFUQ8cqU3P7E1R0nxkNjl6FWQRMTpjwkU+vrOaeo6i7gJQPqGtDQ==
   dependencies:
     "@jest/environment" "^26.1.0"
     "@jest/types" "^24.9"
@@ -3291,12 +3291,12 @@
   optionalDependencies:
     fsevents "^2.1.3"
 
-"@visual-snapshot/jest@^1.0.8":
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/@visual-snapshot/jest/-/jest-1.0.8.tgz#70efe5a5b3ed658b8508d520b609d51dc97c26a3"
-  integrity sha512-MKWXBZiwi6InZ9xbR0aCJujbEijYs8EquDy+QfY16wVyc9PTdOoCYH7spBsG3Avj/M3REjPIAynXtUi93xdUZA==
+"@visual-snapshot/jest@^1.0.10":
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/@visual-snapshot/jest/-/jest-1.0.10.tgz#d15d1c88a533a6f54b5a9c31a4b57f18490c8d12"
+  integrity sha512-9VQX25pk0XE/eQXR2y0NrYqQ9LXmqdH8eJdfhyVTaSpfq4U/vcuVFOytJku0T0l0nL2CaL9JH9pWNlNIBtm9hQ==
   dependencies:
-    "@visual-snapshot/jest-environment" "^1.0.8"
+    "@visual-snapshot/jest-environment" "^1.0.9"
     typescript "^3.9.6"
 
 "@webassemblyjs/ast@1.8.5":
