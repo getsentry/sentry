@@ -156,11 +156,12 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                 status = 201
 
             analytics.record(
-                "releases.create",
+                "release.created",
                 user_id=request.user.id,
                 organization_id=project.organization_id,
                 project_ids=[project.id],
                 source=get_source_from_user_agent(request),
+                created_status=status,
             )
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)

@@ -415,11 +415,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 status = 201
 
             analytics.record(
-                "releases.create",
+                "release.created",
                 user_id=request.user.id,
                 organization_id=organization.id,
                 project_ids=[projects[i].id for i in projects],
                 source=get_source_from_user_agent(request),
+                created_status=status,
             )
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)
