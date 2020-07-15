@@ -106,6 +106,19 @@ class SubscriptionProcessor(object):
         incident_trigger = self.incident_triggers.get(trigger.id)
         return incident_trigger is not None and incident_trigger.status == status.value
 
+    def calculate_resolve_threshold(self):
+        """
+        Determine the resolve threshold for an alert rule. First checks whether an
+        explicit resolve threshold has been set on the rule. If not, calculates a
+        threshold based on the `alert_threshold` on the triggers associated with the
+        rule.
+        :return:
+        """
+        if self.alert_rule.resolve_threshold is not None:
+            return self.alert_rule.resolve_threshold
+        func = min if self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value else max
+        return func(trigger.alert_threshold for trigger in self.triggers)
+
     def process_update(self, subscription_update):
         dataset = self.subscription.snuba_query.dataset
         if dataset == "events" and not features.has(
@@ -161,8 +174,7 @@ class SubscriptionProcessor(object):
                 self.trigger_alert_counts[trigger.id] = 0
 
         if (
-            self.alert_rule.resolve_threshold is not None
-            and resolve_operator(aggregation_value, self.alert_rule.resolve_threshold)
+            resolve_operator(aggregation_value, self.calculate_resolve_threshold())
             and self.active_incident
         ):
             self.rule_resolve_counts += 1
