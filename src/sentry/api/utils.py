@@ -83,3 +83,13 @@ def get_date_range_from_params(params, optional=False):
         raise InvalidParams("start must be before end")
 
     return start, end
+
+
+def get_source_from_user_agent(request):
+    user_agent = request.META.get("HTTP_USER_AGENT", "")
+    source = None
+    if user_agent.startswith("sentry-cli/"):
+        parsed = user_agent.split(" ")
+        source = parsed[1] if len(parsed) > 1 else None
+
+    return source

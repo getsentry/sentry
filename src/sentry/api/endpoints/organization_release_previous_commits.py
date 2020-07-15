@@ -7,6 +7,7 @@ from sentry import analytics
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_source_from_user_agent
 from sentry.models import Release
 
 
@@ -46,14 +47,10 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
             .extra(order_by=["-date"])[:1]
         )
 
-        user_agent = request.META.get("HTTP_USER_AGENT", "")
-        source = None
-        if user_agent.startswith("sentry-cli/"):
-            parsed = user_agent.split(" ")
-            source = parsed[1] if len(parsed) > 1 else None
-
         analytics.record(
-            "releases.set-commits.local", organization_id=organization.id, source=source,
+            "releases.set-commits.local",
+            organization_id=organization.id,
+            source=get_source_from_user_agent(request),
         )
 
         if not prev_release_with_commits:

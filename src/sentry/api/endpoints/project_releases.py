@@ -11,6 +11,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
+from sentry.api.utils import get_source_from_user_agent
 from sentry.models import Activity, Environment, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.signals import release_created
@@ -154,18 +155,12 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             else:
                 status = 201
 
-            user_agent = request.META.get("HTTP_USER_AGENT", "")
-            source = None
-            if user_agent.startswith("sentry-cli/"):
-                parsed = user_agent.split(" ")
-                source = parsed[1] if len(parsed) > 1 else None
-
             analytics.record(
                 "releases.create",
                 user_id=request.user.id,
                 organization_id=project.organization_id,
                 project_id=project.id,
-                source=source,
+                source=get_source_from_user_agent(request),
             )
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)
