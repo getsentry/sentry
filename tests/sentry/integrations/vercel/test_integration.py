@@ -4,7 +4,8 @@ import json
 import responses
 import six
 
-from sentry.utils.compat.mock import patch
+from rest_framework.serializers import ValidationError
+
 
 from six.moves.urllib.parse import parse_qs
 from sentry.integrations.vercel import VercelIntegrationProvider
@@ -17,8 +18,8 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallation,
 )
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 
 
@@ -409,7 +410,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
         dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
-        with self.assertRaises(IntegrationError):
+        with self.assertRaises(ValidationError):
             installation.update_organization_config(data)
 
     @responses.activate
@@ -433,7 +434,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
             json={},
         )
-        with self.assertRaises(IntegrationError):
+        with self.assertRaises(ValidationError):
             installation.update_organization_config(data)
 
     @responses.activate
