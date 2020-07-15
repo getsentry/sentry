@@ -330,6 +330,7 @@ class ActionsPanel extends React.PureComponent<Props> {
           })}
           <StyledPanelItem>
             <Button
+              type="button"
               disabled={disabled || loading}
               size="small"
               icon={<IconAdd isCircled color="gray500" />}
