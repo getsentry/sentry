@@ -242,6 +242,9 @@ register("data-export.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 # Max number of tags to combine in a single query in Discover2 tags facet.
 register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
 
+# Enables setting a sampling rate when producing the tag facet.
+register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORITIZE_DISK)
+
 # Killswitch for datascrubbing after stacktrace processing. Set to False to
 # disable datascrubbers.
 register("processing.can-use-scrubbers", default=True)
