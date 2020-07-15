@@ -182,7 +182,10 @@ def _prepare_containers(project, silent=False):
         options["name"] = project + "_" + name
         options.setdefault("ports", {})
         options.setdefault("environment", {})
-        options.setdefault("restart_policy", {"Name": "on-failure"})
+        # set policy to unless-stopped to avoid automatically restarting containers on boot
+        # this is important given you can start multiple sets of containers that can conflict
+        # with each other
+        options.setdefault("restart_policy", {"Name": "unless-stopped"})
         options["ports"] = ensure_interface(options["ports"])
         containers[name] = options
 
