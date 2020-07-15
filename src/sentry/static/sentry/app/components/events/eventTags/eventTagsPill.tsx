@@ -12,6 +12,7 @@ import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import Version from 'app/components/version';
 import {IconOpen, IconInfo} from 'app/icons';
+import space from 'app/styles/space';
 
 type Props = {
   tag: EventTag;
@@ -79,7 +80,7 @@ const EventTagsPill = ({
 
 const StyledIconInfo = styled(IconInfo)`
   position: relative;
-  top: 2px;
+  top: ${space(0.25)};
 `;
 
 export default EventTagsPill;
