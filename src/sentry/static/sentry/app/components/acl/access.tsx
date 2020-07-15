@@ -11,7 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
 
 const DEFAULT_NO_ACCESS_MESSAGE = (
-  <Alert type="error" icon={<IconInfo />}>
+  <Alert type="error" icon={<IconInfo size="md" />}>
     {t('You do not have sufficient permissions to access this.')}
   </Alert>
 );

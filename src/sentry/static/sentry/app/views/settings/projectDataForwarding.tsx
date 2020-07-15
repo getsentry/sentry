@@ -162,7 +162,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
               </TextBlock>
               <PermissionAlert />
 
-              <Alert icon={<IconInfo />}>
+              <Alert icon={<IconInfo size="md" />}>
                 {tct(
                   `Sentry forwards [em:all applicable events] to the provider, in
                 some cases this may be a significant volume of data.`,

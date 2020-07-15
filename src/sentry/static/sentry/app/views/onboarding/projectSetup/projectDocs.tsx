@@ -121,7 +121,7 @@ class ProjectDocs extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="warning" icon={<IconInfo />}>
+      <Alert type="warning" icon={<IconInfo size="md" />}>
         {tct(
           `Looks like this getting started example is still undergoing some
            work and doesn't include an example for triggering an event quite

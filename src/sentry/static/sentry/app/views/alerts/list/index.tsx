@@ -323,7 +323,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               )}
             </PageHeader>
 
-            <Alert type="info" icon={<IconInfo />}>
+            <Alert type="info" icon={<IconInfo size="md" />}>
               {tct(
                 'This page is in beta and currently only shows [link:metric alerts]. [contactLink:Please contact us if you have any feedback.]',
                 {
