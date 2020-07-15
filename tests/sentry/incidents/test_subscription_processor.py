@@ -401,6 +401,66 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
+    def test_auto_resolve(self):
+        # Verify that we resolve an alert rule automatically even if no resolve
+        # threshold is set
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold - 1, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_reversed(self):
+        # Test auto resolving works correctly when threshold is reversed
+        rule = self.rule
+        rule.update(resolve_threshold=None, threshold_type=AlertRuleThresholdType.BELOW.value)
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold - 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_multiple_trigger(self):
+        # Test auto resolving works correctly when multiple triggers are present.
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        other_trigger = create_alert_rule_trigger(
+            self.rule, "hello", AlertRuleThresholdType.ABOVE, trigger.alert_threshold - 10
+        )
+        other_action = create_alert_rule_trigger_action(
+            other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
+        )
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action, other_action])
+
+        processor = self.send_update(rule, other_trigger.alert_threshold - 1, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_trigger_exists_with_status(incident, other_trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action, other_action])
+
     def test_reversed_threshold_alert(self):
         # Test that inverting thresholds correctly alerts
         rule = self.rule
