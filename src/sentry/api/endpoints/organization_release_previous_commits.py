@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import analytics
+
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -42,6 +44,16 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
                 params=[start_date],
             )
             .extra(order_by=["-date"])[:1]
+        )
+
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
+        source = None
+        if user_agent.startswith("sentry-cli/"):
+            parsed = user_agent.split(" ")
+            source = parsed[1] if len(parsed) > 1 else None
+
+        analytics.record(
+            "releases.set-commits.local", organization_id=organization.id, source=source,
         )
 
         if not prev_release_with_commits:

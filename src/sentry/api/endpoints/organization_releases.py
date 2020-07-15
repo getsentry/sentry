@@ -7,6 +7,8 @@ from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
+from sentry import analytics
+
 from sentry.api.bases import NoProjects
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -411,5 +413,18 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             else:
                 status = 201
 
+            user_agent = request.META.get("HTTP_USER_AGENT", "")
+            source = None
+            if user_agent.startswith("sentry-cli/"):
+                parsed = user_agent.split(" ")
+                source = parsed[1] if len(parsed) > 1 else None
+
+            analytics.record(
+                "releases.create",
+                user_id=request.user.id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                source=source,
+            )
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)
