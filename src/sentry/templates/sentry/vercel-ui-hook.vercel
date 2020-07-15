@@ -7,9 +7,9 @@
       </P>
       <UL>
         <LI><Link href="{{ source_code_link }}">Install a source code integration</Link></LI>
-        <LI>Add the repositories for your projects</LI>
-        <LI><Link href="{{ connect_projects_link }}">Connect your projects</Link></LI>
-        <LI>Redeploy your Vercel project to trigger a release</LI>
+        <LI>Add the repositories for your project(s)</LI>
+        <LI><Link href="{{ connect_projects_link }}">Connect your project(s)</Link></LI>
+        <LI>Redeploy your Vercel project(s) to trigger a release</LI>
       </UL>
       <P>
         Still have questions? <Link href="{{ doc_link }}">Check out the documentation.</Link>
