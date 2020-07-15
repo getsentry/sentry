@@ -174,6 +174,7 @@ const CommitMessage = styled(({message = '', date, ...props}) => (
   color: ${p => p.theme.gray800};
   font-size: 11px;
   margin-top: ${space(0.25)};
+  hyphens: auto;
 `;
 
 const CommitDate = styled(({date, ...props}) => (
