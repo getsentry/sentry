@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
-import {toTitleCase, defined} from 'app/utils';
+import {defined} from 'app/utils';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Duration from 'app/components/duration';
@@ -20,11 +20,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Button from 'app/components/button';
-import {
-  AlertRuleThresholdType,
-  Dataset,
-  Trigger,
-} from 'app/views/settings/incidentRules/types';
+import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 
@@ -37,7 +33,7 @@ import {
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import {getIncidentMetricPreset} from '../utils';
+import {getIncidentMetricPreset, DATA_SOURCE_LABELS} from '../utils';
 
 type Props = {
   incident?: Incident;
@@ -82,14 +78,10 @@ export default class DetailsBody extends React.Component<Props> {
       ({label}) => label === 'warning'
     );
 
-    const dataSource = incident.alertRule?.dataset;
-
     return (
       <RuleDetails>
         <span>{t('Data Source')}</span>
-        <span>
-          {t(toTitleCase(dataSource === Dataset.ERRORS ? 'errors' : dataSource))}
-        </span>
+        <span>{DATA_SOURCE_LABELS[incident.alertRule?.dataset]}</span>
 
         <span>{t('Metric')}</span>
         <span>{incident.alertRule?.aggregate}</span>

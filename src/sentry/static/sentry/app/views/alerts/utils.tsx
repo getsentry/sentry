@@ -1,4 +1,5 @@
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import {Project, NewQuery} from 'app/types';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {getUtcDateString} from 'app/utils/dates';
@@ -145,3 +146,8 @@ export function getIncidentDiscoverUrl(opts: {
     ...toObject,
   };
 }
+
+export const DATA_SOURCE_LABELS = {
+  [Dataset.ERRORS]: t('Errors'),
+  [Dataset.TRANSACTIONS]: t('Transactions'),
+};
