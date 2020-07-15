@@ -50,6 +50,7 @@ class QuerySubscription(Model):
         CREATING = 1
         UPDATING = 2
         DELETING = 3
+        DISABLED = 4
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     snuba_query = FlexibleForeignKey("sentry.SnubaQuery", null=True, related_name="subscriptions")
