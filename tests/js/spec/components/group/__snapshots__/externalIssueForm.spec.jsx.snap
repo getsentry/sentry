@@ -4725,7 +4725,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         type="textarea"
                                         value="Default Value"
                                       >
-                                        <ForwardRef(TextAreaControlComponent)
+                                        <TextAreaControl
                                           className="css-u4op3m-TextArea edis3zx0"
                                           default="Default Value"
                                           disabled={false}
@@ -4751,7 +4751,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             type="textarea"
                                             value="Default Value"
                                           />
-                                        </ForwardRef(TextAreaControlComponent)>
+                                        </TextAreaControl>
                                       </TextArea>
                                     </Observer>
                                   </div>
