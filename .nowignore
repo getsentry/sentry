@@ -14,6 +14,6 @@
 !prettier.config.js
 !stylelint.config.js
 !tsconfig.json
-!config/build/tsconfig.json
+!config/tsconfig.build.json
 !webpack.config.js
 !yarn.lock

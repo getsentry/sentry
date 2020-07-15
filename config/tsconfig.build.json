@@ -30,8 +30,8 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "jsx": "preserve",
-    "baseUrl": "../../",
-    "outDir": "../../src/sentry/static/sentry/dist",
+    "baseUrl": "../",
+    "outDir": "../src/sentry/static/sentry/dist",
     "paths": {
       "app/*": ["src/sentry/static/sentry/app/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
@@ -46,6 +46,6 @@
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
-  "include": ["../../src", "../.../tests"],
-  "exclude": ["../../node_modules"]
+  "include": ["../src", "../tests"],
+  "exclude": ["../node_modules"]
 }
