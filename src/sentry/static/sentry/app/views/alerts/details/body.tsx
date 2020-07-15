@@ -20,7 +20,11 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Button from 'app/components/button';
-import {AlertRuleThresholdType, Trigger} from 'app/views/settings/incidentRules/types';
+import {
+  AlertRuleThresholdType,
+  Dataset,
+  Trigger,
+} from 'app/views/settings/incidentRules/types';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 
@@ -78,10 +82,14 @@ export default class DetailsBody extends React.Component<Props> {
       ({label}) => label === 'warning'
     );
 
+    const dataSource = incident.alertRule?.dataset;
+
     return (
       <RuleDetails>
         <span>{t('Data Source')}</span>
-        <span>{t(toTitleCase(incident.alertRule?.dataset))}</span>
+        <span>
+          {t(toTitleCase(dataSource === Dataset.ERRORS ? 'errors' : dataSource))}
+        </span>
 
         <span>{t('Metric')}</span>
         <span>{incident.alertRule?.aggregate}</span>

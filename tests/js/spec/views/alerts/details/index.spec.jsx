@@ -228,4 +228,18 @@ describe('IncidentDetails', function() {
     wrapper.find('SubscribeButton').simulate('click');
     expect(subscribe).toHaveBeenCalled();
   });
+
+  it('renders Errors as data source for Dataset.ERRORS', async function() {
+    const wrapper = createWrapper();
+    await tick();
+    wrapper.update();
+
+    const ruleDetails = wrapper.find('RuleDetails');
+    expect(
+      ruleDetails
+        .find('span')
+        .at(1)
+        .text()
+    ).toBe('Errors');
+  });
 });
