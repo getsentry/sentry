@@ -9,10 +9,10 @@ import space from 'app/styles/space';
 type Props = React.ComponentProps<typeof Alert>;
 
 const DEFAULT_ICONS = {
-  info: <IconInfo />,
-  error: <IconClose isCircled />,
+  info: <IconInfo size="md" />,
+  error: <IconClose isCircled size="md" />,
   warning: <IconWarning />,
-  success: <IconCheckmark isCircled />,
+  success: <IconCheckmark isCircled size="md" />,
 };
 
 // Margin bottom should probably be a different prop

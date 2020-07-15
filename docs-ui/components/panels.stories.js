@@ -46,7 +46,7 @@ storiesOf('UI|Panels', module)
           <PanelAlert type="error">Error Alert message</PanelAlert>
           <PanelAlert type="warning">Warning Alert message</PanelAlert>
           <PanelAlert type="success">Success Alert message</PanelAlert>
-          <PanelAlert type="info" icon={<IconTelescope />}>
+          <PanelAlert type="info" icon={<IconTelescope size="md" />}>
             Custom Icon message
           </PanelAlert>
           <PanelItem>Panel Item</PanelItem>
