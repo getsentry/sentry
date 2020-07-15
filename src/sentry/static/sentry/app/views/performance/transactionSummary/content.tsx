@@ -71,16 +71,22 @@ class SummaryContent extends React.Component<Props, State> {
     };
   };
 
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
-  >['onIncompatibleQuery'] = incompatibleAlertNoticeFn => {
+  trackAlertClick(errors?: Record<string, boolean>) {
     const {organization} = this.props;
     trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.create_alert_incompatible',
-      eventName:
-        'Performance Views: Creating an alert from transaction summary was incompatible',
+      eventKey: 'performance_views.summary.create_alert_clicked',
+      eventName: 'Performance Views: Create alert clicked',
       organization_id: organization.id,
+      status: errors ? 'error' : 'success',
+      errors,
+      url: window.location.href,
     });
+  }
+
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
+    this.trackAlertClick(errors);
     const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
       this.setState({incompatibleAlertNotice: null})
     );
@@ -88,12 +94,7 @@ class SummaryContent extends React.Component<Props, State> {
   };
 
   handleCreateAlertSuccess = () => {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.create_alert',
-      eventName: 'Performance Views: Create Alert from Transaction Summary',
-      organization_id: organization.id,
-    });
+    this.trackAlertClick();
   };
 
   renderCreateAlertButton() {
@@ -106,6 +107,7 @@ class SummaryContent extends React.Component<Props, State> {
         projects={projects}
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={this.handleCreateAlertSuccess}
+        referrer="performance"
       />
     );
   }

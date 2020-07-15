@@ -17,13 +17,7 @@ def make_csp_snapshot(insta_snapshot):
         interface = evt.interfaces.get("csp")
 
         insta_snapshot(
-            {
-                "errors": evt.data.get("errors"),
-                "to_json": interface and interface.to_json(),
-                "message": interface and interface.get_message(),
-                "culprit": interface and interface.get_culprit(),
-                "origin": interface and interface.get_origin(),
-            }
+            {"errors": evt.data.get("errors"), "to_json": interface and interface.to_json()}
         )
 
     return inner
@@ -42,45 +36,6 @@ def test_basic(make_csp_snapshot):
 
 def test_coerce_blocked_uri_if_missing(make_csp_snapshot):
     make_csp_snapshot(dict(document_uri="http://example.com", effective_directive="script-src"))
-
-
-@pytest.mark.parametrize(
-    "input",
-    [
-        dict(
-            document_uri="http://example.com/foo",
-            violated_directive="style-src http://cdn.example.com",
-            effective_directive="style-src",
-        ),
-        dict(
-            document_uri="http://example.com/foo",
-            violated_directive="style-src cdn.example.com",
-            effective_directive="style-src",
-        ),
-        dict(
-            document_uri="https://example.com/foo",
-            violated_directive="style-src cdn.example.com",
-            effective_directive="style-src",
-        ),
-        dict(
-            document_uri="http://example.com/foo",
-            violated_directive="style-src https://cdn.example.com",
-            effective_directive="style-src",
-        ),
-        dict(
-            document_uri="http://example.com/foo",
-            violated_directive="style-src http://example.com",
-            effective_directive="style-src",
-        ),
-        dict(
-            document_uri="http://example.com/foo",
-            violated_directive="style-src http://example2.com example.com",
-            effective_directive="style-src",
-        ),
-    ],
-)
-def test_get_culprit(make_csp_snapshot, input):
-    make_csp_snapshot(input)
 
 
 @pytest.mark.parametrize(

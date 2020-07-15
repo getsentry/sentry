@@ -458,7 +458,7 @@ class Sidebar extends React.Component<Props, State> {
 
                 <SidebarSection>
                   <Feature
-                    features={['discover', 'discover-basic']}
+                    features={['discover', 'discover-query']}
                     organization={organization}
                     requireAll={false}
                   >
