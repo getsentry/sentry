@@ -286,6 +286,7 @@ class IncidentSubscription(Model):
 class AlertRuleStatus(Enum):
     PENDING = 0
     SNAPSHOT = 4
+    DISABLED = 5
 
 
 class AlertRuleThresholdType(Enum):
