@@ -3,8 +3,8 @@ from __future__ import absolute_import, print_function
 from sentry import analytics
 
 
-class ReleaseSetCommitsLocalEvent(analytics.Event):
-    type = "release.set_commits_local"
+class ReleaseGetPreviousCommitsEvent(analytics.Event):
+    type = "release.get_previous_commits"
 
     attributes = (
         analytics.Attribute("user_id", required=False),
@@ -14,4 +14,4 @@ class ReleaseSetCommitsLocalEvent(analytics.Event):
     )
 
 
-analytics.register(ReleaseSetCommitsLocalEvent)
+analytics.register(ReleaseGetPreviousCommitsEvent)

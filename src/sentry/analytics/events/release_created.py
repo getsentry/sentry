@@ -11,6 +11,7 @@ class ReleaseCreatedEvent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("project_ids"),
         analytics.Attribute("source", required=False),
+        analytics.Attribute("created_status"),
     )
 
 
