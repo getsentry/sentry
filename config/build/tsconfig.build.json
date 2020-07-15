@@ -1,7 +1,0 @@
-{
-  "extends": "../base/tsconfig.base.json",
-  "compilerOptions": {
-    "allowJs": false,
-  },
-  "include": ["../../src", "../../tests"]
-}

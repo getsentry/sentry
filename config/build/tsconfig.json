@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "allowJs": true,
+    "allowJs": false,
     "checkJs": false,
     "alwaysStrict": false,
     "declaration": false,
@@ -46,5 +46,6 @@
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
+  "include": ["../../src", "../.../tests"],
   "exclude": ["../../node_modules"]
 }

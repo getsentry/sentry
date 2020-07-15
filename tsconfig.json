@@ -1,3 +1,8 @@
 {
-  "extends": "./config/base/tsconfig.base.json"
+  "extends": "./config/build/tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+  },
+  "include": ["src", "tests", "docs-ui"],
+  "exclude": ["node_modules"]
 }
