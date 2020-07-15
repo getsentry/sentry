@@ -276,7 +276,7 @@ class ActionsPanel extends React.PureComponent<Props> {
 
                     {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
                       <SelectControl
-                        disabled={disabled || loading}
+                        isDisabled={disabled || loading}
                         value={action.targetType}
                         options={availableAction?.allowedTargetTypes?.map(
                           allowedType => ({
