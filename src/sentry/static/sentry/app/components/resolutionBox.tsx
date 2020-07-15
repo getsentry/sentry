@@ -91,7 +91,8 @@ const StyledTimeSince = styled(TimeSince)`
 `;
 
 const StyledIconCheckmark = styled(IconCheckmark)`
-  margin-top: 0;
+  /* override margin defined in BannerSummary */
+  margin-top: 0 !important;
   align-self: center;
 `;
 
