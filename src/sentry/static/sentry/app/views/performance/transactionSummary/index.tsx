@@ -176,8 +176,9 @@ function generateSummaryEventView(
   // conditions they applied.
   const query = decodeScalar(location.query.query) || '';
   const conditions = tokenizeSearch(query);
-  conditions.setTag('event.type', ['transaction']);
-  conditions.setTag('transaction', [transactionName]);
+  conditions
+    .setTag('event.type', ['transaction'])
+    .setTag('transaction', [transactionName]);
 
   Object.keys(conditions.tagValues).forEach(field => {
     if (isAggregateField(field)) conditions.removeTag(field);

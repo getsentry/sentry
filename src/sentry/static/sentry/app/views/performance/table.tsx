@@ -78,8 +78,7 @@ class Table extends React.Component<Props, State> {
       switch (action) {
         case Actions.ADD: {
           // Remove exclusion if it exists.
-          searchConditions.removeTag(`!${column.name}`);
-          searchConditions.setTag(column.name, [`${value}`]);
+          searchConditions.removeTag(`!${column.name}`).setTag(column.name, [`${value}`]);
 
           nextLocationQuery = {
             query: stringifyQueryObject(searchConditions),

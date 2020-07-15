@@ -218,8 +218,7 @@ describe('utils/tokenizeSearch', function() {
       expect(results.formatString()).toEqual('a:a b c');
       expect(results.query).toEqual(['b', 'c']);
 
-      results.addStringTag('d:d');
-      results.addQuery('e');
+      results.addStringTag('d:d').addQuery('e');
       expect(results.formatString()).toEqual('a:a b c d:d e');
       expect(results.query).toEqual(['b', 'c', 'e']);
 
@@ -237,11 +236,12 @@ describe('utils/tokenizeSearch', function() {
       results.addQuery('z');
       expect(results.formatString()).toEqual('x a:a y OR z');
 
-      results.addOp('(');
-      results.addStringTag('b:b');
-      results.addOp('AND');
-      results.addStringTag('c:c');
-      results.addOp(')');
+      results
+        .addOp('(')
+        .addStringTag('b:b')
+        .addOp('AND')
+        .addStringTag('c:c')
+        .addOp(')');
       expect(results.formatString()).toEqual('x a:a y OR z ( b:b AND c:c )');
     });
 

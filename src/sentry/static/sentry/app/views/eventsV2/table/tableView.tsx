@@ -274,8 +274,7 @@ class TableView extends React.Component<TableViewProps> {
             query.addTag('!has', [column.name]);
           } else {
             // Remove exclusion if it exists.
-            query.removeTag(`!${column.name}`);
-            query.setTag(column.name, [`${value}`]);
+            query.removeTag(`!${column.name}`).setTag(column.name, [`${value}`]);
           }
           break;
         case Actions.EXCLUDE:

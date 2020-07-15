@@ -17,7 +17,7 @@ function isOp(t: Token) {
 }
 
 export class QueryResults {
-  tagValues: object;
+  tagValues: Record<string, string[]>;
   tokens: Token[];
 
   constructor(strTokens: string[]) {
@@ -60,7 +60,7 @@ export class QueryResults {
         }
       }
 
-      let trailingParen: string = '';
+      let trailingParen = '';
       if (token.endsWith(')')) {
         const parenMatch = token.match(/\)+$/g);
         if (parenMatch) {
@@ -104,6 +104,7 @@ export class QueryResults {
   addStringTag(value: string) {
     const [key, tag] = formatTag(value);
     this.addTag(key, [tag]);
+    return this;
   }
 
   addTag(key: string, tags: string[]) {
@@ -114,11 +115,13 @@ export class QueryResults {
       const token: Token = {type: TokenType.TAG, key, value: t};
       this.tokens.push(token);
     }
+    return this;
   }
 
   setTag(key: string, tags: string[]) {
     this.removeTag(key);
     this.addTag(key, tags);
+    return this;
   }
 
   getTags(key: string) {
@@ -195,16 +198,20 @@ export class QueryResults {
         }
       }
     } while (toRemove >= 0);
+
+    return this;
   }
 
   addQuery(value: string) {
     const token: Token = {type: TokenType.QUERY, value: formatQuery(value)};
     this.tokens.push(token);
+    return this;
   }
 
   addOp(value: string) {
     const token: Token = {type: TokenType.OP, value};
     this.tokens.push(token);
+    return this;
   }
 
   get query(): string[] {
