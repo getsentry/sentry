@@ -106,10 +106,10 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         metrics.incr("snuba.subscriptions.delete.subscription_does_not_exist")
         return
 
-    if (
-        subscription.status != QuerySubscription.Status.DELETING.value
-        and subscription.status != QuerySubscription.Status.DISABLED.value
-    ):
+    if subscription.status not in [
+        QuerySubscription.Status.DELETING.value,
+        QuerySubscription.Status.DISABLED.value,
+    ]:
         metrics.incr("snuba.subscriptions.delete.incorrect_status")
         return
 

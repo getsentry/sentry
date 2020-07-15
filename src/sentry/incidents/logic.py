@@ -819,7 +819,7 @@ def enable_alert_rule(alert_rule):
 
 
 def disable_alert_rule(alert_rule):
-    if alert_rule.status == AlertRuleStatus.DISABLED.value:
+    if alert_rule.status != AlertRuleStatus.PENDING.value:
         return
     with transaction.atomic():
         alert_rule.update(status=AlertRuleStatus.DISABLED.value)
