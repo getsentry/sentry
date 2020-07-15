@@ -12,7 +12,6 @@ import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import Version from 'app/components/version';
 import {IconOpen, IconInfo} from 'app/icons';
-import space from 'app/styles/space';
 
 type Props = {
   tag: EventTag;
@@ -69,7 +68,7 @@ const EventTagsPill = ({
                 search: locationSearch,
               }}
             >
-              <StyledIconInfo size="14px" />
+              <StyledIconInfo size="xs" />
             </Link>
           </VersionHoverCard>
         </div>
@@ -80,7 +79,7 @@ const EventTagsPill = ({
 
 const StyledIconInfo = styled(IconInfo)`
   position: relative;
-  top: ${space(0.25)};
+  top: 1px;
 `;
 
 export default EventTagsPill;
