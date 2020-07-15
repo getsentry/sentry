@@ -95,6 +95,7 @@ from .endpoints.organization_events import OrganizationEventsEndpoint, Organizat
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
+    OrganizationEventBaseline,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
@@ -822,6 +823,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
                     OrganizationEventsMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-events-meta",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/event-baseline/$",
+                    OrganizationEventBaseline.as_view(),
+                    name="sentry-api-0-organization-event-baseline",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",
