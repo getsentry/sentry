@@ -62,6 +62,13 @@ external_install = {
 
 configure_integration = {"title": _("Connect Your Projects")}
 
+disable_dialog = {
+    "actionText": "Visit Vercel",
+    "body": "In order to uninstall this integration, you must go"
+    " to Vercel and uninstall there by clicking 'Remove Configuration'.",
+}
+
+
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
@@ -69,7 +76,11 @@ metadata = IntegrationMetadata(
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/new?title=Vercel%20Integration:%20&labels=Component%3A%20Integrations",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
-    aspects={"externalInstall": external_install, "configure_integration": configure_integration},
+    aspects={
+        "externalInstall": external_install,
+        "configure_integration": configure_integration,
+        "disable_dialog": disable_dialog,
+    },
 )
 
 internal_integration_overview = (
@@ -125,7 +136,7 @@ class VercelIntegration(IntegrationInstallation):
         next_url = None
         configuration_id = self.get_configuration_id()
         if configuration_id:
-            next_url = u"https://vercel.com/dashboard/integrations/%s" % configuration_id
+            next_url = u"%s/dashboard/integrations/%s" % (base_url, configuration_id)
 
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
@@ -249,6 +260,7 @@ class VercelIntegrationProvider(IntegrationProvider):
     name = "Vercel"
     requires_feature_flag = True
     can_add = False
+    can_disable = True
     metadata = metadata
     integration_cls = VercelIntegration
     features = frozenset([IntegrationFeatures.DEPLOYMENT])
