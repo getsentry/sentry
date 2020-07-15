@@ -31,7 +31,7 @@
     "esModuleInterop": true,
     "jsx": "preserve",
     "baseUrl": "../../",
-    "outDir": "src/sentry/static/sentry/dist",
+    "outDir": "../../src/sentry/static/sentry/dist",
     "paths": {
       "app/*": ["src/sentry/static/sentry/app/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
@@ -46,5 +46,5 @@
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
-  "exclude": ["node_modules"]
+  "exclude": ["../../node_modules"]
 }

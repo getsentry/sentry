@@ -147,7 +147,7 @@ test-cli:
 
 test-js-build: node-version-check
 	@echo "--> Running type check"
-	@yarn run tsc -p tsconfig.build.json
+	@yarn run tsc -p config/build/tsconfig.build.json
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
 

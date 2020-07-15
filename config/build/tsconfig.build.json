@@ -3,5 +3,5 @@
   "compilerOptions": {
     "allowJs": false,
   },
-  "include": ["src", "tests"]
+  "include": ["../../src", "../../tests"]
 }
