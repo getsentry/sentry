@@ -771,18 +771,18 @@ class ParseSearchQueryTest(unittest.TestCase):
 class ParseBooleanSearchQueryTest(TestCase):
     def setUp(self):
         super(ParseBooleanSearchQueryTest, self).setUp()
-        self.term1 = ["equals", ["user.email", "foo@example.com"]]
-        self.term2 = ["equals", ["user.email", "bar@example.com"]]
-        self.term3 = ["equals", ["user.email", "foobar@example.com"]]
-        self.term4 = ["equals", ["user.email", "hello@example.com"]]
-        self.term5 = ["equals", ["user.email", "hi@example.com"]]
+        self.foo = ["equals", ["user.email", "foo@example.com"]]
+        self.bar = ["equals", ["user.email", "bar@example.com"]]
+        self.foobar = ["equals", ["user.email", "foobar@example.com"]]
+        self.hello = ["equals", ["user.email", "hello@example.com"]]
+        self.hi = ["equals", ["user.email", "hi@example.com"]]
 
     def test_simple(self):
         result = get_filter("user.email:foo@example.com OR user.email:bar@example.com")
-        assert result.conditions == [[["or", [self.term1, self.term2]], "=", 1]]
+        assert result.conditions == [[["or", [self.foo, self.bar]], "=", 1]]
 
         result = get_filter("user.email:foo@example.com AND user.email:bar@example.com")
-        assert result.conditions == [[["and", [self.term1, self.term2]], "=", 1]]
+        assert result.conditions == [[["and", [self.foo, self.bar]], "=", 1]]
 
     def test_single_term(self):
         result = get_filter("user.email:foo@example.com")
@@ -792,30 +792,24 @@ class ParseBooleanSearchQueryTest(TestCase):
         result = get_filter(
             "user.email:foo@example.com OR user.email:bar@example.com AND user.email:foobar@example.com"
         )
-        assert result.conditions == [
-            [["or", [self.term1, ["and", [self.term2, self.term3]]]], "=", 1]
-        ]
+        assert result.conditions == [[["or", [self.foo, ["and", [self.bar, self.foobar]]]], "=", 1]]
 
         result = get_filter(
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com"
         )
-        assert result.conditions == [
-            [["or", [["and", [self.term1, self.term2]], self.term3]], "=", 1]
-        ]
+        assert result.conditions == [[["or", [["and", [self.foo, self.bar]], self.foobar]], "=", 1]]
 
     def test_multiple_statements(self):
         result = get_filter(
             "user.email:foo@example.com OR user.email:bar@example.com OR user.email:foobar@example.com"
         )
-        assert result.conditions == [
-            [["or", [self.term1, ["or", [self.term2, self.term3]]]], "=", 1]
-        ]
+        assert result.conditions == [[["or", [self.foo, ["or", [self.bar, self.foobar]]]], "=", 1]]
 
         result = get_filter(
             "user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com"
         )
         assert result.conditions == [
-            [["and", [self.term1, ["and", [self.term2, self.term3]]]], "=", 1]
+            [["and", [self.foo, ["and", [self.bar, self.foobar]]]], "=", 1]
         ]
 
         # longer even number of terms
@@ -823,7 +817,7 @@ class ParseBooleanSearchQueryTest(TestCase):
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com"
         )
         assert result.conditions == [
-            [["or", [["and", [self.term1, self.term2]], ["and", [self.term3, self.term4]]]], "=", 1]
+            [["or", [["and", [self.foo, self.bar]], ["and", [self.foobar, self.hello]]]], "=", 1]
         ]
 
         # longer odd number of terms
@@ -835,8 +829,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     "or",
                     [
-                        ["and", [self.term1, self.term2]],
-                        ["and", [self.term3, ["and", [self.term4, self.term5]]]],
+                        ["and", [self.foo, self.bar]],
+                        ["and", [self.foobar, ["and", [self.hello, self.hi]]]],
                     ],
                 ],
                 "=",
@@ -853,16 +847,16 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     "or",
                     [
-                        ["and", [self.term1, self.term2]],
+                        ["and", [self.foo, self.bar]],
                         [
                             "or",
                             [
-                                ["and", [self.term3, ["and", [self.term4, self.term5]]]],
+                                ["and", [self.foobar, ["and", [self.hello, self.hi]]]],
                                 [
                                     "or",
                                     [
-                                        ["and", [self.term1, self.term2]],
-                                        ["and", [self.term3, ["and", [self.term4, self.term5]]]],
+                                        ["and", [self.foo, self.bar]],
+                                        ["and", [self.foobar, ["and", [self.hello, self.hi]]]],
                                     ],
                                 ],
                             ],
@@ -876,29 +870,23 @@ class ParseBooleanSearchQueryTest(TestCase):
 
     def test_grouping_simple(self):
         result = get_filter("(user.email:foo@example.com OR user.email:bar@example.com)")
-        assert result.conditions == [[["or", [self.term1, self.term2]], "=", 1]]
+        assert result.conditions == [[["or", [self.foo, self.bar]], "=", 1]]
 
         result = get_filter(
             "(user.email:foo@example.com OR user.email:bar@example.com) AND user.email:foobar@example.com"
         )
-        assert result.conditions == [
-            [["and", [["or", [self.term1, self.term2]], self.term3]], "=", 1]
-        ]
+        assert result.conditions == [[["and", [["or", [self.foo, self.bar]], self.foobar]], "=", 1]]
 
         result = get_filter(
             "user.email:foo@example.com AND (user.email:bar@example.com OR user.email:foobar@example.com)"
         )
-        assert result.conditions == [
-            [["and", [self.term1, ["or", [self.term2, self.term3]]]], "=", 1]
-        ]
+        assert result.conditions == [[["and", [self.foo, ["or", [self.bar, self.foobar]]]], "=", 1]]
 
     def test_nested_grouping(self):
         result = get_filter(
             "(user.email:foo@example.com OR (user.email:bar@example.com OR user.email:foobar@example.com))"
         )
-        assert result.conditions == [
-            [["or", [self.term1, ["or", [self.term2, self.term3]]]], "=", 1]
-        ]
+        assert result.conditions == [[["or", [self.foo, ["or", [self.bar, self.foobar]]]], "=", 1]]
 
         result = get_filter(
             "(user.email:foo@example.com OR (user.email:bar@example.com OR (user.email:foobar@example.com AND user.email:hello@example.com OR user.email:hi@example.com)))"
@@ -908,11 +896,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     "or",
                     [
-                        self.term1,
-                        [
-                            "or",
-                            [self.term2, ["or", [["and", [self.term3, self.term4]], self.term5]]],
-                        ],
+                        self.foo,
+                        ["or", [self.bar, ["or", [["and", [self.foobar, self.hello]], self.hi]]]],
                     ],
                 ],
                 "=",
@@ -2287,6 +2272,31 @@ class ResolveFieldListTest(unittest.TestCase):
             ["divide(count(), divide(3600, 60))", None, "epm"],
         ]
         assert result["groupby"] == []
+
+    def test_absolute_delta_function(self):
+        fields = ["absolute_delta(transaction.duration,100)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == []
+        assert result["aggregations"] == [
+            ["abs(minus(duration, 100))", None, "absolute_delta_transaction_duration_100"],
+        ]
+        assert result["groupby"] == []
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["absolute_delta(transaction,100)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert (
+            "absolute_delta(transaction,100): column argument invalid: transaction is not a duration column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["absolute_delta(transaction.duration,blah)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert (
+            "absolute_delta(transaction.duration,blah): target argument invalid: blah is not a number"
+            in six.text_type(err)
+        )
 
     def test_eps_function(self):
         fields = ["eps(3600)"]

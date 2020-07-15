@@ -230,7 +230,7 @@ class QueryList extends React.Component<Props> {
     return (
       <React.Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
-        <Pagination
+        <PaginationRow
           pageLinks={pageLinks}
           onCursor={(cursor: string, path: string, query: Query, direction: number) => {
             const offset = Number(cursor.split(':')[1]);
@@ -252,6 +252,10 @@ class QueryList extends React.Component<Props> {
     );
   }
 }
+
+const PaginationRow = styled(Pagination)`
+  margin-bottom: 20px;
+`;
 
 const QueryGrid = styled('div')`
   display: grid;
