@@ -322,7 +322,11 @@ class EnvironmentSelectorItem extends React.PureComponent {
   render() {
     const {environment, inputValue, isChecked} = this.props;
     return (
-      <GlobalSelectionHeaderRow checked={isChecked} onCheckClick={this.handleClick}>
+      <GlobalSelectionHeaderRow
+        data-test-id={`environment-${environment}`}
+        checked={isChecked}
+        onCheckClick={this.handleClick}
+      >
         <Highlight text={inputValue}>{environment}</Highlight>
       </GlobalSelectionHeaderRow>
     );

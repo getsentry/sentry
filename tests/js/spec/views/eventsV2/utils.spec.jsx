@@ -447,6 +447,31 @@ describe('getExpandedResults()', function() {
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('title:"hello there "');
   });
+
+  it('should add environment from the data row', () => {
+    const view = new EventView({
+      ...state,
+      environment: [],
+      query: '',
+      fields: [{field: 'environment'}],
+    });
+    expect(view.environment).toEqual([]);
+    const event = {environment: 'staging'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.environment).toEqual(['staging']);
+  });
+
+  it('should not add duplicate environment', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'environment'}],
+    });
+    expect(view.environment).toEqual(['staging']);
+    const event = {environment: 'staging'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.environment).toEqual(['staging']);
+  });
 });
 
 describe('downloadAsCsv', function() {

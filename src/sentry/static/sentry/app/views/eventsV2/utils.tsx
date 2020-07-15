@@ -406,13 +406,15 @@ function generateExpandedConditions(
 
   // Add additional conditions provided and generated.
   for (const key in conditions) {
-    const value = additionalConditions[key];
+    const value = conditions[key];
     if (key === 'project.id') {
       eventView.project = [...eventView.project, parseInt(value, 10)];
       continue;
     }
     if (key === 'environment') {
-      eventView.environment = [...eventView.environment, value];
+      if (!eventView.environment.includes(value)) {
+        eventView.environment = [...eventView.environment, value];
+      }
       continue;
     }
     if (key === 'user' && typeof value === 'string') {
