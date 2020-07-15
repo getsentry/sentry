@@ -231,9 +231,7 @@ describe('InviteMembersModal', function() {
     expect(wrapper.find('StatusMessage').text()).toBe('Sent 2 invites');
     expect(wrapper.find('Button[data-test-id="close"]').exists()).toBe(true);
     expect(wrapper.find('Button[data-test-id="send-more"]').exists()).toBe(true);
-    expect(
-      wrapper.find('SelectControl EmailLabel InlineSvg[src="icon-checkmark-sm"]').exists()
-    ).toBe(true);
+    expect(wrapper.find('SelectControl EmailLabel IconCheckmark').exists()).toBe(true);
 
     // Send more reset the modal
     wrapper.find('Button[data-test-id="send-more"]').simulate('click');
@@ -278,9 +276,7 @@ describe('InviteMembersModal', function() {
       'Sent 0 invites, 1 failed to send.'
     );
 
-    expect(
-      wrapper.find('SelectControl EmailLabel InlineSvg[src="icon-warning-sm"]').exists()
-    ).toBe(true);
+    expect(wrapper.find('SelectControl EmailLabel IconWarning').exists()).toBe(true);
   });
 
   it('can send initial email', async function() {

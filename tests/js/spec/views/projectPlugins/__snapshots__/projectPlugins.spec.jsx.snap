@@ -60,14 +60,14 @@ exports[`ProjectPlugins renders 1`] = `
 >
   <Panel>
     <Component
-      className="css-15hwgrz-Panel e119nu470"
+      className="css-ietoyz-Panel e119nu470"
     >
       <div
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <PanelHeader>
           <div
-            className="css-1es1m70-PanelHeader en8g1d30"
+            className="css-pi486d-PanelHeader en8g1d30"
           >
             <div>
               Legacy Integration
@@ -91,44 +91,44 @@ exports[`ProjectPlugins renders 1`] = `
                 type="warning"
               >
                 <Component
-                  className="css-14tfigf-PanelAlert e1cszazt0"
+                  className="css-148v945-PanelAlert e1cszazt0"
                   type="warning"
                 >
                   <Alert
-                    className="css-14tfigf-PanelAlert e1cszazt0"
+                    className="css-148v945-PanelAlert e1cszazt0"
                     icon="icon-circle-exclamation"
-                    iconSize="24px"
+                    iconSize="20px"
                     system={true}
                     type="warning"
                   >
                     <Component
-                      className="e1cszazt0 css-1xqi65p-Alert-PanelAlert ejthpj82"
+                      className="e1cszazt0 css-1vyifcv-Alert-PanelAlert ejthpj82"
                       icon="icon-circle-exclamation"
-                      iconSize="24px"
+                      iconSize="20px"
                       system={true}
                       type="warning"
                     >
                       <div
-                        className="ref-warning e1cszazt0 css-1xqi65p-Alert-PanelAlert ejthpj82"
+                        className="ref-warning e1cszazt0 css-1vyifcv-Alert-PanelAlert ejthpj82"
                       >
                         <IconWrapper>
                           <span
-                            className="css-dhrf1z-IconWrapper ejthpj80"
+                            className="css-1vsw7fz-IconWrapper ejthpj80"
                           >
                             <InlineSvg
-                              size="24px"
+                              size="20px"
                               src="icon-circle-exclamation"
                             >
                               <ForwardRef
                                 className="css-tbsmsq-InlineSvg enyz4ql0"
-                                size="24px"
+                                size="20px"
                                 src="icon-circle-exclamation"
                               >
                                 <svg
                                   className="css-tbsmsq-InlineSvg enyz4ql0"
-                                  height="24px"
+                                  height="20px"
                                   viewBox={Object {}}
-                                  width="24px"
+                                  width="20px"
                                 >
                                   <use
                                     href="#test"
@@ -296,7 +296,7 @@ exports[`ProjectPlugins renders 1`] = `
                 p={2}
               >
                 <div
-                  className="css-ylaqrk-PanelItem ej5ox20"
+                  className="css-hd0iky-PanelItem ej5ox20"
                 >
                   <WithOrganizationMockWrapper
                     assets={Array []}
@@ -556,7 +556,7 @@ exports[`ProjectPlugins renders 1`] = `
                                         size={48}
                                       >
                                         <div
-                                          className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq4"
+                                          className="css-v1ot6-PluginIcon-StyledPluginIcon e1y7j6vq4"
                                           size={48}
                                         />
                                       </StyledPluginIcon>
@@ -671,7 +671,7 @@ exports[`ProjectPlugins renders 1`] = `
                                       >
                                         <button
                                           aria-checked={false}
-                                          className="css-1tqvyh8-SwitchButton ezmyi9u0"
+                                          className="css-18mwse8-SwitchButton ezmyi9u0"
                                           data-test-id="switch"
                                           onClick={[Function]}
                                           role="checkbox"
@@ -707,7 +707,7 @@ exports[`ProjectPlugins renders 1`] = `
                 p={2}
               >
                 <div
-                  className="css-ylaqrk-PanelItem ej5ox20"
+                  className="css-hd0iky-PanelItem ej5ox20"
                 >
                   <WithOrganizationMockWrapper
                     assets={Array []}
@@ -967,7 +967,7 @@ exports[`ProjectPlugins renders 1`] = `
                                         size={48}
                                       >
                                         <div
-                                          className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq4"
+                                          className="css-v1ot6-PluginIcon-StyledPluginIcon e1y7j6vq4"
                                           size={48}
                                         />
                                       </StyledPluginIcon>
@@ -1051,7 +1051,7 @@ exports[`ProjectPlugins renders 1`] = `
                                       >
                                         <button
                                           aria-checked={true}
-                                          className="css-xyqwsd-SwitchButton ezmyi9u0"
+                                          className="css-9o71x4-SwitchButton ezmyi9u0"
                                           data-test-id="switch"
                                           role="checkbox"
                                           size="lg"

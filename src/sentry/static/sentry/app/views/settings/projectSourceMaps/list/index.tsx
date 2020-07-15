@@ -2,7 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {Organization, Project, SourceMapsArchive} from 'app/types';
@@ -11,13 +11,14 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
-import space from 'app/styles/space';
 import {decodeScalar} from 'app/utils/queryString';
 import {
   addLoadingMessage,
   addSuccessMessage,
   addErrorMessage,
 } from 'app/actionCreators/indicator';
+import ExternalLink from 'app/components/links/externalLink';
+import space from 'app/styles/space';
 
 import SourceMapsArchiveRow from './sourceMapsArchiveRow';
 
@@ -63,17 +64,17 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     });
   };
 
-  handleDelete = async (id: number) => {
-    addLoadingMessage(t('Removing archive\u2026'));
+  handleDelete = async (name: string) => {
+    addLoadingMessage(t('Removing artifacts\u2026'));
     try {
       await this.api.requestPromise(this.getArchivesUrl(), {
         method: 'DELETE',
-        query: {id},
+        query: {name},
       });
       this.fetchData();
-      addSuccessMessage(t('Archive removed.'));
+      addSuccessMessage(t('Artifacts removed.'));
     } catch {
-      addErrorMessage(t('Unable to remove archive. Please try again.'));
+      addErrorMessage(t('Unable to remove artifacts. Please try again.'));
     }
   };
 
@@ -122,30 +123,36 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Source Maps')} />
+        <SettingsPageHeader
+          title={t('Source Maps')}
+          action={
+            <SearchBar
+              placeholder={t('Filter Archives')}
+              onSearch={this.handleSearch}
+              query={this.getQuery()}
+              width="280px"
+            />
+          }
+        />
 
         <TextBlock>
-          {t(
-            `Source Maps lets you view source code context obtained from stack traces in their original un-transformed form, which is particularly useful for debugging minified code, or transpiled code from a higher-level language.
-            `
+          {tct(
+            `These source map archives help Sentry identify where to look when Javascript is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+              ),
+            }
           )}
         </TextBlock>
-
-        <Wrapper>
-          <TextBlock noMargin>{t('Uploaded archives')}:</TextBlock>
-
-          <SearchBar
-            placeholder={t('Filter archives')}
-            onSearch={this.handleSearch}
-            query={this.getQuery()}
-          />
-        </Wrapper>
 
         <StyledPanelTable
           headers={[
             t('Archive'),
-            t('Artifacts'),
-            <Actions key="actions">{t('Actions')}</Actions>,
+            <ArtifactsColumn key="artifacts">{t('Artifacts')}</ArtifactsColumn>,
+            t('Type'),
+            t('Date Created'),
+            '',
           ]}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={archives.length === 0}
@@ -160,23 +167,15 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 100px 150px;
+  grid-template-columns:
+    minmax(120px, 1fr) max-content minmax(85px, max-content) minmax(265px, max-content)
+    75px;
 `;
 
-const Actions = styled('div')`
+const ArtifactsColumn = styled('div')`
   text-align: right;
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto minmax(200px, 400px);
-  grid-gap: ${space(4)};
-  align-items: center;
-  margin-top: ${space(4)};
-  margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: block;
-  }
+  padding-right: ${space(1.5)};
+  margin-right: ${space(0.25)};
 `;
 
 export default ProjectSourceMaps;

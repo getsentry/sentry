@@ -34,8 +34,9 @@ from sentry.incidents.logic import (
     delete_alert_rule,
     delete_alert_rule_trigger,
     delete_alert_rule_trigger_action,
+    disable_alert_rule,
     DEFAULT_ALERT_RULE_RESOLUTION,
-    WINDOWED_STATS_DATA_POINTS,
+    enable_alert_rule,
     get_actions_for_trigger,
     get_available_action_integrations_for_org,
     get_excluded_projects_for_alert_rule,
@@ -45,11 +46,12 @@ from sentry.incidents.logic import (
     get_triggers_for_alert_rule,
     ProjectsNotAssociatedWithAlertRuleError,
     subscribe_to_incident,
+    translate_aggregate_field,
     update_alert_rule,
     update_alert_rule_trigger_action,
     update_alert_rule_trigger,
     update_incident_status,
-    translate_aggregate_field,
+    WINDOWED_STATS_DATA_POINTS,
 )
 from sentry.incidents.models import (
     AlertRule,
@@ -63,12 +65,14 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentProject,
     PendingIncidentSnapshot,
+    IncidentSnapshot,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
     IncidentType,
+    TimeSeriesSnapshot,
 )
-from sentry.snuba.models import QueryDatasets
+from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -81,10 +85,8 @@ class CreateIncidentTest(TestCase):
     def test_simple(self):
         incident_type = IncidentType.ALERT_TRIGGERED
         title = "hello"
-        date_started = timezone.now()
-        alert_rule = create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
+        date_started = timezone.now() - timedelta(minutes=5)
+        alert_rule = self.create_alert_rule()
 
         self.record_event.reset_mock()
         incident = create_incident(
@@ -105,6 +107,12 @@ class CreateIncidentTest(TestCase):
         assert IncidentProject.objects.filter(
             incident=incident, project__in=[self.project]
         ).exists()
+        assert (
+            IncidentActivity.objects.filter(
+                incident=incident, type=IncidentActivityType.STARTED.value, date_added=date_started
+            ).count()
+            == 1
+        )
         assert (
             IncidentActivity.objects.filter(
                 incident=incident, type=IncidentActivityType.DETECTED.value
@@ -551,9 +559,7 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         # end to actually be, so we have logic to cap it to 10 datapoints, or 10 days, whichever is less. This tests that logic.
 
         time_window = 1500  # more than 24 hours, so gets capped at 10 days
-        alert_rule = create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", time_window, 1
-        )
+        alert_rule = self.create_alert_rule(time_window=time_window)
 
         incident = self.create_incident(self.organization)
         incident.update(status=IncidentStatus.CLOSED.value, alert_rule=alert_rule)
@@ -618,6 +624,38 @@ class GetIncidentStatsTest(TestCase, BaseIncidentsTest):
         )
         self.run_test(open_incident)
 
+    def test_floats(self):
+        alert_rule = self.create_alert_rule(
+            self.organization, dataset=QueryDatasets.TRANSACTIONS, aggregate="p75()"
+        )
+        incident = self.create_incident(
+            self.organization,
+            title="Hi",
+            date_started=timezone.now() - timedelta(days=30),
+            alert_rule=alert_rule,
+        )
+        update_incident_status(
+            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.RULE_TRIGGERED
+        )
+        time_series_values = [[0, 1], [1, 5], [2, 5.5]]
+        time_series_snapshot = TimeSeriesSnapshot.objects.create(
+            start=timezone.now() - timedelta(hours=1),
+            end=timezone.now(),
+            values=time_series_values,
+            period=3000,
+        )
+        IncidentSnapshot.objects.create(
+            incident=incident,
+            event_stats_snapshot=time_series_snapshot,
+            unique_users=1234,
+            total_events=4567,
+        )
+
+        incident_stats = get_incident_stats(incident, windowed_stats=True)
+        assert incident_stats["event_stats"].data["data"] == [
+            {"time": time, "count": count} for time, count in time_series_values
+        ]
+
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test(self):
@@ -625,9 +663,19 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         query = "level:error"
         aggregate = "count(*)"
         time_window = 10
+        threshold_type = AlertRuleThresholdType.ABOVE
+        resolve_threshold = 10
         threshold_period = 1
         alert_rule = create_alert_rule(
-            self.organization, [self.project], name, query, aggregate, time_window, threshold_period
+            self.organization,
+            [self.project],
+            name,
+            query,
+            aggregate,
+            time_window,
+            threshold_type,
+            threshold_period,
+            resolve_threshold=resolve_threshold,
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
@@ -638,6 +686,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.aggregate == aggregate
         assert alert_rule.snuba_query.time_window == time_window * 60
         assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+        assert alert_rule.threshold_type == threshold_type.value
+        assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
     def test_include_all_projects(self):
@@ -656,25 +706,64 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test_invalid_query(self):
         with self.assertRaises(InvalidSearchQuery):
-            create_alert_rule(self.organization, [self.project], "hi", "has:", "count()", 1, 1)
+            create_alert_rule(
+                self.organization,
+                [self.project],
+                "hi",
+                "has:",
+                "count()",
+                1,
+                AlertRuleThresholdType.ABOVE,
+                1,
+            )
 
     def test_existing_name(self):
         name = "uh oh"
-        create_alert_rule(self.organization, [self.project], name, "level:error", "count()", 1, 1)
+        create_alert_rule(
+            self.organization,
+            [self.project],
+            name,
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+        )
         with self.assertRaises(AlertRuleNameAlreadyUsedError):
             create_alert_rule(
-                self.organization, [self.project], name, "level:error", "count()", 1, 1
+                self.organization,
+                [self.project],
+                name,
+                "level:error",
+                "count()",
+                1,
+                AlertRuleThresholdType.ABOVE,
+                1,
             )
 
     def test_existing_name_allowed_when_archived(self):
         name = "allowed"
         alert_rule_1 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", "count()", 1, 1
+            self.organization,
+            [self.project],
+            name,
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
         )
         alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
 
         alert_rule_2 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", "count()", 1, 1
+            self.organization,
+            [self.project],
+            name,
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
         )
 
         assert alert_rule_1.name == alert_rule_2.name
@@ -688,12 +777,26 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test_two_archived_with_same_name(self):
         name = "allowed"
         alert_rule_1 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", "count()", 1, 1
+            self.organization,
+            [self.project],
+            name,
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
         )
         alert_rule_1.update(status=AlertRuleStatus.SNAPSHOT.value)
 
         alert_rule_2 = create_alert_rule(
-            self.organization, [self.project], name, "level:error", "count()", 1, 1
+            self.organization,
+            [self.project],
+            name,
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
         )
         alert_rule_2.update(status=AlertRuleStatus.SNAPSHOT.value)
 
@@ -705,15 +808,14 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
     def alert_rule(self):
-        return create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
+        return self.create_alert_rule(name="hello")
 
     def test(self):
         name = "uh oh"
         query = "level:warning"
         aggregate = "count_unique(tags[sentry:user])"
         time_window = 50
+        threshold_type = AlertRuleThresholdType.BELOW
         threshold_period = 2
 
         updated_projects = [self.project, self.create_project(fire_project_created=True)]
@@ -725,6 +827,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             query=query,
             aggregate=aggregate,
             time_window=time_window,
+            threshold_type=threshold_type,
             threshold_period=threshold_period,
         )
         assert self.alert_rule.id == updated_rule.id
@@ -740,6 +843,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.snuba_query.query == query
         assert self.alert_rule.snuba_query.aggregate == aggregate
         assert self.alert_rule.snuba_query.time_window == time_window * 60
+        assert self.alert_rule.threshold_type == threshold_type.value
         assert self.alert_rule.threshold_period == threshold_period
 
     def test_update_subscription(self):
@@ -756,9 +860,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test_name_used(self):
         used_name = "uh oh"
-        create_alert_rule(
-            self.organization, [self.project], used_name, "level:error", "count()", 10, 1
-        )
+        self.create_alert_rule(name=used_name)
         with self.assertRaises(AlertRuleNameAlreadyUsedError):
             update_alert_rule(self.alert_rule, name=used_name)
 
@@ -767,27 +869,15 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             update_alert_rule(self.alert_rule, query="has:")
 
     def test_delete_projects(self):
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project, self.create_project(fire_project_created=True)],
-            "something",
-            "level:error",
-            "count()",
-            10,
-            1,
+        alert_rule = self.create_alert_rule(
+            projects=[self.project, self.create_project(fire_project_created=True)]
         )
         update_alert_rule(alert_rule, projects=[self.project])
         assert self.alert_rule.snuba_query.subscriptions.get().project == self.project
 
     def test_new_updated_deleted_projects(self):
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project, self.create_project(fire_project_created=True)],
-            "something",
-            "level:error",
-            "count()",
-            10,
-            1,
+        alert_rule = self.create_alert_rule(
+            projects=[self.project, self.create_project(fire_project_created=True)]
         )
         query_update = "level:warning"
         new_project = self.create_project(fire_project_created=True)
@@ -929,9 +1019,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
     def alert_rule(self):
-        return create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
+        return self.create_alert_rule()
 
     def test(self):
         alert_rule_id = self.alert_rule.id
@@ -952,6 +1040,40 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
+
+
+class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
+    @fixture
+    def alert_rule(self):
+        return self.create_alert_rule()
+
+    def test(self):
+        with self.tasks():
+            disable_alert_rule(self.alert_rule)
+            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+            assert alert_rule.status == AlertRuleStatus.DISABLED.value
+            for subscription in alert_rule.snuba_query.subscriptions.all():
+                assert subscription.status == QuerySubscription.Status.DISABLED.value
+
+            enable_alert_rule(self.alert_rule)
+            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+            assert alert_rule.status == AlertRuleStatus.PENDING.value
+            for subscription in alert_rule.snuba_query.subscriptions.all():
+                assert subscription.status == QuerySubscription.Status.ACTIVE.value
+
+
+class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
+    @fixture
+    def alert_rule(self):
+        return self.create_alert_rule()
+
+    def test(self):
+        with self.tasks():
+            disable_alert_rule(self.alert_rule)
+            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+            assert alert_rule.status == AlertRuleStatus.DISABLED.value
+            for subscription in alert_rule.snuba_query.subscriptions.all():
+                assert subscription.status == QuerySubscription.Status.DISABLED.value
 
 
 class TestGetExcludedProjectsForAlertRule(TestCase):

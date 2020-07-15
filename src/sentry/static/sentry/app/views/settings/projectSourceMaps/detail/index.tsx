@@ -9,23 +9,25 @@ import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
-import space from 'app/styles/space';
 import {formatVersion} from 'app/utils/formatters';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {IconReleases, IconChevron} from 'app/icons';
+import {IconDelete} from 'app/icons';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {decodeScalar} from 'app/utils/queryString';
+import Confirm from 'app/components/confirm';
+import Version from 'app/components/version';
+import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
 
-type RouteParams = {orgId: string; projectId: string; version: string};
+type RouteParams = {orgId: string; projectId: string; name: string};
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -38,9 +40,9 @@ type State = AsyncView['state'] & {
 
 class ProjectSourceMaps extends AsyncView<Props, State> {
   getTitle() {
-    const {projectId, version} = this.props.params;
+    const {projectId, name} = this.props.params;
 
-    return routeTitleGen(t('Source Maps %s', formatVersion(version)), projectId, false);
+    return routeTitleGen(t('Archive %s', formatVersion(name)), projectId, false);
   }
 
   getDefaultState(): State {
@@ -55,11 +57,9 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   }
 
   getArtifactsUrl() {
-    const {orgId, projectId, version} = this.props.params;
+    const {orgId, projectId, name} = this.props.params;
 
-    return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-      version
-    )}/files/`;
+    return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(name)}/files/`;
   }
 
   handleSearch = (query: string) => {
@@ -71,7 +71,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
     });
   };
 
-  handleDelete = async (id: string) => {
+  handleArtifactDelete = async (id: string) => {
     addLoadingMessage(t('Removing artifact\u2026'));
 
     try {
@@ -82,6 +82,26 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
       addSuccessMessage(t('Artifact removed.'));
     } catch {
       addErrorMessage(t('Unable to remove artifact. Please try again.'));
+    }
+  };
+
+  handleArchiveDelete = async () => {
+    const {orgId, projectId, name} = this.props.params;
+
+    addLoadingMessage(t('Removing artifacts\u2026'));
+
+    try {
+      await this.api.requestPromise(
+        `/projects/${orgId}/${projectId}/files/source-maps/`,
+        {
+          method: 'DELETE',
+          query: {name},
+        }
+      );
+      this.fetchData();
+      addSuccessMessage(t('Artifacts removed.'));
+    } catch {
+      addErrorMessage(t('Unable to remove artifacts. Please try again.'));
     }
   };
 
@@ -96,7 +116,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
       return t('There are no artifacts that match your search.');
     }
 
-    return t('There are no artifacts for this release.');
+    return t('There are no artifacts in this archive.');
   }
 
   renderLoading() {
@@ -116,7 +136,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
         <SourceMapsArtifactRow
           key={artifact.id}
           artifact={artifact}
-          onDelete={this.handleDelete}
+          onDelete={this.handleArtifactDelete}
           downloadUrl={`${artifactApiUrl}${artifact.id}/?download=1`}
         />
       );
@@ -125,49 +145,54 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
   renderBody() {
     const {loading, artifacts, artifactsPageLinks} = this.state;
-    const {version, orgId, projectId} = this.props.params;
+    const {name, orgId} = this.props.params;
     const {project} = this.props;
 
     return (
       <React.Fragment>
-        <SettingsPageHeader
-          title={t('Source Maps Archive %s', formatVersion(version))}
+        <StyledSettingsPageHeader
+          title={
+            <Title>
+              {t('Archive')}&nbsp;
+              <TextOverflow>
+                <Version version={name} tooltipRawVersion anchor={false} truncate />
+              </TextOverflow>
+            </Title>
+          }
           action={
-            <ButtonBar gap={1}>
-              <Button
-                size="small"
-                to={`/settings/${orgId}/projects/${projectId}/source-maps/`}
-                icon={<IconChevron size="xs" direction="left" />}
-              >
-                {t('All Archives')}
-              </Button>
-              <Button
-                size="small"
+            <StyledButtonBar gap={1}>
+              <ReleaseButton
                 to={`/organizations/${orgId}/releases/${encodeURIComponent(
-                  version
+                  name
                 )}/?project=${project.id}`}
-                icon={<IconReleases size="xs" />}
               >
-                {t('View Release')}
-              </Button>
-            </ButtonBar>
+                {t('Go to Release')}
+              </ReleaseButton>
+              <Confirm
+                message={t(
+                  'Are you sure you want to remove all artifacts in this archive?'
+                )}
+                onConfirm={this.handleArchiveDelete}
+              >
+                <Button
+                  icon={<IconDelete size="sm" />}
+                  title={t('Remove All Artifacts')}
+                />
+              </Confirm>
+              <SearchBar
+                placeholder={t('Filter artifacts')}
+                onSearch={this.handleSearch}
+                query={this.getQuery()}
+              />
+            </StyledButtonBar>
           }
         />
-
-        <Wrapper>
-          <TextBlock noMargin>{t('Uploaded artifacts')}:</TextBlock>
-          <SearchBar
-            placeholder={t('Filter artifacts')}
-            onSearch={this.handleSearch}
-            query={this.getQuery()}
-          />
-        </Wrapper>
 
         <StyledPanelTable
           headers={[
             t('Artifact'),
-            t('Size'),
-            <Actions key="actions">{t('Actions')}</Actions>,
+            <SizeColumn key="size">{t('File Size')}</SizeColumn>,
+            '',
           ]}
           emptyMessage={this.getEmptyMessage()}
           isEmpty={artifacts.length === 0}
@@ -181,24 +206,43 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   }
 }
 
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr 100px 150px;
-`;
-
-const Actions = styled('div')`
-  text-align: right;
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto minmax(200px, 400px);
-  grid-gap: ${space(4)};
-  align-items: center;
-  margin-bottom: ${space(1)};
-  margin-top: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: block;
+const StyledSettingsPageHeader = styled(SettingsPageHeader)`
+  /*
+    ugly selector to make header work on mobile
+    we can refactor this once we start making other settings more responsive
+  */
+  > div {
+    @media (max-width: ${p => p.theme.breakpoints[2]}) {
+      display: block;
+    }
+    > div {
+      min-width: 0;
+      @media (max-width: ${p => p.theme.breakpoints[2]}) {
+        margin-bottom: ${space(2)};
+      }
+    }
   }
+`;
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: flex-start;
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  grid-template-columns: minmax(220px, 1fr) max-content 120px;
+`;
+
+const ReleaseButton = styled(Button)`
+  white-space: nowrap;
+`;
+
+const SizeColumn = styled('div')`
+  text-align: right;
 `;
 
 export default ProjectSourceMaps;

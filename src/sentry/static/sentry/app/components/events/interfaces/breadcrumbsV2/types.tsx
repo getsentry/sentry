@@ -9,6 +9,7 @@ export enum BreadcrumbLevelType {
   WARNING = 'warning',
   INFO = 'info',
   DEBUG = 'debug',
+  UNDEFINED = 'undefined',
 }
 
 export enum BreadcrumbType {
@@ -30,10 +31,10 @@ export enum BreadcrumbType {
 }
 
 type BreadcrumbTypeBase = {
+  level: BreadcrumbLevelType;
   timestamp?: string; //it's recommended
   category?: string | null;
   message?: string;
-  level?: BreadcrumbLevelType;
   event_id?: string;
 };
 

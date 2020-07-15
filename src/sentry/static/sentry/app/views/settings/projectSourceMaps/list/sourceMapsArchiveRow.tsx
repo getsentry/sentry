@@ -3,86 +3,77 @@ import styled from '@emotion/styled';
 
 import {SourceMapsArchive} from 'app/types';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
-import TimeSince from 'app/components/timeSince';
 import Button from 'app/components/button';
-import {IconClock, IconFile, IconDelete} from 'app/icons';
+import {IconDelete} from 'app/icons';
 import ButtonBar from 'app/components/buttonBar';
 import Version from 'app/components/version';
 import Count from 'app/components/count';
 import Confirm from 'app/components/confirm';
+import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
+import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
 
 type Props = {
   archive: SourceMapsArchive;
   orgId: string;
   projectId: string;
-  onDelete: (id: number) => void;
+  onDelete: (name: string) => void;
 };
 
 const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
-  const {id, name, date, fileCount} = archive;
+  const {name, date, fileCount} = archive;
   const archiveLink = `/settings/${orgId}/projects/${projectId}/source-maps/${encodeURIComponent(
     name
   )}`;
   return (
     <React.Fragment>
       <Column>
-        <Name>
+        <TextOverflow>
           <Link to={archiveLink}>
-            <Version version={name} anchor={false} truncate />
+            <Version version={name} anchor={false} tooltipRawVersion truncate />
           </Link>
-        </Name>
-        <TimeWrapper>
-          <IconClock size="xs" />
-          <TimeSince date={date} />
-        </TimeWrapper>
+        </TextOverflow>
       </Column>
-      <Column>
+      <ArtifactsColumn>
         <Count value={fileCount} />
+      </ArtifactsColumn>
+      <Column>{t('release')}</Column>
+      <Column>
+        <DateTime date={date} />
       </Column>
-      <RightColumn>
+      <ActionsColumn>
         <ButtonBar gap={0.5}>
-          <Button size="xsmall" icon={<IconFile size="xs" />} to={archiveLink}>
-            {t('Open')}
-          </Button>
           <Confirm
-            onConfirm={() => onDelete(id)}
+            onConfirm={() => onDelete(name)}
             message={t('Are you sure you want to remove all artifacts in this archive?')}
           >
-            <Button size="xsmall" icon={<IconDelete size="xs" />} priority="danger" />
+            <Button
+              size="small"
+              icon={<IconDelete size="sm" />}
+              title={t('Remove All Artifacts')}
+            />
           </Confirm>
         </ButtonBar>
-      </RightColumn>
+      </ActionsColumn>
     </React.Fragment>
   );
 };
 
 const Column = styled('div')`
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const RightColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
   align-items: center;
+  overflow: hidden;
 `;
 
-const Name = styled('div')`
-  max-width: 100%;
+const ArtifactsColumn = styled(Column)`
+  padding-right: ${space(4)};
+  text-align: right;
+  justify-content: flex-end;
 `;
 
-const TimeWrapper = styled('div')`
-  display: grid;
-  grid-gap: ${space(0.5)};
-  grid-template-columns: min-content 1fr;
-  margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray600};
+const ActionsColumn = styled(Column)`
+  justify-content: flex-end;
 `;
 
 export default SourceMapsArchiveRow;

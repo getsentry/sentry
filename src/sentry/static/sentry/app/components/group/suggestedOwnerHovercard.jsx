@@ -156,7 +156,7 @@ class SuggestedOwnerHovercard extends React.Component {
 
 const tagColors = {
   url: theme.green300,
-  path: theme.purpleLight,
+  path: theme.purple400,
   tag: theme.blue300,
 };
 
@@ -174,6 +174,7 @@ const CommitMessage = styled(({message = '', date, ...props}) => (
   color: ${p => p.theme.gray800};
   font-size: 11px;
   margin-top: ${space(0.25)};
+  hyphens: auto;
 `;
 
 const CommitDate = styled(({date, ...props}) => (

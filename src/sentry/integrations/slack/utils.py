@@ -7,8 +7,10 @@ from datetime import timedelta
 
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.http import Http404
 
 from sentry import tagstore
+from sentry import options
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
@@ -23,7 +25,9 @@ from sentry.models import (
     Project,
     User,
     Identity,
+    IdentityProvider,
     Integration,
+    Organization,
     Team,
     ReleaseProject,
 )
@@ -373,11 +377,12 @@ def build_incident_attachment(incident, metric_value=None):
 
 # Different list types in slack that we'll use to resolve a channel name. Format is
 # (<list_name>, <result_name>, <prefix>).
-LIST_TYPES = [
+LEGACY_LIST_TYPES = [
     ("channels", "channels", CHANNEL_PREFIX),
     ("groups", "groups", CHANNEL_PREFIX),
     ("users", "members", MEMBER_PREFIX),
 ]
+LIST_TYPES = [("conversations", "channels", CHANNEL_PREFIX), ("users", "members", MEMBER_PREFIX)]
 
 
 def strip_channel_name(name):
@@ -418,12 +423,18 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
+    if options.get("slack.legacy-app") is True:
+        list_types = LEGACY_LIST_TYPES
+    else:
+        list_types = LIST_TYPES
+        payload = dict(payload, **{"types": "public_channel,private_channel"})
+
     time_to_quit = time.time() + timeout
 
     client = SlackClient()
     id_data = None
     found_duplicate = False
-    for list_type, result_name, prefix in LIST_TYPES:
+    for list_type, result_name, prefix in list_types:
         cursor = ""
         while True:
             endpoint = "/%s.list" % list_type
@@ -480,3 +491,22 @@ def send_incident_alert_notification(action, incident, metric_value):
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
         logger.info("rule.fail.slack_post", extra={"error": six.text_type(e)})
+
+
+def get_identity(user, organization_id, integration_id):
+    try:
+        organization = Organization.objects.get(id__in=user.get_orgs(), id=organization_id)
+    except Organization.DoesNotExist:
+        raise Http404
+
+    try:
+        integration = Integration.objects.get(id=integration_id, organizations=organization)
+    except Integration.DoesNotExist:
+        raise Http404
+
+    try:
+        idp = IdentityProvider.objects.get(external_id=integration.external_id, type="slack")
+    except IdentityProvider.DoesNotExist:
+        raise Http404
+
+    return organization, integration, idp

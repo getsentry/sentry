@@ -21,6 +21,7 @@ type Props = {
   organization: Organization;
   project: Project;
   eventView: EventView | undefined;
+  sessionId?: string;
 } & RouteComponentProps<RouteParams, {}>;
 
 /**
@@ -34,7 +35,7 @@ class IncidentRulesCreate extends React.Component<Props> {
   };
 
   render() {
-    const {project, eventView, ...props} = this.props;
+    const {project, eventView, sessionId, ...props} = this.props;
     const defaultRule = eventView
       ? createRuleFromEventView(eventView)
       : createDefaultRule();
@@ -43,6 +44,7 @@ class IncidentRulesCreate extends React.Component<Props> {
       <RuleForm
         onSubmitSuccess={this.handleSubmitSuccess}
         rule={{...defaultRule, projects: [project.slug]}}
+        sessionId={sessionId}
         {...props}
       />
     );

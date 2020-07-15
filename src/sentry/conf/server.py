@@ -502,6 +502,9 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
+CELERY_TASK_SERIALIZER = "pickle"
+CELERY_RESULT_SERIALIZER = "pickle"
+CELERY_ACCEPT_CONTENT = {"pickle"}
 CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
@@ -565,6 +568,7 @@ CELERY_QUEUES = [
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("files.delete", routing_key="files.delete"),
     Queue("incidents", routing_key="incidents"),
+    Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
@@ -711,11 +715,7 @@ LOGGING = {
     "handlers": {
         "null": {"class": "logging.NullHandler"},
         "console": {"class": "sentry.logging.handlers.StructLogHandler"},
-        "internal": {
-            "level": "ERROR",
-            "filters": ["sentry:internal"],
-            "class": "sentry_sdk.integrations.logging.EventHandler",
-        },
+        "internal": {"level": "ERROR", "class": "sentry_sdk.integrations.logging.EventHandler"},
         "metrics": {
             "level": "WARNING",
             "filters": ["important_django_request"],
@@ -723,16 +723,15 @@ LOGGING = {
         },
         "django_internal": {
             "level": "WARNING",
-            "filters": ["sentry:internal", "important_django_request"],
+            "filters": ["important_django_request"],
             "class": "sentry_sdk.integrations.logging.EventHandler",
         },
     },
     "filters": {
-        "sentry:internal": {"()": "sentry.utils.sdk.SentryInternalFilter"},
         "important_django_request": {
             "()": "sentry.logging.handlers.MessageContainsFilter",
             "contains": ["CSRF"],
-        },
+        }
     },
     "root": {"level": "NOTSET", "handlers": ["console", "internal"]},
     # LOGGING.overridable is a list of loggers including root that will change
@@ -804,7 +803,7 @@ SENTRY_FEATURES = {
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
     # Move release artifacts to settings.
-    "organizations:artifacts-in-settings": False,
+    "organizations:artifacts-in-settings": True,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
@@ -844,8 +843,6 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
-    # Enable incidents performance feature
-    "organizations:incidents-performance": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -853,9 +850,18 @@ SENTRY_FEATURES = {
     # issues on external services.
     "organizations:integrations-issue-sync": True,
     # Enable interface functionality to receive event hooks.
-    "organizations:integrations-event-hooks": False,
+    "organizations:integrations-event-hooks": True,
+    # Enable integration functionality to work with alert rules
+    "organizations:integrations-alert-rule": True,
+    # Enable integration functionality to work with alert rules (specifically chat integrations)
+    "organizations:integrations-chat-unfurl": True,
+    # Enable integration functionality to work with alert rules (specifically indicdent)
+    # management integrations)
+    "organizations:integrations-incident-management": True,
     # Enable the Vercel integration
     "organizations:integrations-vercel": False,
+    # Enable the MsTeams integration
+    "organizations:integrations-msteams": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -871,11 +877,9 @@ SENTRY_FEATURES = {
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
     # Enable access to more advanced (alpha) datascrubbing settings.
-    "organizations:datascrubbers-v2": False,
+    "organizations:datascrubbers-v2": True,
     # Enable the new version of interface/breadcrumbs
     "organizations:breadcrumbs-v2": False,
-    # Enable Relay config feature
-    "organizations:relay-config": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": False,
@@ -1072,6 +1076,10 @@ SENTRY_CACHE_OPTIONS = {}
 # Attachment blob cache backend
 SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
 SENTRY_ATTACHMENTS_OPTIONS = {}
+
+# Events blobs processing backend
+SENTRY_EVENT_PROCESSING_STORE = "sentry.eventstore.processing.default.DefaultEventProcessingStore"
+SENTRY_EVENT_PROCESSING_STORE_OPTIONS = {}
 
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
@@ -1568,6 +1576,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
+    "sentry.integrations.msteams.MsTeamsIntegrationProvider",
 )
 
 

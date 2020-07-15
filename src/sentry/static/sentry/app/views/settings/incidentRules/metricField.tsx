@@ -15,43 +15,16 @@ import Tooltip from 'app/components/tooltip';
 import {
   explodeFieldString,
   generateFieldAsString,
-  AggregationKey,
-  FieldKey,
   AGGREGATIONS,
   FIELDS,
 } from 'app/utils/discover/fields';
 
+import {errorFieldConfig, transactionFieldConfig} from './constants';
 import {Dataset} from './types';
 import {PRESET_AGGREGATES} from './presets';
 
 type Props = Omit<FormField['props'], 'children' | 'help'> & {
   organization: Organization;
-};
-
-type OptionConfig = {
-  aggregations: AggregationKey[];
-  fields: FieldKey[];
-};
-
-const errorFieldConfig: OptionConfig = {
-  aggregations: ['count', 'count_unique'],
-  fields: ['user'],
-};
-
-const transactionFieldConfig: OptionConfig = {
-  aggregations: [
-    'avg',
-    'percentile',
-    'failure_rate',
-    'apdex',
-    'count',
-    'p50',
-    'p75',
-    'p95',
-    'p99',
-    'p100',
-  ],
-  fields: ['transaction.duration'],
 };
 
 const getFieldOptionConfig = (dataset: Dataset) => {
@@ -87,7 +60,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
         <Tooltip title={t('This preset is selected')} disabled={!preset.selected}>
           <PresetLink
             onClick={() => model.setValue(name, preset.default)}
-            isSelected={preset.selected}
+            disabled={preset.selected}
           >
             {preset.name}
           </PresetLink>
@@ -152,9 +125,9 @@ const AggregateHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const PresetLink = styled(Button)<{isSelected: boolean}>`
+const PresetLink = styled(Button)<{disabled: boolean}>`
   ${p =>
-    p.isSelected &&
+    p.disabled &&
     css`
       color: ${p.theme.gray700};
       &:hover,

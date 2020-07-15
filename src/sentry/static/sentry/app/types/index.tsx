@@ -90,6 +90,14 @@ export type OrganizationSummary = {
   slug: string;
 };
 
+export type Relay = {
+  publicKey: string;
+  name: string;
+  created?: string;
+  lastModified?: string;
+  description?: string;
+};
+
 /**
  * Detailed organization (e.g. when requesting details for a single org)
  *
@@ -122,9 +130,9 @@ export type LightWeightOrganization = OrganizationSummary & {
   allowSharedIssues: boolean;
   dataScrubberDefaults: boolean;
   dataScrubber: boolean;
-  role?: string;
   onboardingTasks: OnboardingTaskStatus[];
-  trustedRelays: string[];
+  trustedRelays: Relay[];
+  role?: string;
 };
 
 /**
@@ -143,6 +151,7 @@ export type AvatarProject = {
 
 export type Project = {
   id: string;
+  dateCreated: string;
   isMember: boolean;
   teams: Team[];
   features: string[];
@@ -156,6 +165,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
   processingIssues: number;
+  relayPiiConfig: string;
   builtinSymbolSources?: string[];
 } & AvatarProject;
 
@@ -212,7 +222,7 @@ export type EventAttachment = {
   event_id: string;
 };
 
-export type EntryTypeData = {[key: string]: any | any[]};
+export type EntryTypeData = Record<string, any | Array<any>>;
 
 type EntryType = {
   data: EntryTypeData;
@@ -236,18 +246,9 @@ type RuntimeContext = {
   name?: string;
 };
 
-type TraceContext = {
-  type: 'trace';
-  op: string;
-  description: string;
-  parent_span_id: string;
-  span_id: string;
-  trace_id: string;
-};
-
 type EventContexts = {
   runtime?: RuntimeContext;
-  trace?: TraceContext;
+  trace?: TraceContextType;
 };
 
 type SentryEventBase = {
@@ -259,11 +260,13 @@ type SentryEventBase = {
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
+  device?: {[key: string]: any};
   packages?: {[key: string]: string};
   user: EventUser;
   message: string;
   platform?: PlatformKey;
   dateCreated?: string;
+  dateReceived?: string;
   endTimestamp?: number;
   entries: EntryType[];
 
@@ -683,6 +686,9 @@ type IntegrationAspects = {
     buttonText: string;
     noticeText: string;
   };
+  configure_integration?: {
+    title: string;
+  };
 };
 
 type BaseIntegrationProvider = {
@@ -1036,6 +1042,7 @@ export type SavedQueryState = {
 export type SelectValue<T> = {
   label: string;
   value: T;
+  disabled?: boolean;
 };
 
 /**
@@ -1316,3 +1323,26 @@ export type Widget = {
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
+
+export type PlatformType = 'java' | 'csharp' | 'other';
+
+export type Frame = {
+  filename: string;
+  module: string;
+  map: string;
+  preventCollapse: () => void;
+  errors: Array<any>;
+  context: Array<[number, string]>;
+  vars: {[key: string]: any};
+  inApp: boolean;
+  function?: string;
+  absPath?: string;
+  rawFunction?: string;
+  platform: PlatformType;
+  lineNo?: number;
+  colNo?: number;
+  package?: string;
+  origAbsPath?: string;
+  mapUrl?: string;
+  instructionAddr?: string;
+};

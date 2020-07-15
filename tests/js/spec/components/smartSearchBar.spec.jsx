@@ -589,6 +589,45 @@ describe('SmartSearchBar', function() {
       searchBar.onAutoComplete('12345', {type: 'tag-value'});
       expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
     });
+
+    it('keeps the negation operator is present', function() {
+      const props = {
+        query: '',
+        organization,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const input = smartSearchBar.find('input');
+      // start typing part of the tag prefixed by the negation operator!
+      input.simulate('change', {target: {value: 'event.type:error !ti'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('title:', {});
+      expect(searchBar.state.query).toEqual('event.type:error !title:');
+    });
+
+    it('handles special case for user tag', function() {
+      const props = {
+        query: '',
+        organization,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const input = smartSearchBar.find('input');
+
+      input.simulate('change', {target: {value: 'user:'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
+      searchBar.onAutoComplete('id:1', {});
+      expect(searchBar.state.query).toEqual('user.id:1');
+
+      // try it with the SEARCH_WILDCARD
+      input.simulate('change', {target: {value: 'user:1*'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
+      searchBar.onAutoComplete('ip:127.0.0.1', {});
+      expect(searchBar.state.query).toEqual('user.ip:*127.0.0.1');
+    });
   });
 
   describe('onTogglePinnedSearch()', function() {

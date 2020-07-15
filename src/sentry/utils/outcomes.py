@@ -12,7 +12,7 @@ import time
 from sentry import tsdb, options
 from sentry.constants import DataCategory
 from sentry.utils import json, metrics
-from sentry.utils.data_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.utils.dates import to_datetime
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -61,7 +61,11 @@ def mark_tsdb_incremented(project_id, event_id):
     mark_tsdb_incremented_many([(project_id, event_id)])
 
 
-def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason):
+def tsdb_increments_from_outcome(org_id, project_id, key_id, outcome, reason, category):
+    category = category if category is not None else DataCategory.ERROR
+    if category not in DataCategory.event_categories():
+        return
+
     if outcome != Outcome.INVALID:
         # This simply preserves old behavior. We never counted invalid events
         # (too large, duplicate, CORS) toward regular `received` counts.
@@ -136,7 +140,12 @@ def track_outcome(
     if not tsdb_in_consumer:
         increment_list = list(
             tsdb_increments_from_outcome(
-                org_id=org_id, project_id=project_id, key_id=key_id, outcome=outcome, reason=reason
+                org_id=org_id,
+                project_id=project_id,
+                key_id=key_id,
+                outcome=outcome,
+                reason=reason,
+                category=category,
             )
         )
 
@@ -167,5 +176,9 @@ def track_outcome(
     metrics.incr(
         "events.outcomes",
         skip_internal=True,
-        tags={"outcome": outcome.name.lower(), "reason": reason},
+        tags={
+            "outcome": outcome.name.lower(),
+            "reason": reason,
+            "category": category.api_name() if category is not None else "null",
+        },
     )

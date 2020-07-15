@@ -27,11 +27,12 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import {getPrebuiltQueries} from './utils';
 import QueryList from './queryList';
-import backgroundSpace from '../../../images/spot/background-space.svg';
+import BackgroundSpace from './backgroundSpace';
 
 const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
 
@@ -57,6 +58,7 @@ type Props = {
 
 type State = {
   isBannerHidden: boolean;
+  isSmallBanner: boolean;
   savedQueries: SavedQuery[];
   savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
@@ -68,6 +70,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     router: PropTypes.object.isRequired,
   };
 
+  mq = window.matchMedia?.(`(max-width: ${theme.breakpoints[1]})`);
+
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -77,8 +81,27 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     // local component state
     isBannerHidden: checkIsBannerHidden(),
+    isSmallBanner: this.mq?.matches,
     savedQueries: [],
     savedQueriesPageLinks: '',
+  };
+
+  componentDidMount() {
+    if (this.mq) {
+      this.mq.addListener(this.handleMediaQueryChange);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.mq) {
+      this.mq.removeListener(this.handleMediaQueryChange);
+    }
+  }
+
+  handleMediaQueryChange = (changed: MediaQueryListEvent) => {
+    this.setState({
+      isSmallBanner: changed.matches,
+    });
   };
 
   shouldReload = true;
@@ -219,15 +242,16 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const to = eventView.getResultsViewUrlTarget(organization.slug);
 
     return (
-      <Banner
+      <StyledBanner
         title={t('Discover Trends')}
         subtitle={t(
           'Customize and save queries by search conditions, event fields, and tags'
         )}
-        backgroundImg={backgroundSpace}
+        backgroundComponent={<BackgroundSpace />}
         onCloseClick={this.handleClick}
       >
         <StarterButton
+          size={this.state.isSmallBanner ? 'xsmall' : undefined}
           to={to}
           onClick={() => {
             trackAnalyticsEvent({
@@ -239,10 +263,13 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         >
           {t('Build a new query')}
         </StarterButton>
-        <StarterButton href="https://docs.sentry.io/performance/discover/">
+        <StarterButton
+          size={this.state.isSmallBanner ? 'xsmall' : undefined}
+          href="https://docs.sentry.io/performance-monitoring/discover-queries/"
+        >
           {t('Read the docs')}
         </StarterButton>
-      </Banner>
+      </StyledBanner>
     );
   }
 
@@ -343,19 +370,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                 {this.renderBanner()}
                 {this.renderActions()}
                 {this.renderComponent()}
-                <Feature
-                  features={['organizations:discover']}
-                  organization={organization}
-                >
-                  <div>
-                    <SwitchLink
-                      href={`/organizations/${organization.slug}/discover/`}
-                      onClick={this.onGoLegacyDiscover}
-                    >
-                      {t('Go to Legacy Discover')}
-                    </SwitchLink>
-                  </div>
-                </Feature>
               </PageContent>
             </LightWeightNoProjectMessage>
           </StyledPageContent>
@@ -399,9 +413,12 @@ const StarterButton = styled(Button)`
   margin: ${space(1)};
 `;
 
-const SwitchLink = styled('a')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-left: ${space(1)};
+const StyledBanner = styled(Banner)`
+  max-height: 220px;
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    max-height: 260px;
+  }
 `;
 
 export default withOrganization(DiscoverLanding);

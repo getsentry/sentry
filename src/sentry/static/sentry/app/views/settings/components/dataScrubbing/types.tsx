@@ -1,3 +1,5 @@
+import {Project} from 'app/types';
+
 export enum RuleType {
   PATTERN = 'pattern',
   CREDITCARD = 'creditcard',
@@ -7,8 +9,8 @@ export enum RuleType {
   EMAIL = 'email',
   UUID = 'uuid',
   PEMKEY = 'pemkey',
-  URLAUTH = 'urlauth',
-  USSSN = 'usssn',
+  URLAUTH = 'url_auth',
+  USSSN = 'us_ssn',
   USER_PATH = 'userpath',
   MAC = 'mac',
   ANYTHING = 'anything',
@@ -22,6 +24,7 @@ export enum MethodType {
 }
 
 export enum EventIdStatus {
+  UNDEFINED = 'undefined',
   LOADING = 'loading',
   INVALID = 'invalid',
   NOT_FOUND = 'not_found',
@@ -34,12 +37,6 @@ export enum SourceSuggestionType {
   UNARY = 'unary',
   BINARY = 'binary',
   STRING = 'string',
-}
-
-export enum RequestError {
-  Unknown = 'unknown',
-  InvalidSelector = 'invalid-selector',
-  RegexParse = 'regex-parse',
 }
 
 export type SourceSuggestion = {
@@ -90,7 +87,7 @@ export type Rule = RuleDefault | RuleReplace | RulePattern | RuleReplaceAndPatte
 
 export type EventId = {
   value: string;
-  status?: EventIdStatus;
+  status: EventIdStatus;
 };
 
 type PiiConfigDefault = {
@@ -128,3 +125,5 @@ export type PiiConfig =
 export type Applications = Record<string, Array<string>>;
 
 export type Errors = Partial<Record<KeysOfUnion<Rule>, string>>;
+
+export type ProjectId = Project['id'] | undefined;

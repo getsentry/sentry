@@ -7,7 +7,7 @@ import {logException} from 'app/utils/logging';
 import {objectIsEmpty} from 'app/utils';
 import {t} from 'app/locale';
 import CspInterface from 'app/components/events/interfaces/csp';
-import DebugMetaInterface from 'app/components/events/interfaces/debugmeta';
+import DebugMetaInterface from 'app/components/events/interfaces/debugMeta';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
@@ -73,7 +73,6 @@ class EventEntries extends React.Component {
     isShare: PropTypes.bool,
     showExampleCommit: PropTypes.bool,
     showTagSummary: PropTypes.bool,
-    eventView: PropTypes.object,
   };
 
   static defaultProps = {
@@ -119,7 +118,7 @@ class EventEntries extends React.Component {
   }
 
   renderEntries() {
-    const {event, project, organization, isShare, eventView} = this.props;
+    const {event, project, organization, isShare} = this.props;
 
     const entries = event && event.entries;
 
@@ -138,12 +137,6 @@ class EventEntries extends React.Component {
           return null;
         }
 
-        // inject additional props for certain interfaces
-        const extraProps = {};
-        if (entry.type === 'spans' && eventView) {
-          extraProps.eventView = eventView;
-        }
-
         return (
           <Component
             key={'entry-' + entryIdx}
@@ -153,7 +146,6 @@ class EventEntries extends React.Component {
             type={entry.type}
             data={entry.data}
             isShare={isShare}
-            {...extraProps}
           />
         );
       } catch (ex) {

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import styled from '@emotion/styled';
 
@@ -43,6 +44,18 @@ export function addMessage(
   options: Options = {}
 ): void {
   const {duration: optionsDuration, append, ...rest} = options;
+
+  // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
+  if (
+    // @ts-ignore
+    typeof msg?.message !== 'undefined' &&
+    // @ts-ignore
+    typeof msg?.code !== 'undefined' &&
+    // @ts-ignore
+    typeof msg?.extra !== 'undefined'
+  ) {
+    Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
+  }
 
   // use default only if undefined, as 0 is a valid duration
   const duration =

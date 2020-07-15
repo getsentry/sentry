@@ -12,13 +12,14 @@ import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
-import {IconBookmark, IconDelete, IconSiren} from 'app/icons';
+import {IconBookmark, IconDelete} from 'app/icons';
 import Feature from 'app/components/acl/feature';
 import EventView from 'app/utils/discover/eventView';
 import withProjects from 'app/utils/withProjects';
-import Tooltip from 'app/components/tooltip';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
+import CreateAlertButton from 'app/components/createAlertButton';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-import {getDiscoverLandingUrl} from '../utils';
 import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
 
 type DefaultProps = {
@@ -41,6 +42,10 @@ type Props = DefaultProps & {
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
   projects: Project[];
+  updateCallback: () => void;
+  onIncompatibleAlertQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'];
 };
 
 type State = {
@@ -162,12 +167,13 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView} = this.props;
+    const {api, organization, eventView, updateCallback} = this.props;
 
     handleUpdateQuery(api, organization, eventView).then((savedQuery: SavedQuery) => {
       const view = EventView.fromSavedQuery(savedQuery);
       this.setState({queryName: ''});
       browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
+      updateCallback();
     });
   };
 
@@ -182,6 +188,17 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         pathname: getDiscoverLandingUrl(organization),
         query: {},
       });
+    });
+  };
+
+  handleCreateAlertSuccess = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'discover_v2.create_alert_clicked',
+      eventName: 'Discoverv2: Create alert clicked',
+      status: 'success',
+      organization_id: organization.id,
+      url: window.location.href,
     });
   };
 
@@ -247,10 +264,10 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
 
     return (
-      <ButtonSaved disabled={this.props.disabled}>
-        <StyledIconBookmark isSolid size="xs" color="yellow500" />
+      <Button disabled data-test-id="discover2-savedquery-button-saved">
+        <StyledIconBookmark isSolid size="xs" color="yellow400" />
         {t('Saved query')}
-      </ButtonSaved>
+      </Button>
     );
   }
 
@@ -268,7 +285,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         disabled={this.props.disabled}
       >
         <IconUpdate />
-        {t('Update query')}
+        {t('Save')}
       </Button>
     );
   }
@@ -291,46 +308,19 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {eventView, organization, projects} = this.props;
-    // Must have exactly one project selected and not -1 (all projects)
-    const hasProjectError = eventView.project.length !== 1 || eventView.project[0] === -1;
-    // Must have one or zero environments
-    const hasEnvironmentError = eventView.environment.length > 1;
-    // Must have event.type of error or transaction
-    const hasEventTypeError =
-      !eventView.query.includes('event.type:error') &&
-      !eventView.query.includes('event.type:transaction');
-    const project = projects.find(p => p.id === String(eventView.project[0]));
-    const isDisabled = hasProjectError || hasEnvironmentError || hasEventTypeError;
-
-    // TODO(scttcper): Implement real design for errors
-    let errorText = '';
-    if (hasProjectError) {
-      errorText = 'One project must be selected';
-    } else if (hasEnvironmentError) {
-      errorText = 'One or all environments is required';
-    } else if (hasEventTypeError) {
-      errorText = 'Either event.type:error or event.type:transaction is required';
-    }
+    const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
 
     return (
       <Feature features={['create-from-discover']} organization={organization}>
-        <Tooltip title={errorText} disabled={!isDisabled}>
-          <Button
-            disabled={isDisabled || project === undefined}
-            to={{
-              pathname: `/settings/${organization.slug}/projects/${project?.slug}/alerts/new/`,
-              query: {
-                ...eventView.generateQueryStringObject(),
-                createFromDiscover: true,
-              },
-            }}
-            icon={<IconSiren />}
-            data-test-id="discover2-create-from-discover"
-          >
-            {t('Create alert')}
-          </Button>
-        </Tooltip>
+        <CreateAlertButton
+          eventView={eventView}
+          organization={organization}
+          projects={projects}
+          onIncompatibleQuery={onIncompatibleAlertQuery}
+          onSuccess={this.handleCreateAlertSuccess}
+          referrer="discover"
+          data-test-id="discover2-create-from-discover"
+        />
       </Feature>
     );
   }
@@ -366,9 +356,6 @@ const ButtonSaveAs = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   white-space: nowrap;
 `;
-const ButtonSaved = styled(Button)`
-  cursor: not-allowed;
-`;
 const ButtonSaveDropDown = styled('div')`
   padding: ${space(1)};
 `;
@@ -388,7 +375,7 @@ const IconUpdate = styled('div')`
 
   margin-right: ${space(0.75)};
   border-radius: 5px;
-  background-color: ${p => p.theme.yellow500};
+  background-color: ${p => p.theme.yellow400};
 `;
 
 export default withProjects(withApi(SavedQueryButtonGroup));

@@ -84,7 +84,7 @@ def pytest_configure(config):
         settings.SENTRY_NEWSLETTER_OPTIONS = {}
 
     settings.BROKER_BACKEND = "memory"
-    settings.BROKER_URL = None
+    settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
@@ -115,6 +115,7 @@ def pytest_configure(config):
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
+            "slack.legacy-app": True,
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
@@ -122,6 +123,8 @@ def pytest_configure(config):
             "vsts.client-secret": "vsts-client-secret",
             "vercel.client-id": "vercel-client-id",
             "vercel.client-secret": "vercel-client-secret",
+            "msteams.client-id": "msteams-client-id",
+            "msteams.client-secret": "msteams-client-secret",
         }
     )
 

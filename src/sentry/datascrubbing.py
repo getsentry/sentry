@@ -6,8 +6,8 @@ import six
 import sentry_relay
 from rest_framework import serializers
 
-from sentry import features
-from sentry.utils import metrics
+from sentry.utils import metrics, json
+from sentry.utils.safe import safe_execute
 
 
 def _escape_key(key):
@@ -20,17 +20,71 @@ def _escape_key(key):
     return u"'{}'".format(key.replace("'", "''"))
 
 
-def get_all_pii_configs(project_config):
+def get_pii_config(project):
+    def _decode(value):
+        if value:
+            return safe_execute(json.loads, value)
+
+    # Order of merging is important here. We want to apply organization rules
+    # before project rules. For example:
+    #
+    # * Organization rule: remove substrings "mypassword"
+    # * Project rule: remove substrings "my"
+    #
+    # If we were to apply project rules before organization rules, "password"
+    # would leak. We effectively disabled an organization rule using a project rule.
+    #
+    # Of course organization rules can also break project rules the same way,
+    # but we communicate in the UI that organization options take precedence
+    # here.
+    return _merge_pii_configs(
+        [
+            ("organization:", _decode(project.organization.get_option("sentry:relay_pii_config"))),
+            ("project:", _decode(project.get_option("sentry:relay_pii_config"))),
+        ]
+    )
+
+
+def get_datascrubbing_settings(project):
+    org = project.organization
+    rv = {}
+
+    exclude_fields_key = "sentry:safe_fields"
+    rv["excludeFields"] = org.get_option(exclude_fields_key, []) + project.get_option(
+        exclude_fields_key, []
+    )
+
+    rv["scrubData"] = org.get_option("sentry:require_scrub_data", False) or project.get_option(
+        "sentry:scrub_data", True
+    )
+
+    rv["scrubIpAddresses"] = org.get_option(
+        "sentry:require_scrub_ip_address", False
+    ) or project.get_option("sentry:scrub_ip_address", False)
+
+    sensitive_fields_key = "sentry:sensitive_fields"
+    rv["sensitiveFields"] = org.get_option(sensitive_fields_key, []) + project.get_option(
+        sensitive_fields_key, []
+    )
+
+    rv["scrubDefaults"] = org.get_option(
+        "sentry:require_scrub_defaults", False
+    ) or project.get_option("sentry:scrub_defaults", True)
+
+    return rv
+
+
+def get_all_pii_configs(project):
     # Note: This logic is duplicated in Relay store.
-    pii_config = project_config.config["piiConfig"]
+    pii_config = get_pii_config(project)
     if pii_config:
         yield pii_config
 
-    yield sentry_relay.convert_datascrubbing_config(project_config.config["datascrubbingSettings"])
+    yield sentry_relay.convert_datascrubbing_config(get_datascrubbing_settings(project))
 
 
-def scrub_data(project_config, event):
-    for config in get_all_pii_configs(project_config):
+def scrub_data(project, event):
+    for config in get_all_pii_configs(project):
         metrics.timing(
             "datascrubbing.config.num_applications", len(config.get("applications") or ())
         )
@@ -47,7 +101,7 @@ def scrub_data(project_config, event):
     return event
 
 
-def merge_pii_configs(prefixes_and_configs):
+def _merge_pii_configs(prefixes_and_configs):
     """
     Merge two PII configs into one, prefixing all custom rules with a prefix in the name.
 
@@ -85,12 +139,6 @@ def merge_pii_configs(prefixes_and_configs):
 def validate_pii_config_update(organization, value):
     if not value:
         return value
-
-    has_datascrubbers_v2 = features.has("organizations:datascrubbers-v2", organization)
-    if not has_datascrubbers_v2:
-        raise serializers.ValidationError(
-            "Organization does not have the datascrubbers-v2 feature enabled"
-        )
 
     try:
         sentry_relay.validate_pii_config(value)

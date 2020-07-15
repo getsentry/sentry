@@ -388,7 +388,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
     # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
     # NOTE: possible to have JS files that don't actually end w/ ".js", but
     # this should catch 99% of cases
-    if url.endswith(".js"):
+    if urlsplit(url).path.endswith(".js"):
         # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
         # This cannot parse as valid JS/JSON.
         # NOTE: not relying on Content-Type header because apps often don't set this correctly

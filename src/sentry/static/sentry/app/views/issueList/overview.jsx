@@ -7,7 +7,8 @@ import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import isEqual from 'lodash/isEqual';
 import pickBy from 'lodash/pickBy';
-import qs from 'query-string';
+import * as qs from 'query-string';
+import {withProfiler} from '@sentry/react';
 
 import {Client} from 'app/api';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -34,7 +35,6 @@ import StreamGroup from 'app/components/stream/group';
 import StreamManager from 'app/utils/streamManager';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import withProfiler from 'app/utils/withProfiler';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
@@ -62,9 +62,6 @@ const IssueListOverview = createReactClass({
     savedSearches: PropTypes.arrayOf(SentryTypes.SavedSearch),
     savedSearchLoading: PropTypes.bool.isRequired,
     tags: PropTypes.object,
-
-    // TODO(apm): manual profiling
-    finishProfile: PropTypes.func,
   },
 
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
@@ -112,10 +109,6 @@ const IssueListOverview = createReactClass({
   componentDidUpdate(prevProps, prevState) {
     // Fire off profiling/metrics first
     if (prevState.issuesLoading && !this.state.issuesLoading) {
-      if (typeof this.props.finishProfile === 'function') {
-        this.props.finishProfile();
-      }
-
       // First Meaningful Paint for /organizations/:orgId/issues/
       if (prevState.queryCount === null) {
         metric.measure({

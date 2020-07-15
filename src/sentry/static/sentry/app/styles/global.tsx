@@ -13,6 +13,23 @@ const styles = (theme: Theme) => css`
   abbr {
     border-bottom: 1px dotted ${theme.gray500};
   }
+
+  /**
+   * See https://web.dev/prefers-reduced-motion/
+   */
+  @media (prefers-reduced-motion) {
+    *,
+    ::before,
+    ::after {
+      animation-delay: -1ms !important;
+      animation-duration: 0ms !important;
+      animation-iteration-count: 1 !important;
+      background-attachment: initial !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+    }
+  }
 `;
 
 /**

@@ -12,7 +12,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {Panel} from 'app/components/panels';
 import getDynamicText from 'app/utils/getDynamicText';
 import EventView from 'app/utils/discover/eventView';
-import {DisplayModes} from 'app/utils/discover/types';
+import {TOP_N, DisplayModes} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 
@@ -24,6 +24,7 @@ type ResultsChartProps = {
   organization: Organization;
   eventView: EventView;
   location: Location;
+  confirmedQuery: boolean;
 };
 
 class ResultsChart extends React.Component<ResultsChartProps> {
@@ -39,7 +40,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
   }
 
   render() {
-    const {api, eventView, location, organization, router} = this.props;
+    const {api, eventView, location, organization, router, confirmedQuery} = this.props;
 
     const yAxisValue = eventView.getYAxis();
 
@@ -52,13 +53,12 @@ class ResultsChart extends React.Component<ResultsChartProps> {
 
     const {utc} = getParams(location.query);
     const apiPayload = eventView.getEventsAPIPayload(location);
+    const display = eventView.getDisplayMode();
     const isTopEvents =
-      eventView.display === DisplayModes.TOP5 ||
-      eventView.display === DisplayModes.DAILYTOP5;
-
-    const isDaily =
-      eventView.display === DisplayModes.DAILYTOP5 ||
-      eventView.display === DisplayModes.DAILY;
+      display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
+    const isPeriod = display === DisplayModes.DEFAULT || display === DisplayModes.TOP5;
+    const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
+    const isPrevious = display === DisplayModes.PREVIOUS;
 
     return (
       <React.Fragment>
@@ -76,14 +76,15 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               start={start}
               end={end}
               period={globalSelection.statsPeriod}
-              disablePrevious={eventView.display !== DisplayModes.PREVIOUS}
-              disableReleases={eventView.display !== DisplayModes.RELEASES}
+              disablePrevious={!isPrevious}
+              disableReleases={!isPeriod}
               field={isTopEvents ? apiPayload.field : undefined}
               interval={eventView.interval}
               showDaily={isDaily}
-              topEvents={isTopEvents ? 5 : undefined}
+              topEvents={isTopEvents ? TOP_N : undefined}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
+              confirmedQuery={confirmedQuery}
             />
           ),
           fixed: 'events chart',
@@ -99,6 +100,7 @@ type ContainerProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  confirmedQuery: boolean;
 
   // chart footer props
   total: number | null;
@@ -111,7 +113,10 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
 
-    if (!eventView.isEqualTo(nextEventView)) {
+    if (
+      !eventView.isEqualTo(nextEventView) ||
+      this.props.confirmedQuery !== nextProps.confirmedQuery
+    ) {
       return true;
     }
 
@@ -128,6 +133,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
       onAxisChange,
       onDisplayChange,
       organization,
+      confirmedQuery,
     } = this.props;
 
     const yAxisValue = eventView.getYAxis();
@@ -153,6 +159,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
           location={location}
           organization={organization}
           router={router}
+          confirmedQuery={confirmedQuery}
         />
         <ChartFooter
           total={total}
@@ -160,7 +167,7 @@ class ResultsChartContainer extends React.Component<ContainerProps> {
           yAxisOptions={eventView.getYAxisOptions()}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
-          displayMode={eventView.display || DisplayModes.DEFAULT}
+          displayMode={eventView.getDisplayMode()}
           onDisplayChange={onDisplayChange}
         />
       </StyledPanel>

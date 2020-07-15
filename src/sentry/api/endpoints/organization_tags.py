@@ -14,11 +14,13 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        results = tagstore.get_tag_keys_for_projects(
-            filter_params["project_id"],
-            filter_params.get("environment"),
-            filter_params["start"],
-            filter_params["end"],
-            use_cache=request.GET.get("use_cache", "0") == "1",
-        )
+        with self.handle_query_errors():
+            results = tagstore.get_tag_keys_for_projects(
+                filter_params["project_id"],
+                filter_params.get("environment"),
+                filter_params["start"],
+                filter_params["end"],
+                use_cache=request.GET.get("use_cache", "0") == "1",
+            )
+
         return Response(serialize(results, request.user))

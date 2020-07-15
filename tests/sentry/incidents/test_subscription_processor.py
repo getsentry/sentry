@@ -12,11 +12,7 @@ from exam import fixture, patcher
 from freezegun import freeze_time
 from sentry.utils.compat.mock import call, Mock
 
-from sentry.incidents.logic import (
-    create_alert_rule,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
-)
+from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
     AlertRule,
     AlertRuleThresholdType,
@@ -78,10 +74,9 @@ class ProcessUpdateTest(TestCase):
 
     @fixture
     def rule(self):
-        rule = create_alert_rule(
-            self.organization,
-            [self.project, self.other_project],
-            "some rule",
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule",
             query="",
             aggregate="count()",
             time_window=1,
@@ -136,7 +131,8 @@ class ProcessUpdateTest(TestCase):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        processor.process_update(message)
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            processor.process_update(message)
         return processor
 
     def assert_trigger_exists_with_status(self, incident, trigger, status):
@@ -215,11 +211,28 @@ class ProcessUpdateTest(TestCase):
     def test_removed_alert_rule(self):
         message = self.build_subscription_update(self.sub)
         self.rule.delete()
-        SubscriptionProcessor(self.sub).process_update(message)
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
         )
         # TODO: Check subscription is deleted once we start doing that
+
+    def test_no_feature(self):
+        message = self.build_subscription_update(self.sub)
+        SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_missing_incidents"
+        )
+
+    def test_no_feature_performance(self):
+        self.sub.snuba_query.dataset = "transactions"
+        message = self.build_subscription_update(self.sub)
+        with self.feature("organizations:incidents"):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with(
+            "incidents.alert_rules.ignore_update_missing_incidents_performance"
+        )
 
     def test_skip_already_processed_update(self):
         self.send_update(self.rule, self.trigger.alert_threshold)

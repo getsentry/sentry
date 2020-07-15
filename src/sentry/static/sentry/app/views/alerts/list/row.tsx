@@ -73,9 +73,9 @@ class AlertListRow extends AsyncComponent<Props, State> {
   renderTimeSince(date: string) {
     return (
       <CreatedResolvedTime>
-        <TimeSince date={date} />
-        <br />
-        <StyledDateTime date={date} utc={false} />
+        <Tooltip title={<DateTime date={date} utc={false} />} position="top">
+          <TimeSince title="" date={date} />
+        </Tooltip>
       </CreatedResolvedTime>
     );
   }
@@ -114,7 +114,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
                 <IncidentLink
                   to={`/organizations/${orgId}/alerts/${incident.identifier}/`}
                 >
-                  #{incident.id}
+                  Alert #{incident.id}
                 </IncidentLink>
                 {incident.title}
               </Title>
@@ -159,11 +159,8 @@ function ErrorLoadingStatsIcon() {
 const CreatedResolvedTime = styled('div')`
   ${overflowEllipsis}
   line-height: 1.4;
-`;
-
-const StyledDateTime = styled(DateTime)`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  display: flex;
+  align-items: center;
 `;
 
 const ProjectBadge = styled(IdBadge)`

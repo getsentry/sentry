@@ -14,6 +14,7 @@ type Props = Partial<typeof defaultProps> & {
   inline?: boolean;
   alignRight?: boolean;
   disabled?: boolean;
+  hideControlState?: boolean;
   disabledReason?: React.ReactNode;
   controlState?: React.ReactNode;
   errorState?: React.ReactNode;
@@ -42,6 +43,7 @@ class FieldControl extends React.Component<Props> {
       errorState,
       controlState,
       children,
+      hideControlState,
     } = this.props;
 
     return (
@@ -55,12 +57,14 @@ class FieldControl extends React.Component<Props> {
             </DisabledIndicator>
           )}
 
-          <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
-            {controlState}
-          </FieldControlState>
+          {!hideControlState && (
+            <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
+              {controlState}
+            </FieldControlState>
+          )}
         </FieldControlWrapper>
 
-        {errorState}
+        {!hideControlState && errorState}
       </FieldControlErrorWrapper>
     );
   }

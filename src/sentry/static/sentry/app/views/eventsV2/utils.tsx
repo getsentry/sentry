@@ -174,7 +174,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 // A map between aggregate function names and its un-aggregated form
 const TRANSFORM_AGGREGATES = {
   last_seen: 'timestamp',
-  latest_event: 'id',
+  latest_event: '',
   apdex: '',
   impact: '',
   user_misery: '',
@@ -226,7 +226,8 @@ export function getExpandedResults(
     let fieldNameAlias: string = '';
     if (exploded.kind === 'function' && isTransformAggregate(exploded.function[0])) {
       fieldNameAlias = exploded.function[0];
-    } else if (exploded.kind === 'field') {
+    } else if (exploded.kind === 'field' && exploded.field !== 'id') {
+      // Skip id fields as they are implicitly part of all non-aggregate results.
       fieldNameAlias = exploded.field;
     }
 
@@ -259,18 +260,27 @@ export function getExpandedResults(
     }
 
     if (exploded.kind === 'function') {
-      let field = exploded.function[1];
-      // edge case: transform count() into id
-      if (exploded.function[0] === 'count') {
-        field = 'id';
-      }
+      const field = exploded.function[1];
 
-      if (!field) {
-        // This is a function with no field alias. We delete this column as it'll add a blank column in the drilldown.
+      // Remove count an aggregates on id, as results have an implicit id in them.
+      if (exploded.function[0] === 'count' || field === 'id') {
         fieldsToDelete.push(indexToUpdate);
         return;
       }
 
+      // if at least one of the parameters to the function is an available column,
+      // then we should proceed to replace it with the column, however, for functions
+      // like apdex that takes a number as its parameter we should delete it
+      const {parameters = []} = AGGREGATIONS[exploded.function[0]] ?? {};
+      if (
+        !field ||
+        (parameters.length > 0 &&
+          parameters.every(parameter => parameter.kind !== 'column'))
+      ) {
+        // This is a function with no field alias. We delete this column as it'll add a blank column in the drilldown.
+        fieldsToDelete.push(indexToUpdate);
+        return;
+      }
       transformedFields.add(field);
 
       const updatedColumn: Column = {
@@ -321,7 +331,18 @@ function generateAdditionalConditions(
     // match their name.
     if (dataRow.hasOwnProperty(dataKey)) {
       const value = dataRow[dataKey];
-      const nextValue = value === null || value === undefined ? '' : String(value).trim();
+      // if the value will be quoted, then do not trim it as the whitespaces
+      // may be important to the query and should not be trimmed
+      const shouldQuote =
+        value === null || value === undefined
+          ? false
+          : /[\s\(\)\\"]/g.test(String(value).trim());
+      const nextValue =
+        value === null || value === undefined
+          ? ''
+          : shouldQuote
+          ? String(value)
+          : String(value).trim();
 
       switch (column.field) {
         case 'timestamp':
@@ -408,13 +429,6 @@ function generateExpandedConditions(
   }
 
   return stringifyQueryObject(parsedQuery);
-}
-
-export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
-  if (organization.features.includes('discover-query')) {
-    return `/organizations/${organization.slug}/discover/queries/`;
-  }
-  return `/organizations/${organization.slug}/discover/results/`;
 }
 
 type FieldGeneratorOpts = {

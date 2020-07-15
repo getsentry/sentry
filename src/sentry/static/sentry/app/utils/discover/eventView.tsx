@@ -26,7 +26,12 @@ import {
   generateFieldAsString,
 } from './fields';
 import {getSortField} from './fieldRenderers';
-import {CHART_AXIS_OPTIONS, DisplayModes, DISPLAY_MODE_OPTIONS} from './types';
+import {
+  CHART_AXIS_OPTIONS,
+  DisplayModes,
+  DISPLAY_MODE_OPTIONS,
+  DISPLAY_MODE_FALLBACK_OPTIONS,
+} from './types';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -534,6 +539,22 @@ class EventView {
     return decodeColumnOrder(this.fields);
   }
 
+  getDays(): number {
+    const statsPeriod = decodeScalar(this.statsPeriod);
+
+    if (statsPeriod && statsPeriod.endsWith('d')) {
+      return parseInt(statsPeriod.slice(0, -1), 10);
+    } else if (statsPeriod && statsPeriod.endsWith('h')) {
+      return parseInt(statsPeriod.slice(0, -1), 10) / 24;
+    } else if (this.start && this.end) {
+      return (
+        (new Date(this.end).getTime() - new Date(this.start).getTime()) /
+        (24 * 60 * 60 * 1000)
+      );
+    }
+    return 0;
+  }
+
   clone(): EventView {
     // NOTE: We rely on usage of Readonly from TypeScript to ensure we do not mutate
     //       the attributes of EventView directly. This enables us to quickly
@@ -960,7 +981,8 @@ class EventView {
       this.getAggregateFields()
         // Exclude last_seen and latest_event as they don't produce useful graphs.
         .filter(
-          (field: Field) => ['last_seen', 'latest_event'].includes(field.field) === false
+          (field: Field) =>
+            ['last_seen()', 'latest_event()'].includes(field.field) === false
         )
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),
@@ -990,16 +1012,35 @@ class EventView {
     return defaultOption;
   }
 
-  getDisplayOptions() {
-    if (!this.start && !this.end) {
-      return DISPLAY_MODE_OPTIONS;
-    }
+  getDisplayOptions(): SelectValue<string>[] {
     return DISPLAY_MODE_OPTIONS.map(item => {
       if (item.value === DisplayModes.PREVIOUS) {
-        return {...item, disabled: true};
+        if (this.start || this.end) {
+          return {...item, disabled: true};
+        }
+      } else if (
+        item.value === DisplayModes.TOP5 ||
+        item.value === DisplayModes.DAILYTOP5
+      ) {
+        if (this.getAggregateFields().length === 0) {
+          return {...item, disabled: true};
+        }
       }
       return item;
     });
+  }
+
+  getDisplayMode() {
+    const mode = this.display ?? DisplayModes.DEFAULT;
+    const display = (Object.values(DisplayModes) as string[]).includes(mode)
+      ? mode
+      : DisplayModes.DEFAULT;
+    const displayOptions = this.getDisplayOptions();
+    const selectedOption = displayOptions.find(option => option.value === display);
+    if (selectedOption && !selectedOption.disabled) {
+      return display;
+    }
+    return DISPLAY_MODE_FALLBACK_OPTIONS[display];
   }
 }
 

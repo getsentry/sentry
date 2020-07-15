@@ -4,7 +4,6 @@ from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import create_alert_rule
 from sentry.incidents.models import AlertRule
 from sentry.testutils import APITestCase
 
@@ -26,9 +25,7 @@ class AlertRuleListEndpointTest(APITestCase):
 
     def test_simple(self):
         self.create_team(organization=self.organization, members=[self.user])
-        alert_rule = create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
-        )
+        alert_rule = self.create_alert_rule()
 
         self.login_as(self.user)
         with self.feature("organizations:incidents"):
@@ -235,9 +232,11 @@ class AlertRuleCreateEndpointTest(APITestCase):
 
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
+                self.organization.slug, status_code=201, **rule_one_trigger_only_critical_no_action
             )
-            assert resp.data == {u"nonFieldErrors": [u'"critical" trigger must have an action.']}
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
 
     def test_invalid_projects(self):
         self.create_member(

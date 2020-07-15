@@ -13,7 +13,7 @@ from sentry.loader.browsersdkversion import get_browser_sdk_version
 
 
 CACHE_CONTROL = (
-    "public, max-age=600, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000"
+    "public, max-age=3600, s-maxage=60, stale-while-revalidate=315360000, stale-if-error=315360000"
 )
 
 

@@ -8,7 +8,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentsList', function() {
   const {routerContext, organization} = initializeOrg();
-  let mock;
+  let incidentsMock;
   let statsMock;
   let projectMock;
   let wrapper;
@@ -32,7 +32,7 @@ describe('IncidentsList', function() {
   };
 
   beforeEach(function() {
-    mock = MockApiClient.addMockResponse({
+    incidentsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
         TestStubs.Incident({
@@ -117,25 +117,89 @@ describe('IncidentsList', function() {
     });
   });
 
-  it('displays empty state', async function() {
+  it('displays empty state (first time experience)', async function() {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
     });
-    const rules_mock = MockApiClient.addMockResponse({
+    const rulesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/',
       body: [],
+    });
+    const promptsMock = MockApiClient.addMockResponse({
+      url: '/promptsactivity/',
+      body: {data: {dismissed_ts: null}},
+    });
+    const promptsUpdateMock = MockApiClient.addMockResponse({
+      url: '/promptsactivity/',
+      method: 'PUT',
     });
 
     wrapper = await createWrapper();
 
-    expect(rules_mock).toHaveBeenCalledTimes(1);
+    expect(rulesMock).toHaveBeenCalledTimes(1);
+    expect(promptsMock).toHaveBeenCalledTimes(1);
+    expect(promptsUpdateMock).toHaveBeenCalledTimes(1);
 
     await tick();
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No active metric alerts.');
+    expect(wrapper.find('Onboarding').text()).toContain('More signal, less noise');
+  });
+
+  it('displays empty state (rules not yet created)', async function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/',
+      body: [],
+    });
+    const rulesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/',
+      body: [],
+    });
+    const promptsMock = MockApiClient.addMockResponse({
+      url: '/promptsactivity/',
+      body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
+    });
+
+    wrapper = await createWrapper();
+
+    expect(rulesMock).toHaveBeenCalledTimes(1);
+    expect(promptsMock).toHaveBeenCalledTimes(1);
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('PanelItem')).toHaveLength(0);
+    expect(wrapper.text()).toContain('No metric alert rules exist for these projects');
+  });
+
+  it('displays empty state (rules created)', async function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/',
+      body: [],
+    });
+    const rulesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/',
+      body: [{id: 1}],
+    });
+    const promptsMock = MockApiClient.addMockResponse({
+      url: '/promptsactivity/',
+      body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
+    });
+
+    wrapper = await createWrapper();
+
+    expect(rulesMock).toHaveBeenCalledTimes(1);
+    expect(promptsMock).toHaveBeenCalledTimes(0);
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('PanelItem')).toHaveLength(0);
+    expect(wrapper.text()).toContain(
+      'There are no unresolved metric alerts in these projects'
+    );
   });
 
   it('toggles open/closed', async function() {
@@ -164,9 +228,9 @@ describe('IncidentsList', function() {
         .find('TimeSince')
     ).toHaveLength(1);
 
-    expect(mock).toHaveBeenCalledTimes(1);
+    expect(incidentsMock).toHaveBeenCalledTimes(1);
 
-    expect(mock).toHaveBeenCalledWith(
+    expect(incidentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
       expect.objectContaining({query: {status: 'open'}})
     );
@@ -175,7 +239,7 @@ describe('IncidentsList', function() {
 
     expect(
       wrapper
-        .find('ButtonBar')
+        .find('Actions ButtonBar ButtonBar')
         .find('Button')
         .at(1)
         .prop('priority')
@@ -196,11 +260,11 @@ describe('IncidentsList', function() {
         .find('TimeSince')
     ).toHaveLength(2);
 
-    expect(mock).toHaveBeenCalledTimes(2);
+    expect(incidentsMock).toHaveBeenCalledTimes(2);
     // Stats not called for closed incidents
     expect(statsMock).toHaveBeenCalledTimes(1);
 
-    expect(mock).toHaveBeenCalledWith(
+    expect(incidentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
       expect.objectContaining({query: expect.objectContaining({status: 'closed'})})
     );

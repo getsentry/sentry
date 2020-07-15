@@ -2,6 +2,7 @@ import {t} from 'app/locale';
 import {Incident, IncidentStats} from 'app/views/alerts/types';
 import {Project} from 'app/types';
 import Link from 'app/components/links/link';
+import {DisplayModes} from 'app/utils/discover/types';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {getIncidentDiscoverUrl, getStartEndFromStats} from 'app/views/alerts/utils';
@@ -158,6 +159,9 @@ function makeGenericTransactionCta(opts: {
     const summaryUrl = transactionSummaryRouteWithQuery({
       orgSlug,
       transaction,
+      projectID: projects
+        .filter(({slug}) => incident.projects.includes(slug))
+        .map(({id}) => id),
       query: {...period},
     });
 
@@ -172,7 +176,7 @@ function makeGenericTransactionCta(opts: {
   const extraQueryParams = {
     fields: [...new Set(['transaction', 'count()', incident.alertRule.aggregate])],
     orderby: '-count',
-    display: 'top5',
+    display: DisplayModes.TOP5,
   };
 
   const discoverUrl = getIncidentDiscoverUrl({
@@ -214,13 +218,13 @@ function makeFailureRateCta({orgSlug, incident, projects, stats}: PresetCtaOpts)
         {
           fields: ['transaction.status', 'count()'],
           orderby: '-count',
-          display: 'top5',
+          display: DisplayModes.TOP5,
         }
       : // Case 2
         {
           fields: ['transaction', 'failure_rate()'],
           orderby: '-failure_rate',
-          display: 'top5',
+          display: DisplayModes.TOP5,
         };
 
   const discoverUrl = getIncidentDiscoverUrl({
@@ -247,8 +251,19 @@ export function makeDefaultCta({
   incident,
   stats,
 }: PresetCtaOpts): PresetCta {
+  if (!incident) {
+    return {
+      buttonText: t('Open in Discover'),
+      to: '',
+    };
+  }
+
+  const extraQueryParams = {
+    display: DisplayModes.TOP5,
+  };
+
   return {
     buttonText: t('Open in Discover'),
-    to: getIncidentDiscoverUrl({orgSlug, projects, incident, stats}),
+    to: getIncidentDiscoverUrl({orgSlug, projects, incident, stats, extraQueryParams}),
   };
 }

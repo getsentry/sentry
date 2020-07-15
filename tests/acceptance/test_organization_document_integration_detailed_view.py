@@ -13,7 +13,6 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug):
-        self.dismiss_assistant("discover_sidebar")
         url = u"/settings/{}/document-integrations/{}/".format(self.organization.slug, slug)
         self.browser.get(url)
         self.browser.wait_until_not(".loading-indicator")

@@ -73,7 +73,7 @@ const CollapsedProjects = styled('div')<{size: number}>`
   height: ${p => p.size}px;
   border-radius: 3px;
   box-shadow: 0 0 0 3px #fff;
-  background-color: ${p => p.theme.borderLight};
+  background-color: ${p => p.theme.gray300};
   color: ${p => p.theme.gray500};
   position: relative;
   margin-left: -${p => Math.floor(p.size / 10)}px;

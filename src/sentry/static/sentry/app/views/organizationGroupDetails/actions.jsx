@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from '@emotion/styled';
 
 import {
   addErrorMessage,
@@ -20,7 +21,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
-import {IconDelete} from 'app/icons';
+import {IconDelete, IconStar} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
@@ -100,7 +101,9 @@ class DeleteActions extends React.Component {
           )}
           onConfirm={this.props.onDelete}
         >
-          <IconDelete size="xs" css={{position: 'relative', top: '1px'}} />
+          <IconWrapper>
+            <IconDelete size="xs" />
+          </IconWrapper>
         </LinkWithConfirmation>
         <DropdownLink caret className="group-delete btn btn-default btn-sm">
           <MenuItem onClick={this.openDiscardModal}>
@@ -159,7 +162,7 @@ const GroupDetailsActions = createReactClass({
 
   onDelete() {
     const {group, project, organization} = this.props;
-    addLoadingMessage(t('Delete event..'));
+    addLoadingMessage(t('Delete event\u2026'));
 
     this.props.api.bulkDelete(
       {
@@ -179,7 +182,7 @@ const GroupDetailsActions = createReactClass({
 
   onUpdate(data) {
     const {group, project, organization} = this.props;
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     this.props.api.bulkUpdate(
       {
@@ -232,7 +235,7 @@ const GroupDetailsActions = createReactClass({
   onDiscard() {
     const {group, project, organization} = this.props;
     const id = uniqueId();
-    addLoadingMessage(t('Discarding event..'));
+    addLoadingMessage(t('Discarding event\u2026'));
 
     GroupActions.discard(id, group.id);
 
@@ -291,7 +294,9 @@ const GroupDetailsActions = createReactClass({
             title={t('Bookmark')}
             onClick={this.onToggleBookmark}
           >
-            <span className="icon-star-solid" />
+            <IconWrapper>
+              <IconStar isSolid size="xs" />
+            </IconWrapper>
           </div>
         </div>
 
@@ -330,6 +335,11 @@ const GroupDetailsActions = createReactClass({
     );
   },
 });
+
+const IconWrapper = styled('span')`
+  position: relative;
+  top: 1px;
+`;
 
 export {GroupDetailsActions};
 

@@ -1,4 +1,4 @@
-import {PoseGroup} from 'react-pose';
+import {AnimatePresence} from 'framer-motion';
 import {ThemeProvider} from 'emotion-theming';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -11,7 +11,7 @@ import IndicatorStore from 'app/stores/indicatorStore';
 import ToastIndicator from 'app/components/alerts/toastIndicator';
 import theme from 'app/utils/theme';
 
-const Toasts = styled(PoseGroup)`
+const Toasts = styled('div')`
   position: fixed;
   right: 30px;
   bottom: 30px;
@@ -43,13 +43,19 @@ class Indicators extends React.Component {
 
     return (
       <Toasts {...props}>
-        {items.map((indicator, i) => (
-          // We purposefully use `i` as key here because of transitions
-          // Toasts can now queue up, so when we change from [firstToast] -> [secondToast],
-          // we don't want to  animate `firstToast` out and `secondToast` in, rather we want
-          // to replace `firstToast` with `secondToast`
-          <ToastIndicator onDismiss={this.handleDismiss} indicator={indicator} key={i} />
-        ))}
+        <AnimatePresence>
+          {items.map((indicator, i) => (
+            // We purposefully use `i` as key here because of transitions
+            // Toasts can now queue up, so when we change from [firstToast] -> [secondToast],
+            // we don't want to  animate `firstToast` out and `secondToast` in, rather we want
+            // to replace `firstToast` with `secondToast`
+            <ToastIndicator
+              onDismiss={this.handleDismiss}
+              indicator={indicator}
+              key={i}
+            />
+          ))}
+        </AnimatePresence>
       </Toasts>
     );
   }
