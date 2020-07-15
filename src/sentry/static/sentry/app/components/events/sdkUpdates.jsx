@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import SentryTypes from 'app/sentryTypes';
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconUpgrade} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import EventDataSection from 'app/components/events/eventDataSection';
@@ -121,7 +122,7 @@ class EventSdkUpdates extends React.Component {
         {data.map(suggestion => (
           <Alert
             type="info"
-            icon="icon-upgrade"
+            icon={<IconUpgrade />}
             key={getSuggestionComponentKey(suggestion)}
           >
             {t('We recommend you ')}
