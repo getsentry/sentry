@@ -67,7 +67,7 @@ class IssueDetailsPage(BasePage):
         assignee.find_element_by_tag_name("input").send_keys(user)
 
         # Click the member/team
-        options = assignee.find_elements_by_css_selector('[data-test-id="assignee-option"]')
+        options = assignee.elements('[data-test-id="assignee-option"]')
         assert len(options) > 0, "No assignees could be found."
         options[0].click()
 
