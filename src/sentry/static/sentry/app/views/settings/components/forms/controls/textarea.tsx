@@ -30,6 +30,8 @@ const TextAreaControl = React.forwardRef(function TextAreaControlComponent(
   );
 });
 
+TextAreaControl.displayName = 'TextAreaControl';
+
 TextAreaControl.propTypes = {
   autosize: PropTypes.bool,
   rows: PropTypes.number,
