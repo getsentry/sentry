@@ -57,22 +57,3 @@ class OrganizationConfigIntegrationsTest(APITestCase):
                 r for r in response.data["providers"] if r["key"] == "feature_flag_integration"
             ]
             assert len(provider) == 1
-
-    def test_vercel_integration(self):
-        self.login_as(user=self.user)
-
-        org = self.create_organization(owner=self.user, name="baz")
-
-        url = reverse("sentry-api-0-organization-config-integrations", args=[org.slug])
-        response = self.client.get(url)
-
-        assert response.status_code == 200, response.content
-        provider = [r for r in response.data["providers"] if r["key"] == "vercel"]
-        assert len(provider) == 0
-
-        with self.feature("organizations:integrations-vercel"):
-            response = self.client.get(url)
-
-            assert response.status_code == 200, response.content
-            provider = [r for r in response.data["providers"] if r["key"] == "vercel"]
-            assert len(provider) == 1
