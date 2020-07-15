@@ -8,8 +8,8 @@ export enum TokenType {
 
 export type Token = {
   type: TokenType;
-  key?: string;
   value: string;
+  key?: string;
 };
 
 function isOp(t: Token) {
