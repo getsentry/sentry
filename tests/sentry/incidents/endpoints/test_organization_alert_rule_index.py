@@ -232,9 +232,11 @@ class AlertRuleCreateEndpointTest(APITestCase):
 
         with self.feature("organizations:incidents"):
             resp = self.get_valid_response(
-                self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
+                self.organization.slug, status_code=201, **rule_one_trigger_only_critical_no_action
             )
-            assert resp.data == {u"nonFieldErrors": [u'"critical" trigger must have an action.']}
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
 
     def test_invalid_projects(self):
         self.create_member(

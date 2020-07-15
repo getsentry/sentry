@@ -63,7 +63,7 @@ class ExceptionMechanism extends React.Component {
         body={description}
         containerClassName="pill-icon"
       >
-        <IconInfo isCircled size="14px" />
+        <IconInfo size="14px" />
       </Hovercard>
     );
 

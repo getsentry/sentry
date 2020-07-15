@@ -123,6 +123,8 @@ def pytest_configure(config):
             "vsts.client-secret": "vsts-client-secret",
             "vercel.client-id": "vercel-client-id",
             "vercel.client-secret": "vercel-client-secret",
+            "msteams.client-id": "msteams-client-id",
+            "msteams.client-secret": "msteams-client-secret",
         }
     )
 

@@ -39,7 +39,12 @@ type ChartProps = {
   yAxis: string;
 };
 
-class Chart extends React.Component<ChartProps> {
+type State = {
+  seriesSelection: Record<string, boolean>;
+  forceUpdate: boolean;
+};
+
+class Chart extends React.Component<ChartProps, State> {
   static propTypes = {
     loading: PropTypes.bool,
     reloading: PropTypes.bool,
@@ -54,7 +59,20 @@ class Chart extends React.Component<ChartProps> {
     yAxis: PropTypes.string,
   };
 
-  shouldComponentUpdate(nextProps: ChartProps) {
+  state: State = {
+    seriesSelection: {},
+    forceUpdate: false,
+  };
+
+  shouldComponentUpdate(nextProps: ChartProps, nextState: State) {
+    if (nextState.forceUpdate) {
+      return true;
+    }
+
+    if (!isEqual(this.state.seriesSelection, nextState.seriesSelection)) {
+      return true;
+    }
+
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;
     }
@@ -88,6 +106,22 @@ class Chart extends React.Component<ChartProps> {
     return AreaChart;
   }
 
+  handleLegendSelectChanged = legendChange => {
+    const {selected} = legendChange;
+    const seriesSelection = Object.keys(selected).reduce((state, key) => {
+      // we only want them to be able to disable the Releases series,
+      // and not any of the other possible series here
+      state[key] = key === 'Releases' ? selected[key] : true;
+      return state;
+    }, {});
+
+    // we have to force an update here otherwise ECharts will
+    // update its internal state and disable the series
+    this.setState({seriesSelection, forceUpdate: true}, () =>
+      this.setState({forceUpdate: false})
+    );
+  };
+
   render() {
     const {
       loading: _loading,
@@ -102,11 +136,16 @@ class Chart extends React.Component<ChartProps> {
       previousSeriesName,
       ...props
     } = this.props;
+    const {seriesSelection} = this.state;
+
+    const data = [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous')];
+    if (Array.isArray(releaseSeries)) {
+      data.push(t('Releases'));
+    }
 
     const legend = showLegend && {
       right: 16,
       top: 12,
-      selectedMode: false,
       icon: 'circle',
       itemHeight: 8,
       itemWidth: 8,
@@ -117,7 +156,8 @@ class Chart extends React.Component<ChartProps> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous'), ''],
+      data,
+      selected: seriesSelection,
     };
 
     const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
@@ -131,6 +171,7 @@ class Chart extends React.Component<ChartProps> {
         {...props}
         {...zoomRenderProps}
         legend={legend}
+        onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
         seriesOptions={{
           showSymbol: false,

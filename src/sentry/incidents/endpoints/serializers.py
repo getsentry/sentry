@@ -180,7 +180,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
     excluded_projects = serializers.ListField(child=ProjectField(), required=False)
-    actions = serializers.ListField(required=True)
+    actions = serializers.ListField(required=False)
 
     class Meta:
         model = AlertRuleTrigger
@@ -209,7 +209,7 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         try:
-            actions = validated_data.pop("actions")
+            actions = validated_data.pop("actions", None)
             alert_rule_trigger = create_alert_rule_trigger(
                 alert_rule=self.context["alert_rule"], **validated_data
             )
@@ -452,14 +452,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 threshold_type, warning, data.get("resolve_threshold")
             )
             self._validate_critical_warning_triggers(threshold_type, critical, warning)
-
-        # Triggers have passed checks. Check that all triggers have at least one action now.
-        for trigger in triggers:
-            actions = trigger.get("actions")
-            if not actions:
-                raise serializers.ValidationError(
-                    '"' + trigger["label"] + '" trigger must have an action.'
-                )
 
         return data
 

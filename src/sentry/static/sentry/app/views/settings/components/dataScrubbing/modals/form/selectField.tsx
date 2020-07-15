@@ -35,8 +35,8 @@ class SelectField extends React.Component<Props> {
         styles={{
           control: (provided: {[x: string]: string | number | boolean}) => ({
             ...provided,
-            minHeight: '38px',
-            height: '38px',
+            minHeight: '41px',
+            height: '41px',
           }),
         }}
         ref={this.selectRef}
@@ -52,7 +52,7 @@ class SelectField extends React.Component<Props> {
           }>) => (
             <components.Option isSelected={isSelected} data={data} {...props}>
               <Wrapper isSelected={isSelected}>
-                <div>{label}</div>
+                <div data-test-id="label">{label}</div>
                 {description && <Description>{`(${description})`}</Description>}
               </Wrapper>
             </components.Option>
