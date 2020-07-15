@@ -159,7 +159,8 @@ describe('utils/tokenizeSearch', function() {
             {type: TokenType.QUERY, value: 'c'},
             {type: TokenType.QUERY, value: 'd'},
             {type: TokenType.QUERY, value: 'e'},
-            {type: TokenType.OP, value: '))'},
+            {type: TokenType.OP, value: ')'},
+            {type: TokenType.OP, value: ')'},
             {type: TokenType.OP, value: 'OR'},
             {type: TokenType.QUERY, value: 'f'},
             {type: TokenType.TAG, key: 'g', value: 'g'},
@@ -184,6 +185,103 @@ describe('utils/tokenizeSearch', function() {
     for (const {name, string, object} of cases) {
       it(name, () => expect(tokenizeSearch(string)).toEqual(object));
     }
+  });
+
+  describe('QueryResults operations', function() {
+    it('add tokens to query object', function() {
+      const results = new QueryResults([]);
+
+      results.addStringTag('a:a');
+      expect(results.formatString()).toEqual('a:a');
+
+      results.addTag('b', ['b']);
+      expect(results.formatString()).toEqual('a:a b:b');
+
+      results.addTag('c', ['c1', 'c2']);
+      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2');
+
+      results.addTag('d', ['d']);
+      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d');
+
+      results.addStringTag('d:d2');
+      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d d:d2');
+    });
+
+    it('add text searches to query object', function() {
+      const results = new QueryResults(['a:a']);
+
+      results.addQuery('b');
+      expect(results.formatString()).toEqual('a:a b');
+      expect(results.query).toEqual(['b']);
+
+      results.addQuery('c');
+      expect(results.formatString()).toEqual('a:a b c');
+      expect(results.query).toEqual(['b', 'c']);
+
+      results.addStringTag('d:d');
+      results.addQuery('e');
+      expect(results.formatString()).toEqual('a:a b c d:d e');
+      expect(results.query).toEqual(['b', 'c', 'e']);
+
+      results.query = ['x', 'y'];
+      expect(results.formatString()).toEqual('a:a d:d x y');
+      expect(results.query).toEqual(['x', 'y']);
+    });
+
+    it('add ops to query object', function() {
+      const results = new QueryResults(['x', 'a:a', 'y']);
+
+      results.addOp('OR');
+      expect(results.formatString()).toEqual('x a:a y OR');
+
+      results.addQuery('z');
+      expect(results.formatString()).toEqual('x a:a y OR z');
+
+      results.addOp('(');
+      results.addStringTag('b:b');
+      results.addOp('AND');
+      results.addStringTag('c:c');
+      results.addOp(')');
+      expect(results.formatString()).toEqual('x a:a y OR z ( b:b AND c:c )');
+    });
+
+    it('remove tags from query object', function() {
+      let results = new QueryResults(['x', 'a:a', 'b:b']);
+      results.removeTag('a');
+      expect(results.formatString()).toEqual('x b:b');
+
+      results = new QueryResults(['a:a']);
+      results.removeTag('a');
+      expect(results.formatString()).toEqual('');
+
+      results = new QueryResults(['x', 'a:a', 'a:a2']);
+      results.removeTag('a');
+      expect(results.formatString()).toEqual('x');
+
+      results = new QueryResults(['a:a', 'OR', 'b:b']);
+      results.removeTag('a');
+      expect(results.formatString()).toEqual('b:b');
+
+      results = new QueryResults(['a:a', 'OR', 'a:a1', 'AND', 'b:b']);
+      results.removeTag('a');
+      expect(results.formatString()).toEqual('b:b');
+
+      results = new QueryResults(['(a:a', 'OR', 'b:b)']);
+      results.removeTag('a');
+      expect(results.formatString()).toEqual('b:b');
+
+      results = new QueryResults(['(a:a', 'OR', 'b:b', 'OR', 'y)']);
+      results.removeTag('a');
+      expect(results.formatString()).toEqual('( b:b OR y )');
+
+      results = new QueryResults(['(a:a', 'OR', '(b:b1', 'OR', '(c:c', 'OR', 'b:b2)))']);
+      results.removeTag('b');
+      expect(results.formatString()).toEqual('( a:a OR c:c )');
+
+      results = new QueryResults(['(((a:a', 'OR', 'b:b1)', 'OR', 'c:c)', 'OR', 'b:b2)']);
+      results.removeTag('b');
+      expect(results.formatString()).toEqual('( ( a:a OR c:c ) )');
+    });
   });
 
   describe('stringifyQueryObject()', function() {
@@ -269,7 +367,7 @@ describe('utils/tokenizeSearch', function() {
           'f',
           'g:g',
         ]),
-        string: '( a:a OR ( b:b AND c d e )) OR f g:g',
+        string: '( a:a OR ( b:b AND c d e ) ) OR f g:g',
       },
       {
         name: 'correctly preserve filters with functions',

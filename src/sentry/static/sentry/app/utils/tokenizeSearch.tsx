@@ -12,6 +12,10 @@ export type Token = {
   value: string;
 };
 
+function isOp(t: Token) {
+  return t.type === TokenType.OP;
+}
+
 export class QueryResults {
   tagValues: object;
   tokens: Token[];
@@ -30,7 +34,7 @@ export class QueryResults {
       if (token.startsWith('(')) {
         const parenMatch = token.match(/^\(+/g);
         if (parenMatch) {
-          this.addOp(parenMatch[0]);
+          parenMatch[0].split('').map(paren => this.addOp(paren));
           token = token.replace(/^\(+/g, '');
         }
       }
@@ -72,7 +76,7 @@ export class QueryResults {
       }
 
       if (trailingParen !== '') {
-        this.addOp(trailingParen);
+        trailingParen.split('').map(paren => this.addOp(paren));
       }
     }
   }
@@ -124,6 +128,73 @@ export class QueryResults {
   removeTag(key: string) {
     this.tokens = this.tokens.filter(token => token.key !== key);
     delete this.tagValues[key];
+
+    // Now the really complicated part: removing parens that only have one element in them.
+    // Since parens are themselves tokens, this gets tricky. In summary, loop through the
+    // tokens until we find the innermost open paren. Then forward search through the rest of the tokens
+    // to see if that open paren corresponds to a closed paren with one or fewer items inside.
+    // If it does, delete those parens, and loop again until there are no more parens to delete.
+    let parensToDelete: number[] = [];
+    const cleanParens = (_, idx) => !parensToDelete.includes(idx);
+    do {
+      this.tokens = this.tokens.filter(cleanParens);
+      parensToDelete = [];
+
+      for (let i = 0; i < this.tokens.length; i++) {
+        const token = this.tokens[i];
+        if (!isOp(token) || token.value !== '(') {
+          continue;
+        }
+
+        let alreadySeen = false;
+        for (let j = i + 1; j < this.tokens.length; j++) {
+          const nextToken = this.tokens[j];
+          if (isOp(nextToken) && nextToken.value === '(') {
+            // Continue down to the nested parens
+            break;
+          } else if (!isOp(nextToken)) {
+            if (alreadySeen) {
+              // This has more than one term, no need to delete
+              break;
+            }
+            alreadySeen = true;
+          } else if (isOp(nextToken) && nextToken.value === ')') {
+            // We found another paren with only one term inside. Delete these.
+            parensToDelete = [i, j];
+            break;
+          }
+        }
+
+        if (parensToDelete.length > 0) {
+          break;
+        }
+      }
+    } while (parensToDelete.length > 0);
+
+    // Now that all erroneous parens are removed we need to remove dangling OR/AND operators.
+    // I originally removed all the dangling properties in a single loop, but that meant that
+    // cases like `a OR OR b` would remove both operators, when only one should be removed. So
+    // instead, we loop until we find an operator to remove, then go back to the start and loop
+    // again.
+    let toRemove = -1;
+    do {
+      if (toRemove >= 0) {
+        this.tokens.splice(toRemove, 1);
+        toRemove = -1;
+      }
+
+      for (let i = 0; i < this.tokens.length; i++) {
+        const token = this.tokens[i];
+        const prev = this.tokens[i - 1];
+        const next = this.tokens[i + 1];
+        if (isOp(token) && ['OR', 'AND'].includes(token.value)) {
+          if (prev === undefined || isOp(prev) || next === undefined || isOp(next)) {
+            toRemove = i;
+            break;
+          }
+        }
+      }
+    } while (toRemove >= 0);
   }
 
   addQuery(value: string) {
