@@ -99,6 +99,9 @@ def pytest_configure(config):
         "nodedata": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
     }
 
+    settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
+    settings.SENTRY_RATELIMITER_OPTIONS = {}
+
     if os.environ.get("USE_SNUBA", False):
         settings.SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"

@@ -30,6 +30,7 @@ class OrganizationSerializerTest(TestCase):
                 "integrations-chat-unfurl",
                 "integrations-incident-management",
                 "integrations-event-hooks",
+                "invite-members-rate-limits",
                 "data-forwarding",
                 "invite-members",
                 "sso-saml2",
