@@ -136,7 +136,7 @@ class VercelIntegration(IntegrationInstallation):
         next_url = None
         configuration_id = self.get_configuration_id()
         if configuration_id:
-            next_url = u"https://vercel.com/dashboard/integrations/%s" % configuration_id
+            next_url = u"%s/dashboard/integrations/%s" % (base_url, configuration_id)
 
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
