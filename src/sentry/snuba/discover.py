@@ -1001,7 +1001,8 @@ def get_facets(query, params, limit=10, referrer=None):
     # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
     # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
     # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
-    sample_rate = 0.1 if key_names["data"][0]["count"] > 10000 else None
+    sampling_enabled = options.get("discover2.tags_facet_enable_sampling")
+    sample_rate = 0.1 if (sampling_enabled and key_names["data"][0]["count"] > 10000) else None
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 
