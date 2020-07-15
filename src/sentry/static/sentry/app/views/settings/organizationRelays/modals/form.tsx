@@ -24,7 +24,7 @@ type Props = {
 
 const Form = ({values, onChange, errors, onValidate, disables, onValidateKey}: Props) => {
   const handleChange = (field: FormField) => (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>
   ) => {
     onChange(field, event.target.value);
   };
