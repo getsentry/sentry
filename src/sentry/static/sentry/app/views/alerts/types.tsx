@@ -89,4 +89,5 @@ export enum IncidentStatusMethod {
 export enum AlertRuleStatus {
   PENDING = 0,
   SNAPSHOT = 4,
+  DISABLED = 5,
 }
