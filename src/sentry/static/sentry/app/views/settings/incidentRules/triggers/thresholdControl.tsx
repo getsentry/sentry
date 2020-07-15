@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {
   ThresholdControlValue,
-  AlertRuleThreshold,
   AlertRuleThresholdType,
 } from 'app/views/settings/incidentRules/types';
 import {t, tct} from 'app/locale';
@@ -14,13 +13,11 @@ import NumberDragControl from 'app/components/numberDragControl';
 import Tooltip from 'app/components/tooltip';
 
 type Props = ThresholdControlValue & {
-  type: AlertRuleThreshold;
+  type: string;
   disabled: boolean;
-  onChange: (
-    type: AlertRuleThreshold,
-    value: ThresholdControlValue,
-    e: React.FormEvent
-  ) => void;
+  disableThresholdType: boolean;
+  onChange: (value: ThresholdControlValue, e: React.FormEvent) => void;
+  onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
 };
 
 type State = {
@@ -40,12 +37,12 @@ class ThresholdControl extends React.Component<Props, State> {
       return;
     }
 
-    const {onChange, type, thresholdType} = this.props;
+    const {onChange, thresholdType} = this.props;
 
     // Empty input
     if (value === '') {
       this.setState({currentValue: null});
-      onChange(type, {thresholdType, threshold: ''}, e);
+      onChange({thresholdType, threshold: ''}, e);
       return;
     }
 
@@ -59,7 +56,7 @@ class ThresholdControl extends React.Component<Props, State> {
     const numberValue = Number(value);
 
     this.setState({currentValue: null});
-    onChange(type, {thresholdType, threshold: numberValue}, e);
+    onChange({thresholdType, threshold: numberValue}, e);
   };
 
   /**
@@ -70,38 +67,41 @@ class ThresholdControl extends React.Component<Props, State> {
       return;
     }
 
-    const {onChange, type, thresholdType} = this.props;
-    onChange(type, {thresholdType, threshold: Number(this.state.currentValue)}, e);
+    const {onChange, thresholdType} = this.props;
+    onChange({thresholdType, threshold: Number(this.state.currentValue)}, e);
     this.setState({currentValue: null});
   };
 
-  handleTypeChange = ({value}, e) => {
-    const {onChange, type, threshold} = this.props;
-
-    onChange(
-      type,
-      {thresholdType: getThresholdTypeForThreshold(type, value), threshold},
-      e
-    );
+  handleTypeChange = ({value}, _) => {
+    const {onThresholdTypeChange} = this.props;
+    onThresholdTypeChange(value);
   };
 
   handleDragChange = (delta: number, e: React.MouseEvent) => {
-    const {onChange, type, thresholdType, threshold} = this.props;
+    const {onChange, thresholdType, threshold} = this.props;
     const currentValue = threshold || 0;
-    onChange(type, {thresholdType, threshold: currentValue + delta}, e);
+    onChange({thresholdType, threshold: currentValue + delta}, e);
   };
 
   render() {
     const {currentValue} = this.state;
-    const {thresholdType, threshold, type, onChange: _, disabled, ...props} = this.props;
-    const thresholdName = AlertRuleThreshold.INCIDENT === type ? 'alert' : 'resolve';
+    const {
+      thresholdType,
+      threshold,
+      type,
+      onChange: _,
+      onThresholdTypeChange: __,
+      disabled,
+      disableThresholdType,
+      ...props
+    } = this.props;
 
     return (
       <div {...props}>
         <SelectControl
-          isDisabled={disabled}
-          name={`${thresholdName}ThresholdType`}
-          value={getThresholdTypeForThreshold(type, thresholdType)}
+          isDisabled={disabled || disableThresholdType}
+          name={`${type}ThresholdType`}
+          value={thresholdType}
           options={[
             {value: AlertRuleThresholdType.BELOW, label: t('Below')},
             {value: AlertRuleThresholdType.ABOVE, label: t('Above')},
@@ -110,11 +110,13 @@ class ThresholdControl extends React.Component<Props, State> {
         />
         <Input
           disabled={disabled}
-          name={`${thresholdName}Threshold`}
+          name={`${type}Threshold`}
           placeholder="300"
           value={currentValue ?? threshold ?? ''}
           onChange={this.handleThresholdChange}
           onBlur={this.handleThresholdBlur}
+          // Disable lastpass autocomplete
+          data-lpignore="true"
         />
         <DragContainer>
           <Tooltip
@@ -143,13 +145,3 @@ export default styled(ThresholdControl)`
   grid-template-columns: 1fr 3fr;
   grid-gap: ${space(1)};
 `;
-
-function getThresholdTypeForThreshold(
-  type: AlertRuleThreshold,
-  thresholdType: AlertRuleThresholdType
-): AlertRuleThresholdType {
-  return (type === AlertRuleThreshold.INCIDENT) !==
-    (thresholdType === AlertRuleThresholdType.ABOVE)
-    ? AlertRuleThresholdType.BELOW
-    : AlertRuleThresholdType.ABOVE;
-}

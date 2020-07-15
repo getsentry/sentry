@@ -4725,8 +4725,8 @@ exports[`ExternalIssueForm link renders 1`] = `
                                         type="textarea"
                                         value="Default Value"
                                       >
-                                        <ForwardRef
-                                          className="css-u4op3m-TextArea e1oph3pe0"
+                                        <TextAreaControl
+                                          className="css-u4op3m-TextArea edis3zx0"
                                           default="Default Value"
                                           disabled={false}
                                           id="comment"
@@ -4739,7 +4739,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                           value="Default Value"
                                         >
                                           <textarea
-                                            className="css-u4op3m-TextArea e1oph3pe0"
+                                            className="css-u4op3m-TextArea edis3zx0"
                                             default="Default Value"
                                             disabled={false}
                                             id="comment"
@@ -4751,7 +4751,7 @@ exports[`ExternalIssueForm link renders 1`] = `
                                             type="textarea"
                                             value="Default Value"
                                           />
-                                        </ForwardRef>
+                                        </TextAreaControl>
                                       </TextArea>
                                     </Observer>
                                   </div>
