@@ -24,7 +24,7 @@ class GitHubAppsClientTest(TestCase):
 
         responses.add(
             method=responses.POST,
-            url="https://api.github.com/installations/1/access_tokens",
+            url="https://api.github.com/app/installations/1/access_tokens",
             body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
             status=200,
             content_type="application/json",

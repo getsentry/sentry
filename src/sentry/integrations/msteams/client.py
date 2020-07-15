@@ -39,7 +39,6 @@ class MsTeamsClient(ApiClient):
             signed_params,
         )
         # TODO: Refactor message creation
-        # TODO: Tweak welcome message appearance to perfection
         logo = {
             "type": "Image",
             "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
@@ -49,19 +48,23 @@ class MsTeamsClient(ApiClient):
             "type": "TextBlock",
             "weight": "Bolder",
             "size": "Large",
-            "text": "Welcome to Sentry for Teams!",
+            "text": "Welcome to Sentry for Microsoft Teams",
             "wrap": True,
         }
         description = {
             "type": "TextBlock",
-            "text": "The Sentry app for Teams allows you to be notified in real-time when an error pops up, using customizable alert rules.",
+            "text": "You can use the Sentry app for Microsoft Teams to get notifications that allow you to assign, ignore, or resolve directly in your chat.",
             "wrap": True,
         }
         instruction = {
             "type": "TextBlock",
-            "text": "Please click [here](%s) to get started with using Sentry for Microsoft Teams."
-            % url,
+            "text": "If that sounds good to you, finish the setup process.",
             "wrap": True,
+        }
+        button = {
+            "type": "Action.OpenUrl",
+            "title": "Complete Setup",
+            "url": url,
         }
         card = {
             "type": "AdaptiveCard",
@@ -81,6 +84,7 @@ class MsTeamsClient(ApiClient):
                 description,
                 instruction,
             ],
+            "actions": [button],
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
             "version": "1.2",
         }
