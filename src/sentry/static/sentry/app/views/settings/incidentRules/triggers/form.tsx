@@ -42,21 +42,6 @@ type Props = {
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
 };
 
-const CriticalIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.red400};
-  margin-right: ${space(1)};
-`;
-
-const WarningIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.yellow400};
-  margin-right: ${space(1)};
-`;
-
-const ResolvedIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.green400};
-  margin-right: ${space(1)};
-`;
-
 class TriggerForm extends React.PureComponent<Props> {
   // Overwritten in ResolvedTriggerForm
   getThresholdType = () => {
@@ -66,6 +51,7 @@ class TriggerForm extends React.PureComponent<Props> {
   getTriggerLabel = (): React.ReactNode => {
     const {isCritical} = this.props;
     const triggerLabel = isCritical ? t('Critical Status') : t('Warning Status');
+    // eslint-disable-next-line no-use-before-define
     const TriggerIndicator = isCritical ? CriticalIndicator : WarningIndicator;
     return (
       <React.Fragment>
@@ -240,5 +226,20 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     );
   }
 }
+
+const CriticalIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.red400};
+  margin-right: ${space(1)};
+`;
+
+const WarningIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.yellow400};
+  margin-right: ${space(1)};
+`;
+
+const ResolvedIndicator = styled(CircleIndicator)`
+  background: ${p => p.theme.green400};
+  margin-right: ${space(1)};
+`;
 
 export default withConfig(withApi(TriggerFormContainer));

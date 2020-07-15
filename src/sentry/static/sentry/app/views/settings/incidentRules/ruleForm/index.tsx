@@ -79,10 +79,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   getDefaultState(): State {
     const {rule} = this.props;
+    const triggersClone = [...rule.triggers];
 
     // Warning trigger is removed if it is blank when saving
-    if (rule.triggers.length !== 2) {
-      rule.triggers.push(createDefaultTrigger('warning'));
+    if (triggersClone.length !== 2) {
+      triggersClone.push(createDefaultTrigger('warning'));
     }
 
     return {
@@ -95,7 +96,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       environment: rule.environment || null,
       triggerErrors: new Map(),
       availableActions: null,
-      triggers: rule.triggers,
+      triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
       projects: [this.props.project],
