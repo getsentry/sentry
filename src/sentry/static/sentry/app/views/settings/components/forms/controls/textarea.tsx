@@ -19,7 +19,7 @@ type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
     rows?: number;
   };
 
-const TextAreaControl = React.forwardRef(function TextAreaControlComponent(
+const TextAreaControl = React.forwardRef(function TextAreaControl(
   {autosize, rows, ...p}: Props,
   ref: React.Ref<HTMLTextAreaElement>
 ) {
