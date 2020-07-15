@@ -2,6 +2,7 @@ import React from 'react';
 import * as Sentry from '@sentry/react';
 import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
 import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
 import {NavigationSection, NavigationProps} from 'app/views/settings/types';
 
@@ -58,11 +59,13 @@ class SettingsNavigation extends React.Component<Props> {
 const PositionStickyWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     position: sticky;
-    top: 100px;
+    top: 70px;
     overflow: scroll;
-    height: calc(100vh - 98px);
+    height: calc(100vh - 70px);
     -ms-overflow-style: none;
     scrollbar-width: none;
+    padding: ${space(4)};
+    padding-right: ${space(2)};
 
     &::-webkit-scrollbar {
       display: none;
