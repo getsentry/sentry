@@ -168,7 +168,7 @@ def find_histogram_buckets(field, params, conditions):
 
     column = columns[0]
     # TODO evanh: This can be expanded to more fields at a later date, for now keep this limited.
-    if column != "transaction.duration":
+    if column != "transaction.duration" and not column.startswith("metrics."):
         raise InvalidSearchQuery(
             "histogram(...) can only be used with the transaction.duration column"
         )
