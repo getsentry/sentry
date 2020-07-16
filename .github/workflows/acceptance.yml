@@ -44,7 +44,7 @@ jobs:
         - name: jest
           run: |
             NODE_ENV=production yarn build-css
-            yarn test-ci
+            yarn test-ci --forceExit
 
         - name: Save snapshots
           if: always()
