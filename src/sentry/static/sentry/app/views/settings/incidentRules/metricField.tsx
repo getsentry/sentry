@@ -59,6 +59,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
       <React.Fragment key={preset.name}>
         <Tooltip title={t('This preset is selected')} disabled={!preset.selected}>
           <PresetLink
+            type="button"
             onClick={() => model.setValue(name, preset.default)}
             disabled={preset.selected}
           >
