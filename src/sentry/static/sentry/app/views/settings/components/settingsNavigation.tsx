@@ -57,6 +57,9 @@ class SettingsNavigation extends React.Component<Props> {
 }
 
 const PositionStickyWrapper = styled('div')`
+  padding: ${space(4)};
+  padding-right: ${space(2)};
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     position: sticky;
     top: 70px;
@@ -64,8 +67,6 @@ const PositionStickyWrapper = styled('div')`
     height: calc(100vh - 70px);
     -ms-overflow-style: none;
     scrollbar-width: none;
-    padding: ${space(4)};
-    padding-right: ${space(2)};
 
     &::-webkit-scrollbar {
       display: none;
