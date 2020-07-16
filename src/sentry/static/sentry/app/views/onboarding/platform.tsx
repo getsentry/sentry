@@ -82,7 +82,9 @@ class OnboardingPlatform extends React.Component<Props, State> {
     this.setState({firstProjectCreated: true});
 
     try {
-      const data = await createProject(api, orgId, teams[0].slug, orgId, platform);
+      const data = await createProject(api, orgId, teams[0].slug, orgId, platform, {
+        defaultRules: false,
+      });
       ProjectActions.createSuccess(data);
     } catch (error) {
       addErrorMessage(t('Failed to create project'));
