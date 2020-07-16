@@ -44,10 +44,11 @@ type Props = {
   detected: string;
   closed?: string;
   triggers?: Trigger[];
+  resolveThreshold?: number | '' | null;
 };
 
 const Chart = (props: Props) => {
-  const {aggregate, data, detected, closed, triggers} = props;
+  const {aggregate, data, detected, closed, triggers, resolveThreshold} = props;
   const detectedTs = detected && moment.utc(detected).unix();
   const closedTs = closed && moment.utc(closed).unix();
   const chartData = data.map(([ts, val]) => [
@@ -73,25 +74,18 @@ const Chart = (props: Props) => {
     typeof warningTrigger?.alertThreshold === 'number'
       ? warningTrigger?.alertThreshold
       : undefined;
-  const warningTriggerResolveThreshold =
-    typeof warningTrigger?.resolveThreshold === 'number'
-      ? warningTrigger?.resolveThreshold
-      : undefined;
   const criticalTriggerAlertThreshold =
     typeof criticalTrigger?.alertThreshold === 'number'
       ? criticalTrigger?.alertThreshold
       : undefined;
-  const criticalTriggerResolveThreshold =
-    typeof criticalTrigger?.resolveThreshold === 'number'
-      ? criticalTrigger?.resolveThreshold
-      : undefined;
+  const alertResolveThreshold =
+    typeof resolveThreshold === 'number' ? resolveThreshold : undefined;
 
   const marklinePrecision = Math.max(
     ...[
       warningTriggerAlertThreshold,
-      warningTriggerResolveThreshold,
       criticalTriggerAlertThreshold,
-      criticalTriggerResolveThreshold,
+      alertResolveThreshold,
     ].map(decimal => {
       if (!decimal || !isFinite(decimal)) return 0;
       let e = 1;
@@ -166,29 +160,6 @@ const Chart = (props: Props) => {
             }),
             data: [],
           },
-        warningTrigger &&
-          warningTriggerResolveThreshold && {
-            name: 'Warning Resolve',
-            type: 'line',
-            markLine: MarkLine({
-              silent: true,
-              lineStyle: {color: theme.gray400},
-              data: [
-                {
-                  yAxis: warningTriggerResolveThreshold,
-                },
-              ],
-              precision: marklinePrecision,
-              label: {
-                show: true,
-                position: 'insideEndBottom',
-                formatter: 'WARNING RESOLUTION',
-                color: theme.gray400,
-                fontSize: 10,
-              },
-            }),
-            data: [],
-          },
         criticalTrigger &&
           criticalTriggerAlertThreshold && {
             name: 'Critical Alert',
@@ -213,7 +184,7 @@ const Chart = (props: Props) => {
             data: [],
           },
         criticalTrigger &&
-          criticalTriggerResolveThreshold && {
+          alertResolveThreshold && {
             name: 'Critical Resolve',
             type: 'line',
             markLine: MarkLine({
@@ -221,7 +192,7 @@ const Chart = (props: Props) => {
               lineStyle: {color: theme.gray400},
               data: [
                 {
-                  yAxis: criticalTriggerResolveThreshold,
+                  yAxis: alertResolveThreshold,
                 },
               ],
               precision: marklinePrecision,
