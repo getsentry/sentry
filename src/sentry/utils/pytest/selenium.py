@@ -267,6 +267,14 @@ class Browser(object):
                 u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
             )
 
+            self.driver.execute_script(
+                "window.__tooltips.forEach(t => { t.setState({useGlobalPortal: false}); t.setOpen() })"
+            )
+
+            self.driver.find_element_by_tag_name("body").screenshot(
+                u".artifacts/visual-snapshots/acceptance-tooltips/{}.png".format(slugify(name))
+            )
+
             # switch to mobile width and a fixed height
             self.driver.set_window_size(375, 812)
 

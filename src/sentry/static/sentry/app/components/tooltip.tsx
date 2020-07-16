@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
+import {memoize} from 'lodash';
 
 import {domId} from 'app/utils/domId';
 
@@ -61,6 +62,7 @@ type Props = DefaultProps & {
 
 type State = {
   isOpen: boolean;
+  usesGlobalPortal: boolean;
 };
 
 class Tooltip extends React.Component<Props, State> {
@@ -94,26 +96,47 @@ class Tooltip extends React.Component<Props, State> {
     containerDisplayMode: 'inline-block',
   };
 
-  constructor(props: Props) {
-    super(props);
-
-    let portal = document.getElementById('tooltip-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'tooltip-portal');
-      document.body.appendChild(portal);
-    }
-    this.portalEl = portal;
-  }
-
   state = {
     isOpen: false,
+    usesGlobalPortal: true,
   };
 
-  portalEl: HTMLElement;
+  componentDidMount() {
+    if (!window.__tooltips) {
+      window.__tooltips = [];
+    }
+    window.__tooltips.push(this);
+  }
+
+  componentWillUnmount() {
+    const {usesGlobalPortal} = this.state;
+    window.__tooltips = window.__tooltips.filter(c => c !== this);
+    if (!usesGlobalPortal) {
+      document.body.removeChild(this.getPortal(usesGlobalPortal));
+    }
+  }
+
   tooltipId: string = domId('tooltip-');
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
+
+  getPortal = memoize(
+    (usesGlobalPortal): HTMLElement => {
+      if (usesGlobalPortal) {
+        let portal = document.getElementById('tooltip-portal');
+        if (!portal) {
+          portal = document.createElement('div');
+          portal.setAttribute('id', 'tooltip-portal');
+          document.body.appendChild(portal);
+        }
+        return portal;
+      } else {
+        const portal = document.createElement('div');
+        document.body.appendChild(portal);
+        return portal;
+      }
+    }
+  );
 
   setOpen = () => {
     this.setState({isOpen: true});
@@ -188,7 +211,7 @@ class Tooltip extends React.Component<Props, State> {
 
   render() {
     const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
-    const {isOpen} = this.state;
+    const {isOpen, usesGlobalPortal} = this.state;
     if (disabled) {
       return children;
     }
@@ -228,7 +251,7 @@ class Tooltip extends React.Component<Props, State> {
             </TooltipContent>
           )}
         </Popper>,
-        this.portalEl
+        this.getPortal(usesGlobalPortal)
       );
     }
 

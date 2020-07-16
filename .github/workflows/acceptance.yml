@@ -195,6 +195,7 @@ jobs:
           run: |
             mkdir -p .artifacts/visual-snapshots/acceptance
             mkdir -p .artifacts/visual-snapshots/acceptance-mobile
+            mkdir -p .artifacts/visual-snapshots/acceptance-tooltips
             make run-acceptance
           env:
             USE_SNUBA: 1
