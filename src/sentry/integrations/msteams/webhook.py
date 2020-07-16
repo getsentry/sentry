@@ -85,10 +85,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     @transaction_start("MsTeamsWebhookEndpoint")
     def post(self, request):
-        is_valid = verify_signature(request)
-
-        if not is_valid:
-            return self.respond(status=401)
+        # verify_signature will raise the exception corresponding to the error
+        verify_signature(request)
 
         data = request.data
         channel_data = data["channelData"]
