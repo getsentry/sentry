@@ -1,7 +1,7 @@
 beautifulsoup4>=4.7.1,<4.8
 boto3>=1.4.1,<1.4.6
 botocore<1.5.71
-celery>=3.1.25,<4.0.0
+celery==4.1.1
 click>=5.0,<7.0
 confluent-kafka==0.11.5
 croniter>=0.3.34,<0.4.0
@@ -24,7 +24,6 @@ google-cloud-storage==1.13.3
 googleapis-common-protos==1.6.0
 ipaddress>=1.0.16,<1.1.0 ; python_version < "3.3"
 jsonschema==3.2.0
-kombu==3.0.37
 lxml>=4.3.3,<4.4.0
 maxminddb==1.4.1
 mistune>0.7,<0.9
@@ -65,6 +64,10 @@ ua-parser>=0.10.0,<0.11.0
 unidiff>=0.5.4
 urllib3==1.24.2
 uwsgi>2.0.0,<2.1.0
+
+# celery
+billiard==3.5.0.5
+kombu==4.2.2.post1
 
 # not directly used, but provides a speedup for redis
 hiredis==0.3.1

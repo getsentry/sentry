@@ -102,7 +102,7 @@ setup(
     packages=find_packages("src"),
     zip_safe=False,
     install_requires=install_requires,
-    extras_require={"dev": dev_requires},
+    extras_require={"dev": dev_requires, "rabbitmq": ["amqp==2.6.0"]},
     cmdclass=cmdclass,
     license="BSL-1.1",
     include_package_data=True,
