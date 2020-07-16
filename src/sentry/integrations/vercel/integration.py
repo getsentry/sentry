@@ -114,20 +114,20 @@ class VercelIntegration(IntegrationInstallation):
         )
         return None
 
-    def get_base_project_url(self):
+    def get_slug(self):
         client = self.get_client()
         if self.metadata["installation_type"] == "team":
             team = client.get_team()
-            slug = team["slug"]
+            return team["slug"]
         else:
             user = client.get_user()
-            slug = user["username"]
-        return u"https://vercel.com/%s" % slug
+            return user["username"]
 
     def get_organization_config(self):
         vercel_client = self.get_client()
         # TODO: add try/catch if we get API failure
-        base_url = self.get_base_project_url()
+        slug = self.get_slug()
+        base_url = u"https://vercel.com/%s" % slug
         vercel_projects = [
             {"value": p["id"], "label": p["name"], "url": u"%s/%s" % (base_url, p["name"])}
             for p in vercel_client.get_projects()
@@ -136,7 +136,11 @@ class VercelIntegration(IntegrationInstallation):
         next_url = None
         configuration_id = self.get_configuration_id()
         if configuration_id:
-            next_url = u"%s/dashboard/integrations/%s" % (base_url, configuration_id)
+            if self.metadata["installation_type"] == "team":
+                dashboard_url = u"https://vercel.com/dashboard/%s/" % slug
+            else:
+                dashboard_url = "https://vercel.com/dashboard/"
+            next_url = u"%s/integrations/%s" % (dashboard_url, configuration_id)
 
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
