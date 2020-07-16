@@ -276,7 +276,7 @@ class ActionsPanel extends React.PureComponent<Props> {
 
                     {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
                       <SelectControl
-                        disabled={disabled || loading}
+                        isDisabled={disabled || loading}
                         value={action.targetType}
                         options={availableAction?.allowedTargetTypes?.map(
                           allowedType => ({
@@ -330,6 +330,7 @@ class ActionsPanel extends React.PureComponent<Props> {
           })}
           <StyledPanelItem>
             <Button
+              type="button"
               disabled={disabled || loading}
               size="small"
               icon={<IconAdd isCircled color="gray500" />}
