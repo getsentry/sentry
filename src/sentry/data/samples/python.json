@@ -139,6 +139,16 @@
         "in_app": false,
         "data": {},
         "context_line": "            **kwargs)",
+        "executing_node": {
+          "start": {
+            "line": 457,
+            "column": 15
+          },
+          "end": {
+            "line": 459,
+            "column": 21
+          }
+        },
         "lineno": 459
       },
       {

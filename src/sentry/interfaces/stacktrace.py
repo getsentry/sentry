@@ -150,6 +150,7 @@ class Frame(Interface):
             "platform",
             "post_context",
             "pre_context",
+            "executing_node",
             "symbol",
             "symbol_addr",
             "trust",
@@ -177,6 +178,7 @@ class Frame(Interface):
                 "context_line": self.context_line,
                 "pre_context": self.pre_context or None,
                 "post_context": self.post_context or None,
+                "executing_node": self.executing_node or None,
                 "vars": self.vars or None,
                 "data": self.data or None,
                 "errors": self.errors or None,
@@ -206,6 +208,12 @@ class Frame(Interface):
                 pre_context=self.pre_context,
                 post_context=self.post_context,
             ),
+            # TODO make this work instead of hardcoding mock data
+            # "executingNode": self.executing_node,
+            "executingNode": {
+                "start": {"line": 457, "column": 15},
+                "end": {"line": 459, "column": 21},
+            },
             "lineNo": self.lineno,
             "colNo": self.colno,
             "inApp": self.in_app,

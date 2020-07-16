@@ -70,13 +70,27 @@ const FrameContext = ({
 
       {frame.context &&
         contextLines.map((line, index) => {
-          const isActive = frame.lineNo === line[0];
+          let highlightRange: number[] | null = null;
+          if (frame.executingNode) {
+            const {start, end} = frame.executingNode;
+            if (start.line <= line[0] && line[0] <= end.line) {
+              highlightRange = [0, line[1].length];
+              if (start.line === line[0]) {
+                highlightRange[0] = start.column;
+              }
+              if (end.line === line[0]) {
+                highlightRange[1] = end.column;
+              }
+            }
+          }
+          const isActive = frame.lineNo === line[0] && !highlightRange;
           const hasComponents = isActive && components.length > 0;
           return (
             <ContextLine
               key={index}
               line={line}
               isActive={isActive}
+              highlightRange={highlightRange}
               css={
                 hasComponents
                   ? css`

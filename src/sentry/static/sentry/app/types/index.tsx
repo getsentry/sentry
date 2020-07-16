@@ -1326,6 +1326,16 @@ export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
 export type PlatformType = 'java' | 'csharp' | 'other';
 
+export type ExecutingNodePosition = {
+  line: number;
+  column: number;
+};
+
+export type ExecutingNode = {
+  start: ExecutingNodePosition;
+  end: ExecutingNodePosition;
+};
+
 export type Frame = {
   filename: string;
   module: string;
@@ -1333,6 +1343,7 @@ export type Frame = {
   preventCollapse: () => void;
   errors: Array<any>;
   context: Array<[number, string]>;
+  executingNode?: ExecutingNode;
   vars: {[key: string]: any};
   inApp: boolean;
   function?: string;

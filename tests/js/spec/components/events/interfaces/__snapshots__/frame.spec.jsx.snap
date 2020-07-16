@@ -4,6 +4,7 @@ exports[`Frame renderContext() should render context lines 1`] = `
 Array [
   <ContextLine
     className="css-x7wq2i-FrameContext"
+    highlightRange={null}
     isActive={false}
     line={
       Array [
@@ -30,6 +31,7 @@ Array [
   </ContextLine>,
   <ContextLine
     className="css-x7wq2i-FrameContext"
+    highlightRange={null}
     isActive={false}
     line={
       Array [
@@ -56,6 +58,7 @@ Array [
   </ContextLine>,
   <ContextLine
     className="css-x7wq2i-FrameContext"
+    highlightRange={null}
     isActive={false}
     line={
       Array [
