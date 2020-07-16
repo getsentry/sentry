@@ -98,12 +98,20 @@ class Browser(object):
             self._last_window_size = previous_size
 
         width = width if width is not None else previous_size["width"]
-        height = (
-            height
-            if height is not None
-            # adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
-            else self.driver.execute_script("return document.body.parentNode.scrollHeight")
-        )
+
+        if height is None and width != previous_size["width"]:
+            # In order to set window height to content height, we must make sure
+            # width has not changed (otherwise contents will shift,
+            # and we require two resizes)
+            self.driver.set_window_size(width, 1)
+            height = self.driver.execute_script("return document.body.parentNode.scrollHeight")
+        else:
+            height = (
+                height
+                if height is not None
+                # adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
+                else self.driver.execute_script("return document.body.parentNode.scrollHeight")
+            )
 
         self.driver.set_window_size(width, height)
 
