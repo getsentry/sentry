@@ -234,7 +234,7 @@ export default class DetailsBody extends React.Component<Props> {
                     resolveThreshold={incident.alertRule.resolveThreshold}
                     aggregate={incident.alertRule.aggregate}
                     data={stats.eventStats.data}
-                    started={incident.dateStarted}
+                    detected={incident.dateDetected}
                     closed={incident.dateClosed || undefined}
                   />
                 ) : (

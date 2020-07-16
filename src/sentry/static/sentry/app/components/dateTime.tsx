@@ -13,7 +13,6 @@ type Props = DefaultProps & {
   dateOnly?: boolean;
   timeOnly?: boolean;
   shortDate?: boolean;
-  timeAndDate?: boolean;
   utc?: boolean;
 };
 
@@ -24,7 +23,6 @@ class DateTime extends React.Component<Props> {
     timeOnly: PropTypes.bool,
     shortDate: PropTypes.bool,
     seconds: PropTypes.bool,
-    timeAndDate: PropTypes.bool,
     utc: PropTypes.bool,
   };
 
@@ -33,16 +31,11 @@ class DateTime extends React.Component<Props> {
   };
 
   getFormat = ({clock24Hours}: {clock24Hours: boolean}): string => {
-    const {dateOnly, timeOnly, seconds, shortDate, timeAndDate} = this.props;
+    const {dateOnly, timeOnly, seconds, shortDate} = this.props;
 
     // October 26, 2017
     if (dateOnly) {
       return 'LL';
-    }
-
-    // Oct 26, 2017 11:30:30 AM
-    if (timeAndDate) {
-      return 'MMM DD, LT';
     }
 
     // 4:57 PM
@@ -75,7 +68,6 @@ class DateTime extends React.Component<Props> {
       shortDate: _shortDate,
       dateOnly: _dateOnly,
       timeOnly: _timeOnly,
-      timeAndDate: _timeAndDate,
       ...carriedProps
     } = this.props;
     const user = ConfigStore.get('user');
