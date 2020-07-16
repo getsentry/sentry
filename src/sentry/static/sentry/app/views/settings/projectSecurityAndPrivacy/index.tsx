@@ -8,7 +8,6 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Form from 'app/views/settings/components/forms/form';
 import {fields} from 'app/data/forms/projectGeneralSettings';
-import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
 import {Organization, Project} from 'app/types';
 import withProject from 'app/utils/withProject';
@@ -24,13 +23,13 @@ export type ProjectSecurityAndPrivacyProps = RouteComponentProps<
   project: Project;
 };
 
-class ProjectSecurityAndPrivacy extends AsyncView<ProjectSecurityAndPrivacyProps> {
+class ProjectSecurityAndPrivacy extends React.Component<ProjectSecurityAndPrivacyProps> {
   handleUpdateProject = (data: Project) => {
     // This will update our project global state
     ProjectActions.updateSuccess(data);
   };
 
-  renderBody() {
+  render() {
     const {organization, project} = this.props;
     const initialData = project;
     const projectSlug = project.slug;
