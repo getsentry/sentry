@@ -20,10 +20,15 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         Fetches alert rules and legacy rules for an organization
         """
         project_ids = self.get_requested_project_ids(request) or None
+
         alert_rules = AlertRule.objects.fetch_for_organization(organization, project_ids)
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
+
+        issue_rules = Rule.objects.filter(status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE])
+        if project_ids is not None:
+            issue_rules = issue_rules.filter(project__in=project_ids)
 
         return self.paginate(
             request,
@@ -31,12 +36,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
             default_per_page=25,
             order_by="-date_added",
-            querysets=[
-                alert_rules,
-                Rule.objects.filter(
-                    project__in=[project_ids], status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
-                ),
-            ],
+            querysets=[alert_rules, issue_rules],
         )
 
 
