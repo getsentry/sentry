@@ -11,7 +11,7 @@ from sentry.api.serializers import serialize, CombinedRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.snuba.dataset import Dataset
-from sentry.models import Rule, RuleStatus
+from sentry.models import Rule, RuleStatus, Project
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
@@ -26,10 +26,14 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
-        issue_rules = Rule.objects.filter(status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE])
-        if project_ids is not None:
-            issue_rules = issue_rules.filter(project__in=project_ids)
+        if project_ids is None:
+            project_ids = Project.objects.filter(organization=organization).values_list(
+                "id", flat=True
+            )
 
+        issue_rules = Rule.objects.filter(
+            status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE], project__in=project_ids
+        )
         return self.paginate(
             request,
             paginator_cls=CombinedQuerysetPaginator,
