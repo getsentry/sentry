@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
+import {DATA_SOURCE_LABELS} from 'app/views/alerts/utils';
 import {Environment, Organization} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -121,8 +122,8 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
                     model.setValue('aggregate', DEFAULT_AGGREGATE);
                   }}
                   choices={[
-                    [Dataset.ERRORS, t('Errors')],
-                    [Dataset.TRANSACTIONS, t('Transactions')],
+                    [Dataset.ERRORS, DATA_SOURCE_LABELS[Dataset.ERRORS]],
+                    [Dataset.TRANSACTIONS, DATA_SOURCE_LABELS[Dataset.TRANSACTIONS]],
                   ]}
                 />
               )}
