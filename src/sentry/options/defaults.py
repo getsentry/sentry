@@ -219,8 +219,8 @@ register("post-process.error-hook-sample-rate", default=0.0)  # unused
 register("transaction-events.force-disable-internal-project", default=False)
 
 # Moving signals and TSDB into outcomes consumer
-register("outcomes.signals-in-consumer-sample-rate", default=0.0)
-register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
+register("outcomes.signals-in-consumer-sample-rate", default=0.0)  # unused
+register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)  # unused
 
 # Node data save rate
 register("nodedata.cache-sample-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
