@@ -184,7 +184,7 @@ class CellAction extends React.Component<Props, State> {
       );
     }
 
-    if (column.column.kind === 'field' && column.column.field === 'release') {
+    if (column.column.kind === 'field' && column.column.field === 'release' && value) {
       addMenuItem(
         Actions.RELEASE,
         <ActionItem
