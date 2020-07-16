@@ -40,10 +40,10 @@ class VercelClient(ApiClient):
 
     def get_team(self):
         assert self.team_id
-        return self.get_cached(self.TEAMS_URL % self.team_id)
+        return self.get(self.TEAMS_URL % self.team_id)
 
     def get_user(self):
-        return self.get_cached(self.USER_URL)["user"]
+        return self.get(self.USER_URL)["user"]
 
     def get_projects(self):
         limit = 20
