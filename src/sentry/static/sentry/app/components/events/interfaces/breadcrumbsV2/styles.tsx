@@ -34,11 +34,11 @@ const GridCell = styled('div')<{
   hasError?: boolean;
   isLastItem?: boolean;
 }>`
+  height: 100%;
   position: relative;
+  white-space: pre-wrap;
+  word-break: break-all;
   border-bottom: 1px solid ${p => p.theme.borderLight};
-  margin-bottom: -1px;
-  text-overflow: ellipsis;
-  overflow: hidden;
   padding: ${space(1)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(1)} ${space(2)};
@@ -47,9 +47,16 @@ const GridCell = styled('div')<{
     p.hasError &&
     `
       background: #fffcfb;
-      border-top: 1px solid #fa4747;
-      border-bottom: 1px solid #fa4747;
-      z-index: ${p.theme.zIndex.breadcrumbs.gridCellError};
+      border-bottom: 1px solid ${p.theme.red400};
+      :after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: 0;
+        height: 1px;
+        width: 100%;
+        background: ${p.theme.red400};
+      }
     `}
   ${p => p.isLastItem && `border-bottom: none`};
 `;
@@ -65,7 +72,7 @@ const GridCellLeft = styled(GridCell)`
     top: 0;
     bottom: 0;
     left: 21px;
-    background: ${p => (p.hasError ? '#fa4747' : p.theme.gray300)};
+    background: ${p => (p.hasError ? p.theme.red400 : p.theme.gray300)};
     position: absolute;
     @media (min-width: ${p => p.theme.breakpoints[0]}) {
       left: 29px;
@@ -77,6 +84,7 @@ const aroundContentStyle = css`
   border: 1px solid ${theme.borderDark};
   border-radius: ${theme.borderRadius};
   box-shadow: ${theme.dropShadowLightest};
+  z-index: 1;
 `;
 
 export {GridCell, GridCellLeft, IconWrapper, aroundContentStyle};
