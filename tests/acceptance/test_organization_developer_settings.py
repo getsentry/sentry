@@ -116,4 +116,4 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="token-add"]')
         self.browser.wait_until(".ref-success")
 
-        assert len(self.browser.find_elements_by_css_selector('[data-test-id="token-delete"]')) == 2
+        assert len(self.browser.elements('[data-test-id="token-delete"]')) == 2
