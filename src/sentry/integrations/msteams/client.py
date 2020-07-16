@@ -10,7 +10,7 @@ from sentry.utils.http import absolute_uri
 
 
 # five minutes which is industry standard clock skew tolerence
-EXPIRATION_OFFSET = 60 * 5
+CLOCK_SKEW = 60 * 5
 
 
 # MsTeamsAbstractClient abstract client does not handle setting the base url or auth token
@@ -159,7 +159,7 @@ def get_token_data():
     client = OAuthMsTeamsClient(client_id, client_secret)
     resp = client.exchange_token()
     # calculate the expiration date but offset because of the delay in receiving the response
-    expires_at = int(time.time()) + int(resp["expires_in"]) - EXPIRATION_OFFSET
+    expires_at = int(time.time()) + int(resp["expires_in"]) - CLOCK_SKEW
     return {"access_token": resp["access_token"], "expires_at": expires_at}
 
 
