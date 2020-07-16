@@ -40,6 +40,7 @@ class Browser(object):
         self.percy = percy
         self.domain = urlparse(self.live_server_url).hostname
         self._has_initialized_cookie_store = False
+        self._last_window_size = None
 
     def __getattr__(self, attr):
         return getattr(self.driver, attr)
