@@ -32,7 +32,9 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
             paginator_cls=CombinedQuerysetPaginator,
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
             default_per_page=25,
-            order_by="-date_added",
+            order_keys=["name", "label"],
+            desc=True,
+            # order_by="-date_added",
             querysets=[
                 alert_rules,
                 Rule.objects.filter(

@@ -475,15 +475,17 @@ class GenericOffsetPaginator(object):
 class CombinedQuerysetPaginator(object):
     multiplier = 1000000  # Use microseconds for date keys.
 
-    def __init__(self, order_by, querysets, on_results=None):
-        if order_by:
-            if order_by.startswith("-"):
-                self.key, self.desc = order_by[1:], True
-            else:
-                self.key, self.desc = order_by, False
-        else:
-            self.key = None
-            self.desc = False
+    def __init__(self, order_keys, querysets, desc=False, on_results=None):
+        # if order_by:
+        #     if order_by.startswith("-"):
+        #         self.key, self.desc = order_by[1:], True
+        #     else:
+        #         self.key, self.desc = order_by, False
+        # else:
+        #     self.key = None
+        #     self.desc = False
+        self.keys = order_keys
+        self.desc = desc
 
         self.querysets = querysets
         self.on_results = on_results
