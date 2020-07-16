@@ -10,12 +10,12 @@ import MarkPoint from 'app/components/charts/components/markPoint';
 import MarkLine from 'app/components/charts/components/markLine';
 
 import closedSymbol from './closedSymbol';
-import startedSymbol from './startedSymbol';
+import detectedSymbol from './detectedSymbol';
 
 type Data = [number, {count: number}[]];
 /**
  * So we'll have to see how this looks with real data, but echarts requires
- * an explicit (x,y) value to draw a symbol (incident started/closed bubble).
+ * an explicit (x,y) value to draw a symbol (incident detected/closed bubble).
  *
  * This uses the closest date *without* going over.
  *
@@ -41,23 +41,23 @@ function getNearbyIndex(data: Data[], needle: number) {
 type Props = {
   data: Data[];
   aggregate: string;
-  started: string;
+  detected: string;
   closed?: string;
   triggers?: Trigger[];
   resolveThreshold?: number | '' | null;
 };
 
 const Chart = (props: Props) => {
-  const {aggregate, data, started, closed, triggers, resolveThreshold} = props;
-  const startedTs = started && moment.utc(started).unix();
+  const {aggregate, data, detected, closed, triggers, resolveThreshold} = props;
+  const detectedTs = detected && moment.utc(detected).unix();
   const closedTs = closed && moment.utc(closed).unix();
   const chartData = data.map(([ts, val]) => [
     ts * 1000,
     val.length ? val.reduce((acc, {count} = {count: 0}) => acc + count, 0) : 0,
   ]);
 
-  const startedCoordinate = startedTs
-    ? chartData[getNearbyIndex(data, startedTs)]
+  const detectedCoordinate = detectedTs
+    ? chartData[getNearbyIndex(data, detectedTs)]
     : undefined;
   const showClosedMarker =
     data && closedTs && data[data.length - 1] && data[data.length - 1][0] >= closedTs
@@ -118,9 +118,9 @@ const Chart = (props: Props) => {
               {
                 labelForValue: seriesName,
                 seriesName,
-                symbol: `image://${startedSymbol}`,
+                symbol: `image://${detectedSymbol}`,
                 name: t('Alert Triggered'),
-                coord: startedCoordinate,
+                coord: detectedCoordinate,
               },
               ...(closedTs
                 ? [
