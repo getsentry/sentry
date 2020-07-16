@@ -21,15 +21,14 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
         self.browser.snapshot("project settings - general settings")
 
     def test_mobile_menu(self):
+        """
+        It is only possible to open the menu at mobile widths
+        """
         path = u"/{}/{}/settings/".format(self.org.slug, self.project.slug)
+        self.set_to_mobile_size(remember_previous_size=True)
         self.browser.get(path)
         self.browser.wait_until_not(".loading-indicator")
 
-        try:
-            self.browser.click('[aria-label="Open the menu"]')
-            self.browser.wait_until("body.scroll-lock")
-
-        except Exception:
-            pass
-
-        self.browser.snapshot("project settings - mobile menu")
+        self.browser.click('[aria-label="Open the menu"]')
+        self.browser.wait_until("body.scroll-lock")
+        self.browser.snapshot("project settings - mobile menu", mobile_only=True)

@@ -78,6 +78,55 @@ class Browser(object):
             "Emulation.setEmulatedMedia", {"media": media, "features": features}
         )
 
+    def set_window_size(self, width=None, height=None, remember_previous_size=False):
+        """
+        Sets the window size.
+
+        If width is not passed, then use current window width (this is useful if you
+        need to fit contents height into the viewport).
+        If height is not passed, then resize to fit the document contents.
+
+        Optionally, remember the previous window size so that it can later be restored.
+        This will never overwrite an existing saved size, so make sure you clean up with
+        `reset_window_size()`
+        """
+
+        previous_size = self.driver.get_window_size()
+
+        if remember_previous_size and not self._last_window_size:
+            self._last_window_size = previous_size
+
+        width = width if width is None else previous_size["width"]
+        height = (
+            height
+            if height is None
+            # adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
+            else self.driver.execute_script("return document.body.parentNode.scrollHeight")
+        )
+
+        self.driver.set_window_size(width, height)
+
+    def reset_window_size(self):
+        """
+        If `set_window_size` has been called with kwarg `remember_previous_size=True`,
+        then restore the saved window size.
+        """
+
+        if not self._last_window_size:
+            pass
+
+        self.set_window_size(self._last_window_size["width"], self._last_window_size["height"])
+        self._last_window_size = None
+
+    def set_to_mobile_size(self, width=375, height=None, **kwargs):
+        """
+        Sets window size to a "mobile" dimensions
+
+        If height is not passed, then resize to fit the document contents.
+        """
+
+        self.set_window_size(width, height, **kwargs)
+
     def element(self, selector=None, xpath=None):
         """
         Get an element from the page. This method will wait for the element to show up.
@@ -230,7 +279,7 @@ class Browser(object):
         """
         self.driver.implicitly_wait(duration)
 
-    def snapshot(self, name):
+    def snapshot(self, name, mobile_only=False):
         """
         Capture a screenshot of the current state of the page.
         """
@@ -251,37 +300,27 @@ class Browser(object):
             # wait for images to be loaded
             self.wait_for_images_loaded()
 
-            size = self.driver.get_window_size()
+            if not mobile_only:
+                # calling this with no width/height will resize height to fit
+                # content's height so that we can take full page screenshot
+                self.set_window_size(remember_previous_size=True)
 
-            # take full page screenshot
-            # adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
-            required_height = self.driver.execute_script(
-                "return document.body.parentNode.scrollHeight"
-            )
-            self.driver.set_window_size(size["width"], required_height)
+                # Note: below will fail if these directories do not exist
 
-            # Note: below will fail if these directories do not exist
-
-            # finds body tag to screenshot in order to avoid scrollbar
-            self.driver.find_element_by_tag_name("body").screenshot(
-                u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
-            )
+                # finds body tag to screenshot in order to avoid scrollbar
+                self.driver.find_element_by_tag_name("body").screenshot(
+                    u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
+                )
 
             # switch to mobile width and a fixed height
-            self.driver.set_window_size(375, 812)
-
-            # grab full height at the mobile width
-            required_height = self.driver.execute_script(
-                "return document.body.parentNode.scrollHeight"
-            )
-            self.driver.set_window_size(375, required_height)
+            self.set_to_mobile_size()
 
             self.driver.find_element_by_tag_name("body").screenshot(
                 u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
             )
 
-            # reset window size
-            self.driver.set_window_size(size["width"], size["height"])
+            # reset window size back to original size (i.e. "desktop")
+            self.reset_window_size()
 
         self.percy.snapshot(name=name)
         return self
