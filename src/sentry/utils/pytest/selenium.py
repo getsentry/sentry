@@ -97,10 +97,10 @@ class Browser(object):
         if remember_previous_size and not self._last_window_size:
             self._last_window_size = previous_size
 
-        width = width if width is None else previous_size["width"]
+        width = width if width is not None else previous_size["width"]
         height = (
             height
-            if height is None
+            if height is not None
             # adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
             else self.driver.execute_script("return document.body.parentNode.scrollHeight")
         )
