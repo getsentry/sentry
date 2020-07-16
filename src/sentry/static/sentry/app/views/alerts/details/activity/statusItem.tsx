@@ -88,10 +88,11 @@ class StatusItem extends React.Component<Props> {
                 : tct('[user] created an alert', {
                     user: <StatusValue>{authorName}</StatusValue>,
                   }))}
-            {isStarted && t('Trigger conditions were met')}
+            {isStarted && t('Trigger conditions were met for the interval')}
           </div>
         }
         date={getDynamicText({value: activity.dateCreated, fixed: new Date(0)})}
+        interval={isStarted ? incident?.alertRule.timeWindow : undefined}
       />
     );
   }
