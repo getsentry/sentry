@@ -25,7 +25,7 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
         It is only possible to open the menu at mobile widths
         """
         path = u"/{}/{}/settings/".format(self.org.slug, self.project.slug)
-        self.set_to_mobile_size(remember_previous_size=True)
+        self.browser.set_to_mobile_size(remember_previous_size=True)
         self.browser.get(path)
         self.browser.wait_until_not(".loading-indicator")
 
