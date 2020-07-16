@@ -45,7 +45,6 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 def make_event(**kwargs):
     result = {
         "event_id": uuid.uuid1().hex,
-        "message": "foo",
         "level": logging.ERROR,
         "logger": "default",
         "tags": [],
@@ -745,6 +744,7 @@ class EventManagerTest(TestCase):
             manager = EventManager(
                 make_event(
                     **{
+                        "message": "foo",
                         "event_id": uuid.uuid1().hex,
                         "environment": "beta",
                         "release": release_version,
@@ -883,7 +883,8 @@ class EventManagerTest(TestCase):
         assert group.data.get("metadata") == {
             "directive": "script-src",
             "uri": "example.com",
-            "message": "Blocked 'script' from 'example.com'",
+            # Relay will add a logentry that fixes this title, just not as part of StoreNormalizer
+            "title": "<unlabeled event>",
         }
 
     def test_transaction_event_type(self):
@@ -1046,19 +1047,6 @@ class EventManagerTest(TestCase):
         for o in mock_track_outcome.mock_calls[1:]:
             assert o.kwargs["category"] == DataCategory.ATTACHMENT
             assert o.kwargs["quantity"] == 5
-
-        def query(model, key, **kwargs):
-            return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
-
-        # Ensure that we incremented TSDB counts
-        assert query(tsdb.models.organization_total_received, event.project.organization.id) == 2
-        assert query(tsdb.models.project_total_received, event.project.id) == 2
-
-        assert query(tsdb.models.project, event.project.id) == 1
-        assert query(tsdb.models.group, event.group.id) == 1
-
-        assert query(tsdb.models.organization_total_blacklisted, event.project.organization.id) == 1
-        assert query(tsdb.models.project_total_blacklisted, event.project.id) == 1
 
     def test_honors_crash_report_limit(self):
         from sentry.utils.outcomes import track_outcome

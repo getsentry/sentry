@@ -323,12 +323,15 @@ class Results extends React.Component<Props, State> {
 
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertButton
-  >['onIncompatibleQuery'] = incompatibleAlertNoticeFn => {
+  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
     const {organization} = this.props;
     trackAnalyticsEvent({
-      eventKey: 'discover_v2.create_alert_incompatible',
-      eventName: 'Discoverv2: Creating an alert from discover was incompatible',
-      organization_id: parseInt(organization.id, 10),
+      eventKey: 'discover_v2.create_alert_clicked',
+      eventName: 'Discoverv2: Create alert clicked',
+      status: 'error',
+      errors,
+      organization_id: organization.id,
+      url: window.location.href,
     });
 
     const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>

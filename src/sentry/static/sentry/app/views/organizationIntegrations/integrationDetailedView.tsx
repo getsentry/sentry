@@ -11,6 +11,7 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider} from 'app/types';
+import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 import {sortArray} from 'app/utils';
 import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
@@ -136,8 +137,24 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
   onDisable = (integration: Integration) => {
     let url: string;
-    const [domainName, orgName] = integration.domainName.split('/');
 
+    if (integration.provider.key === 'vercel') {
+      // kind of a hack since this isn't what the url was stored for
+      // but it's exactly what we need and contains the configuration id
+      // e.g. https://vercel.com/dashboard/<team>/integrations/icfg_ySlF4UDnHcIPrAAXjGEiwtxo
+      const field = integration.configOrganization.find(
+        config => config.type === 'project_mapper'
+      );
+
+      if (field) {
+        const mappingField = field as ProjectMapperType;
+        url = mappingField.nextButton.url || '';
+        window.open(url, '_blank');
+      }
+      return;
+    }
+
+    const [domainName, orgName] = integration.domainName.split('/');
     if (integration.accountType === 'User') {
       url = `https://${domainName}/settings/installations/`;
     } else {

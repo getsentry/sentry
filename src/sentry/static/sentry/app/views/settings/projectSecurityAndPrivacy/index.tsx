@@ -1,6 +1,7 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -11,6 +12,7 @@ import AsyncView from 'app/views/asyncView';
 import ProjectActions from 'app/actions/projectActions';
 import {Organization, Project} from 'app/types';
 import withProject from 'app/utils/withProject';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 import DataScrubbing from '../components/dataScrubbing';
 
@@ -31,15 +33,18 @@ class ProjectSecurityAndPrivacy extends AsyncView<ProjectSecurityAndPrivacyProps
   renderBody() {
     const {organization, project} = this.props;
     const initialData = project;
-    const endpoint = `/projects/${organization.slug}/${project.slug}/`;
+    const projectSlug = project.slug;
+    const endpoint = `/projects/${organization.slug}/${projectSlug}/`;
     const access = new Set(organization.access);
     const features = new Set(organization.features);
     const relayPiiConfig = project.relayPiiConfig;
     const apiMethod = 'PUT';
+    const title = t('Security & Privacy');
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Security & Privacy')} />
+        <SentryDocumentTitle title={title} objSlug={projectSlug} />
+        <SettingsPageHeader title={title} />
         <Form
           saveOnBlur
           allowUndo
@@ -47,9 +52,10 @@ class ProjectSecurityAndPrivacy extends AsyncView<ProjectSecurityAndPrivacyProps
           apiMethod={apiMethod}
           apiEndpoint={endpoint}
           onSubmitSuccess={this.handleUpdateProject}
+          onSubmitError={() => addErrorMessage('Unable to save change')}
         >
           <JsonForm
-            title={t('Security & Privacy')}
+            title={title}
             additionalFieldProps={{
               organization,
             }}
@@ -81,7 +87,7 @@ class ProjectSecurityAndPrivacy extends AsyncView<ProjectSecurityAndPrivacyProps
                 {
                   linkToOrganizationSecurityAndPrivacy: (
                     <Link to={`/settings/${organization.slug}/security-and-privacy/`}>
-                      {t('Security and Privacy')}
+                      {title}
                     </Link>
                   ),
                 }

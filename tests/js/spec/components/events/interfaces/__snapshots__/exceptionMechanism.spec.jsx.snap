@@ -58,7 +58,6 @@ exports[`ExceptionMechanism basic attributes should add the help_link to the des
         position="top"
       >
         <IconInfo
-          isCircled={true}
           size="14px"
         />
       </Hovercard>
@@ -88,7 +87,6 @@ exports[`ExceptionMechanism basic attributes should not add the help_link if not
         position="top"
       >
         <IconInfo
-          isCircled={true}
           size="14px"
         />
       </Hovercard>
@@ -118,7 +116,6 @@ exports[`ExceptionMechanism basic attributes should render a description hoverca
         position="top"
       >
         <IconInfo
-          isCircled={true}
           size="14px"
         />
       </Hovercard>
