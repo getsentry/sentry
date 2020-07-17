@@ -8,6 +8,7 @@ import os
 import sys
 import pytest
 
+from contextlib import contextmanager
 from datetime import datetime
 from django.conf import settings
 from django.utils.text import slugify
@@ -40,7 +41,6 @@ class Browser(object):
         self.percy = percy
         self.domain = urlparse(self.live_server_url).hostname
         self._has_initialized_cookie_store = False
-        self._last_window_size = None
 
     def __getattr__(self, attr):
         return getattr(self.driver, attr)
@@ -79,23 +79,25 @@ class Browser(object):
             "Emulation.setEmulatedMedia", {"media": media, "features": features}
         )
 
-    def set_window_size(self, width=None, height=None, remember_previous_size=False):
+    def get_content_height(self):
+        """
+        Get height of current DOM contents
+
+        Adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
+        """
+
+        return self.driver.execute_script("return document.body.parentNode.scrollHeight")
+
+    def set_window_size(self, width=None, height=None):
         """
         Sets the window size.
 
         If width is not passed, then use current window width (this is useful if you
         need to fit contents height into the viewport).
         If height is not passed, then resize to fit the document contents.
-
-        Optionally, remember the previous window size so that it can later be restored.
-        This will never overwrite an existing saved size, so make sure you clean up with
-        `reset_window_size()`
         """
 
         previous_size = self.driver.get_window_size()
-
-        if remember_previous_size and not self._last_window_size:
-            self._last_window_size = previous_size
 
         width = width if width is not None else previous_size["width"]
 
@@ -103,38 +105,33 @@ class Browser(object):
             # In order to set window height to content height, we must make sure
             # width has not changed (otherwise contents will shift,
             # and we require two resizes)
-            self.driver.set_window_size(width, 812)
-            height = self.driver.execute_script("return document.body.parentNode.scrollHeight")
+            self.driver.set_window_size(width, previous_size["height"])
+            height = self.get_content_height()
         else:
-            height = (
-                height
-                if height is not None
-                # adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
-                else self.driver.execute_script("return document.body.parentNode.scrollHeight")
-            )
+            height = height if height is not None else self.get_content_height()
 
         self.driver.set_window_size(width, height)
 
-    def reset_window_size(self):
-        """
-        If `set_window_size` has been called with kwarg `remember_previous_size=True`,
-        then restore the saved window size.
-        """
+        return {
+            "previous": previous_size,
+            "current": {"width": width, "height": height},
+        }
 
-        if not self._last_window_size:
-            pass
+    def set_viewport(self, width, height):
+        size = self.set_window_size(width, height)
+        try:
+            yield size
+        finally:
+            # restore previous size
+            self.set_window_size(size["previous"]["width"], size["previous"]["height"])
 
-        self.set_window_size(self._last_window_size["width"], self._last_window_size["height"])
-        self._last_window_size = None
+    @contextmanager
+    def full_viewport(self, width=None, height=None):
+        return self.set_viewport(width, height)
 
-    def set_to_mobile_size(self, width=375, height=None, **kwargs):
-        """
-        Sets window size to a "mobile" dimensions
-
-        If height is not passed, then resize to fit the document contents.
-        """
-
-        self.set_window_size(width, height, **kwargs)
+    @contextmanager
+    def mobile_viewport(self, width=375, height=None):
+        return self.set_viewport(width, height)
 
     def element(self, selector=None, xpath=None):
         """
@@ -309,27 +306,27 @@ class Browser(object):
             # wait for images to be loaded
             self.wait_for_images_loaded()
 
+            # Note: below will fail if these directories do not exist
+
             if not mobile_only:
-                # calling this with no width/height will resize height to fit
-                # content's height so that we can take full page screenshot
-                self.set_window_size(remember_previous_size=True)
+                with self.full_viewport():
+                    # calling this with no width/height will resize height to fit
+                    # content's height so that we can take full page screenshot
+                    #  self.set_window_size(remember_previous_size=True)
 
-                # Note: below will fail if these directories do not exist
+                    # finds body tag to screenshot in order to avoid scrollbar
+                    self.driver.find_element_by_tag_name("body").screenshot(
+                        u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
+                    )
 
-                # finds body tag to screenshot in order to avoid scrollbar
+            with self.mobile_viewport():
+                # switch to mobile width and a fixed height
+
                 self.driver.find_element_by_tag_name("body").screenshot(
-                    u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
+                    u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
                 )
 
-            # switch to mobile width and a fixed height
-            self.set_to_mobile_size()
-
-            self.driver.find_element_by_tag_name("body").screenshot(
-                u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
-            )
-
-            # reset window size back to original size (i.e. "desktop")
-            self.reset_window_size()
+            #  self.reset_window_size()
 
         self.percy.snapshot(name=name)
         return self
