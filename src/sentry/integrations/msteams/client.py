@@ -9,8 +9,8 @@ from sentry.integrations.client import ApiClient
 from sentry.utils.http import absolute_uri
 
 
-# one minute
-EXPIRATION_OFFSET = 60
+# five minutes which is industry standard clock skew tolerence
+CLOCK_SKEW = 60 * 5
 
 
 # MsTeamsAbstractClient abstract client does not handle setting the base url or auth token
@@ -159,5 +159,15 @@ def get_token_data():
     client = OAuthMsTeamsClient(client_id, client_secret)
     resp = client.exchange_token()
     # calculate the expiration date but offset because of the delay in receiving the response
-    expires_at = int(time.time()) + int(resp["expires_in"]) - EXPIRATION_OFFSET
+    expires_at = int(time.time()) + int(resp["expires_in"]) - CLOCK_SKEW
     return {"access_token": resp["access_token"], "expires_at": expires_at}
+
+
+class MsTeamsJwtClient(ApiClient):
+    integration_name = "msteams"
+    # 24 hour cache is recommended: https://docs.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-authentication?view=azure-bot-service-4.0#connector-to-bot-step-3
+    cache_time = 60 * 60 * 24
+    OPEN_ID_CONFIG_URL = "https://login.botframework.com/v1/.well-known/openidconfiguration"
+
+    def get_open_id_config(self):
+        return self.get_cached(self.OPEN_ID_CONFIG_URL)

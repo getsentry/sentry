@@ -48,7 +48,7 @@ class MsTeamsClientTest(TestCase):
             integration = Integration.objects.get(provider="msteams")
             assert integration.metadata == {
                 "access_token": "my_new_token",
-                "expires_at": self.expires_at + 86399 - 60,
+                "expires_at": self.expires_at + 86399 - 60 * 5,
             }
 
     @responses.activate
