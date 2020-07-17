@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import localStorage from 'app/utils/localStorage';
 
@@ -36,6 +36,7 @@ function saveToStorage(obj: StorageValue) {
     Sentry.captureException(err);
     Sentry.withScope(scope => {
       scope.setExtra('storage', obj);
+
       Sentry.captureException(err);
     });
   }
