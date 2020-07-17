@@ -68,7 +68,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             assert integration.metadata == {
                 "access_token": "my_token",
                 "service_url": "https://smba.trafficmanager.net/amer/",
-                "expires_at": 1594768808 + 86399 - 60,
+                "expires_at": 1594768808 + 86399 - 60 * 5,
             }
             assert OrganizationIntegration.objects.get(
                 integration=integration, organization=self.organization
