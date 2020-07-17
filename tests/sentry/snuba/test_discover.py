@@ -375,7 +375,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         events = [("a", 2), ("b", 3), ("c", 4)]
         for ev in events:
             val = ev[0] * 32
-            for i in xrange(ev[1]):
+            for i in range(ev[1]):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(before_now(seconds=1))
                 data["transaction"] = "{}-{}".format(val, i)
@@ -402,7 +402,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         events = [("a", 2), ("b", 3), ("c", 4)]
         for ev in events:
             val = ev[0] * 32
-            for i in xrange(ev[1]):
+            for i in range(ev[1]):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(before_now(seconds=1))
                 data["transaction"] = "{}-{}".format(val, i)

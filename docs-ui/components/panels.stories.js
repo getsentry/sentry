@@ -2,9 +2,11 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
+import {IconTelescope} from 'app/icons';
 import Button from 'app/components/button';
 import {
   Panel,
+  PanelAlert,
   PanelHeader,
   PanelBody,
   PanelItem,
@@ -25,6 +27,28 @@ storiesOf('UI|Panels', module)
         <PanelBody>
           <PanelItem>Panel Item</PanelItem>
           <PanelItem>Panel Item</PanelItem>
+          <PanelItem>Panel Item</PanelItem>
+        </PanelBody>
+      </Panel>
+    ))
+  )
+  .add(
+    'Panel Alerts',
+    withInfo({
+      text: 'Alert boxes inside a panel',
+      propTablesExclude: [Button],
+    })(() => (
+      <Panel>
+        <PanelHeader>Panel Header</PanelHeader>
+
+        <PanelBody>
+          <PanelAlert type="info">Info Alert message</PanelAlert>
+          <PanelAlert type="error">Error Alert message</PanelAlert>
+          <PanelAlert type="warning">Warning Alert message</PanelAlert>
+          <PanelAlert type="success">Success Alert message</PanelAlert>
+          <PanelAlert type="info" icon={<IconTelescope size="md" />}>
+            Custom Icon message
+          </PanelAlert>
           <PanelItem>Panel Item</PanelItem>
         </PanelBody>
       </Panel>

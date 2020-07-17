@@ -9,16 +9,7 @@ module.exports = {
     tick: true,
     jest: true,
   },
-  rules: {
-    'no-restricted-imports': [
-      'error',
-      {
-        name: 'lodash/get',
-        message:
-          'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`',
-      },
-    ],
-  },
+  rules: {},
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
