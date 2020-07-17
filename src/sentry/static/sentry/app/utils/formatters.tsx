@@ -66,7 +66,7 @@ export function getDuration(
   }
   if (value >= 172800000) {
     const {label, result} = roundWithFixed(value / DAY, fixedDigits);
-    return `${label}${abbreviation ? t('d') : `${tn('day', 'days', result)}`}`;
+    return `${label}${abbreviation ? t('d') : ` ${tn('day', 'days', result)}`}`;
   }
   if (value >= 7200000) {
     const {label, result} = roundWithFixed(value / HOUR, fixedDigits);
