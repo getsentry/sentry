@@ -264,10 +264,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   release: {
     sortField: 'release',
     renderFunc: data =>
-      data.release && (
+      data.release ? (
         <VersionContainer>
           <Version version={data.release} anchor={false} tooltipRawVersion truncate />
         </VersionContainer>
+      ) : (
+        <Container>{emptyValue}</Container>
       ),
   },
 };

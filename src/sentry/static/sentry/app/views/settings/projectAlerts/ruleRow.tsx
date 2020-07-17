@@ -6,7 +6,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {IssueAlertRule} from 'app/types/alerts';
-import {SavedIncidentRule} from 'app/views/settings/incidentRules/types';
+import {
+  SavedIncidentRule,
+  AlertRuleThresholdType,
+} from 'app/views/settings/incidentRules/types';
 import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -113,15 +116,19 @@ class RuleRow extends React.Component<Props, State> {
                   <StatusBadge>{trigger.label}</StatusBadge>
                   <TriggerDescription>
                     {data.aggregate}{' '}
-                    {trigger.thresholdType === 0 ? t('above') : t('below')}{' '}
+                    {data.thresholdType === AlertRuleThresholdType.ABOVE
+                      ? t('above')
+                      : t('below')}{' '}
                     {trigger.alertThreshold}/{data.timeWindow}
                     {t('min')}
                   </TriggerDescription>
                 </Trigger>
                 <Actions key={`actions-${i}`} hideBorder={hideBorder}>
-                  {trigger.actions?.map((action, j) => (
-                    <Action key={j}>{action.desc}</Action>
-                  ))}
+                  {trigger.actions?.length
+                    ? trigger.actions.map((action, j) => (
+                        <Action key={j}>{action.desc}</Action>
+                      ))
+                    : t('None')}
                 </Actions>
               </React.Fragment>
             );

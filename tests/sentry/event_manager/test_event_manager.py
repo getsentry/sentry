@@ -1048,19 +1048,6 @@ class EventManagerTest(TestCase):
             assert o.kwargs["category"] == DataCategory.ATTACHMENT
             assert o.kwargs["quantity"] == 5
 
-        def query(model, key, **kwargs):
-            return tsdb.get_sums(model, [key], event.datetime, event.datetime, **kwargs)[key]
-
-        # Ensure that we incremented TSDB counts
-        assert query(tsdb.models.organization_total_received, event.project.organization.id) == 2
-        assert query(tsdb.models.project_total_received, event.project.id) == 2
-
-        assert query(tsdb.models.project, event.project.id) == 1
-        assert query(tsdb.models.group, event.group.id) == 1
-
-        assert query(tsdb.models.organization_total_blacklisted, event.project.organization.id) == 1
-        assert query(tsdb.models.project_total_blacklisted, event.project.id) == 1
-
     def test_honors_crash_report_limit(self):
         from sentry.utils.outcomes import track_outcome
 

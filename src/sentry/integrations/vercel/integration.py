@@ -5,6 +5,7 @@ import six
 import logging
 
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.serializers import ValidationError
 
 
 from sentry.integrations import (
@@ -114,20 +115,20 @@ class VercelIntegration(IntegrationInstallation):
         )
         return None
 
-    def get_base_project_url(self):
+    def get_slug(self):
         client = self.get_client()
         if self.metadata["installation_type"] == "team":
             team = client.get_team()
-            slug = team["slug"]
+            return team["slug"]
         else:
             user = client.get_user()
-            slug = user["username"]
-        return u"https://vercel.com/%s" % slug
+            return user["username"]
 
     def get_organization_config(self):
         vercel_client = self.get_client()
         # TODO: add try/catch if we get API failure
-        base_url = self.get_base_project_url()
+        slug = self.get_slug()
+        base_url = u"https://vercel.com/%s" % slug
         vercel_projects = [
             {"value": p["id"], "label": p["name"], "url": u"%s/%s" % (base_url, p["name"])}
             for p in vercel_client.get_projects()
@@ -136,7 +137,11 @@ class VercelIntegration(IntegrationInstallation):
         next_url = None
         configuration_id = self.get_configuration_id()
         if configuration_id:
-            next_url = u"%s/dashboard/integrations/%s" % (base_url, configuration_id)
+            if self.metadata["installation_type"] == "team":
+                dashboard_url = u"https://vercel.com/dashboard/%s/" % slug
+            else:
+                dashboard_url = "https://vercel.com/dashboard/"
+            next_url = u"%s/integrations/%s" % (dashboard_url, configuration_id)
 
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
@@ -179,11 +184,17 @@ class VercelIntegration(IntegrationInstallation):
             sentry_project = Project.objects.get(id=sentry_project_id)
             enabled_dsn = ProjectKey.get_default(project=sentry_project)
             if not enabled_dsn:
-                raise IntegrationError("You must have an enabled DSN to continue!")
+                raise ValidationError(
+                    {"project_mappings": ["You must have an enabled DSN to continue!"]}
+                )
             source_code_provider = self.get_source_code_provider(vercel_client, vercel_project_id)
             if not source_code_provider:
-                raise IntegrationError(
-                    "You must connect your Vercel project to a Git repository to continue!"
+                raise ValidationError(
+                    {
+                        "project_mappings": [
+                            "You must connect your Vercel project to a Git repository to continue!"
+                        ]
+                    }
                 )
             sentry_project_dsn = enabled_dsn.get_dsn(public=True)
             uuid = uuid4().hex
