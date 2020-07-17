@@ -7,7 +7,7 @@ import {RequestOptions} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import {IconWarning} from 'app/icons';
+import {IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider} from 'app/types';
@@ -69,7 +69,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     if (!provider.canAdd && metadata.aspects.externalInstall) {
       alerts.push({
         type: 'warning',
-        icon: 'icon-exit',
+        icon: <IconOpen />,
         text: metadata.aspects.externalInstall.noticeText,
       });
     }
@@ -208,7 +208,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     if (metadata.aspects.externalInstall) {
       return (
         <Button
-          icon="icon-exit"
+          icon={<IconOpen />}
           href={metadata.aspects.externalInstall.url}
           onClick={this.handleExternalInstall}
           external
