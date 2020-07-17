@@ -1,15 +1,14 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
 import {getUserTimezone, getUtcToLocalDateObject} from 'app/utils/dates';
-import {t} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import {GlobalSelection, Organization} from 'app/types';
+import Redirect from 'app/utils/redirect';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
@@ -22,14 +21,12 @@ import {
 import {DiscoverWrapper} from './styles';
 import {SavedQuery} from './types';
 
-const AlertAsAny: any = Alert;
-
 type Props = {
   organization: Organization;
   selection: GlobalSelection;
   params: any;
   location: any;
-};
+} & Pick<WithRouterProps, 'router'>;
 
 type State = {
   isLoading: boolean;
@@ -204,11 +201,16 @@ class DiscoverContainer extends React.Component<Props, State> {
     });
   };
 
-  renderNoAccess() {
+  renderNoAccess = () => {
+    const {router, organization} = this.props;
+
     return (
-      <AlertAsAny type="warning">{t("You don't have access to this feature")}</AlertAsAny>
+      <Redirect
+        router={router}
+        to={`/organizations/${organization.slug}/discover/queries/`}
+      />
     );
-  }
+  };
 
   render() {
     const {isLoading, savedQuery, view} = this.state;

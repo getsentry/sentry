@@ -265,18 +265,22 @@ describe('DiscoverContainer', function() {
   });
 
   describe('no access', function() {
-    it('display no access message', async function() {
+    it('redirects to discover v2', async function() {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
-      const wrapper = mountWithTheme(
+      const router = TestStubs.router();
+      mountWithTheme(
         <DiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
           selection={{datetime: {}}}
           organization={organization}
+          router={router}
         />,
         TestStubs.routerContext()
       );
-      expect(wrapper.text()).toBe("You don't have access to this feature");
+      expect(router.replace).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/discover/queries/`
+      );
     });
   });
 });
