@@ -10,6 +10,7 @@ import pytest
 
 from datetime import datetime
 from django.conf import settings
+from django.utils.text import slugify
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
@@ -69,6 +70,14 @@ class Browser(object):
         self._has_initialized_cookie_store = True
         return self
 
+    def set_emulated_media(self, features, media=""):
+        """
+        This is used to emulate different media features (e.g. color scheme)
+        """
+        return self.driver.execute_cdp_cmd(
+            "Emulation.setEmulatedMedia", {"media": media, "features": features}
+        )
+
     def element(self, selector=None, xpath=None):
         """
         Get an element from the page. This method will wait for the element to show up.
@@ -80,6 +89,18 @@ class Browser(object):
         else:
             self.wait_until(selector)
             return self.driver.find_element_by_css_selector(selector)
+
+    def elements(self, selector=None, xpath=None):
+        """
+        Get elements from the page. This method will wait for the element to show up.
+        """
+
+        if xpath is not None:
+            self.wait_until(xpath=xpath)
+            return self.driver.find_elements_by_xpath(xpath)
+        else:
+            self.wait_until(selector)
+            return self.driver.find_elements_by_css_selector(selector)
 
     def element_exists(self, selector):
         """
@@ -189,6 +210,25 @@ class Browser(object):
 
         return self
 
+    def wait_for_images_loaded(self, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(
+            lambda driver: driver.execute_script(
+                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
+            )
+        )
+
+        return self
+
+    def blur(self):
+        """
+        Find focused elements and call blur. Useful for snapshot testing that can potentially capture
+        the text cursor blinking
+        """
+        self.driver.execute_script("document.querySelectorAll(':focus').forEach(el => el.blur())")
+
+        return self
+
     @property
     def switch_to(self):
         return self.driver.switch_to
@@ -218,6 +258,42 @@ class Browser(object):
                 tf.flush()
                 click.launch(tf.name)
                 time.sleep(1)
+
+        if os.environ.get("VISUAL_SNAPSHOT_ENABLE") == "1":
+            # wait for images to be loaded
+            self.wait_for_images_loaded()
+
+            size = self.driver.get_window_size()
+
+            # take full page screenshot
+            # adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
+            required_height = self.driver.execute_script(
+                "return document.body.parentNode.scrollHeight"
+            )
+            self.driver.set_window_size(size["width"], required_height)
+
+            # Note: below will fail if these directories do not exist
+
+            # finds body tag to screenshot in order to avoid scrollbar
+            self.driver.find_element_by_tag_name("body").screenshot(
+                u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
+            )
+
+            # switch to mobile width and a fixed height
+            self.driver.set_window_size(375, 812)
+
+            # grab full height at the mobile width
+            required_height = self.driver.execute_script(
+                "return document.body.parentNode.scrollHeight"
+            )
+            self.driver.set_window_size(375, required_height)
+
+            self.driver.find_element_by_tag_name("body").screenshot(
+                u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
+            )
+
+            # reset window size
+            self.driver.set_window_size(size["width"], size["height"])
 
         self.percy.snapshot(name=name)
         return self
@@ -392,6 +468,8 @@ def browser(request, percy, live_server):
     request.addfinalizer(fin)
 
     browser = Browser(driver, live_server, percy)
+
+    browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
 
     if hasattr(request, "cls"):
         request.cls.browser = browser

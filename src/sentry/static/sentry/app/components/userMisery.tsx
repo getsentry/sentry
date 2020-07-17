@@ -17,8 +17,13 @@ type Props = {
 function UserMisery(props: Props) {
   const {bars, barHeight, miserableUsers, miseryLimit, totalUsers} = props;
 
-  const palette = new Array(bars).fill(theme.purpleDarkest);
-  const score = Math.floor((miserableUsers / Math.max(totalUsers, 1)) * palette.length);
+  const palette = new Array(bars).fill(theme.purple500);
+  const rawScore = Math.floor(
+    (miserableUsers / Math.max(totalUsers, 1)) * palette.length
+  );
+
+  const adjustedScore = rawScore > 0 ? rawScore : miserableUsers > 0 ? 1 : 0;
+
   const miseryPercentage = ((100 * miserableUsers) / Math.max(totalUsers, 1)).toFixed(2);
 
   const title = tct(
@@ -32,7 +37,7 @@ function UserMisery(props: Props) {
   );
   return (
     <Tooltip title={title} containerDisplayMode="block">
-      <ScoreBar size={barHeight} score={score} palette={palette} radius={0} />
+      <ScoreBar size={barHeight} score={adjustedScore} palette={palette} radius={0} />
     </Tooltip>
   );
 }

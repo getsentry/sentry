@@ -104,9 +104,10 @@ const SidebarItem = ({
       <StyledSidebarItem
         data-test-id={props['data-test-id']}
         active={isActive ? 'true' : undefined}
-        to={(to ? to : href) || ''}
+        to={(to ? to : href) || '#'}
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
+          !(to || href) && event.preventDefault();
           typeof onClick === 'function' && onClick(id, event);
           showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}
@@ -149,7 +150,7 @@ const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
     }
 
     &:before {
-      background-color: ${theme?.purple};
+      background-color: ${theme?.purple400};
     }
   `;
 };
@@ -252,7 +253,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
     position: absolute;
     right: 0;
     top: 1px;
-    background: ${theme.red};
+    background: ${theme.red400};
     width: ${theme.sidebar.smallBadgeSize};
     height: ${theme.sidebar.smallBadgeSize};
     border-radius: ${theme.sidebar.smallBadgeSize};
@@ -266,7 +267,7 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
   text-align: center;
   color: ${p => p.theme.white};
   font-size: 12px;
-  background: ${p => p.theme.red};
+  background: ${p => p.theme.red400};
   width: ${p => p.theme.sidebar.badgeSize};
   height: ${p => p.theme.sidebar.badgeSize};
   border-radius: ${p => p.theme.sidebar.badgeSize};

@@ -8,7 +8,6 @@ import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Client} from 'app/api';
@@ -27,14 +26,11 @@ import AsyncComponent from 'app/components/asyncComponent';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Projects from 'app/utils/projects';
 import EventView from 'app/utils/discover/eventView';
-import {
-  ContentBox,
-  HeaderBox,
-  HeaderTopControls,
-  HeaderBottomControls,
-} from 'app/utils/discover/styles';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
+import * as Layout from 'app/components/layouts/thirds';
+import ButtonBar from 'app/components/buttonBar';
+import {FIELD_TAGS} from 'app/utils/discover/fields';
 
 import {generateTitle, getExpandedResults} from '../utils';
 import LinkedIssue from './linkedIssue';
@@ -111,6 +107,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return this.props.eventSlug.split(':')[0];
   }
 
+  generateTagKey = (tag: EventTag) => {
+    // Some tags may be normalized from context, but not all of them are.
+    // This supports a user making a custom tag with the same name as one
+    // that comes from context as all of these are also tags.
+    if (tag.key in FIELD_TAGS) {
+      return `tags[${tag.key}]`;
+    }
+    return tag.key;
+  };
+
   generateTagUrl = (tag: EventTag) => {
     const {eventView, organization} = this.props;
     const {event} = this.state;
@@ -121,12 +127,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     if (eventReference.id) {
       delete eventReference.id;
     }
-
-    const nextView = getExpandedResults(
-      eventView,
-      {[tag.key]: tag.value},
-      eventReference
-    );
+    const tagKey = this.generateTagKey(tag);
+    const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
     return nextView.getResultsViewUrlTarget(organization.slug);
   };
 
@@ -134,10 +136,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const {event} = this.state;
 
     if (!event) {
-      return this.renderWrapper(<NotFound />);
+      return <NotFound />;
     }
 
-    return this.renderWrapper(this.renderContent(event));
+    return this.renderContent(event);
   }
 
   renderContent(event: Event) {
@@ -165,37 +167,39 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        <HeaderBox>
-          <DiscoverBreadcrumb
-            eventView={eventView}
-            event={event}
-            organization={organization}
-            location={location}
-          />
-          {transactionSummaryTarget && (
-            <Feature organization={organization} features={['performance-view']}>
-              {({hasFeature}) => (
-                <HeaderTopControls>
-                  <StyledButton
-                    disabled={!hasFeature}
-                    priority="primary"
-                    to={transactionSummaryTarget}
-                  >
-                    {t('Go to Summary')}
-                  </StyledButton>
-                </HeaderTopControls>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <DiscoverBreadcrumb
+              eventView={eventView}
+              event={event}
+              organization={organization}
+              location={location}
+            />
+            <EventHeader event={event} />
+          </Layout.HeaderContent>
+          <StyledHeaderActions>
+            <ButtonBar gap={1}>
+              <Button onClick={this.toggleSidebar}>
+                {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+              </Button>
+              {transactionSummaryTarget && (
+                <Feature organization={organization} features={['performance-view']}>
+                  {({hasFeature}) => (
+                    <Button
+                      disabled={!hasFeature}
+                      priority="primary"
+                      to={transactionSummaryTarget}
+                    >
+                      {t('Go to Summary')}
+                    </Button>
+                  )}
+                </Feature>
               )}
-            </Feature>
-          )}
-          <EventHeader event={event} />
-          <HeaderBottomControls>
-            <StyledButton onClick={this.toggleSidebar}>
-              {isSidebarVisible ? t('Hide Details') : t('Show Details')}
-            </StyledButton>
-          </HeaderBottomControls>
-        </HeaderBox>
-        <ContentBox>
-          <div style={{gridColumn: isSidebarVisible ? '1/2' : '1/3'}}>
+            </ButtonBar>
+          </StyledHeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
                 <SpanEntryContext.Provider
@@ -225,24 +229,26 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 </SpanEntryContext.Provider>
               )}
             </Projects>
-          </div>
-          <div style={{gridColumn: '2/3', display: isSidebarVisible ? '' : 'none'}}>
-            <EventMetadata
-              event={event}
-              organization={organization}
-              projectId={this.projectId}
-            />
-            <OpsBreakdown event={event} />
-            {event.groupID && (
-              <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
-            )}
-            <TagsTable
-              generateUrl={this.generateTagUrl}
-              event={event}
-              query={eventView.query}
-            />
-          </div>
-        </ContentBox>
+          </Layout.Main>
+          {isSidebarVisible && (
+            <Layout.Side>
+              <EventMetadata
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+              />
+              <OpsBreakdown event={event} />
+              {event.groupID && (
+                <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
+              )}
+              <TagsTable
+                generateUrl={this.generateTagUrl}
+                event={event}
+                query={eventView.query}
+              />
+            </Layout.Side>
+          )}
+        </Layout.Body>
       </React.Fragment>
     );
   }
@@ -256,63 +262,26 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     );
 
     if (notFound) {
-      return this.renderWrapper(<NotFound />);
+      return <NotFound />;
     }
     if (permissionDenied) {
-      return this.renderWrapper(
+      return (
         <LoadingError message={t('You do not have permission to view that event.')} />
       );
     }
 
-    return this.renderWrapper(super.renderError(error, true, true));
+    return super.renderError(error, true, true);
   }
 
-  renderLoading() {
-    return this.renderWrapper(super.renderLoading());
-  }
-
-  // TODO(mark) convert this its sibling in performance to use renderComponent() provided by asynccomponent.
-  renderWrapper(children: React.ReactNode) {
-    const {organization, location, eventView} = this.props;
+  renderComponent() {
+    const {eventView, organization} = this.props;
     const {event} = this.state;
 
-    return (
-      <EventDetailsWrapper
-        organization={organization}
-        location={location}
-        eventView={eventView}
-        event={event}
-      >
-        {children}
-      </EventDetailsWrapper>
-    );
-  }
-}
-
-type EventDetailsWrapperProps = {
-  organization: Organization;
-  location: Location;
-  eventView: EventView;
-  event: Event | undefined;
-  children: React.ReactNode;
-};
-
-class EventDetailsWrapper extends React.Component<EventDetailsWrapperProps> {
-  getDocumentTitle = (): string => {
-    const {event, eventView} = this.props;
-
-    return generateTitle({
-      eventView,
-      event,
-    });
-  };
-
-  render() {
-    const {organization, children} = this.props;
+    const title = generateTitle({eventView, event});
 
     return (
-      <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
-        <React.Fragment>{children}</React.Fragment>
+      <SentryDocumentTitle title={title} objSlug={organization.slug}>
+        {super.renderComponent()}
       </SentryDocumentTitle>
     );
   }
@@ -324,36 +293,25 @@ const EventHeader = (props: {event: Event}) => {
   const message = getMessage(props.event);
 
   return (
-    <StyledEventHeader data-test-id="event-header">
-      <StyledTitle>
+    <Layout.Title data-test-id="event-header">
+      <span>
         {title}
         {message && message.length > 0 ? ':' : null}
-      </StyledTitle>
-      <span>{getMessage(props.event)}</span>
-    </StyledEventHeader>
+      </span>
+      <EventSubheading>{getMessage(props.event)}</EventSubheading>
+    </Layout.Title>
   );
 };
 
-const StyledButton = styled(Button)`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: block;
+const StyledHeaderActions = styled(Layout.HeaderActions)`
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
   }
 `;
 
-const StyledEventHeader = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
+const EventSubheading = styled('span')`
   color: ${p => p.theme.gray500};
-  grid-column: 1/2;
-  align-self: center;
-  ${overflowEllipsis};
-`;
-
-const StyledTitle = styled('span')`
-  color: ${p => p.theme.gray700};
-  margin-right: ${space(1)};
-  align-self: center;
+  margin-left: ${space(1)};
 `;
 
 export default withApi(EventDetailsContent);

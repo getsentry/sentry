@@ -450,19 +450,11 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["storeCrashReports"] == 10
 
     def test_relay_pii_config(self):
-        with self.feature("organizations:datascrubbers-v2"):
-            value = '{"applications": {"freeform": []}}'
-            resp = self.client.put(self.path, data={"relayPiiConfig": value})
-            assert resp.status_code == 200, resp.content
-            assert self.project.get_option("sentry:relay_pii_config") == value
-            assert resp.data["relayPiiConfig"] == value
-
-    def test_relay_pii_config_forbidden(self):
         value = '{"applications": {"freeform": []}}'
         resp = self.client.put(self.path, data={"relayPiiConfig": value})
-        assert resp.status_code == 400
-        assert b"feature" in resp.content
-        assert self.project.get_option("sentry:relay_pii_config") is None
+        assert resp.status_code == 200, resp.content
+        assert self.project.get_option("sentry:relay_pii_config") == value
+        assert resp.data["relayPiiConfig"] == value
 
     def test_sensitive_fields(self):
         resp = self.client.put(

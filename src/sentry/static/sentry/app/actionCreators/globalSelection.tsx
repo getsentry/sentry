@@ -1,9 +1,9 @@
 import * as ReactRouter from 'react-router';
-import * as Sentry from '@sentry/browser';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import qs from 'query-string';
+import * as qs from 'query-string';
+import * as Sentry from '@sentry/react';
 
 import {
   DATE_TIME,

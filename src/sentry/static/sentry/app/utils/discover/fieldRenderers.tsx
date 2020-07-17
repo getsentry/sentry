@@ -11,6 +11,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
+import {defined} from 'app/utils';
 import getDynamicText from 'app/utils/getDynamicText';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
@@ -64,10 +65,10 @@ type FieldFormatters = {
 
 export type FieldTypes = keyof FieldFormatters;
 
-const emptyValue = <span>{t('n/a')}</span>;
-const EmptyValueContainer = styled(Container)`
+const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray500};
 `;
+const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
 
 /**
  * A mapping of field types to their rendering function.
@@ -137,7 +138,11 @@ const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
-      const value = Array.isArray(data[field]) ? data[field].slice(-1) : data[field];
+      const value = Array.isArray(data[field])
+        ? data[field].slice(-1)
+        : defined(data[field])
+        ? data[field]
+        : emptyValue;
       return <Container>{value}</Container>;
     },
   },
@@ -253,16 +258,18 @@ const SPECIAL_FIELDS: SpecialFields = {
         return <Container>{badge}</Container>;
       }
 
-      return <EmptyValueContainer>{emptyValue}</EmptyValueContainer>;
+      return <Container>{emptyValue}</Container>;
     },
   },
   release: {
     sortField: 'release',
     renderFunc: data =>
-      data.release && (
+      data.release ? (
         <VersionContainer>
           <Version version={data.release} anchor={false} tooltipRawVersion truncate />
         </VersionContainer>
+      ) : (
+        <Container>{emptyValue}</Container>
       ),
   },
 };

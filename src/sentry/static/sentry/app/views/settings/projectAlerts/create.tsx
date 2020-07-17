@@ -10,6 +10,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withProject from 'app/utils/withProject';
 import EventView from 'app/utils/discover/eventView';
+import {uniqueId} from 'app/utils/guid';
 
 import AlertTypeChooser from './alertTypeChooser';
 
@@ -22,7 +23,6 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
   hasMetricAlerts: boolean;
-  hasCreateFromDiscover: boolean;
 };
 
 type AlertType = 'metric' | 'issue' | null;
@@ -43,21 +43,25 @@ class Create extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, project, hasCreateFromDiscover, location} = this.props;
+    const {organization, project, location} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
       eventName: 'New Alert Rule: Viewed',
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+      organization_id: organization.id,
+      project_id: project.id,
+      session_id: this.sessionId,
     });
 
-    if (hasCreateFromDiscover && location.query.createFromDiscover) {
+    if (location?.query?.createFromDiscover) {
       const eventView = EventView.fromLocation(location);
       // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({alertType: 'metric', eventView});
     }
   }
+
+  /** Used to track analytics within one visit to the creation page */
+  sessionId = uniqueId();
 
   handleChangeAlertType = (alertType: AlertType) => {
     // alertType should be `issue` or `metric`
@@ -88,7 +92,11 @@ class Create extends React.Component<Props, State> {
         {(!hasMetricAlerts || alertType === 'issue') && <IssueEditor {...this.props} />}
 
         {hasMetricAlerts && alertType === 'metric' && (
-          <IncidentRulesCreate {...this.props} eventView={eventView} />
+          <IncidentRulesCreate
+            {...this.props}
+            eventView={eventView}
+            sessionId={this.sessionId}
+          />
         )}
       </React.Fragment>
     );

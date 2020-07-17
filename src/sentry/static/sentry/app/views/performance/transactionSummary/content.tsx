@@ -4,16 +4,19 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
-import {ContentBox, HeaderBox, Main, Side} from 'app/utils/discover/styles';
+import * as Layout from 'app/components/layouts/thirds';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
 import {decodeScalar} from 'app/utils/queryString';
+import CreateAlertButton from 'app/components/createAlertButton';
+import withProjects from 'app/utils/withProjects';
+import ButtonBar from 'app/components/buttonBar';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import TransactionList from './transactionList';
 import UserStats from './userStats';
@@ -29,9 +32,18 @@ type Props = {
   transactionName: string;
   organization: Organization;
   totalValues: number | null;
+  projects: Project[];
 };
 
-class SummaryContent extends React.Component<Props> {
+type State = {
+  incompatibleAlertNotice: React.ReactNode;
+};
+
+class SummaryContent extends React.Component<Props, State> {
+  state: State = {
+    incompatibleAlertNotice: null,
+  };
+
   handleSearch = (query: string) => {
     const {location} = this.props;
 
@@ -59,6 +71,47 @@ class SummaryContent extends React.Component<Props> {
     };
   };
 
+  trackAlertClick(errors?: Record<string, boolean>) {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.create_alert_clicked',
+      eventName: 'Performance Views: Create alert clicked',
+      organization_id: organization.id,
+      status: errors ? 'error' : 'success',
+      errors,
+      url: window.location.href,
+    });
+  }
+
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertButton
+  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
+    this.trackAlertClick(errors);
+    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      this.setState({incompatibleAlertNotice: null})
+    );
+    this.setState({incompatibleAlertNotice});
+  };
+
+  handleCreateAlertSuccess = () => {
+    this.trackAlertClick();
+  };
+
+  renderCreateAlertButton() {
+    const {eventView, organization, projects} = this.props;
+
+    return (
+      <CreateAlertButton
+        eventView={eventView}
+        organization={organization}
+        projects={projects}
+        onIncompatibleQuery={this.handleIncompatibleQuery}
+        onSuccess={this.handleCreateAlertSuccess}
+        referrer="performance"
+      />
+    );
+  }
+
   renderKeyTransactionButton() {
     const {eventView, organization, transactionName} = this.props;
 
@@ -73,25 +126,32 @@ class SummaryContent extends React.Component<Props> {
 
   render() {
     const {transactionName, location, eventView, organization, totalValues} = this.props;
+    const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
 
     return (
       <React.Fragment>
-        <HeaderBox>
-          <div>
+        <Layout.Header>
+          <Layout.HeaderContent>
             <Breadcrumb
               organization={organization}
               location={location}
               transactionName={transactionName}
             />
-          </div>
-          <KeyTransactionContainer>
-            {this.renderKeyTransactionButton()}
-          </KeyTransactionContainer>
-          <StyledTitleHeader>{transactionName}</StyledTitleHeader>
-        </HeaderBox>
-        <ContentBox>
-          <StyledMain>
+            <Layout.Title>{transactionName}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              {this.renderCreateAlertButton()}
+              {this.renderKeyTransactionButton()}
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          {incompatibleAlertNotice && (
+            <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+          )}
+          <Layout.Main>
             <StyledSearchBar
               organization={organization}
               projectIds={eventView.project}
@@ -119,8 +179,8 @@ class SummaryContent extends React.Component<Props> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
             />
-          </StyledMain>
-          <Side>
+          </Layout.Main>
+          <Layout.Side>
             <UserStats
               organization={organization}
               location={location}
@@ -134,34 +194,15 @@ class SummaryContent extends React.Component<Props> {
               organization={organization}
               location={location}
             />
-          </Side>
-        </ContentBox>
+          </Layout.Side>
+        </Layout.Body>
       </React.Fragment>
     );
   }
 }
 
-const StyledTitleHeader = styled('span')`
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
-  grid-column: 1/2;
-  align-self: center;
-  min-height: 30px;
-  ${overflowEllipsis};
-`;
-
-// Allow overflow so chart tooltip and assignee dropdown display.
-const StyledMain = styled(Main)`
-  overflow: visible;
-`;
-
-const KeyTransactionContainer = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(1)};
 `;
 
-export default SummaryContent;
+export default withProjects(SummaryContent);

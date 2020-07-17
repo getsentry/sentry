@@ -48,7 +48,10 @@ class RelayProjectIdsEndpointTest(APITestCase):
         org = self.project.organization
 
         if add_org_key:
-            org.update_option("sentry:trusted-relays", [self.relay.public_key])
+            org.update_option(
+                "sentry:trusted-relays",
+                [{"public_key": self.relay.public_key, "name": "main-relay"}],
+            )
 
     def _call_endpoint(self, public_key):
         raw_json, signature = self.private_key.pack({"publicKeys": [public_key]})

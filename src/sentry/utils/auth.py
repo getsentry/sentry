@@ -11,7 +11,6 @@ from django.utils.http import is_safe_url
 from time import time
 
 from sentry.models import User, Authenticator
-from sentry.utils.compat import map
 
 logger = logging.getLogger("sentry.auth")
 
@@ -25,19 +24,6 @@ MFA_SESSION_KEY = "mfa"
 class AuthUserPasswordExpired(Exception):
     def __init__(self, user):
         self.user = user
-
-
-def _make_key_value(val):
-    return val.strip().split(u"=", 1)
-
-
-def parse_auth_header(header):
-    if isinstance(header, bytes):
-        header = header.decode("latin1")
-    try:
-        return dict(map(_make_key_value, header.split(u" ", 1)[1].split(u",")))
-    except Exception:
-        return {}
 
 
 def get_auth_providers():

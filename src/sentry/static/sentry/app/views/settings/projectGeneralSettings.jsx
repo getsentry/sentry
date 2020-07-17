@@ -33,7 +33,6 @@ import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import Link from 'app/components/links/link';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Feature from 'app/components/acl/feature';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -157,7 +156,7 @@ class ProjectGeneralSettings extends AsyncView {
       newData.groupingConfig = latestGroupingConfig.id;
     }
     if (latestEnhancementsBase) {
-      newData.groupingEnhancementBases = latestEnhancementsBase.id;
+      newData.groupingEnhancementsBase = latestEnhancementsBase.id;
     }
 
     let riskNote;
@@ -474,41 +473,19 @@ class ProjectGeneralSettings extends AsyncView {
             />
           )}
 
-          <Feature features={['datascrubbers-v2']}>
-            {({hasFeature}) =>
-              hasFeature ? (
-                <Panel>
-                  <PanelHeader>{t('Data Privacy')}</PanelHeader>
-                  <EmptyMessage
-                    title={t('Data Privacy has moved')}
-                    description={
-                      <Link
-                        to={`/settings/${orgId}/projects/${projectId}/security-and-privacy/`}
-                      >
-                        {t('Go to Security & Privacy')}
-                      </Link>
-                    }
-                  />
-                </Panel>
-              ) : (
-                <JsonForm
-                  {...jsonFormProps}
-                  // Legacy use of the name Data Privacy... this codepath is
-                  // going to be gone if datascrubbersv2 goes GA
-                  title={t('Data Privacy')}
-                  fields={[
-                    fields.dataScrubber,
-                    fields.dataScrubberDefaults,
-                    fields.scrubIPAddresses,
-                    fields.sensitiveFields,
-                    fields.safeFields,
-                    fields.storeCrashReports,
-                    fields.relayPiiConfig,
-                  ]}
-                />
-              )
-            }
-          </Feature>
+          <Panel>
+            <PanelHeader>{t('Data Privacy')}</PanelHeader>
+            <EmptyMessage
+              title={t('Data Privacy has moved')}
+              description={
+                <Link
+                  to={`/settings/${orgId}/projects/${projectId}/security-and-privacy/`}
+                >
+                  {t('Go to Security & Privacy')}
+                </Link>
+              }
+            />
+          </Panel>
 
           <JsonForm
             {...jsonFormProps}

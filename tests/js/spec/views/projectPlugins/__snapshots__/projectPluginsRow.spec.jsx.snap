@@ -211,7 +211,7 @@ exports[`ProjectPluginRow renders 1`] = `
                       size={48}
                     >
                       <div
-                        className="css-1xh0prp-PluginIcon-StyledPluginIcon e1y7j6vq4"
+                        className="css-v1ot6-PluginIcon-StyledPluginIcon e1y7j6vq4"
                         size={48}
                       />
                     </StyledPluginIcon>

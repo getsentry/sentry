@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/browser';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {inputStyles} from 'app/styles/input';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
@@ -24,14 +24,12 @@ import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {IconAdd} from 'app/icons';
-import withExperiment from 'app/utils/withExperiment';
 
 class CreateProject extends React.Component {
   static propTypes = {
     api: PropTypes.object,
     teams: PropTypes.arrayOf(SentryTypes.Team),
     organization: SentryTypes.Organization,
-    experimentAssignment: PropTypes.string,
   };
 
   static contextTypes = {
@@ -54,31 +52,8 @@ class CreateProject extends React.Component {
       team,
       platform,
       inFlight: false,
+      dataFragment: {},
     };
-
-    if (this.issueAlertOptionsEnabled) {
-      this.state = {
-        ...this.state,
-        ...{
-          dataFragment: {},
-        },
-      };
-    }
-  }
-
-  componentDidMount() {
-    const {organization, experimentAssignment} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'new_project.visited',
-      eventName: 'New Project Page Visited',
-      organization_id: organization.id,
-      alert_defaults_experiment_variant: experimentAssignment,
-    });
-  }
-
-  get issueAlertOptionsEnabled() {
-    return ['2OptionsV1', '3OptionsV2'].includes(this.props.experimentAssignment);
   }
 
   renderProjectForm() {
@@ -90,11 +65,7 @@ class CreateProject extends React.Component {
     const createProjectForm = (
       <CreateProjectForm onSubmit={this.createProject}>
         <div>
-          <FormLabel>
-            {this.issueAlertOptionsEnabled
-              ? t('Project name')
-              : t('Give your project a name')}
-          </FormLabel>
+          <FormLabel>{t('Project name')}</FormLabel>
           <ProjectNameInput>
             <ProjectPlatformIcon monoTone platform={platform} />
             <input
@@ -109,9 +80,7 @@ class CreateProject extends React.Component {
           </ProjectNameInput>
         </div>
         <div>
-          <FormLabel>
-            {this.issueAlertOptionsEnabled ? t('Team') : t('Assign a Team')}
-          </FormLabel>
+          <FormLabel>{t('Team')}</FormLabel>
           <TeamSelectInput>
             <SelectControl
               deprecatedSelectControl
@@ -153,16 +122,12 @@ class CreateProject extends React.Component {
       </CreateProjectForm>
     );
 
-    if (this.issueAlertOptionsEnabled) {
-      return (
-        <React.Fragment>
-          <PageHeading withMargins>{t('Give your project a name')}</PageHeading>
-          {createProjectForm}
-        </React.Fragment>
-      );
-    }
-
-    return <StickyWrapper>{createProjectForm}</StickyWrapper>;
+    return (
+      <React.Fragment>
+        <PageHeading withMargins>{t('Give your project a name')}</PageHeading>
+        {createProjectForm}
+      </React.Fragment>
+    );
   }
 
   get canSubmitForm() {
@@ -172,8 +137,7 @@ class CreateProject extends React.Component {
       !inFlight &&
       team &&
       projectName !== '' &&
-      (!this.issueAlertOptionsEnabled ||
-        !dataFragment?.shouldCreateCustomRule ||
+      (!dataFragment?.shouldCreateCustomRule ||
         dataFragment?.conditions?.every?.(condition => condition.value))
     );
   }
@@ -191,7 +155,7 @@ class CreateProject extends React.Component {
       actionMatch,
       frequency,
       defaultRules,
-    } = this.issueAlertOptionsEnabled ? dataFragment : {};
+    } = dataFragment;
 
     this.setState({inFlight: true});
 
@@ -313,17 +277,13 @@ class CreateProject extends React.Component {
                for your API server and frontend client.`
             )}
           </HelpText>
-          {this.issueAlertOptionsEnabled && (
-            <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
-          )}
+          <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
           <PlatformPicker platform={platform} setPlatform={this.setPlatform} showOther />
-          {this.issueAlertOptionsEnabled && (
-            <IssueAlertOptions
-              onChange={updatedData => {
-                this.setState({dataFragment: updatedData});
-              }}
-            />
-          )}
+          <IssueAlertOptions
+            onChange={updatedData => {
+              this.setState({dataFragment: updatedData});
+            }}
+          />
           {this.renderProjectForm()}
         </div>
       </React.Fragment>
@@ -331,11 +291,7 @@ class CreateProject extends React.Component {
   }
 }
 
-const CreateProjectWithExperiment = withExperiment(CreateProject, {
-  experiment: 'AlertDefaultsExperiment',
-});
-
-export default withApi(withTeams(withOrganization(CreateProjectWithExperiment)));
+export default withApi(withTeams(withOrganization(CreateProject)));
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`
@@ -380,10 +336,4 @@ const TeamSelectInput = styled('div')`
 const HelpText = styled('p')`
   color: ${p => p.theme.gray600};
   max-width: 700px;
-`;
-
-const StickyWrapper = styled('div')`
-  position: sticky;
-  background: #fff;
-  bottom: 0;
 `;

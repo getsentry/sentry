@@ -5,6 +5,7 @@ import {
   Dataset,
 } from 'app/views/settings/incidentRules/types';
 import EventView from 'app/utils/discover/eventView';
+import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
 
 export const DEFAULT_AGGREGATE = 'count()';
 
@@ -13,12 +14,42 @@ export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.TRANSACTIONS]: 'event.type:transaction',
 } as const;
 
-export function createDefaultTrigger(): Trigger {
+type OptionConfig = {
+  aggregations: AggregationKey[];
+  fields: LooseFieldKey[];
+};
+
+/**
+ * Allowed error aggregations for alerts
+ */
+export const errorFieldConfig: OptionConfig = {
+  aggregations: ['count', 'count_unique'],
+  fields: ['user'],
+};
+
+/**
+ * Allowed transaction aggregations for alerts
+ */
+export const transactionFieldConfig: OptionConfig = {
+  aggregations: [
+    'avg',
+    'percentile',
+    'failure_rate',
+    'apdex',
+    'count',
+    'p50',
+    'p75',
+    'p95',
+    'p99',
+    'p100',
+  ],
+  fields: ['transaction.duration'],
+};
+
+export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
   return {
-    label: 'critical',
+    label,
     alertThreshold: '',
-    resolveThreshold: '',
-    thresholdType: AlertRuleThresholdType.ABOVE,
     actions: [],
   };
 }
@@ -29,9 +60,11 @@ export function createDefaultRule(): UnsavedIncidentRule {
     aggregate: DEFAULT_AGGREGATE,
     query: '',
     timeWindow: 1,
-    triggers: [createDefaultTrigger()],
+    triggers: [createDefaultTrigger('critical'), createDefaultTrigger('warning')],
     projects: [],
     environment: null,
+    resolveThreshold: '',
+    thresholdType: AlertRuleThresholdType.ABOVE,
   };
 }
 
@@ -48,10 +81,7 @@ export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRu
       .slice()
       .replace(/event\.type:(transaction|error)/, '')
       .trim(),
-    aggregate:
-      eventView.yAxis === 'count_unique(user)'
-        ? 'count_unique(tags[sentry:user])'
-        : DEFAULT_AGGREGATE,
+    aggregate: eventView.getYAxis(),
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }

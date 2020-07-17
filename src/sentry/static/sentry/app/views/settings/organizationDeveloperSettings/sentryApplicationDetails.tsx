@@ -180,6 +180,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
       if (firstErrorFieldId) {
         scrollToElement(`#${firstErrorFieldId}`, {
           align: 'middle',
+          offset: 0,
         });
       }
     }

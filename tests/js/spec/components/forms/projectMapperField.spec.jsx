@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select-new';
 
 import {RenderField} from 'app/views/settings/components/forms/projectMapperField';
 
@@ -16,42 +17,65 @@ describe('ProjectMapperField', () => {
   };
 
   const sentryProjects = [
-    {id: 23, slug: 'cool', platform: 'javascript', name: 'Cool'},
-    {id: 24, slug: 'beans', platform: 'python', name: 'Beans'},
+    {id: '23', slug: 'cool', platform: 'javascript', name: 'Cool'},
+    {id: '24', slug: 'beans', platform: 'python', name: 'Beans'},
   ];
-  const existingValues = [[23, '2']];
-  let onBlur, onChange;
+  let onBlur, onChange, props, existingValues;
 
   beforeEach(() => {
+    existingValues = [['23', '2']];
     onBlur = jest.fn();
     onChange = jest.fn();
-    const props = {
+    props = {
       mappedDropdown,
       sentryProjects,
+      nextButton: {
+        url: 'https://vercel.com/dashboard/integrations/icfg_fuqLnwH3IYmcpAKAWY8eoYlR',
+        next: 'Return to Vercel',
+      },
       value: existingValues,
       onChange,
       onBlur,
     };
-    wrapper = mountWithTheme(<RenderField {...props} />, {disableLifecycleMethods: true});
   });
 
   it('clicking add updates values with current dropdown values', () => {
-    wrapper.instance().sentryProjectRef.current = {state: {value: {value: 24}}};
-    wrapper.instance().mappedRef.current = {state: {value: {value: '1'}}};
-    wrapper.find('button').simulate('click');
+    wrapper = mountWithTheme(<RenderField {...props} />);
+    selectByValue(wrapper, '24', {control: true, name: 'project'});
+    selectByValue(wrapper, '1', {control: true, name: 'mappedDropdown'});
+
+    wrapper.find('StyledAddProjectButton').simulate('click');
+
     expect(onBlur).toHaveBeenCalledWith(
       [
-        [23, '2'],
-        [24, '1'],
+        ['23', '2'],
+        ['24', '1'],
       ],
       []
     );
     expect(onChange).toHaveBeenCalledWith(
       [
-        [23, '2'],
-        [24, '1'],
+        ['23', '2'],
+        ['24', '1'],
       ],
       []
     );
   });
+
+  it('can delete item', () => {
+    existingValues = [
+      ['23', '2'],
+      ['24', '1'],
+    ];
+    wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />);
+    wrapper
+      .find('DeleteButton')
+      .first()
+      .simulate('click');
+
+    expect(onBlur).toHaveBeenCalledWith([['24', '1']], []);
+    expect(onChange).toHaveBeenCalledWith([['24', '1']], []);
+  });
+
+  it('handles deleted items without error', () => {});
 });

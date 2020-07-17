@@ -4,6 +4,7 @@ import React from 'react';
 import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
+import {IconNext, IconPrevious, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -14,7 +15,7 @@ import FileSize from 'app/components/fileSize';
 import SentryTypes from 'app/sentryTypes';
 import Tooltip from 'app/components/tooltip';
 import getDynamicText from 'app/utils/getDynamicText';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import space from 'app/styles/space';
 
 const formatDateDelta = (reference, observed) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -43,7 +44,6 @@ class GroupEventToolbar extends React.Component {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     location: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
   };
 
   shouldComponentUpdate(nextProps) {
@@ -82,43 +82,6 @@ class GroupEventToolbar extends React.Component {
     );
   }
 
-  renderRelatedTransactionButton() {
-    const {organization, event, orgId, location} = this.props;
-
-    const orgFeatures = new Set(organization.features);
-
-    if (!orgFeatures.has('performance-view')) {
-      return null;
-    }
-
-    const transactionTag = event?.tags?.find(tag => {
-      return tag?.key === 'transaction';
-    });
-
-    if (!transactionTag) {
-      return null;
-    }
-
-    const transactionName = transactionTag?.value;
-
-    if (typeof transactionName !== 'string' || !transactionName) {
-      return null;
-    }
-
-    const to = transactionSummaryRouteWithQuery({
-      orgSlug: orgId,
-      transaction: transactionName,
-      projectID: event.projectID,
-      query: location.query,
-    });
-
-    return (
-      <Button key="related-transaction" to={to} size="small">
-        {t('Related Transaction')}
-      </Button>
-    );
-  }
-
   render() {
     const evt = this.props.event;
 
@@ -134,9 +97,8 @@ class GroupEventToolbar extends React.Component {
         to={{pathname: `${baseEventsPath}oldest/`, query: location.query}}
         disabled={!evt.previousEventID}
         aria-label={t('Oldest')}
-      >
-        <span className="icon-skip-back" />
-      </Button>,
+        icon={<IconPrevious size="xs" />}
+      />,
       <Button
         size="small"
         key="prev"
@@ -162,9 +124,8 @@ class GroupEventToolbar extends React.Component {
         to={{pathname: `${baseEventsPath}latest/`, query: location.query}}
         disabled={!evt.nextEventID}
         aria-label={t('Newest')}
-      >
-        <span className="icon-skip-forward" />
-      </Button>,
+        icon={<IconNext size="xs" />}
+      />,
     ];
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
@@ -182,7 +143,6 @@ class GroupEventToolbar extends React.Component {
     return (
       <div className="event-toolbar">
         <NavigationButtons gap={1}>
-          {this.renderRelatedTransactionButton()}
           <ButtonBar merged>{eventNavNodes}</ButtonBar>
         </NavigationButtons>
         <h4>
@@ -197,7 +157,7 @@ class GroupEventToolbar extends React.Component {
               date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
               style={style}
             />
-            {isOverLatencyThreshold && <span className="icon-alert" />}
+            {isOverLatencyThreshold && <StyledIconWarning color="yellow500" />}
           </Tooltip>
           <ExternalLink href={jsonUrl} className="json-link">
             {'JSON'} (<FileSize bytes={evt.size} />)
@@ -210,6 +170,12 @@ class GroupEventToolbar extends React.Component {
 
 const NavigationButtons = styled(ButtonBar)`
   float: right;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  margin-left: ${space(0.5)};
+  position: relative;
+  top: ${space(0.25)};
 `;
 
 export default GroupEventToolbar;

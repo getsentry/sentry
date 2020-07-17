@@ -36,6 +36,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
+    bulk_enable_snuba_subscriptions,
+    bulk_disable_snuba_subscriptions,
     bulk_delete_snuba_subscriptions,
     create_snuba_query,
     update_snuba_query,
@@ -97,6 +99,9 @@ def create_incident(
                     sender=type(incident_project), instance=incident_project, created=True
                 )
 
+        create_incident_activity(
+            incident, IncidentActivityType.STARTED, user=user, date_added=date_started
+        )
         create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
         analytics.record(
             "incident.created",
@@ -200,11 +205,15 @@ def create_incident_activity(
     previous_value=None,
     comment=None,
     mentioned_user_ids=None,
+    date_added=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user)
     value = six.text_type(value) if value is not None else value
     previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
+    kwargs = {}
+    if date_added:
+        kwargs["date_added"] = date_added
     activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,
@@ -212,6 +221,7 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
+        **kwargs
     )
 
     if mentioned_user_ids:
@@ -398,29 +408,34 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
         )
     ]
 
-    # We want to include the specific buckets for the incident start and closed times,
-    # so that there's no need to interpolate to show them on the frontend. If they're
-    # cleanly divisible by the `time_window` then there's no need to fetch, since
-    # they'll be included in the standard results anyway.
-    extra_buckets = []
-    if int(to_timestamp(incident.date_started)) % time_window:
-        extra_buckets.append(incident.date_started)
-    if incident.date_closed and int(to_timestamp(incident.date_closed)) % time_window:
-        extra_buckets.append(incident.date_closed.replace(second=0, microsecond=0))
-
     # We make extra queries to fetch these buckets
-    for bucket_start in extra_buckets:
+    def build_extra_query_params(bucket_start):
         extra_bucket_query_params = build_incident_query_params(
             incident, start=bucket_start, end=bucket_start + timedelta(seconds=time_window)
         )
         aggregations = extra_bucket_query_params.pop("aggregations")[0]
-        snuba_params.append(
-            SnubaQueryParams(
-                aggregations=[(aggregations[0], aggregations[1], "count")],
-                limit=1,
-                **extra_bucket_query_params
-            )
+        return SnubaQueryParams(
+            aggregations=[(aggregations[0], aggregations[1], "count")],
+            limit=1,
+            **extra_bucket_query_params
         )
+
+    # We want to include the specific buckets for the incident start and closed times,
+    # so that there's no need to interpolate to show them on the frontend. If they're
+    # cleanly divisible by the `time_window` then there's no need to fetch, since
+    # they'll be included in the standard results anyway.
+    start_query_params = None
+    extra_buckets = []
+    if int(to_timestamp(incident.date_started)) % time_window:
+        start_query_params = build_extra_query_params(incident.date_started)
+        snuba_params.append(start_query_params)
+        extra_buckets.append(incident.date_started)
+
+    if incident.date_closed:
+        date_closed = incident.date_closed.replace(second=0, microsecond=0)
+        if int(to_timestamp(date_closed)) % time_window:
+            snuba_params.append(build_extra_query_params(date_closed))
+            extra_buckets.append(date_closed)
 
     results = bulk_raw_query(snuba_params, referrer="incidents.get_incident_event_stats")
     # Once we receive the results, if we requested extra buckets we now need to label
@@ -430,10 +445,14 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
     merged_data = list(chain(*[r["data"] for r in results]))
     merged_data.sort(key=lambda row: row["time"])
     results[0]["data"] = merged_data
+    # When an incident has just been created it's possible for the actual incident start
+    # date to be greater than the latest bucket for the query. Get the actual end date
+    # here.
+    end_date = snuba_params[0].end
+    if start_query_params:
+        end_date = max(end_date, start_query_params.end)
 
-    return SnubaTSResult(
-        results[0], snuba_params[0].start, snuba_params[0].end, snuba_params[0].rollup
-    )
+    return SnubaTSResult(results[0], snuba_params[0].start, end_date, snuba_params[0].rollup)
 
 
 def get_incident_aggregates(
@@ -522,7 +541,9 @@ def create_alert_rule(
     query,
     aggregate,
     time_window,
+    threshold_type,
     threshold_period,
+    resolve_threshold=None,
     environment=None,
     include_all_projects=False,
     excluded_projects=None,
@@ -540,8 +561,11 @@ def create_alert_rule(
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
     :param environment: An optional environment that this rule applies to
+    :param threshold_type: An AlertRuleThresholdType
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
+    :param resolve_threshold: Optional value that the subscription needs to reach to
+    resolve the alert
     :param include_all_projects: Whether to include all current and future projects
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
@@ -567,6 +591,8 @@ def create_alert_rule(
             organization=organization,
             snuba_query=snuba_query,
             name=name,
+            threshold_type=threshold_type.value,
+            resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
         )
@@ -629,7 +655,9 @@ def update_alert_rule(
     aggregate=None,
     time_window=None,
     environment=None,
+    threshold_type=None,
     threshold_period=None,
+    resolve_threshold=None,
     include_all_projects=None,
     excluded_projects=None,
 ):
@@ -645,8 +673,11 @@ def update_alert_rule(
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes.
     :param environment: An optional environment that this rule applies to
+    :param threshold_type: An AlertRuleThresholdType
     :param threshold_period: How many update periods the value of the
     subscription needs to exceed the threshold before triggering
+    :param resolve_threshold: Optional value that the subscription needs to reach to
+    resolve the alert
     :param include_all_projects: Whether to include all current and future projects
     from this organization
     :param excluded_projects: List of projects to exclude if we're using
@@ -671,6 +702,10 @@ def update_alert_rule(
         updated_query_fields["aggregate"] = aggregate
     if time_window:
         updated_query_fields["time_window"] = timedelta(minutes=time_window)
+    if threshold_type:
+        updated_fields["threshold_type"] = threshold_type.value
+    if resolve_threshold:
+        updated_fields["resolve_threshold"] = resolve_threshold
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
     if include_all_projects is not None:
@@ -773,6 +808,22 @@ def subscribe_projects_to_alert_rule(alert_rule, projects):
     return bulk_create_snuba_subscriptions(
         projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query
     )
+
+
+def enable_alert_rule(alert_rule):
+    if alert_rule.status != AlertRuleStatus.DISABLED.value:
+        return
+    with transaction.atomic():
+        alert_rule.update(status=AlertRuleStatus.PENDING.value)
+        bulk_enable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
+
+
+def disable_alert_rule(alert_rule):
+    if alert_rule.status != AlertRuleStatus.PENDING.value:
+        return
+    with transaction.atomic():
+        alert_rule.update(status=AlertRuleStatus.DISABLED.value)
+        bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
 
 def delete_alert_rule(alert_rule):

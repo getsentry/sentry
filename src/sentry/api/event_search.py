@@ -58,7 +58,7 @@ def translate(pat):
             res += re.escape(pat[i])
             i += 1
         elif c == "*":
-            res = res + ".*"
+            res += ".*"
         # TODO: We're disabling everything except for wildcard matching for the
         # moment. Just commenting this code out for the moment, since there's a
         # reasonable chance we'll add this back in in the future.
@@ -82,8 +82,13 @@ def translate(pat):
         #         elif stuff[0] == '^':
         #             stuff = '\\' + stuff
         #         res = '%s[%s]' % (res, stuff)
+        # In py3.7 only characters that can have special meaning in a regular expression are escaped
+        # introduced that here so we don't escape those either
+        # https://github.com/python/cpython/blob/3.7/Lib/re.py#L252
+        elif c in "()[]?*+-|^$\\.&~# \t\n\r\v\f":
+            res += re.escape(c)
         else:
-            res = res + re.escape(c)
+            res += c
     return "^" + res + "$"
 
 
@@ -985,8 +990,9 @@ def get_json_meta_type(field_alias, snuba_type):
     alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.get("result_type"):
         return alias_definition.get("result_type")
+    snuba_json = get_json_type(snuba_type)
     function_match = FUNCTION_ALIAS_PATTERN.match(field_alias)
-    if function_match:
+    if function_match and snuba_json != "string":
         function_definition = FUNCTIONS.get(function_match.group(1))
         if function_definition and function_definition.get("result_type"):
             return function_definition.get("result_type")
@@ -994,7 +1000,7 @@ def get_json_meta_type(field_alias, snuba_type):
         return "duration"
     if field_alias == "transaction.status":
         return "string"
-    return get_json_type(snuba_type)
+    return snuba_json
 
 
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
@@ -1193,7 +1199,7 @@ FUNCTIONS = {
     "failure_rate": {
         "name": "failure_rate",
         "args": [],
-        "transform": "divide(countIf(and(notEquals(transaction_status, 0), notEquals(transaction_status, 2))), count())",
+        "transform": "failure_rate()",
         "result_type": "percentage",
     },
     # The user facing signature for this function is histogram(<column>, <num_buckets>)
@@ -1252,6 +1258,13 @@ FUNCTIONS = {
         "name": "sum",
         "args": [DurationColumnNoLookup("column")],
         "aggregate": ["sum", u"{column}", None],
+        "result_type": "duration",
+    },
+    # Currently only being used by the baseline PoC
+    "absolute_delta": {
+        "name": "absolute_delta",
+        "args": [DurationColumn("column"), NumberRange("target", 0, None)],
+        "transform": u"abs(minus({column}, {target:g}))",
         "result_type": "duration",
     },
 }
@@ -1404,12 +1417,20 @@ def resolve_orderby(orderby, fields, aggregations):
             validated.append(prefix + bare_column)
             continue
 
-        if bare_column in FIELD_ALIASES and FIELD_ALIASES[bare_column].get("column_alias"):
+        if (
+            bare_column in FIELD_ALIASES
+            and FIELD_ALIASES[bare_column].get("column_alias")
+            and bare_column != PROJECT_ALIAS
+        ):
             prefix = "-" if column.startswith("-") else ""
             validated.append(prefix + FIELD_ALIASES[bare_column]["column_alias"])
             continue
 
-        found = [col[2] for col in fields if isinstance(col, (list, tuple))]
+        found = [
+            col[2]
+            for col in fields
+            if isinstance(col, (list, tuple)) and col[2].strip("`") == bare_column
+        ]
         if found:
             prefix = "-" if column.startswith("-") else ""
             validated.append(prefix + bare_column)
@@ -1451,8 +1472,6 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     columns = []
     groupby = []
     project_key = ""
-    # Which column to map to project names
-    project_column = "project_id"
 
     # If project is requested, we need to map ids to their names since snuba only has ids
     if "project" in fields:
@@ -1480,22 +1499,11 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     if not rollup and auto_fields:
         # Ensure fields we require to build a functioning interface
         # are present. We don't add fields when using a rollup as the additional fields
-        # would be aggregated away. When there are aggregations
-        # we use argMax to get the latest event/projectid so we can create links.
-        # The `projectid` output name is not a typo, using `project_id` triggers
-        # generates invalid queries.
+        # would be aggregated away.
         if not aggregations and "id" not in columns:
             columns.append("id")
         if not aggregations and "project.id" not in columns:
             columns.append("project.id")
-            project_column = "project_id"
-        if aggregations and "latest_event" not in map(lambda a: a[-1], aggregations):
-            _, aggregates = resolve_function("latest_event()")
-            aggregations.extend(aggregates)
-        if aggregations and "project.id" not in columns:
-            aggregations.append(["argMax", ["project.id", "timestamp"], "projectid"])
-            project_column = "projectid"
-        if project_key == "":
             project_key = PROJECT_NAME_ALIAS
 
     if project_key:
@@ -1508,17 +1516,20 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
 
         project_ids = filtered_project_ids or snuba_filter.filter_keys.get("project_id", [])
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
-        aggregations.append(
+        columns.append(
             [
-                u"transform({}, array({}), array({}), '')".format(
-                    project_column,
-                    # Need to use join like this so we don't get a list including Ls which confuses clickhouse
-                    ",".join([six.text_type(project["id"]) for project in projects]),
-                    # Can't just format a list since we'll get u"string" instead of a plain 'string'
-                    ",".join([u"'{}'".format(project["slug"]) for project in projects]),
-                ),
-                None,
-                project_key,
+                "transform",
+                [
+                    # This is a workaround since having the column by itself currently is being treated as a function
+                    ["toString", ["project_id"]],
+                    ["array", [u"'{}'".format(project["id"]) for project in projects]],
+                    ["array", [u"'{}'".format(project["slug"]) for project in projects]],
+                    # Default case, what to do if a project id without a slug is found
+                    "''",
+                ],
+                # Need to explicitly state this is a column with backticks.
+                # Otherwise clickhouse can't parse project.name
+                "`{}`".format(project_key),
             ]
         )
 
@@ -1534,6 +1545,9 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
     if aggregations:
         for column in columns:
             if isinstance(column, (list, tuple)):
+                if column[0] == "transform":
+                    # When there's a project transform, we already group by project_id
+                    continue
                 groupby.append(column[2])
             else:
                 groupby.append(column)

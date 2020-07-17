@@ -5,7 +5,6 @@ import {
   decodeColumnOrder,
   pushEventViewToLocation,
   getExpandedResults,
-  getDiscoverLandingUrl,
   downloadAsCsv,
 } from 'app/views/eventsV2/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
@@ -196,8 +195,8 @@ describe('getExpandedResults()', function() {
     let view = new EventView(state);
 
     let result = getExpandedResults(view, {}, {});
+    // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
-      {field: 'id', width: -1}, // expect count() to be converted to id
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
@@ -217,8 +216,8 @@ describe('getExpandedResults()', function() {
     });
 
     result = getExpandedResults(view, {}, {});
+    // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
-      {field: 'id', width: -1}, // expect count() to be converted to id
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
@@ -251,7 +250,6 @@ describe('getExpandedResults()', function() {
     result = getExpandedResults(view, {}, {});
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
-      {field: 'id', width: -1},
       {field: 'title'},
       {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
@@ -437,17 +435,42 @@ describe('getExpandedResults()', function() {
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('project.name:whoosh');
   });
-});
 
-describe('getDiscoverLandingUrl', function() {
-  it('is correct for with discover-query and discover-basic features', function() {
-    const org = TestStubs.Organization({features: ['discover-query', 'discover-basic']});
-    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/queries/');
+  it('should not trim values that need to be quoted', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'title'}],
+    });
+    // needs to be quoted because of whitespace in middle
+    const event = {title: 'hello there '};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.query).toEqual('title:"hello there "');
   });
 
-  it('is correct for with only discover-basic feature', function() {
-    const org = TestStubs.Organization({features: ['discover-basic']});
-    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
+  it('should add environment from the data row', () => {
+    const view = new EventView({
+      ...state,
+      environment: [],
+      query: '',
+      fields: [{field: 'environment'}],
+    });
+    expect(view.environment).toEqual([]);
+    const event = {environment: 'staging'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.environment).toEqual(['staging']);
+  });
+
+  it('should not add duplicate environment', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'environment'}],
+    });
+    expect(view.environment).toEqual(['staging']);
+    const event = {environment: 'staging'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.environment).toEqual(['staging']);
   });
 });
 

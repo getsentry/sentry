@@ -8,7 +8,7 @@ import EventView from 'app/utils/discover/eventView';
 import * as utils from 'app/views/eventsV2/savedQuery/utils';
 
 const SELECTOR_BUTTON_SAVE_AS = 'ButtonSaveAs';
-const SELECTOR_BUTTON_SAVED = 'ButtonSaved';
+const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';
 const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
 const SELECTOR_BUTTON_CREATE_ALERT = '[data-test-id="discover2-create-from-discover"]';
@@ -27,6 +27,7 @@ function generateWrappedComponent(
       eventView={eventView}
       savedQuery={savedQuery}
       disabled={disabled}
+      updateCallback={() => {}}
     />,
     TestStubs.routerContext()
   );
@@ -311,7 +312,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
       expect(buttonCreateAlert.exists()).toBe(true);
-      expect(buttonCreateAlert.first().props().disabled).toBe(true);
     });
   });
 });

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {
   closeGuide,
@@ -186,7 +186,7 @@ const GuideAnchor = createReactClass<Props, State>({
       <StyledHovercard
         show
         body={this.getHovercardBody()}
-        tipColor={theme.purple}
+        tipColor={theme.purple400}
         position={position}
         offset={offset}
       >
@@ -202,8 +202,8 @@ const GuideContainer = styled('div')`
   grid-gap: ${space(2)};
   text-align: center;
   line-height: 1.5;
-  background-color: ${p => p.theme.purple};
-  border-color: ${p => p.theme.purple};
+  background-color: ${p => p.theme.purple400};
+  border-color: ${p => p.theme.purple400};
   color: ${p => p.theme.gray100};
 `;
 
@@ -234,7 +234,7 @@ const GuideAction = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  border-color: ${p => p.theme.gray100};
+  border-color: ${p => p.theme.borderLighter};
   min-width: 40%;
 `;
 
@@ -244,7 +244,7 @@ const DismissButton = styled(StyledButton)`
   &:hover,
   &:focus,
   &:active {
-    border-color: ${p => p.theme.gray100};
+    border-color: ${p => p.theme.borderLighter};
   }
 `;
 
@@ -256,7 +256,7 @@ const StepCount = styled('div')`
 
 const StyledHovercard = styled(Hovercard)`
   ${HovercardBody} {
-    background-color: ${theme.purple};
+    background-color: ${theme.purple400};
     margin: -1px;
     border-radius: ${theme.borderRadius};
   }

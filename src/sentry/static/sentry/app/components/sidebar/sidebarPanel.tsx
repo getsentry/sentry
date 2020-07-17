@@ -95,7 +95,7 @@ const PanelContainer = styled('div')`
 const SidebarPanelHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   padding: ${space(3)};
-  background: ${p => p.theme.background};
+  background: ${p => p.theme.white};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   height: 62px;
   display: flex;

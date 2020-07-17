@@ -400,7 +400,7 @@ function routes() {
         component={errorHandler(LazyLoad)}
         componentPromise={() =>
           import(
-            /* webpackChunkName: "ProjectDataPrivacy" */ 'app/views/settings/projectDataPrivacy/projectDataPrivacy'
+            /* webpackChunkName: "ProjectSecurityAndPrivacy" */ 'app/views/settings/projectSecurityAndPrivacy'
           )
         }
       />
@@ -443,7 +443,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          path=":version/"
+          path=":name/"
           name={t('Archive')}
           componentPromise={() =>
             import(
@@ -791,7 +791,7 @@ function routes() {
         path="security-and-privacy/"
         componentPromise={() =>
           import(
-            /* webpackChunkName: "OrganizationSecurityAndPrivacy" */ 'app/views/settings/organizationSecurityAndPrivacy/organizationSecurityAndPrivacy'
+            /* webpackChunkName: "OrganizationSecurityAndPrivacy" */ 'app/views/settings/organizationSecurityAndPrivacy'
           )
         }
         component={errorHandler(LazyLoad)}

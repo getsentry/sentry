@@ -7,7 +7,7 @@ import logging
 import posixpath
 
 from django.db import transaction
-from django.db.models import Q, Count, Exists, OuterRef
+from django.db.models import Q, Count
 from django.http import StreamingHttpResponse, HttpResponse, Http404
 from rest_framework.response import Response
 from symbolic import normalize_debug_id, SymbolicError
@@ -380,16 +380,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
         query = request.GET.get("query")
 
         try:
-            queryset = (
-                Release.objects.filter(projects=project, organization_id=project.organization_id)
-                .annotate(
-                    has_file=Exists(
-                        ReleaseFile.objects.filter(release=OuterRef("id")).values_list("id")
-                    )
-                )
-                .values("id", "version", "date_added")
-                .filter(has_file=True)
-            )
+            queryset = Release.objects.filter(
+                projects=project, organization_id=project.organization_id
+            ).values("id", "version", "date_added")
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -442,16 +435,16 @@ class SourceMapsEndpoint(ProjectEndpoint):
                                             archive belongs to.
         :pparam string project_slug: the slug of the project to delete the
                                         archive of.
-        :qparam string id: The id of the archive to delete.
+        :qparam string name: The name of the archive to delete.
         :auth: required
         """
 
-        archive_id = request.GET.get("id")
+        archive_name = request.GET.get("name")
 
-        if archive_id:
+        if archive_name:
             with transaction.atomic():
                 release = Release.objects.get(
-                    organization_id=project.organization_id, projects=project, id=archive_id
+                    organization_id=project.organization_id, projects=project, version=archive_name
                 )
                 if release is not None:
                     release_files = ReleaseFile.objects.filter(release=release)

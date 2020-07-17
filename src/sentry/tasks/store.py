@@ -9,11 +9,9 @@ from django.utils import timezone
 from django.conf import settings
 
 import sentry_sdk
-from sentry_sdk.tracing import Span
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import features, reprocessing, options
-from sentry.relay.config import get_project_config
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
@@ -297,12 +295,10 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     :param int start_time: the timestamp when the event was ingested
     :param string event_id: the event identifier
     """
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.symbolicate_event",
-            transaction="TaskSymbolicateEvent",
-            sampled=sample_symbolicate_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.symbolicate_event",
+        name="TaskSymbolicateEvent",
+        sampled=sample_symbolicate_event_apm(),
     ):
         return _do_symbolicate_event(
             cache_key=cache_key,
@@ -319,12 +315,10 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     soft_time_limit=60,
 )
 def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.symbolicate_event_from_reprocessing",
-            transaction="TaskSymbolicateEvent",
-            sampled=sample_symbolicate_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.symbolicate_event_from_reprocessing",
+        name="TaskSymbolicateEvent",
+        sampled=sample_symbolicate_event_apm(),
     ):
         return _do_symbolicate_event(
             cache_key=cache_key,
@@ -456,22 +450,18 @@ def _do_process_event(
     # We are fairly confident, however, that this should run *before*
     # re-normalization as it is hard to find sensitive data in partially
     # trimmed strings.
-    if (
-        has_changed
-        and options.get("processing.can-use-scrubbers")
-        and features.has("organizations:datascrubbers-v2", project.organization, actor=None)
-    ):
+    if has_changed and options.get("processing.can-use-scrubbers"):
         with sentry_sdk.start_span(op="task.store.datascrubbers.scrub"):
             with metrics.timer(
                 "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
             ):
-                project_config = get_project_config(project)
-
-                new_data = safe_execute(scrub_data, project_config=project_config, event=data.data)
+                new_data = safe_execute(scrub_data, project=project, event=data.data)
 
                 # XXX(markus): When datascrubbing is finally "totally stable", we might want
                 # to drop the event if it crashes to avoid saving PII
-                if new_data is not None:
+                if new_data is not None and features.has(
+                    "organizations:datascrubbers-v2", project.organization, actor=None
+                ):
                     data.data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
@@ -558,12 +548,8 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
     :param string event_id: the event identifier
     :param boolean data_has_changed: set to True if the event data was changed in previous tasks
     """
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.process_event",
-            transaction="TaskProcessEvent",
-            sampled=sample_process_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.process_event", name="TaskProcessEvent", sampled=sample_process_event_apm(),
     ):
         return _do_process_event(
             cache_key=cache_key,
@@ -583,12 +569,10 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
 def process_event_from_reprocessing(
     cache_key, start_time=None, event_id=None, data_has_changed=None, **kwargs
 ):
-    with sentry_sdk.start_span(
-        Span(
-            op="tasks.store.process_event_from_reprocessing",
-            transaction="TaskProcessEvent",
-            sampled=sample_process_event_apm(),
-        )
+    with sentry_sdk.start_transaction(
+        op="tasks.store.process_event_from_reprocessing",
+        name="TaskProcessEvent",
+        sampled=sample_process_event_apm(),
     ):
         return _do_process_event(
             cache_key=cache_key,
@@ -763,12 +747,11 @@ def _do_save_event(
             )
             return
 
-        event = None
         try:
             with metrics.timer("tasks.store.do_save_event.event_manager.save"):
                 manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                event = manager.save(
+                manager.save(
                     project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
 
@@ -781,12 +764,7 @@ def _do_save_event(
                     event_processing_store.delete_by_key(cache_key)
 
                 with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
-                    # For the unlikely case that we did not manage to persist the
-                    # event we also delete the key always.
-                    if event is None or features.has(
-                        "organizations:event-attachments", event.project.organization, actor=None
-                    ):
-                        attachment_cache.delete(cache_key)
+                    attachment_cache.delete(cache_key)
 
             if start_time:
                 metrics.timing(

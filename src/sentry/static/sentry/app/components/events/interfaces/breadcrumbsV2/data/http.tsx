@@ -5,31 +5,34 @@ import ExternalLink from 'app/components/links/externalLink';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
+import Highlight from 'app/components/highlight';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
 import {BreadcrumbTypeHTTP} from '../types';
 import Summary from './summary';
 
 type Props = {
+  searchTerm: string;
   breadcrumb: BreadcrumbTypeHTTP;
 };
 
-const Http = ({breadcrumb}: Props) => {
+const Http = ({breadcrumb, searchTerm}: Props) => {
   const {data} = breadcrumb;
 
   const renderUrl = (url: any) => {
     if (typeof url === 'string') {
+      const content = <Highlight text={searchTerm}>{url}</Highlight>;
       return url.match(/^https?:\/\//) ? (
         <ExternalLink data-test-id="http-renderer-external-link" href={url}>
-          {url}
+          {content}
         </ExternalLink>
       ) : (
-        <span>{url}</span>
+        <span>{content}</span>
       );
     }
 
     try {
-      return JSON.stringify(url);
+      return <Highlight text={searchTerm}>{JSON.stringify(url)}</Highlight>;
     } catch {
       return t('Invalid URL');
     }
@@ -38,10 +41,17 @@ const Http = ({breadcrumb}: Props) => {
   const statusCode = data?.status_code;
 
   return (
-    <Summary kvData={omit(data, ['method', 'url', 'status_code'])}>
+    <Summary
+      kvData={omit(data, ['method', 'url', 'status_code'])}
+      searchTerm={searchTerm}
+    >
       {data?.method &&
         getBreadcrumbCustomRendererValue({
-          value: <strong>{`${data.method} `}</strong>,
+          value: (
+            <strong>
+              <Highlight text={searchTerm}>{`${data.method} `}</Highlight>
+            </strong>
+          ),
           meta: getMeta(data, 'method'),
         })}
       {data?.url &&
@@ -52,7 +62,10 @@ const Http = ({breadcrumb}: Props) => {
       {defined(statusCode) &&
         getBreadcrumbCustomRendererValue({
           value: (
-            <span data-test-id="http-renderer-status-code">{` [${statusCode}]`}</span>
+            <Highlight
+              data-test-id="http-renderer-status-code"
+              text={searchTerm}
+            >{` [${statusCode}]`}</Highlight>
           ),
           meta: getMeta(data, 'status_code'),
         })}

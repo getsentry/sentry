@@ -9,8 +9,8 @@ import space from 'app/styles/space';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 import Hovercard from 'app/components/hovercard';
-import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
+import {IconInfo, IconOpen} from 'app/icons';
 import {isUrl} from 'app/utils';
 
 class ExceptionMechanism extends React.Component {
@@ -49,7 +49,7 @@ class ExceptionMechanism extends React.Component {
 
     const linkElement = help_link && isUrl(help_link) && (
       <a href={help_link} className="external-icon">
-        <em className="icon-open" />
+        <IconOpen size="xs" />
       </a>
     );
 
@@ -63,7 +63,7 @@ class ExceptionMechanism extends React.Component {
         body={description}
         containerClassName="pill-icon"
       >
-        <InlineSvg src="icon-circle-info" size="14px" />
+        <IconInfo size="14px" />
       </Hovercard>
     );
 
