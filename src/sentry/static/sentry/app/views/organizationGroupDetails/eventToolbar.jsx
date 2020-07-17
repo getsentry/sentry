@@ -157,7 +157,7 @@ class GroupEventToolbar extends React.Component {
               date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
               style={style}
             />
-            {isOverLatencyThreshold && <StyledIconWarning />}
+            {isOverLatencyThreshold && <StyledIconWarning color="yellow500" />}
           </Tooltip>
           <ExternalLink href={jsonUrl} className="json-link">
             {'JSON'} (<FileSize bytes={evt.size} />)
