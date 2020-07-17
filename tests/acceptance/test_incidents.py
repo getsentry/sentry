@@ -49,5 +49,6 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_test_id("incident-title")
 
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+            self.browser.wait_until_test_id("incident-sparkline")
             self.browser.blur()
             self.browser.snapshot("incidents - details")
