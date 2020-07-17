@@ -94,6 +94,11 @@ const StyledIconCheckmark = styled(IconCheckmark)`
   /* override margin defined in BannerSummary */
   margin-top: 0 !important;
   align-self: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: ${space(0.5)} !important;
+    align-self: flex-start;
+  }
 `;
 
 export default ResolutionBox;
