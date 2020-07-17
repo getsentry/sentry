@@ -5,7 +5,7 @@ import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
-import {IconAdd, IconSettings, IconCheckmark} from 'app/icons';
+import {IconAdd, IconInfo, IconSettings, IconCheckmark} from 'app/icons';
 import {Organization} from 'app/types';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -323,7 +323,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               )}
             </PageHeader>
 
-            <Alert type="info" icon="icon-circle-info">
+            <Alert type="info" icon={<IconInfo size="md" />}>
               {tct(
                 'This page is in beta and currently only shows [link:metric alerts]. [contactLink:Please contact us if you have any feedback.]',
                 {

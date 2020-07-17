@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Link} from 'react-router';
 import * as queryString from 'query-string';
 import {Query} from 'history';
@@ -9,9 +10,8 @@ import DeviceName from 'app/components/deviceName';
 import {isUrl} from 'app/utils';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
-import InlineSvg from 'app/components/inlineSvg';
 import Version from 'app/components/version';
-import {IconOpen} from 'app/icons';
+import {IconOpen, IconInfo} from 'app/icons';
 
 type Props = {
   tag: EventTag;
@@ -68,7 +68,7 @@ const EventTagsPill = ({
                 search: locationSearch,
               }}
             >
-              <InlineSvg src="icon-circle-info" size="14px" />
+              <StyledIconInfo size="xs" />
             </Link>
           </VersionHoverCard>
         </div>
@@ -76,5 +76,10 @@ const EventTagsPill = ({
     </Pill>
   );
 };
+
+const StyledIconInfo = styled(IconInfo)`
+  position: relative;
+  top: 1px;
+`;
 
 export default EventTagsPill;

@@ -11,6 +11,7 @@ import Alert, {alertStyles} from 'app/components/alert';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import FirstEventIndicator from 'app/views/onboarding/projectSetup/firstEventIndicator';
+import {IconInfo} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import Panel from 'app/components/panels/panel';
 import PanelBody from 'app/components/panels/panelBody';
@@ -120,7 +121,7 @@ class ProjectDocs extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="warning" icon="icon-circle-info">
+      <Alert type="warning" icon={<IconInfo size="md" />}>
         {tct(
           `Looks like this getting started example is still undergoing some
            work and doesn't include an example for triggering an event quite
