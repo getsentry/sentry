@@ -5,8 +5,10 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.rules.actions.base import EventAction
 from sentry.models import Integration
+from sentry.utils import metrics
 
-from .utils import get_channel_id
+from .utils import get_channel_id, build_incident_card
+from .client import MsTeamsClient
 
 
 class MSTeamsNotifyServiceForm(forms.Form):
@@ -67,6 +69,30 @@ class MSTeamsNotifyServiceAction(EventAction):
 
     def is_enabled(self):
         return self.get_integrations().exists()
+
+    def after(self, event, state):
+        integration_id = self.get_option("team")
+        channel = self.get_option("channel_id")
+
+        try:
+            pass
+            integration = Integration.objects.get(
+                provider="msteams", organizations=self.project.organization, id=integration_id
+            )
+        except Integration.DoesNotExist:
+            return
+
+        def send_notification(event, futures):
+            rules = [f.rule for f in futures]
+            card = build_incident_card(event.group, event=event, rules=rules)
+
+            client = MsTeamsClient(integration)
+            client.send_card(channel, card)
+
+        key = u"msteams:{}:{}".format(integration_id, channel)
+
+        metrics.incr("notifications.sent", instance="msteams.notification", skip_internal=False)
+        yield self.future(send_notification, key=key)
 
     def render_label(self):
         try:
