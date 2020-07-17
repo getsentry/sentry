@@ -308,7 +308,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # View Event
-            self.browser.find_elements_by_css_selector('[data-test-id="view-event"]')[0].click()
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
             header = self.browser.element('[data-test-id="event-header"] span')
@@ -340,7 +340,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # View Event
-            self.browser.find_elements_by_css_selector('[data-test-id="view-event"]')[0].click()
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
             self.browser.snapshot("events-v2 - error event detail view")
@@ -367,16 +367,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Open the stack
-            self.browser.find_elements_by_css_selector('[data-test-id="open-stack"]')[0].click()
+            self.browser.elements('[data-test-id="open-stack"]')[0].click()
             self.wait_until_loaded()
 
             # View Event
-            self.browser.find_elements_by_css_selector('[data-test-id="view-event"]')[0].click()
+            self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
             # Open a span detail so we can check the search by trace link.
             # Click on the 6th one as a missing instrumentation span is inserted.
-            self.browser.find_elements_by_css_selector('[data-test-id="span-row"]')[6].click()
+            self.browser.elements('[data-test-id="span-row"]')[6].click()
 
             # Wait until the child event loads.
             child_button = '[data-test-id="view-child-transaction"]'
@@ -531,9 +531,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             assert self.browser.element_exists_by_test_id("grid-editable"), "table should exist."
-            headers = self.browser.find_elements_by_css_selector(
-                '[data-test-id="grid-editable"] thead th'
-            )
+            headers = self.browser.elements('[data-test-id="grid-editable"] thead th')
             expected = ["", "MESSAGE", "PROJECT", "ID"]
             actual = [header.text for header in headers]
             assert expected == actual
