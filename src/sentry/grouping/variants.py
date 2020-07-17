@@ -25,6 +25,9 @@ class BaseVariant(object):
         rv.update(self._get_metadata_as_dict())
         return rv
 
+    def encode_for_similarity(self):
+        raise NotImplementedError()
+
     def __repr__(self):
         return "<%s %r (%s)>" % (self.__class__.__name__, self.get_hash(), self.type)
 
@@ -44,6 +47,9 @@ class ChecksumVariant(BaseVariant):
             return "hashed legacy checksum"
         return "legacy checksum"
 
+    def encode_for_similarity(self):
+        return ()
+
     def get_hash(self):
         return self.hash
 
@@ -51,6 +57,9 @@ class ChecksumVariant(BaseVariant):
 class FallbackVariant(BaseVariant):
     id = "fallback"
     contributes = True
+
+    def encode_for_similarity(self):
+        return ()
 
     def get_hash(self):
         return hash_from_values([])
@@ -78,6 +87,9 @@ class ComponentVariant(BaseVariant):
     def get_hash(self):
         return self.component.get_hash()
 
+    def encode_for_similarity(self):
+        return self.component.encode_for_similarity()
+
     def _get_metadata_as_dict(self):
         return {"component": self.component.as_dict(), "config": self.config.as_dict()}
 
@@ -96,6 +108,9 @@ class CustomFingerprintVariant(BaseVariant):
 
     def get_hash(self):
         return hash_from_values(self.values)
+
+    def encode_for_similarity(self):
+        return ()
 
     def _get_metadata_as_dict(self):
         return {"values": self.values}

@@ -8,6 +8,7 @@ from sentry.grouping.strategies.base import strategy
 from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, has_url_origin
 from sentry.grouping.strategies.message import trim_message_for_grouping
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.similarity import ident_shingle, shingle, text_shingle, shingle_encoder
 
 
 _ruby_erb_func = re.compile(r"__\d{4,}_\d{4,}$")
@@ -68,7 +69,9 @@ def get_filename_component(abs_path, filename, platform, allow_file_origin=False
     # Only use the platform independent basename for grouping and
     # lowercase it
     filename = _basename_re.split(filename)[-1].lower()
-    filename_component = GroupingComponent(id="filename", values=[filename])
+    filename_component = GroupingComponent(
+        id="filename", values=[filename], similarity_encoder=ident_shingle
+    )
 
     if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
@@ -91,7 +94,9 @@ def get_module_component(abs_path, module, platform):
     if module is None:
         return GroupingComponent(id="module")
 
-    module_component = GroupingComponent(id="module", values=[module])
+    module_component = GroupingComponent(
+        id="module", values=[module], similarity_encoder=ident_shingle
+    )
 
     if platform == "javascript" and "/" in module and abs_path and abs_path.endswith(module):
         module_component.update(contributes=False, hint="ignored bad javascript module")
@@ -155,7 +160,9 @@ def get_function_component(
     if not func:
         return GroupingComponent(id="function")
 
-    function_component = GroupingComponent(id="function", values=[func])
+    function_component = GroupingComponent(
+        id="function", values=[func], similarity_encoder=ident_shingle
+    )
 
     if platform == "ruby":
         if func.startswith("block "):
@@ -258,7 +265,9 @@ def get_contextline_component(frame, platform, function, with_context_line_file_
     if not line:
         return GroupingComponent(id="context-line")
 
-    component = GroupingComponent(id="context-line", values=[line])
+    component = GroupingComponent(
+        id="context-line", values=[line], similarity_encoder=ident_shingle
+    )
     if line:
         if len(frame.context_line) > 120:
             component.update(hint="discarded because line too long", contributes=False)
@@ -399,8 +408,16 @@ def get_stacktrace_component(stacktrace, config, variant, meta):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
     return config.enhancements.assemble_stacktrace_component(
-        values, frames_for_filtering, meta["event"].platform
+        values,
+        frames_for_filtering,
+        meta["event"].platform,
+        similarity_encoder=_encode_frames_for_similarity,
     )
+
+
+@shingle_encoder("frames-pairs")
+def _encode_frames_for_similarity(stacktrace):
+    return shingle(2, [component.encode_for_similarity() for component in stacktrace.values])
 
 
 def single_exception_common(exception, config, meta, with_value):
@@ -409,7 +426,11 @@ def single_exception_common(exception, config, meta, with_value):
     else:
         stacktrace_component = GroupingComponent(id="stacktrace")
 
-    type_component = GroupingComponent(id="type", values=[exception.type] if exception.type else [])
+    type_component = GroupingComponent(
+        id="type",
+        values=[exception.type] if exception.type else [],
+        similarity_encoder=ident_shingle,
+    )
 
     if exception.mechanism and exception.mechanism.synthetic:
         type_component.update(contributes=False, hint="ignored because exception is synthetic")
@@ -417,7 +438,7 @@ def single_exception_common(exception, config, meta, with_value):
     values = [stacktrace_component, type_component]
 
     if with_value:
-        value_component = GroupingComponent(id="value")
+        value_component = GroupingComponent(id="value", similarity_encoder=text_shingle(5))
 
         value_in = exception.value
         if value_in is not None:

@@ -1940,3 +1940,6 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 # attributes, which can be identified through the whole processing pipeline and
 # observed mainly for producing stable metrics.
 SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
+
+# Similarity config
+SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"

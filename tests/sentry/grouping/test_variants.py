@@ -11,6 +11,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
+from sentry.similarity.featuresv2 import _KNOWN_COMPONENT_LABELS
 
 
 def dump_variant(variant, lines=None, indent=0):
@@ -101,6 +102,9 @@ def test_event_hash_variant(insta_snapshot, config_name, test_name, log):
 
     rv = []
     for (key, value) in sorted(evt.get_grouping_variants().items()):
+        for label, _ in value.encode_for_similarity():
+            assert label in _KNOWN_COMPONENT_LABELS
+
         if rv:
             rv.append("-" * 74)
         rv.append("%s:" % key)

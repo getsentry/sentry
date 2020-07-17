@@ -4,10 +4,11 @@ import functools
 
 from rest_framework.response import Response
 
+from sentry import features as feature_flags
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Group
-from sentry.similarity import features
+from sentry import similarity
 from sentry.utils.functional import apply_values
 from sentry.utils.compat import map
 from sentry.utils.compat import filter
@@ -15,6 +16,11 @@ from sentry.utils.compat import filter
 
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
     def get(self, request, group):
+        if feature_flags.has("projects:similarity-view-v2", group.project):
+            features = similarity.features2
+        else:
+            features = similarity.features
+
         limit = request.GET.get("limit", None)
         if limit is not None:
             limit = int(limit) + 1  # the target group will always be included
