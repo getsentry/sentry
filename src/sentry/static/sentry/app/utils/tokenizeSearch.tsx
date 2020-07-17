@@ -153,7 +153,9 @@ export class QueryResults {
         for (let j = i + 1; j < this.tokens.length; j++) {
           const nextToken = this.tokens[j];
           if (isOp(nextToken) && nextToken.value === '(') {
-            // Continue down to the nested parens
+            // Continue down to the nested parens. We can skip i forward since we know
+            // everything between i and j is NOT an open paren.
+            i = j - 1;
             break;
           } else if (!isOp(nextToken)) {
             if (alreadySeen) {
@@ -162,7 +164,7 @@ export class QueryResults {
             }
             alreadySeen = true;
           } else if (isOp(nextToken) && nextToken.value === ')') {
-            // We found another paren with only one term inside. Delete these.
+            // We found another paren with zero or one term inside. Delete the pair.
             parensToDelete = [i, j];
             break;
           }
