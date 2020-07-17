@@ -90,33 +90,33 @@ const SUBSCRIPTION_REASONS = {
  * @returns Reason for subscription
  */
 export function getSubscriptionReason(group, removeLinks = false) {
-  if (group.isSubscribed) {
-    if (group.subscriptionDetails) {
-      const {reason} = group.subscriptionDetails;
-      if (reason === 'unknown') {
-        return t(
-          "You're receiving workflow notifications because you are subscribed to this issue."
-        );
-      }
-
-      if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
-        return SUBSCRIPTION_REASONS[reason];
-      }
-    }
-
-    return tct(
-      "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
-      {
-        link: removeLinks ? <span /> : <a href="/account/settings/notifications/" />,
-      }
-    );
-  }
-
   if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
     return tct('You have [link:disabled workflow notifications] for this project.', {
       link: removeLinks ? <span /> : <a href="/account/settings/notifications/" />,
     });
   }
 
-  return t("You're not subscribed to this issue.");
+  if (!group.isSubscribed) {
+    return t("You're not subscribed to this issue.");
+  }
+
+  if (group.subscriptionDetails) {
+    const {reason} = group.subscriptionDetails;
+    if (reason === 'unknown') {
+      return t(
+        "You're receiving workflow notifications because you are subscribed to this issue."
+      );
+    }
+
+    if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+      return SUBSCRIPTION_REASONS[reason];
+    }
+  }
+
+  return tct(
+    "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
+    {
+      link: removeLinks ? <span /> : <a href="/account/settings/notifications/" />,
+    }
+  );
 }
