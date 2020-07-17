@@ -40,8 +40,8 @@
       // Use the stub file for typechecking. Webpack resolver will use the real files
       // based on configuration.
       "integration-docs-platforms": [
-          "tests/fixtures/integration-docs/_platforms.json",
-          "src/sentry/integration-docs/_platforms.json"
+        "tests/fixtures/integration-docs/_platforms.json",
+        "src/sentry/integration-docs/_platforms.json"
       ]
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
