@@ -182,8 +182,8 @@ def find_histogram_buckets(field, params, conditions):
             u"histogram(...) requires a bucket value between 1 and 500, not {}".format(columns[1])
         )
 
-    max_alias = u"max_{}".format(column)
-    min_alias = u"min_{}".format(column)
+    max_alias = u"max_{}".format(column.replace(".", "_"))
+    min_alias = u"min_{}".format(column.replace(".", "_"))
 
     conditions = deepcopy(conditions) if conditions else []
     found = False
@@ -196,13 +196,20 @@ def find_histogram_buckets(field, params, conditions):
     snuba_filter = eventstore.Filter(conditions=conditions)
     translated_args, _ = resolve_discover_aliases(snuba_filter)
 
+    aggregations = [["max", "duration", max_alias], ["min", "duration", min_alias]]
+    if column.startswith("metrics."):
+        aggregations = [
+            ["max", [["toFloat32OrNull", ["tags[{}]".format(column)]]], max_alias],
+            ["min", [["toFloat32OrNull", ["tags[{}]".format(column)]]], min_alias],
+        ]
+
     results = raw_query(
         filter_keys={"project_id": params.get("project_id")},
         start=params.get("start"),
         end=params.get("end"),
         dataset=Dataset.Discover,
         conditions=translated_args.conditions,
-        aggregations=[["max", "duration", max_alias], ["min", "duration", min_alias]],
+        aggregations=aggregations,
     )
     if len(results["data"]) != 1:
         # If there are no transactions, so no max duration, return one empty bucket
@@ -855,10 +862,20 @@ def top_events_timeseries(
                     )
                 elif None in values:
                     non_none_values = [value for value in values if value is not None]
-                    condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
+                    if field.startswith("metrics."):
+                        condition = [[resolve_discover_column(field), "!=", ""]]
+                    else:
+                        condition = [[["isNull", [resolve_discover_column(field)]], "=", 1]]
+
                     if non_none_values:
+                        if field.startswith("metrics."):
+                            non_none_values = [six.text_type(val) for val in non_none_values]
                         condition.append([resolve_discover_column(field), "IN", non_none_values])
                     snuba_filter.conditions.append(condition)
+                elif field.startswith("metrics."):
+                    snuba_filter.conditions.append(
+                        [["toFloat32OrNull", [resolve_discover_column(field)]], "IN", values]
+                    )
                 else:
                     snuba_filter.conditions.append([resolve_discover_column(field), "IN", values])
 

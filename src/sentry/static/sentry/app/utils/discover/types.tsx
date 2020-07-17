@@ -9,6 +9,7 @@ export enum DisplayModes {
   TOP5 = 'top5',
   DAILY = 'daily',
   DAILYTOP5 = 'dailytop5',
+  HISTOGRAM = 'histogram',
 }
 
 export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
@@ -17,6 +18,7 @@ export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.TOP5, label: t('Top 5 Period')},
   {value: DisplayModes.DAILY, label: t('Total Daily')},
   {value: DisplayModes.DAILYTOP5, label: t('Top 5 Daily')},
+  {value: DisplayModes.HISTOGRAM, label: t('Histogram')},
 ];
 
 export const DISPLAY_MODE_FALLBACK_OPTIONS = {
@@ -25,6 +27,7 @@ export const DISPLAY_MODE_FALLBACK_OPTIONS = {
   [DisplayModes.TOP5]: DisplayModes.DEFAULT,
   [DisplayModes.DAILY]: DisplayModes.DAILY,
   [DisplayModes.DAILYTOP5]: DisplayModes.DAILY,
+  [DisplayModes.HISTOGRAM]: DisplayModes.DEFAULT,
 };
 
 // default list of yAxis options

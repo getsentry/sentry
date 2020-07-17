@@ -18,6 +18,7 @@ import {canIncludePreviousPeriod} from 'app/components/charts/utils';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {getDuration} from 'app/utils/formatters';
 
 export type TimeSeriesData = {
   // timeseries data
@@ -135,6 +136,8 @@ type EventsRequestPartialProps = {
    * in the `results` child render function.
    */
   topEvents?: number;
+
+  histogram?: boolean;
   /**
    * How to order results when getting top events.
    */
@@ -329,36 +332,87 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
       return null;
     }
 
-    return {
-      seriesName: this.props.previousSeriesName ?? 'Previous',
-      data: this.calculateTotalsPerTimestamp(
-        previous,
-        (_timestamp, _countArray, i) => current[i][0] * 1000
-      ),
-    };
+    try {
+      return {
+        seriesName: this.props.previousSeriesName ?? 'Previous',
+        data: this.calculateTotalsPerTimestamp(
+          previous,
+          (_timestamp, _countArray, i) => current[i][0] * 1000
+        ),
+      };
+    } catch {
+      // HACK: we just switched from histogram back
+      // histogram data is incompatible with the timeseries data
+      // so lets just return something
+      return null;
+    }
   }
 
   /**
    * Aggregate all counts for each time stamp
    */
   transformAggregatedTimeseries(data: EventsStatsData, seriesName: string = ''): Series {
-    return {
-      seriesName,
-      data: this.calculateTotalsPerTimestamp(data),
-    };
+    try {
+      return {
+        seriesName,
+        data: this.calculateTotalsPerTimestamp(data),
+      };
+    } catch {
+      // HACK: we just switched from histogram back
+      // histogram data is incompatible with the timeseries data
+      // so lets just return something
+      return {
+        seriesName,
+        data: [],
+      };
+    }
   }
 
   /**
    * Transforms query response into timeseries data to be used in a chart
    */
   transformTimeseriesData(data: EventsStatsData, seriesName?: string): Series[] {
+    try {
+      return [
+        {
+          seriesName: seriesName || 'Current',
+          data: data.map(([timestamp, countsForTimestamp]) => ({
+            name: timestamp * 1000,
+            value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+          })),
+        },
+      ];
+    } catch {
+      // HACK: we just switched from histogram back
+      // histogram data is incompatible with the timeseries data
+      // so lets just return something
+      return [];
+    }
+  }
+
+  transformHistogramData(data: any, seriesName?: string): Series[] {
+    const bucketWidth = (() => {
+      return data.length > 2
+        ? data[1].histogram_transaction_duration_15 -
+            data[0].histogram_transaction_duration_15
+        : 0;
+    })();
+
+    const seriesData = data.map(item => {
+      const bucket = Object.keys(item)
+        .filter(k => k.startsWith('histogram'))
+        .map(k => item[k])[0];
+      const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
+      return {
+        value: item.count,
+        name: getDuration(midPoint / 1000, 2, true),
+      };
+    });
+
     return [
       {
-        seriesName: seriesName || 'Current',
-        data: data.map(([timestamp, countsForTimestamp]) => ({
-          name: timestamp * 1000,
-          value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-        })),
+        seriesName: seriesName || t('Current'),
+        data: seriesData,
       },
     ];
   }
@@ -370,20 +424,26 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
     const {data, totals} = response;
     const {
+      histogram,
       includeTransformedData,
       includeTimeAggregation,
       timeAggregationSeriesName,
     } = this.props;
+
     const {current, previous} = this.getData(data);
-    const transformedData = includeTransformedData
+    const transformedData = histogram
+      ? this.transformHistogramData(current, this.props.currentSeriesName)
+      : includeTransformedData
       ? this.transformTimeseriesData(current, this.props.currentSeriesName)
       : [];
-    const previousData = includeTransformedData
-      ? this.transformPreviousPeriodData(current, previous)
-      : null;
-    const timeAggregatedData = includeTimeAggregation
-      ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName || '')
-      : {};
+    const previousData =
+      !histogram && includeTransformedData
+        ? this.transformPreviousPeriodData(current, previous)
+        : null;
+    const timeAggregatedData =
+      !histogram && includeTimeAggregation
+        ? this.transformAggregatedTimeseries(current, timeAggregationSeriesName || '')
+        : {};
     return {
       data: transformedData,
       allData: data,

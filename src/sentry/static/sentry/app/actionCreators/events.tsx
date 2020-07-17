@@ -36,6 +36,7 @@ type Options = {
   referenceEvent?: string;
   keyTransactions?: boolean;
   topEvents?: number;
+  histogram?: boolean;
   orderby?: string;
 };
 
@@ -70,6 +71,7 @@ export const doEventsRequest = (
     referenceEvent,
     keyTransactions,
     topEvents,
+    histogram,
     orderby,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
@@ -92,6 +94,20 @@ export const doEventsRequest = (
   // ending times are the same (at least for daily intervals). This is
   // the tradeoff for now.
   const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
+
+  if (histogram) {
+    const baseUrl = `/organizations/${organization.slug}/eventsv2/`;
+    const {interval: _interval, yAxis: _yAxis, ...restQuery} = urlQuery;
+    const yAxisStr = yAxis as string;
+    return api.requestPromise(baseUrl, {
+      query: {
+        ...restQuery,
+        ...periodObj,
+        field: [`histogram(${yAxisStr}, 50)`, 'count()'],
+        sort: `histogram_${yAxisStr.replace('.', '_')}_50`,
+      },
+    });
+  }
 
   return api.requestPromise(`${getBaseUrl(organization, keyTransactions)}`, {
     query: {

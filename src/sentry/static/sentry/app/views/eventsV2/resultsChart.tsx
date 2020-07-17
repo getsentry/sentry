@@ -61,6 +61,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
     const isPeriod = display === DisplayModes.DEFAULT || display === DisplayModes.TOP5;
     const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
     const isPrevious = display === DisplayModes.PREVIOUS;
+    const isHistogram = display === DisplayModes.HISTOGRAM;
 
     return (
       <React.Fragment>
@@ -84,6 +85,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               interval={eventView.interval}
               showDaily={isDaily}
               topEvents={isTopEvents ? TOP_N : undefined}
+              showHistogram={isHistogram}
               orderby={isTopEvents ? decodeScalar(apiPayload.sort) : undefined}
               utc={utc === 'true'}
               confirmedQuery={confirmedQuery}

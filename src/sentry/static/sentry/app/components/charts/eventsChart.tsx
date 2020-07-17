@@ -35,6 +35,7 @@ type ChartProps = {
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
   showDaily?: boolean;
+  showHistogram?: boolean;
   interval?: string;
   yAxis: string;
 };
@@ -56,6 +57,7 @@ class Chart extends React.Component<ChartProps, State> {
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
     showDaily: PropTypes.bool,
+    showHistogram: PropTypes.bool,
     yAxis: PropTypes.string,
   };
 
@@ -89,8 +91,8 @@ class Chart extends React.Component<ChartProps, State> {
   }
 
   getChartComponent() {
-    const {showDaily, timeseriesData, yAxis} = this.props;
-    if (showDaily) {
+    const {showDaily, showHistogram, timeseriesData, yAxis} = this.props;
+    if (showDaily || showHistogram) {
       return BarChart;
     }
     if (timeseriesData.length > 1) {
@@ -134,6 +136,7 @@ class Chart extends React.Component<ChartProps, State> {
       showLegend,
       currentSeriesName,
       previousSeriesName,
+      showHistogram,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
@@ -165,6 +168,33 @@ class Chart extends React.Component<ChartProps, State> {
     const series = Array.isArray(releaseSeries)
       ? [...timeseriesData, ...releaseSeries]
       : timeseriesData;
+
+    if (showHistogram) {
+      return (
+        <Component
+          grid={{
+            left: '24px',
+            right: '24px',
+            top: '32px',
+            bottom: '12px',
+          }}
+          xAxis={{
+            type: 'category',
+            truncate: true,
+            axisLabel: {
+              margin: 20,
+            },
+            axisTick: {
+              interval: 0,
+              alignWithLabel: true,
+            },
+          }}
+          yAxis={{type: 'value'}}
+          series={series}
+          colors={colors}
+        />
+      );
+    }
 
     return (
       <Component
@@ -289,6 +319,7 @@ class EventsChart extends React.Component<Props> {
     topEvents: PropTypes.number,
     field: PropTypes.arrayOf(PropTypes.string),
     showDaily: PropTypes.bool,
+    showHistogram: PropTypes.bool,
     orderby: PropTypes.string,
     confirmedQuery: PropTypes.bool,
   };
@@ -314,6 +345,7 @@ class EventsChart extends React.Component<Props> {
       interval,
       showDaily,
       topEvents,
+      showHistogram,
       orderby,
       confirmedQuery,
       ...props
@@ -381,6 +413,7 @@ class EventsChart extends React.Component<Props> {
             stacked={typeof topEvents === 'number' && topEvents > 0}
             yAxis={yAxis}
             showDaily={showDaily}
+            showHistogram={showHistogram}
           />
         </TransitionChart>
       );
@@ -428,6 +461,7 @@ class EventsChart extends React.Component<Props> {
             field={field}
             orderby={orderby}
             topEvents={topEvents}
+            histogram={showHistogram}
             confirmedQuery={confirmedQuery}
           >
             {eventData =>

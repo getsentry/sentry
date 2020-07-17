@@ -2412,8 +2412,13 @@ describe('EventView.getDisplayOptions()', function() {
   it('should return default options', function() {
     const eventView = new EventView({
       ...state,
-      // there needs to exist an aggregate or TOP 5 modes will be disabled
-      fields: [{field: 'count()'}],
+      fields: [
+        // there needs to exist an aggregate or TOP 5 modes will be disabled
+        {field: 'count()'},
+
+        // also needs a metric or HISTOGRAM mode will be disabled
+        {field: 'metrics.thing'},
+      ],
     });
 
     expect(eventView.getDisplayOptions()).toEqual(DISPLAY_MODE_OPTIONS);
