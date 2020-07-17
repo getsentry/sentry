@@ -308,24 +308,17 @@ class Browser(object):
             # Note: below will fail if these directories do not exist
 
             if not mobile_only:
+                # This will make sure we resize viewport height to fit contents
                 with self.full_viewport():
-                    # calling this with no width/height will resize height to fit
-                    # content's height so that we can take full page screenshot
-                    #  self.set_window_size(remember_previous_size=True)
-
-                    # finds body tag to screenshot in order to avoid scrollbar
-                    self.driver.find_element_by_tag_name("body").screenshot(
+                    self.driver.screenshot(
                         u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
                     )
 
             with self.mobile_viewport():
-                # switch to mobile width and a fixed height
-
-                self.driver.find_element_by_tag_name("body").screenshot(
+                # switch to a mobile sized viewport
+                self.driver.screenshot(
                     u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
                 )
-
-            #  self.reset_window_size()
 
         self.percy.snapshot(name=name)
         return self
