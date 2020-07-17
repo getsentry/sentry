@@ -103,7 +103,7 @@ class Browser(object):
             # In order to set window height to content height, we must make sure
             # width has not changed (otherwise contents will shift,
             # and we require two resizes)
-            self.driver.set_window_size(width, 1)
+            self.driver.set_window_size(width, 812)
             height = self.driver.execute_script("return document.body.parentNode.scrollHeight")
         else:
             height = (
@@ -127,7 +127,7 @@ class Browser(object):
         self.set_window_size(self._last_window_size["width"], self._last_window_size["height"])
         self._last_window_size = None
 
-    def set_to_mobile_size(self, width=375, height=812, **kwargs):
+    def set_to_mobile_size(self, width=375, height=None, **kwargs):
         """
         Sets window size to a "mobile" dimensions
 
