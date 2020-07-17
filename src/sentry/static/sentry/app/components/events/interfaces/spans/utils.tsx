@@ -589,9 +589,11 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
     return false;
   }
   // based on https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/version.ts
-  return ['sentry.javascript.browser', 'sentry.javascript.react'].includes(
-    sdkName.toLowerCase()
-  );
+  return [
+    'sentry.javascript.browser',
+    'sentry.javascript.react',
+    'sentry.javascript.gatsby',
+  ].includes(sdkName.toLowerCase());
 }
 
 // Durationless ops from: https://github.com/getsentry/sentry-javascript/blob/0defcdcc2dfe719343efc359d58c3f90743da2cd/packages/apm/src/integrations/tracing.ts#L629-L688
