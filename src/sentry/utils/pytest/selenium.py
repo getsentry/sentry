@@ -116,8 +116,8 @@ class Browser(object):
             "current": {"width": width, "height": height},
         }
 
-    def set_viewport(self, width, height):
-        size = self.set_window_size(width, height)
+    def set_viewport(self, width, height, fit_content):
+        size = self.set_window_size(width, height, fit_content)
         try:
             yield size
         finally:
