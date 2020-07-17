@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {shallow, mount} from 'sentry-test/enzyme';
+import {shallow, mountWithTheme} from 'sentry-test/enzyme';
 
 import GroupActions from 'app/views/organizationGroupDetails/actions';
 import ConfigStore from 'app/stores/configStore';
@@ -47,7 +47,7 @@ describe('GroupActions', function() {
     });
 
     it('can subscribe', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <GroupActions
           group={TestStubs.Group({
             id: '1337',
@@ -88,7 +88,7 @@ describe('GroupActions', function() {
     });
 
     it('can bookmark', function() {
-      const wrapper = mount(
+      const wrapper = mountWithTheme(
         <GroupActions
           group={TestStubs.Group({
             id: '1337',

@@ -21,7 +21,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
-import {IconDelete, IconStar} from 'app/icons';
+import {IconDelete, IconStar, IconBell} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
@@ -32,7 +32,6 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import Tooltip from 'app/components/tooltip';
-import {IconBell} from 'app/icons/iconBell';
 
 import {getSubscriptionReason} from './utils';
 
