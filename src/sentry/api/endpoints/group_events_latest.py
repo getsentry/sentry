@@ -43,6 +43,7 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
                     event.organization.slug, event.project.slug, event.event_id
                 ),
                 request=request,
+                data=request.query_params,
             )
         except client.ApiError as e:
             return Response(e.body, status=e.status_code)
