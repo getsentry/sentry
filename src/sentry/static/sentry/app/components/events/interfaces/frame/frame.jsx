@@ -418,7 +418,7 @@ const DefaultLine = styled('div')`
 
 const HintStatus = styled('span')`
   position: relative;
-  top: 1px;
+  top: 2px;
   margin: 0 ${space(0.75)} 0 -${space(0.25)};
 `;
 
