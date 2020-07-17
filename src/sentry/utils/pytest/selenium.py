@@ -88,7 +88,7 @@ class Browser(object):
 
         return self.driver.execute_script("return document.body.parentNode.scrollHeight")
 
-    def set_window_size(self, width=None, height=None):
+    def set_window_size(self, width=None, height=None, fit_content=False):
         """
         Sets the window size.
 
@@ -98,10 +98,9 @@ class Browser(object):
         """
 
         previous_size = self.driver.get_window_size()
-
         width = width if width is not None else previous_size["width"]
 
-        if height is None and width != previous_size["width"]:
+        if fit_content:
             # In order to set window height to content height, we must make sure
             # width has not changed (otherwise contents will shift,
             # and we require two resizes)
@@ -127,11 +126,11 @@ class Browser(object):
 
     @contextmanager
     def full_viewport(self, width=None, height=None):
-        return self.set_viewport(width, height)
+        return self.set_viewport(width, height, fit_content=True)
 
     @contextmanager
-    def mobile_viewport(self, width=375, height=None):
-        return self.set_viewport(width, height)
+    def mobile_viewport(self, width=375, height=812):
+        return self.set_viewport(width, height, fit_content=True)
 
     def element(self, selector=None, xpath=None):
         """
