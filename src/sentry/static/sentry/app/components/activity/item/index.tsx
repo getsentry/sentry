@@ -80,15 +80,14 @@ function ActivityItem({
   hideDate = false,
   showTime = false,
 }: Props) {
-  const showdate = !hideDate && date;
-  const dateEnded =
-    !hideDate && date && interval
-      ? moment(date)
-          .add(interval, 'minutes')
-          .utc()
-          .format()
-      : undefined;
-  const showDateEnded = !hideDate && dateEnded;
+  const showDate = !hideDate && date && !interval;
+  const showRange = !hideDate && date && interval;
+  const dateEnded = showRange
+    ? moment(date)
+        .add(interval, 'minutes')
+        .utc()
+        .format()
+    : undefined;
   const timeOnly = Boolean(
     date && dateEnded && moment(date).date() === moment(dateEnded).date()
   );
@@ -106,17 +105,10 @@ function ActivityItem({
         {header && !isRenderFunc<ChildFunction>(header) && (
           <ActivityHeader>
             <ActivityHeaderContent>{header}</ActivityHeaderContent>
+            {date && showDate && !showTime && <StyledTimeSince date={date} />}
+            {date && showDate && showTime && <StyledDateTime timeOnly date={date} />}
 
-            {date &&
-              showdate &&
-              !showDateEnded &&
-              (showTime ? (
-                <StyledDateTime timeOnly date={date} />
-              ) : (
-                <StyledTimeSince date={date} />
-              ))}
-
-            {date && dateEnded && showdate && showDateEnded && (
+            {showRange && (
               <StyledDateTimeWindow>
                 <StyledDateTime timeOnly={timeOnly} timeAndDate={!timeOnly} date={date} />
                 {' — '}
