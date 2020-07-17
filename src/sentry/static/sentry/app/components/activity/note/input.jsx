@@ -211,7 +211,7 @@ class NoteInput extends React.Component {
             </NoteInputNavTabLink>
           </NoteInputNavTab>
           <MarkdownTab>
-            <IconMarkdown size="20px" />
+            <IconMarkdown />
             <MarkdownSupported>{t('Markdown supported')}</MarkdownSupported>
           </MarkdownTab>
         </NoteInputNavTabs>
