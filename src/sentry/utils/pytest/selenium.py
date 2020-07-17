@@ -310,13 +310,13 @@ class Browser(object):
             if not mobile_only:
                 # This will make sure we resize viewport height to fit contents
                 with self.full_viewport():
-                    self.driver.screenshot(
+                    self.driver.find_element_by_tag_name("body").screenshot(
                         u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
                     )
 
             with self.mobile_viewport():
                 # switch to a mobile sized viewport
-                self.driver.screenshot(
+                self.driver.find_element_by_tag_name("body").screenshot(
                     u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
                 )
 
