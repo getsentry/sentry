@@ -265,8 +265,11 @@ describe('DiscoverContainer', function() {
   });
 
   describe('no access', function() {
-    it('redirects to discover v2', async function() {
-      const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
+    it('redirects to discover query if they have access to discover-query', async function() {
+      const organization = TestStubs.Organization({
+        projects: [TestStubs.Project()],
+        features: ['discover-query'],
+      });
       const router = TestStubs.router();
       mountWithTheme(
         <DiscoverContainer
@@ -280,6 +283,24 @@ describe('DiscoverContainer', function() {
       );
       expect(router.replace).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/discover/queries/`
+      );
+    });
+
+    it('redirects to discover results if they have no access to discover-query', async function() {
+      const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
+      const router = TestStubs.router();
+      mountWithTheme(
+        <DiscoverContainer
+          location={{query: {}, search: ''}}
+          params={{}}
+          selection={{datetime: {}}}
+          organization={organization}
+          router={router}
+        />,
+        TestStubs.routerContext()
+      );
+      expect(router.replace).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/discover/results/`
       );
     });
   });
