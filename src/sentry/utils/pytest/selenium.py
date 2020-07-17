@@ -127,7 +127,7 @@ class Browser(object):
         self.set_window_size(self._last_window_size["width"], self._last_window_size["height"])
         self._last_window_size = None
 
-    def set_to_mobile_size(self, width=375, height=None, **kwargs):
+    def set_to_mobile_size(self, width=375, height=812, **kwargs):
         """
         Sets window size to a "mobile" dimensions
 
