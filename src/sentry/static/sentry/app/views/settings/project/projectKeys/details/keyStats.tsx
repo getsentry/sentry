@@ -23,7 +23,16 @@ type Props = {
   'params'
 >;
 
-const getInitialState = () => {
+type State = {
+  since: number;
+  until: number;
+  loading: boolean;
+  error: boolean;
+  stats: any;
+  emptyStats: boolean;
+};
+
+const getInitialState = (): State => {
   const until = Math.floor(new Date().getTime() / 1000);
   return {
     since: until - 3600 * 24 * 30,
@@ -35,7 +44,7 @@ const getInitialState = () => {
   };
 };
 
-class KeyStats extends React.Component<Props> {
+class KeyStats extends React.Component<Props, State> {
   state = getInitialState();
 
   componentDidMount() {

@@ -12,7 +12,7 @@ import theme from 'app/utils/theme';
 import {formatFloat} from 'app/utils/formatters';
 
 type Point = {x: number; y: number[]; label?: string};
-type Points = Array<Point>;
+type Points = Point[];
 type Series = Array<{
   data: Array<{x: number; y: number}>;
   label?: string;
@@ -27,19 +27,19 @@ type Marker = {
 };
 
 type DefaultProps = {
-  className?: string;
-  label?: string;
+  className: string;
+  label: string;
   /**
    * @deprecated
    */
-  points?: Points;
-  series?: Series;
-  markers?: Array<Marker>;
-  barClasses?: string[];
+  points: Points;
+  series: Series;
+  markers: Marker[];
+  barClasses: string[];
   /**
    * The amount of space between bars. Also represents an svg point
    */
-  gap?: number;
+  gap: number;
 };
 
 type Props = DefaultProps & {

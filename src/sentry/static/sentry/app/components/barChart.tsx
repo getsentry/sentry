@@ -3,7 +3,7 @@ import React from 'react';
 
 import StackedBarChart from 'app/components/stackedBarChart';
 
-type Props = Omit<typeof StackedBarChart.defaultProps, 'points'> & {
+type Props = Partial<Omit<React.ComponentProps<typeof StackedBarChart>, 'points'>> & {
   points: Array<{x: number; y: number; label?: string}>;
 };
 
