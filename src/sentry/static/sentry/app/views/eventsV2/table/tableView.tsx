@@ -263,52 +263,48 @@ class TableView extends React.Component<TableViewProps> {
           // If the value is null/undefined create a has !has condition.
           if (value === null || value === undefined) {
             // Adding a null value is the same as excluding truthy values.
-            if (!query.hasOwnProperty('!has')) {
-              query['!has'] = [];
-            }
             // Remove inclusion if it exists.
-            if (Array.isArray(query.has) && query.has.length) {
-              query.has = query.has.filter(item => item !== column.name);
+            const has = query.getTags('has');
+            if (Array.isArray(has) && has.length) {
+              query.setTag(
+                'has',
+                has.filter(item => item !== column.name)
+              );
             }
-            query['!has'].push(column.name);
+            query.addTag('!has', [column.name]);
           } else {
             // Remove exclusion if it exists.
-            delete query[`!${column.name}`];
-            query[column.name] = [`${value}`];
+            query.removeTag(`!${column.name}`).setTag(column.name, [`${value}`]);
           }
           break;
         case Actions.EXCLUDE:
           if (value === null || value === undefined) {
             // Excluding a null value is the same as including truthy values.
-            if (!query.hasOwnProperty('has')) {
-              query.has = [];
-            }
             // Remove exclusion if it exists.
-            if (Array.isArray(query['!has']) && query['!has'].length) {
-              query['!has'] = query['!has'].filter(item => item !== column.name);
+            const notHas = query.getTags('!has');
+            if (Array.isArray(notHas) && notHas.length) {
+              query.setTag(
+                '!has',
+                notHas.filter(item => item !== column.name)
+              );
             }
-            query.has.push(column.name);
+            query.addTag('has', [column.name]);
           } else {
             // Remove positive if it exists.
-            delete query[column.name];
+            query.removeTag(column.name);
             // Negations should stack up.
             const negation = `!${column.name}`;
-            if (!query.hasOwnProperty(negation)) {
-              query[negation] = [];
-            }
-            query[negation].push(`${value}`);
+            query.addTag(negation, [`${value}`]);
           }
           break;
         case Actions.SHOW_GREATER_THAN: {
           // Remove query token if it already exists
-          delete query[column.name];
-          query[column.name] = [`>${value}`];
+          query.setTag(column.name, [`>${value}`]);
           break;
         }
         case Actions.SHOW_LESS_THAN: {
           // Remove query token if it already exists
-          delete query[column.name];
-          query[column.name] = [`<${value}`];
+          query.setTag(column.name, [`<${value}`]);
           break;
         }
         case Actions.TRANSACTION: {
