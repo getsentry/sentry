@@ -204,25 +204,11 @@ class DiscoverContainer extends React.Component<Props, State> {
   renderNoAccess = () => {
     const {router, organization} = this.props;
 
-    const redirectDiscoverQuery = () => (
-      <Redirect
-        router={router}
-        to={`/organizations/${organization.slug}/discover/results/`}
-      />
-    );
+    const route = organization.features.includes('discover-query')
+      ? `/organizations/${organization.slug}/discover/queries/`
+      : `/organizations/${organization.slug}/discover/results/`;
 
-    return (
-      <Feature
-        features={['discover-query']}
-        organization={organization}
-        renderDisabled={redirectDiscoverQuery}
-      >
-        <Redirect
-          router={router}
-          to={`/organizations/${organization.slug}/discover/queries/`}
-        />
-      </Feature>
-    );
+    return <Redirect router={router} to={route} />;
   };
 
   render() {
