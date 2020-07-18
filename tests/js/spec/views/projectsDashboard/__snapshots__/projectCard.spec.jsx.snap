@@ -667,7 +667,7 @@ exports[`ProjectCard renders 1`] = `
                     }
                   >
                     <BarChart
-                      className="css-4cbp86-StyledBarChart e1aigaye0"
+                      className="css-4cbp86-StyledBarChart e1czsylf0"
                       gap={1.5}
                       height={60}
                       label="events"
@@ -690,7 +690,7 @@ exports[`ProjectCard renders 1`] = `
                             "chart-bar",
                           ]
                         }
-                        className="css-4cbp86-StyledBarChart e1aigaye0"
+                        className="css-4cbp86-StyledBarChart e1czsylf0"
                         gap={1.5}
                         height={60}
                         label="events"
@@ -712,23 +712,22 @@ exports[`ProjectCard renders 1`] = `
                           ]
                         }
                         series={Array []}
-                        width={null}
                       >
                         <StyledFigure
-                          className="css-4cbp86-StyledBarChart e1aigaye0 barchart"
+                          className="css-4cbp86-StyledBarChart e1czsylf0 barchart"
                           style={
                             Object {
                               "height": 60,
-                              "width": null,
+                              "width": undefined,
                             }
                           }
                         >
                           <figure
-                            className="e1aigaye0 barchart css-1law1hb-StyledFigure-StyledBarChart e5t71581"
+                            className="e1czsylf0 barchart css-1law1hb-StyledFigure-StyledBarChart e1r7vyxv1"
                             style={
                               Object {
                                 "height": 60,
-                                "width": null,
+                                "width": undefined,
                               }
                             }
                           >
@@ -750,7 +749,7 @@ exports[`ProjectCard renders 1`] = `
                             </span>
                             <SvgContainer>
                               <div
-                                className="css-6tdbe5-SvgContainer e5t71582"
+                                className="css-6tdbe5-SvgContainer e1r7vyxv2"
                               >
                                 <StyledSvg
                                   overflow="visible"
@@ -758,7 +757,7 @@ exports[`ProjectCard renders 1`] = `
                                   viewBox="0 0 100 400"
                                 >
                                   <svg
-                                    className="css-1w5ytn5-StyledSvg e5t71580"
+                                    className="css-1w5ytn5-StyledSvg e1r7vyxv0"
                                     overflow="visible"
                                     preserveAspectRatio="none"
                                     viewBox="0 0 100 400"
