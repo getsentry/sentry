@@ -3,14 +3,8 @@ import React from 'react';
 
 import StackedBarChart from 'app/components/stackedBarChart';
 
-type Props = {
+type Props = Omit<typeof StackedBarChart.defaultProps, 'points'> & {
   points: Array<{x: number; y: number; label?: string}>;
-  interval: string;
-  height: number;
-  width: number;
-  placement: string;
-  label: string;
-  markers: Array<{x: number; label?: string}>;
 };
 
 const BarChart = (props: Props) => {
@@ -30,7 +24,6 @@ BarChart.propTypes = {
   interval: PropTypes.string,
   height: PropTypes.number,
   width: PropTypes.number,
-  placement: PropTypes.string,
   label: PropTypes.string,
   markers: PropTypes.arrayOf(
     PropTypes.shape({

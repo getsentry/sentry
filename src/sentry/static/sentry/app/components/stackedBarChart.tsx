@@ -18,19 +18,28 @@ type Series = Array<{
   label?: string;
   color?: string;
 }>;
-type Marker = {x: number; label?: string; className: string};
+type Marker = {
+  x: number;
+  label?: string;
+  className?: string;
+  fill?: string;
+  offset?: number;
+};
 
 type DefaultProps = {
-  className: string;
-  label: string;
-  points: Points;
-  series: Series;
-  markers: Array<Marker>;
-  barClasses: string[];
+  className?: string;
+  label?: string;
+  /**
+   * @deprecated
+   */
+  points?: Points;
+  series?: Series;
+  markers?: Array<Marker>;
+  barClasses?: string[];
   /**
    * The amount of space between bars. Also represents an svg point
    */
-  gap: number;
+  gap?: number;
 };
 
 type Props = DefaultProps & {
@@ -39,8 +48,8 @@ type Props = DefaultProps & {
     idx: number,
     context: StackedBarChart
   ) => React.ReactNode;
-  height: React.CSSProperties['height'];
-  width: React.CSSProperties['width'];
+  height?: React.CSSProperties['height'];
+  width?: React.CSSProperties['width'];
   /**
    * Some bars need to be visible and interactable even if they are
    * empty. Use minHeights for that. Units are in svg points
@@ -217,7 +226,7 @@ class StackedBarChart extends React.Component<Props, State> {
     );
   }
 
-  timeLabelAsFull(point: Point): string {
+  timeLabelAsFull(point: Point | Marker): string {
     const timeMoment = moment(point.x * 1000);
     const format = use24Hours() ? 'MMM D, YYYY HH:mm' : 'lll';
     return timeMoment.format(format);
@@ -245,7 +254,7 @@ class StackedBarChart extends React.Component<Props, State> {
     );
   }
 
-  renderMarker(marker, index: number, pointWidth: number): React.ReactNode {
+  renderMarker(marker: Marker, index: number, pointWidth: number): React.ReactNode {
     const timeLabel = this.timeLabelAsFull(marker);
     const title = (
       <div style={{width: '130px'}}>
@@ -403,7 +412,9 @@ class StackedBarChart extends React.Component<Props, State> {
     const markerChildren: React.ReactNode[] = [];
     points.forEach((point, index) => {
       while (markers.length && markers[0].x <= point.x) {
-        markerChildren.push(this.renderMarker(markers.shift(), index, pointWidth));
+        markerChildren.push(
+          this.renderMarker(markers.shift() as Marker, index, pointWidth)
+        );
       }
 
       children.push(
