@@ -11,15 +11,24 @@ storiesOf('Charts|StackedBarChart (old)', module).add(
       <StackedBarChart
         series={[
           {
-            data: [{x: 1461099600, y: 31734}, {x: 1461103200, y: 36790}],
+            data: [
+              {x: 1461099600, y: 31734},
+              {x: 1461103200, y: 36790},
+            ],
             label: 'received',
           },
           {
-            data: [{x: 1461099600, y: 2867}, {x: 1461103200, y: 2742}],
+            data: [
+              {x: 1461099600, y: 2867},
+              {x: 1461103200, y: 2742},
+            ],
             label: 'rejected',
           },
           {
-            data: [{x: 1461099600, y: 0}, {x: 1461103200, y: 0}],
+            data: [
+              {x: 1461099600, y: 0},
+              {x: 1461103200, y: 0},
+            ],
             label: 'blacklisted',
           },
         ]}
