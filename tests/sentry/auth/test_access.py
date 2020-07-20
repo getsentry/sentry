@@ -209,8 +209,12 @@ class FromSentryAppTest(TestCase):
         self.out_of_scope_team = self.create_team(organization=self.out_of_scope_org)
 
         self.sentry_app = self.create_sentry_app(name="SlowDB", organization=self.org)
+        self.out_of_scope_sentry_app = self.create_sentry_app(
+            name="Other App", organization=self.out_of_scope_org
+        )
 
         self.proxy_user = self.sentry_app.proxy_user
+        self.out_of_scope_proxy_user = self.out_of_scope_sentry_app.proxy_user
 
         self.install = self.create_sentry_app_installation(
             organization=self.org, slug=self.sentry_app.slug, user=self.user
@@ -225,8 +229,22 @@ class FromSentryAppTest(TestCase):
         assert result.has_team_access(self.team)
         assert result.teams == [self.team]
 
-    def test_no_access(self):
+    def test_no_access_due_to_no_installation_unowned(self):
         result = access.from_sentry_app(self.proxy_user, self.out_of_scope_org)
+        assert not result.has_team_access(self.team)
+        assert not result.has_team_access(self.team2)
+        assert not result.has_team_access(self.out_of_scope_team)
+
+    def test_no_access_due_to_no_installation_owned(self):
+        result = access.from_sentry_app(self.out_of_scope_proxy_user, self.out_of_scope_org)
+        assert not result.has_team_access(self.team)
+        assert not result.has_team_access(self.team2)
+        assert not result.has_team_access(self.out_of_scope_team)
+
+    def test_no_access_due_to_invalid_user(self):
+        result = access.from_sentry_app(self.out_of_scope_proxy_user, self.org)
+        assert not result.has_team_access(self.team)
+        assert not result.has_team_access(self.team2)
         assert not result.has_team_access(self.out_of_scope_team)
 
     def test_no_deleted_projects(self):
