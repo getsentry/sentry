@@ -202,8 +202,6 @@ test-plugins:
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running plugin tests"
-	mkdir -p .artifacts/visual-snapshots/acceptance
-	mkdir -p .artifacts/visual-snapshots/acceptance-mobile
 
 ifndef TEST_GROUP
 	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
