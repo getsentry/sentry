@@ -627,6 +627,8 @@ class AlertRuleActivityType(Enum):
     CREATED = 1
     DELETED = 2
     UPDATED = 3
+    ENABLED = 4
+    DISABLED = 5
 
 
 class AlertRuleActivity(Model):
