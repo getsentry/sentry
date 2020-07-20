@@ -97,6 +97,7 @@ default_manager.add("organizations:slack-migration", OrganizationFeature)  # NOQ
 default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:subscription-graph", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 # XXX(mark) Don't use this feature it is going away soon.
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
