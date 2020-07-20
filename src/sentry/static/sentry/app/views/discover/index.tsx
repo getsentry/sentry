@@ -3,11 +3,14 @@ import {browserHistory, WithRouterProps} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
 import {getUserTimezone, getUtcToLocalDateObject} from 'app/utils/dates';
+import {t} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 import {GlobalSelection, Organization} from 'app/types';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import Redirect from 'app/utils/redirect';
 
 import Discover from './discover';
@@ -204,11 +207,14 @@ class DiscoverContainer extends React.Component<Props, State> {
   renderNoAccess = () => {
     const {router, organization} = this.props;
 
-    const route = organization.features.includes('discover-query')
-      ? `/organizations/${organization.slug}/discover/queries/`
-      : `/organizations/${organization.slug}/discover/results/`;
-
-    return <Redirect router={router} to={route} />;
+    if (
+      organization.features.includes('discover-query') ||
+      organization.features.includes('discover-basic')
+    ) {
+      return <Redirect router={router} to={getDiscoverLandingUrl(organization)} />;
+    } else {
+      return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    }
   };
 
   render() {

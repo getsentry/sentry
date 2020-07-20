@@ -265,7 +265,7 @@ describe('DiscoverContainer', function() {
   });
 
   describe('no access', function() {
-    it('redirects to discover query if they have access to discover-query', async function() {
+    it('redirects to discover query if they have access to discover-query', function() {
       const organization = TestStubs.Organization({
         projects: [TestStubs.Project()],
         features: ['discover-query'],
@@ -286,8 +286,11 @@ describe('DiscoverContainer', function() {
       );
     });
 
-    it('redirects to discover results if they have no access to discover-query', async function() {
-      const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
+    it('redirects to discover results if they have access to discover-basic', function() {
+      const organization = TestStubs.Organization({
+        projects: [TestStubs.Project()],
+        features: ['discover-basic'],
+      });
       const router = TestStubs.router();
       mountWithTheme(
         <DiscoverContainer
@@ -302,6 +305,20 @@ describe('DiscoverContainer', function() {
       expect(router.replace).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/discover/results/`
       );
+    });
+
+    it('shows no feature alert if they have no access', function() {
+      const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
+      const wrapper = mountWithTheme(
+        <DiscoverContainer
+          location={{query: {}, search: ''}}
+          params={{}}
+          selection={{datetime: {}}}
+          organization={organization}
+        />,
+        TestStubs.routerContext()
+      );
+      expect(wrapper.text()).toBe("You don't have access to this feature");
     });
   });
 });
