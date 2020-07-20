@@ -43,11 +43,7 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  tooltip?: (
-    point: {x: number; y?: number[]},
-    idx: number,
-    context: StackedBarChart
-  ) => React.ReactNode;
+  tooltip?: (point: Point, idx: number, context: StackedBarChart) => React.ReactNode;
   height?: React.CSSProperties['height'];
   width?: React.CSSProperties['width'];
   /**
