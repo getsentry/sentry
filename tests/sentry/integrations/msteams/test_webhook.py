@@ -11,7 +11,7 @@ from sentry.models import Integration
 from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
 
-from .test_utils import (
+from .test_helpers import (
     GENERIC_EVENT,
     EXAMPLE_MEMBER_ADDED,
     EXAMPLE_MEMBER_REMOVED,

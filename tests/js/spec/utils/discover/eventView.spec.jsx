@@ -2184,15 +2184,21 @@ describe('EventView.getGlobalSelection()', function() {
     const eventView = new EventView({});
 
     expect(eventView.getGlobalSelection()).toMatchObject({
-      project: [],
-      start: undefined,
-      end: undefined,
-      statsPeriod: undefined,
-      environment: [],
+      projects: [],
+      environments: [],
+      datetime: {
+        start: null,
+        end: null,
+        period: '',
+
+        // event views currently do not support the utc option,
+        // see comment in EventView.getGlobalSelection
+        utc: true,
+      },
     });
   });
 
-  it('returns global selection', function() {
+  it('returns global selection query', function() {
     const state2 = {
       project: [42],
       start: 'start',
@@ -2203,7 +2209,60 @@ describe('EventView.getGlobalSelection()', function() {
 
     const eventView = new EventView(state2);
 
-    expect(eventView.getGlobalSelection()).toMatchObject(state2);
+    expect(eventView.getGlobalSelection()).toMatchObject({
+      projects: state2.project,
+      environments: state2.environment,
+      datetime: {
+        start: state2.start,
+        end: state2.end,
+        period: state2.statsPeriod,
+
+        // event views currently do not support the utc option,
+        // see comment in EventView.getGlobalSelection
+        utc: true,
+      },
+    });
+  });
+});
+
+describe('EventView.getGlobalSelectionQuery()', function() {
+  it('return default global selection query', function() {
+    const eventView = new EventView({});
+
+    expect(eventView.getGlobalSelectionQuery()).toMatchObject({
+      project: [],
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+      environment: [],
+
+      // event views currently do not support the utc option,
+      // see comment in EventView.getGlobalSelection
+      utc: 'true',
+    });
+  });
+
+  it('returns global selection query', function() {
+    const state2 = {
+      project: [42],
+      start: 'start',
+      end: 'end',
+      statsPeriod: '42d',
+      environment: ['prod'],
+    };
+
+    const eventView = new EventView(state2);
+
+    expect(eventView.getGlobalSelectionQuery()).toMatchObject({
+      ...state2,
+
+      // when generating the query, it converts numbers to strings
+      project: ['42'],
+
+      // event views currently do not support the utc option,
+      // see comment in EventView.getGlobalSelection
+      utc: 'true',
+    });
   });
 });
 
