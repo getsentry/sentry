@@ -191,6 +191,7 @@ export const AGGREGATIONS = {
   },
   apdex: {
     parameters: [
+      // TODO remove this default, but keep type constraints.
       {
         kind: 'value',
         dataType: 'number',
