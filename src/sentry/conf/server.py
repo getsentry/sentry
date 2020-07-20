@@ -894,7 +894,7 @@ SENTRY_FEATURES = {
     "organizations:sso-rippling": False,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
-    "organizations:subscription-graph": False,
+    "organizations:usage-stats-graph": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
