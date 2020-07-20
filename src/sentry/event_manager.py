@@ -80,6 +80,9 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
+# The blob size should be a power of two
+ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
+
 
 def pop_tag(data, key):
     data["tags"] = [kv for kv in data["tags"] if kv is None or kv[0] != key]
@@ -1310,7 +1313,7 @@ def save_attachment(
         type=attachment.type,
         headers={"Content-Type": attachment.content_type},
     )
-    file.putfile(six.BytesIO(data))
+    file.putfile(six.BytesIO(data), blob_size=ATTACHMENT_BLOB_SIZE)
 
     EventAttachment.objects.create(
         event_id=event_id,
