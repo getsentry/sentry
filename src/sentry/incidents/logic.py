@@ -1072,13 +1072,20 @@ def update_alert_rule_trigger_action(
         updated_fields["integration"] = integration
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
+        integration = updated_fields.get("integration", trigger_action.integration)
+        organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
         if type == AlertRuleTriggerAction.Type.SLACK.value:
-            integration = updated_fields.get("integration", trigger_action.integration)
             channel_id = get_alert_rule_trigger_action_slack_channel_id(
-                trigger_action.alert_rule_trigger.alert_rule.organization,
-                integration.id,
-                target_identifier,
+                organization, integration.id, target_identifier,
+            )
+
+            # Use the channel name for display
+            updated_fields["target_display"] = target_identifier
+            updated_fields["target_identifier"] = channel_id
+        elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
+            channel_id = get_alert_rule_trigger_action_msteams_channel_id(
+                organization, integration.id, target_identifier,
             )
 
             # Use the channel name for display
@@ -1115,6 +1122,18 @@ def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id,
             "Could not find channel %s. Channel may not exist, or Sentry may not "
             "have been granted permission to access it" % name
         )
+
+    return channel_id
+
+
+def get_alert_rule_trigger_action_msteams_channel_id(organization, integration_id, name):
+    from sentry.integrations.msteams.utils import get_channel_id
+
+    channel_id = get_channel_id(organization, integration_id, name)
+
+    if channel_id is None:
+        # no granting access for msteams channels unlike slack
+        raise InvalidTriggerActionError("Could not find channel %s." % name)
 
     return channel_id
 

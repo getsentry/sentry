@@ -527,6 +527,7 @@ class AlertRuleTriggerAction(Model):
         EMAIL = 0
         PAGERDUTY = 1
         SLACK = 2
+        MSTEAMS = 3
 
     class TargetType(Enum):
         # A direct reference, like an email address, Slack channel or PagerDuty service
