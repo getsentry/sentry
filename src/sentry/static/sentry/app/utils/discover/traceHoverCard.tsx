@@ -77,7 +77,7 @@ class TraceHoverCard extends React.Component<Props> {
       return null;
     }
 
-    const numOfTransactions = tableData?.data.length ?? 0;
+    const numOfTransactions = tableData?.data[0]?.count ?? 0;
 
     return (
       <div>
@@ -91,6 +91,21 @@ class TraceHoverCard extends React.Component<Props> {
 
   render() {
     const {traceId, location, api, orgId} = this.props;
+
+    // used to fetch number of transactions to display in hovercard
+    const numTransactionsEventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        name: `Transactions with Trace ID ${traceId}`,
+        fields: ['count()'],
+        query: `event.type:transaction trace:${traceId}`,
+        projects: [],
+        version: 2,
+      },
+      location
+    );
+
+    // used to create link to discover page with relevant query
     const traceEventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -116,7 +131,7 @@ class TraceHoverCard extends React.Component<Props> {
       <DiscoverQuery
         api={api}
         location={location}
-        eventView={traceEventView}
+        eventView={numTransactionsEventView}
         orgSlug={orgId}
       >
         {({isLoading, error, tableData}) => {
