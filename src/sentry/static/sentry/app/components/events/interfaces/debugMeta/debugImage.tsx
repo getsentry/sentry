@@ -124,19 +124,19 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
       case 'unused':
         return (
           <IconWrapper>
-            <IconCircle size="sm" />
+            <IconCircle />
           </IconWrapper>
         );
       case 'found':
         return (
           <IconWrapper>
-            <IconCheckmark isCircled size="sm" color="green500" />
+            <IconCheckmark isCircled color="green500" />
           </IconWrapper>
         );
       default:
         return (
           <IconWrapper>
-            <IconFlag size="sm" color="red400" />
+            <IconFlag color="red400" />
           </IconWrapper>
         );
     }
