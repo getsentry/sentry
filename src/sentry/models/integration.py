@@ -129,6 +129,7 @@ class Integration(DefaultFieldsModel):
                 integration_id=self.id,
                 defaults={"default_auth_id": default_auth_id, "config": {}},
             )
+            # TODO(Steve): add audit log if created
             if not created and default_auth_id:
                 org_integration.update(default_auth_id=default_auth_id)
         except IntegrityError:
