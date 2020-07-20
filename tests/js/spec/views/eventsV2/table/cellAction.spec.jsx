@@ -5,14 +5,14 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import CellAction from 'app/views/eventsV2/table/cellAction';
 import EventView from 'app/utils/discover/eventView';
 
-function makeWrapper(eventView, handleCellAction, columnIndex = 0) {
-  const data = {
-    transaction: 'best-transaction',
-    count: 19,
-    timestamp: '2020-06-09T01:46:25+00:00',
-    release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
-    nullValue: null,
-  };
+const defaultData = {
+  transaction: 'best-transaction',
+  count: 19,
+  timestamp: '2020-06-09T01:46:25+00:00',
+  release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
+  nullValue: null,
+};
+function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaultData) {
   return mountWithTheme(
     <CellAction
       dataRow={data}
@@ -213,6 +213,21 @@ describe('Discover -> CellAction', function() {
       expect(
         wrapper.find('button[data-test-id="show-values-less-than"]').exists()
       ).toBeTruthy();
+    });
+
+    it('show appropriate actions for release cells', function() {
+      wrapper = makeWrapper(view, handleCellAction, 3);
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(wrapper.find('button[data-test-id="release"]').exists()).toBeTruthy();
+
+      wrapper = makeWrapper(view, handleCellAction, 3, {
+        ...defaultData,
+        release: null,
+      });
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(wrapper.find('button[data-test-id="release"]').exists()).toBeFalsy();
     });
   });
 });

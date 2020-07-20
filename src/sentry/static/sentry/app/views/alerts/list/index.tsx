@@ -5,7 +5,7 @@ import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
-import {IconAdd, IconSettings, IconCheckmark} from 'app/icons';
+import {IconAdd, IconInfo, IconSettings, IconCheckmark} from 'app/icons';
 import {Organization} from 'app/types';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -141,16 +141,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
     this.setState({hasAlertRule, firstVisitShown, loading: false});
   }
-
-  /**
-   * Incidents list is currently at the organization level, but the link needs to
-   * go down to a specific project scope.
-   */
-  handleAddAlertRule = (e: React.MouseEvent) => {
-    const {router, params} = this.props;
-    e.preventDefault();
-    navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
-  };
 
   /**
    * Incidents list is currently at the organization level, but the link needs to
@@ -333,7 +323,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               )}
             </PageHeader>
 
-            <Alert type="info" icon="icon-circle-info">
+            <Alert type="info" icon={<IconInfo size="md" />}>
               {tct(
                 'This page is in beta and currently only shows [link:metric alerts]. [contactLink:Please contact us if you have any feedback.]',
                 {
@@ -400,7 +390,10 @@ const AddAlertRuleButton = ({router, params, organization}: Props) => (
         onClick={e => {
           e.preventDefault();
 
-          navigateTo(`/settings/${params.orgId}/projects/:projectId/alerts/new/`, router);
+          navigateTo(
+            `/settings/${params.orgId}/projects/:projectId/alerts/new/?referrer=alert_stream`,
+            router
+          );
         }}
         priority="primary"
         href="#"

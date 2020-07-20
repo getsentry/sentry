@@ -37,7 +37,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             )
 
         def get_project_elements_from_project_selector_dropdown():
-            return self.browser.driver.find_elements_by_css_selector(
+            return self.browser.elements(
                 '[data-test-id="autocomplete-list"] [data-test-id="badge-display-name"]'
             )
 

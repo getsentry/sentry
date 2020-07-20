@@ -307,17 +307,19 @@ export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: strin
  * @param team The team slug to assign the project to
  * @param name Name of the project
  * @param platform The platform key of the project
+ * @param options Additional options such as creating default alert rules
  */
 export function createProject(
   api: Client,
   orgSlug: string,
   team: string,
   name: string,
-  platform: string
+  platform: string,
+  options: {defaultRules?: boolean} = {}
 ) {
   return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
     method: 'POST',
-    data: {name, platform},
+    data: {name, platform, default_rules: options.defaultRules},
   });
 }
 

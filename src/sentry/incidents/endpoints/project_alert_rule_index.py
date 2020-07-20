@@ -20,7 +20,7 @@ from sentry.models import Rule, RuleStatus
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
     def get(self, request, project):
         """
-        Fetches alert rules and legacy rules for an organization
+        Fetches alert rules and legacy rules for a project
         """
         alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:performance-view", project.organization):
@@ -82,8 +82,16 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
 
         if serializer.is_valid():
             alert_rule = serializer.save()
+            referrer = request.query_params.get("referrer")
+            session_id = request.query_params.get("sessionId")
             alert_rule_created.send_robust(
-                user=request.user, project=project, rule=alert_rule, rule_type="metric", sender=self
+                user=request.user,
+                project=project,
+                rule=alert_rule,
+                rule_type="metric",
+                sender=self,
+                referrer=referrer,
+                session_id=session_id,
             )
             return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 

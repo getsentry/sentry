@@ -294,7 +294,7 @@ describe('EventsV2 > Results', function() {
     wrapper.update();
 
     const eventsRequest = wrapper.find('EventsChart').props();
-    expect(eventsRequest.disableReleases).toEqual(true);
+    expect(eventsRequest.disableReleases).toEqual(false);
     expect(eventsRequest.disablePrevious).toEqual(true);
   });
 

@@ -4,7 +4,8 @@ import json
 import responses
 import six
 
-from sentry.utils.compat.mock import patch
+from rest_framework.serializers import ValidationError
+
 
 from six.moves.urllib.parse import parse_qs
 from sentry.integrations.vercel import VercelIntegrationProvider
@@ -17,8 +18,8 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallation,
 )
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationTestCase
+from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 
 
@@ -241,43 +242,43 @@ class VercelIntegrationTest(IntegrationTestCase):
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
-        req_params = json.loads(responses.calls[5].request.body)
+        req_params = json.loads(responses.calls[6].request.body)
         assert req_params["name"] == "SENTRY_ORG_%s" % uuid
         assert req_params["value"] == org.slug
 
-        req_params = json.loads(responses.calls[6].request.body)
+        req_params = json.loads(responses.calls[7].request.body)
         assert req_params["name"] == "SENTRY_PROJECT_%s" % uuid
         assert req_params["value"] == self.project.slug
 
-        req_params = json.loads(responses.calls[7].request.body)
+        req_params = json.loads(responses.calls[8].request.body)
         assert req_params["name"] == "NEXT_PUBLIC_SENTRY_DSN_%s" % uuid
         assert req_params["value"] == enabled_dsn
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = json.loads(responses.calls[9].request.body)
         assert req_params["name"] == "SENTRY_AUTH_TOKEN_%s" % uuid
         assert req_params["value"] == sentry_auth_token
 
-        req_params = json.loads(responses.calls[10].request.body)
+        req_params = json.loads(responses.calls[11].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == "sec_0"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[12].request.body)
+        req_params = json.loads(responses.calls[13].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == "sec_1"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[14].request.body)
+        req_params = json.loads(responses.calls[15].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == "sec_2"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[16].request.body)
+        req_params = json.loads(responses.calls[17].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["value"] == "sec_3"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[18].request.body)
+        req_params = json.loads(responses.calls[19].request.body)
         assert req_params["key"] == "VERCEL_GITHUB_COMMIT_SHA"
         assert req_params["value"] == ""
         assert req_params["target"] == "production"
@@ -367,27 +368,27 @@ class VercelIntegrationTest(IntegrationTestCase):
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
-        req_params = json.loads(responses.calls[11].request.body)
+        req_params = json.loads(responses.calls[12].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == "sec_0"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[14].request.body)
+        req_params = json.loads(responses.calls[15].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == "sec_1"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[17].request.body)
+        req_params = json.loads(responses.calls[18].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == "sec_2"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[20].request.body)
+        req_params = json.loads(responses.calls[21].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["value"] == "sec_3"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[22].request.body)
+        req_params = json.loads(responses.calls[23].request.body)
         assert req_params["key"] == "VERCEL_GITHUB_COMMIT_SHA"
         assert req_params["value"] == ""
         assert req_params["target"] == "production"
@@ -409,7 +410,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
         dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)
-        with self.assertRaises(IntegrationError):
+        with self.assertRaises(ValidationError):
             installation.update_organization_config(data)
 
     @responses.activate
@@ -433,7 +434,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
             json={},
         )
-        with self.assertRaises(IntegrationError):
+        with self.assertRaises(ValidationError):
             installation.update_organization_config(data)
 
     @responses.activate
