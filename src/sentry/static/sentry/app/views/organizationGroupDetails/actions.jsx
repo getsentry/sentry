@@ -21,7 +21,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
-import {IconDelete, IconStar, IconBell} from 'app/icons';
+import {IconDelete, IconStar} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
@@ -31,50 +31,8 @@ import ShareIssue from 'app/components/shareIssue';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import Tooltip from 'app/components/tooltip';
 
-import {getSubscriptionReason} from './utils';
-
-class SubscribeAction extends React.Component {
-  static propTypes = {
-    group: SentryTypes.Group.isRequired,
-    onToggleSubscribe: PropTypes.func.isRequired,
-  };
-
-  canChangeSubscriptionState() {
-    return !(this.props.group.subscriptionDetails || {disabled: false}).disabled;
-  }
-
-  getNotificationText() {
-    return getSubscriptionReason(this.props.group, true);
-  }
-
-  render() {
-    const {group, onToggleSubscribe} = this.props;
-    const {isSubscribed} = group;
-
-    let subscribedClassName = `group-subscribe btn btn-default btn-sm`;
-    if (isSubscribed) {
-      subscribedClassName += ' active';
-    }
-
-    return (
-      this.canChangeSubscriptionState() && (
-        <div className="btn-group">
-          <Tooltip title={this.getNotificationText()}>
-            <div
-              className={subscribedClassName}
-              title={t('Subscribe')}
-              onClick={onToggleSubscribe}
-            >
-              <StyledIconBell size="xs" />
-            </div>
-          </Tooltip>
-        </div>
-      )
-    );
-  }
-}
+import SubscribeAction from './subscribeAction';
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -374,7 +332,7 @@ const GroupDetailsActions = createReactClass({
             </IconWrapper>
           </div>
         </div>
-        <SubscribeAction group={group} onToggleSubscribe={this.onToggleSubscribe} />
+        <SubscribeAction group={group} onClick={this.onToggleSubscribe} />
       </div>
     );
   },
@@ -388,10 +346,3 @@ const IconWrapper = styled('span')`
 export {GroupDetailsActions};
 
 export default withApi(withOrganization(GroupDetailsActions));
-
-// Match the styles of bootstrap .btn.icon
-const StyledIconBell = styled(IconBell)`
-  position: relative;
-  top: 2px;
-  margin-right: -1px;
-`;
