@@ -9,7 +9,13 @@ from six.moves.urllib.parse import urlencode
 from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
 
-from .test_utils import EXAMPLE_MEMBER_ADDED, OPEN_ID_CONFIG, WELL_KNOWN_KEYS, DECODED_TOKEN, TOKEN
+from .test_helpers import (
+    EXAMPLE_MEMBER_ADDED,
+    OPEN_ID_CONFIG,
+    WELL_KNOWN_KEYS,
+    DECODED_TOKEN,
+    TOKEN,
+)
 
 
 webhook_url = "/extensions/msteams/webhook/"
