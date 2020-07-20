@@ -7,7 +7,7 @@ import {Theme} from 'app/utils/theme';
 
 import SvgIcon from './svgIcon';
 
-type WrappedProps = React.ComponentProps<typeof SvgIcon> & {
+type WrappedProps = {
   theme: Theme;
   forwardRef: React.Ref<SVGSVGElement>;
 } & Props;
@@ -71,7 +71,7 @@ type Props = {
    * Adds an animated shine to the icon
    */
   withShine?: boolean;
-};
+} & React.ComponentProps<typeof SvgIcon>;
 
 const IconBusiness = React.forwardRef((props: Props, ref: React.Ref<SVGSVGElement>) => (
   <IconBusinessComponent {...props} forwardRef={ref} />
