@@ -761,7 +761,11 @@ class SnubaTagStorage(TagStorage):
         # With project names we map the ids back to the project slugs
         elif key == PROJECT_ALIAS:
             results = OrderedDict(
-                [(project_slugs[value], data) for value, data in six.iteritems(results)]
+                [
+                    (project_slugs[value], data)
+                    for value, data in six.iteritems(results)
+                    if value in project_slugs
+                ]
             )
 
         tag_values = [
