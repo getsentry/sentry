@@ -54,11 +54,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_no_access(self):
         with self.feature(
-            {
-                "organization:discover-page": False,
-                "organization:discover-basic": False,
-                "organization:discover-query": False,
-            }
+            {"organization:discover-basic": False, "organization:discover-query": False}
         ):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading")
