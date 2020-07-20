@@ -56,7 +56,7 @@ const EventTagsPill = ({
       </Link>
       {isUrl(tag.value) && (
         <a href={tag.value} className="external-icon">
-          <IconOpen size="xs" />
+          <StyledIconOpen size="xs" />
         </a>
       )}
       {isRelease && (
@@ -88,8 +88,7 @@ const EventTagsPill = ({
           {({to}) => {
             return (
               <Link to={to}>
-                <IconOpen size="xs" />
-                {/* <InlineSvg src="icon-circle-info" size="14px" /> */}
+                <StyledIconOpen size="xs" />
               </Link>
             );
           }}
@@ -100,6 +99,11 @@ const EventTagsPill = ({
 };
 
 const StyledIconInfo = styled(IconInfo)`
+  position: relative;
+  top: 1px;
+`;
+
+const StyledIconOpen = styled(IconOpen)`
   position: relative;
   top: 1px;
 `;

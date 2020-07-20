@@ -11,14 +11,13 @@ import space from 'app/styles/space';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy} from 'app/icons';
 import {TableData} from 'app/views/eventsV2/table/types';
-import Button from 'app/components/button';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingError from 'app/components/loadingError';
 
 import EventView from './eventView';
 import DiscoverQuery from './discoverQuery';
 
-type ChildrenProps = {to};
+type ChildrenProps = {to: LocationDescriptor};
 
 type Props = {
   api: Client;
@@ -58,12 +57,10 @@ class TraceHoverCard extends React.Component<Props> {
     tableData,
     isLoading,
     error,
-    to,
   }: {
     tableData: TableData | null;
     isLoading: boolean;
     error: null | string;
-    to: LocationDescriptor;
   }) {
     if (isLoading) {
       return (
@@ -86,13 +83,8 @@ class TraceHoverCard extends React.Component<Props> {
     return (
       <div>
         <div>
-          <h6>{t('Number of Transactions')}</h6>
+          <h6>{t('Transactions')}</h6>
           <div className="count-since">{numOfTransactions}</div>
-        </div>
-        <div>
-          <StyledButton size="xsmall" to={to}>
-            {t('Search Transactions')}
-          </StyledButton>
         </div>
       </div>
     );
@@ -100,28 +92,24 @@ class TraceHoverCard extends React.Component<Props> {
 
   render() {
     const {traceId, location, api, orgId} = this.props;
-
-    const traceEventView = EventView.fromSavedQuery({
-      id: undefined,
-      name: `Transactions with Trace ID ${traceId}`,
-      fields: [
-        'transaction',
-        'project',
-        'trace.span',
-        'transaction.duration',
-        'timestamp',
-      ],
-      orderby: '-timestamp',
-      query: `event.type:transaction trace:${traceId}`,
-      // TODO: fix
-      projects: [],
-      version: 2,
-
-      //   TODO: fix
-      range: '90d',
-      //   start,
-      //   end,
-    });
+    const traceEventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        name: `Transactions with Trace ID ${traceId}`,
+        fields: [
+          'transaction',
+          'project',
+          'trace.span',
+          'transaction.duration',
+          'timestamp',
+        ],
+        orderby: '-timestamp',
+        query: `event.type:transaction trace:${traceId}`,
+        projects: [],
+        version: 2,
+      },
+      location
+    );
 
     const to = traceEventView.getResultsViewUrlTarget(orgId);
 
@@ -137,7 +125,7 @@ class TraceHoverCard extends React.Component<Props> {
             <Hovercard
               {...this.props}
               header={this.renderHeader()}
-              body={this.renderBody({isLoading, error, tableData, to})}
+              body={this.renderBody({isLoading, error, tableData})}
             >
               {this.props.children({to})}
             </Hovercard>
@@ -170,10 +158,6 @@ const ClipboardIconWrapper = styled('span')`
   &:hover {
     cursor: pointer;
   }
-`;
-
-const StyledButton = styled(Button)`
-  margin-top: ${space(1)};
 `;
 
 const LoadingWrapper = styled('div')`
