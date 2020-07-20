@@ -623,6 +623,26 @@ class AlertRuleTriggerAction(Model):
         return cls._type_registrations.values()
 
 
+class AlertRuleActivityType(Enum):
+    CREATED = 1
+    DELETED = 2
+    UPDATED = 3
+
+
+class AlertRuleActivity(Model):
+    __core__ = True
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    previous_alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
+    user = FlexibleForeignKey("sentry.User", null=True)
+    type = models.IntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleactivity"
+
+
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_save.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_save.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
