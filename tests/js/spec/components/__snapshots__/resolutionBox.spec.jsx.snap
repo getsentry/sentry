@@ -5,7 +5,7 @@ exports[`ResolutionBox render() handles default 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <IconCheckmark
+    <StyledIconCheckmark
       color="green400"
     />
     <span>
@@ -20,7 +20,7 @@ exports[`ResolutionBox render() handles inCommit 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <IconCheckmark
+    <StyledIconCheckmark
       color="green400"
     />
     <span>
@@ -60,7 +60,7 @@ exports[`ResolutionBox render() handles inNextRelease 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <IconCheckmark
+    <StyledIconCheckmark
       color="green400"
     />
     <span>
@@ -75,7 +75,7 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <IconCheckmark
+    <StyledIconCheckmark
       color="green400"
     />
     <span>
@@ -123,7 +123,7 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <IconCheckmark
+    <StyledIconCheckmark
       color="green400"
     />
     <span>
@@ -157,7 +157,7 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <IconCheckmark
+    <StyledIconCheckmark
       color="green400"
     />
     <span>

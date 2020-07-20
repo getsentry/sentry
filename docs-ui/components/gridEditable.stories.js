@@ -2,14 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import GridEditable from 'app/components/gridEditable';
-
-const Section = styled('div')`
-  margin-bottom: 32px;
-`;
 
 const COLUMN_ORDER = [
   {
@@ -105,26 +100,26 @@ storiesOf('UI|GridEditable', module)
     'default',
     withInfo('Render a simple resizable table')(() => (
       <React.Fragment>
-        <Section>
+        <div className="section">
           <h2>Basic Table</h2>
           <GridParent />
-        </Section>
+        </div>
       </React.Fragment>
     ))
   )
   .add(
     'with a header',
     withInfo('Include a header and action buttons')(() => (
-      <Section>
+      <div className="section">
         <h2>Table with title & header buttons</h2>
         <GridParent withHeader title="Results" />
-      </Section>
+      </div>
     ))
   )
   .add(
     'isLoading',
     withInfo('')(() => (
-      <Section>
+      <div className="section">
         <h2>Loading</h2>
         <GridEditable
           isEditable={false}
@@ -135,13 +130,13 @@ storiesOf('UI|GridEditable', module)
           columnSortBy={COLUMN_SORT_BY}
           grid={{}}
         />
-      </Section>
+      </div>
     ))
   )
   .add(
     'isError',
     withInfo('')(() => (
-      <Section>
+      <div className="section">
         <h2>Error</h2>
         <GridEditable
           isEditable={false}
@@ -152,6 +147,6 @@ storiesOf('UI|GridEditable', module)
           columnSortBy={COLUMN_SORT_BY}
           grid={{}}
         />
-      </Section>
+      </div>
     ))
   );

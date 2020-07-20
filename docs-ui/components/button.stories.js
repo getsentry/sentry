@@ -14,10 +14,6 @@ const Item = styled('span')`
   padding: 12px;
 `;
 
-const Section = styled('div')`
-  margin-bottom: 32px;
-`;
-
 const WideButton = styled(Button)`
   width: 200px;
 `;
@@ -28,10 +24,10 @@ storiesOf('UI|Buttons', module)
     'overview',
     withInfo({
       text: 'An overview of all the different buttons and states',
-      propTablesExclude: [Item, Section],
+      propTablesExclude: [Item],
     })(() => (
       <div>
-        <Section>
+        <div className="section">
           <h2>Priorities</h2>
           <Item>
             <Button to="/test" onClick={action('clicked default')}>
@@ -63,8 +59,8 @@ storiesOf('UI|Buttons', module)
               Disabled Button
             </Button>
           </Item>
-        </Section>
-        <Section>
+        </div>
+        <div className="section">
           <h2>Sizes</h2>
           <Item>
             <Button size="zero" borderless>
@@ -80,8 +76,8 @@ storiesOf('UI|Buttons', module)
           <Item>
             <Button>Default</Button>
           </Item>
-        </Section>
-        <Section>
+        </div>
+        <div className="section">
           <h2>Icons</h2>
           <div style={{display: 'flex', alignItems: 'center'}}>
             <Item>
@@ -101,8 +97,8 @@ storiesOf('UI|Buttons', module)
               <Button icon={<IconDelete />}>Default</Button>
             </Item>
           </div>
-        </Section>
-        <Section>
+        </div>
+        <div className="section">
           <h2>Alignment</h2>
           <Item>
             <WideButton align="left">Aligned left</WideButton>
@@ -110,8 +106,8 @@ storiesOf('UI|Buttons', module)
           <Item>
             <WideButton align="right">Aligned right</WideButton>
           </Item>
-        </Section>
-        <Section>
+        </div>
+        <div className="section">
           <h2>States (busy/disabled)</h2>
           <div style={{display: 'flex', alignItems: 'center'}}>
             <Item>
@@ -139,7 +135,7 @@ storiesOf('UI|Buttons', module)
               </Button>
             </Item>
           </div>
-        </Section>
+        </div>
       </div>
     ))
   )
@@ -160,24 +156,24 @@ storiesOf('UI|Buttons', module)
     'ButtonBar',
     withInfo('Buttons in a Bar container')(() => (
       <div>
-        <Section>
+        <div className="section">
           <h3>With a Gap</h3>
           <ButtonBar gap={number('button gap', 1)}>
             <Button>First Button</Button>
             <Button>Second Button</Button>
             <Button>Third Button</Button>
           </ButtonBar>
-        </Section>
+        </div>
 
-        <Section>
+        <div className="section">
           <h3>Merged Buttons with "active" button</h3>
           <ButtonBar active="left" merged>
             <Button barId="left">Left Button</Button>
             <Button barId="right">Right Button</Button>
           </ButtonBar>
-        </Section>
+        </div>
 
-        <Section>
+        <div className="section">
           <h3>Multiple Merged Buttons with "active" button</h3>
           <ButtonBar active="2" merged>
             <Button barId="1">First Button</Button>
@@ -185,7 +181,7 @@ storiesOf('UI|Buttons', module)
             <Button barId="3">Third Button</Button>
             <Button barId="4">Fourth Button</Button>
           </ButtonBar>
-        </Section>
+        </div>
       </div>
     ))
   );
