@@ -1,5 +1,11 @@
 from __future__ import absolute_import
 
+GENERIC_EVENT = {
+    "serviceUrl": "https://smba.trafficmanager.net/amer/",
+    "channelData": {"eventType": "otherEvent"},
+    "type": "conversationUpdate",
+}
+
 EXAMPLE_MEMBER_ADDED = {
     "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
     "from": {
@@ -28,6 +34,44 @@ EXAMPLE_MEMBER_ADDED = {
     "type": "conversationUpdate",
     "id": "f:8e005ef8-f848-156f-55b1-0a5bb3207225",
 }
+
+EXAMPLE_MEMBER_REMOVED = {
+    "membersRemoved": [{"id": "28:5710acff-f313-453f-8b75-44fff54bab14"}],
+    "type": "conversationUpdate",
+    "timestamp": "2020-07-16T23:47:29.7965243Z",
+    "id": "f:237e2bd0-9cd0-8aff-8469-65d891e47ce8",
+    "channelId": "msteams",
+    "serviceUrl": "https://smba.trafficmanager.net/amer/",
+    "from": {
+        "id": "29:1Q2o9Y0pyxOhK7QU6o7DatYWMy4MFapyiHoA1r_xB2s5XsGTSxIrKOH_JGmxDXpex30trbSo3Oyh3pkXF8RnlVQ",
+        "aadObjectId": "a6de2a64-9501-4e16-9e50-74df223570a3",
+    },
+    "conversation": {
+        "isGroup": True,
+        "conversationType": "channel",
+        "tenantId": "f5ffd8cf-a1aa-4242-adad-86509faa3be5",
+        "id": "19:8d46058cda57449380517cc374727f2a@thread.tacv2",
+    },
+    "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
+    "channelData": {
+        "team": {
+            "aadGroupId": "c2d5a19b-f3a9-48ed-ade3-fc41aa861a18",
+            "name": "testsentry",
+            "id": "19:8d46058cda57449380517cc374727f2a@thread.tacv2",
+        },
+        "eventType": "teamMemberRemoved",
+        "tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"},
+    },
+}
+
+DECODED_TOKEN = {
+    "iss": "https://api.botframework.com",
+    "serviceurl": "https://smba.trafficmanager.net/amer/",
+    "nbf": 1594836399,
+    "exp": 1594839999,
+    "aud": "msteams-client-id",
+}
+
 
 DECODED_TOKEN = {
     "iss": "https://api.botframework.com",
