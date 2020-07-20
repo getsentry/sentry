@@ -4,13 +4,17 @@ import jwt
 import mock
 import responses
 
+from copy import deepcopy
 from six.moves.urllib.parse import urlencode
 
+from sentry.models import Integration
 from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
 
 from .test_helpers import (
+    GENERIC_EVENT,
     EXAMPLE_MEMBER_ADDED,
+    EXAMPLE_MEMBER_REMOVED,
     OPEN_ID_CONFIG,
     WELL_KNOWN_KEYS,
     DECODED_TOKEN,
@@ -27,7 +31,6 @@ class MsTeamsWebhookTest(APITestCase):
     def setUp(self):
         super(MsTeamsWebhookTest, self).setUp()
 
-        access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.GET,
             u"https://login.botframework.com/v1/.well-known/openidconfiguration",
@@ -36,31 +39,21 @@ class MsTeamsWebhookTest(APITestCase):
         responses.add(
             responses.GET, OPEN_ID_CONFIG["jwks_uri"], json=WELL_KNOWN_KEYS,
         )
-        responses.add(
-            responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
-            json=access_json,
-        )
-        responses.add(
-            responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
-            json={},
-        )
 
     @responses.activate
     @patch("jwt.decode")
     @patch("time.time")
-    def test_member_added(self, mock_time, mock_decode):
+    def test_generic_event(self, mock_time, mock_decode):
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
             path=webhook_url,
-            data=EXAMPLE_MEMBER_ADDED,
+            data=GENERIC_EVENT,
             format="json",
             HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 204
 
         mock_decode.assert_called_with(
             TOKEN, mock.ANY, audience="msteams-client-id", algorithms=["RS256"]
@@ -71,19 +64,6 @@ class MsTeamsWebhookTest(APITestCase):
         )
         assert (
             responses.calls[1].request.url == u"https://login.botframework.com/v1/.well-known/keys"
-        )
-        assert responses.calls[2].request.body == urlencode(
-            {
-                "client_id": "msteams-client-id",
-                "client_secret": "msteams-client-secret",
-                "grant_type": "client_credentials",
-                "scope": "https://api.botframework.com/.default",
-            }
-        )
-
-        assert (
-            responses.calls[3].request.url
-            == "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id
         )
 
     @responses.activate
@@ -152,3 +132,108 @@ class MsTeamsWebhookTest(APITestCase):
 
         assert resp.data["detail"] == "Token is expired"
         assert resp.status_code == 403
+
+    @responses.activate
+    @patch("jwt.decode")
+    @patch("time.time")
+    def test_member_added(self, mock_time, mock_decode):
+        access_json = {"expires_in": 86399, "access_token": "my_token"}
+        responses.add(
+            responses.POST,
+            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            json=access_json,
+        )
+        responses.add(
+            responses.POST,
+            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
+            json={},
+        )
+
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        resp = self.client.post(
+            path=webhook_url,
+            data=EXAMPLE_MEMBER_ADDED,
+            format="json",
+            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+        )
+
+        assert resp.status_code == 201
+        assert responses.calls[2].request.body == urlencode(
+            {
+                "client_id": "msteams-client-id",
+                "client_secret": "msteams-client-secret",
+                "grant_type": "client_credentials",
+                "scope": "https://api.botframework.com/.default",
+            }
+        )
+
+        assert (
+            responses.calls[3].request.url
+            == "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id
+        )
+
+    @responses.activate
+    @patch("jwt.decode")
+    @patch("time.time")
+    def test_different_member_added(self, mock_time, mock_decode):
+        access_json = {"expires_in": 86399, "access_token": "my_token"}
+        responses.add(
+            responses.POST,
+            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            json=access_json,
+        )
+        responses.add(
+            responses.POST,
+            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
+            json={},
+        )
+
+        different_member_added = deepcopy(EXAMPLE_MEMBER_ADDED)
+        different_member_added["membersAdded"][0]["id"] = "28:another-id"
+
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        resp = self.client.post(
+            path=webhook_url,
+            data=different_member_added,
+            format="json",
+            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+        )
+
+        assert resp.status_code == 204
+        assert len(responses.calls) == 2
+
+    @patch("jwt.decode")
+    @patch("time.time")
+    def test_member_removed(self, mock_time, mock_decode):
+        integration = Integration.objects.create(external_id=team_id, provider="msteams")
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        resp = self.client.post(
+            path=webhook_url,
+            data=EXAMPLE_MEMBER_REMOVED,
+            format="json",
+            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+        )
+
+        assert resp.status_code == 204
+        assert not Integration.objects.filter(id=integration.id)
+
+    @patch("jwt.decode")
+    @patch("time.time")
+    def test_different_member_removed(self, mock_time, mock_decode):
+        different_member_removed = deepcopy(EXAMPLE_MEMBER_REMOVED)
+        different_member_removed["membersRemoved"][0]["id"] = "28:another-id"
+        integration = Integration.objects.create(external_id=team_id, provider="msteams")
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        resp = self.client.post(
+            path=webhook_url,
+            data=different_member_removed,
+            format="json",
+            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+        )
+
+        assert resp.status_code == 204
+        assert Integration.objects.filter(id=integration.id)
