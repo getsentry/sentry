@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
-from exam import fixture
-from freezegun import freeze_time
 import json
 import pytz
 import requests
 import six
 
+from exam import fixture
+from freezegun import freeze_time
+
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule
+from sentry.snuba.models import QueryDatasets
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils import APITestCase
-from sentry.snuba.models import QueryDatasets
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
