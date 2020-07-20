@@ -26,7 +26,9 @@
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
 
 # Security
-/src/sentry/net/    @getsentry/security
+/src/sentry/net/                    @getsentry/security
+/src/sentry/auth/                   @getsentry/security
+/src/sentry/api/permissions.py      @getsentry/security
 
 # Build & Releases
 /.github/workflows/release.yml  @getsentry/releases
