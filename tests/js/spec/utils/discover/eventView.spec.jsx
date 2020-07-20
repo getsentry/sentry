@@ -2193,7 +2193,7 @@ describe('EventView.getGlobalSelection()', function() {
 
         // event views currently do not support the utc option,
         // see comment in EventView.getGlobalSelection
-        // utc: "true",
+        utc: true,
       },
     });
   });
@@ -2219,7 +2219,7 @@ describe('EventView.getGlobalSelection()', function() {
 
         // event views currently do not support the utc option,
         // see comment in EventView.getGlobalSelection
-        // utc: "true",
+        utc: true,
       },
     });
   });
@@ -2238,7 +2238,7 @@ describe('EventView.getGlobalSelectionQuery()', function() {
 
       // event views currently do not support the utc option,
       // see comment in EventView.getGlobalSelection
-      // utc: "true",
+      utc: 'true',
     });
   });
 
@@ -2261,7 +2261,7 @@ describe('EventView.getGlobalSelectionQuery()', function() {
 
       // event views currently do not support the utc option,
       // see comment in EventView.getGlobalSelection
-      // utc: "true",
+      utc: 'true',
     });
   });
 });
