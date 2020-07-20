@@ -311,8 +311,7 @@ class AlertRuleManager(BaseManager):
     def fetch_for_organization(self, organization, projects=None):
         queryset = self.filter(organization=organization)
         if projects is not None:
-            queryset = queryset.filter(snuba_query__subscriptions__project__in=projects)
-
+            queryset = queryset.filter(snuba_query__subscriptions__project__in=projects).distinct()
         return queryset
 
     def fetch_for_project(self, project):

@@ -83,7 +83,7 @@
     "js-cookie": "2.2.1",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.19",
     "marked": "0.7.0",
     "mini-css-extract-plugin": "^v0.5.0",
     "mobx": "^5.13.0",
@@ -151,7 +151,7 @@
     "enzyme-adapter-react-16": "1.15.1",
     "enzyme-to-json": "3.4.3",
     "eslint": "5.11.1",
-    "eslint-config-sentry-app": "1.42.0",
+    "eslint-config-sentry-app": "^1.43.0",
     "html-webpack-plugin": "^4.3.0",
     "jest": "24.9.0",
     "jest-canvas-mock": "^2.2.0",
@@ -198,7 +198,7 @@
     "build": "yarn webpack --output-path=public"
   },
   "volta": {
-    "node": "10.16.3",
-    "yarn": "1.21.1"
+    "node": "10.21.0",
+    "yarn": "1.22.4"
   }
 }

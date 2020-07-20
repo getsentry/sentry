@@ -8,6 +8,7 @@ import os
 import sys
 import pytest
 
+from contextlib import contextmanager
 from datetime import datetime
 from django.conf import settings
 from django.utils.text import slugify
@@ -78,6 +79,59 @@ class Browser(object):
             "Emulation.setEmulatedMedia", {"media": media, "features": features}
         )
 
+    def get_content_height(self):
+        """
+        Get height of current DOM contents
+
+        Adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
+        """
+
+        return self.driver.execute_script("return document.body.parentNode.scrollHeight")
+
+    def set_window_size(self, width=None, height=None, fit_content=False):
+        """
+        Sets the window size.
+
+        If width is not passed, then use current window width (this is useful if you
+        need to fit contents height into the viewport).
+        If height is not passed, then resize to fit the document contents.
+        """
+
+        previous_size = self.driver.get_window_size()
+        width = width if width is not None else previous_size["width"]
+
+        if fit_content:
+            # In order to set window height to content height, we must make sure
+            # width has not changed (otherwise contents will shift,
+            # and we require two resizes)
+            self.driver.set_window_size(width, previous_size["height"])
+            height = self.get_content_height()
+        else:
+            height = height if height is not None else self.get_content_height()
+
+        self.driver.set_window_size(width, height)
+
+        return {
+            "previous": previous_size,
+            "current": {"width": width, "height": height},
+        }
+
+    def set_viewport(self, width, height, fit_content):
+        size = self.set_window_size(width, height, fit_content)
+        try:
+            yield size
+        finally:
+            # restore previous size
+            self.set_window_size(size["previous"]["width"], size["previous"]["height"])
+
+    @contextmanager
+    def full_viewport(self, width=None, height=None):
+        return self.set_viewport(width, height, fit_content=True)
+
+    @contextmanager
+    def mobile_viewport(self, width=375, height=812):
+        return self.set_viewport(width, height, fit_content=True)
+
     def element(self, selector=None, xpath=None):
         """
         Get an element from the page. This method will wait for the element to show up.
@@ -89,6 +143,18 @@ class Browser(object):
         else:
             self.wait_until(selector)
             return self.driver.find_element_by_css_selector(selector)
+
+    def elements(self, selector=None, xpath=None):
+        """
+        Get elements from the page. This method will wait for the element to show up.
+        """
+
+        if xpath is not None:
+            self.wait_until(xpath=xpath)
+            return self.driver.find_elements_by_xpath(xpath)
+        else:
+            self.wait_until(selector)
+            return self.driver.find_elements_by_css_selector(selector)
 
     def element_exists(self, selector):
         """
@@ -230,7 +296,7 @@ class Browser(object):
         """
         self.driver.implicitly_wait(duration)
 
-    def snapshot(self, name):
+    def snapshot(self, name, mobile_only=False):
         """
         Capture a screenshot of the current state of the page.
         """
@@ -251,37 +317,20 @@ class Browser(object):
             # wait for images to be loaded
             self.wait_for_images_loaded()
 
-            size = self.driver.get_window_size()
-
-            # take full page screenshot
-            # adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
-            required_height = self.driver.execute_script(
-                "return document.body.parentNode.scrollHeight"
-            )
-            self.driver.set_window_size(size["width"], required_height)
-
             # Note: below will fail if these directories do not exist
 
-            # finds body tag to screenshot in order to avoid scrollbar
-            self.driver.find_element_by_tag_name("body").screenshot(
-                u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
-            )
+            if not mobile_only:
+                # This will make sure we resize viewport height to fit contents
+                with self.full_viewport():
+                    self.driver.find_element_by_tag_name("body").screenshot(
+                        u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
+                    )
 
-            # switch to mobile width and a fixed height
-            self.driver.set_window_size(375, 812)
-
-            # grab full height at the mobile width
-            required_height = self.driver.execute_script(
-                "return document.body.parentNode.scrollHeight"
-            )
-            self.driver.set_window_size(375, required_height)
-
-            self.driver.find_element_by_tag_name("body").screenshot(
-                u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
-            )
-
-            # reset window size
-            self.driver.set_window_size(size["width"], size["height"])
+            with self.mobile_viewport():
+                # switch to a mobile sized viewport
+                self.driver.find_element_by_tag_name("body").screenshot(
+                    u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
+                )
 
         self.percy.snapshot(name=name)
         return self
