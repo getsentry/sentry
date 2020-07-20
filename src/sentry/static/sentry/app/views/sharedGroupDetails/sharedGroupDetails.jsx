@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import Footer from 'app/components/footer';
+import {IconSentry} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
@@ -109,7 +110,7 @@ const SharedGroupDetails = createReactClass({
             <div className="box box-modal">
               <div className="box-header">
                 <a className="logo" href="/">
-                  <span className="icon-sentry-logo-full" />
+                  <IconSentry size="xl" />
                 </a>
                 {this.state.group.permalink && (
                   <a className="details" href={this.state.group.permalink}>
