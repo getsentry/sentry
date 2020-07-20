@@ -1926,3 +1926,9 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.incidents.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
+
+# Project ID used by synthetic monitoring
+# Synthetic monitoring recurringly send events, prepared with specific
+# attributes, which can be identified through the whole processing pipeline and
+# observed mainly for producing stable metrics.
+SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
