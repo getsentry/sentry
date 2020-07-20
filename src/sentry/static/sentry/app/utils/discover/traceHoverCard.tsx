@@ -24,7 +24,6 @@ type Props = {
 
   orgId: string;
   traceId: string;
-  projectId: string;
 
   location: Location;
 

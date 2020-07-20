@@ -82,7 +82,6 @@ const EventTagsPill = ({
           containerClassName="pill-icon"
           traceId={tag.value}
           orgId={orgId}
-          projectId={projectId}
           location={location}
         >
           {({to}) => {
