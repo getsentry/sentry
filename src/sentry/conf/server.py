@@ -1411,6 +1411,14 @@ SENTRY_RELAY_PORT = 3000
 SENTRY_REVERSE_PROXY_PORT = 8000
 
 
+# The chunk size for attachments in blob store. Should be a power of two.
+SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
+
+# The chunk size for files in the chunk uplooad. This is used for native debug
+# files and source maps, and directly translates to the chunk size in blob
+# store. MUST be a power of two.
+SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": {
 #         "image": "image-name:version",

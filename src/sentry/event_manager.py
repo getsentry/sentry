@@ -8,6 +8,7 @@ import ipaddress
 import six
 
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
@@ -79,9 +80,6 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
-
-# The blob size should be a power of two
-ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
 
 def pop_tag(data, key):
@@ -1313,7 +1311,7 @@ def save_attachment(
         type=attachment.type,
         headers={"Content-Type": attachment.content_type},
     )
-    file.putfile(six.BytesIO(data), blob_size=ATTACHMENT_BLOB_SIZE)
+    file.putfile(six.BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
     EventAttachment.objects.create(
         event_id=event_id,
