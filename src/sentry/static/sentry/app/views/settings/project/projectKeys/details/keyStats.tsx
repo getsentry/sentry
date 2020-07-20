@@ -9,6 +9,7 @@ import LoadingError from 'app/components/loadingError';
 import Placeholder from 'app/components/placeholder';
 import StackedBarChart from 'app/components/stackedBarChart';
 
+type Point = React.ComponentProps<typeof StackedBarChart>['points'][0];
 type Props = {
   api: Client;
 } & Pick<
@@ -84,7 +85,7 @@ class KeyStats extends React.Component<Props, State> {
     });
   };
 
-  renderTooltip = (point, _pointIdx, chart) => {
+  renderTooltip = (point: Point, _pointIdx: number, chart: StackedBarChart) => {
     const timeLabel = chart.getTimeLabel(point);
     const [accepted, dropped, filtered] = point.y;
 
