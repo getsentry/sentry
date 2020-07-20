@@ -166,7 +166,9 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return super(SentryApp, self).save(*args, **kwargs)
 
     def is_installed_on(self, organization):
-        return SentryAppInstallation.objects.filter(organization=organization).exists()
+        return SentryAppInstallation.objects.filter(
+            organization=organization, sentry_app=self,
+        ).exists()
 
     def build_signature(self, body):
         secret = self.application.client_secret
