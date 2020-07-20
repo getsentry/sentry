@@ -9,7 +9,7 @@ import moment from 'moment';
 
 import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventQuery} from 'app/actionCreators/events';
-import {SavedQuery, NewQuery, SelectValue, User} from 'app/types';
+import {GlobalSelection, SavedQuery, NewQuery, SelectValue, User} from 'app/types';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
@@ -447,22 +447,41 @@ class EventView {
     return newQuery;
   }
 
-  // TODO(mark) Refactor this to return the GlobalSelection type instead.
-  // We'll likely also need a function somewhere to convert GlobalSelection
-  // into query parameters, as that is how this method is currently used.
-  getGlobalSelection(): {
-    start: string | undefined;
-    end: string | undefined;
-    statsPeriod: string | undefined;
-    environment: string[];
-    project: number[];
-  } {
+  getGlobalSelection(): GlobalSelection {
     return {
-      start: this.start,
-      end: this.end,
-      statsPeriod: this.statsPeriod,
-      project: this.project as number[],
-      environment: this.environment as string[],
+      projects: this.project as number[],
+      environments: this.environment as string[],
+      datetime: {
+        start: this.start ?? null,
+        end: this.end ?? null,
+        period: this.statsPeriod ?? '',
+        // TODO(tony) Add support for the Use UTC option from
+        // the global headers, currently, that option is not
+        // supported and all times are assumed to be UTC
+        utc: true,
+      },
+    };
+  }
+
+  getGlobalSelectionQuery(): Query {
+    const {
+      environments: environment,
+      projects,
+      datetime: {start, end, period, utc},
+    } = this.getGlobalSelection();
+    return {
+      project: projects.map(proj => proj.toString()),
+      environment,
+      utc: utc ? 'true' : 'false',
+
+      // since these values are from `getGlobalSelection`
+      // we know they have type `string | null`
+      start: (start ?? undefined) as string | undefined,
+      end: (end ?? undefined) as string | undefined,
+
+      // we can't use the ?? operator here as we want to
+      // convert the empty string to undefined
+      statsPeriod: period ? period : undefined,
     };
   }
 

@@ -320,7 +320,7 @@ class TableView extends React.Component<TableViewProps> {
             orgSlug: organization.slug,
             transaction: String(value),
             projectID,
-            query: {},
+            query: nextView.getGlobalSelectionQuery(),
           });
 
           browserHistory.push(next);
@@ -336,7 +336,7 @@ class TableView extends React.Component<TableViewProps> {
               value
             )}/`,
             query: {
-              ...nextView.getGlobalSelection(),
+              ...nextView.getGlobalSelectionQuery(),
 
               project: maybeProject ? maybeProject.id : undefined,
             },

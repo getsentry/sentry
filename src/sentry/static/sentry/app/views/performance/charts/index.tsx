@@ -46,12 +46,12 @@ class Container extends React.Component<Props> {
 
     // construct request parameters for fetching chart data
     const globalSelection = eventView.getGlobalSelection();
-    const start = globalSelection.start
-      ? getUtcToLocalDateObject(globalSelection.start)
+    const start = globalSelection.datetime.start
+      ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : undefined;
 
-    const end = globalSelection.end
-      ? getUtcToLocalDateObject(globalSelection.end)
+    const end = globalSelection.datetime.end
+      ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : undefined;
 
     const {utc} = getParams(location.query);
@@ -62,16 +62,16 @@ class Container extends React.Component<Props> {
         <EventsRequest
           organization={organization}
           api={api}
-          period={globalSelection.statsPeriod}
-          project={globalSelection.project}
-          environment={globalSelection.environment}
+          period={globalSelection.datetime.period}
+          project={globalSelection.projects}
+          environment={globalSelection.environments}
           start={start}
           end={end}
           interval={getInterval(
             {
               start: start || null,
               end: end || null,
-              period: globalSelection.statsPeriod,
+              period: globalSelection.datetime.period,
             },
             true
           )}
@@ -113,10 +113,10 @@ class Container extends React.Component<Props> {
                         data={results}
                         loading={loading || reloading}
                         router={router}
-                        statsPeriod={globalSelection.statsPeriod}
+                        statsPeriod={globalSelection.datetime.period}
                         utc={utc === 'true'}
-                        projects={globalSelection.project}
-                        environments={globalSelection.environment}
+                        projects={globalSelection.projects}
+                        environments={globalSelection.environments}
                       />
                     ),
                     fixed: 'apdex and throughput charts',
