@@ -28,7 +28,8 @@ type State = {
   until: number;
   loading: boolean;
   error: boolean;
-  stats: any;
+  // TODO(ts): Add types to stats
+  stats: any[] | null;
   emptyStats: boolean;
 };
 
@@ -122,7 +123,7 @@ class KeyStats extends React.Component<Props, State> {
             <Placeholder height="150px" />
           ) : !this.state.emptyStats ? (
             <StackedBarChart
-              points={this.state.stats}
+              points={this.state.stats!}
               height={150}
               label="events"
               barClasses={['accepted', 'rate-limited']}
