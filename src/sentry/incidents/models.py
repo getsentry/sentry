@@ -633,7 +633,9 @@ class AlertRuleActivity(Model):
     __core__ = True
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
-    previous_alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
+    previous_alert_rule = FlexibleForeignKey(
+        "sentry.AlertRule", null=True, related_name="previous_alert_rule"
+    )
     user = FlexibleForeignKey("sentry.User", null=True)
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
