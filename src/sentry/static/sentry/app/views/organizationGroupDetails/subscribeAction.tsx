@@ -16,14 +16,13 @@ type Props = {
 };
 
 const SubscribeAction = ({group, onClick}: Props) => {
-  const canChangeSubscriptionState = () => {
-    return !group.subscriptionDetails?.disabled ?? false;
+  const canChangeSubscriptionState = (): boolean => {
+    return !(group.subscriptionDetails?.disabled ?? false);
   };
 
-  let subscribedClassName = `group-subscribe btn btn-default btn-sm`;
-  if (group.isSubscribed) {
-    subscribedClassName += ' active';
-  }
+  const subscribedClassName = `group-subscribe btn btn-default btn-sm${
+    group.isSubscribed ? ' active' : ''
+  }`;
 
   return (
     canChangeSubscriptionState() && (
