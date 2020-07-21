@@ -529,7 +529,7 @@ class AlertRuleTriggerAction(Model):
         SLACK = 2
         MSTEAMS = 3
 
-    INTEGRATION_TYPES = frozenset((Type.PAGERDUTY, Type.SLACK, Type.MSTEAMS))
+    INTEGRATION_TYPES = frozenset((Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value))
 
     class TargetType(Enum):
         # A direct reference, like an email address, Slack channel or PagerDuty service

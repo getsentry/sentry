@@ -1329,6 +1329,46 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 integration=integration,
             )
 
+    @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
+    def test_msteams(self, mock_get_channel_id):
+        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.MSTEAMS
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "some_channel"
+        channel_id = "some_id"
+
+        action = create_alert_rule_trigger_action(
+            self.trigger, type, target_type, target_identifier=channel_name, integration=integration
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_name
+        assert action.integration == integration
+
+        mock_get_channel_id.assert_called_once_with(
+            self.organization, integration.id, "some_channel"
+        )
+
+    @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
+    def test_msteams_not_existing(self, mock_get_channel_id):
+        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.MSTEAMS
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "some_channel"
+
+        with self.assertRaises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_name,
+                integration=integration,
+            )
+
 
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @fixture
@@ -1402,9 +1442,8 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 integration=integration,
             )
 
-    @patch("sentry.integrations.msteams.utils.get_channel_id")
+    @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
-        mock_get_channel_id.return_value = "some_id"
         integration = Integration.objects.create(external_id="1", provider="msteams",)
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS
@@ -1426,9 +1465,8 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             self.organization, integration.id, "some_channel"
         )
 
-    @patch("sentry.integrations.msteams.utils.get_channel_id")
+    @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
     def test_msteams_not_existing(self, mock_get_channel_id):
-        mock_get_channel_id.return_value = None
         integration = Integration.objects.create(external_id="1", provider="msteams",)
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS

@@ -1028,12 +1028,12 @@ def create_alert_rule_trigger_action(
     """
 
     target_display = None
-    if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
+    if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
         channel_id = get_alert_rule_trigger_action_integration_object_id(
-            type, trigger.alert_rule.organization, integration.id, target_identifier
+            type.value, trigger.alert_rule.organization, integration.id, target_identifier
         )
 
         # Use the channel name for display
@@ -1090,9 +1090,9 @@ def update_alert_rule_trigger_action(
 
 
 def get_alert_rule_trigger_action_integration_object_id(type, *args, **kwargs):
-    if type == AlertRuleTriggerAction.Type.SLACK:
+    if type == AlertRuleTriggerAction.Type.SLACK.value:
         return get_alert_rule_trigger_action_slack_channel_id(*args, **kwargs)
-    elif type == AlertRuleTriggerAction.Type.MSTEAMS:
+    elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
         return get_alert_rule_trigger_action_msteams_channel_id(*args, **kwargs)
     else:
         raise Exception("Not implemented")
