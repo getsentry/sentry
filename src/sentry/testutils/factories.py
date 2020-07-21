@@ -672,7 +672,7 @@ class Factories(object):
         Factories.create_project(organization=organization)
 
         install = sentry_app_installations.Creator.run(
-            slug=(slug or Factories.create_sentry_app().slug),
+            slug=(slug or Factories.create_sentry_app(organization=organization).slug),
             organization=organization,
             user=(user or Factories.create_user()),
         )
