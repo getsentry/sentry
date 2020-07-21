@@ -140,9 +140,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
   filterImage(image: Image) {
     const {showUnused, filter} = this.state;
 
-    const searchTerm = filter.toLowerCase();
+    const searchTerm = filter.trim().toLowerCase();
 
-    if (!searchTerm || searchTerm.length < MIN_FILTER_LEN) {
+    if (searchTerm.length < MIN_FILTER_LEN) {
       if (showUnused) {
         return true;
       }
