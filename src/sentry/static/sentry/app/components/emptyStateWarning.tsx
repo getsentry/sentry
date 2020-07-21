@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import HeroIcon from 'app/components/heroIcon';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {IconFlag, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
@@ -51,7 +50,8 @@ const EmptyStreamWrapper = styled('div')`
     }
   }
 
-  ${HeroIcon} {
+  svg {
+    fill: ${p => p.theme.gray400};
     margin-bottom: 20px;
   }
 `;
