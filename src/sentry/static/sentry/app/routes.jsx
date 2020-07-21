@@ -777,6 +777,17 @@ function routes() {
       />
 
       <Route
+        path="performance/"
+        name="Performance"
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "OrganizationPerformance" */ 'app/views/settings/organizationPerformance'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
         path="settings/"
         componentPromise={() =>
           import(
