@@ -4,6 +4,7 @@ import {
   QueryResults,
   TokenType,
 } from 'app/utils/tokenizeSearch';
+import {Actions} from 'app/views/eventsV2/table/cellAction';
 
 describe('utils/tokenizeSearch', function() {
   describe('tokenizeSearch()', function() {
@@ -281,6 +282,78 @@ describe('utils/tokenizeSearch', function() {
       results = new QueryResults(['(((a:a', 'OR', 'b:b1)', 'OR', 'c:c)', 'OR', 'b:b2)']);
       results.removeTag('b');
       expect(results.formatString()).toEqual('( ( a:a OR c:c ) )');
+    });
+
+    describe('modifies the query appropriately', function() {
+      it('modifies the query with has/!has', function() {
+        const results = new QueryResults([]);
+        results.modify(Actions.ADD, 'a', null);
+        expect(results.formatString()).toEqual('!has:a');
+        results.modify(Actions.EXCLUDE, 'a', null);
+        expect(results.formatString()).toEqual('has:a');
+        results.modify(Actions.ADD, 'a', null);
+        expect(results.formatString()).toEqual('!has:a');
+      });
+
+      it('modifies the query with additions', function() {
+        const results = new QueryResults([]);
+        results.modify(Actions.ADD, 'a', '1');
+        expect(results.formatString()).toEqual('a:1');
+        results.modify(Actions.ADD, 'b', '1');
+        expect(results.formatString()).toEqual('a:1 b:1');
+        results.modify(Actions.ADD, 'a', '2');
+        expect(results.formatString()).toEqual('b:1 a:2');
+      });
+
+      it('modifies the query with exclusions', function() {
+        const results = new QueryResults([]);
+        results.modify(Actions.EXCLUDE, 'a', '1');
+        expect(results.formatString()).toEqual('!a:1');
+        results.modify(Actions.EXCLUDE, 'b', '1');
+        expect(results.formatString()).toEqual('!a:1 !b:1');
+        results.modify(Actions.EXCLUDE, 'a', '2');
+        expect(results.formatString()).toEqual('!a:1 !b:1 !a:2');
+      });
+
+      it('modifies the query with a mix of additions and exclusions', function() {
+        const results = new QueryResults([]);
+        results.modify(Actions.ADD, 'a', '1');
+        expect(results.formatString()).toEqual('a:1');
+        results.modify(Actions.ADD, 'b', '2');
+        expect(results.formatString()).toEqual('a:1 b:2');
+        results.modify(Actions.EXCLUDE, 'a', '3');
+        expect(results.formatString()).toEqual('b:2 !a:3');
+        results.modify(Actions.EXCLUDE, 'b', '4');
+        expect(results.formatString()).toEqual('!a:3 !b:4');
+        results.modify(Actions.ADD, 'a', '5');
+        expect(results.formatString()).toEqual('!b:4 a:5');
+        results.modify(Actions.ADD, 'b', '6');
+        expect(results.formatString()).toEqual('a:5 b:6');
+      });
+
+      it('modifies the query with greater/less than', function() {
+        const results = new QueryResults([]);
+        results.modify(Actions.SHOW_GREATER_THAN, 'a', 1);
+        expect(results.formatString()).toEqual('a:>1');
+        results.modify(Actions.SHOW_GREATER_THAN, 'a', 2);
+        expect(results.formatString()).toEqual('a:>2');
+        results.modify(Actions.SHOW_LESS_THAN, 'a', 3);
+        expect(results.formatString()).toEqual('a:<3');
+        results.modify(Actions.SHOW_LESS_THAN, 'a', 4);
+        expect(results.formatString()).toEqual('a:<4');
+      });
+
+      it('does not error for special actions', function() {
+        const results = new QueryResults([]);
+        results.modify(Actions.TRANSACTION, '', '');
+        results.modify(Actions.RELEASE, '', '');
+        results.modify(Actions.DRILLDOWN, '', '');
+      });
+
+      it('errors for unknown actions', function() {
+        const results = new QueryResults([]);
+        expect(() => results.modify('unknown', '', '')).toThrow();
+      });
     });
   });
 

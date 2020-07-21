@@ -259,54 +259,6 @@ class TableView extends React.Component<TableViewProps> {
       });
 
       switch (action) {
-        case Actions.ADD:
-          // If the value is null/undefined create a has !has condition.
-          if (value === null || value === undefined) {
-            // Adding a null value is the same as excluding truthy values.
-            // Remove inclusion if it exists.
-            const has = query.getTags('has');
-            if (Array.isArray(has) && has.length) {
-              query.setTag(
-                'has',
-                has.filter(item => item !== column.name)
-              );
-            }
-            query.addTag('!has', [column.name]);
-          } else {
-            // Remove exclusion if it exists.
-            query.removeTag(`!${column.name}`).setTag(column.name, [`${value}`]);
-          }
-          break;
-        case Actions.EXCLUDE:
-          if (value === null || value === undefined) {
-            // Excluding a null value is the same as including truthy values.
-            // Remove exclusion if it exists.
-            const notHas = query.getTags('!has');
-            if (Array.isArray(notHas) && notHas.length) {
-              query.setTag(
-                '!has',
-                notHas.filter(item => item !== column.name)
-              );
-            }
-            query.addTag('has', [column.name]);
-          } else {
-            // Remove positive if it exists.
-            query.removeTag(column.name);
-            // Negations should stack up.
-            const negation = `!${column.name}`;
-            query.addTag(negation, [`${value}`]);
-          }
-          break;
-        case Actions.SHOW_GREATER_THAN: {
-          // Remove query token if it already exists
-          query.setTag(column.name, [`>${value}`]);
-          break;
-        }
-        case Actions.SHOW_LESS_THAN: {
-          // Remove query token if it already exists
-          query.setTag(column.name, [`<${value}`]);
-          break;
-        }
         case Actions.TRANSACTION: {
           const maybeProject = projects.find(project => project.slug === dataRow.project);
 
@@ -360,7 +312,7 @@ class TableView extends React.Component<TableViewProps> {
           return;
         }
         default:
-          throw new Error(`Unknown action type. ${action}`);
+          query.modify(action, column.name, value);
       }
       nextView.query = stringifyQueryObject(query);
 

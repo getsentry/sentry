@@ -1,4 +1,5 @@
 import {escapeDoubleQuotes} from 'app/utils';
+import {Actions} from 'app/views/eventsV2/table/cellAction';
 
 export enum TokenType {
   OP,
@@ -232,6 +233,65 @@ export class QueryResults {
     q.tagValues = {...this.tagValues};
     q.tokens = [...this.tokens];
     return q;
+  }
+
+  modify(action: Actions, columnName: string, value: React.ReactText) {
+    switch (action) {
+      case Actions.ADD:
+        // If the value is null/undefined create a has !has condition.
+        if (value === null || value === undefined) {
+          // Adding a null value is the same as excluding truthy values.
+          // Remove inclusion if it exists.
+          const has = this.getTags('has');
+          if (Array.isArray(has) && has.length) {
+            this.setTag(
+              'has',
+              has.filter(item => item !== columnName)
+            );
+          }
+          this.addTag('!has', [columnName]);
+        } else {
+          // Remove exclusion if it exists.
+          this.removeTag(`!${columnName}`).setTag(columnName, [`${value}`]);
+        }
+        break;
+      case Actions.EXCLUDE:
+        if (value === null || value === undefined) {
+          // Excluding a null value is the same as including truthy values.
+          // Remove exclusion if it exists.
+          const notHas = this.getTags('!has');
+          if (Array.isArray(notHas) && notHas.length) {
+            this.setTag(
+              '!has',
+              notHas.filter(item => item !== columnName)
+            );
+          }
+          this.addTag('has', [columnName]);
+        } else {
+          // Remove positive if it exists.
+          this.removeTag(columnName);
+          // Negations should stack up.
+          const negation = `!${columnName}`;
+          this.addTag(negation, [`${value}`]);
+        }
+        break;
+      case Actions.SHOW_GREATER_THAN: {
+        // Remove query token if it already exists
+        this.setTag(columnName, [`>${value}`]);
+        break;
+      }
+      case Actions.SHOW_LESS_THAN: {
+        // Remove query token if it already exists
+        this.setTag(columnName, [`<${value}`]);
+        break;
+      }
+      case Actions.TRANSACTION:
+      case Actions.RELEASE:
+      case Actions.DRILLDOWN:
+        break;
+      default:
+        throw new Error(`Unknown action type. ${action}`);
+    }
   }
 }
 

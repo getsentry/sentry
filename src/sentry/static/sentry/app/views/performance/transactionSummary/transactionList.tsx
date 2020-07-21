@@ -11,6 +11,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
@@ -21,12 +22,13 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {
   TOP_TRANSACTION_LIMIT,
   TOP_TRANSACTION_FILTERS,
 } from 'app/views/performance/constants';
 
-import {GridBodyCell, GridBodyCellNumber, GridHeadCell} from '../styles';
+import {GridCell, GridCellNumber} from '../styles';
 import {getTransactionDetailsUrl} from '../utils';
 
 type WrapperProps = {
@@ -146,6 +148,31 @@ class TransactionTable extends React.PureComponent<Props> {
     });
   };
 
+  handleCellAction = (column: TableColumn<React.ReactText>) => {
+    return (action: Actions, value: React.ReactText) => {
+      const {eventView, location} = this.props;
+
+      const searchConditions = tokenizeSearch(eventView.query);
+
+      // remove any event.type queries since it is implied to apply to only transactions
+      searchConditions.removeTag('event.type');
+
+      // no need to include transaction as its already in the query params
+      searchConditions.removeTag('transaction');
+
+      searchConditions.modify(action, column.name, value);
+
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: stringifyQueryObject(searchConditions),
+        },
+      });
+    };
+  };
+
   renderHeader() {
     const {eventView, tableData} = this.props;
 
@@ -157,15 +184,17 @@ class TransactionTable extends React.PureComponent<Props> {
       <HeaderCell column={column} tableMeta={tableMeta} key={index}>
         {({align}) => {
           return (
-            <GridHeadCell>
-              <SortLink
-                align={align}
-                title={column.name}
-                direction={undefined}
-                canSort={false}
-                generateSortLink={generateSortLink}
-              />
-            </GridHeadCell>
+            <HeadCellContainer>
+              <GridCell>
+                <SortLink
+                  align={align}
+                  title={column.name}
+                  direction={undefined}
+                  canSort={false}
+                  generateSortLink={generateSortLink}
+                />
+              </GridCell>
+            </HeadCellContainer>
           );
         }}
       </HeaderCell>
@@ -237,11 +266,22 @@ class TransactionTable extends React.PureComponent<Props> {
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
       const key = `${rowIndex}:${column.key}:${index}`;
-      if (isNumeric) {
-        return <GridBodyCellNumber key={key}>{rendered}</GridBodyCellNumber>;
-      }
 
-      return <GridBodyCell key={key}>{rendered}</GridBodyCell>;
+      return (
+        <BodyCellContainer key={key}>
+          <CellAction
+            column={column}
+            dataRow={row}
+            handleCellAction={this.handleCellAction(column)}
+          >
+            {isNumeric ? (
+              <GridCellNumber>{rendered}</GridCellNumber>
+            ) : (
+              <GridCell>{rendered}</GridCell>
+            )}
+          </CellAction>
+        </BodyCellContainer>
+      );
     });
   }
 
@@ -281,6 +321,14 @@ const Header = styled('div')`
 const HeaderButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
+`;
+
+const HeadCellContainer = styled('div')`
+  padding: ${space(2)};
+`;
+
+const BodyCellContainer = styled('div')`
+  padding: ${space(1)} ${space(2)};
 `;
 
 export default TransactionList;

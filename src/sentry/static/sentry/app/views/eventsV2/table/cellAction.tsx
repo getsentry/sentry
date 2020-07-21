@@ -135,16 +135,18 @@ class CellAction extends React.Component<Props, State> {
         </ActionItem>
       );
 
-      addMenuItem(
-        Actions.EXCLUDE,
-        <ActionItem
-          key="exclude-from-filter"
-          data-test-id="exclude-from-filter"
-          onClick={() => handleCellAction(Actions.EXCLUDE, value)}
-        >
-          {t('Exclude from filter')}
-        </ActionItem>
-      );
+      if (column.type !== 'date') {
+        addMenuItem(
+          Actions.EXCLUDE,
+          <ActionItem
+            key="exclude-from-filter"
+            data-test-id="exclude-from-filter"
+            onClick={() => handleCellAction(Actions.EXCLUDE, value)}
+          >
+            {t('Exclude from filter')}
+          </ActionItem>
+        );
+      }
     }
 
     if (['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type)) {

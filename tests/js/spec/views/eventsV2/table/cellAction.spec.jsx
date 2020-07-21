@@ -206,7 +206,7 @@ describe('Discover -> CellAction', function() {
       expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
       expect(
         wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
-      ).toBeTruthy();
+      ).toBeFalsy();
       expect(
         wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
       ).toBeTruthy();
