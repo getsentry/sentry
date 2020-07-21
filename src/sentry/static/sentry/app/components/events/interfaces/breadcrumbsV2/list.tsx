@@ -27,7 +27,7 @@ const cache = new CellMeasurerCache({
 });
 
 class ListContainer extends React.Component<Props> {
-  componentWillReceiveProps() {
+  componentDidMount() {
     this.updateGrid();
   }
 
