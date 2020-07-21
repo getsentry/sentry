@@ -389,6 +389,13 @@ def test_time_synthetic_monitoring_event_in_save_event_not_matching_project(mock
     assert mock_metrics_timing.call_count == 0
 
 
+def test_time_synthetic_monitoring_event_in_save_event_missing_extra(mock_metrics_timing):
+    data = {"project": 1}
+    with override_settings(SENTRY_SYNTHETIC_MONITORING_PROJECT_ID=1):
+        assert time_synthetic_monitoring_event(data, 1, time()) is False
+    assert mock_metrics_timing.call_count == 0
+
+
 def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
     tags = {
         "region": "region-1",
