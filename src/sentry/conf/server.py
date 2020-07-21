@@ -858,8 +858,6 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically indicdent)
     # management integrations)
     "organizations:integrations-incident-management": True,
-    # Enable the Vercel integration
-    "organizations:integrations-vercel": False,
     # Enable the MsTeams integration
     "organizations:integrations-msteams": False,
     # Enable data forwarding functionality for organizations.
