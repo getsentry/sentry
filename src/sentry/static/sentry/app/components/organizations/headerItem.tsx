@@ -156,6 +156,7 @@ const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProp
   color: ${getColor};
   margin-right: ${space(1.5)};
   display: flex;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Hint = styled('div')`
