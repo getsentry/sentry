@@ -794,7 +794,7 @@ def time_synthetic_monitoring_event(data, project_id, start_time):
     if sm_project_id is None or project_id != sm_project_id:
         return False
 
-    extra = data["extra"].get("_sentry_synthetic_monitoring")
+    extra = data.get("extra", {}).get("_sentry_synthetic_monitoring")
     if not extra:
         return False
 
