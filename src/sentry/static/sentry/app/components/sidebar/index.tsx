@@ -669,6 +669,7 @@ const StyledSidebar = styled('div')<{collapsed: boolean}>`
 
 const SidebarSectionGroup = styled('div')`
   ${responsiveFlex};
+  flex-shrink: 0; /* prevents shrinking on Safari */
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
@@ -690,7 +691,7 @@ const PrimaryItems = styled('div')`
   display: flex;
   flex-direction: column;
   -ms-overflow-style: -ms-autohiding-scrollbar;
-  @media (max-height: 600px) and (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints[1]}) {
     border-bottom: 1px solid ${p => p.theme.gray600};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
