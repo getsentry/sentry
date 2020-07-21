@@ -106,6 +106,7 @@ type TriggerFormContainerProps = Omit<
   | 'fieldHelp'
   | 'triggerHelp'
   | 'triggerLabel'
+  | 'placeholder'
 > & {
   triggers: Trigger[];
   errors?: Map<number, {[fieldName: string]: string}>;
