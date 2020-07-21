@@ -79,7 +79,7 @@ const getColorStyles = ({monoTone, platform}) => {
 };
 
 const PlatformIconTile = styled('div', {
-  shouldForwardProp: prop => prop !== 'width' && prop !== 'height' && prop !== 'platform',
+  shouldForwardProp: prop => prop !== 'platform' && prop !== 'monoTone',
 })`
   /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
   font-family: 'platformicons';

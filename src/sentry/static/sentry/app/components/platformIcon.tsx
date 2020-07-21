@@ -103,7 +103,9 @@ const PlatformIcon = ({platform, size, ...props}: Props) => {
 export default PlatformIcon;
 
 // TODO(color): theme doesn't have the color #625471
-const StyledPlatformIconTile = styled(PlatformIconTile)<{width: string; height: string}>`
+const StyledPlatformIconTile = styled(PlatformIconTile, {
+  shouldForwardProp: prop => prop !== 'width' && prop !== 'height',
+})<{width: string; height: string}>`
   width: ${p => p.width};
   height: ${p => p.height};
   position: relative;
