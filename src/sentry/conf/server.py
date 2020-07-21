@@ -853,6 +853,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-incident-management": True,
     # Enable the MsTeams integration
     "organizations:integrations-msteams": False,
+    # Allow orgs to install AzureDevops with limited scopes
+    "organizations:integrations-vsts-limited-scopes": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.

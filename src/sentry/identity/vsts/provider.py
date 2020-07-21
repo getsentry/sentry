@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
-from sentry import http, options
+from sentry import http, options, features
+from sentry.auth.exceptions import IdentityNotValid
+from sentry.utils import json
+from sentry.http import safe_urlopen, safe_urlread
 
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
 from sentry.utils.http import absolute_uri
@@ -40,12 +43,19 @@ class VSTSIdentityProvider(OAuth2Provider):
 
     oauth_access_token_url = "https://app.vssps.visualstudio.com/oauth2/token"
     oauth_authorize_url = "https://app.vssps.visualstudio.com/oauth2/authorize"
-    oauth_scopes = ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
+
+    @property
+    def use_limited_scopes(self):
+        return use_limited_scopes(self.pipeline)
 
     def get_oauth_client_id(self):
+        if self.use_limited_scopes:
+            return options.get("vsts-limited.client-id")
         return options.get("vsts.client-id")
 
     def get_oauth_client_secret(self):
+        if self.use_limited_scopes:
+            return options.get("vsts-limited.client-secret")
         return options.get("vsts.client-secret")
 
     def get_refresh_token_url(self):
@@ -68,17 +78,58 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_refresh_token_headers(self):
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
-    def get_refresh_token_params(self, refresh_token, *args, **kwargs):
+    def get_refresh_token_params(self, refresh_token, identity, *args, **kwargs):
+
+        client_secret = options.get("vsts.client-secret")
+
+        # The token refresh flow does not operate within a pipeline in the same way
+        # that installation does, this means that we have to use the identity.scopes
+        # to determine which client_secret to use.
+        #
+        # If "vso.code" is missing from the identity.scopes, we know that we installed
+        # using the "vsts-limited.client-secret" and therefore should use that to refresh
+        # the token.
+        if "vso.code" not in identity.scopes:
+            client_secret = options.get("vsts-limited.client-secret")
+
         oauth_redirect_url = kwargs.get("redirect_url")
         if oauth_redirect_url is None:
             raise ValueError("VSTS requires oauth redirect url when refreshing identity")
         return {
             "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-            "client_assertion": self.get_oauth_client_secret(),
+            "client_assertion": client_secret,
             "grant_type": "refresh_token",
             "assertion": refresh_token,
             "redirect_uri": absolute_uri(oauth_redirect_url),
         }
+
+    def refresh_identity(self, identity, *args, **kwargs):
+        """
+            Almost identical to OAuth2Provider but passes through the identity
+            into `get_refresh_token_params`. We do this because the identity.scopes
+            tell us which client_secret to use.
+        """
+        refresh_token = identity.data.get("refresh_token")
+
+        if not refresh_token:
+            raise IdentityNotValid("Missing refresh token")
+
+        data = self.get_refresh_token_params(refresh_token, identity, *args, **kwargs)
+
+        req = safe_urlopen(
+            url=self.get_refresh_token_url(), headers=self.get_refresh_token_headers(), data=data
+        )
+
+        try:
+            body = safe_urlread(req)
+            payload = json.loads(body)
+        except Exception:
+            payload = {}
+
+        self.handle_refresh_error(req, payload)
+
+        identity.data.update(self.get_oauth_data(payload))
+        return identity.update(data=identity.data)
 
     def build_identity(self, data):
         data = data["data"]
@@ -117,3 +168,11 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
             return dict(parse_qsl(body))
         return json.loads(body)
+
+
+def use_limited_scopes(pipeline):
+    return features.has(
+        "organizations:integrations-vsts-limited-scopes",
+        pipeline.organization,
+        actor=pipeline.request.user,
+    )
