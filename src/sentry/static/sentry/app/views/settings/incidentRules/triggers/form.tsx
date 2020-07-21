@@ -185,7 +185,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
                   {isCritical ? t('Critical Status') : t('Warning Status')}
                 </React.Fragment>
               }
-              placeholder={isCritical ? '300' : t('(None)')}
+              placeholder={isCritical ? '300' : t('None')}
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
             />
@@ -211,7 +211,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               {t('Resolved Status')}
             </React.Fragment>
           }
-          placeholder={t('(Automatic)')}
+          placeholder={t('Automatic')}
           onChange={this.handleChangeResolveTrigger}
           onThresholdTypeChange={onThresholdTypeChange}
         />
