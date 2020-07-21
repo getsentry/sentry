@@ -24,12 +24,14 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentProject,
     IncidentSnapshot,
+    IncidentTrigger,
     PendingIncidentSnapshot,
     IncidentSeen,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
     TimeSeriesSnapshot,
+    TriggerStatus,
 )
 from sentry.models import Integration, Project
 from sentry.snuba.dataset import Dataset
@@ -143,6 +145,8 @@ def update_incident_status(
             subscribe_to_incident(incident, user)
 
         prev_status = incident.status
+        if status_method == IncidentStatusMethod.MANUAL and status == IncidentStatus.CLOSED:
+            trigger_incident_triggers(incident)
 
         kwargs = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
@@ -966,6 +970,30 @@ def delete_alert_rule_trigger(trigger):
 
 def get_triggers_for_alert_rule(alert_rule):
     return AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+
+
+def trigger_incident_triggers(incident):
+    from sentry.incidents.tasks import handle_trigger_action
+
+    triggers = IncidentTrigger.objects.filter(incident=incident).select_related(
+        "alert_rule_trigger"
+    )
+    for trigger in triggers:
+        if trigger.status == TriggerStatus.ACTIVE.value:
+            with transaction.atomic():
+                method = "fire" if trigger.status == TriggerStatus.ACTIVE.value else "resolve"
+                for action in AlertRuleTriggerAction.objects.filter(
+                    alert_rule_trigger=trigger.alert_rule_trigger
+                ):
+                    for project in incident.projects.all():
+                        handle_trigger_action.apply_async(
+                            kwargs={
+                                "action_id": action.id,
+                                "incident_id": incident.id,
+                                "project_id": project.id,
+                                "method": method,
+                            },
+                        )
 
 
 def get_subscriptions_from_alert_rule(alert_rule, projects):
