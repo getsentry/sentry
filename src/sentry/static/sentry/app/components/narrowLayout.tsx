@@ -41,7 +41,7 @@ class NarrowLayout extends React.Component<Props> {
           <div className="box box-modal">
             <div className="box-header">
               <a href="/">
-                <IconSentry size="xl" />
+                <IconSentry size="lg" />
               </a>
               {this.props.showLogout && (
                 <a className="logout pull-right" onClick={this.handleLogout}>
