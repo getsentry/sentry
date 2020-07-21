@@ -3,7 +3,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {IconFlag, IconWarning} from 'app/icons';
+import {IconSearch} from 'app/icons';
 import space from 'app/styles/space';
 
 type Props = {
@@ -22,13 +22,13 @@ const EmptyStateWarning = ({
   small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconWarning color="gray500" size="lg" />}
+        {withIcon && <StyledIconSearch color="gray500" size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconFlag size="54px" />}
+      {withIcon && <IconSearch size="54px" />}
       {children}
     </EmptyStreamWrapper>
   );
@@ -64,7 +64,7 @@ const SmallMessage = styled('div')`
   line-height: 1em;
 `;
 
-const StyledIconWarning = styled(IconWarning)`
+const StyledIconSearch = styled(IconSearch)`
   margin-right: ${space(1)};
 `;
 

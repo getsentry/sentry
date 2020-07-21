@@ -6,7 +6,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import withApi from 'app/utils/withApi';
 import CompactIssue from 'app/components/issues/compactIssue';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {IconFlag} from 'app/icons';
+import {IconSearch} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
@@ -159,7 +159,7 @@ const IssueList = createReactClass({
 
     return (
       <Panel style={panelStyle}>
-        <EmptyMessage icon={<IconFlag size="xl" />}>
+        <EmptyMessage icon={<IconSearch size="xl" />}>
           {emptyText ? emptyText : t('Nothing to show here, move along.')}
         </EmptyMessage>
       </Panel>
