@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconWarning} from 'app/icons';
 import {loadIncidents} from 'app/actionCreators/serviceIncidents';
 import {SentryServiceStatus} from 'app/types';
 import space from 'app/styles/space';
@@ -61,12 +61,7 @@ class ServiceIncidents extends React.Component<Props, State> {
           orientation={orientation}
           collapsed={collapsed}
           active={active}
-          icon={
-            <InlineSvg
-              src="icon-circle-exclamation"
-              className="animated pulse infinite"
-            />
-          }
+          icon={<IconWarning className="animated pulse infinite" />}
           label={t('Service status')}
           onClick={onShowPanel}
         />
