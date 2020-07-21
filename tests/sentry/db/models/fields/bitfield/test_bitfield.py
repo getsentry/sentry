@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+import unittest
 import pickle
+
 import six
 
 from django import forms
@@ -27,7 +29,7 @@ class BitFieldTestModelForm(forms.ModelForm):
         exclude = tuple()
 
 
-class BitHandlerTest(TestCase):
+class BitHandlerTest(unittest.TestCase):
     def test_comparison(self):
         bithandler_1 = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         bithandler_2 = BitHandler(1, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
@@ -109,7 +111,7 @@ class BitHandlerTest(TestCase):
         self.assertEquals(bithandler.FLAG_2, False)
 
 
-class BitTest(TestCase):
+class BitTest(unittest.TestCase):
     def test_int(self):
         bit = Bit(0)
         self.assertEquals(int(bit), 1)
@@ -341,8 +343,15 @@ class BitFieldTest(TestCase):
         field = TestModel._meta.get_field("flags")
         self.assertEquals(field.default, TestModel.flags.FLAG_1 | TestModel.flags.FLAG_2)
 
+    def test_pickle_integration(self):
+        inst = BitFieldTestModel.objects.create(flags=1)
+        data = pickle.dumps(inst)
+        inst = pickle.loads(data)
+        self.assertEquals(type(inst.flags), BitHandler)
+        self.assertEquals(int(inst.flags), 1)
 
-class BitFieldSerializationTest(TestCase):
+
+class BitFieldSerializationTest(unittest.TestCase):
     def test_can_unserialize_bithandler(self):
         bf = BitFieldTestModel()
         bf.flags.FLAG_0 = 1
@@ -351,13 +360,6 @@ class BitFieldSerializationTest(TestCase):
         inst = pickle.loads(data)
         self.assertTrue(inst.flags.FLAG_0)
         self.assertFalse(inst.flags.FLAG_1)
-
-    def test_pickle_integration(self):
-        inst = BitFieldTestModel.objects.create(flags=1)
-        data = pickle.dumps(inst)
-        inst = pickle.loads(data)
-        self.assertEquals(type(inst.flags), BitHandler)
-        self.assertEquals(int(inst.flags), 1)
 
     def test_added_field(self):
         bf = BitFieldTestModel()
