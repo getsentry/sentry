@@ -1,4 +1,7 @@
 import React from 'react';
+import styled from '@emotion/styled';
+
+import PlatformIconTile from './platformIconTile';
 
 const PLATFORM_TO_ICON = {
   apple: 'apple',
@@ -42,10 +45,10 @@ const PLATFORM_TO_ICON = {
   'python-rq': 'python',
   'python-tornado': 'python',
   'python-pythonawslambda': 'python',
-  'react-native': 'apple',
   ruby: 'ruby',
   'ruby-rack': 'ruby',
   'ruby-rails': 'rails',
+  react: 'react',
   rust: 'rust',
   swift: 'swift',
   // TODO: AWS used to be python-awslambda but the displayed generic icon
@@ -53,7 +56,7 @@ const PLATFORM_TO_ICON = {
 };
 
 export function getIcon(platform: string): string {
-  const icon = PLATFORM_TO_ICON[platform];
+  const icon = PLATFORM_TO_ICON[platform] || PLATFORM_TO_ICON[platform.split('-')[0]];
 
   if (!icon) {
     return 'generic';
@@ -69,17 +72,40 @@ type Props = {
   height?: string;
 };
 
-const PlatformIcon = ({platform, size, width, height, ...props}: Props) => {
+const PlatformIcon = ({platform, size, ...props}: Props) => {
   const icon = getIcon(platform);
+  const width = props.width || size || '1em';
+  const height = props.height || size || '1em';
 
-  return (
+  // TODO(Priscila): find a better way to do it, maybe by adding a react-native svg icon with monoTone colors
+  return platform === 'react-native' ? (
+    <StyledPlatformIconTile
+      platform={platform}
+      width={width}
+      height={height}
+      {...props}
+    />
+  ) : (
     <img
       src={require(`platformicons/svg/${icon}.svg`)}
-      width={width || size || '1em'}
-      height={height || size || '1em'}
+      width={width}
+      height={height}
       {...props}
     />
   );
 };
 
 export default PlatformIcon;
+
+// TODO(color): theme doesn't have the color #625471
+const StyledPlatformIconTile = styled(PlatformIconTile)<{width: string; height: string}>`
+  width: ${p => p.width};
+  height: ${p => p.height};
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  :before {
+    position: absolute;
+  }
+`;
