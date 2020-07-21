@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ErrorBoundary from 'app/components/errorBoundary';
+import {IconFlag} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
@@ -42,7 +43,7 @@ class OrganizationActivity extends AsyncView<Props, State> {
 
   renderEmpty() {
     return (
-      <EmptyMessage icon="icon-circle-exclamation">
+      <EmptyMessage icon={<IconFlag size="md" />}>
         {t('Nothing to show here, move along.')}
       </EmptyMessage>
     );

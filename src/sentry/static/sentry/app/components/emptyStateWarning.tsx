@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import HeroIcon from 'app/components/heroIcon';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {IconWarning} from 'app/icons';
+import {IconFlag, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 
 type Props = {
@@ -29,7 +29,7 @@ const EmptyStateWarning = ({
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <HeroIcon src="icon-circle-exclamation" size="54" />}
+      {withIcon && <IconFlag size="54px" />}
       {children}
     </EmptyStreamWrapper>
   );
