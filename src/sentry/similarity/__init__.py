@@ -92,17 +92,14 @@ def _make_index_backend(cluster=None, namespace="sim:1"):
 
     return MetricsWrapper(
         RedisScriptMinHashIndexBackend(
-            cluster, "sim:1", MinHashSignatureBuilder(16, 0xFFFF), 8, 60 * 60 * 24 * 30, 3, 5000
+            cluster, namespace, MinHashSignatureBuilder(16, 0xFFFF), 8, 60 * 60 * 24 * 30, 3, 5000
         ),
         scope_tag_name=None,
     )
 
 
-_DEFAULT_INDEX_BACKEND = _make_index_backend(namespace="sim:1")
-
-
 features = FeatureSet(
-    _DEFAULT_INDEX_BACKEND,
+    _make_index_backend(namespace="sim:1"),
     Encoder({Frame: get_frame_attributes}),
     BidirectionalMapping(
         {
@@ -130,4 +127,4 @@ features = FeatureSet(
     expected_encoding_errors=(FrameEncodingError,),
 )
 
-features2 = GroupingBasedFeatureSet(_DEFAULT_INDEX_BACKEND)
+features2 = GroupingBasedFeatureSet(_make_index_backend(namespace="sim:2"))
