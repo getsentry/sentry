@@ -56,7 +56,7 @@ const PLATFORM_TO_ICON = {
 };
 
 export function getIcon(platform: string): string {
-  const icon = PLATFORM_TO_ICON[platform] || PLATFORM_TO_ICON[platform.split('-')[0]];
+  const icon = PLATFORM_TO_ICON[platform];
 
   if (!icon) {
     return 'generic';
