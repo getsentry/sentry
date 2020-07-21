@@ -19,7 +19,7 @@ jobs:
           while curl -sf -o /dev/null "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/tags/$DATE_PART.$PATCH_VERSION"; do
             (( PATCH_VERSION++ ))
           done
-          echo "::set-output name=version::"$DATE_PART.$PATCH_VERSION""
+          echo "::set-output name=version::$DATE_PART.$PATCH_VERSION"
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_SENTRY_BOT_PAT }}
@@ -47,6 +47,7 @@ jobs:
           GIT_COMMITTER_NAME: getsentry-bot
           GIT_AUTHOR_NAME: getsentry-bot
           EMAIL: bot@getsentry.com
+          GITHUB_API_TOKEN: ${{ secrets.GH_SENTRY_BOT_PAT }}
           ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
           TWINE_USERNAME: '__token__'
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
