@@ -1026,14 +1026,14 @@ def create_alert_rule_trigger_action(
     :param integration: (Optional) The Integration related to this action.
     :return: The created action
     """
+
     target_display = None
-    if type == AlertRuleTriggerAction.Type.SLACK:
-
+    if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
-            raise InvalidTriggerActionError("Slack action must specify channel")
+            raise InvalidTriggerActionError("Must specify specific target type")
 
-        channel_id = get_alert_rule_trigger_action_slack_channel_id(
-            trigger.alert_rule.organization, integration.id, target_identifier
+        channel_id = get_alert_rule_trigger_action_integration_object_id(
+            type, trigger.alert_rule.organization, integration.id, target_identifier
         )
 
         # Use the channel name for display
@@ -1072,23 +1072,14 @@ def update_alert_rule_trigger_action(
         updated_fields["integration"] = integration
     if target_identifier is not None:
         type = updated_fields.get("type", trigger_action.type)
-        integration = updated_fields.get("integration", trigger_action.integration)
-        organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
-        if type == AlertRuleTriggerAction.Type.SLACK.value:
-            channel_id = get_alert_rule_trigger_action_slack_channel_id(
-                organization, integration.id, target_identifier,
+        if type in AlertRuleTriggerAction.INTEGRATION_TYPES:
+            integration = updated_fields.get("integration", trigger_action.integration)
+            organization = trigger_action.alert_rule_trigger.alert_rule.organization
+            channel_id = get_alert_rule_trigger_action_integration_object_id(
+                type, organization, integration.id, target_identifier,
             )
-
-            # Use the channel name for display
-            updated_fields["target_display"] = target_identifier
-            updated_fields["target_identifier"] = channel_id
-        elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
-            channel_id = get_alert_rule_trigger_action_msteams_channel_id(
-                organization, integration.id, target_identifier,
-            )
-
-            # Use the channel name for display
+            # Use the target identifier for display
             updated_fields["target_display"] = target_identifier
             updated_fields["target_identifier"] = channel_id
         else:
@@ -1096,6 +1087,15 @@ def update_alert_rule_trigger_action(
 
     trigger_action.update(**updated_fields)
     return trigger_action
+
+
+def get_alert_rule_trigger_action_integration_object_id(type, *args, **kwargs):
+    if type == AlertRuleTriggerAction.Type.SLACK:
+        return get_alert_rule_trigger_action_slack_channel_id(*args, **kwargs)
+    elif type == AlertRuleTriggerAction.Type.MSTEAMS:
+        return get_alert_rule_trigger_action_msteams_channel_id(*args, **kwargs)
+    else:
+        raise Exception("Not implemented")
 
 
 def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id, name):
