@@ -858,8 +858,6 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically indicdent)
     # management integrations)
     "organizations:integrations-incident-management": True,
-    # Enable the Vercel integration
-    "organizations:integrations-vercel": False,
     # Enable the MsTeams integration
     "organizations:integrations-msteams": False,
     # Enable data forwarding functionality for organizations.
@@ -1410,6 +1408,14 @@ SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 3000
 SENTRY_REVERSE_PROXY_PORT = 8000
 
+
+# The chunk size for attachments in blob store. Should be a power of two.
+SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
+
+# The chunk size for files in the chunk uplooad. This is used for native debug
+# files and source maps, and directly translates to the chunk size in blob
+# store. MUST be a power of two.
+SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
 # SENTRY_DEVSERVICES = {
 #     "service-name": {
