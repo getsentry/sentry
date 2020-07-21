@@ -18,6 +18,9 @@ to check are:
 - `django.db.migrations.writer.MIGRATION_TEMPLATE`. Verify that the template hasn't
   significantly changed. Details on what we've changed are in a comment on
   `sentry.migrations.monkey.writer.SENTRY_MIGRATION_TEMPLATE`
+- `sentry.db.migrations.concurrent_fields`: This isn't monkey patched, but we should
+  check that the implementation of django migrations that this relies on hasn't changed
+  significantly and that these concurrent fields still work.
 
 When you're happy that these changes are good to go, update
 `LAST_VERIFIED_DJANGO_VERSION` to the version of Django you're upgrading to. If the
