@@ -382,7 +382,7 @@ class TimeRangeSelector extends React.PureComponent {
                     />
                     <SubmitRow>
                       <MultipleSelectorSubmitRow
-                        onSubmit={() => this.handleCloseMenu()}
+                        onSubmit={this.handleCloseMenu}
                         disabled={!this.state.hasChanges || this.state.hasDateRangeErrors}
                       />
                     </SubmitRow>
