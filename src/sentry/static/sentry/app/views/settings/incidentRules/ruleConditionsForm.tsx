@@ -185,7 +185,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             label={t('Time Window')}
             help={
               <React.Fragment>
-                <div>{t('The time window to use when evaluating the Metric')}</div>
+                <div>{t('The time window over which the Metric is evaluated')}</div>
                 <div>
                   {t(
                     'Note: Triggers are evaluated every minute regardless of this value.'
