@@ -771,6 +771,52 @@ def _do_save_event(
                     "events.time-to-process", time() - start_time, instance=data["platform"]
                 )
 
+            time_synthetic_monitoring_event(data, project_id, start_time)
+
+
+def time_synthetic_monitoring_event(data, project_id, start_time):
+    """
+    For special events produced by the recurring synthetic monitoring
+    functions, emit timing metrics for:
+
+    - "events.synthetic-monitoring.time-to-ingest-total" - Total time with
+    the client submission latency included. Rely on timestamp provided by
+    client as part of the event payload.
+
+    - "events.synthetic-monitoring.time-to-process" - Processing time inside
+    by sentry. `start_time` is added to the payload by the system entrypoint
+    (relay).
+
+    If an event was produced by synthetic monitoring and metrics emitted,
+    returns `True` otherwise returns `False`.
+    """
+    sm_project_id = getattr(settings, "SENTRY_SYNTHETIC_MONITORING_PROJECT_ID", None)
+    if sm_project_id is None or project_id != sm_project_id:
+        return False
+
+    extra = data.get("extra", {}).get("_sentry_synthetic_monitoring")
+    if not extra:
+        return False
+
+    now = time()
+    tags = {"target": extra["target"], "region": extra["region"], "source": extra["source"]}
+
+    metrics.timing(
+        "events.synthetic-monitoring.time-to-ingest-total",
+        now - data["timestamp"],
+        tags=tags,
+        sample_rate=1.0,
+    )
+
+    if start_time:
+        metrics.timing(
+            "events.synthetic-monitoring.time-to-process",
+            now - start_time,
+            tags=tags,
+            sample_rate=1.0,
+        )
+    return True
+
 
 @instrumented_task(
     name="sentry.tasks.store.save_event",

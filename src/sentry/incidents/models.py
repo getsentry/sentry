@@ -312,7 +312,6 @@ class AlertRuleManager(BaseManager):
         queryset = self.filter(organization=organization)
         if projects is not None:
             queryset = queryset.filter(snuba_query__subscriptions__project__in=projects).distinct()
-
         return queryset
 
     def fetch_for_project(self, project):
@@ -621,6 +620,30 @@ class AlertRuleTriggerAction(Model):
     @classmethod
     def get_registered_types(cls):
         return cls._type_registrations.values()
+
+
+class AlertRuleActivityType(Enum):
+    CREATED = 1
+    DELETED = 2
+    UPDATED = 3
+    ENABLED = 4
+    DISABLED = 5
+
+
+class AlertRuleActivity(Model):
+    __core__ = True
+
+    alert_rule = FlexibleForeignKey("sentry.AlertRule")
+    previous_alert_rule = FlexibleForeignKey(
+        "sentry.AlertRule", null=True, related_name="previous_alert_rule"
+    )
+    user = FlexibleForeignKey("sentry.User", null=True)
+    type = models.IntegerField()
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_alertruleactivity"
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)

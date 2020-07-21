@@ -20,7 +20,7 @@ from sentry.models import Rule, RuleStatus
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
     def get(self, request, project):
         """
-        Fetches alert rules and legacy rules for an organization
+        Fetches alert rules and legacy rules for a project
         """
         alert_rules = AlertRule.objects.fetch_for_project(project)
         if not features.has("organizations:performance-view", project.organization):
