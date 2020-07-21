@@ -27,7 +27,7 @@ def test_basic(similarity, factories, set_feature, default_project):
     if similarity is sentry.similarity.features:
         msg_label = "message:message:character-shingles"
     else:
-        msg_label = "message"
+        msg_label = "message:character-5-shingle"
 
     comparison = dict(similarity.compare(e1.group))
 
