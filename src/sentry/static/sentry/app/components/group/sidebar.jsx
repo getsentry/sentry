@@ -6,7 +6,7 @@ import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalIssueList from 'app/components/group/externalIssuesList';
 import GroupParticipants from 'app/components/group/participants';
@@ -15,19 +15,9 @@ import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import SentryTypes from 'app/sentryTypes';
-import SubscribeButton from 'app/components/subscribeButton';
 import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import withApi from 'app/utils/withApi';
-
-const SUBSCRIPTION_REASONS = {
-  commented: t("You're receiving updates because you have commented on this issue."),
-  assigned: t("You're receiving updates because you were assigned to this issue."),
-  bookmarked: t("You're receiving updates because you have bookmarked this issue."),
-  changed_status: t(
-    "You're receiving updates because you have changed the status of this issue."
-  ),
-  mentioned: t("You're receiving updates because you have been mentioned in this issue."),
-};
+import {getSubscriptionReason} from 'app/views/organizationGroupDetails/utils';
 
 class GroupSidebar extends React.Component {
   static propTypes = {
@@ -175,40 +165,8 @@ class GroupSidebar extends React.Component {
     return null;
   }
 
-  canChangeSubscriptionState() {
-    return !(this.props.group.subscriptionDetails || {disabled: false}).disabled;
-  }
-
   getNotificationText() {
-    const {group} = this.props;
-
-    if (group.isSubscribed) {
-      let result = t(
-        "You're receiving updates because you are subscribed to this issue."
-      );
-      if (group.subscriptionDetails) {
-        const reason = group.subscriptionDetails.reason;
-        if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
-          result = SUBSCRIPTION_REASONS[reason];
-        }
-      } else {
-        result = tct(
-          "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
-          {
-            link: <a href="/account/settings/notifications/" />,
-          }
-        );
-      }
-      return result;
-    } else {
-      if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
-        return tct('You have [link:disabled workflow notifications] for this project.', {
-          link: <a href="/account/settings/notifications/" />,
-        });
-      } else {
-        return t("You're not subscribed to this issue.");
-      }
-    }
+    return getSubscriptionReason(this.props.group);
   }
 
   renderParticipantData() {
@@ -289,17 +247,10 @@ class GroupSidebar extends React.Component {
         )}
 
         {this.renderParticipantData()}
-
         <h6>
           <span>{t('Notifications')}</span>
         </h6>
         <p className="help-block">{this.getNotificationText()}</p>
-        {this.canChangeSubscriptionState() && (
-          <SubscribeButton
-            isSubscribed={group.isSubscribed}
-            onClick={() => this.toggleSubscription()}
-          />
-        )}
       </div>
     );
   }

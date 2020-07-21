@@ -32,6 +32,8 @@ import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+import SubscribeAction from './subscribeAction';
+
 class DeleteActions extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
@@ -232,6 +234,10 @@ const GroupDetailsActions = createReactClass({
     this.onUpdate({isBookmarked: !this.props.group.isBookmarked});
   },
 
+  onToggleSubscribe() {
+    this.onUpdate({isSubscribed: !this.props.group.isSubscribed});
+  },
+
   onDiscard() {
     const {group, project, organization} = this.props;
     const id = uniqueId();
@@ -283,30 +289,15 @@ const GroupDetailsActions = createReactClass({
             isAutoResolved={isResolved && group.statusDetails.autoResolved}
           />
         </GuideAnchor>
-
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
           <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
         </GuideAnchor>
-
-        <div className="btn-group">
-          <div
-            className={bookmarkClassName}
-            title={t('Bookmark')}
-            onClick={this.onToggleBookmark}
-          >
-            <IconWrapper>
-              <IconStar isSolid size="xs" />
-            </IconWrapper>
-          </div>
-        </div>
-
         <DeleteActions
           organization={organization}
           project={project}
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
-
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
             <ShareIssue
@@ -319,7 +310,6 @@ const GroupDetailsActions = createReactClass({
             />
           </div>
         )}
-
         {orgFeatures.has('discover-basic') && (
           <div className="btn-group">
             <Link
@@ -331,6 +321,18 @@ const GroupDetailsActions = createReactClass({
             </Link>
           </div>
         )}
+        <div className="btn-group">
+          <div
+            className={bookmarkClassName}
+            title={t('Bookmark')}
+            onClick={this.onToggleBookmark}
+          >
+            <IconWrapper>
+              <IconStar isSolid size="xs" />
+            </IconWrapper>
+          </div>
+        </div>
+        <SubscribeAction group={group} onClick={this.onToggleSubscribe} />
       </div>
     );
   },

@@ -1,8 +1,8 @@
 /*eslint-env node*/
 /*eslint import/no-nodejs-modules:0 */
 const fs = require('fs');
-
 const path = require('path');
+
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
 const webpack = require('webpack');
 const ExtractTextPlugin = require('mini-css-extract-plugin');

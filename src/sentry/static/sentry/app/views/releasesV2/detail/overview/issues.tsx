@@ -179,7 +179,6 @@ class Issues extends React.Component<Props, State> {
             </Button>
           </OpenInButtonBar>
         </ControlsWrapper>
-
         <TableWrapper data-test-id="release-wrapper">
           <GroupList
             orgId={orgId}

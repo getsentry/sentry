@@ -121,30 +121,6 @@ describe('GroupSidebar', function() {
     });
   });
 
-  describe('subscribing', function() {
-    let issuesApi;
-    beforeEach(function() {
-      issuesApi = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/issues/',
-        method: 'PUT',
-        body: TestStubs.Group({isSubscribed: false}),
-      });
-    });
-
-    it('can subscribe', function() {
-      const btn = wrapper.find('SubscribeButton');
-
-      btn.simulate('click');
-
-      expect(issuesApi).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {isSubscribed: true},
-        })
-      );
-    });
-  });
-
   describe('environment toggle', function() {
     it('re-requests tags with correct environment', function() {
       const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
