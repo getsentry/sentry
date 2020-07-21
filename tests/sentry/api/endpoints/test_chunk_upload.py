@@ -2,6 +2,7 @@ from __future__ import absolute_import, division
 
 from hashlib import sha1
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -13,7 +14,6 @@ from sentry.api.endpoints.chunk import (
     MAX_CONCURRENCY,
     HASH_ALGORITHM,
     MAX_REQUEST_SIZE,
-    CHUNK_UPLOAD_BLOB_SIZE,
 )
 
 
@@ -34,7 +34,7 @@ class ChunkUploadTest(APITestCase):
             endpoint = options.get("system.url-prefix")
 
         assert response.status_code == 200, response.content
-        assert response.data["chunkSize"] == CHUNK_UPLOAD_BLOB_SIZE
+        assert response.data["chunkSize"] == settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
         assert response.data["chunksPerRequest"] == MAX_CHUNKS_PER_REQUEST
         assert response.data["maxRequestSize"] == MAX_REQUEST_SIZE
         assert response.data["maxFileSize"] == options.get("system.maximum-file-size")
@@ -142,7 +142,7 @@ class ChunkUploadTest(APITestCase):
 
     def test_too_large_chunk(self):
         files = []
-        content = "x" * (CHUNK_UPLOAD_BLOB_SIZE + 1)
+        content = "x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
 
         response = self.client.post(
@@ -156,7 +156,7 @@ class ChunkUploadTest(APITestCase):
 
     def test_checksum_missmatch(self):
         files = []
-        content = "x" * (CHUNK_UPLOAD_BLOB_SIZE + 1)
+        content = "x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile("wrong checksum", content))
 
         response = self.client.post(
