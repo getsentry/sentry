@@ -57,7 +57,7 @@ const FooterLink = styled(ExternalLink)`
   }
 `;
 
-export const FooterIcon = styled(props => (
+const FooterIcon = styled(props => (
   <a href="/" tabIndex={-1} {...props}>
     <IconSentry size="xl" />
   </a>
