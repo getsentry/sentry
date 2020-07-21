@@ -48,7 +48,7 @@ const PLATFORM_TO_ICON = {
   ruby: 'ruby',
   'ruby-rack': 'ruby',
   'ruby-rails': 'rails',
-  react: 'react',
+  'react-native': 'react-native',
   rust: 'rust',
   swift: 'swift',
   // TODO: AWS used to be python-awslambda but the displayed generic icon
@@ -73,19 +73,24 @@ type Props = {
 };
 
 const PlatformIcon = ({platform, size, ...props}: Props) => {
-  const icon = getIcon(platform);
   const width = props.width || size || '1em';
   const height = props.height || size || '1em';
 
-  // TODO(Priscila): find a better way to do it, maybe by adding a react-native svg icon with monoTone colors
-  return platform === 'react-native' ? (
-    <StyledPlatformIconTile
-      platform={platform}
-      width={width}
-      height={height}
-      {...props}
-    />
-  ) : (
+  if (platform === 'react-native') {
+    // TODO(Priscila): find a better way to do it, maybe by removing the react svg path fill attributes
+    return (
+      <StyledPlatformIconTile
+        platform={platform}
+        width={width}
+        height={height}
+        {...props}
+      />
+    );
+  }
+
+  const icon = getIcon(platform);
+
+  return (
     <img
       src={require(`platformicons/svg/${icon}.svg`)}
       width={width}
