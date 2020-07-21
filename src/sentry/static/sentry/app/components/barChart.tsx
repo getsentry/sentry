@@ -4,13 +4,13 @@ import React from 'react';
 import StackedBarChart from 'app/components/stackedBarChart';
 
 type Props = Partial<Omit<React.ComponentProps<typeof StackedBarChart>, 'points'>> & {
-  points: Array<{x: number; y: number; label?: string}>;
+  points?: Array<{x: number; y: number; label?: string}>;
 };
 
-const BarChart = (props: Props) => {
-  const points = props.points.map(point => ({x: point.x, y: [point.y]}));
-  const propsClone = Object.assign({}, props, {points});
-  return <StackedBarChart {...propsClone} />;
+const BarChart = ({points = [], ...rest}: Props) => {
+  const formattedPoints = points.map(point => ({x: point.x, y: [point.y]}));
+  const props = {...rest, points: formattedPoints};
+  return <StackedBarChart {...props} />;
 };
 
 BarChart.propTypes = {
@@ -31,10 +31,6 @@ BarChart.propTypes = {
       label: PropTypes.string,
     })
   ),
-};
-
-BarChart.defaultProps = {
-  points: [],
 };
 
 export default BarChart;

@@ -21,13 +21,12 @@ type Series = Array<{
 type Marker = {
   x: number;
   label?: string;
-  className?: string;
   fill?: string;
   offset?: number;
+  className?: string;
 };
 
 type DefaultProps = {
-  className: string;
   label: string;
   /**
    * @deprecated
@@ -40,6 +39,7 @@ type DefaultProps = {
    * The amount of space between bars. Also represents an svg point
    */
   gap: number;
+  className: string;
 };
 
 type Props = DefaultProps & {
@@ -100,13 +100,13 @@ class StackedBarChart extends React.Component<Props, State> {
   };
 
   static defaultProps: DefaultProps = {
-    className: 'sparkline',
     label: '',
     points: [],
     series: [],
     markers: [],
     barClasses: ['chart-bar'],
     gap: 0.5,
+    className: 'sparkline',
   };
 
   constructor(props: Props) {
@@ -130,7 +130,7 @@ class StackedBarChart extends React.Component<Props, State> {
     };
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props): void {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (nextProps.points || nextProps.series) {
       let series = nextProps.series;
       if (nextProps.points.length) {
@@ -149,7 +149,7 @@ class StackedBarChart extends React.Component<Props, State> {
     }
   }
 
-  shouldComponentUpdate(nextProps: Props, _nextState: State): boolean {
+  shouldComponentUpdate(nextProps: Props, _nextState: State) {
     return !isEqual(this.props, nextProps);
   }
 
