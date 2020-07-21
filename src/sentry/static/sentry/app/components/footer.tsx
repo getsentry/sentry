@@ -43,7 +43,7 @@ function Footer() {
             </Build>
           </div>
         )}
-        <FooterIcon />
+        <LogoLink />
         <Hook name="footer" />
       </div>
     </footer>
@@ -57,7 +57,7 @@ const FooterLink = styled(ExternalLink)`
   }
 `;
 
-const FooterIcon = styled(props => (
+const LogoLink = styled(props => (
   <a href="/" tabIndex={-1} {...props}>
     <IconSentry size="xl" />
   </a>
