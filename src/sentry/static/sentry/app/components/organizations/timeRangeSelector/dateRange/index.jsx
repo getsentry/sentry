@@ -8,7 +8,6 @@ import moment from 'moment';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
 import {
   getEndOfDay,
@@ -89,6 +88,15 @@ class DateRange extends React.Component {
     maxPickableDays: MAX_PICKABLE_DAYS,
   };
 
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      hasStartErrors: false,
+      hasEndErrors: false,
+    };
+  }
+
   handleSelectDateRange = ({selection}) => {
     const {onChange} = this.props;
     const {startDate, endDate} = selection;
@@ -125,14 +133,17 @@ class DateRange extends React.Component {
       onChange({
         start: newTime,
         end,
+        hasDateRangeErrors: this.state.hasEndErrors,
       });
+
+      this.setState({hasStartErrors: false});
     } catch (err) {
       Sentry.withScope(scope => {
         scope.setExtra('startTime', startTime);
         Sentry.captureException(err);
       });
 
-      addErrorMessage(t('Invalid start time'));
+      this.setState({hasStartErrors: true});
     }
   };
 
@@ -157,14 +168,17 @@ class DateRange extends React.Component {
       onChange({
         start,
         end: newTime,
+        hasDateRangeErrors: this.state.hasStartErrors,
       });
+
+      this.setState({hasEndErrors: false});
     } catch (err) {
       Sentry.withScope(scope => {
         scope.setExtra('endTime', endTime);
         Sentry.captureException(err);
       });
 
-      addErrorMessage(t('Invalid end time'));
+      this.setState({hasEndErrors: true});
     }
   };
 
