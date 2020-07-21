@@ -6,7 +6,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {analytics} from 'app/utils/analytics';
 import {
@@ -88,14 +87,10 @@ class DateRange extends React.Component {
     maxPickableDays: MAX_PICKABLE_DAYS,
   };
 
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      hasStartErrors: false,
-      hasEndErrors: false,
-    };
-  }
+  state = {
+    hasStartErrors: false,
+    hasEndErrors: false,
+  };
 
   handleSelectDateRange = ({selection}) => {
     const {onChange} = this.props;
@@ -117,69 +112,53 @@ class DateRange extends React.Component {
     const {start, end, onChange} = this.props;
     const startTime = e.target.value;
 
-    try {
-      if (!startTime || !isValidTime(startTime)) {
-        throw new Error('Invalid start time');
-      }
-      const newTime = setDateToTime(start, startTime, {local: true});
-
-      analytics('dateselector.time_changed', {
-        field_changed: 'start',
-        time: startTime,
-        path: getRouteStringFromRoutes(this.context.router.routes),
-        org_id: parseInt(this.props.organization.id, 10),
-      });
-
-      onChange({
-        start: newTime,
-        end,
-        hasDateRangeErrors: this.state.hasEndErrors,
-      });
-
-      this.setState({hasStartErrors: false});
-    } catch (err) {
-      Sentry.withScope(scope => {
-        scope.setExtra('startTime', startTime);
-        Sentry.captureException(err);
-      });
-
+    if (!startTime || !isValidTime(startTime)) {
       this.setState({hasStartErrors: true});
+      return;
     }
+    const newTime = setDateToTime(start, startTime, {local: true});
+
+    analytics('dateselector.time_changed', {
+      field_changed: 'start',
+      time: startTime,
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
+    onChange({
+      start: newTime,
+      end,
+      hasDateRangeErrors: this.state.hasEndErrors,
+    });
+
+    this.setState({hasStartErrors: false});
   };
 
   handleChangeEnd = e => {
     const {start, end, onChange} = this.props;
     const endTime = e.target.value;
 
-    try {
-      if (!endTime || !isValidTime(endTime)) {
-        throw new Error('Invalid end time');
-      }
-
-      const newTime = setDateToTime(end, endTime, {local: true});
-
-      analytics('dateselector.time_changed', {
-        field_changed: 'end',
-        time: endTime,
-        path: getRouteStringFromRoutes(this.context.router.routes),
-        org_id: parseInt(this.props.organization.id, 10),
-      });
-
-      onChange({
-        start,
-        end: newTime,
-        hasDateRangeErrors: this.state.hasStartErrors,
-      });
-
-      this.setState({hasEndErrors: false});
-    } catch (err) {
-      Sentry.withScope(scope => {
-        scope.setExtra('endTime', endTime);
-        Sentry.captureException(err);
-      });
-
+    if (!endTime || !isValidTime(endTime)) {
       this.setState({hasEndErrors: true});
+      return;
     }
+
+    const newTime = setDateToTime(end, endTime, {local: true});
+
+    analytics('dateselector.time_changed', {
+      field_changed: 'end',
+      time: endTime,
+      path: getRouteStringFromRoutes(this.context.router.routes),
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+
+    onChange({
+      start,
+      end: newTime,
+      hasDateRangeErrors: this.state.hasStartErrors,
+    });
+
+    this.setState({hasEndErrors: false});
   };
 
   render() {
