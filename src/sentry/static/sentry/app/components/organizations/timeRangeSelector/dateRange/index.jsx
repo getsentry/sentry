@@ -114,6 +114,7 @@ class DateRange extends React.Component {
 
     if (!startTime || !isValidTime(startTime)) {
       this.setState({hasStartErrors: true});
+      onChange({hasDateRangeErrors: true});
       return;
     }
     const newTime = setDateToTime(start, startTime, {local: true});
@@ -140,6 +141,7 @@ class DateRange extends React.Component {
 
     if (!endTime || !isValidTime(endTime)) {
       this.setState({hasEndErrors: true});
+      onChange({hasDateRangeErrors: true});
       return;
     }
 
