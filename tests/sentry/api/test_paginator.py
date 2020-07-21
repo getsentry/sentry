@@ -547,7 +547,10 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         rule3 = Rule.objects.create(label="rule3", project=self.project)
 
         paginator = CombinedQuerysetPaginator(
-            querysets=[AlertRule.objects.all(), Rule.objects.all()], order_by="-date_added",
+            querysets=[AlertRule.objects.all(), Rule.objects.all()],
+            # order_by="-date_added",
+            order_keys=["date_added", "date_added"],
+            desc=True,
         )
 
         result = paginator.get_result(limit=3, cursor=None)

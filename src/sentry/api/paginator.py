@@ -476,6 +476,11 @@ class CombinedQuerysetPaginator(object):
     multiplier = 1000000  # Use microseconds for date keys.
 
     def __init__(self, order_keys, querysets, desc=False, on_results=None):
+        # TODO: Replace self.key references with a function call that takes in the item/instance/queryset worked on
+        # and it returns the key associated to that model
+
+        #TODO: Value from cursor is hard - how do I know which key to use to decode the cursor? This is only an issue for date_added values I think (otherwise I don't need to know the key)
+
         # if order_by:
         #     if order_by.startswith("-"):
         #         self.key, self.desc = order_by[1:], True
@@ -495,6 +500,8 @@ class CombinedQuerysetPaginator(object):
         # For now...just be diligent in your usage.
 
     def get_item_key(self, item, for_prev=False):
+        #TODO:  Can check the instance of item to determine which key to use (need key associated to model instance)
+
         if self.key == "date_added":  # Could generalize this more
             return self.multiplier * float(getattr(item, self.key).strftime("%s.%f"))
         else:
