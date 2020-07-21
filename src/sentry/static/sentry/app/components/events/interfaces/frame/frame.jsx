@@ -15,9 +15,8 @@ import space from 'app/styles/space';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import InlineSvg from 'app/components/inlineSvg';
 import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
-import {IconRefresh, IconAdd, IconSubtract} from 'app/icons';
+import {IconRefresh, IconAdd, IconSubtract, IconQuestion, IconWarning} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import FrameDefaultTitle from './frameDefaultTitle';
@@ -166,21 +165,22 @@ export class Frame extends React.Component {
   }
 
   getFrameHint() {
-    // returning [hintText, hintType]
+    // returning [hintText, hintIcon]
     const {symbolicatorStatus} = this.props.data;
     const func = this.props.data.function || '<unknown>';
-    const warningType = 'question';
-    const errorType = 'exclamation';
+    // Custom color used to match adjacent text.
+    const warningIcon = <IconQuestion size="xs" color="#2c45a8" />;
+    const errorIcon = <IconWarning size="xs" color="red400" />;
 
     if (func.match(/^@objc\s/)) {
-      return [t('Objective-C -> Swift shim frame'), warningType];
+      return [t('Objective-C -> Swift shim frame'), warningIcon];
     }
     if (func.match(/^__?hidden#\d+/)) {
-      return [t('Hidden function from bitcode build'), errorType];
+      return [t('Hidden function from bitcode build'), errorIcon];
     }
     if (!symbolicatorStatus && func === '<unknown>') {
       // Only render this if the event was not symbolicated.
-      return [t('No function name was supplied by the client SDK.'), warningType];
+      return [t('No function name was supplied by the client SDK.'), warningIcon];
     }
 
     if (
@@ -189,22 +189,22 @@ export class Frame extends React.Component {
     ) {
       switch (symbolicatorStatus) {
         case SymbolicatorStatus.MISSING_SYMBOL:
-          return [t('The symbol was not found within the debug file.'), warningType];
+          return [t('The symbol was not found within the debug file.'), warningIcon];
         case SymbolicatorStatus.UNKNOWN_IMAGE:
-          return [t('No image is specified for the address of the frame.'), warningType];
+          return [t('No image is specified for the address of the frame.'), warningIcon];
         case SymbolicatorStatus.MISSING:
           return [
             t('The debug file could not be retrieved from any of the sources.'),
-            errorType,
+            errorIcon,
           ];
         case SymbolicatorStatus.MALFORMED:
-          return [t('The retrieved debug file could not be processed.'), errorType];
+          return [t('The retrieved debug file could not be processed.'), errorIcon];
         default:
       }
     }
 
     if (func === '<redacted>') {
-      return [t('Unknown system frame. Usually from beta SDKs'), warningType];
+      return [t('Unknown system frame. Usually from beta SDKs'), warningIcon];
     }
 
     return [null, null];
@@ -261,7 +261,7 @@ export class Frame extends React.Component {
       image,
       maxLengthOfRelativeAddress,
     } = this.props;
-    const [hint, hintType] = this.getFrameHint();
+    const [hint, hintIcon] = this.getFrameHint();
 
     const enablePathTooltip = defined(data.absPath) && data.absPath !== data.filename;
     const leadHint = this.renderLeadHint();
@@ -293,13 +293,9 @@ export class Frame extends React.Component {
             <Symbol className="symbol">
               <FrameFunctionName frame={data} />{' '}
               {hint !== null ? (
-                <Tooltip title={hint}>
-                  <HintStatus
-                    src={`icon-circle-${hintType}`}
-                    danger={hintType === 'exclamation'}
-                    size="1em"
-                  />
-                </Tooltip>
+                <HintStatus>
+                  <Tooltip title={hint}>{hintIcon}</Tooltip>
+                </HintStatus>
               ) : null}
               {data.filename && (
                 <Tooltip title={data.absPath} disabled={!enablePathTooltip}>
@@ -420,10 +416,10 @@ const DefaultLine = styled('div')`
   align-items: center;
 `;
 
-const HintStatus = styled(InlineSvg)`
+const HintStatus = styled('span')`
+  position: relative;
+  top: ${space(0.25)};
   margin: 0 ${space(0.75)} 0 -${space(0.25)};
-  color: ${p => (p.danger ? p.theme.alert.error.iconColor : '#2c58a8')};
-  transform: translateY(-1px);
 `;
 
 const Symbol = styled('span')`
