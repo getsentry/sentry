@@ -9,6 +9,7 @@ include='\.py$'
 exclude='''
 (
       \.venv/
+      \.venv3/
     | node_modules/
     | migrations/
 )

@@ -52,7 +52,7 @@ def get_files(path):
 def get_modified_files(path):
     return [
         s
-        for s in check_output(["git", "diff-index", "--cached", "--name-only", "HEAD"]).split("\n")
+        for s in check_output(["git", "diff-index", "--cached", "--name-only", "HEAD"]).split(b"\n")
         if s
     ]
 
