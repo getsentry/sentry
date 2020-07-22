@@ -1,28 +1,32 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
 import theme from 'app/utils/theme';
 
-storiesOf('Style|Colors', module).add(
-  'default',
-  withInfo('Top level colors')(() => {
-    const colorsToDisplay = Object.entries(theme).filter(([_name, val]) => {
-      return typeof val === 'string' && val.match(/^\#[0-9a-fA-F]{6}$/);
-    });
+export default {
+  title: 'Style/Colors',
+};
 
-    return (
-      <Swatches>
-        {colorsToDisplay.map(([name, color]) => (
-          <Swatch key={name} color={color}>
-            {name}
-          </Swatch>
-        ))}
-      </Swatches>
-    );
-  })
-);
+export const Default = withInfo('Top level colors')(() => {
+  const colorsToDisplay = Object.entries(theme).filter(([_name, val]) => {
+    return typeof val === 'string' && val.match(/^\#[0-9a-fA-F]{6}$/);
+  });
+
+  return (
+    <Swatches>
+      {colorsToDisplay.map(([name, color]) => (
+        <Swatch key={name} color={color}>
+          {name}
+        </Swatch>
+      ))}
+    </Swatches>
+  );
+});
+
+Default.story = {
+  name: 'default',
+};
 
 const Swatches = styled('div')`
   display: grid;
