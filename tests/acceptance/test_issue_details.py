@@ -84,6 +84,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature("organizations:breadcrumbs-v2"):
             event = self.create_sample_event(platform="cocoa")
             self.page.visit_issue(self.org.slug, event.group.id)
+            self.browser.wait_until_test_id("last-crumb")
             self.browser.snapshot("issue details cocoa - breadcrumbs-v2")
 
     def test_unity_event(self):
@@ -95,6 +96,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature("organizations:breadcrumbs-v2"):
             event = self.create_sample_event(default="unity", platform="csharp")
             self.page.visit_issue(self.org.slug, event.group.id)
+            self.browser.wait_until_test_id("last-crumb")
             self.browser.snapshot("issue details unity - breadcrumbs v2")
 
     def test_android_event(self):

@@ -3,7 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {IconUser, IconLocation, IconSpan, IconSwitch, IconFix, IconFire} from 'app/icons';
-import Filter from 'app/components/events/interfaces/breadcrumbsV2/filter/filter';
+import Filter from 'app/components/events/interfaces/breadcrumbsV2/filter';
 import Level from 'app/components/events/interfaces/breadcrumbsV2/level';
 import Icon from 'app/components/events/interfaces/breadcrumbsV2/icon';
 import {
