@@ -23,7 +23,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         Used to populate page emailed to the user.
         """
 
-        if not features.has("organizations:data-export", organization):
+        if not features.has("organizations:discover-query", organization):
             return Response(status=404)
 
         try:
