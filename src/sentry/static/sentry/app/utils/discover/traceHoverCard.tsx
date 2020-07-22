@@ -77,15 +77,28 @@ class TraceHoverCard extends React.Component<Props> {
       return null;
     }
 
-    const numOfTransactions = tableData?.data[0]?.count ?? 0;
+    let numOfTransactions = 0;
+    let numOfErrors = 0;
+    // aggregate transaction and error (default, csp, error) counts
+    for (const row of tableData.data) {
+      if (row['event.type'] === 'transaction') {
+        numOfTransactions = (row.count as number) ?? 0;
+      } else {
+        numOfErrors += (row.count as number) ?? 0;
+      }
+    }
 
     return (
-      <div>
-        <div>
+      <CardBodyWrapper>
+        <EventCountWrapper>
           <h6>{t('Transactions')}</h6>
-          <div className="count-since">{numOfTransactions}</div>
-        </div>
-      </div>
+          <div className="count-since">{numOfTransactions.toLocaleString()}</div>
+        </EventCountWrapper>
+        <EventCountWrapper>
+          <h6>{t('Errors')}</h6>
+          <div className="count-since">{numOfErrors.toLocaleString()}</div>
+        </EventCountWrapper>
+      </CardBodyWrapper>
     );
   }
 
@@ -97,8 +110,8 @@ class TraceHoverCard extends React.Component<Props> {
       {
         id: undefined,
         name: `Transactions with Trace ID ${traceId}`,
-        fields: ['count()'],
-        query: `event.type:transaction trace:${traceId}`,
+        fields: ['event.type', 'count()'],
+        query: `trace:${traceId}`,
         projects: [],
         version: 2,
       },
@@ -109,16 +122,10 @@ class TraceHoverCard extends React.Component<Props> {
     const traceEventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
-        name: `Transactions with Trace ID ${traceId}`,
-        fields: [
-          'transaction',
-          'project',
-          'trace.span',
-          'transaction.duration',
-          'timestamp',
-        ],
+        name: `Events with Trace ID ${traceId}`,
+        fields: ['transaction', 'project', 'trace.span', 'event.type', 'timestamp'],
         orderby: '-timestamp',
-        query: `event.type:transaction trace:${traceId}`,
+        query: `trace:${traceId}`,
         projects: [],
         version: 2,
       },
@@ -178,6 +185,14 @@ const LoadingWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const CardBodyWrapper = styled('div')`
+  display: flex;
+`;
+
+const EventCountWrapper = styled('div')`
+  flex: 1;
 `;
 
 export default withApi(TraceHoverCard);

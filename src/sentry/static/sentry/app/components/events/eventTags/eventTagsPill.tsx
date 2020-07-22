@@ -23,6 +23,7 @@ type Props = {
   orgId: string;
   projectId: string;
   meta: Meta;
+  hasQueryFeature: boolean;
 };
 
 const EventTagsPill = ({
@@ -34,6 +35,7 @@ const EventTagsPill = ({
   releasesPath,
   meta,
   location,
+  hasQueryFeature,
 }: Props) => {
   const locationSearch = `?${queryString.stringify(query)}`;
   const isRelease = tag.key === 'release';
@@ -77,7 +79,7 @@ const EventTagsPill = ({
           </VersionHoverCard>
         </div>
       )}
-      {isTrace && (
+      {isTrace && hasQueryFeature && (
         <TraceHoverCard
           containerClassName="pill-icon"
           traceId={tag.value}
