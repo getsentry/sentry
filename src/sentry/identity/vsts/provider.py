@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
 from sentry import http, options, features
-from sentry.auth.exceptions import IdentityNotValid
-from sentry.utils import json
-from sentry.http import safe_urlopen, safe_urlread
 
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
 from sentry.utils.http import absolute_uri
@@ -78,8 +75,8 @@ class VSTSIdentityProvider(OAuth2Provider):
     def get_refresh_token_headers(self):
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
-    def get_refresh_token_params(self, refresh_token, identity, *args, **kwargs):
-
+    def get_refresh_token_params(self, refresh_token, *args, **kwargs):
+        identity = kwargs.get("identity")
         client_secret = options.get("vsts.client-secret")
 
         # The token refresh flow does not operate within a pipeline in the same way
@@ -102,34 +99,6 @@ class VSTSIdentityProvider(OAuth2Provider):
             "assertion": refresh_token,
             "redirect_uri": absolute_uri(oauth_redirect_url),
         }
-
-    def refresh_identity(self, identity, *args, **kwargs):
-        """
-            Almost identical to OAuth2Provider but passes through the identity
-            into `get_refresh_token_params`. We do this because the identity.scopes
-            tell us which client_secret to use.
-        """
-        refresh_token = identity.data.get("refresh_token")
-
-        if not refresh_token:
-            raise IdentityNotValid("Missing refresh token")
-
-        data = self.get_refresh_token_params(refresh_token, identity, *args, **kwargs)
-
-        req = safe_urlopen(
-            url=self.get_refresh_token_url(), headers=self.get_refresh_token_headers(), data=data
-        )
-
-        try:
-            body = safe_urlread(req)
-            payload = json.loads(body)
-        except Exception:
-            payload = {}
-
-        self.handle_refresh_error(req, payload)
-
-        identity.data.update(self.get_oauth_data(payload))
-        return identity.update(data=identity.data)
 
     def build_identity(self, data):
         data = data["data"]
