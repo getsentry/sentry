@@ -11,9 +11,9 @@ def channel_filter(channel, name):
     # the general channel has no name in the list
     # retrieved from the REST API call
     if channel.get("name"):
-        return name == channel.get("name")
+        return name.lower() == channel.get("name").lower()
     else:
-        return name == "General"
+        return name.lower() == "general"
 
 
 def get_channel_id(organization, integration_id, name):
@@ -39,7 +39,9 @@ def get_channel_id(organization, integration_id, name):
         member_list = members.get("members")
         continuation_token = members.get("continuationToken")
 
-        filtered_members = list(filter(lambda x: x.get("name") == name, member_list))
+        filtered_members = list(
+            filter(lambda x: x.get("name").lower() == name.lower(), member_list)
+        )
         if len(filtered_members) > 0:
             # TODO: handle duplicate username case
             user_id = filtered_members[0].get("id")

@@ -110,6 +110,24 @@ class SlackActionHandler(ActionHandler):
         send_incident_alert_notification(self.action, self.incident, metric_value)
 
 
+@AlertRuleTriggerAction.register_type(
+    "msteams",
+    AlertRuleTriggerAction.Type.MSTEAMS,
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
+    integration_provider="msteams",
+)
+class MsTeamsActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
+
+    def send_alert(self, metric_value):
+        # TODO: finish
+        pass
+
+
 def format_duration(minutes):
     """
     Format minutes into a duration string

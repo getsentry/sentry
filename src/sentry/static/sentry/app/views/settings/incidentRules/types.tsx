@@ -81,6 +81,7 @@ export enum ActionType {
   EMAIL = 'email',
   SLACK = 'slack',
   PAGER_DUTY = 'pagerduty',
+  MSTEAMS = 'msteams',
 }
 
 export enum TargetType {

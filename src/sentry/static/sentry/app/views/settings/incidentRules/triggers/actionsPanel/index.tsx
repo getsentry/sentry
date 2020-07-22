@@ -31,6 +31,7 @@ const ActionLabel = {
   [ActionType.EMAIL]: t('E-mail'),
   [ActionType.SLACK]: t('Slack'),
   [ActionType.PAGER_DUTY]: t('Pagerduty'),
+  [ActionType.MSTEAMS]: t('Microsoft Teams'),
 };
 
 const TargetLabel = {
@@ -51,6 +52,18 @@ type Props = {
   className?: string;
   onAdd: (triggerIndex: number, action: Action) => void;
   onChange: (triggerIndex: number, triggers: Trigger[], actions: Action[]) => void;
+};
+
+const getPlaceholderForType = (type: ActionType) => {
+  switch (type) {
+    case ActionType.SLACK:
+      return '@username or #channel';
+    case ActionType.MSTEAMS:
+      //no prefixes for msteams
+      return 'username or channel';
+    default:
+      throw Error('Not implemented');
+  }
 };
 
 /**
@@ -314,7 +327,7 @@ class ActionsPanel extends React.PureComponent<Props> {
                           triggerIndex,
                           i
                         )}
-                        placeholder="@username or #channel"
+                        placeholder={getPlaceholderForType(action.type)}
                       />
                     )}
                     <DeleteActionButton
