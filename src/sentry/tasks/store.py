@@ -11,7 +11,7 @@ from django.conf import settings
 import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import features, reprocessing, options
+from sentry import reprocessing, options
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
@@ -459,9 +459,7 @@ def _do_process_event(
 
                 # XXX(markus): When datascrubbing is finally "totally stable", we might want
                 # to drop the event if it crashes to avoid saving PII
-                if new_data is not None and features.has(
-                    "organizations:datascrubbers-v2", project.organization, actor=None
-                ):
+                if new_data is not None:
                     data.data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
