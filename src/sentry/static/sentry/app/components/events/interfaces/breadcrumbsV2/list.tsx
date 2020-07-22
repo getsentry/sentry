@@ -7,6 +7,7 @@ import {
   CellMeasurerCache,
   AutoSizer,
 } from 'react-virtualized';
+import isEqual from 'lodash/isEqual';
 
 import {aroundContentStyle} from './styles';
 import ListHeader from './listHeader';
@@ -26,13 +27,28 @@ const cache = new CellMeasurerCache({
   minHeight: 42,
 });
 
-class ListContainer extends React.Component<Props> {
+type State = {
+  scrollToIndex?: number;
+};
+
+class ListContainer extends React.Component<Props, State> {
+  state: State = {
+    scrollToIndex: this.props.breadcrumbs.length - 1,
+  };
+
   componentDidMount() {
     this.updateGrid();
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: Props) {
     this.updateGrid();
+
+    if (
+      !isEqual(prevProps.breadcrumbs, this.props.breadcrumbs) &&
+      !this.state.scrollToIndex
+    ) {
+      this.setScrollToIndex(undefined);
+    }
   }
 
   listRef: List | null = null;
@@ -43,6 +59,10 @@ class ListContainer extends React.Component<Props> {
       this.listRef.forceUpdateGrid();
     }
   };
+
+  setScrollToIndex(scrollToIndex: State['scrollToIndex']) {
+    this.setState({scrollToIndex});
+  }
 
   renderBody(breadcrumb: BreadcrumbsWithDetails[0], isLastItem = false) {
     const {event, orgId, searchTerm, relativeTime, displayRelativeTime} = this.props;
@@ -88,6 +108,7 @@ class ListContainer extends React.Component<Props> {
 
   render() {
     const {breadcrumbs, displayRelativeTime, onSwitchTimeFormat} = this.props;
+    const {scrollToIndex} = this.state;
 
     // onResize is required in case the user rotates the device.
     return (
@@ -113,8 +134,8 @@ class ListContainer extends React.Component<Props> {
                 rowRenderer={this.renderRow}
                 width={width}
                 // when the component mounts, it scrolls to the last item
-                scrollToIndex={breadcrumbs.length - 1}
-                scrollToAlignment="end"
+                scrollToIndex={scrollToIndex}
+                scrollToAlignment={scrollToIndex ? 'end' : undefined}
               />
             </React.Fragment>
           )}
