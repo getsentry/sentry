@@ -38,6 +38,7 @@ type Props = {
   isCritical: boolean;
   fieldHelp: React.ReactNode;
   triggerLabel: React.ReactNode;
+  placeholder: string;
 
   onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
@@ -69,6 +70,7 @@ class TriggerForm extends React.PureComponent<Props> {
       thresholdType,
       fieldHelp,
       triggerLabel,
+      placeholder,
       onThresholdTypeChange,
     } = this.props;
 
@@ -85,6 +87,7 @@ class TriggerForm extends React.PureComponent<Props> {
           type={trigger.label}
           thresholdType={thresholdType}
           threshold={trigger.alertThreshold}
+          placeholder={placeholder}
           onChange={this.handleChangeThreshold}
           onThresholdTypeChange={onThresholdTypeChange}
         />
@@ -103,6 +106,7 @@ type TriggerFormContainerProps = Omit<
   | 'fieldHelp'
   | 'triggerHelp'
   | 'triggerLabel'
+  | 'placeholder'
 > & {
   triggers: Trigger[];
   errors?: Map<number, {[fieldName: string]: string}>;
@@ -181,6 +185,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
                   {isCritical ? t('Critical Status') : t('Warning Status')}
                 </React.Fragment>
               }
+              placeholder={isCritical ? '300' : t('None')}
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
             />
@@ -206,6 +211,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               {t('Resolved Status')}
             </React.Fragment>
           }
+          placeholder={t('Automatic')}
           onChange={this.handleChangeResolveTrigger}
           onThresholdTypeChange={onThresholdTypeChange}
         />

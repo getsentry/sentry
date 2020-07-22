@@ -16,6 +16,7 @@ type Props = ThresholdControlValue & {
   type: string;
   disabled: boolean;
   disableThresholdType: boolean;
+  placeholder: string;
   onChange: (value: ThresholdControlValue, e: React.FormEvent) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
 };
@@ -88,6 +89,7 @@ class ThresholdControl extends React.Component<Props, State> {
     const {
       thresholdType,
       threshold,
+      placeholder,
       type,
       onChange: _,
       onThresholdTypeChange: __,
@@ -111,7 +113,7 @@ class ThresholdControl extends React.Component<Props, State> {
         <Input
           disabled={disabled}
           name={`${type}Threshold`}
-          placeholder="300"
+          placeholder={placeholder}
           value={currentValue ?? threshold ?? ''}
           onChange={this.handleThresholdChange}
           onBlur={this.handleThresholdBlur}
