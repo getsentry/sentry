@@ -12,6 +12,7 @@ type InjectedTeamsProps = {
 
 type State = {
   teams: Team[];
+  isLoading: boolean;
 };
 
 /**
@@ -25,19 +26,17 @@ const withTeams = <P extends InjectedTeamsProps>(
     mixins: [Reflux.listenTo(TeamStore, 'onTeamUpdate') as any],
 
     getInitialState() {
-      return {
-        teams: TeamStore.getAll(),
-      };
+      return TeamStore.getState();
     },
 
     onTeamUpdate() {
-      this.setState({
-        teams: TeamStore.getAll(),
-      });
+      this.setState(TeamStore.getState());
     },
+
     render() {
+      const {teams, isLoading} = this.state;
       return (
-        <WrappedComponent {...(this.props as P)} teams={this.state.teams as Team[]} />
+        <WrappedComponent {...(this.props as P)} teams={teams} isLoading={isLoading} />
       );
     },
   });

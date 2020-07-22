@@ -194,6 +194,9 @@ export type Team = {
   slug: string;
   isMember: boolean;
   avatar: Avatar;
+  memberCount: number;
+  dateCreated: string;
+  members?: Array<Member>;
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};

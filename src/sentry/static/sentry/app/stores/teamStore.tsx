@@ -15,6 +15,12 @@ type TeamStoreInterface = {
   getBySlug: (slug: string) => Team | null;
   getActive: () => Team[];
   getAll: () => Team[];
+  getState: (
+    slug?: string
+  ) => {
+    teams: Team[];
+    isLoading: boolean;
+  };
 };
 
 const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
@@ -22,7 +28,7 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
   state: [],
 
   init() {
-    this.state = [];
+    this.reset();
 
     this.listenTo(TeamActions.createTeamSuccess, this.onCreateSuccess);
     this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
@@ -33,11 +39,13 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
 
   reset() {
     this.state = [];
+    this.loading = true;
   },
 
   loadInitialData(items) {
     this.initialized = true;
     this.state = items;
+    this.loading = false;
     this.trigger(new Set(items.map(item => item.id)));
   },
 
@@ -97,6 +105,13 @@ const teamStoreConfig: Reflux.StoreDefinition & TeamStoreInterface = {
 
   getAll() {
     return this.state;
+  },
+
+  getState() {
+    return {
+      teams: this.state,
+      isLoading: this.loading,
+    };
   },
 };
 

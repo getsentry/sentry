@@ -1178,6 +1178,25 @@ function routes() {
       precedence over these lightweight routes*/}
         <Route component={errorHandler(LightWeightOrganizationDetails)}>
           <Route
+            path="/organizations/:orgSlug/teams/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "TeamsDashboard" */ 'app/views/teamsDashboard')
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute component={errorHandler(LazyLoad)} />
+            <Route path="my-teams/" component={errorHandler(LazyLoad)} />
+          </Route>
+          <Route
+            path="/organizations/:orgSlug/teams/:teamSlug/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "TeamDetails" */ 'app/views/teamsDashboard/teamDetails'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
             path="/organizations/:orgId/projects/"
             componentPromise={() =>
               import(
@@ -1884,10 +1903,6 @@ function routes() {
               <Redirect
                 path="/organizations/:orgId/teams/all-teams/"
                 to="/settings/:orgId/teams/"
-              />
-              <Redirect
-                path="/organizations/:orgId/teams/:teamId/"
-                to="/settings/:orgId/teams/:teamId/"
               />
               <Redirect
                 path="/organizations/:orgId/teams/:teamId/members/"

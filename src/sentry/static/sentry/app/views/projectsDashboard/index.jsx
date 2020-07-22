@@ -78,7 +78,7 @@ class Dashboard extends React.Component {
         />
         {projects.length > 0 && (
           <ProjectsHeader>
-            <PageHeading>Projects</PageHeading>
+            <PageHeading>{t('Projects')}</PageHeading>
             <Button
               size="small"
               disabled={!canCreateProjects}
