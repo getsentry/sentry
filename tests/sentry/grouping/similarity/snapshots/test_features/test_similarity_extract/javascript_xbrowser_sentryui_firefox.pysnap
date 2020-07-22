@@ -1,0 +1,326 @@
+---
+created: '2020-07-22T12:08:09.263716Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:stacktrace:frames-pairs:
+- - - - context-line:ident-shingle
+      - asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+    - - filename:ident-shingle
+      - asynctogenerator.js
+    - - function:ident-shingle
+      - _next
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
+  - - - context-line:ident-shingle
+      - var info = gen[key](arg);
+    - - filename:ident-shingle
+      - asynctogenerator.js
+    - - function:ident-shingle
+      - asyncGeneratorStep
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
+- - - - context-line:ident-shingle
+      - fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)
+    - - filename:ident-shingle
+      - groupeventdetails.jsx
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - app/views/groupDetails/shared/groupEventDetails
+  - - - context-line:ident-shingle
+      - const preservedError = new Error();
+    - - filename:ident-shingle
+      - api.jsx
+    - - function:ident-shingle
+      - fetchGroupEventAndMarkSeen
+    - - module:ident-shingle
+      - app/api
+- - - - context-line:ident-shingle
+      - fn();
+    - - filename:ident-shingle
+      - _microtask.js
+    - - function:ident-shingle
+      - M
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/core-js/modules/_microtask
+  - - - context-line:ident-shingle
+      - while (chain.length > i) run(chain[i++]); // variable length - can't use forEach
+    - - filename:ident-shingle
+      - es6.promise.js
+    - - function:ident-shingle
+      - fn
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise
+- - - - context-line:ident-shingle
+      - result = handler(value); // may throw
+    - - filename:ident-shingle
+      - es6.promise.js
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise
+  - - - context-line:ident-shingle
+      - asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+    - - filename:ident-shingle
+      - asynctogenerator.js
+    - - function:ident-shingle
+      - _next
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
+- - - - context-line:ident-shingle
+      - return this._invoke(method, arg);
+    - - filename:ident-shingle
+      - runtime.js
+    - - function:ident-shingle
+      - key
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+  - - - context-line:ident-shingle
+      - var record = tryCatch(innerFn, self, context);
+    - - filename:ident-shingle
+      - runtime.js
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+- - - - context-line:ident-shingle
+      - 'return { type: "normal", arg: fn.call(obj, arg) };'
+    - - filename:ident-shingle
+      - runtime.js
+    - - function:ident-shingle
+      - tryCatch
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+  - - - context-line:ident-shingle
+      - this.setState({
+    - - filename:ident-shingle
+      - lazyload.jsx
+    - - function:ident-shingle
+      - fn
+    - - module:ident-shingle
+      - app/components/lazyLoad
+- - - - context-line:ident-shingle
+      - this.fetchData();
+    - - filename:ident-shingle
+      - groupeventdetails.jsx
+    - - function:ident-shingle
+      - X
+    - - module:ident-shingle
+      - app/views/groupDetails/shared/groupEventDetails
+  - - - context-line:ident-shingle
+      - fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)
+    - - filename:ident-shingle
+      - groupeventdetails.jsx
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - app/views/groupDetails/shared/groupEventDetails
+- - - - context-line:ident-shingle
+      - this.setState({
+    - - filename:ident-shingle
+      - lazyload.jsx
+    - - function:ident-shingle
+      - fn
+    - - module:ident-shingle
+      - app/components/lazyLoad
+  - - - context-line:ident-shingle
+      - '{snip} !==typeof a&&"function"!==typeof a&&null!=a?B("85"):void 0;this.updater.enqueueSetState(this,a,b,"setState")};E.prototype.forceUpdate=functi
+        {snip}'
+    - - filename:ident-shingle
+      - react.production.min.js
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production
+- - - - context-line:ident-shingle
+      - var info = gen[key](arg);
+    - - filename:ident-shingle
+      - asynctogenerator.js
+    - - function:ident-shingle
+      - asyncGeneratorStep
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
+  - - - context-line:ident-shingle
+      - return this._invoke(method, arg);
+    - - filename:ident-shingle
+      - runtime.js
+    - - function:ident-shingle
+      - key
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+- - - - context-line:ident-shingle
+      - var record = tryCatch(innerFn, self, context);
+    - - filename:ident-shingle
+      - runtime.js
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+  - - - context-line:ident-shingle
+      - 'return { type: "normal", arg: fn.call(obj, arg) };'
+    - - filename:ident-shingle
+      - runtime.js
+    - - function:ident-shingle
+      - tryCatch
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
+- - - - context-line:ident-shingle
+      - while (chain.length > i) run(chain[i++]); // variable length - can't use forEach
+    - - filename:ident-shingle
+      - es6.promise.js
+    - - function:ident-shingle
+      - fn
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise
+  - - - context-line:ident-shingle
+      - result = handler(value); // may throw
+    - - filename:ident-shingle
+      - es6.promise.js
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/core-js/modules/es6.promise
+- - - - context-line:ident-shingle
+      - '{snip} !==typeof a&&"function"!==typeof a&&null!=a?B("85"):void 0;this.updater.enqueueSetState(this,a,b,"setState")};E.prototype.forceUpdate=functi
+        {snip}'
+    - - filename:ident-shingle
+      - react.production.min.js
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production
+  - - - context-line:ident-shingle
+      - '{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var
+        d=Gf();d {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+- - - - context-line:ident-shingle
+      - '{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n
+        {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - Yg
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+  - - - context-line:ident-shingle
+      - '{snip} t("245"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh(
+        {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - Xg
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+- - - - context-line:ident-shingle
+      - '{snip} );e.payload=b;void 0!==c&&null!==c&&(e.callback=c);ff(a,e);If(a,d)},enqueueReplaceState:function(a,b,c){a=a._reactInternalFiber;var
+        d=Gf();d {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+  - - - context-line:ident-shingle
+      - '{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t("185"))}}
+        {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - If
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+- - - - context-line:ident-shingle
+      - '{snip} );else if(c=b.expirationTime,0===c||a<c)b.expirationTime=a;V||(W?Wg&&(Y=b,Z=1,Xg(b,1,!0)):1===a?Yg(1,null):Zg(b,a))}$g>ah&&($g=0,t("185"))}}
+        {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - If
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+  - - - context-line:ident-shingle
+      - '{snip} ),qh(),oh(),lh=kh;else for(;null!==Y&&0!==Z&&(0===a||a>=Z);)Xg(Y,Z,!0),qh();null!==hh&&(ch=0,dh=null);0!==Z&&Zg(Y,Z);hh=null;eh=!1;$g=0;mh=n
+        {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - Yg
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+- - - - context-line:ident-shingle
+      - '{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c
+        {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - rh
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+  - - - context-line:ident-shingle
+      - this.fetchData();
+    - - filename:ident-shingle
+      - groupeventdetails.jsx
+    - - function:ident-shingle
+      - X
+    - - module:ident-shingle
+      - app/views/groupDetails/shared/groupEventDetails
+- - - - context-line:ident-shingle
+      - '{snip} t("245"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finishedWork,null!==d&&rh(
+        {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - Xg
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+  - - - context-line:ident-shingle
+      - '{snip} nate;q=Q;p=y;switch(q.tag){case 2:case 3:var X=q.stateNode;if(q.effectTag&4)if(null===oc)X.props=q.memoizedProps,X.state=q.memoizedState,X.c
+        {snip}'
+    - - filename:ident-shingle
+      - react-dom.production.min.js
+    - - function:ident-shingle
+      - rh
+    - - module:ident-shingle
+      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
+newstyle:2019-10-29:type:ident-shingle:
+- NotFoundError
+newstyle:2019-10-29:value:character-5-shingle:
+- ' /iss'
+- ' <int'
+- / <in
+- /<int
+- /even
+- /issu
+- /late
+- <int>
+- '>/eve'
+- ET /i
+- GET /
+- T /is
+- atest
+- ents/
+- es/<i
+- 'est/ '
+- event
+- int>/
+- issue
+- lates
+- nt>/e
+- nts/l
+- s/<in
+- s/lat
+- ssues
+- st/ <
+- sues/
+- t/ <i
+- t>/ev
+- test/
+- ts/la
+- ues/<
+- vents

@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import absolute_import
 
+
 import re
 
 from sentry.grouping.component import GroupingComponent
@@ -411,13 +412,29 @@ def get_stacktrace_component(stacktrace, config, variant, meta):
         values,
         frames_for_filtering,
         meta["event"].platform,
-        similarity_encoder=_encode_frames_for_similarity,
+        similarity_self_encoder=_encode_stacktrace_for_similarity,
     )
 
 
 @shingle_encoder("frames-pairs")
-def _encode_frames_for_similarity(stacktrace):
-    return shingle(2, [component.encode_for_similarity() for component in stacktrace.values])
+def _encode_stacktrace_for_similarity(stacktrace):
+    parts = []
+
+    for frame in stacktrace.values:
+        encoded = {}
+        for label, features in frame.encode_for_similarity():
+            assert (
+                len(features) < 2 and label not in encoded
+            ), "Frames cannot use anything other than ident shingles for now"
+            if features:
+                encoded[label] = features[0]
+
+        # Append encoded as "frozen dict"
+        parts.append(tuple(sorted(encoded.items())))
+
+    if len(parts) < 2:
+        return parts
+    return shingle(2, parts)
 
 
 def single_exception_common(exception, config, meta, with_value):

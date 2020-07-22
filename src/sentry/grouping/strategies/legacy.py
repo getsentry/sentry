@@ -284,6 +284,7 @@ def frame_legacy(frame, event, **meta):
                 ],
                 hint="ignored module",
             )
+            module_component.similarity_encoder = None
         else:
             module_name, module_hint = remove_module_outliers_legacy(frame.module, platform)
             module_component.update(values=[module_name], hint=module_hint)
@@ -332,6 +333,7 @@ def frame_legacy(frame, event, **meta):
                         )
                     ]
                 )
+                function_component.similarity_encoder = None
             else:
                 function, function_hint = remove_function_outliers_legacy(func)
                 function_component.update(values=[function], hint=function_hint)

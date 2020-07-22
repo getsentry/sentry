@@ -1,0 +1,61 @@
+---
+created: '2020-07-22T12:08:08.406541Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:stacktrace:frames-pairs:
+- - - - context-line:ident-shingle
+      - onError(err);
+    - - filename:ident-shingle
+      - createteammodal.jsx
+    - - module:ident-shingle
+      - app/components/modals/createTeamModal
+  - - - context-line:ident-shingle
+      - this.model.submitError(error);
+    - - filename:ident-shingle
+      - form.jsx
+    - - function:ident-shingle
+      - onError
+    - - module:ident-shingle
+      - app/views/settings/components/forms/form
+newstyle:2019-10-29:type:ident-shingle:
+- TypeError
+newstyle:2019-10-29:value:character-5-shingle:
+- ' ''sub'
+- ' null'
+- ' of n'
+- ' prop'
+- ' read'
+- ''' of '
+- '''subm'
+- Canno
+- Error
+- ad pr
+- annot
+- bmitE
+- d pro
+- ead p
+- 'erty '
+- f nul
+- itErr
+- mitEr
+- 'nnot '
+- not r
+- of nu
+- opert
+- or' o
+- ot re
+- perty
+- prope
+- r' of
+- 'read '
+- roper
+- 'ror'' '
+- rror'
+- rty '
+- submi
+- t rea
+- tErro
+- ty 's
+- ubmit
+- y 'su

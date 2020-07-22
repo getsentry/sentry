@@ -1,0 +1,673 @@
+---
+created: '2020-07-22T12:08:07.977646Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:stacktrace:frames-pairs:
+- - - - filename:ident-shingle
+      - <::log::macros::log macros>
+    - - function:ident-shingle
+      - actix_web::pipeline::ProcessResponse<T>::poll_io
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - log::__private_api_log
+- - - - filename:ident-shingle
+      - acceptor.rs
+    - - function:ident-shingle
+      - actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll
+  - - - filename:ident-shingle
+      - and_then.rs
+    - - function:ident-shingle
+      - actix_net::service::and_then::AndThenFuture<T>::poll
+- - - - filename:ident-shingle
+      - and_then.rs
+    - - function:ident-shingle
+      - actix_net::service::and_then::AndThenFuture<T>::poll
+  - - - filename:ident-shingle
+      - map_err.rs
+    - - function:ident-shingle
+      - actix_net::service::map_err::MapErrFuture<T>::poll
+- - - - filename:ident-shingle
+      - arbiter.rs
+    - - function:ident-shingle
+      - actix::arbiter::Arbiter::new_with_builder::{{closure}}
+  - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::block_on
+- - - - filename:ident-shingle
+      - backtrace.rs
+    - - function:ident-shingle
+      - std::sys_common::backtrace::__rust_begin_short_backtrace
+  - - - filename:ident-shingle
+      - arbiter.rs
+    - - function:ident-shingle
+      - actix::arbiter::Arbiter::new_with_builder::{{closure}}
+- - - - filename:ident-shingle
+      - boxed.rs
+    - - function:ident-shingle
+      - alloc::boxed::FnBox<T>::call_box
+  - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - std::thread::Builder::spawn_unchecked::{{closure}}
+- - - - filename:ident-shingle
+      - chain.rs
+    - - function:ident-shingle
+      - futures::future::chain::Chain<T>::poll
+  - - - filename:ident-shingle
+      - either.rs
+    - - function:ident-shingle
+      - futures::future::either::Either<T>::poll
+- - - - filename:ident-shingle
+      - channel.rs
+    - - function:ident-shingle
+      - actix_web::server::channel::HttpChannel<T>::poll
+  - - - filename:ident-shingle
+      - channel.rs
+    - - function:ident-shingle
+      - actix_web::server::channel::HttpChannel<T>::poll
+- - - - filename:ident-shingle
+      - channel.rs
+    - - function:ident-shingle
+      - actix_web::server::channel::HttpChannel<T>::poll
+  - - - filename:ident-shingle
+      - h1.rs
+    - - function:ident-shingle
+      - actix_web::server::h1::Http1Dispatcher<T>::poll
+- - - - filename:ident-shingle
+      - clock.rs
+    - - function:ident-shingle
+      - tokio_timer::clock::clock::with_default
+  - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::with
+- - - - filename:ident-shingle
+      - clock.rs
+    - - function:ident-shingle
+      - tokio_timer::clock::clock::with_default::{{closure}}
+  - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}
+- - - - filename:ident-shingle
+      - either.rs
+    - - function:ident-shingle
+      - futures::future::either::Either<T>::poll
+  - - - filename:ident-shingle
+      - acceptor.rs
+    - - function:ident-shingle
+      - actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll
+- - - - filename:ident-shingle
+      - either.rs
+    - - function:ident-shingle
+      - futures::future::either::Either<T>::poll
+  - - - filename:ident-shingle
+      - either.rs
+    - - function:ident-shingle
+      - futures::future::either::Either<T>::poll
+- - - - filename:ident-shingle
+      - global.rs
+    - - function:ident-shingle
+      - tokio_executor::global::with_default
+  - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::with
+- - - - filename:ident-shingle
+      - global.rs
+    - - function:ident-shingle
+      - tokio_executor::global::with_default::{{closure}}
+  - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}
+- - - - filename:ident-shingle
+      - h1.rs
+    - - function:ident-shingle
+      - actix_web::server::h1::Http1Dispatcher<T>::parse
+  - - - filename:ident-shingle
+      - pipeline.rs
+    - - function:ident-shingle
+      - actix_web::pipeline::Pipeline<T>::poll_io
+- - - - filename:ident-shingle
+      - h1.rs
+    - - function:ident-shingle
+      - actix_web::server::h1::Http1Dispatcher<T>::poll
+  - - - filename:ident-shingle
+      - h1.rs
+    - - function:ident-shingle
+      - actix_web::server::h1::Http1Dispatcher<T>::poll_handler
+- - - - filename:ident-shingle
+      - h1.rs
+    - - function:ident-shingle
+      - actix_web::server::h1::Http1Dispatcher<T>::poll_handler
+  - - - filename:ident-shingle
+      - h1.rs
+    - - function:ident-shingle
+      - actix_web::server::h1::Http1Dispatcher<T>::poll_io
+- - - - filename:ident-shingle
+      - h1.rs
+    - - function:ident-shingle
+      - actix_web::server::h1::Http1Dispatcher<T>::poll_io
+  - - - filename:ident-shingle
+      - h1.rs
+    - - function:ident-shingle
+      - actix_web::server::h1::Http1Dispatcher<T>::parse
+- - - - filename:ident-shingle
+      - handle.rs
+    - - function:ident-shingle
+      - tokio_timer::timer::handle::with_default
+  - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::with
+- - - - filename:ident-shingle
+      - handle.rs
+    - - function:ident-shingle
+      - tokio_timer::timer::handle::with_default::{{closure}}
+  - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}
+- - - - filename:ident-shingle
+      - hub.rs
+    - - function:ident-shingle
+      - sentry::hub::Hub::with
+  - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::with
+- - - - filename:ident-shingle
+      - hub.rs
+    - - function:ident-shingle
+      - sentry::hub::Hub::with::{{closure}}
+  - - - filename:ident-shingle
+      - hub.rs
+    - - function:ident-shingle
+      - sentry::hub::Hub::with_active::{{closure}}
+- - - - filename:ident-shingle
+      - hub.rs
+    - - function:ident-shingle
+      - sentry::hub::Hub::with_active
+  - - - filename:ident-shingle
+      - hub.rs
+    - - function:ident-shingle
+      - sentry::hub::Hub::with
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - ___rust_maybe_catch_panic
+  - - - filename:ident-shingle
+      - panicking.rs
+    - - function:ident-shingle
+      - std::panicking::try::do_call
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - log::__private_api_log
+  - - - filename:ident-shingle
+      - log.rs
+    - - function:ident-shingle
+      - sentry::integrations::log::Logger::log
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Borrow<T>::enter
+  - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::with
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Borrow<T>::enter::{{closure}}
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::CurrentRunner::set_spawn
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}}
+  - - - filename:ident-shingle
+      - scheduler.rs
+    - - function:ident-shingle
+      - tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}}
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::CurrentRunner::set_spawn
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}}
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Entered<T>::block_on
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Entered<T>::tick
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Entered<T>::tick
+  - - - filename:ident-shingle
+      - scheduler.rs
+    - - function:ident-shingle
+      - tokio_current_thread::scheduler::Scheduler<T>::tick
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_reactor::with_default
+  - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::with
+- - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_reactor::with_default::{{closure}}
+  - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}
+- - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::try_with
+  - - - filename:ident-shingle
+      - clock.rs
+    - - function:ident-shingle
+      - tokio_timer::clock::clock::with_default::{{closure}}
+- - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::try_with
+  - - - filename:ident-shingle
+      - global.rs
+    - - function:ident-shingle
+      - tokio_executor::global::with_default::{{closure}}
+- - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::try_with
+  - - - filename:ident-shingle
+      - handle.rs
+    - - function:ident-shingle
+      - tokio_timer::timer::handle::with_default::{{closure}}
+- - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::try_with
+  - - - filename:ident-shingle
+      - hub.rs
+    - - function:ident-shingle
+      - sentry::hub::Hub::with::{{closure}}
+- - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::try_with
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Borrow<T>::enter::{{closure}}
+- - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::try_with
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_reactor::with_default::{{closure}}
+- - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::with
+  - - - filename:ident-shingle
+      - local.rs
+    - - function:ident-shingle
+      - std::thread::local::LocalKey<T>::try_with
+- - - - filename:ident-shingle
+      - log.rs
+    - - function:ident-shingle
+      - sentry::integrations::log::Logger::log
+  - - - filename:ident-shingle
+      - hub.rs
+    - - function:ident-shingle
+      - sentry::hub::Hub::with_active
+- - - - filename:ident-shingle
+      - map_err.rs
+    - - function:ident-shingle
+      - actix_net::service::map_err::MapErrFuture<T>::poll
+  - - - filename:ident-shingle
+      - channel.rs
+    - - function:ident-shingle
+      - actix_web::server::channel::HttpChannel<T>::poll
+- - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - alloc::boxed::Box<T>::poll
+  - - - filename:ident-shingle
+      - then.rs
+    - - function:ident-shingle
+      - futures::future::then::Then<T>::poll
+- - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::enter
+  - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::std::set
+- - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::enter::{{closure}}
+  - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}
+- - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::poll_fn_notify
+  - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::enter
+- - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::poll_future_notify
+  - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::poll_fn_notify
+- - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}
+  - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - alloc::boxed::Box<T>::poll
+- - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::std::set
+  - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::enter::{{closure}}
+- - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - std::thread::Builder::spawn_unchecked::{{closure}}
+  - - - filename:ident-shingle
+      - panic.rs
+    - - function:ident-shingle
+      - std::panic::catch_unwind
+- - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}
+  - - - filename:ident-shingle
+      - backtrace.rs
+    - - function:ident-shingle
+      - std::sys_common::backtrace::__rust_begin_short_backtrace
+- - - - filename:ident-shingle
+      - panic.rs
+    - - function:ident-shingle
+      - std::panic::AssertUnwindSafe<T>::call_once
+  - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - std::thread::Builder::spawn_unchecked::{{closure}}::{{closure}}
+- - - - filename:ident-shingle
+      - panic.rs
+    - - function:ident-shingle
+      - std::panic::catch_unwind
+  - - - filename:ident-shingle
+      - panicking.rs
+    - - function:ident-shingle
+      - std::panicking::try
+- - - - filename:ident-shingle
+      - panicking.rs
+    - - function:ident-shingle
+      - std::panicking::try
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - ___rust_maybe_catch_panic
+- - - - filename:ident-shingle
+      - panicking.rs
+    - - function:ident-shingle
+      - std::panicking::try::do_call
+  - - - filename:ident-shingle
+      - panic.rs
+    - - function:ident-shingle
+      - std::panic::AssertUnwindSafe<T>::call_once
+- - - - filename:ident-shingle
+      - pipeline.rs
+    - - function:ident-shingle
+      - actix_web::pipeline::Pipeline<T>::poll_io
+  - - - filename:ident-shingle
+      - <::log::macros::log macros>
+    - - function:ident-shingle
+      - actix_web::pipeline::ProcessResponse<T>::poll_io
+- - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::block_on
+  - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter
+- - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Entered<T>::block_on
+- - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_reactor::with_default
+- - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}
+  - - - filename:ident-shingle
+      - clock.rs
+    - - function:ident-shingle
+      - tokio_timer::clock::clock::with_default
+- - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}
+  - - - filename:ident-shingle
+      - handle.rs
+    - - function:ident-shingle
+      - tokio_timer::timer::handle::with_default
+- - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}
+  - - - filename:ident-shingle
+      - global.rs
+    - - function:ident-shingle
+      - tokio_executor::global::with_default
+- - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}
+  - - - filename:ident-shingle
+      - runtime.rs
+    - - function:ident-shingle
+      - tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}
+- - - - filename:ident-shingle
+      - scheduler.rs
+    - - function:ident-shingle
+      - tokio_current_thread::scheduler::Scheduled<T>::tick
+  - - - filename:ident-shingle
+      - mod.rs
+    - - function:ident-shingle
+      - futures::task_impl::Spawn<T>::poll_future_notify
+- - - - filename:ident-shingle
+      - scheduler.rs
+    - - function:ident-shingle
+      - tokio_current_thread::scheduler::Scheduler<T>::tick
+  - - - filename:ident-shingle
+      - lib.rs
+    - - function:ident-shingle
+      - tokio_current_thread::Borrow<T>::enter
+- - - - filename:ident-shingle
+      - scheduler.rs
+    - - function:ident-shingle
+      - tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}}
+  - - - filename:ident-shingle
+      - scheduler.rs
+    - - function:ident-shingle
+      - tokio_current_thread::scheduler::Scheduled<T>::tick
+- - - - filename:ident-shingle
+      - then.rs
+    - - function:ident-shingle
+      - futures::future::then::Then<T>::poll
+  - - - filename:ident-shingle
+      - chain.rs
+    - - function:ident-shingle
+      - futures::future::chain::Chain<T>::poll
+- - - - filename:ident-shingle
+      - thread.rs
+    - - function:ident-shingle
+      - std::sys::unix::thread::Thread::new::thread_start
+  - - - filename:ident-shingle
+      - boxed.rs
+    - - function:ident-shingle
+      - alloc::boxed::FnBox<T>::call_box
+- - - - function:ident-shingle
+      - __pthread_body
+  - - - filename:ident-shingle
+      - thread.rs
+    - - function:ident-shingle
+      - std::sys::unix::thread::Thread::new::thread_start
+- - - - function:ident-shingle
+      - __pthread_start
+  - - - function:ident-shingle
+      - __pthread_body
+newstyle:2019-10-29:type:ident-shingle:
+- actix_web::pipeline
+newstyle:2019-10-29:value:character-5-shingle:
+- ' <int'
+- ' Erro'
+- ' Inte'
+- ' Serv'
+- ' Some'
+- ' duri'
+- ' hand'
+- ' here'
+- ' occu'
+- ' real'
+- ' requ'
+- ' stat'
+- ' went'
+- ' wron'
+- ', sta'
+- ': <in'
+- <int>
+- '> Int'
+- Error
+- Inter
+- Serve
+- Somet
+- al Se
+- 'ally '
+- andli
+- 'atus:'
+- ccurr
+- curre
+- d dur
+- dling
+- durin
+- eally
+- ed du
+- ent r
+- eques
+- er Er
+- ernal
+- erver
+- est h
+- ethin
+- g her
+- g req
+- g wen
+- g, st
+- handl
+- 'hing '
+- ing r
+- ing w
+- 'ing, '
+- 'int> '
+- l Ser
+- ling,
+- lly w
+- ly wr
+- methi
+- nal S
+- ndlin
+- ng he
+- ng re
+- ng we
+- ng, s
+- nt re
+- nt> I
+- ntern
+- occur
+- ometh
+- ong h
+- or So
+- or oc
+- quest
+- r Err
+- r Som
+- r occ
+- reall
+- red d
+- reque
+- 'ring '
+- 'rnal '
+- 'rong '
+- ror S
+- ror o
+- 'rred '
+- 'rror '
+- 'rver '
+- 's: <i'
+- st ha
+- statu
+- t han
+- t rea
+- t> In
+- tatus
+- terna
+- thing
+- 'tus: '
+- 'uest '
+- uring
+- urred
+- 'us: <'
+- ver E
+- 'went '
+- wrong
+- y wro

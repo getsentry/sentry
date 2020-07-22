@@ -1,0 +1,14 @@
+---
+created: '2020-07-22T12:08:09.680153Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:stacktrace:frames-pairs:
+- - - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - sun.reflect.GeneratedMethodAccessor
+  - - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - jdk.internal.reflect.GeneratedMethodAccessor

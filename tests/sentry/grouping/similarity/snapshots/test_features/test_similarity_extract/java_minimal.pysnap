@@ -1,0 +1,740 @@
+---
+created: '2020-07-22T12:08:07.271585Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:message:character-5-shingle:
+- ' / by'
+- ' [Req'
+- ' [] t'
+- ' [dis'
+- ' by z'
+- ' caus'
+- ' cont'
+- ' exce'
+- ' fail'
+- ' for '
+- ' in c'
+- ' is j'
+- ' java'
+- ' nest'
+- ' path'
+- ' proc'
+- ' root'
+- ' serv'
+- ' thre'
+- ' with'
+- ' zero'
+- () fo
+- ) for
+- .Arit
+- .lang
+- .serv
+- '/ by '
+- ': / b'
+- ; nes
+- Arith
+- Excep
+- Reque
+- Servl
+- '[Requ'
+- '[] th'
+- '[disp'
+- '] in '
+- '] thr'
+- '] wit'
+- a.lan
+- ailed
+- ang.A
+- atche
+- ath [
+- ava.l
+- by ze
+- cExce
+- cause
+- 'ce() '
+- cepti
+- cessi
+- cherS
+- conte
+- d exc
+- d; ne
+- dispa
+- e() f
+- ed ex
+- ed; n
+- eptio
+- eques
+- erSer
+- 'ero] '
+- ervic
+- ervle
+- essin
+- est p
+- ested
+- et [d
+- et.se
+- et] i
+- eticE
+- ew ex
+- excep
+- ext w
+- faile
+- for s
+- g fai
+- g.Ari
+- 'h [] '
+- h pat
+- h roo
+- herSe
+- hmeti
+- 'hrew '
+- icExc
+- ice()
+- iled;
+- in co
+- ing f
+- ion [
+- ion i
+- 'ion: '
+- is ja
+- ispat
+- ith p
+- ith r
+- ithme
+- java.
+- lang.
+- 'led; '
+- let [
+- let.s
+- 'let] '
+- metic
+- n [Re
+- n con
+- 'n is '
+- 'n: / '
+- neste
+- ng fa
+- ng.Ar
+- ntext
+- o] wi
+- ocess
+- on [R
+- on is
+- 'on: /'
+- ontex
+- oot c
+- or se
+- ot ca
+- patch
+- 'path '
+- proce
+- ption
+- quest
+- r ser
+- rServ
+- rew e
+- rithm
+- ro] w
+- roces
+- 'root '
+- rvice
+- rvlet
+- s jav
+- servi
+- servl
+- 'sing '
+- spatc
+- ssing
+- st pr
+- 'sted '
+- t [di
+- t cau
+- t pro
+- t wit
+- t.ser
+- t] in
+- tcher
+- ted e
+- 'text '
+- th []
+- th pa
+- th ro
+- thmet
+- threw
+- ticEx
+- 'tion '
+- 'tion:'
+- 'uest '
+- va.la
+- vice(
+- 'vlet '
+- vlet.
+- vlet]
+- w exc
+- 'with '
+- xcept
+- xt wi
+- y zer
+- zero]
+newstyle:2019-10-29:stacktrace:frames-pairs:
+- - - - filename:ident-shingle
+      - abstracthandlermethodadapter.java
+    - - function:ident-shingle
+      - handle
+    - - module:ident-shingle
+      - org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter
+  - - - filename:ident-shingle
+      - requestmappinghandleradapter.java
+    - - function:ident-shingle
+      - handleInternal
+    - - module:ident-shingle
+      - org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+- - - - filename:ident-shingle
+      - abstractprocessorlight.java
+    - - function:ident-shingle
+      - process
+    - - module:ident-shingle
+      - org.apache.coyote.AbstractProcessorLight
+  - - - filename:ident-shingle
+      - http11processor.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - org.apache.coyote.http11.Http11Processor
+- - - - filename:ident-shingle
+      - abstractprotocol.java
+    - - function:ident-shingle
+      - process
+    - - module:ident-shingle
+      - org.apache.coyote.AbstractProtocol$ConnectionHandler
+  - - - filename:ident-shingle
+      - abstractprocessorlight.java
+    - - function:ident-shingle
+      - process
+    - - module:ident-shingle
+      - org.apache.coyote.AbstractProcessorLight
+- - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+  - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - internalDoFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+- - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - internalDoFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+  - - - filename:ident-shingle
+      - httpservlet.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - javax.servlet.http.HttpServlet
+- - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - internalDoFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+  - - - filename:ident-shingle
+      - onceperrequestfilter.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.springframework.web.filter.OncePerRequestFilter
+- - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - internalDoFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+  - - - filename:ident-shingle
+      - wsfilter.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.apache.tomcat.websocket.server.WsFilter
+- - - - filename:ident-shingle
+      - authenticatorbase.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.authenticator.AuthenticatorBase
+  - - - filename:ident-shingle
+      - standardcontextvalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardContextValve
+- - - - filename:ident-shingle
+      - characterencodingfilter.java
+    - - function:ident-shingle
+      - doFilterInternal
+    - - module:ident-shingle
+      - org.springframework.web.filter.CharacterEncodingFilter
+  - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+- - - - filename:ident-shingle
+      - coyoteadapter.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - org.apache.catalina.connector.CoyoteAdapter
+  - - - filename:ident-shingle
+      - standardenginevalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardEngineValve
+- - - - filename:ident-shingle
+      - delegatingmethodaccessorimpl.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - jdk.internal.reflect.DelegatingMethodAccessorImpl
+  - - - filename:ident-shingle
+      - nativemethodaccessorimpl.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - jdk.internal.reflect.NativeMethodAccessorImpl
+- - - - filename:ident-shingle
+      - dispatcherservlet.java
+    - - function:ident-shingle
+      - doDispatch
+    - - module:ident-shingle
+      - org.springframework.web.servlet.DispatcherServlet
+  - - - filename:ident-shingle
+      - abstracthandlermethodadapter.java
+    - - function:ident-shingle
+      - handle
+    - - module:ident-shingle
+      - org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter
+- - - - filename:ident-shingle
+      - dispatcherservlet.java
+    - - function:ident-shingle
+      - doService
+    - - module:ident-shingle
+      - org.springframework.web.servlet.DispatcherServlet
+  - - - filename:ident-shingle
+      - dispatcherservlet.java
+    - - function:ident-shingle
+      - doDispatch
+    - - module:ident-shingle
+      - org.springframework.web.servlet.DispatcherServlet
+- - - - filename:ident-shingle
+      - errorreportvalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.valves.ErrorReportValve
+  - - - filename:ident-shingle
+      - standardhostvalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardHostValve
+- - - - filename:ident-shingle
+      - frameworkservlet.java
+    - - function:ident-shingle
+      - doGet
+    - - module:ident-shingle
+      - org.springframework.web.servlet.FrameworkServlet
+  - - - filename:ident-shingle
+      - frameworkservlet.java
+    - - function:ident-shingle
+      - processRequest
+    - - module:ident-shingle
+      - org.springframework.web.servlet.FrameworkServlet
+- - - - filename:ident-shingle
+      - frameworkservlet.java
+    - - function:ident-shingle
+      - processRequest
+    - - module:ident-shingle
+      - org.springframework.web.servlet.FrameworkServlet
+  - - - filename:ident-shingle
+      - dispatcherservlet.java
+    - - function:ident-shingle
+      - doService
+    - - module:ident-shingle
+      - org.springframework.web.servlet.DispatcherServlet
+- - - - filename:ident-shingle
+      - frameworkservlet.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - org.springframework.web.servlet.FrameworkServlet
+  - - - filename:ident-shingle
+      - httpservlet.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - javax.servlet.http.HttpServlet
+- - - - filename:ident-shingle
+      - hiddenhttpmethodfilter.java
+    - - function:ident-shingle
+      - doFilterInternal
+    - - module:ident-shingle
+      - org.springframework.web.filter.HiddenHttpMethodFilter
+  - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+- - - - filename:ident-shingle
+      - http11processor.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - org.apache.coyote.http11.Http11Processor
+  - - - filename:ident-shingle
+      - coyoteadapter.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - org.apache.catalina.connector.CoyoteAdapter
+- - - - filename:ident-shingle
+      - httpputformcontentfilter.java
+    - - function:ident-shingle
+      - doFilterInternal
+    - - module:ident-shingle
+      - org.springframework.web.filter.HttpPutFormContentFilter
+  - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+- - - - filename:ident-shingle
+      - httpservlet.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - javax.servlet.http.HttpServlet
+  - - - filename:ident-shingle
+      - frameworkservlet.java
+    - - function:ident-shingle
+      - doGet
+    - - module:ident-shingle
+      - org.springframework.web.servlet.FrameworkServlet
+- - - - filename:ident-shingle
+      - httpservlet.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - javax.servlet.http.HttpServlet
+  - - - filename:ident-shingle
+      - frameworkservlet.java
+    - - function:ident-shingle
+      - service
+    - - module:ident-shingle
+      - org.springframework.web.servlet.FrameworkServlet
+- - - - filename:ident-shingle
+      - invocablehandlermethod.java
+    - - function:ident-shingle
+      - doInvoke
+    - - module:ident-shingle
+      - org.springframework.web.method.support.InvocableHandlerMethod
+  - - - filename:ident-shingle
+      - method.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - java.lang.reflect.Method
+- - - - filename:ident-shingle
+      - invocablehandlermethod.java
+    - - function:ident-shingle
+      - invokeForRequest
+    - - module:ident-shingle
+      - org.springframework.web.method.support.InvocableHandlerMethod
+  - - - filename:ident-shingle
+      - invocablehandlermethod.java
+    - - function:ident-shingle
+      - doInvoke
+    - - module:ident-shingle
+      - org.springframework.web.method.support.InvocableHandlerMethod
+- - - - filename:ident-shingle
+      - method.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - java.lang.reflect.Method
+  - - - filename:ident-shingle
+      - delegatingmethodaccessorimpl.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - jdk.internal.reflect.DelegatingMethodAccessorImpl
+- - - - filename:ident-shingle
+      - nativemethodaccessorimpl.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - jdk.internal.reflect.NativeMethodAccessorImpl
+  - - - filename:ident-shingle
+      - nativemethodaccessorimpl.java
+    - - function:ident-shingle
+      - invoke0
+    - - module:ident-shingle
+      - jdk.internal.reflect.NativeMethodAccessorImpl
+- - - - filename:ident-shingle
+      - nativemethodaccessorimpl.java
+    - - function:ident-shingle
+      - invoke0
+    - - module:ident-shingle
+      - jdk.internal.reflect.NativeMethodAccessorImpl
+  - - - filename:ident-shingle
+      - application.java
+    - - function:ident-shingle
+      - home
+    - - module:ident-shingle
+      - io.sentry.example.Application
+- - - - filename:ident-shingle
+      - nioendpoint.java
+    - - function:ident-shingle
+      - doRun
+    - - module:ident-shingle
+      - org.apache.tomcat.util.net.NioEndpoint$SocketProcessor
+  - - - filename:ident-shingle
+      - abstractprotocol.java
+    - - function:ident-shingle
+      - process
+    - - module:ident-shingle
+      - org.apache.coyote.AbstractProtocol$ConnectionHandler
+- - - - filename:ident-shingle
+      - onceperrequestfilter.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.springframework.web.filter.OncePerRequestFilter
+  - - - filename:ident-shingle
+      - characterencodingfilter.java
+    - - function:ident-shingle
+      - doFilterInternal
+    - - module:ident-shingle
+      - org.springframework.web.filter.CharacterEncodingFilter
+- - - - filename:ident-shingle
+      - onceperrequestfilter.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.springframework.web.filter.OncePerRequestFilter
+  - - - filename:ident-shingle
+      - hiddenhttpmethodfilter.java
+    - - function:ident-shingle
+      - doFilterInternal
+    - - module:ident-shingle
+      - org.springframework.web.filter.HiddenHttpMethodFilter
+- - - - filename:ident-shingle
+      - onceperrequestfilter.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.springframework.web.filter.OncePerRequestFilter
+  - - - filename:ident-shingle
+      - httpputformcontentfilter.java
+    - - function:ident-shingle
+      - doFilterInternal
+    - - module:ident-shingle
+      - org.springframework.web.filter.HttpPutFormContentFilter
+- - - - filename:ident-shingle
+      - onceperrequestfilter.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.springframework.web.filter.OncePerRequestFilter
+  - - - filename:ident-shingle
+      - requestcontextfilter.java
+    - - function:ident-shingle
+      - doFilterInternal
+    - - module:ident-shingle
+      - org.springframework.web.filter.RequestContextFilter
+- - - - filename:ident-shingle
+      - requestcontextfilter.java
+    - - function:ident-shingle
+      - doFilterInternal
+    - - module:ident-shingle
+      - org.springframework.web.filter.RequestContextFilter
+  - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+- - - - filename:ident-shingle
+      - requestmappinghandleradapter.java
+    - - function:ident-shingle
+      - handleInternal
+    - - module:ident-shingle
+      - org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+  - - - filename:ident-shingle
+      - requestmappinghandleradapter.java
+    - - function:ident-shingle
+      - invokeHandlerMethod
+    - - module:ident-shingle
+      - org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+- - - - filename:ident-shingle
+      - requestmappinghandleradapter.java
+    - - function:ident-shingle
+      - invokeHandlerMethod
+    - - module:ident-shingle
+      - org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter
+  - - - filename:ident-shingle
+      - servletinvocablehandlermethod.java
+    - - function:ident-shingle
+      - invokeAndHandle
+    - - module:ident-shingle
+      - org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod
+- - - - filename:ident-shingle
+      - servletinvocablehandlermethod.java
+    - - function:ident-shingle
+      - invokeAndHandle
+    - - module:ident-shingle
+      - org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod
+  - - - filename:ident-shingle
+      - invocablehandlermethod.java
+    - - function:ident-shingle
+      - invokeForRequest
+    - - module:ident-shingle
+      - org.springframework.web.method.support.InvocableHandlerMethod
+- - - - filename:ident-shingle
+      - socketprocessorbase.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - org.apache.tomcat.util.net.SocketProcessorBase
+  - - - filename:ident-shingle
+      - nioendpoint.java
+    - - function:ident-shingle
+      - doRun
+    - - module:ident-shingle
+      - org.apache.tomcat.util.net.NioEndpoint$SocketProcessor
+- - - - filename:ident-shingle
+      - standardcontextvalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardContextValve
+  - - - filename:ident-shingle
+      - standardwrappervalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardWrapperValve
+- - - - filename:ident-shingle
+      - standardenginevalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardEngineValve
+  - - - filename:ident-shingle
+      - errorreportvalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.valves.ErrorReportValve
+- - - - filename:ident-shingle
+      - standardhostvalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardHostValve
+  - - - filename:ident-shingle
+      - authenticatorbase.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.authenticator.AuthenticatorBase
+- - - - filename:ident-shingle
+      - standardwrappervalve.java
+    - - function:ident-shingle
+      - invoke
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardWrapperValve
+  - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+- - - - filename:ident-shingle
+      - taskthread.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - org.apache.tomcat.util.threads.TaskThread$WrappingRunnable
+  - - - filename:ident-shingle
+      - threadpoolexecutor.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - java.util.concurrent.ThreadPoolExecutor$Worker
+- - - - filename:ident-shingle
+      - thread.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - java.lang.Thread
+  - - - filename:ident-shingle
+      - taskthread.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - org.apache.tomcat.util.threads.TaskThread$WrappingRunnable
+- - - - filename:ident-shingle
+      - threadpoolexecutor.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - java.util.concurrent.ThreadPoolExecutor$Worker
+  - - - filename:ident-shingle
+      - threadpoolexecutor.java
+    - - function:ident-shingle
+      - runWorker
+    - - module:ident-shingle
+      - java.util.concurrent.ThreadPoolExecutor
+- - - - filename:ident-shingle
+      - threadpoolexecutor.java
+    - - function:ident-shingle
+      - runWorker
+    - - module:ident-shingle
+      - java.util.concurrent.ThreadPoolExecutor
+  - - - filename:ident-shingle
+      - socketprocessorbase.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - org.apache.tomcat.util.net.SocketProcessorBase
+- - - - filename:ident-shingle
+      - wsfilter.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.apache.tomcat.websocket.server.WsFilter
+  - - - filename:ident-shingle
+      - applicationfilterchain.java
+    - - function:ident-shingle
+      - doFilter
+    - - module:ident-shingle
+      - org.apache.catalina.core.ApplicationFilterChain
+newstyle:2019-10-29:type:ident-shingle:
+- ArithmeticException
+newstyle:2019-10-29:value:character-5-shingle:
+- ' by z'
+- ' zero'
+- '/ by '
+- by ze
+- y zer

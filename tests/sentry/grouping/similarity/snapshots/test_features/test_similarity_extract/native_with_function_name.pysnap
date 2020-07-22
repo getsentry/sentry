@@ -1,0 +1,79 @@
+---
+created: '2020-07-22T12:08:08.485451Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:stacktrace:frames-pairs:
+- - - - filename:ident-shingle
+      - main.cpp
+    - - function:ident-shingle
+      - (anonymous namespace)::crash
+  - - - filename:ident-shingle
+      - main.cpp
+    - - function:ident-shingle
+      - (anonymous namespace)::something::nested::Foo<T>::crash
+- - - - filename:ident-shingle
+      - main.cpp
+    - - function:ident-shingle
+      - (anonymous namespace)::start
+  - - - filename:ident-shingle
+      - main.cpp
+    - - function:ident-shingle
+      - (anonymous namespace)::crash
+- - - - filename:ident-shingle
+      - main.cpp
+    - - function:ident-shingle
+      - main
+  - - - filename:ident-shingle
+      - main.cpp
+    - - function:ident-shingle
+      - (anonymous namespace)::start
+newstyle:2019-10-29:type:ident-shingle:
+- EXC_BAD_ACCESS / KERN_INVALID_ADDRESS
+newstyle:2019-10-29:value:character-5-shingle:
+- ' / KE'
+- ' EXC_'
+- ' Erro'
+- ' KERN'
+- / KER
+- ': EXC'
+- ACCES
+- ADDRE
+- AD_AC
+- ALID_
+- BAD_A
+- CCESS
+- 'CESS '
+- C_BAD
+- DDRES
+- DRESS
+- D_ACC
+- D_ADD
+- ERN_I
+- ESS /
+- EXC_B
+- Error
+- Fatal
+- ID_AD
+- INVAL
+- KERN_
+- LID_A
+- NVALI
+- N_INV
+- RN_IN
+- S / K
+- 'SS / '
+- VALID
+- XC_BA
+- _ACCE
+- _ADDR
+- _BAD_
+- _INVA
+- al Er
+- 'atal '
+- l Err
+- 'or: E'
+- 'r: EX'
+- 'ror: '
+- 'rror:'
+- tal E

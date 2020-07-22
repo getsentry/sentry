@@ -47,12 +47,7 @@ class GroupingInput(object):
         # Normalize the stacktrace for grouping.  This normally happens in
         # save()
         normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
-
         evt = eventstore.create_event(data=data)
-
-        # Make sure we don't need to touch the DB here because this would
-        # break stuff later on.
-        evt.project = None
 
         return evt
 

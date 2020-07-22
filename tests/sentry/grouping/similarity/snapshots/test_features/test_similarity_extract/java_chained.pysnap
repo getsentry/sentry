@@ -1,0 +1,432 @@
+---
+created: '2020-07-22T12:08:08.111239Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:message:character-5-shingle:
+- ' [Con'
+- ' conn'
+- ' star'
+- ' to s'
+- /<flo
+- <floa
+- <int>
+- '><int'
+- Conne
+- Faile
+- HTTP/
+- P/<fl
+- TP/<f
+- TTP/<
+- '[Conn'
+- '[HTTP'
+- ailed
+- art c
+- at><i
+- conne
+- 'ctor '
+- ctor[
+- 'd to '
+- ector
+- ed to
+- float
+- 'iled '
+- int>]
+- led t
+- loat>
+- necto
+- nnect
+- nt>]]
+- o sta
+- oat><
+- onnec
+- or [C
+- or[HT
+- r [Co
+- r[HTT
+- rt co
+- start
+- t con
+- t><in
+- 'tart '
+- to st
+- tor [
+- tor[H
+newstyle:2019-10-29:stacktrace:frames-pairs:
+- - - - filename:ident-shingle
+      - abstractapplicationcontext.java
+    - - function:ident-shingle
+      - refresh
+    - - module:ident-shingle
+      - org.springframework.context.support.AbstractApplicationContext
+  - - - filename:ident-shingle
+      - embeddedwebapplicationcontext.java
+    - - function:ident-shingle
+      - finishRefresh
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
+- - - - filename:ident-shingle
+      - abstractendpoint.java
+    - - function:ident-shingle
+      - start
+    - - module:ident-shingle
+      - org.apache.tomcat.util.net.AbstractEndpoint
+  - - - filename:ident-shingle
+      - nioendpoint.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - org.apache.tomcat.util.net.NioEndpoint
+- - - - filename:ident-shingle
+      - abstractprotocol.java
+    - - function:ident-shingle
+      - start
+    - - module:ident-shingle
+      - org.apache.coyote.AbstractProtocol
+  - - - filename:ident-shingle
+      - abstractendpoint.java
+    - - function:ident-shingle
+      - start
+    - - module:ident-shingle
+      - org.apache.tomcat.util.net.AbstractEndpoint
+- - - - filename:ident-shingle
+      - application.java
+    - - function:ident-shingle
+      - main
+    - - module:ident-shingle
+      - io.sentry.example.Application
+  - - - filename:ident-shingle
+      - springapplication.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - org.springframework.boot.SpringApplication
+- - - - filename:ident-shingle
+      - connector.java
+    - - function:ident-shingle
+      - startInternal
+    - - module:ident-shingle
+      - org.apache.catalina.connector.Connector
+  - - - filename:ident-shingle
+      - abstractprotocol.java
+    - - function:ident-shingle
+      - start
+    - - module:ident-shingle
+      - org.apache.coyote.AbstractProtocol
+- - - - filename:ident-shingle
+      - embeddedwebapplicationcontext.java
+    - - function:ident-shingle
+      - finishRefresh
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
+  - - - filename:ident-shingle
+      - embeddedwebapplicationcontext.java
+    - - function:ident-shingle
+      - startEmbeddedServletContainer
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
+- - - - filename:ident-shingle
+      - embeddedwebapplicationcontext.java
+    - - function:ident-shingle
+      - refresh
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
+  - - - filename:ident-shingle
+      - abstractapplicationcontext.java
+    - - function:ident-shingle
+      - refresh
+    - - module:ident-shingle
+      - org.springframework.context.support.AbstractApplicationContext
+- - - - filename:ident-shingle
+      - embeddedwebapplicationcontext.java
+    - - function:ident-shingle
+      - startEmbeddedServletContainer
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
+  - - - filename:ident-shingle
+      - tomcatembeddedservletcontainer.java
+    - - function:ident-shingle
+      - start
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer
+- - - - filename:ident-shingle
+      - lifecyclebase.java
+    - - function:ident-shingle
+      - start
+    - - module:ident-shingle
+      - org.apache.catalina.util.LifecycleBase
+  - - - filename:ident-shingle
+      - connector.java
+    - - function:ident-shingle
+      - startInternal
+    - - module:ident-shingle
+      - org.apache.catalina.connector.Connector
+- - - - filename:ident-shingle
+      - net.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - sun.nio.ch.Net
+  - - - filename:ident-shingle
+      - net.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - sun.nio.ch.Net
+- - - - filename:ident-shingle
+      - net.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - sun.nio.ch.Net
+  - - - filename:ident-shingle
+      - net.java
+    - - function:ident-shingle
+      - bind0
+    - - module:ident-shingle
+      - sun.nio.ch.Net
+- - - - filename:ident-shingle
+      - nioendpoint.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - org.apache.tomcat.util.net.NioEndpoint
+  - - - filename:ident-shingle
+      - serversocketadaptor.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - sun.nio.ch.ServerSocketAdaptor
+- - - - filename:ident-shingle
+      - serversocketadaptor.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - sun.nio.ch.ServerSocketAdaptor
+  - - - filename:ident-shingle
+      - serversocketchannelimpl.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - sun.nio.ch.ServerSocketChannelImpl
+- - - - filename:ident-shingle
+      - serversocketchannelimpl.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - sun.nio.ch.ServerSocketChannelImpl
+  - - - filename:ident-shingle
+      - net.java
+    - - function:ident-shingle
+      - bind
+    - - module:ident-shingle
+      - sun.nio.ch.Net
+- - - - filename:ident-shingle
+      - springapplication.java
+    - - function:ident-shingle
+      - refresh
+    - - module:ident-shingle
+      - org.springframework.boot.SpringApplication
+  - - - filename:ident-shingle
+      - embeddedwebapplicationcontext.java
+    - - function:ident-shingle
+      - refresh
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
+- - - - filename:ident-shingle
+      - springapplication.java
+    - - function:ident-shingle
+      - refreshContext
+    - - module:ident-shingle
+      - org.springframework.boot.SpringApplication
+  - - - filename:ident-shingle
+      - springapplication.java
+    - - function:ident-shingle
+      - refresh
+    - - module:ident-shingle
+      - org.springframework.boot.SpringApplication
+- - - - filename:ident-shingle
+      - springapplication.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - org.springframework.boot.SpringApplication
+  - - - filename:ident-shingle
+      - springapplication.java
+    - - function:ident-shingle
+      - refreshContext
+    - - module:ident-shingle
+      - org.springframework.boot.SpringApplication
+- - - - filename:ident-shingle
+      - springapplication.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - org.springframework.boot.SpringApplication
+  - - - filename:ident-shingle
+      - springapplication.java
+    - - function:ident-shingle
+      - run
+    - - module:ident-shingle
+      - org.springframework.boot.SpringApplication
+- - - - filename:ident-shingle
+      - standardservice.java
+    - - function:ident-shingle
+      - addConnector
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardService
+  - - - filename:ident-shingle
+      - lifecyclebase.java
+    - - function:ident-shingle
+      - start
+    - - module:ident-shingle
+      - org.apache.catalina.util.LifecycleBase
+- - - - filename:ident-shingle
+      - tomcatembeddedservletcontainer.java
+    - - function:ident-shingle
+      - addPreviouslyRemovedConnectors
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer
+  - - - filename:ident-shingle
+      - standardservice.java
+    - - function:ident-shingle
+      - addConnector
+    - - module:ident-shingle
+      - org.apache.catalina.core.StandardService
+- - - - filename:ident-shingle
+      - tomcatembeddedservletcontainer.java
+    - - function:ident-shingle
+      - start
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer
+  - - - filename:ident-shingle
+      - tomcatembeddedservletcontainer.java
+    - - function:ident-shingle
+      - addPreviouslyRemovedConnectors
+    - - module:ident-shingle
+      - org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer
+newstyle:2019-10-29:type:ident-shingle:
+- BindException
+- LifecycleException
+newstyle:2019-10-29:value:character-5-shingle:
+- '  Pro'
+- ' "Tom'
+- ' Prot'
+- ' [Con'
+- ' alre'
+- ' comp'
+- ' fail'
+- ' hand'
+- ' in u'
+- ' star'
+- ' to s'
+- '";  P'
+- '"Tomc'
+- '(): "'
+- '): "T'
+- .getN
+- /<flo
+- ': "To'
+- ;  Pr
+- <floa
+- <int>
+- '><int'
+- Addre
+- Conne
+- Faile
+- HTTP/
+- Name(
+- P/<fl
+- Proto
+- TP/<f
+- TTP/<
+- Tomca
+- '[Conn'
+- '[HTTP'
+- ady i
+- ailed
+- alrea
+- ame()
+- andle
+- art c
+- art f
+- 'at"; '
+- at><i
+- cat";
+- ce.ge
+- col h
+- compo
+- ctor[
+- 'd to '
+- ddres
+- 'dler '
+- dress
+- dy in
+- 'e(): '
+- e.get
+- 'eady '
+- ector
+- ed to
+- ent [
+- er st
+- ervic
+- ess a
+- etNam
+- faile
+- float
+- getNa
+- handl
+- ice.g
+- 'iled '
+- in us
+- int>]
+- l han
+- led t
+- ler s
+- loat>
+- lread
+- mcat"
+- 'me():'
+- mpone
+- n use
+- ndler
+- necto
+- 'nent '
+- nnect
+- nt [C
+- nt>]]
+- o sta
+- oat><
+- 'ocol '
+- ol ha
+- omcat
+- ompon
+- onent
+- onnec
+- or[HT
+- otoco
+- ponen
+- r sta
+- r[HTT
+- ready
+- 'ress '
+- rotoc
+- rt co
+- rt fa
+- rvice
+- s alr
+- servi
+- ss al
+- start
+- t [Co
+- t com
+- t fai
+- 't";  '
+- t><in
+- tName
+- 'tart '
+- to st
+- tocol
+- tor[H
+- vice.
+- 'y in '

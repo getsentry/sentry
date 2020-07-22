@@ -153,18 +153,6 @@ def task_runner():
     return TaskRunner
 
 
-@pytest.fixture
-def set_feature(request):
-    from sentry.testutils.helpers.features import Feature
-
-    def inner(*args, **kwargs):
-        mgr = Feature(*args, **kwargs)
-        mgr.__enter__()
-        request.addfinalizer(lambda: mgr.__exit__(None, None, None))
-
-    return inner
-
-
 @pytest.fixture(scope="function")
 def session():
     return factories.create_session()

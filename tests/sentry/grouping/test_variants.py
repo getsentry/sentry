@@ -53,6 +53,10 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     grouping_config = get_default_grouping_config_dict(config_name)
     evt = grouping_input.create_event(grouping_config)
 
+    # Make sure we don't need to touch the DB here because this would
+    # break stuff later on.
+    evt.project = None
+
     rv = []
     for (key, value) in sorted(evt.get_grouping_variants().items()):
         for label, _ in value.encode_for_similarity():

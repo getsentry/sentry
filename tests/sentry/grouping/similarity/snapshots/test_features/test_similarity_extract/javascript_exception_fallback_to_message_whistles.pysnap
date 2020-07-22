@@ -1,0 +1,186 @@
+---
+created: '2020-07-22T12:08:10.096526Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:type:ident-shingle:
+- Error
+newstyle:2019-10-29:value:character-5-shingle:
+- ' (err'
+- ' (md5'
+- ' (sub'
+- ' --- '
+- ' <dat'
+- ' <ema'
+- ' <flo'
+- ' <hex'
+- ' <int'
+- ' <ip>'
+- ' <md5'
+- ' <sha'
+- ' <uui'
+- ' at o'
+- ' chec'
+- ' corr'
+- ' from'
+- ' id <'
+- ' in ('
+- ' logg'
+- ' offs'
+- ' payl'
+- ' spen'
+- ' time'
+- ' via '
+- (erro
+- '(md5 '
+- (subm
+- ') at '
+- ) tim
+- ); pa
+- ', che'
+- '- cor'
+- -- co
+- '--- c'
+- 1> (m
+- 5 <md
+- '5>); '
+- ': <em'
+- ; pay
+- <date
+- <emai
+- <floa
+- <hex>
+- <int>
+- '<ip> '
+- <ip>)
+- <md5>
+- <sha1
+- <uuid
+- '> (md'
+- '> (su'
+- '> ---'
+- '> log'
+- '> via'
+- '>) at'
+- '>) ti'
+- '>); p'
+- '>, ch'
+- '>: <e'
+- a <ip
+- a1> (
+- ad ti
+- 'ail> '
+- amp <
+- at of
+- at> -
+- 'ate> '
+- 'ate>:'
+- ation
+- ayloa
+- bmitt
+- check
+- cksum
+- corre
+- d <uu
+- d fro
+- 'd in '
+- d tim
+- d5 <m
+- d5>);
+- d>, c
+- date>
+- e spe
+- e> (s
+- 'e>: <'
+- ecksu
+- ed fr
+- ed in
+- elati
+- email
+- ent <
+- error
+- estam
+- et <h
+- ffset
+- float
+- 'from '
+- 'fset '
+- ged i
+- 'gged '
+- 'ha1> '
+- hecks
+- ia <i
+- id <u
+- 'id>, '
+- il> l
+- ime s
+- imest
+- in (e
+- int>)
+- ion i
+- ip> v
+- 'ip>) '
+- itted
+- 'ksum '
+- l> lo
+- latio
+- 'load '
+- loat>
+- logge
+- m <ip
+- m <sh
+- mail>
+- md5 <
+- md5>)
+- me sp
+- mesta
+- mitte
+- mp <d
+- n (er
+- 'n id '
+- nt <f
+- 'nt>) '
+- oad t
+- 'oat> '
+- offse
+- ogged
+- om <i
+- on id
+- or <i
+- orrel
+- p <da
+- p> vi
+- p>) a
+- paylo
+- 'pent '
+- r <in
+- relat
+- rom <
+- ror <
+- rrela
+- 'rror '
+- set <
+- sha1>
+- spent
+- stamp
+- submi
+- sum <
+- t <fl
+- t <he
+- t off
+- t> --
+- t>) t
+- 'tamp '
+- te> (
+- 'te>: '
+- ted f
+- 'time '
+- times
+- 'tion '
+- 'tted '
+- ubmit
+- uid>,
+- um <s
+- uuid>
+- via <
+- yload

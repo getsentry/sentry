@@ -1,0 +1,391 @@
+---
+created: '2020-07-22T12:08:09.155763Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:stacktrace:frames-pairs:
+- - - - context-line:ident-shingle
+      - (forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - fn
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - 'Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);'
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - forEachAccumulated
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - <Button
+    - - filename:ident-shingle
+      - app.js
+    - - function:ident-shingle
+      - onPress
+    - - module:ident-shingle
+      - App
+  - - - context-line:ident-shingle
+      - <Button
+    - - filename:ident-shingle
+      - app.js
+    - - function:ident-shingle
+      - Button
+    - - module:ident-shingle
+      - App
+- - - - context-line:ident-shingle
+      - 'Array.isArray(arr) ? arr.forEach(cb, scope) : arr && cb.call(scope, arr);'
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - forEachAccumulated
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - function:ident-shingle
+      - '[native code] forEach'
+- - - - context-line:ident-shingle
+      - ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - invokeGuardedCallbackAndCatchFirstError
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - invokeGuardedCallback.apply(ReactErrorUtils, arguments);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - apply
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError(
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - executeDispatch
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - ReactErrorUtils.invokeGuardedCallback.apply(this, arguments);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - invokeGuardedCallbackAndCatchFirstError
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - _receiveRootNodeIDEvent(index, eventTopLevelType, i);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - _lastFlush
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - batchedUpdates(function() {
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - _receiveRootNodeIDEvent
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - batchedUpdates(function() {
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - _receiveRootNodeIDEvent
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - return _batchedUpdates(fn, bookkeeping);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - batchedUpdates
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - executeDispatch(e, !1, dispatchListeners, dispatchInstances);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - D
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - ReactErrorUtils.invokeGuardedCallbackAndCatchFirstError(
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - executeDispatch
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - invokeGuardedCallback.apply(ReactErrorUtils, arguments);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - apply
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - var funcArgs = Array.prototype.slice.call(arguments, 3);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - apply
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - return _batchedUpdates(fn, bookkeeping);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - batchedUpdates
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - return fn(a);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - _batchedUpdates
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - return fn(a);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - _batchedUpdates
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - (forEachAccumulated(events, executeDispatchesAndReleaseTopLevel),
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - fn
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - return this.flushedQueue();
+    - - filename:ident-shingle
+      - messagequeue.js
+    - - function:ident-shingle
+      - _inCall
+    - - module:ident-shingle
+      - react-native/Libraries/BatchedBridge/MessageQueue
+  - - - context-line:ident-shingle
+      - this._lastFlush = new Date().getTime();
+    - - filename:ident-shingle
+      - messagequeue.js
+    - - function:ident-shingle
+      - flushedQueue
+    - - module:ident-shingle
+      - react-native/Libraries/BatchedBridge/MessageQueue
+- - - - context-line:ident-shingle
+      - return this.flushedQueue();
+    - - filename:ident-shingle
+      - messagequeue.js
+    - - function:ident-shingle
+      - value
+    - - module:ident-shingle
+      - react-native/Libraries/BatchedBridge/MessageQueue
+  - - - context-line:ident-shingle
+      - this._inCall--;
+    - - filename:ident-shingle
+      - messagequeue.js
+    - - function:ident-shingle
+      - flushedQueue
+    - - module:ident-shingle
+      - react-native/Libraries/BatchedBridge/MessageQueue
+- - - - context-line:ident-shingle
+      - this._inCall--;
+    - - filename:ident-shingle
+      - messagequeue.js
+    - - function:ident-shingle
+      - flushedQueue
+    - - module:ident-shingle
+      - react-native/Libraries/BatchedBridge/MessageQueue
+  - - - context-line:ident-shingle
+      - return this.flushedQueue();
+    - - filename:ident-shingle
+      - messagequeue.js
+    - - function:ident-shingle
+      - _inCall
+    - - module:ident-shingle
+      - react-native/Libraries/BatchedBridge/MessageQueue
+- - - - context-line:ident-shingle
+      - this._lastFlush = new Date().getTime();
+    - - filename:ident-shingle
+      - messagequeue.js
+    - - function:ident-shingle
+      - flushedQueue
+    - - module:ident-shingle
+      - react-native/Libraries/BatchedBridge/MessageQueue
+  - - - context-line:ident-shingle
+      - _receiveRootNodeIDEvent(index, eventTopLevelType, i);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - _lastFlush
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+- - - - context-line:ident-shingle
+      - this._performSideEffectsForTransition(curState, nextState, signal, e);
+    - - filename:ident-shingle
+      - touchable.js
+    - - function:ident-shingle
+      - _receiveSignal
+    - - module:ident-shingle
+      - react-native/Libraries/Components/Touchable/Touchable
+  - - - context-line:ident-shingle
+      - this.touchableHandlePress(e);
+    - - filename:ident-shingle
+      - touchable.js
+    - - function:ident-shingle
+      - _performSideEffectsForTransition
+    - - module:ident-shingle
+      - react-native/Libraries/Components/Touchable/Touchable
+- - - - context-line:ident-shingle
+      - this.props.onPress && this.props.onPress(e);
+    - - filename:ident-shingle
+      - touchablenativefeedback.android.js
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android
+  - - - context-line:ident-shingle
+      - <Button
+    - - filename:ident-shingle
+      - app.js
+    - - function:ident-shingle
+      - onPress
+    - - module:ident-shingle
+      - App
+- - - - context-line:ident-shingle
+      - this.touchableHandlePress(e);
+    - - filename:ident-shingle
+      - touchable.js
+    - - function:ident-shingle
+      - _performSideEffectsForTransition
+    - - module:ident-shingle
+      - react-native/Libraries/Components/Touchable/Touchable
+  - - - context-line:ident-shingle
+      - this.props.onPress && this.props.onPress(e);
+    - - filename:ident-shingle
+      - touchablenativefeedback.android.js
+    - - function:ident-shingle
+      - this
+    - - module:ident-shingle
+      - react-native/Libraries/Components/Touchable/TouchableNativeFeedback.android
+- - - - context-line:ident-shingle
+      - 'touchableHandleResponderRelease: function(e) {'
+    - - filename:ident-shingle
+      - touchable.js
+    - - function:ident-shingle
+      - arguments
+    - - module:ident-shingle
+      - react-native/Libraries/Components/Touchable/Touchable
+  - - - context-line:ident-shingle
+      - this._performSideEffectsForTransition(curState, nextState, signal, e);
+    - - filename:ident-shingle
+      - touchable.js
+    - - function:ident-shingle
+      - _receiveSignal
+    - - module:ident-shingle
+      - react-native/Libraries/Components/Touchable/Touchable
+- - - - context-line:ident-shingle
+      - var funcArgs = Array.prototype.slice.call(arguments, 3);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - apply
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+  - - - context-line:ident-shingle
+      - 'touchableHandleResponderRelease: function(e) {'
+    - - filename:ident-shingle
+      - touchable.js
+    - - function:ident-shingle
+      - arguments
+    - - module:ident-shingle
+      - react-native/Libraries/Components/Touchable/Touchable
+- - - - function:ident-shingle
+      - '[native code] forEach'
+  - - - context-line:ident-shingle
+      - executeDispatch(e, !1, dispatchListeners, dispatchInstances);
+    - - filename:ident-shingle
+      - reactnativerenderer-prod.js
+    - - function:ident-shingle
+      - D
+    - - module:ident-shingle
+      - react-native/Libraries/Renderer/ReactNativeRenderer-prod
+newstyle:2019-10-29:type:ident-shingle:
+- TypeError
+newstyle:2019-10-29:value:character-5-shingle:
+- ' ''({}'
+- ' (eva'
+- ' a fu'
+- ' func'
+- ' is n'
+- ' not '
+- '''({})'
+- (eval
+- ({}).
+- ).inv
+- .inva
+- Funct
+- a fun
+- alidF
+- aluat
+- ating
+- ction
+- 'd is '
+- dFunc
+- defin
+- ed is
+- efine
+- evalu
+- fined
+- funct
+- g '({
+- idFun
+- 'ined '
+- ing '
+- inval
+- ion (
+- ion()
+- is no
+- lidFu
+- luati
+- n (ev
+- n()')
+- nctio
+- ndefi
+- ned i
+- ng '(
+- not a
+- nvali
+- on (e
+- on()'
+- 'ot a '
+- s not
+- t a f
+- 'ting '
+- 'tion '
+- tion(
+- uatin
+- uncti
+- undef
+- valid
+- valua
+- '{}).i'
+- '}).in'

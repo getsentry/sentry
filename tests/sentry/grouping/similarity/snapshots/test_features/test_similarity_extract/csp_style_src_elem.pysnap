@@ -1,0 +1,44 @@
+---
+created: '2020-07-22T12:08:09.172616Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:message:character-5-shingle:
+- ' ''sty'
+- ' ''use'
+- ' from'
+- ''' fro'
+- '''styl'
+- '''use.'
+- .com'
+- .font
+- Block
+- aweso
+- 'cked '
+- d 'st
+- e' fr
+- e.com
+- e.fon
+- ed 's
+- esome
+- fonta
+- 'from '
+- ked '
+- le' f
+- locke
+- m 'us
+- me.co
+- ntawe
+- ocked
+- om 'u
+- ome.c
+- ontaw
+- rom '
+- se.fo
+- some.
+- style
+- tawes
+- tyle'
+- use.f
+- wesom
+- 'yle'' '

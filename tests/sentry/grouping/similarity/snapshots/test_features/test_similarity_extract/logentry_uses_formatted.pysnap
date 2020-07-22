@@ -1,0 +1,20 @@
+---
+created: '2020-07-22T12:08:10.062690Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:message:character-5-shingle:
+- ' ther'
+- ' worl'
+- Hello
+- e wor
+- 'ello '
+- ere w
+- 'here '
+- llo t
+- lo th
+- o the
+- orld!
+- re wo
+- there
+- world

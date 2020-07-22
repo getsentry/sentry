@@ -1,0 +1,282 @@
+---
+created: '2020-07-22T12:08:07.006174Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:message:character-5-shingle:
+- ' exce'
+- ' exec'
+- ' has '
+- ' occu'
+- ' requ'
+- ' the '
+- ' unha'
+- ' whil'
+- An un
+- andle
+- as oc
+- ccurr
+- cepti
+- curre
+- cutin
+- d exc
+- d whi
+- 'dled '
+- e exe
+- e req
+- ecuti
+- ed ex
+- ed wh
+- eptio
+- eques
+- excep
+- execu
+- g the
+- handl
+- has o
+- he re
+- 'hile '
+- ile e
+- ing t
+- ion h
+- le ex
+- led e
+- n has
+- n unh
+- ndled
+- ng th
+- nhand
+- occur
+- on ha
+- ption
+- quest
+- red w
+- reque
+- 'rred '
+- s occ
+- the r
+- 'ting '
+- 'tion '
+- uest.
+- unhan
+- urred
+- uting
+- while
+- xcept
+- xecut
+newstyle:2019-10-29:stacktrace:frames-pairs:
+- - - - function:ident-shingle
+      - Execute
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor
+  - - - function:ident-shingle
+      - Execute
+    - - module:ident-shingle
+      - Microsoft.Extensions.Internal.ObjectMethodExecutor
+- - - - function:ident-shingle
+      - Execute
+    - - module:ident-shingle
+      - Microsoft.Extensions.Internal.ObjectMethodExecutor
+  - - - function:ident-shingle
+      - lambda_method
+    - - module:ident-shingle
+      - (unknown)
+- - - - function:ident-shingle
+      - HandleNonSuccessAndDebuggerNotification
+    - - module:ident-shingle
+      - System.Runtime.CompilerServices.TaskAwaiter
+  - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+- - - - function:ident-shingle
+      - Invoke
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware
+  - - - function:ident-shingle
+      - HandleNonSuccessAndDebuggerNotification
+    - - module:ident-shingle
+      - System.Runtime.CompilerServices.TaskAwaiter
+- - - - function:ident-shingle
+      - Invoke
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Routing.EndpointMiddleware
+  - - - function:ident-shingle
+      - HandleNonSuccessAndDebuggerNotification
+    - - module:ident-shingle
+      - System.Runtime.CompilerServices.TaskAwaiter
+- - - - function:ident-shingle
+      - Invoke
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware
+  - - - function:ident-shingle
+      - HandleNonSuccessAndDebuggerNotification
+    - - module:ident-shingle
+      - System.Runtime.CompilerServices.TaskAwaiter
+- - - - function:ident-shingle
+      - InvokeActionMethodAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+  - - - function:ident-shingle
+      - Execute
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor
+- - - - function:ident-shingle
+      - InvokeAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+  - - - function:ident-shingle
+      - HandleNonSuccessAndDebuggerNotification
+    - - module:ident-shingle
+      - System.Runtime.CompilerServices.TaskAwaiter
+- - - - function:ident-shingle
+      - InvokeFilterPipelineAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+  - - - function:ident-shingle
+      - Next
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+- - - - function:ident-shingle
+      - InvokeInnerFilterAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+  - - - function:ident-shingle
+      - Next
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+- - - - function:ident-shingle
+      - InvokeNextActionFilterAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+  - - - function:ident-shingle
+      - HandleNonSuccessAndDebuggerNotification
+    - - module:ident-shingle
+      - System.Runtime.CompilerServices.TaskAwaiter
+- - - - function:ident-shingle
+      - InvokeNextResourceFilter
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+  - - - function:ident-shingle
+      - HandleNonSuccessAndDebuggerNotification
+    - - module:ident-shingle
+      - System.Runtime.CompilerServices.TaskAwaiter
+- - - - function:ident-shingle
+      - Next
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+  - - - function:ident-shingle
+      - Rethrow
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+- - - - function:ident-shingle
+      - Next
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+  - - - function:ident-shingle
+      - Rethrow
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+- - - - function:ident-shingle
+      - Rethrow
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+  - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+- - - - function:ident-shingle
+      - Rethrow
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+  - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+- - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+  - - - function:ident-shingle
+      - Invoke
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Routing.EndpointMiddleware
+- - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+  - - - function:ident-shingle
+      - Invoke
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware
+- - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+  - - - function:ident-shingle
+      - InvokeActionMethodAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+- - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+  - - - function:ident-shingle
+      - InvokeAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+- - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+  - - - function:ident-shingle
+      - InvokeFilterPipelineAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+- - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+  - - - function:ident-shingle
+      - InvokeInnerFilterAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+- - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+  - - - function:ident-shingle
+      - InvokeNextActionFilterAsync
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker
+- - - - function:ident-shingle
+      - Throw
+    - - module:ident-shingle
+      - System.Runtime.ExceptionServices.ExceptionDispatchInfo
+  - - - function:ident-shingle
+      - InvokeNextResourceFilter
+    - - module:ident-shingle
+      - Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker
+- - - - function:ident-shingle
+      - lambda_method
+    - - module:ident-shingle
+      - (unknown)
+  - - - filename:ident-shingle
+      - valuescontroller.cs
+    - - function:ident-shingle
+      - Get
+    - - module:ident-shingle
+      - SentryTest2.Controllers.ValuesController
+newstyle:2019-10-29:type:ident-shingle:
+- System.Exception
+newstyle:2019-10-29:value:character-5-shingle:
+- ' exce'
+- c exc
+- cepti
+- eptio
+- excep
+- nc ex
+- ption
+- 'sync '
+- xcept
+- ync e

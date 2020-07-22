@@ -32,7 +32,15 @@ class GroupingComponent(object):
     into components to make a hash for grouping purposes.
     """
 
-    def __init__(self, id, hint=None, contributes=None, values=None, similarity_encoder=None):
+    def __init__(
+        self,
+        id,
+        hint=None,
+        contributes=None,
+        values=None,
+        similarity_encoder=None,
+        similarity_self_encoder=None,
+    ):
         self.id = id
         if hint is None:
             hint = DEFAULT_HINTS.get(id)
@@ -44,6 +52,7 @@ class GroupingComponent(object):
             values = []
         self.values = values
         self.similarity_encoder = similarity_encoder
+        self.similarity_self_encoder = similarity_self_encoder
 
     @property
     def name(self):
@@ -114,13 +123,14 @@ class GroupingComponent(object):
             return hash_from_values(self.iter_values())
 
     def encode_for_similarity(self):
-        # Note: We want to exclude grouping *components* that do not
-        # contribute, but not *variants*
-        if not self.contributes:
+        id = self.id
+
+        if self.similarity_self_encoder is not None:
+            id2 = "{}:{}".format(id, self.similarity_self_encoder._sentry_similarity_shingle_label)
+            yield id2, self.similarity_self_encoder(self)
             return
 
         encoder = self.similarity_encoder
-        id = self.id
 
         for i, value in enumerate(self.values):
             if encoder is not None:
