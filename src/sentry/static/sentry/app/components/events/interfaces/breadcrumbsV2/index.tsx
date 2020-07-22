@@ -27,7 +27,6 @@ import Level from './level';
 import Icon from './icon';
 import {aroundContentStyle} from './styles';
 
-const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 const ISO_STRING_DATE_AND_TIME_DIVISION = 10;
 
 type FilterProps = React.ComponentProps<typeof Filter>;
@@ -66,23 +65,6 @@ class Breadcrumbs extends React.Component<Props, State> {
     this.loadBreadcrumbs();
   }
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (
-      prevState.breadcrumbs.length === 0 &&
-      this.state.breadcrumbs.length >= MAX_CRUMBS_WHEN_COLLAPSED
-    ) {
-      this.expandCollapsedCrumbs();
-    }
-  }
-
-  listRef = React.createRef<HTMLDivElement>();
-
-  expandCollapsedCrumbs() {
-    this.setState(prevState => ({
-      filteredBySearch: prevState.breadcrumbs,
-    }));
-  }
-
   loadBreadcrumbs() {
     const {data} = this.props;
     let breadcrumbs = data.values;
@@ -99,16 +81,10 @@ class Breadcrumbs extends React.Component<Props, State> {
     this.setState({
       breadcrumbs: transformedCrumbs,
       filteredByFilter: transformedCrumbs,
-      filteredBySearch: this.getCollapsedBreadcrumbs(transformedCrumbs),
+      filteredBySearch: transformedCrumbs,
       filterOptions,
       relativeTime: transformedCrumbs[transformedCrumbs.length - 1]?.timestamp,
     });
-  }
-
-  getCollapsedBreadcrumbs(breadcrumbs: BreadcrumbsWithDetails) {
-    return breadcrumbs.length > MAX_CRUMBS_WHEN_COLLAPSED
-      ? breadcrumbs.slice(-MAX_CRUMBS_WHEN_COLLAPSED)
-      : breadcrumbs;
   }
 
   getFilterOptions(breadcrumbs: ReturnType<typeof transformCrumbs>): FilterOptions {
