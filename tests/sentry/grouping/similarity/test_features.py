@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import pytest
 
-import sentry.similarity
 from sentry.models import Group, Project
-
 from sentry.grouping.api import get_default_grouping_config_dict
+
+import sentry.similarity
 
 from tests.sentry.grouping import with_grouping_input
 
@@ -45,29 +45,33 @@ def test_basic(similarity, factories, default_project):
 
 @with_grouping_input("grouping_input")
 def test_similarity_extract(grouping_input, insta_snapshot):
+    similarity = sentry.similarity.features2
+
     evt = grouping_input.create_event(get_default_grouping_config_dict())
     evt.project = project = Project(id=123)
     evt.group = Group(id=123, project=project)
 
-    insta_snapshot(sentry.similarity.features2.extract(evt))
+    insta_snapshot(similarity.extract(evt))
 
 
 @with_grouping_input("grouping_input")
-def test_similarity_config_migration(grouping_input, monkeypatch):
+def test_similarity_config_migration(grouping_input):
     """
-    This test simulates migrating a similarity cluster to a new grouping strategy.
+    This test simulates migrating a similarity cluster to a new grouping
+    strategy. We reinstantiate the FeatureSet using get_feature_set while in
+    practice one would set the corresponding Django setting to a different
+    value and redeploy.
     """
 
-    def set_configs(configs):
-        monkeypatch.setattr(
-            "sentry.similarity.featuresv2._CONFIGURATIONS_TO_INDEX", frozenset(configs)
-        )
+    def get_feature_set(configs):
+        index = sentry.similarity.features2.index
+        return sentry.similarity.GroupingBasedFeatureSet(index=index, configurations=configs)
 
     project = Project(id=123)
 
     events = []
 
-    def send_event(group=None):
+    def send_event(similarity, group=None):
         evt = grouping_input.create_event(get_default_grouping_config_dict())
 
         evt.project = project
@@ -75,63 +79,73 @@ def test_similarity_config_migration(grouping_input, monkeypatch):
             group = Group(id=123 + len(events), project=project)
         evt.group = group
 
-        if not sentry.similarity.features2.extract(evt):
+        if not similarity.extract(evt):
             pytest.skip("Event does not produce similarity features")
 
-        sentry.similarity.features2.record([evt])
+        similarity.record([evt])
         events.append(evt)
         return group
 
-    def compare(group):
-        return set(dict(sentry.similarity.features2.compare(group)))
+    def compare(similarity, group):
+        return set(dict(similarity.compare(group)))
 
     # We start out with similarity based on legacy grouping, and want to
     # migrate it to newstyle grouping.
     # Note: Grouping-based similarity based on legacy strategy config is
-    # absolute trash. The actual usecase in prod would be to migrate between
-    # newstyle configs.
+    # absolute trash. The actual usecase in prod would probably be to migrate
+    # between newstyle configs.
     config = "legacy:2019-03-12"
     next_config = "newstyle:2019-10-29"
 
     # Step 1: Legacy config is used to index first event
-    set_configs([config])
-    g1 = send_event()
+    similarity = get_feature_set([config])
+    g1 = send_event(similarity)
 
     # Step 2: Similarity system is migrated to newstyle while still keeping
     # legacy config around to find old features.
     # g1, though indexed with legacy, still shows up in similarity (though with
     # broken score)
-    set_configs([config, next_config])
-    g2 = send_event()
-    assert compare(g1) == {g1.id, g2.id}
+    similarity = get_feature_set([config, next_config])
+    g2 = send_event(similarity)
+    assert compare(similarity, g1) == {g1.id, g2.id}
 
     # Step 3: New config is used exclusively
     # g1 is "missing" as it uses features from legacy we no longer search for
     # Attempt at migration failed!
-    set_configs([next_config])
-    g3 = send_event()
-    assert compare(g2) == {g2.id, g3.id}
-    assert compare(g3) == {g2.id, g3.id}
-    assert not compare(g1)
+    similarity = get_feature_set([next_config])
+    g3 = send_event(similarity)
+    assert compare(similarity, g2) == {g2.id, g3.id}
+    assert compare(similarity, g3) == {g2.id, g3.id}
+    assert not compare(similarity, g1)
 
     # Step 4: System is reverted to multi-config setup (because g1 is "broken")
     # g1 is only comparable to g2, as g3 does not have legacy features
     # g2 is comparable with every group as it has features from both configs
     # g3 is comparable to g2, as g1 does not have newstyle features
-    set_configs([config, next_config])
-    assert compare(g1) == {g1.id, g2.id}
-    assert compare(g2) == {g1.id, g2.id, g3.id}
-    assert compare(g3) == {g2.id, g3.id}
+    similarity = get_feature_set([config, next_config])
+    assert compare(similarity, g1) == {g1.id, g2.id}
+    assert compare(similarity, g2) == {g1.id, g2.id, g3.id}
+    assert compare(similarity, g3) == {g2.id, g3.id}
 
     # Step 5: New event goes into g1, new event goes into g3
     # g1 now has newstyle features and is comparable to all groups
-    send_event(g1)
-    assert compare(g1) == compare(g2) == compare(g3) == {g1.id, g2.id, g3.id}
+    send_event(similarity, g1)
+    assert (
+        compare(similarity, g1)
+        == compare(similarity, g2)
+        == compare(similarity, g3)
+        == {g1.id, g2.id, g3.id}
+    )
 
     # Step 6: Second attempt at using new config exclusively
     # Since all groups now have newstyle features, they are all comparable
     # Migration successful!
-    set_configs([next_config])
-    assert compare(g1) == compare(g2) == compare(g3) == {g1.id, g2.id, g3.id}
+    similarity = get_feature_set([next_config])
+    assert (
+        compare(similarity, g1)
+        == compare(similarity, g2)
+        == compare(similarity, g3)
+        == {g1.id, g2.id, g3.id}
+    )
 
     assert g1.id != g2.id != g3.id

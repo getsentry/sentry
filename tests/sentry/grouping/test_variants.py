@@ -6,7 +6,6 @@ import pytest
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.api import get_default_grouping_config_dict
-from sentry.similarity.featuresv2 import _KNOWN_COMPONENT_LABELS
 
 from tests.sentry.grouping import with_grouping_input
 
@@ -59,9 +58,6 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
 
     rv = []
     for (key, value) in sorted(evt.get_grouping_variants().items()):
-        for label, _ in value.encode_for_similarity():
-            assert label in _KNOWN_COMPONENT_LABELS
-
         if rv:
             rv.append("-" * 74)
         rv.append("%s:" % key)

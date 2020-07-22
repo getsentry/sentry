@@ -1941,5 +1941,12 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 # observed mainly for producing stable metrics.
 SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 
-# Similarity config
+# Similarity cluster to use
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
+
+# The grouping strategy to use for driving similarity-v2. You can add multiple
+# strategies here to index them all. This is useful for transitioning a
+# similarity dataset to newer grouping configurations.
+#
+# Check out `test_similarity_config_migration` to understand the procedure and risks.
+SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = frozenset(["newstyle:2019-10-29"])
