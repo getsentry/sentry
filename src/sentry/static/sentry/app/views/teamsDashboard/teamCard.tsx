@@ -35,6 +35,7 @@ class TeamCard extends AsyncComponent<Props, State> {
     const members: Array<Member> = this.state.members;
     for (let i = 0; i < 10; i++) {
       members.push({
+        // @ts-ignore
         user: {
           id: String(i + 1),
           name: `Jane Bloggs ${i}`,
