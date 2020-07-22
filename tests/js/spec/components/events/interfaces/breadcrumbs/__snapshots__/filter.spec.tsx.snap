@@ -142,7 +142,7 @@ exports[`Filter default render 1`] = `
 >
   <Wrapper>
     <div
-      className="css-cd4fy0-Wrapper efxik2w0"
+      className="css-cd4fy0-Wrapper eo9f4dt0"
     >
       <DropdownControl
         alwaysRenderMenu={true}
