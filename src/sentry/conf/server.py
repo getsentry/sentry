@@ -809,8 +809,6 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Enable the 'data-export' interface.
-    "organizations:data-export": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
@@ -874,8 +872,6 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable access to more advanced (alpha) datascrubbing settings.
-    "organizations:datascrubbers-v2": True,
     # Enable the new version of interface/breadcrumbs
     "organizations:breadcrumbs-v2": False,
     # Enable usage of external relays, for use with Relay. See
@@ -890,6 +886,9 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable graph for subscription quota for errors, transactions and
+    # attachments
+    "organizations:usage-stats-graph": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -1478,6 +1477,8 @@ SENTRY_DEVSERVICES = {
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+            "KAFKA_MESSAGE_MAX_BYTES": "50000000",
+            "KAFKA_MAX_REQUEST_SIZE": "50000000",
         },
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
         "only_if": lambda settings, options: (

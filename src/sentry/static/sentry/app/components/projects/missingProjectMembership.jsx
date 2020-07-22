@@ -6,7 +6,7 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {joinTeam} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import HeroIcon from 'app/components/heroIcon';
+import {IconFlag} from 'app/icons';
 import Well from 'app/components/well';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
@@ -118,7 +118,7 @@ class MissingProjectMembership extends React.Component {
     return (
       <div className="container">
         <StyledWell centered>
-          <StyledHeroIcon src="icon-circle-exclamation" />
+          <StyledIconFlag size="xxl" />
           <p>{t("You're not a member of this project.")}</p>
           <p>{this.renderExplanation(features)}</p>
           {this.renderJoinTeams(features)}
@@ -132,7 +132,7 @@ const StyledWell = styled(Well)`
   margin-top: ${space(2)};
 `;
 
-const StyledHeroIcon = styled(HeroIcon)`
+const StyledIconFlag = styled(IconFlag)`
   margin-bottom: ${space(2)};
 `;
 
