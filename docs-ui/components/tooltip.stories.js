@@ -12,7 +12,7 @@ class CustomThing extends React.Component {
   }
 }
 
-storiesOf('UI|Tooltip', module).add(
+storiesOf('UI/Tooltip', module).add(
   'Tooltip',
   withInfo({
     text: 'Adds a tooltip to any component,',

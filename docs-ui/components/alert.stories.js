@@ -8,7 +8,7 @@ import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconInfo, IconCheckmark, IconWarning, IconNot} from 'app/icons';
 
-storiesOf('UI|Alerts/Alert', module)
+storiesOf('UI/Alerts/Alert', module)
   .add(
     'Default',
     withInfo('Inline alert messages')(() => (

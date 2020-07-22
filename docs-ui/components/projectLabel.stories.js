@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import ProjectLabel from 'app/components/projectLabel';
 
-storiesOf('Deprecated|ProjectLabel', module).add(
+storiesOf('Deprecated/ProjectLabel', module).add(
   'default',
   withInfo('Do not use this, use IdBadge instead')(() => {
     return (

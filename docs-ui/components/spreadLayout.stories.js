@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import SpreadLayout from 'app/components/spreadLayout';
 
-storiesOf('Deprecated|ComponentLayouts/SpreadLayout', module)
+storiesOf('Deprecated/ComponentLayouts/SpreadLayout', module)
   .add(
     'default',
     withInfo('Children elements get spread out (flexbox space-between)')(() => (

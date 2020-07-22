@@ -7,7 +7,7 @@ import PercentageAreaChart from 'app/components/charts/percentageAreaChart';
 
 const TOTAL = 6;
 
-storiesOf('Charts|PercentageAreaChart', module).add(
+storiesOf('Charts/PercentageAreaChart', module).add(
   'PercentageAreaChart',
   withInfo('Stacked PercentageArea')(() => {
     const NOW = new Date().getTime();

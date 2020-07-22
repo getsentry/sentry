@@ -5,7 +5,7 @@ import {withKnobs, boolean} from '@storybook/addon-knobs';
 
 import Well from 'app/components/well';
 
-const stories = storiesOf('UI|Well', module);
+const stories = storiesOf('UI/Well', module);
 stories.addDecorator(withKnobs);
 
 stories.add(

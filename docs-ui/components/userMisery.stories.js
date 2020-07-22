@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import UserMisery from 'app/components/userMisery';
 
-storiesOf('Other|ScoreBar/UserMisery', module)
+storiesOf('Other/ScoreBar/UserMisery', module)
   .add(
     'default',
     withInfo(

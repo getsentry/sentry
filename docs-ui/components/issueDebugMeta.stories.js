@@ -105,7 +105,7 @@ class OrganizationContext extends React.Component {
   }
 }
 
-storiesOf('Issues|DebugMeta', module).add(
+storiesOf('Issues/DebugMeta', module).add(
   'default',
   withInfo('Various debug image metadata states')(() => (
     <div className="section">

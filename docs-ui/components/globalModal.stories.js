@@ -6,7 +6,7 @@ import GlobalModal from 'app/components/globalModal';
 import Button from 'app/components/button';
 import {openModal} from 'app/actionCreators/modal';
 
-storiesOf('UI|Modals', module).add(
+storiesOf('UI/Modals', module).add(
   'GlobalModal',
   withInfo('Call `openModal` action creator to open a modal', {
     propTablesExclude: ['Button'],

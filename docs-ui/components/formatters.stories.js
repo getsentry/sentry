@@ -10,7 +10,7 @@ import DateTime from 'app/components/dateTime';
 import Count from 'app/components/count';
 import Version from 'app/components/version';
 
-storiesOf('Utility|Formatters', module)
+storiesOf('Utility/Formatters', module)
   .add(
     'DateTime',
     withInfo('Formats number (in ms or seconds) into a datetime string')(() => (

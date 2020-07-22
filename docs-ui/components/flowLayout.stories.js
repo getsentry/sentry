@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 import FlowLayout from 'app/components/flowLayout';
 import SpreadLayout from 'app/components/spreadLayout';
 
-storiesOf('Deprecated|ComponentLayouts/FlowLayout', module)
+storiesOf('Deprecated/ComponentLayouts/FlowLayout', module)
   .add(
     'row',
     withInfo('Horizontal row with vertical centering')(() => (

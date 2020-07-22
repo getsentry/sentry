@@ -19,7 +19,7 @@ const WideButton = styled(Button)`
 `;
 
 // eslint-disable-next-line
-storiesOf('UI|Buttons', module)
+storiesOf('UI/Buttons', module)
   .add(
     'overview',
     withInfo({

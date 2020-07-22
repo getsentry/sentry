@@ -27,7 +27,7 @@ const event = {
   ],
 };
 
-storiesOf('UI|TagsTable', module).add(
+storiesOf('UI/TagsTable', module).add(
   'default',
   withInfo(
     'Display a table of tags with each value as a link, generally to another search result.'

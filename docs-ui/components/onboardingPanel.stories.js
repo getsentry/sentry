@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 import {IconFire} from 'app/icons';
 import OnboardingPanel from 'app/components/onboardingPanel';
 
-storiesOf('UI|OnboardingPanel', module).add(
+storiesOf('UI/OnboardingPanel', module).add(
   'default',
   withInfo('Panel with icon image.')(() => {
     return (

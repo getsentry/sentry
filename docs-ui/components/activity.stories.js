@@ -17,7 +17,7 @@ const user = {
   email: 'billy@sentry.io',
 };
 
-storiesOf('UI|Activity/Item', module)
+storiesOf('UI/Activity/Item', module)
   .add(
     'default ActivityItem',
     withInfo(
@@ -79,7 +79,7 @@ storiesOf('UI|Activity/Item', module)
     ))
   );
 
-storiesOf('UI|Activity/Item/Components', module)
+storiesOf('UI/Activity/Item/Components', module)
   .add(
     'Bubble',
     withInfo(

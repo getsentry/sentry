@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import BarChart from 'app/components/charts/barChart';
 
-storiesOf('Charts|BarChart', module).add(
+storiesOf('Charts/BarChart', module).add(
   'BarChart',
   withInfo('Stacked & Unstacked Bar Charts')(() => {
     return (

@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import NavTabs from 'app/components/navTabs';
 
-storiesOf('UI|NavTabs', module)
+storiesOf('UI/NavTabs', module)
   .add(
     'default',
     withInfo('NavTabs')(() => {

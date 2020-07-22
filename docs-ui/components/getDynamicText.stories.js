@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import getDynamicText from 'app/utils/getDynamicText';
 
-storiesOf('Utility|getDynamicText', module).add(
+storiesOf('Utility/getDynamicText', module).add(
   'getDynamicText',
   withInfo(
     `

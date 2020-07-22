@@ -9,7 +9,7 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   margin: 0 15px 15px 0;
 `;
 
-storiesOf('Style|Icons', module).add(
+storiesOf('Style/Icons', module).add(
   'PlatformIcon',
   withInfo('Scalable platform and framework icons')(() => (
     <div>

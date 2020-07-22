@@ -6,7 +6,7 @@ import {text, select} from '@storybook/addon-knobs';
 import QuestionTooltip from 'app/components/questionTooltip';
 import theme from 'app/utils/theme';
 
-storiesOf('UI|QuestionTooltip', module).add(
+storiesOf('UI/QuestionTooltip', module).add(
   'QuestionTooltip',
   withInfo({
     text:

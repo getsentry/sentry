@@ -30,7 +30,7 @@ class Ticker extends React.Component {
   }
 }
 
-storiesOf('UI|ProgressRing', module).add(
+storiesOf('UI/ProgressRing', module).add(
   'default',
   withInfo('Circle style progress bar ')(() => {
     const value = number('Value', 29);

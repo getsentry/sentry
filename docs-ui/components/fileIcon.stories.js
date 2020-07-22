@@ -5,7 +5,7 @@ import {text} from '@storybook/addon-knobs';
 
 import FileIcon from 'app/components/fileIcon';
 
-storiesOf('Style|Icons', module).add(
+storiesOf('Style/Icons', module).add(
   'FileIcon',
   withInfo('Shows a platform icon for given filename - based on extension')(() => {
     const fileName = text('fileName', 'src/components/testComponent.tsx');

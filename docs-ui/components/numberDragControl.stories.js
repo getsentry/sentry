@@ -8,7 +8,7 @@ import NumberDragControl from 'app/components/numberDragControl';
 
 const onChange = action('onChange');
 
-storiesOf('Forms|Controls', module).add('NumberDragControl', () => (
+storiesOf('Forms/Controls', module).add('NumberDragControl', () => (
   <Container>
     <NumberDragControl
       axis={select('Direction', {x: 'x', y: 'y'}, 'x')}

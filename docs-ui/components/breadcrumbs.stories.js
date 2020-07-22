@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import Breadcrumbs from 'app/components/breadcrumbs';
 
-storiesOf('UI|Breadcrumbs', module).add(
+storiesOf('UI/Breadcrumbs', module).add(
   'default',
   withInfo('Page breadcrumbs used for navigation')(() => {
     return (

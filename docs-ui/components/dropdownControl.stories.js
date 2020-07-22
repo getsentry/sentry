@@ -6,7 +6,7 @@ import {text, boolean} from '@storybook/addon-knobs';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import MenuItem from 'app/components/menuItem';
 
-storiesOf('UI|Dropdowns/DropdownControl', module)
+storiesOf('UI/Dropdowns/DropdownControl', module)
   .add(
     'basic label + knobs',
     withInfo('Using a string value for the button label')(() => {

@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
-storiesOf('Forms|Controls', module).add(
+storiesOf('Forms/Controls', module).add(
   'RangeSlider',
   withInfo('Range Slider')(() => (
     <React.Fragment>

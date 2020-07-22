@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 import AlertLink from 'app/components/alertLink';
 import {IconDocs, IconGeneric, IconMail, IconStack, IconStar} from 'app/icons';
 
-storiesOf('UI|Alerts/AlertLink', module)
+storiesOf('UI/Alerts/AlertLink', module)
   .add(
     'default',
     withInfo('A way to loudly link between different parts of the application')(() => [

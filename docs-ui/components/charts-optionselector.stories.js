@@ -16,7 +16,7 @@ const options = [
   {value: 'more', label: 'Additional option'},
 ];
 
-storiesOf('Charts|OptionSelector', module).add(
+storiesOf('Charts/OptionSelector', module).add(
   'default',
   withInfo('Selector control for chart controls')(() => (
     <Container>

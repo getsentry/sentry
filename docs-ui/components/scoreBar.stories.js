@@ -5,7 +5,7 @@ import {number, boolean, array, color} from '@storybook/addon-knobs';
 
 import ScoreBar from 'app/components/scoreBar';
 
-storiesOf('Other|ScoreBar', module)
+storiesOf('Other/ScoreBar', module)
   .add(
     'horizontal',
     withInfo('Description')(() => (

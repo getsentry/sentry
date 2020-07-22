@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import LazyLoad from 'app/components/lazyLoad';
 
-storiesOf('Utility|LazyLoad', module).add(
+storiesOf('Utility/LazyLoad', module).add(
   'LazyLoad',
   withInfo('Lazy loads a view/component')(() => {
     const MyComponent = () => (

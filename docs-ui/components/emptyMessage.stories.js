@@ -9,7 +9,7 @@ import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import space from 'app/styles/space';
 
-storiesOf('UI|EmptyMessage', module)
+storiesOf('UI/EmptyMessage', module)
   .add(
     'default',
     withInfo('Super Generic')(() => (

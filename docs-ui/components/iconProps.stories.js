@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {IconAdd, IconArrow, IconBookmark, IconGroup, IconPin} from 'app/icons';
 
-storiesOf('Style|Icons', module).add(
+storiesOf('Style/Icons', module).add(
   'Icon Props',
   withInfo('Props you can assign to the icon components')(() => {
     return (

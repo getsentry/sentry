@@ -6,7 +6,7 @@ import {action} from '@storybook/addon-actions';
 import Confirm from 'app/components/confirm';
 import Button from 'app/components/button';
 
-storiesOf('UI|Confirm', module).add(
+storiesOf('UI/Confirm', module).add(
   'Confirm',
   withInfo({
     text:

@@ -45,7 +45,7 @@ UndoButton.contextTypes = {
 };
 
 // eslint-disable-next-line
-storiesOf('Forms|Old/Form', module)
+storiesOf('Forms/Old/Form', module)
   .add(
     'empty',
     withInfo('Empty form')(() => <LegacyForm onSubmit={action('submit')} />)
@@ -72,7 +72,7 @@ storiesOf('Forms|Old/Form', module)
     ))
   );
 
-storiesOf('Forms|Form', module).add(
+storiesOf('Forms/Form', module).add(
   'default',
   withInfo(
     'Use the knobs to see how the different field props that can be used affect the form layout.'
@@ -135,7 +135,7 @@ storiesOf('Forms|Form', module).add(
   })
 );
 
-storiesOf('Forms|Old/Fields', module)
+storiesOf('Forms/Old/Fields', module)
   .add(
     'PasswordField',
     withInfo({
@@ -160,7 +160,7 @@ storiesOf('Forms|Old/Fields', module)
     ))
   );
 
-storiesOf('Forms|Fields', module)
+storiesOf('Forms/Fields', module)
   .add(
     'TextField',
     withInfo({

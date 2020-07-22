@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import * as newIconset from 'app/icons';
 
-storiesOf('Style|Icons', module).add(
+storiesOf('Style/Icons', module).add(
   'Icon Set',
   withInfo('Replace `InlineSvg` with icon components')(() => {
     return (

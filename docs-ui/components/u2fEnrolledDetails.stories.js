@@ -6,7 +6,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 
-storiesOf('Other|U2fEnrolledDetails', module).add(
+storiesOf('Other/U2fEnrolledDetails', module).add(
   'U2fEnrolledDetails',
   withInfo('U2f details after enrollment', {
     propTablesExclude: ['Button'],

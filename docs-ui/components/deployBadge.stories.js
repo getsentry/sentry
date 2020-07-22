@@ -13,7 +13,7 @@ const deploy = {
   id: '6348842',
 };
 
-storiesOf('UI|DeployBadge', module).add(
+storiesOf('UI/DeployBadge', module).add(
   'default',
   withInfo('Used to display deploy in a "badge"')(() => (
     <div>

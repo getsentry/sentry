@@ -18,7 +18,7 @@ const user = {
 
 ConfigStore.set('user', {...user, isSuperuser: true, options: {}});
 
-storiesOf('UI|Activity/Note', module).add(
+storiesOf('UI/Activity/Note', module).add(
   'default',
   withInfo(
     'A `<Note>` is an `<ActivityItem>` that can be edited with an editor. The editor has an input mode and a preview mode.'

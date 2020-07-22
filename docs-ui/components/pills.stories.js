@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 import Pills from 'app/components/pills';
 import Pill from 'app/components/pill';
 
-storiesOf('UI|Pills', module).add(
+storiesOf('UI/Pills', module).add(
   'all',
   withInfo('When you have key/value data but are tight on space.')(() => (
     <Pills>

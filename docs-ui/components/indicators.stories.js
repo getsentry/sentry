@@ -12,7 +12,7 @@ import {
 } from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 
-storiesOf('UI|Toast Indicators', module)
+storiesOf('UI/Toast Indicators', module)
   .add(
     'static',
     withInfo('Toast Indicators')(() => {

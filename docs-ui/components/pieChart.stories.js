@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import PieChart from 'app/components/charts/pieChart';
 
-storiesOf('Charts|PieChart', module).add(
+storiesOf('Charts/PieChart', module).add(
   'PieChart',
   withInfo('PieChart')(() => (
     <PieChart

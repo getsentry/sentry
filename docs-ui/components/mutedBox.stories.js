@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import MutedBox from 'app/components/mutedBox';
 
-storiesOf('UI|Muted Box', module)
+storiesOf('UI/Muted Box', module)
   .add('default', withInfo('Default')(() => <MutedBox statusDetails={{}} />))
   .add(
     'ignoreUntil',

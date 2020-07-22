@@ -14,7 +14,7 @@ import {
 } from 'app/components/panels';
 import Field from 'app/views/settings/components/forms/field';
 
-storiesOf('UI|Panels', module)
+storiesOf('UI/Panels', module)
   .add(
     'Basic Panel',
     withInfo({

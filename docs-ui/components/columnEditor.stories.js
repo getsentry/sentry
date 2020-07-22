@@ -8,7 +8,7 @@ import Button from 'app/components/button';
 import GlobalModal from 'app/components/globalModal';
 import ColumnEditModal, {modalCss} from 'app/views/eventsV2/table/columnEditModal';
 
-storiesOf('Discover|ColumnEditor', module).add(
+storiesOf('Discover/ColumnEditor', module).add(
   'all',
   withInfo({
     text: 'Playground for building out column editor v2 for discover',

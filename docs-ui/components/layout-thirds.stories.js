@@ -24,7 +24,7 @@ const crumbs = [
   },
 ];
 
-storiesOf('Layouts|Thirds', module)
+storiesOf('Layouts/Thirds', module)
   .add(
     '66/33 layout',
     withInfo('Two column layout with header & sidebar')(() => (

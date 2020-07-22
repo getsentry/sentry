@@ -23,7 +23,7 @@ const RESOLVED_IN_COMMIT = {
   },
 };
 
-storiesOf('Issues|ResolutionBox & MutedBox', module)
+storiesOf('Issues/ResolutionBox & MutedBox', module)
   .add(
     'resolved states',
     withInfo('Basic resolution & resolved by commit')(() => (

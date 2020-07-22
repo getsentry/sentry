@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import Qrcode from 'app/components/qrcode';
 
-storiesOf('UI|Qrcode', module).add(
+storiesOf('UI/Qrcode', module).add(
   'default',
   withInfo('Description')(() => (
     <Qrcode

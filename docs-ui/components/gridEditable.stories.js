@@ -95,7 +95,7 @@ class GridParent extends React.Component {
   }
 }
 
-storiesOf('UI|GridEditable', module)
+storiesOf('UI/GridEditable', module)
   .add(
     'default',
     withInfo('Render a simple resizable table')(() => (

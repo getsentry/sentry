@@ -16,7 +16,7 @@ const items = [
   },
 ];
 
-storiesOf('UI|AutoComplete', module).add(
+storiesOf('UI/AutoComplete', module).add(
   'Input',
   withInfo('Autocomplete on an input')(() => (
     <AutoComplete itemToString={item => item.name}>

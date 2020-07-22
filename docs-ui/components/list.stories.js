@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 import {IconBusiness} from 'app/icons/iconBusiness';
 import {List, ListItem} from 'app/components/list';
 
-storiesOf('UI|List', module).add(
+storiesOf('UI/List', module).add(
   'Default',
   withInfo('Default message goes here')(() => (
     <React.Fragment>

@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 
-storiesOf('Style|Icons', module).add(
+storiesOf('Style/Icons', module).add(
   'CheckboxFancy',
   withInfo('A fancy looking checkbox')(() => {
     return (

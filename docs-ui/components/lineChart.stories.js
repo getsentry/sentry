@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import LineChart from 'app/components/charts/lineChart';
 
-storiesOf('Charts|LineChart', module).add(
+storiesOf('Charts/LineChart', module).add(
   'default',
   withInfo('Line Chart')(() => {
     return (

@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import StackedBarChart from 'app/components/stackedBarChart';
 
-storiesOf('Charts|StackedBarChart (old)', module).add(
+storiesOf('Charts/StackedBarChart (old)', module).add(
   'StackedBarChart',
   withInfo('An older, non ECharts chart')(() => (
     <div style={{height: 400}}>

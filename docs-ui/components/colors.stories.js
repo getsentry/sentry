@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import theme from 'app/utils/theme';
 
-storiesOf('Style|Colors', module).add(
+storiesOf('Style/Colors', module).add(
   'default',
   withInfo('Top level colors')(() => {
     const colorsToDisplay = Object.entries(theme).filter(([_name, val]) => {

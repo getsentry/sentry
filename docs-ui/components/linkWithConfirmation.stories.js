@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 
-storiesOf('UI|Links', module).add(
+storiesOf('UI/Links', module).add(
   'LinkWithConfirmation',
   withInfo('A link (<a>) that opens a confirmation modal.')(() => (
     <div>
@@ -20,7 +20,7 @@ storiesOf('UI|Links', module).add(
   ))
 );
 
-storiesOf('UI|Confirm', module).add(
+storiesOf('UI/Confirm', module).add(
   'LinkWithConfirmation',
   withInfo('A link (<a>) that opens a confirmation modal.')(() => (
     <div>
