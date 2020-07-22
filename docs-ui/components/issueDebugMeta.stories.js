@@ -1,5 +1,4 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import SentryTypes from 'app/sentryTypes';
@@ -105,18 +104,23 @@ class OrganizationContext extends React.Component {
   }
 }
 
-storiesOf('Issues/DebugMeta', module).add(
-  'default',
-  withInfo('Various debug image metadata states')(() => (
-    <div className="section">
-      <OrganizationContext>
-        <DebugMeta
-          event={event}
-          data={event.entries[0].data}
-          orgId={organization.id}
-          projectId="1"
-        />
-      </OrganizationContext>
-    </div>
-  ))
-);
+export default {
+  title: 'Issues/DebugMeta',
+};
+
+export const Default = withInfo('Various debug image metadata states')(() => (
+  <div className="section">
+    <OrganizationContext>
+      <DebugMeta
+        event={event}
+        data={event.entries[0].data}
+        orgId={organization.id}
+        projectId="1"
+      />
+    </OrganizationContext>
+  </div>
+));
+
+Default.story = {
+  name: 'default',
+};

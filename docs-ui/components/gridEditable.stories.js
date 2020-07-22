@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import Button from 'app/components/button';
@@ -95,58 +94,68 @@ class GridParent extends React.Component {
   }
 }
 
-storiesOf('UI/GridEditable', module)
-  .add(
-    'default',
-    withInfo('Render a simple resizable table')(() => (
-      <React.Fragment>
-        <div className="section">
-          <h2>Basic Table</h2>
-          <GridParent />
-        </div>
-      </React.Fragment>
-    ))
-  )
-  .add(
-    'with a header',
-    withInfo('Include a header and action buttons')(() => (
-      <div className="section">
-        <h2>Table with title & header buttons</h2>
-        <GridParent withHeader title="Results" />
-      </div>
-    ))
-  )
-  .add(
-    'isLoading',
-    withInfo('')(() => (
-      <div className="section">
-        <h2>Loading</h2>
-        <GridEditable
-          isEditable={false}
-          isLoading
-          error={null}
-          data={DATA}
-          columnOrder={COLUMN_ORDER}
-          columnSortBy={COLUMN_SORT_BY}
-          grid={{}}
-        />
-      </div>
-    ))
-  )
-  .add(
-    'isError',
-    withInfo('')(() => (
-      <div className="section">
-        <h2>Error</h2>
-        <GridEditable
-          isEditable={false}
-          isLoading
-          error="These aren't the droids you're looking for."
-          data={DATA}
-          columnOrder={COLUMN_ORDER}
-          columnSortBy={COLUMN_SORT_BY}
-          grid={{}}
-        />
-      </div>
-    ))
-  );
+export default {
+  title: 'UI/GridEditable',
+};
+
+export const Default = withInfo('Render a simple resizable table')(() => (
+  <React.Fragment>
+    <div className="section">
+      <h2>Basic Table</h2>
+      <GridParent />
+    </div>
+  </React.Fragment>
+));
+
+Default.story = {
+  name: 'default',
+};
+
+export const WithAHeader = withInfo('Include a header and action buttons')(() => (
+  <div className="section">
+    <h2>Table with title & header buttons</h2>
+    <GridParent withHeader title="Results" />
+  </div>
+));
+
+WithAHeader.story = {
+  name: 'with a header',
+};
+
+export const IsLoading = withInfo('')(() => (
+  <div className="section">
+    <h2>Loading</h2>
+    <GridEditable
+      isEditable={false}
+      isLoading
+      error={null}
+      data={DATA}
+      columnOrder={COLUMN_ORDER}
+      columnSortBy={COLUMN_SORT_BY}
+      grid={{}}
+    />
+  </div>
+));
+
+IsLoading.story = {
+  name: 'isLoading',
+};
+
+export const IsError = withInfo('')(() => (
+  <div className="section">
+    <h2>Error</h2>
+    <GridEditable
+      isEditable={false}
+      isLoading
+      error="These aren't the droids you're looking for."
+      data={DATA}
+      columnOrder={COLUMN_ORDER}
+      columnSortBy={COLUMN_SORT_BY}
+      grid={{}}
+    />
+  </div>
+));
+
+IsError.story = {
+  name: 'isError',
+};

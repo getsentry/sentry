@@ -1,5 +1,4 @@
 import React from 'react';
-import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
 import ResolutionBox from 'app/components/resolutionBox';
@@ -23,66 +22,72 @@ const RESOLVED_IN_COMMIT = {
   },
 };
 
-storiesOf('Issues/ResolutionBox & MutedBox', module)
-  .add(
-    'resolved states',
-    withInfo('Basic resolution & resolved by commit')(() => (
-      <div>
-        <div className="section">
-          <h3>Basic resolution</h3>
-          <ResolutionBox projectId="1" statusDetails={{}} />
-        </div>
+export default {
+  title: 'Issues/ResolutionBox & MutedBox',
+};
 
-        <div className="section">
-          <h3>Commit resolution</h3>
-          <ResolutionBox projectId="1" statusDetails={RESOLVED_IN_COMMIT} />
-        </div>
+export const ResolvedStates = withInfo('Basic resolution & resolved by commit')(() => (
+  <div>
+    <div className="section">
+      <h3>Basic resolution</h3>
+      <ResolutionBox projectId="1" statusDetails={{}} />
+    </div>
 
-        <div className="section">
-          <h3>Release resolution</h3>
-          <ResolutionBox projectId="1" statusDetails={{inRelease: '20.07', actor}} />
-        </div>
+    <div className="section">
+      <h3>Commit resolution</h3>
+      <ResolutionBox projectId="1" statusDetails={RESOLVED_IN_COMMIT} />
+    </div>
 
-        <div className="section">
-          <h3>Next Release resolution</h3>
-          <ResolutionBox projectId="1" statusDetails={{inNextRelease: true, actor}} />
-        </div>
-      </div>
-    ))
-  )
-  .add(
-    'muted states',
-    withInfo('Various mute modes')(() => (
-      <div>
-        <div className="section">
-          <h3>Basic mute</h3>
-          <MutedBox statusDetails={{}} />
-        </div>
+    <div className="section">
+      <h3>Release resolution</h3>
+      <ResolutionBox projectId="1" statusDetails={{inRelease: '20.07', actor}} />
+    </div>
 
-        <div className="section">
-          <h3>Mute Until</h3>
-          <MutedBox statusDetails={{ignoreUntil: '2020-07-01 12:13:14'}} />
-        </div>
+    <div className="section">
+      <h3>Next Release resolution</h3>
+      <ResolutionBox projectId="1" statusDetails={{inNextRelease: true, actor}} />
+    </div>
+  </div>
+));
 
-        <div className="section">
-          <h3>Mute count</h3>
-          <MutedBox statusDetails={{ignoreCount: 10}} />
-        </div>
+ResolvedStates.story = {
+  name: 'resolved states',
+};
 
-        <div className="section">
-          <h3>Mute count with window</h3>
-          <MutedBox statusDetails={{ignoreCount: 10, ignoreWindow: 5}} />
-        </div>
+export const MutedStates = withInfo('Various mute modes')(() => (
+  <div>
+    <div className="section">
+      <h3>Basic mute</h3>
+      <MutedBox statusDetails={{}} />
+    </div>
 
-        <div className="section">
-          <h3>Mute user count</h3>
-          <MutedBox statusDetails={{ignoreUserCount: 10}} />
-        </div>
+    <div className="section">
+      <h3>Mute Until</h3>
+      <MutedBox statusDetails={{ignoreUntil: '2020-07-01 12:13:14'}} />
+    </div>
 
-        <div className="section">
-          <h3>Mute user count with window</h3>
-          <MutedBox statusDetails={{ignoreUserCount: 10, ignoreUserWindow: 5}} />
-        </div>
-      </div>
-    ))
-  );
+    <div className="section">
+      <h3>Mute count</h3>
+      <MutedBox statusDetails={{ignoreCount: 10}} />
+    </div>
+
+    <div className="section">
+      <h3>Mute count with window</h3>
+      <MutedBox statusDetails={{ignoreCount: 10, ignoreWindow: 5}} />
+    </div>
+
+    <div className="section">
+      <h3>Mute user count</h3>
+      <MutedBox statusDetails={{ignoreUserCount: 10}} />
+    </div>
+
+    <div className="section">
+      <h3>Mute user count with window</h3>
+      <MutedBox statusDetails={{ignoreUserCount: 10, ignoreUserWindow: 5}} />
+    </div>
+  </div>
+));
+
+MutedStates.story = {
+  name: 'muted states',
+};
