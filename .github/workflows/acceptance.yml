@@ -218,6 +218,7 @@ jobs:
           id: visual-snapshots-diff
           uses: getsentry/action-visual-snapshot@v2
           with:
-            githubToken: ${{ secrets.GITHUB_TOKEN }}
+            api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
             gcs-bucket: 'sentry-visual-snapshots'
             gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
