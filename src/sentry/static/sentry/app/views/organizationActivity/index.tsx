@@ -6,9 +6,8 @@ import {PageContent} from 'app/styles/organization';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ErrorBoundary from 'app/components/errorBoundary';
-import {IconSearch} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
@@ -43,9 +42,9 @@ class OrganizationActivity extends AsyncView<Props, State> {
 
   renderEmpty() {
     return (
-      <EmptyMessage icon={<IconSearch size="md" />}>
-        {t('Nothing to show here, move along.')}
-      </EmptyMessage>
+      <EmptyStateWarning>
+        <p>{t('Nothing to show here, move along.')}</p>
+      </EmptyStateWarning>
     );
   }
 
