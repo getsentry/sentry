@@ -113,14 +113,14 @@ class StackedBarChart extends React.Component<Props, State> {
     super(props);
 
     // massage points
-    let series = this.props.series;
+    let series = props.series;
 
-    if (this.props.points?.length) {
+    if (props.points?.length) {
       if (series?.length) {
         throw new Error('Only one of [points|series] should be specified.');
       }
 
-      series = this.pointsToSeries(this.props.points);
+      series = this.pointsToSeries(props.points);
     }
 
     this.state = {
@@ -149,7 +149,7 @@ class StackedBarChart extends React.Component<Props, State> {
     }
   }
 
-  shouldComponentUpdate(nextProps: Props, _nextState: State) {
+  shouldComponentUpdate(nextProps: Props) {
     return !isEqual(this.props, nextProps);
   }
 
