@@ -21,7 +21,6 @@ from sentry.api.serializers.rest_framework import (
     ReleaseWithVersionSerializer,
     ListField,
 )
-from sentry.api.utils import get_source_from_user_agent
 from sentry.models import Activity, Release, Project, ReleaseProject
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
@@ -419,7 +418,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 user_id=request.user.id if request.user and request.user.id else None,
                 organization_id=organization.id,
                 project_ids=[projects[i].id for i in projects],
-                source=get_source_from_user_agent(request),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
                 created_status=status,
             )
             return Response(serialize(release, request.user), status=status)
