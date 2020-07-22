@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
-from sentry.utils.compat.mock import Mock
+from sentry.utils.compat.mock import Mock, patch
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -19,7 +19,9 @@ from sentry.auth.superuser import (
     MAX_AGE,
     SESSION_KEY,
     Superuser,
+    is_active_superuser,
 )
+from sentry.auth.system import SystemToken
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
@@ -210,3 +212,26 @@ class SuperuserTestCase(TestCase):
         # a superuser
         request.user.update(is_superuser=True)
         assert not superuser.is_active
+
+    def test_is_active_superuser_sys_token(self):
+        request = self.build_request()
+        request.auth = SystemToken()
+        assert is_active_superuser(request)
+
+    def test_is_active_superuser(self):
+        request = self.build_request()
+        request.superuser = Superuser(request, allowed_ips=())
+        request.superuser._is_active = True
+        assert is_active_superuser(request)
+
+    def test_is_not_active_superuser(self):
+        request = self.build_request()
+        request.superuser = Superuser(request, allowed_ips=())
+        request.superuser._is_active = False
+        assert not is_active_superuser(request)
+
+    @patch.object(Superuser, "is_active", return_value=True)
+    def test_is_active_superuser_from_request(self, _mock_is_active):
+        request = self.build_request()
+        request.superuser = None
+        assert is_active_superuser(request)
