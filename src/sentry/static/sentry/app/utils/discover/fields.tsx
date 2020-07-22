@@ -1,3 +1,4 @@
+import {LightWeightOrganization} from 'app/types';
 import {assert} from 'app/types/utils';
 
 export type Sort = {
@@ -190,8 +191,10 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   apdex: {
+    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    },
     parameters: [
-      // TODO remove this default, but keep type constraints.
       {
         kind: 'value',
         dataType: 'number',
@@ -254,11 +257,32 @@ export type AggregationOutputType = Extract<
 
 export type PlotType = 'line' | 'area';
 
+type DefaultValueInputs = {
+  parameter: AggregateParameter;
+  organization: LightWeightOrganization;
+};
+
 export type Aggregation = {
+  /**
+   * Used by functions that need to define their default values dynamically
+   * based on the organization, or parameter data.
+   */
+  generateDefaultValue?: (data: DefaultValueInputs) => string;
+  /**
+   * List of parameters for the function.
+   */
   parameters: Readonly<AggregateParameter[]>;
-  // null means to inherit from the column.
+  /**
+   * The output type. Null means to inherit from the field.
+   */
   outputType: AggregationOutputType | null;
+  /**
+   * Can this function be used in a sort result
+   */
   isSortable: boolean;
+  /**
+   * How this function should be plotted when shown in a multiseries result (top5)
+   */
   multiPlotType: PlotType;
 };
 

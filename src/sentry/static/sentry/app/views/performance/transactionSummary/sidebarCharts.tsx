@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
+import {LightWeightOrganization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
@@ -31,7 +31,7 @@ import withApi from 'app/utils/withApi';
 
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
-  organization: OrganizationSummary;
+  organization: LightWeightOrganization;
   location: Location;
   eventView: EventView;
 };
@@ -184,7 +184,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={['apdex(300)', 'epm()', 'failure_rate()']}
+            yAxis={[`apdex(${organization.apdexThreshold})`, 'epm()', 'failure_rate()']}
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {

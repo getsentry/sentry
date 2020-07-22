@@ -1,5 +1,4 @@
 import {t} from 'app/locale';
-import {SelectValue} from 'app/types';
 
 export const PERFORMANCE_TERMS: Record<string, string> = {
   apdex: t(
@@ -13,7 +12,7 @@ export const PERFORMANCE_TERMS: Record<string, string> = {
   p95: t('p95 indicates the duration that 95% of transactions are faster than.'),
   p99: t('p99 indicates the duration that 99% of transactions are faster than.'),
   userMisery: t(
-    'User misery is the percentage of users who are experiencing load times 4x the base apdex rate of 300ms.'
+    "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold."
   ),
 };
 
@@ -36,40 +35,3 @@ export const TOP_TRANSACTION_FILTERS = [
     label: t('Recent Transactions'),
   },
 ] as const;
-
-type TooltipOption = SelectValue<string> & {
-  tooltip: string;
-};
-
-export const AXIS_OPTIONS: TooltipOption[] = [
-  {
-    tooltip: PERFORMANCE_TERMS.apdex,
-    value: 'apdex(300)',
-    label: t('Apdex'),
-  },
-  {
-    tooltip: PERFORMANCE_TERMS.tpm,
-    value: 'epm()',
-    label: t('Transactions Per Minute'),
-  },
-  {
-    tooltip: PERFORMANCE_TERMS.failureRate,
-    value: 'failure_rate()',
-    label: t('Failure Rate'),
-  },
-  {
-    tooltip: PERFORMANCE_TERMS.p50,
-    value: 'p50()',
-    label: t('p50 Duration'),
-  },
-  {
-    tooltip: PERFORMANCE_TERMS.p95,
-    value: 'p95()',
-    label: t('p95 Duration'),
-  },
-  {
-    tooltip: PERFORMANCE_TERMS.p99,
-    value: 'p99()',
-    label: t('p99 Duration'),
-  },
-];
