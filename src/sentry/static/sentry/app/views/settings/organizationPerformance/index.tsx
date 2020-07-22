@@ -1,7 +1,7 @@
 import React from 'react';
+import {Location} from 'history';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import AsyncView from 'app/views/asyncView';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -30,22 +30,21 @@ const fields: JsonFormObject[] = [
 
 type Props = {
   organization: Organization;
-} & AsyncView['props'];
+  location: Location;
+};
 
-type State = AsyncView['state'];
-
-class OrganizationPerformance extends AsyncView<Props, State> {
-  renderBody() {
+class OrganizationPerformance extends React.Component<Props> {
+  render() {
     const {location, organization} = this.props;
     const features = new Set(organization.features);
+    const access = new Set(organization.access);
     const endpoint = `/organizations/${organization.slug}/`;
 
     const jsonFormSettings = {
       location,
       features,
-      disabled: !(
-        organization.access.includes('org:write') && features.has('performance-view')
-      ),
+      access,
+      disabled: !(access.has('org:write') && features.has('performance-view')),
     };
 
     return (

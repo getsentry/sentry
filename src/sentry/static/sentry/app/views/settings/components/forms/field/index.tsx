@@ -27,8 +27,8 @@ type ChildrenFunction = (props) => React.ReactNode;
 type Props = {
   alignRight?: boolean;
   required?: boolean;
-  visible?: boolean | ((props) => boolean);
-  disabled?: boolean | ((props) => boolean);
+  visible?: boolean | ((props: Props) => boolean);
+  disabled?: boolean | ((props: Props) => boolean);
   disabledReason?: string;
   flexibleControlStateSize?: boolean;
   label?: React.ReactNode;
