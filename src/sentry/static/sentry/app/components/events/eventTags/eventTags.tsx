@@ -18,9 +18,16 @@ type Props = {
   orgId: string;
   projectId: string;
   location: Location;
+  hasQueryFeature: boolean;
 };
 
-const EventTags = ({event: {tags}, orgId, projectId, location}: Props) => {
+const EventTags = ({
+  event: {tags},
+  orgId,
+  projectId,
+  location,
+  hasQueryFeature,
+}: Props) => {
   if (isEmpty(tags)) {
     return null;
   }
@@ -37,10 +44,12 @@ const EventTags = ({event: {tags}, orgId, projectId, location}: Props) => {
             tag={tag}
             projectId={projectId}
             orgId={orgId}
+            location={location}
             query={generateQueryWithTag(location.query, tag)}
             streamPath={streamPath}
             releasesPath={releasesPath}
             meta={getMeta(tag, 'value')}
+            hasQueryFeature={hasQueryFeature}
           />
         ))}
       </Pills>
