@@ -417,7 +417,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 "release.created",
                 user_id=request.user.id if request.user and request.user.id else None,
                 organization_id=organization.id,
-                project_ids=[projects[i].id for i in projects],
+                project_ids=[project.id for project in projects],
                 user_agent=request.META.get("HTTP_USER_AGENT", ""),
                 created_status=status,
             )
