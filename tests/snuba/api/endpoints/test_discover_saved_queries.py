@@ -347,6 +347,60 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert response.status_code == 201, response.content
         assert DiscoverSavedQuery.objects.filter(name="project query").exists()
 
+    def test_save_with_project_and_my_projects(self):
+        team = self.create_team(organization=self.org, members=[self.user])
+        project = self.create_project(organization=self.org, teams=[team])
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "project query",
+                    "projects": [],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "query": "project:{}".format(project.slug),
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert DiscoverSavedQuery.objects.filter(name="project query").exists()
+
+    def test_save_with_wrong_projects(self):
+        other_org = self.create_organization(owner=self.user)
+        project = self.create_project(organization=other_org)
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "project query",
+                    "projects": [project.id],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "query": "project:{}".format(project.slug),
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 403, response.content
+        assert not DiscoverSavedQuery.objects.filter(name="project query").exists()
+
+        with self.feature(self.feature_name):
+            url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+            response = self.client.post(
+                url,
+                {
+                    "name": "project query",
+                    "projects": [-1],
+                    "fields": ["title", "count()"],
+                    "range": "24h",
+                    "query": "project:{}".format(project.slug),
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert not DiscoverSavedQuery.objects.filter(name="project query").exists()
+
     def test_save_invalid_query(self):
         with self.feature(self.feature_name):
             response = self.client.post(
