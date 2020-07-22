@@ -41,7 +41,7 @@ class AmqpBackend(object):
         )
 
     def get_conn(self):
-        from librabbitmq import Connection
+        from amqp import Connection
 
         return Connection(**self.conn_info)
 
@@ -87,7 +87,7 @@ def get_queue_by_name(name):
             return queue
 
 
-backends = {"redis": RedisBackend, "amqp": AmqpBackend, "librabbitmq": AmqpBackend}
+backends = {"redis": RedisBackend, "amqp": AmqpBackend}
 
 try:
     backend = get_backend_for_broker(settings.BROKER_URL)
