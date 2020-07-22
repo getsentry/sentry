@@ -17,7 +17,6 @@ from sentry.tasks.store import (
     symbolicate_event,
     time_synthetic_monitoring_event,
 )
-from sentry.testutils.helpers.features import Feature
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -362,10 +361,9 @@ def test_scrubbing_after_processing(
     mock_event_processing_store.get.return_value = data
     mock_event_processing_store.store.return_value = "e:1"
 
-    with Feature({"organizations:datascrubbers-v2": True}):
-        # We pass data_has_changed=True to pretend that we've added "extra" attribute
-        # to "data" shortly before (e.g. during symbolication).
-        process_event(cache_key="e:1", start_time=1, data_has_changed=True)
+    # We pass data_has_changed=True to pretend that we've added "extra" attribute
+    # to "data" shortly before (e.g. during symbolication).
+    process_event(cache_key="e:1", start_time=1, data_has_changed=True)
 
     ((_, (event,), _),) = mock_event_processing_store.store.mock_calls
     assert event["extra"] == {u"aaa": u"[Filtered]", u"aaa2": u"event preprocessor"}
