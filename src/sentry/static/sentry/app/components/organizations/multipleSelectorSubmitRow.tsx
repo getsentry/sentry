@@ -9,11 +9,12 @@ import {t} from 'app/locale';
 
 type Props = {
   onSubmit: () => void;
+  disabled?: boolean;
 };
 
-const MultipleSelectorSubmitRow = ({onSubmit}: Props) => (
+const MultipleSelectorSubmitRow = ({onSubmit, disabled = false}: Props) => (
   <SubmitButtonContainer>
-    <SubmitButton onClick={onSubmit} size="xsmall" priority="primary">
+    <SubmitButton disabled={disabled} onClick={onSubmit} size="xsmall" priority="primary">
       {t('Apply')}
     </SubmitButton>
   </SubmitButtonContainer>

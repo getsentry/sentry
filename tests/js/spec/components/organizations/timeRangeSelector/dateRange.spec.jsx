@@ -100,23 +100,39 @@ describe('DateRange', function() {
     it('changes start time for existing date', function() {
       wrapper
         .find('input[data-test-id="startTime"]')
-        .simulate('blur', {target: {value: '11:00'}});
+        .simulate('change', {target: {value: '11:00'}});
 
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-13T15:00:00.000Z'),
         end: new Date('2017-10-17T02:38:00.000Z'),
+        hasDateRangeErrors: false,
       });
     });
 
     it('changes end time for existing date', function() {
       wrapper
         .find('input[data-test-id="endTime"]')
-        .simulate('blur', {target: {value: '12:00'}});
+        .simulate('change', {target: {value: '12:00'}});
 
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-14T02:38:00.000Z'),
         end: new Date('2017-10-16T16:00:00.000Z'),
+        hasDateRangeErrors: false,
       });
+    });
+
+    it('does not change for bad start/end time', function() {
+      wrapper
+        .find('input[data-test-id="startTime"]')
+        .simulate('change', {target: {value: null}});
+
+      expect(onChange).not.toHaveBeenLastCalledWith();
+
+      wrapper
+        .find('input[data-test-id="endTime"]')
+        .simulate('change', {target: {value: null}});
+
+      expect(onChange).not.toHaveBeenLastCalledWith();
     });
   });
 
@@ -171,26 +187,42 @@ describe('DateRange', function() {
     it('changes utc start time for existing date', function() {
       wrapper
         .find('input[data-test-id="startTime"]')
-        .simulate('blur', {target: {value: '11:00'}});
+        .simulate('change', {target: {value: '11:00'}});
 
       // Initial start date  is 2017-10-13T22:38:00-0400
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-13T15:00:00.000Z'),
         end: new Date('2017-10-17T02:38:00.000Z'),
+        hasDateRangeErrors: false,
       });
     });
 
     it('changes end time for existing date', function() {
       wrapper
         .find('input[data-test-id="endTime"]')
-        .simulate('blur', {target: {value: '12:00'}});
+        .simulate('change', {target: {value: '12:00'}});
 
       // Initial end time is 2017-10-16T22:38:00-0400
       // Setting this to 12:00 means 2017-10-16T12:00-0400
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-14T02:38:00.000Z'),
         end: new Date('2017-10-16T16:00:00.000Z'),
+        hasDateRangeErrors: false,
       });
+    });
+
+    it('does not change for bad start/end time', function() {
+      wrapper
+        .find('input[data-test-id="startTime"]')
+        .simulate('change', {target: {value: null}});
+
+      expect(onChange).not.toHaveBeenLastCalledWith();
+
+      wrapper
+        .find('input[data-test-id="endTime"]')
+        .simulate('change', {target: {value: null}});
+
+      expect(onChange).not.toHaveBeenLastCalledWith();
     });
   });
 });
