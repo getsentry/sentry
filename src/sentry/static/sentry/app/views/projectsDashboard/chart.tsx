@@ -9,22 +9,13 @@ type Props = {
   stats: Required<Project>['stats'];
 };
 
-const Chart = ({stats}: Props) => {
+const Chart = ({stats = []}: Props) => {
   const data = stats.map(d => ({x: d[0], y: d[1]}));
-
-  return (
-    <div>
-      <StyledBarChart points={data} label="events" height={60} gap={1.5} />
-    </div>
-  );
+  return <StyledBarChart points={data} label="events" height={60} gap={1.5} />;
 };
 
 Chart.propTypes = {
   stats: PropTypes.array,
-};
-
-Chart.defaultProps = {
-  stats: [],
 };
 
 export default Chart;
