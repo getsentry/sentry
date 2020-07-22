@@ -1,11 +1,9 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
-import flatten from 'lodash/flatten';
-import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
-import {IconAdd, IconSettings, IconCheckmark} from 'app/icons';
+import {IconAdd, IconSettings, IconCheckmark, IconArrow} from 'app/icons';
 import {Organization} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -202,30 +200,31 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
     const {query} = location;
     const {orgId} = this.props.params;
-    console.log({ruleList});
-    const allProjectsFromRules = new Set(
-      flatten(ruleList?.map(({projects}) => projects))
-    );
+    // const allProjectsFromRules = new Set(
+    //   flatten(ruleList?.map(({projects}) => projects))
+    // );
     const checkingForAlertRules =
       ruleList && ruleList.length === 0 && hasAlertRule === undefined ? true : false;
     const showLoadingIndicator = loading || checkingForAlertRules;
-    const status = getQueryStatus(query.status);
 
     return (
       <React.Fragment>
         {this.tryRenderOnboarding() ?? (
           <Panel>
             {!loading && (
-              <StyledPanelHeader>
+              <PanelHeader>
                 <TableLayout>
                   <div>{t('Type')}</div>
                   <div>{t('Alert Name')}</div>
                   <div>{t('Project')}</div>
                   <div>{t('Created By')}</div>
-                  <div>{t('Created')}</div>
+                  <div>
+                    {t('Created')}{' '}
+                    <IconArrow color="gray500" size="xs" direction="down" />
+                  </div>
                   <div>{t('Actions')}</div>
                 </TableLayout>
-              </StyledPanelHeader>
+              </PanelHeader>
             )}
             {showLoadingIndicator ? (
               <LoadingIndicator />
@@ -239,7 +238,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                       projects={[]}
                       rule={rule}
                       orgId={orgId}
-                      filteredStatus={status}
                     />
                   ))}
                 </PanelBody>
@@ -372,11 +370,6 @@ const StyledPageHeading = styled(PageHeading)`
 
 const PaddedTitleAndSparkLine = styled(TitleAndSparkLine)`
   padding-left: ${space(2)};
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  /* Match table row padding for the grid to align */
-  padding: ${space(1.5)} ${space(2)} ${space(1.5)} 0;
 `;
 
 const Actions = styled(ButtonBar)`
