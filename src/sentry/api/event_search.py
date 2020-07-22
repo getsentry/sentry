@@ -1095,8 +1095,6 @@ class NumberRange(FunctionArg):
         return value
 
 
-# TODO add a new OrganizationDefault FunctionArg subclass that reads the organization option
-# if there is no default.
 class IntervalDefault(NumberRange):
     def has_default(self, params):
         if not params or not params.get("start") or not params.get("end"):
