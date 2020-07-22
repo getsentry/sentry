@@ -16,6 +16,7 @@ import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {IconFlag} from 'app/icons';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
@@ -126,7 +127,7 @@ class AccountClose extends AsyncView {
           {t('This will permanently remove all associated data for your user')}.
         </TextBlock>
 
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           <Important>
             {t('Closing your account is permanent and cannot be undone')}!
           </Important>

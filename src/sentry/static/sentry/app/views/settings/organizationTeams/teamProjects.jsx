@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {sortProjects} from 'app/utils';
-import {IconSubtract} from 'app/icons';
+import {IconFlag, IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -159,7 +159,7 @@ class TeamProjects extends React.Component {
         </StyledPanelItem>
       ))
     ) : (
-      <EmptyMessage size="large" icon="icon-circle-exclamation">
+      <EmptyMessage size="large" icon={<IconFlag size="xl" />}>
         {t("This team doesn't have access to any projects.")}
       </EmptyMessage>
     );

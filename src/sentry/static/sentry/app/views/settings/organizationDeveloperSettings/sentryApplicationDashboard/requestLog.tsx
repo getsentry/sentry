@@ -15,7 +15,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Checkbox from 'app/components/checkbox';
 import Button from 'app/components/button';
 import space from 'app/styles/space';
-import {IconChevron, IconOpen} from 'app/icons';
+import {IconChevron, IconFlag, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
 import {Theme} from 'app/utils/theme';
@@ -259,7 +259,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
                   </PanelItem>
                 ))
               ) : (
-                <EmptyMessage icon="icon-circle-exclamation">
+                <EmptyMessage icon={<IconFlag size="xl" />}>
                   {t('No requests found in the last 30 days.')}
                 </EmptyMessage>
               )}

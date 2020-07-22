@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
+import {IconWarning} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import {t, tn} from 'app/locale';
 import {Chunks, Meta, MetaError} from 'app/types';
@@ -107,7 +107,7 @@ function renderErrors(errors: Array<MetaError>) {
 
   return (
     <Tooltip title={tooltip}>
-      <ErrorIcon src="icon-circle-exclamation" />
+      <IconWarning color="red500" />
     </Tooltip>
   );
 }
@@ -144,10 +144,6 @@ const Placeholder = styled(Redaction)`
   :after {
     content: '>';
   }
-`;
-
-const ErrorIcon = styled(InlineSvg)`
-  color: ${props => props.theme.red500};
 `;
 
 export default AnnotatedText;

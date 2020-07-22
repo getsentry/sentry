@@ -19,6 +19,7 @@ import Field from 'app/views/settings/components/forms/field';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
+import {IconFlag} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
 //installationId present for Github flow
@@ -207,7 +208,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return (
       <React.Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
-          <Alert type="error" icon="icon-circle-exclamation">
+          <Alert type="error" icon={<IconFlag size="md" />}>
             <p>
               {tct(
                 `You do not have permission to install integrations in

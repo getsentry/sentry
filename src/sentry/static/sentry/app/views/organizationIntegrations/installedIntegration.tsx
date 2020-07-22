@@ -7,7 +7,7 @@ import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import Confirm from 'app/components/confirm';
 import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconSettings, IconWarning} from 'app/icons';
+import {IconDelete, IconFlag, IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationProvider, Integration, Organization, ObjectStatus} from 'app/types';
@@ -91,7 +91,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
     const message = (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           {t('Deleting this integration has consequences!')}
         </Alert>
         {body}
@@ -109,7 +109,7 @@ export default class InstalledIntegration extends React.Component<Props> {
     const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <React.Fragment>
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           {t('This integration cannot be removed in Sentry')}
         </Alert>
         {body}

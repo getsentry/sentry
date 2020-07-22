@@ -17,6 +17,7 @@ import {fetchProjectsCount} from 'app/actionCreators/projects';
 import Alert from 'app/components/alert';
 import CreateAlertButton from 'app/components/createAlertButton';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {IconFlag} from 'app/icons';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Confirm from 'app/components/confirm';
@@ -346,7 +347,7 @@ class Results extends React.Component<Props, State> {
       return null;
     }
     return (
-      <Alert type="error" icon="icon-circle-exclamation">
+      <Alert type="error" icon={<IconFlag size="md" />}>
         {error}
       </Alert>
     );

@@ -14,6 +14,7 @@ import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Field from 'app/views/settings/components/forms/field';
+import {IconFlag} from 'app/icons';
 import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 
@@ -153,7 +154,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
         </p>
 
         {selectedOrg && organization && !this.hasAccess(organization) && (
-          <Alert type="error" icon="icon-circle-exclamation">
+          <Alert type="error" icon={<IconFlag size="md" />}>
             <p>
               {tct(
                 `You do not have permission to install integrations in

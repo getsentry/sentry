@@ -7,8 +7,8 @@ exports[`DetailedError can hide support links 1`] = `
   <div
     className="detailed-error-icon"
   >
-    <InlineSvg
-      src="icon-circle-exclamation"
+    <IconFlag
+      size="lg"
     />
   </div>
   <div
@@ -47,8 +47,8 @@ exports[`DetailedError hides footer when no "Retry" and no support links 1`] = `
   <div
     className="detailed-error-icon"
   >
-    <InlineSvg
-      src="icon-circle-exclamation"
+    <IconFlag
+      size="lg"
     />
   </div>
   <div
@@ -75,8 +75,8 @@ exports[`DetailedError renders 1`] = `
   <div
     className="detailed-error-icon"
   >
-    <InlineSvg
-      src="icon-circle-exclamation"
+    <IconFlag
+      size="lg"
     />
   </div>
   <div
@@ -122,8 +122,8 @@ exports[`DetailedError renders with "Retry" button 1`] = `
   <div
     className="detailed-error-icon"
   >
-    <InlineSvg
-      src="icon-circle-exclamation"
+    <IconFlag
+      size="lg"
     />
   </div>
   <div

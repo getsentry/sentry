@@ -9,6 +9,7 @@ import {tn} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {IconFlag} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
@@ -92,7 +93,7 @@ class OrganizationReleaseDetails extends AsyncView {
 
       return (
         <PageContent>
-          <Alert type="error" icon="icon-circle-exclamation">
+          <Alert type="error" icon={<IconFlag size="md" />}>
             {tn(
               'This release may not be in your selected project',
               'This release may not be in your selected projects',
