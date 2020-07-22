@@ -21,18 +21,16 @@ class DataExportTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_authorization(self):
-        # Without the data-export feature, the endpoint should 404
-        self.get_valid_response(self.organization.slug, status_code=404, **self.payload)
+        with self.feature({"organizations:discover-query": False}):
+            # Without the discover-query feature, the endpoint should 404
+            self.get_valid_response(self.organization.slug, status_code=404, **self.payload)
         # Without project permissions, the endpoint should 403
         modified_payload = {"query_type": self.payload["query_type"], "query_info": {"project": -5}}
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             self.get_valid_response(self.organization.slug, status_code=403, **modified_payload)
-        # Without the discover-basic feature, the endpoint should 403
+        # With the right permissions, the endpoint should 201
         discover_payload = {"query_type": "Discover", "query_info": self.payload["query_info"]}
-        with self.feature("organizations:data-export"):
-            self.get_valid_response(self.organization.slug, status_code=403, **discover_payload)
-        # With both, the endpoint should 201
-        with self.feature(["organizations:data-export", "organizations:discover-basic"]):
+        with self.feature("organizations:discover-query"):
             self.get_valid_response(self.organization.slug, status_code=201, **discover_payload)
 
     def test_new_export(self):
@@ -40,7 +38,7 @@ class DataExportTest(APITestCase):
         Ensures that a request to this endpoint returns a 201 status code
         and an appropriate response object
         """
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(
                 self.organization.slug, status_code=201, **self.payload
             )
@@ -66,10 +64,10 @@ class DataExportTest(APITestCase):
         Checks to make sure that identical requests (same payload, organization, user)
         are routed to the same ExportedData object, with a 200 status code
         """
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             response1 = self.get_response(self.organization.slug, **self.payload)
         data_export = ExportedData.objects.get(id=response1.data["id"])
-        with self.feature("organizations:data-export"):
+        with self.feature("organizations:discover-query"):
             response2 = self.get_valid_response(self.organization.slug, **self.payload)
         assert response2.data == {
             "id": data_export.id,
@@ -99,9 +97,7 @@ class DataExportTest(APITestCase):
             "query_type": ExportQueryType.DISCOVER_STR,
             "query_info": {"env": "test", "field": ["id"] * (MAX_FIELDS + 1)},
         }
-        with self.feature(
-            {"organizations:data-export": True, "organizations:discover-basic": True}
-        ):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, status_code=400, **payload)
         assert response.data == {
             "detail": "You can export up to 20 fields at a time. Please delete some and try again."
@@ -116,9 +112,7 @@ class DataExportTest(APITestCase):
             "query_type": ExportQueryType.DISCOVER_STR,
             "query_info": {"env": "test", "statsPeriod": "24h"},
         }
-        with self.feature(
-            {"organizations:data-export": True, "organizations:discover-basic": True}
-        ):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
@@ -141,9 +135,7 @@ class DataExportTest(APITestCase):
             "query_type": ExportQueryType.DISCOVER_STR,
             "query_info": {"env": "test", "statsPeriodStart": "1w", "statsPeriodEnd": "5d"},
         }
-        with self.feature(
-            {"organizations:data-export": True, "organizations:discover-basic": True}
-        ):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
@@ -169,9 +161,7 @@ class DataExportTest(APITestCase):
                 "end": "2020-05-19T14:00:00",
             },
         }
-        with self.feature(
-            {"organizations:data-export": True, "organizations:discover-basic": True}
-        ):
+        with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, status_code=201, **payload)
         data_export = ExportedData.objects.get(id=response.data["id"])
         query_info = data_export.query_info
