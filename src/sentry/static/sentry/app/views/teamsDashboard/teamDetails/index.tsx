@@ -92,7 +92,7 @@ class TeamDetails extends React.Component<Props, State> {
             <TabContentRight>
               <div>
                 <Heading>{t('Teams Members')}</Heading>
-                <Members>
+                <Members membersQuantity={members.length}>
                   {members.map(member => (
                     <Avatar key={member.id} user={member.user} size={32} />
                   ))}
