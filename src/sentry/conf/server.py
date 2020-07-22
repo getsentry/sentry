@@ -1479,6 +1479,8 @@ SENTRY_DEVSERVICES = {
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+            "KAFKA_MESSAGE_MAX_BYTES": "50000000",
+            "KAFKA_MAX_REQUEST_SIZE": "50000000",
         },
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
         "only_if": lambda settings, options: (
