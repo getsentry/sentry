@@ -608,6 +608,7 @@ exports[`Filter default render 1`] = `
                       "sm": "16px",
                       "xl": "32px",
                       "xs": "12px",
+                      "xxl": "72px",
                     },
                     "orange100": "#FCF8F7",
                     "orange200": "#F9C7B9",
