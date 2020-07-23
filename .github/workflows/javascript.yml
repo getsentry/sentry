@@ -50,3 +50,59 @@ jobs:
             echo "::remove-matcher owner=tsc::"
             echo "::add-matcher::.github/tsc.json"
             yarn tsc -p config/tsconfig.build.json
+
+    jest:
+      runs-on: ubuntu-latest
+      env:
+        VISUAL_SNAPSHOT_ENABLE: 1
+      steps:
+        # Checkout codebase
+        - uses: actions/checkout@v2
+
+        # Install node
+        - uses: volta-cli/action@v1
+
+        # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+        - name: Get yarn cache directory path
+          id: yarn-cache-dir-path
+          run: echo "::set-output name=dir::$(yarn cache dir)"
+
+        # yarn cache
+        - uses: actions/cache@v1
+          id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+          with:
+            path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+            key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-yarn-
+
+        - name: Install dependencies
+          run: yarn install --frozen-lockfile
+
+        - name: jest
+          run: |
+            NODE_ENV=production yarn build-css
+            yarn test-ci --forceExit
+
+        - name: Save snapshots
+          if: always()
+          uses: getsentry/action-visual-snapshot@v2-dev
+          with:
+            save-only: true
+            snapshot-path: .artifacts/visual-snapshots
+
+    visual-diff:
+      if: ${{ github.ref != 'refs/heads/master' }}
+      needs: [acceptance, jest]
+      runs-on: ubuntu-16.04
+
+      steps:
+        - name: Diff snapshots
+          id: visual-snapshots-diff
+          uses: getsentry/action-visual-snapshot@v2-dev
+          with:
+            api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
+            action-name: Jest Snapshots
+            gcs-bucket: 'sentry-visual-snapshots'
+            gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
