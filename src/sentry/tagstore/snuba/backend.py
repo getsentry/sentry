@@ -713,11 +713,14 @@ class SnubaTagStorage(TagStorage):
             if query:
                 project_filters["slug__icontains"] = query
             project_queryset = Project.objects.filter(**project_filters).values("id", "slug")
+
+            if not project_queryset.exists():
+                return SequencePaginator([])
+
             project_slugs = {project["id"]: project["slug"] for project in project_queryset}
-            if project_queryset.exists():
-                projects = [project["id"] for project in project_queryset]
-                snuba_key = "project_id"
-                dataset = Dataset.Discover
+            projects = [project["id"] for project in project_queryset]
+            snuba_key = "project_id"
+            dataset = Dataset.Discover
         else:
             if snuba_key in BLACKLISTED_COLUMNS:
                 snuba_key = "tags[%s]" % (key,)
@@ -761,7 +764,11 @@ class SnubaTagStorage(TagStorage):
         # With project names we map the ids back to the project slugs
         elif key == PROJECT_ALIAS:
             results = OrderedDict(
-                [(project_slugs[value], data) for value, data in six.iteritems(results)]
+                [
+                    (project_slugs[value], data)
+                    for value, data in six.iteritems(results)
+                    if value in project_slugs
+                ]
             )
 
         tag_values = [

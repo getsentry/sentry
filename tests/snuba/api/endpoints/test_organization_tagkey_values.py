@@ -157,11 +157,14 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_project_name_with_query(self):
         other_project = self.create_project(organization=self.org, name="test1")
         other_project2 = self.create_project(organization=self.org, name="test2")
+        self.create_project(organization=self.org, name="test3")
         self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project.id)
         self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=other_project.id)
         self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project2.id)
         self.run_test("project", qs_params={"query": "test"}, expected=[("test1", 2), ("test2", 1)])
         self.run_test("project", qs_params={"query": "1"}, expected=[("test1", 2)])
+        self.run_test("project", qs_params={"query": "test3"}, expected=[])
+        self.run_test("project", qs_params={"query": "z"}, expected=[])
 
     def test_array_column(self):
         for i in range(3):
