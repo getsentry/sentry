@@ -1,0 +1,8 @@
+---
+created: '2020-07-23T16:35:37.951660Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+newstyle:2019-10-29:fingerprint:ident-shingle: "<no-module>"
+newstyle:2019-10-29:fingerprint:ident-shingle: "<no-type>"
+newstyle:2019-10-29:fingerprint:ident-shingle: "main"

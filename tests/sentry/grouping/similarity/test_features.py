@@ -11,7 +11,7 @@ from sentry.grouping.api import get_default_grouping_config_dict
 import sentry.similarity
 from sentry import eventstore
 
-from tests.sentry.grouping import with_grouping_input
+from tests.sentry.grouping import with_grouping_input, with_fingerprint_input
 
 
 def create_event(data, group_id=123):
@@ -72,7 +72,23 @@ def test_similarity_extract(grouping_input, insta_snapshot):
     insta_snapshot("\n".join(snapshot))
 
 
-def test_similarity_config_migration():
+@with_fingerprint_input("fingerprint_input")
+def test_similarity_extract_fingerprinting(fingerprint_input, insta_snapshot):
+    similarity = sentry.similarity.features2
+
+    _, evt = fingerprint_input.create_event(get_default_grouping_config_dict())
+    evt.project = project = Project(id=123)
+    evt.group = Group(id=123, project=project)
+
+    snapshot = []
+    for label, features in similarity.extract(evt).items():
+        for feature in features:
+            snapshot.append("{}: {}".format(":".join(label), json.dumps(feature, sort_keys=True)))
+
+    insta_snapshot("\n".join(snapshot))
+
+
+def test_config_migration():
     """
     This test simulates migrating a similarity cluster to a new grouping
     strategy. We reinstantiate the FeatureSet using get_feature_set while in

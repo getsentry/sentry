@@ -318,7 +318,8 @@ def insta_snapshot(request, log):
                     )
                 )
         else:
-            log("Run with SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots.")
-            assert refval == output
+            assert (
+                refval == output
+            ), "Snapshots mismatch! Re-run with SENTRY_SNAPSHOTS_WRITEBACK=new and then run `make review-python-snapshots` to approve."
 
     yield inner

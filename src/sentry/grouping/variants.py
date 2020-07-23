@@ -111,7 +111,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     def encode_for_similarity(self):
         for value in self.values:
-            yield ("fingerprint", "ident-shingle"), value
+            yield ("fingerprint", "ident-shingle"), [value]
 
     def _get_metadata_as_dict(self):
         return {"values": self.values}
@@ -147,7 +147,7 @@ class SaltedComponentVariant(ComponentVariant):
 
         for value in self.values:
             if value not in DEFAULT_FINGERPRINT_VALUES:
-                yield ("fingerprint", "ident-shingle"), value
+                yield ("fingerprint", "ident-shingle"), [value]
 
     def _get_metadata_as_dict(self):
         rv = ComponentVariant._get_metadata_as_dict(self)
