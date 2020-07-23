@@ -2,10 +2,11 @@ import React from 'react';
 import {Location} from 'history';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import ExternalLink from 'app/components/links/externalLink';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import withOrganization from 'app/utils/withOrganization';
@@ -20,9 +21,16 @@ const fields: JsonFormObject[] = [
         type: 'number',
         required: true,
         label: t('Response Time Threshold (Apdex)'),
-        help: t(`Set a response time threshold to help define what satisfactory and tolerable
-                response times are. This value will be reflected in the calculation of your
-                Apdex, a standard measurement in performance.`),
+        help: tct(
+          `Set a response time threshold in milliseconds to help define what satisfactory
+                and tolerable response times are. This value will be reflected in the
+                calculation of your [link:Apdex], a standard measurement in performance.`,
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/performance-monitoring/performance/metrics/#apdex" />
+            ),
+          }
+        ),
       },
     ],
   },
