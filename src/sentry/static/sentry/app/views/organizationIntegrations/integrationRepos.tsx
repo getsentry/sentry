@@ -10,7 +10,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import {IconCommit} from 'app/icons';
+import {IconCommit, IconFlag} from 'app/icons';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Pagination from 'app/components/pagination';
@@ -198,7 +198,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     );
     if (badRequest) {
       return (
-        <Alert type="error" icon="icon-circle-exclamation">
+        <Alert type="error" icon={<IconFlag size="md" />}>
           {t(
             'We were unable to fetch repositories for this integration. Try again later, or reconnect this integration.'
           )}
