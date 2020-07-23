@@ -11,7 +11,7 @@ from django.conf import settings
 import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import features, reprocessing, options
+from sentry import reprocessing, options
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
@@ -459,9 +459,7 @@ def _do_process_event(
 
                 # XXX(markus): When datascrubbing is finally "totally stable", we might want
                 # to drop the event if it crashes to avoid saving PII
-                if new_data is not None and features.has(
-                    "organizations:datascrubbers-v2", project.organization, actor=None
-                ):
+                if new_data is not None:
                     data.data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
@@ -770,6 +768,52 @@ def _do_save_event(
                 metrics.timing(
                     "events.time-to-process", time() - start_time, instance=data["platform"]
                 )
+
+            time_synthetic_monitoring_event(data, project_id, start_time)
+
+
+def time_synthetic_monitoring_event(data, project_id, start_time):
+    """
+    For special events produced by the recurring synthetic monitoring
+    functions, emit timing metrics for:
+
+    - "events.synthetic-monitoring.time-to-ingest-total" - Total time with
+    the client submission latency included. Rely on timestamp provided by
+    client as part of the event payload.
+
+    - "events.synthetic-monitoring.time-to-process" - Processing time inside
+    by sentry. `start_time` is added to the payload by the system entrypoint
+    (relay).
+
+    If an event was produced by synthetic monitoring and metrics emitted,
+    returns `True` otherwise returns `False`.
+    """
+    sm_project_id = getattr(settings, "SENTRY_SYNTHETIC_MONITORING_PROJECT_ID", None)
+    if sm_project_id is None or project_id != sm_project_id:
+        return False
+
+    extra = data.get("extra", {}).get("_sentry_synthetic_monitoring")
+    if not extra:
+        return False
+
+    now = time()
+    tags = {"target": extra["target"], "region": extra["region"], "source": extra["source"]}
+
+    metrics.timing(
+        "events.synthetic-monitoring.time-to-ingest-total",
+        now - data["timestamp"],
+        tags=tags,
+        sample_rate=1.0,
+    )
+
+    if start_time:
+        metrics.timing(
+            "events.synthetic-monitoring.time-to-process",
+            now - start_time,
+            tags=tags,
+            sample_rate=1.0,
+        )
+    return True
 
 
 @instrumented_task(

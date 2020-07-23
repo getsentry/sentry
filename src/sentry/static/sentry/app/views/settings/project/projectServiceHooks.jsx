@@ -16,7 +16,7 @@ import Field from 'app/views/settings/components/forms/field';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconFlag} from 'app/icons';
 
 class ServiceHookRow extends React.Component {
   static propTypes = {
@@ -114,7 +114,7 @@ export default class ProjectServiceHooks extends AsyncView {
       <React.Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
-          <PanelAlert type="info" icon="icon-circle-exclamation">
+          <PanelAlert type="info" icon={<IconFlag size="md" />}>
             {t(
               'Service Hooks are an early adopter preview feature and will change in the future.'
             )}

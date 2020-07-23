@@ -809,8 +809,6 @@ SENTRY_FEATURES = {
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
-    # Enable the 'data-export' interface.
-    "organizations:data-export": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
@@ -858,8 +856,6 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically indicdent)
     # management integrations)
     "organizations:integrations-incident-management": True,
-    # Enable the Vercel integration
-    "organizations:integrations-vercel": False,
     # Enable the MsTeams integration
     "organizations:integrations-msteams": False,
     # Enable data forwarding functionality for organizations.
@@ -876,8 +872,6 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable access to more advanced (alpha) datascrubbing settings.
-    "organizations:datascrubbers-v2": True,
     # Enable the new version of interface/breadcrumbs
     "organizations:breadcrumbs-v2": False,
     # Enable usage of external relays, for use with Relay. See
@@ -892,6 +886,9 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable graph for subscription quota for errors, transactions and
+    # attachments
+    "organizations:usage-stats-graph": False,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -1411,6 +1408,14 @@ SENTRY_RELAY_PORT = 3000
 SENTRY_REVERSE_PROXY_PORT = 8000
 
 
+# The chunk size for attachments in blob store. Should be a power of two.
+SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
+
+# The chunk size for files in the chunk uplooad. This is used for native debug
+# files and source maps, and directly translates to the chunk size in blob
+# store. MUST be a power of two.
+SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": {
 #         "image": "image-name:version",
@@ -1472,6 +1477,8 @@ SENTRY_DEVSERVICES = {
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
             "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
+            "KAFKA_MESSAGE_MAX_BYTES": "50000000",
+            "KAFKA_MAX_REQUEST_SIZE": "50000000",
         },
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
         "only_if": lambda settings, options: (
@@ -1926,3 +1933,9 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.incidents.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
+
+# Project ID used by synthetic monitoring
+# Synthetic monitoring recurringly send events, prepared with specific
+# attributes, which can be identified through the whole processing pipeline and
+# observed mainly for producing stable metrics.
+SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None

@@ -613,6 +613,7 @@ export type Group = {
   type: EventOrGroupType;
   userCount: number;
   userReportCount: number;
+  subscriptionDetails: {disabled?: boolean; reason?: string} | null;
 };
 
 /**

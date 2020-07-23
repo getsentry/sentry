@@ -10,9 +10,8 @@ import {PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
-import {IconSearch} from 'app/icons';
+import {IconSearch, IconCircle, IconCheckmark, IconFlag} from 'app/icons';
 import {Organization, Project} from 'app/types';
-import InlineSvg from 'app/components/inlineSvg';
 
 import {getFileName, combineStatus} from './utils';
 
@@ -123,11 +122,23 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
   const renderIconElement = () => {
     switch (combinedStatus) {
       case 'unused':
-        return <ImageIcon type="muted" src="icon-circle-empty" />;
+        return (
+          <IconWrapper>
+            <IconCircle />
+          </IconWrapper>
+        );
       case 'found':
-        return <ImageIcon type="success" src="icon-circle-check" />;
+        return (
+          <IconWrapper>
+            <IconCheckmark isCircled color="green500" />
+          </IconWrapper>
+        );
       default:
-        return <ImageIcon type="error" src="icon-circle-exclamation" />;
+        return (
+          <IconWrapper>
+            <IconFlag color="red400" />
+          </IconWrapper>
+        );
     }
   };
 
@@ -318,12 +329,13 @@ const AddressDivider = styled('br')`
   }
 `;
 
-const ImageIcon = styled(InlineSvg)<{type: 'muted' | 'success' | 'error'}>`
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.alert[p.type].iconColor};
+const IconWrapper = styled('span')`
+  display: inline-block;
+  margin-top: ${space(0.5)};
+  height: 16px;
+
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    font-size: ${p => p.theme.fontSizeExtraLarge};
-    margin-bottom: ${space(0.5)};
+    margin-top: ${space(0.25)};
   }
 `;
 
@@ -332,7 +344,7 @@ const SymbolicationStatus = styled('span')`
   flex-basis: 0;
   margin-right: 1em;
 
-  ${ImageIcon} {
+  svg {
     margin-left: 0.66ex;
   }
 `;

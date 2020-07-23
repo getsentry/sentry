@@ -301,6 +301,7 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 )
 from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
+    OrganizationCombinedRuleIndexEndpoint,
 )
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import (
@@ -598,6 +599,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/alert-rules/$",
                     OrganizationAlertRuleIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-alert-rules",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/combined-rules/$",
+                    OrganizationCombinedRuleIndexEndpoint.as_view(),
+                    name="sentry-api-0-organization-combined-rules",
                 ),
                 # Data Export
                 url(

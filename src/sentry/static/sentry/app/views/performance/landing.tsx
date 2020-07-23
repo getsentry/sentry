@@ -19,6 +19,7 @@ import EventView from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {IconFlag} from 'app/icons';
 import {decodeScalar} from 'app/utils/queryString';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
@@ -93,7 +94,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="error" icon="icon-circle-exclamation">
+      <Alert type="error" icon={<IconFlag size="md" />}>
         {error}
       </Alert>
     );
