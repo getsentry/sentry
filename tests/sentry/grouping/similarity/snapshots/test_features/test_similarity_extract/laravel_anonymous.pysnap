@@ -1,16 +1,9 @@
 ---
-created: '2020-07-23T11:20:23.823170Z'
+created: '2020-07-23T15:41:47.711306Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "require_once __DIR__.'/public/index.php';"], [["filename", "ident-shingle"], "server.php"]], [[["context-line", "ident-shingle"], "return $callable($passable);"], [["filename", "ident-shingle"], "pipeline.php"], [["function", "ident-shingle"], "run"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "return $callable($passable);"], [["filename", "ident-shingle"], "pipeline.php"], [["function", "ident-shingle"], "run"]], [[["context-line", "ident-shingle"], "? $pipe->{$this->method}(...$parameters)"], [["filename", "ident-shingle"], "pipeline.php"], [["function", "ident-shingle"], "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"]]]
-newstyle:2019-10-29:value:character-5-shingle: " TEST"
-newstyle:2019-10-29:value:character-5-shingle: "ARAVE"
-newstyle:2019-10-29:value:character-5-shingle: "AVEL "
-newstyle:2019-10-29:value:character-5-shingle: "EL TE"
-newstyle:2019-10-29:value:character-5-shingle: "L TES"
-newstyle:2019-10-29:value:character-5-shingle: "LARAV"
-newstyle:2019-10-29:value:character-5-shingle: "RAVEL"
-newstyle:2019-10-29:value:character-5-shingle: "VEL T"
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "require_once __DIR__.'/public/index.php';"], ["filename", "server.php"]], [["context-line", "return $callable($passable);"], ["filename", "pipeline.php"], ["function", "run"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "return $callable($passable);"], ["filename", "pipeline.php"], ["function", "run"]], [["context-line", "? $pipe->{$this->method}(...$parameters)"], ["filename", "pipeline.php"], ["function", "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"]]]
+newstyle:2019-10-29:stacktrace:frames-ident: [["context-line", "require_once __DIR__.'/public/index.php';"], ["filename", "server.php"]]
 newstyle:2019-10-29:type:ident-shingle: "Exception"

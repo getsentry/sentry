@@ -34,7 +34,11 @@ _KNOWN_COMPONENT_LABEL_SUFFIXES = {
     ("stacktrace", "frames-pairs"): "i",
     ("type", "ident-shingle"): "j",
     ("value", "character-5-shingle"): "k",
+    ("fingerprint", "ident-shingle"): "l",
+    ("stacktrace", "frames-ident"): "m",
 }
+
+assert len(set(_KNOWN_COMPONENT_LABEL_SUFFIXES.values())) == len(_KNOWN_COMPONENT_LABEL_SUFFIXES)
 
 
 class GroupingBasedFeatureSet(FeatureSet):
@@ -80,9 +84,10 @@ class GroupingBasedFeatureSet(FeatureSet):
             event._data = data_bak
 
             for variant in variants.values():
-                for (component_id, shingle_label), feature in variant.encode_for_similarity():
+                for (component_id, shingle_label), features in variant.encode_for_similarity():
                     label = (configuration, component_id, shingle_label)
                     assert label in self.features
-                    results.setdefault(label, set()).update(feature)
+
+                    results.setdefault(label, set()).update(features)
 
         return {label: sorted(features) for label, features in six.iteritems(results)}

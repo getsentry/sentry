@@ -6,7 +6,7 @@ import posixpath
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
 from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, has_url_origin
-from sentry.similarity import ident_shingle, text_shingle
+from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder, ident_encoder
 
 
 _ruby_anon_func = re.compile(r"_\d{2,}")
@@ -157,13 +157,13 @@ def single_exception_legacy(exception, config, **meta):
     type_component = GroupingComponent(
         id="type",
         values=[exception.type] if exception.type else [],
-        similarity_encoder=ident_shingle,
+        similarity_encoder=ident_encoder,
         contributes=False,
     )
     value_component = GroupingComponent(
         id="value",
         values=[exception.value] if exception.value else [],
-        similarity_encoder=text_shingle(5),
+        similarity_encoder=text_shingle_encoder(5),
         contributes=False,
     )
     stacktrace_component = GroupingComponent(id="stacktrace")
@@ -244,7 +244,7 @@ def frame_legacy(frame, event, **meta):
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    filename_component = GroupingComponent(id="filename", similarity_encoder=ident_shingle)
+    filename_component = GroupingComponent(id="filename", similarity_encoder=ident_encoder)
     if frame.filename == "<anonymous>":
         filename_component.update(
             contributes=False, values=[frame.filename], hint="anonymous filename discarded"
@@ -273,7 +273,7 @@ def frame_legacy(frame, event, **meta):
     # if we have a module we use that for grouping.  This will always
     # take precedence over the filename, even if the module is
     # considered unhashable.
-    module_component = GroupingComponent(id="module", similarity_encoder=ident_shingle)
+    module_component = GroupingComponent(id="module", similarity_encoder=ident_encoder)
     if frame.module:
         if is_unhashable_module_legacy(frame, platform):
             module_component.update(
@@ -284,6 +284,9 @@ def frame_legacy(frame, event, **meta):
                 ],
                 hint="ignored module",
             )
+
+            # <module> still contributes, though it should not contribute to
+            # similarity
             module_component.similarity_encoder = None
         else:
             module_name, module_hint = remove_module_outliers_legacy(frame.module, platform)
@@ -294,7 +297,7 @@ def frame_legacy(frame, event, **meta):
             )
 
     # Context line when available is the primary contributor
-    context_line_component = GroupingComponent(id="context-line", similarity_encoder=ident_shingle)
+    context_line_component = GroupingComponent(id="context-line", similarity_encoder=ident_encoder)
     if frame.context_line is not None:
         if len(frame.context_line) > 120:
             context_line_component.update(hint="discarded because line too long")
@@ -303,9 +306,9 @@ def frame_legacy(frame, event, **meta):
         else:
             context_line_component.update(values=[frame.context_line])
 
-    symbol_component = GroupingComponent(id="symbol", similarity_encoder=ident_shingle)
-    function_component = GroupingComponent(id="function", similarity_encoder=ident_shingle)
-    lineno_component = GroupingComponent(id="lineno", similarity_encoder=ident_shingle)
+    symbol_component = GroupingComponent(id="symbol", similarity_encoder=ident_encoder)
+    function_component = GroupingComponent(id="function", similarity_encoder=ident_encoder)
+    lineno_component = GroupingComponent(id="lineno", similarity_encoder=ident_encoder)
 
     # The context line grouping information is the most reliable one.
     # If we did not manage to find some information there, we want to
@@ -333,6 +336,8 @@ def frame_legacy(frame, event, **meta):
                         )
                     ]
                 )
+                # <module> still contributes, though it should not contribute to
+                # similarity
                 function_component.similarity_encoder = None
             else:
                 function, function_hint = remove_function_outliers_legacy(func)

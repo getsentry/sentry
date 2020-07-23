@@ -1,5 +1,29 @@
 ---
-created: '2020-07-23T11:19:57.905754Z'
+created: '2020-07-23T15:41:47.639394Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
+newstyle:2019-10-29:fingerprint:ident-shingle: "."
+newstyle:2019-10-29:fingerprint:ident-shingle: "E"
+newstyle:2019-10-29:fingerprint:ident-shingle: "L"
+newstyle:2019-10-29:fingerprint:ident-shingle: "S"
+newstyle:2019-10-29:fingerprint:ident-shingle: "T"
+newstyle:2019-10-29:fingerprint:ident-shingle: "_"
+newstyle:2019-10-29:fingerprint:ident-shingle: "a"
+newstyle:2019-10-29:fingerprint:ident-shingle: "c"
+newstyle:2019-10-29:fingerprint:ident-shingle: "d"
+newstyle:2019-10-29:fingerprint:ident-shingle: "e"
+newstyle:2019-10-29:fingerprint:ident-shingle: "f"
+newstyle:2019-10-29:fingerprint:ident-shingle: "i"
+newstyle:2019-10-29:fingerprint:ident-shingle: "k"
+newstyle:2019-10-29:fingerprint:ident-shingle: "l"
+newstyle:2019-10-29:fingerprint:ident-shingle: "m"
+newstyle:2019-10-29:fingerprint:ident-shingle: "n"
+newstyle:2019-10-29:fingerprint:ident-shingle: "o"
+newstyle:2019-10-29:fingerprint:ident-shingle: "p"
+newstyle:2019-10-29:fingerprint:ident-shingle: "r"
+newstyle:2019-10-29:fingerprint:ident-shingle: "s"
+newstyle:2019-10-29:fingerprint:ident-shingle: "t"
+newstyle:2019-10-29:fingerprint:ident-shingle: "v"
+newstyle:2019-10-29:fingerprint:ident-shingle: "x"
+newstyle:2019-10-29:fingerprint:ident-shingle: "y"

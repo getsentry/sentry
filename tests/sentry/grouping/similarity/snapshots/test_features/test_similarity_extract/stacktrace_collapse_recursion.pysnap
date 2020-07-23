@@ -1,9 +1,9 @@
 ---
-created: '2020-07-23T11:20:24.513392Z'
+created: '2020-07-23T15:41:48.550790Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "main"], [["module", "ident-shingle"], "io.sentry.example.Application"]], [[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "normalFunc"], [["module", "ident-shingle"], "io.sentry.example.Application"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "normalFunc"], [["module", "ident-shingle"], "io.sentry.example.Application"]], [[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "recurFunc"], [["module", "ident-shingle"], "io.sentry.example.Application"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "recurFunc"], [["module", "ident-shingle"], "io.sentry.example.Application"]], [[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "recurFunc"], [["module", "ident-shingle"], "io.sentry.example.Application"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "recurFunc"], [["module", "ident-shingle"], "io.sentry.example.Application"]], [[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "throwError"], [["module", "ident-shingle"], "io.sentry.example.Application"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "main"], ["module", "io.sentry.example.Application"]], [["function", "normalFunc"], ["module", "io.sentry.example.Application"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "normalFunc"], ["module", "io.sentry.example.Application"]], [["function", "recurFunc"], ["module", "io.sentry.example.Application"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "recurFunc"], ["module", "io.sentry.example.Application"]], [["function", "recurFunc"], ["module", "io.sentry.example.Application"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "recurFunc"], ["module", "io.sentry.example.Application"]], [["function", "throwError"], ["module", "io.sentry.example.Application"]]]

@@ -8,8 +8,12 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
 from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, has_url_origin
 from sentry.grouping.strategies.message import trim_message_for_grouping
+from sentry.grouping.strategies.similarity_encoders import (
+    text_shingle_encoder,
+    ident_encoder,
+)
 from sentry.stacktraces.platform import get_behavior_family_for_platform
-from sentry.similarity import ident_shingle, shingle, text_shingle, shingle_encoder
+from sentry.utils.iterators import shingle
 
 
 _ruby_erb_func = re.compile(r"__\d{4,}_\d{4,}$")
@@ -71,7 +75,7 @@ def get_filename_component(abs_path, filename, platform, allow_file_origin=False
     # lowercase it
     filename = _basename_re.split(filename)[-1].lower()
     filename_component = GroupingComponent(
-        id="filename", values=[filename], similarity_encoder=ident_shingle
+        id="filename", values=[filename], similarity_encoder=ident_encoder
     )
 
     if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
@@ -96,7 +100,7 @@ def get_module_component(abs_path, module, platform):
         return GroupingComponent(id="module")
 
     module_component = GroupingComponent(
-        id="module", values=[module], similarity_encoder=ident_shingle
+        id="module", values=[module], similarity_encoder=ident_encoder
     )
 
     if platform == "javascript" and "/" in module and abs_path and abs_path.endswith(module):
@@ -162,7 +166,7 @@ def get_function_component(
         return GroupingComponent(id="function")
 
     function_component = GroupingComponent(
-        id="function", values=[func], similarity_encoder=ident_shingle
+        id="function", values=[func], similarity_encoder=ident_encoder
     )
 
     if platform == "ruby":
@@ -267,7 +271,7 @@ def get_contextline_component(frame, platform, function, with_context_line_file_
         return GroupingComponent(id="context-line")
 
     component = GroupingComponent(
-        id="context-line", values=[line], similarity_encoder=ident_shingle
+        id="context-line", values=[line], similarity_encoder=ident_encoder
     )
     if line:
         if len(frame.context_line) > 120:
@@ -412,29 +416,38 @@ def get_stacktrace_component(stacktrace, config, variant, meta):
         values,
         frames_for_filtering,
         meta["event"].platform,
-        similarity_self_encoder=_encode_stacktrace_for_similarity,
+        similarity_self_encoder=_stacktrace_encoder,
     )
 
 
-@shingle_encoder("frames-pairs")
-def _encode_stacktrace_for_similarity(stacktrace):
-    parts = []
+def _stacktrace_encoder(id, stacktrace):
+    encoded_frames = []
 
     for frame in stacktrace.values:
         encoded = {}
-        for label, features in frame.encode_for_similarity():
+        for (component_id, shingle_label), features in frame.encode_for_similarity():
             assert (
-                len(features) < 2 and label not in encoded
+                shingle_label == "ident-shingle"
             ), "Frames cannot use anything other than ident shingles for now"
-            if features:
-                encoded[label] = features[0]
 
-        # Append encoded as "frozen dict"
-        parts.append(tuple(sorted(encoded.items())))
+            if not features:
+                continue
 
-    if len(parts) < 2:
-        return parts
-    return shingle(2, parts)
+            assert (
+                len(features) == 1 and component_id not in encoded
+            ), "Frames cannot use anything other than ident shingles for now"
+            encoded[component_id] = features[0]
+
+        if encoded:
+            # add frozen dict
+            encoded_frames.append(tuple(sorted(encoded.items())))
+
+    if len(encoded_frames) < 2:
+        if encoded_frames:
+            yield (id, "frames-ident"), encoded_frames
+        return
+
+    yield (id, "frames-pairs"), shingle(2, encoded_frames)
 
 
 def single_exception_common(exception, config, meta, with_value):
@@ -446,7 +459,7 @@ def single_exception_common(exception, config, meta, with_value):
     type_component = GroupingComponent(
         id="type",
         values=[exception.type] if exception.type else [],
-        similarity_encoder=ident_shingle,
+        similarity_encoder=ident_encoder,
     )
 
     if exception.mechanism and exception.mechanism.synthetic:
@@ -455,7 +468,7 @@ def single_exception_common(exception, config, meta, with_value):
     values = [stacktrace_component, type_component]
 
     if with_value:
-        value_component = GroupingComponent(id="value", similarity_encoder=text_shingle(5))
+        value_component = GroupingComponent(id="value", similarity_encoder=text_shingle_encoder(5))
 
         value_in = exception.value
         if value_in is not None:

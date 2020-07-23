@@ -1,34 +1,17 @@
 ---
-created: '2020-07-23T11:20:24.674688Z'
+created: '2020-07-23T15:41:48.737011Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "index.js"], [["function", "ident-shingle"], "sentryWrapped"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "callCallback"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "dispatchInteractiveEvent"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "interactiveUpdates"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "interactiveUpdates"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "interactiveUpdates$1"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "interactiveUpdates$1"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "performSyncWork"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "invokeGuardedCallback"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "invokeGuardedCallbackDev"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "invokeGuardedCallbackDev"]], [[["filename", "ident-shingle"], "index.js"], [["function", "ident-shingle"], "sentryWrapped"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "performSyncWork"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "performWork"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "performWork"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "performWorkOnRoot"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "performWorkOnRoot"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "renderRoot"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "renderRoot"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "replayUnitOfWork"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "replayUnitOfWork"]], [[["filename", "ident-shingle"], "react-dom.development.js"], [["function", "ident-shingle"], "invokeGuardedCallback"]]]
-newstyle:2019-10-29:value:character-5-shingle: " defi"
-newstyle:2019-10-29:value:character-5-shingle: " is n"
-newstyle:2019-10-29:value:character-5-shingle: " not "
-newstyle:2019-10-29:value:character-5-shingle: "ant i"
-newstyle:2019-10-29:value:character-5-shingle: "arant"
-newstyle:2019-10-29:value:character-5-shingle: "defin"
-newstyle:2019-10-29:value:character-5-shingle: "efine"
-newstyle:2019-10-29:value:character-5-shingle: "fined"
-newstyle:2019-10-29:value:character-5-shingle: "is no"
-newstyle:2019-10-29:value:character-5-shingle: "not d"
-newstyle:2019-10-29:value:character-5-shingle: "nt is"
-newstyle:2019-10-29:value:character-5-shingle: "ot de"
-newstyle:2019-10-29:value:character-5-shingle: "rant "
-newstyle:2019-10-29:value:character-5-shingle: "s not"
-newstyle:2019-10-29:value:character-5-shingle: "t def"
-newstyle:2019-10-29:value:character-5-shingle: "t is "
-newstyle:2019-10-29:value:character-5-shingle: "varan"
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "index.js"], ["function", "sentryWrapped"]], [["filename", "react-dom.development.js"], ["function", "callCallback"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "dispatchInteractiveEvent"]], [["filename", "react-dom.development.js"], ["function", "interactiveUpdates"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "interactiveUpdates"]], [["filename", "react-dom.development.js"], ["function", "interactiveUpdates$1"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "interactiveUpdates$1"]], [["filename", "react-dom.development.js"], ["function", "performSyncWork"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "invokeGuardedCallback"]], [["filename", "react-dom.development.js"], ["function", "invokeGuardedCallbackDev"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "invokeGuardedCallbackDev"]], [["filename", "index.js"], ["function", "sentryWrapped"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "performSyncWork"]], [["filename", "react-dom.development.js"], ["function", "performWork"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "performWork"]], [["filename", "react-dom.development.js"], ["function", "performWorkOnRoot"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "performWorkOnRoot"]], [["filename", "react-dom.development.js"], ["function", "renderRoot"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "renderRoot"]], [["filename", "react-dom.development.js"], ["function", "replayUnitOfWork"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "react-dom.development.js"], ["function", "replayUnitOfWork"]], [["filename", "react-dom.development.js"], ["function", "invokeGuardedCallback"]]]
 newstyle:2019-10-29:type:ident-shingle: "ReferenceError"

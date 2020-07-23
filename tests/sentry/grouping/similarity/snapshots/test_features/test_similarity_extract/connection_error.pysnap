@@ -1,90 +1,16 @@
 ---
-created: '2020-07-23T11:20:23.743706Z'
+created: '2020-07-23T15:41:47.619828Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:message:character-5-shingle: "%s.pr"
-newstyle:2019-10-29:message:character-5-shingle: ".proc"
-newstyle:2019-10-29:message:character-5-shingle: "_erro"
-newstyle:2019-10-29:message:character-5-shingle: "cess_"
-newstyle:2019-10-29:message:character-5-shingle: "error"
-newstyle:2019-10-29:message:character-5-shingle: "ess_e"
-newstyle:2019-10-29:message:character-5-shingle: "ocess"
-newstyle:2019-10-29:message:character-5-shingle: "proce"
-newstyle:2019-10-29:message:character-5-shingle: "roces"
-newstyle:2019-10-29:message:character-5-shingle: "s.pro"
-newstyle:2019-10-29:message:character-5-shingle: "s_err"
-newstyle:2019-10-29:message:character-5-shingle: "ss_er"
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"], [["filename", "ident-shingle"], "services.py"], [["function", "ident-shingle"], "<lambda>"], [["module", "ident-shingle"], "sentry.utils.services"]], [[["context-line", "ident-shingle"], "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"], [["filename", "ident-shingle"], "quotas.py"], [["function", "ident-shingle"], "is_rate_limited"], [["module", "ident-shingle"], "getsentry.quotas"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "rejections = is_rate_limited(client, keys, args)"], [["filename", "ident-shingle"], "redis.py"], [["function", "ident-shingle"], "is_rate_limited"], [["module", "ident-shingle"], "sentry.quotas.redis"]], [[["context-line", "ident-shingle"], "return script(keys, args, client)"], [["filename", "ident-shingle"], "redis.py"], [["function", "ident-shingle"], "call_script"], [["module", "ident-shingle"], "sentry.utils.redis"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "response = connection.read_response()"], [["filename", "ident-shingle"], "client.py"], [["function", "ident-shingle"], "parse_response"], [["module", "ident-shingle"], "redis.client"]], [[["context-line", "ident-shingle"], "response = self._parser.read_response()"], [["filename", "ident-shingle"], "connection.py"], [["function", "ident-shingle"], "read_response"], [["module", "ident-shingle"], "redis.connection"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "response = self._parser.read_response()"], [["filename", "ident-shingle"], "connection.py"], [["function", "ident-shingle"], "read_response"], [["module", "ident-shingle"], "redis.connection"]], [[["context-line", "ident-shingle"], "(e.args,))"], [["filename", "ident-shingle"], "connection.py"], [["function", "ident-shingle"], "read_response"], [["module", "ident-shingle"], "redis.connection"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "result = func(*args, **kwargs)"], [["filename", "ident-shingle"], "safe.py"], [["function", "ident-shingle"], "safe_execute"], [["module", "ident-shingle"], "sentry.utils.safe"]], [[["context-line", "ident-shingle"], "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"], [["filename", "ident-shingle"], "services.py"], [["function", "ident-shingle"], "<lambda>"], [["module", "ident-shingle"], "sentry.utils.services"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "return client.evalsha(self.sha, len(keys), *args)"], [["filename", "ident-shingle"], "client.py"], [["function", "ident-shingle"], "__call__"], [["module", "ident-shingle"], "redis.client"]], [[["context-line", "ident-shingle"], "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"], [["filename", "ident-shingle"], "client.py"], [["function", "ident-shingle"], "evalsha"], [["module", "ident-shingle"], "redis.client"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "return script(keys, args, client)"], [["filename", "ident-shingle"], "redis.py"], [["function", "ident-shingle"], "call_script"], [["module", "ident-shingle"], "sentry.utils.redis"]], [[["context-line", "ident-shingle"], "return client.evalsha(self.sha, len(keys), *args)"], [["filename", "ident-shingle"], "client.py"], [["function", "ident-shingle"], "__call__"], [["module", "ident-shingle"], "redis.client"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"], [["filename", "ident-shingle"], "client.py"], [["function", "ident-shingle"], "evalsha"], [["module", "ident-shingle"], "redis.client"]], [[["context-line", "ident-shingle"], "return self.parse_response(connection, command_name, **options)"], [["filename", "ident-shingle"], "client.py"], [["function", "ident-shingle"], "execute_command"], [["module", "ident-shingle"], "redis.client"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "return self.parse_response(connection, command_name, **options)"], [["filename", "ident-shingle"], "client.py"], [["function", "ident-shingle"], "execute_command"], [["module", "ident-shingle"], "redis.client"]], [[["context-line", "ident-shingle"], "response = connection.read_response()"], [["filename", "ident-shingle"], "client.py"], [["function", "ident-shingle"], "parse_response"], [["module", "ident-shingle"], "redis.client"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"], [["filename", "ident-shingle"], "quotas.py"], [["function", "ident-shingle"], "is_rate_limited"], [["module", "ident-shingle"], "getsentry.quotas"]], [[["context-line", "ident-shingle"], "rejections = is_rate_limited(client, keys, args)"], [["filename", "ident-shingle"], "redis.py"], [["function", "ident-shingle"], "is_rate_limited"], [["module", "ident-shingle"], "sentry.quotas.redis"]]]
-newstyle:2019-10-29:value:character-5-shingle: " ('Co"
-newstyle:2019-10-29:value:character-5-shingle: " by s"
-newstyle:2019-10-29:value:character-5-shingle: " clos"
-newstyle:2019-10-29:value:character-5-shingle: " from"
-newstyle:2019-10-29:value:character-5-shingle: " read"
-newstyle:2019-10-29:value:character-5-shingle: " serv"
-newstyle:2019-10-29:value:character-5-shingle: " sock"
-newstyle:2019-10-29:value:character-5-shingle: " whil"
-newstyle:2019-10-29:value:character-5-shingle: "'Conn"
-newstyle:2019-10-29:value:character-5-shingle: "('Con"
-newstyle:2019-10-29:value:character-5-shingle: ": ('C"
-newstyle:2019-10-29:value:character-5-shingle: "Conne"
-newstyle:2019-10-29:value:character-5-shingle: "Error"
-newstyle:2019-10-29:value:character-5-shingle: "ading"
-newstyle:2019-10-29:value:character-5-shingle: "by se"
-newstyle:2019-10-29:value:character-5-shingle: "cket:"
-newstyle:2019-10-29:value:character-5-shingle: "close"
-newstyle:2019-10-29:value:character-5-shingle: "ction"
-newstyle:2019-10-29:value:character-5-shingle: "d by "
-newstyle:2019-10-29:value:character-5-shingle: "ding "
-newstyle:2019-10-29:value:character-5-shingle: "e rea"
-newstyle:2019-10-29:value:character-5-shingle: "eadin"
-newstyle:2019-10-29:value:character-5-shingle: "ectio"
-newstyle:2019-10-29:value:character-5-shingle: "ed by"
-newstyle:2019-10-29:value:character-5-shingle: "er.',"
-newstyle:2019-10-29:value:character-5-shingle: "erver"
-newstyle:2019-10-29:value:character-5-shingle: "et: ("
-newstyle:2019-10-29:value:character-5-shingle: "from "
-newstyle:2019-10-29:value:character-5-shingle: "g fro"
-newstyle:2019-10-29:value:character-5-shingle: "hile "
-newstyle:2019-10-29:value:character-5-shingle: "ile r"
-newstyle:2019-10-29:value:character-5-shingle: "ing f"
-newstyle:2019-10-29:value:character-5-shingle: "ion c"
-newstyle:2019-10-29:value:character-5-shingle: "ket: "
-newstyle:2019-10-29:value:character-5-shingle: "le re"
-newstyle:2019-10-29:value:character-5-shingle: "losed"
-newstyle:2019-10-29:value:character-5-shingle: "m soc"
-newstyle:2019-10-29:value:character-5-shingle: "n clo"
-newstyle:2019-10-29:value:character-5-shingle: "necti"
-newstyle:2019-10-29:value:character-5-shingle: "ng fr"
-newstyle:2019-10-29:value:character-5-shingle: "nnect"
-newstyle:2019-10-29:value:character-5-shingle: "ocket"
-newstyle:2019-10-29:value:character-5-shingle: "om so"
-newstyle:2019-10-29:value:character-5-shingle: "on cl"
-newstyle:2019-10-29:value:character-5-shingle: "onnec"
-newstyle:2019-10-29:value:character-5-shingle: "or wh"
-newstyle:2019-10-29:value:character-5-shingle: "osed "
-newstyle:2019-10-29:value:character-5-shingle: "r whi"
-newstyle:2019-10-29:value:character-5-shingle: "r.',)"
-newstyle:2019-10-29:value:character-5-shingle: "readi"
-newstyle:2019-10-29:value:character-5-shingle: "rom s"
-newstyle:2019-10-29:value:character-5-shingle: "ror w"
-newstyle:2019-10-29:value:character-5-shingle: "rror "
-newstyle:2019-10-29:value:character-5-shingle: "rver."
-newstyle:2019-10-29:value:character-5-shingle: "sed b"
-newstyle:2019-10-29:value:character-5-shingle: "serve"
-newstyle:2019-10-29:value:character-5-shingle: "socke"
-newstyle:2019-10-29:value:character-5-shingle: "t: ('"
-newstyle:2019-10-29:value:character-5-shingle: "tion "
-newstyle:2019-10-29:value:character-5-shingle: "ver.'"
-newstyle:2019-10-29:value:character-5-shingle: "while"
-newstyle:2019-10-29:value:character-5-shingle: "y ser"
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"], ["function", "<lambda>"], ["module", "sentry.utils.services"]], [["context-line", "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"], ["function", "is_rate_limited"], ["module", "getsentry.quotas"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "rejections = is_rate_limited(client, keys, args)"], ["function", "is_rate_limited"], ["module", "sentry.quotas.redis"]], [["context-line", "return script(keys, args, client)"], ["function", "call_script"], ["module", "sentry.utils.redis"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "response = connection.read_response()"], ["function", "parse_response"], ["module", "redis.client"]], [["context-line", "response = self._parser.read_response()"], ["function", "read_response"], ["module", "redis.connection"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "response = self._parser.read_response()"], ["function", "read_response"], ["module", "redis.connection"]], [["context-line", "(e.args,))"], ["function", "read_response"], ["module", "redis.connection"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "result = func(*args, **kwargs)"], ["function", "safe_execute"], ["module", "sentry.utils.safe"]], [["context-line", "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"], ["function", "<lambda>"], ["module", "sentry.utils.services"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "return client.evalsha(self.sha, len(keys), *args)"], ["function", "__call__"], ["module", "redis.client"]], [["context-line", "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"], ["function", "evalsha"], ["module", "redis.client"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "return script(keys, args, client)"], ["function", "call_script"], ["module", "sentry.utils.redis"]], [["context-line", "return client.evalsha(self.sha, len(keys), *args)"], ["function", "__call__"], ["module", "redis.client"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"], ["function", "evalsha"], ["module", "redis.client"]], [["context-line", "return self.parse_response(connection, command_name, **options)"], ["function", "execute_command"], ["module", "redis.client"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "return self.parse_response(connection, command_name, **options)"], ["function", "execute_command"], ["module", "redis.client"]], [["context-line", "response = connection.read_response()"], ["function", "parse_response"], ["module", "redis.client"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"], ["function", "is_rate_limited"], ["module", "getsentry.quotas"]], [["context-line", "rejections = is_rate_limited(client, keys, args)"], ["function", "is_rate_limited"], ["module", "sentry.quotas.redis"]]]
 newstyle:2019-10-29:type:ident-shingle: "ConnectionError"

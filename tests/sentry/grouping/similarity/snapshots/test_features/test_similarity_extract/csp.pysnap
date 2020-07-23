@@ -1,28 +1,5 @@
 ---
-created: '2020-07-23T11:20:23.574328Z'
+created: '2020-07-23T12:51:37.564860Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:message:character-5-shingle: " 'YYY"
-newstyle:2019-10-29:message:character-5-shingle: " 'scr"
-newstyle:2019-10-29:message:character-5-shingle: " from"
-newstyle:2019-10-29:message:character-5-shingle: "' fro"
-newstyle:2019-10-29:message:character-5-shingle: "'YYY'"
-newstyle:2019-10-29:message:character-5-shingle: "'scri"
-newstyle:2019-10-29:message:character-5-shingle: "Block"
-newstyle:2019-10-29:message:character-5-shingle: "cked "
-newstyle:2019-10-29:message:character-5-shingle: "cript"
-newstyle:2019-10-29:message:character-5-shingle: "d 'sc"
-newstyle:2019-10-29:message:character-5-shingle: "ed 's"
-newstyle:2019-10-29:message:character-5-shingle: "from "
-newstyle:2019-10-29:message:character-5-shingle: "ipt' "
-newstyle:2019-10-29:message:character-5-shingle: "ked '"
-newstyle:2019-10-29:message:character-5-shingle: "locke"
-newstyle:2019-10-29:message:character-5-shingle: "m 'YY"
-newstyle:2019-10-29:message:character-5-shingle: "ocked"
-newstyle:2019-10-29:message:character-5-shingle: "om 'Y"
-newstyle:2019-10-29:message:character-5-shingle: "pt' f"
-newstyle:2019-10-29:message:character-5-shingle: "ript'"
-newstyle:2019-10-29:message:character-5-shingle: "rom '"
-newstyle:2019-10-29:message:character-5-shingle: "scrip"
-newstyle:2019-10-29:message:character-5-shingle: "t' fr"

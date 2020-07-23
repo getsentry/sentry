@@ -1,6 +1,6 @@
 ---
-created: '2020-07-23T11:20:24.560373Z'
+created: '2020-07-23T15:41:48.607194Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "sun.reflect.GeneratedMethodAccessor"]], [[["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "jdk.internal.reflect.GeneratedMethodAccessor"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "sun.reflect.GeneratedMethodAccessor"]], [["function", "invoke"], ["module", "jdk.internal.reflect.GeneratedMethodAccessor"]]]

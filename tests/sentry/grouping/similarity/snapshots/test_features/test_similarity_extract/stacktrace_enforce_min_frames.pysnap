@@ -1,40 +1,12 @@
 ---
-created: '2020-07-23T11:20:23.724869Z'
+created: '2020-07-23T15:41:47.596274Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "___rust_maybe_catch_panic"]], [[["function", "ident-shingle"], "std::panicking::try::do_call"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "_main"]], [[["function", "ident-shingle"], "std::rt::lang_start_internal"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "log_demo::main"]], [[["function", "ident-shingle"], "log::__private_api_log"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "std::panicking::try::do_call"]], [[["function", "ident-shingle"], "std::rt::lang_start::{{closure}}"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "std::rt::lang_start::{{closure}}"]], [[["function", "ident-shingle"], "log_demo::main"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "std::rt::lang_start_internal"]], [[["function", "ident-shingle"], "___rust_maybe_catch_panic"]]]
-newstyle:2019-10-29:value:character-5-shingle: " ever"
-newstyle:2019-10-29:value:character-5-shingle: " fire"
-newstyle:2019-10-29:value:character-5-shingle: " is o"
-newstyle:2019-10-29:value:character-5-shingle: " on f"
-newstyle:2019-10-29:value:character-5-shingle: " shit"
-newstyle:2019-10-29:value:character-5-shingle: "Holy "
-newstyle:2019-10-29:value:character-5-shingle: "eryth"
-newstyle:2019-10-29:value:character-5-shingle: "every"
-newstyle:2019-10-29:value:character-5-shingle: "fire!"
-newstyle:2019-10-29:value:character-5-shingle: "g is "
-newstyle:2019-10-29:value:character-5-shingle: "hing "
-newstyle:2019-10-29:value:character-5-shingle: "hit e"
-newstyle:2019-10-29:value:character-5-shingle: "ing i"
-newstyle:2019-10-29:value:character-5-shingle: "is on"
-newstyle:2019-10-29:value:character-5-shingle: "it ev"
-newstyle:2019-10-29:value:character-5-shingle: "ly sh"
-newstyle:2019-10-29:value:character-5-shingle: "n fir"
-newstyle:2019-10-29:value:character-5-shingle: "ng is"
-newstyle:2019-10-29:value:character-5-shingle: "oly s"
-newstyle:2019-10-29:value:character-5-shingle: "on fi"
-newstyle:2019-10-29:value:character-5-shingle: "rythi"
-newstyle:2019-10-29:value:character-5-shingle: "s on "
-newstyle:2019-10-29:value:character-5-shingle: "shit "
-newstyle:2019-10-29:value:character-5-shingle: "t eve"
-newstyle:2019-10-29:value:character-5-shingle: "thing"
-newstyle:2019-10-29:value:character-5-shingle: "veryt"
-newstyle:2019-10-29:value:character-5-shingle: "y shi"
-newstyle:2019-10-29:value:character-5-shingle: "ythin"
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "___rust_maybe_catch_panic"]], [["function", "std::panicking::try::do_call"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "_main"]], [["function", "std::rt::lang_start_internal"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "log_demo::main"]], [["function", "log::__private_api_log"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "std::panicking::try::do_call"]], [["function", "std::rt::lang_start::{{closure}}"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "std::rt::lang_start::{{closure}}"]], [["function", "log_demo::main"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "std::rt::lang_start_internal"]], [["function", "___rust_maybe_catch_panic"]]]
 newstyle:2019-10-29:type:ident-shingle: "log_demo"

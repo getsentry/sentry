@@ -1,6 +1,6 @@
 ---
-created: '2020-07-23T11:20:24.654876Z'
+created: '2020-07-23T15:41:48.716126Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "ident-shingle"], "call"], [["module", "ident-shingle"], "foo.bar.Baz$$Lambda$40/1673859467"]]
+newstyle:2019-10-29:stacktrace:frames-ident: [["function", "call"]]

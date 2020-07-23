@@ -1,230 +1,52 @@
 ---
-created: '2020-07-23T11:20:22.838303Z'
+created: '2020-07-23T15:41:46.510090Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:message:character-5-shingle: " / by"
-newstyle:2019-10-29:message:character-5-shingle: " [Req"
-newstyle:2019-10-29:message:character-5-shingle: " [] t"
-newstyle:2019-10-29:message:character-5-shingle: " [dis"
-newstyle:2019-10-29:message:character-5-shingle: " by z"
-newstyle:2019-10-29:message:character-5-shingle: " caus"
-newstyle:2019-10-29:message:character-5-shingle: " cont"
-newstyle:2019-10-29:message:character-5-shingle: " exce"
-newstyle:2019-10-29:message:character-5-shingle: " fail"
-newstyle:2019-10-29:message:character-5-shingle: " for "
-newstyle:2019-10-29:message:character-5-shingle: " in c"
-newstyle:2019-10-29:message:character-5-shingle: " is j"
-newstyle:2019-10-29:message:character-5-shingle: " java"
-newstyle:2019-10-29:message:character-5-shingle: " nest"
-newstyle:2019-10-29:message:character-5-shingle: " path"
-newstyle:2019-10-29:message:character-5-shingle: " proc"
-newstyle:2019-10-29:message:character-5-shingle: " root"
-newstyle:2019-10-29:message:character-5-shingle: " serv"
-newstyle:2019-10-29:message:character-5-shingle: " thre"
-newstyle:2019-10-29:message:character-5-shingle: " with"
-newstyle:2019-10-29:message:character-5-shingle: " zero"
-newstyle:2019-10-29:message:character-5-shingle: "() fo"
-newstyle:2019-10-29:message:character-5-shingle: ") for"
-newstyle:2019-10-29:message:character-5-shingle: ".Arit"
-newstyle:2019-10-29:message:character-5-shingle: ".lang"
-newstyle:2019-10-29:message:character-5-shingle: ".serv"
-newstyle:2019-10-29:message:character-5-shingle: "/ by "
-newstyle:2019-10-29:message:character-5-shingle: ": / b"
-newstyle:2019-10-29:message:character-5-shingle: "; nes"
-newstyle:2019-10-29:message:character-5-shingle: "Arith"
-newstyle:2019-10-29:message:character-5-shingle: "Excep"
-newstyle:2019-10-29:message:character-5-shingle: "Reque"
-newstyle:2019-10-29:message:character-5-shingle: "Servl"
-newstyle:2019-10-29:message:character-5-shingle: "[Requ"
-newstyle:2019-10-29:message:character-5-shingle: "[] th"
-newstyle:2019-10-29:message:character-5-shingle: "[disp"
-newstyle:2019-10-29:message:character-5-shingle: "] in "
-newstyle:2019-10-29:message:character-5-shingle: "] thr"
-newstyle:2019-10-29:message:character-5-shingle: "] wit"
-newstyle:2019-10-29:message:character-5-shingle: "a.lan"
-newstyle:2019-10-29:message:character-5-shingle: "ailed"
-newstyle:2019-10-29:message:character-5-shingle: "ang.A"
-newstyle:2019-10-29:message:character-5-shingle: "atche"
-newstyle:2019-10-29:message:character-5-shingle: "ath ["
-newstyle:2019-10-29:message:character-5-shingle: "ava.l"
-newstyle:2019-10-29:message:character-5-shingle: "by ze"
-newstyle:2019-10-29:message:character-5-shingle: "cExce"
-newstyle:2019-10-29:message:character-5-shingle: "cause"
-newstyle:2019-10-29:message:character-5-shingle: "ce() "
-newstyle:2019-10-29:message:character-5-shingle: "cepti"
-newstyle:2019-10-29:message:character-5-shingle: "cessi"
-newstyle:2019-10-29:message:character-5-shingle: "cherS"
-newstyle:2019-10-29:message:character-5-shingle: "conte"
-newstyle:2019-10-29:message:character-5-shingle: "d exc"
-newstyle:2019-10-29:message:character-5-shingle: "d; ne"
-newstyle:2019-10-29:message:character-5-shingle: "dispa"
-newstyle:2019-10-29:message:character-5-shingle: "e() f"
-newstyle:2019-10-29:message:character-5-shingle: "ed ex"
-newstyle:2019-10-29:message:character-5-shingle: "ed; n"
-newstyle:2019-10-29:message:character-5-shingle: "eptio"
-newstyle:2019-10-29:message:character-5-shingle: "eques"
-newstyle:2019-10-29:message:character-5-shingle: "erSer"
-newstyle:2019-10-29:message:character-5-shingle: "ero] "
-newstyle:2019-10-29:message:character-5-shingle: "ervic"
-newstyle:2019-10-29:message:character-5-shingle: "ervle"
-newstyle:2019-10-29:message:character-5-shingle: "essin"
-newstyle:2019-10-29:message:character-5-shingle: "est p"
-newstyle:2019-10-29:message:character-5-shingle: "ested"
-newstyle:2019-10-29:message:character-5-shingle: "et [d"
-newstyle:2019-10-29:message:character-5-shingle: "et.se"
-newstyle:2019-10-29:message:character-5-shingle: "et] i"
-newstyle:2019-10-29:message:character-5-shingle: "eticE"
-newstyle:2019-10-29:message:character-5-shingle: "ew ex"
-newstyle:2019-10-29:message:character-5-shingle: "excep"
-newstyle:2019-10-29:message:character-5-shingle: "ext w"
-newstyle:2019-10-29:message:character-5-shingle: "faile"
-newstyle:2019-10-29:message:character-5-shingle: "for s"
-newstyle:2019-10-29:message:character-5-shingle: "g fai"
-newstyle:2019-10-29:message:character-5-shingle: "g.Ari"
-newstyle:2019-10-29:message:character-5-shingle: "h [] "
-newstyle:2019-10-29:message:character-5-shingle: "h pat"
-newstyle:2019-10-29:message:character-5-shingle: "h roo"
-newstyle:2019-10-29:message:character-5-shingle: "herSe"
-newstyle:2019-10-29:message:character-5-shingle: "hmeti"
-newstyle:2019-10-29:message:character-5-shingle: "hrew "
-newstyle:2019-10-29:message:character-5-shingle: "icExc"
-newstyle:2019-10-29:message:character-5-shingle: "ice()"
-newstyle:2019-10-29:message:character-5-shingle: "iled;"
-newstyle:2019-10-29:message:character-5-shingle: "in co"
-newstyle:2019-10-29:message:character-5-shingle: "ing f"
-newstyle:2019-10-29:message:character-5-shingle: "ion ["
-newstyle:2019-10-29:message:character-5-shingle: "ion i"
-newstyle:2019-10-29:message:character-5-shingle: "ion: "
-newstyle:2019-10-29:message:character-5-shingle: "is ja"
-newstyle:2019-10-29:message:character-5-shingle: "ispat"
-newstyle:2019-10-29:message:character-5-shingle: "ith p"
-newstyle:2019-10-29:message:character-5-shingle: "ith r"
-newstyle:2019-10-29:message:character-5-shingle: "ithme"
-newstyle:2019-10-29:message:character-5-shingle: "java."
-newstyle:2019-10-29:message:character-5-shingle: "lang."
-newstyle:2019-10-29:message:character-5-shingle: "led; "
-newstyle:2019-10-29:message:character-5-shingle: "let ["
-newstyle:2019-10-29:message:character-5-shingle: "let.s"
-newstyle:2019-10-29:message:character-5-shingle: "let] "
-newstyle:2019-10-29:message:character-5-shingle: "metic"
-newstyle:2019-10-29:message:character-5-shingle: "n [Re"
-newstyle:2019-10-29:message:character-5-shingle: "n con"
-newstyle:2019-10-29:message:character-5-shingle: "n is "
-newstyle:2019-10-29:message:character-5-shingle: "n: / "
-newstyle:2019-10-29:message:character-5-shingle: "neste"
-newstyle:2019-10-29:message:character-5-shingle: "ng fa"
-newstyle:2019-10-29:message:character-5-shingle: "ng.Ar"
-newstyle:2019-10-29:message:character-5-shingle: "ntext"
-newstyle:2019-10-29:message:character-5-shingle: "o] wi"
-newstyle:2019-10-29:message:character-5-shingle: "ocess"
-newstyle:2019-10-29:message:character-5-shingle: "on [R"
-newstyle:2019-10-29:message:character-5-shingle: "on is"
-newstyle:2019-10-29:message:character-5-shingle: "on: /"
-newstyle:2019-10-29:message:character-5-shingle: "ontex"
-newstyle:2019-10-29:message:character-5-shingle: "oot c"
-newstyle:2019-10-29:message:character-5-shingle: "or se"
-newstyle:2019-10-29:message:character-5-shingle: "ot ca"
-newstyle:2019-10-29:message:character-5-shingle: "patch"
-newstyle:2019-10-29:message:character-5-shingle: "path "
-newstyle:2019-10-29:message:character-5-shingle: "proce"
-newstyle:2019-10-29:message:character-5-shingle: "ption"
-newstyle:2019-10-29:message:character-5-shingle: "quest"
-newstyle:2019-10-29:message:character-5-shingle: "r ser"
-newstyle:2019-10-29:message:character-5-shingle: "rServ"
-newstyle:2019-10-29:message:character-5-shingle: "rew e"
-newstyle:2019-10-29:message:character-5-shingle: "rithm"
-newstyle:2019-10-29:message:character-5-shingle: "ro] w"
-newstyle:2019-10-29:message:character-5-shingle: "roces"
-newstyle:2019-10-29:message:character-5-shingle: "root "
-newstyle:2019-10-29:message:character-5-shingle: "rvice"
-newstyle:2019-10-29:message:character-5-shingle: "rvlet"
-newstyle:2019-10-29:message:character-5-shingle: "s jav"
-newstyle:2019-10-29:message:character-5-shingle: "servi"
-newstyle:2019-10-29:message:character-5-shingle: "servl"
-newstyle:2019-10-29:message:character-5-shingle: "sing "
-newstyle:2019-10-29:message:character-5-shingle: "spatc"
-newstyle:2019-10-29:message:character-5-shingle: "ssing"
-newstyle:2019-10-29:message:character-5-shingle: "st pr"
-newstyle:2019-10-29:message:character-5-shingle: "sted "
-newstyle:2019-10-29:message:character-5-shingle: "t [di"
-newstyle:2019-10-29:message:character-5-shingle: "t cau"
-newstyle:2019-10-29:message:character-5-shingle: "t pro"
-newstyle:2019-10-29:message:character-5-shingle: "t wit"
-newstyle:2019-10-29:message:character-5-shingle: "t.ser"
-newstyle:2019-10-29:message:character-5-shingle: "t] in"
-newstyle:2019-10-29:message:character-5-shingle: "tcher"
-newstyle:2019-10-29:message:character-5-shingle: "ted e"
-newstyle:2019-10-29:message:character-5-shingle: "text "
-newstyle:2019-10-29:message:character-5-shingle: "th []"
-newstyle:2019-10-29:message:character-5-shingle: "th pa"
-newstyle:2019-10-29:message:character-5-shingle: "th ro"
-newstyle:2019-10-29:message:character-5-shingle: "thmet"
-newstyle:2019-10-29:message:character-5-shingle: "threw"
-newstyle:2019-10-29:message:character-5-shingle: "ticEx"
-newstyle:2019-10-29:message:character-5-shingle: "tion "
-newstyle:2019-10-29:message:character-5-shingle: "tion:"
-newstyle:2019-10-29:message:character-5-shingle: "uest "
-newstyle:2019-10-29:message:character-5-shingle: "va.la"
-newstyle:2019-10-29:message:character-5-shingle: "vice("
-newstyle:2019-10-29:message:character-5-shingle: "vlet "
-newstyle:2019-10-29:message:character-5-shingle: "vlet."
-newstyle:2019-10-29:message:character-5-shingle: "vlet]"
-newstyle:2019-10-29:message:character-5-shingle: "w exc"
-newstyle:2019-10-29:message:character-5-shingle: "with "
-newstyle:2019-10-29:message:character-5-shingle: "xcept"
-newstyle:2019-10-29:message:character-5-shingle: "xt wi"
-newstyle:2019-10-29:message:character-5-shingle: "y zer"
-newstyle:2019-10-29:message:character-5-shingle: "zero]"
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "abstracthandlermethodadapter.java"], [["function", "ident-shingle"], "handle"], [["module", "ident-shingle"], "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"]], [[["filename", "ident-shingle"], "requestmappinghandleradapter.java"], [["function", "ident-shingle"], "handleInternal"], [["module", "ident-shingle"], "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "abstractprocessorlight.java"], [["function", "ident-shingle"], "process"], [["module", "ident-shingle"], "org.apache.coyote.AbstractProcessorLight"]], [[["filename", "ident-shingle"], "http11processor.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "org.apache.coyote.http11.Http11Processor"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "abstractprotocol.java"], [["function", "ident-shingle"], "process"], [["module", "ident-shingle"], "org.apache.coyote.AbstractProtocol$ConnectionHandler"]], [[["filename", "ident-shingle"], "abstractprocessorlight.java"], [["function", "ident-shingle"], "process"], [["module", "ident-shingle"], "org.apache.coyote.AbstractProcessorLight"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]], [[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "internalDoFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "internalDoFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]], [[["filename", "ident-shingle"], "httpservlet.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "javax.servlet.http.HttpServlet"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "internalDoFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]], [[["filename", "ident-shingle"], "onceperrequestfilter.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.springframework.web.filter.OncePerRequestFilter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "internalDoFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]], [[["filename", "ident-shingle"], "wsfilter.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.apache.tomcat.websocket.server.WsFilter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "authenticatorbase.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.authenticator.AuthenticatorBase"]], [[["filename", "ident-shingle"], "standardcontextvalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardContextValve"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "characterencodingfilter.java"], [["function", "ident-shingle"], "doFilterInternal"], [["module", "ident-shingle"], "org.springframework.web.filter.CharacterEncodingFilter"]], [[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "coyoteadapter.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "org.apache.catalina.connector.CoyoteAdapter"]], [[["filename", "ident-shingle"], "standardenginevalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardEngineValve"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "delegatingmethodaccessorimpl.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "jdk.internal.reflect.DelegatingMethodAccessorImpl"]], [[["filename", "ident-shingle"], "nativemethodaccessorimpl.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "jdk.internal.reflect.NativeMethodAccessorImpl"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "dispatcherservlet.java"], [["function", "ident-shingle"], "doDispatch"], [["module", "ident-shingle"], "org.springframework.web.servlet.DispatcherServlet"]], [[["filename", "ident-shingle"], "abstracthandlermethodadapter.java"], [["function", "ident-shingle"], "handle"], [["module", "ident-shingle"], "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "dispatcherservlet.java"], [["function", "ident-shingle"], "doService"], [["module", "ident-shingle"], "org.springframework.web.servlet.DispatcherServlet"]], [[["filename", "ident-shingle"], "dispatcherservlet.java"], [["function", "ident-shingle"], "doDispatch"], [["module", "ident-shingle"], "org.springframework.web.servlet.DispatcherServlet"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "errorreportvalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.valves.ErrorReportValve"]], [[["filename", "ident-shingle"], "standardhostvalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardHostValve"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "frameworkservlet.java"], [["function", "ident-shingle"], "doGet"], [["module", "ident-shingle"], "org.springframework.web.servlet.FrameworkServlet"]], [[["filename", "ident-shingle"], "frameworkservlet.java"], [["function", "ident-shingle"], "processRequest"], [["module", "ident-shingle"], "org.springframework.web.servlet.FrameworkServlet"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "frameworkservlet.java"], [["function", "ident-shingle"], "processRequest"], [["module", "ident-shingle"], "org.springframework.web.servlet.FrameworkServlet"]], [[["filename", "ident-shingle"], "dispatcherservlet.java"], [["function", "ident-shingle"], "doService"], [["module", "ident-shingle"], "org.springframework.web.servlet.DispatcherServlet"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "frameworkservlet.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "org.springframework.web.servlet.FrameworkServlet"]], [[["filename", "ident-shingle"], "httpservlet.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "javax.servlet.http.HttpServlet"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "hiddenhttpmethodfilter.java"], [["function", "ident-shingle"], "doFilterInternal"], [["module", "ident-shingle"], "org.springframework.web.filter.HiddenHttpMethodFilter"]], [[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "http11processor.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "org.apache.coyote.http11.Http11Processor"]], [[["filename", "ident-shingle"], "coyoteadapter.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "org.apache.catalina.connector.CoyoteAdapter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "httpputformcontentfilter.java"], [["function", "ident-shingle"], "doFilterInternal"], [["module", "ident-shingle"], "org.springframework.web.filter.HttpPutFormContentFilter"]], [[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "httpservlet.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "javax.servlet.http.HttpServlet"]], [[["filename", "ident-shingle"], "frameworkservlet.java"], [["function", "ident-shingle"], "doGet"], [["module", "ident-shingle"], "org.springframework.web.servlet.FrameworkServlet"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "httpservlet.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "javax.servlet.http.HttpServlet"]], [[["filename", "ident-shingle"], "frameworkservlet.java"], [["function", "ident-shingle"], "service"], [["module", "ident-shingle"], "org.springframework.web.servlet.FrameworkServlet"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "invocablehandlermethod.java"], [["function", "ident-shingle"], "doInvoke"], [["module", "ident-shingle"], "org.springframework.web.method.support.InvocableHandlerMethod"]], [[["filename", "ident-shingle"], "method.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "java.lang.reflect.Method"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "invocablehandlermethod.java"], [["function", "ident-shingle"], "invokeForRequest"], [["module", "ident-shingle"], "org.springframework.web.method.support.InvocableHandlerMethod"]], [[["filename", "ident-shingle"], "invocablehandlermethod.java"], [["function", "ident-shingle"], "doInvoke"], [["module", "ident-shingle"], "org.springframework.web.method.support.InvocableHandlerMethod"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "method.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "java.lang.reflect.Method"]], [[["filename", "ident-shingle"], "delegatingmethodaccessorimpl.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "jdk.internal.reflect.DelegatingMethodAccessorImpl"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "nativemethodaccessorimpl.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "jdk.internal.reflect.NativeMethodAccessorImpl"]], [[["filename", "ident-shingle"], "nativemethodaccessorimpl.java"], [["function", "ident-shingle"], "invoke0"], [["module", "ident-shingle"], "jdk.internal.reflect.NativeMethodAccessorImpl"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "nativemethodaccessorimpl.java"], [["function", "ident-shingle"], "invoke0"], [["module", "ident-shingle"], "jdk.internal.reflect.NativeMethodAccessorImpl"]], [[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "home"], [["module", "ident-shingle"], "io.sentry.example.Application"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "nioendpoint.java"], [["function", "ident-shingle"], "doRun"], [["module", "ident-shingle"], "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"]], [[["filename", "ident-shingle"], "abstractprotocol.java"], [["function", "ident-shingle"], "process"], [["module", "ident-shingle"], "org.apache.coyote.AbstractProtocol$ConnectionHandler"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "onceperrequestfilter.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.springframework.web.filter.OncePerRequestFilter"]], [[["filename", "ident-shingle"], "characterencodingfilter.java"], [["function", "ident-shingle"], "doFilterInternal"], [["module", "ident-shingle"], "org.springframework.web.filter.CharacterEncodingFilter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "onceperrequestfilter.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.springframework.web.filter.OncePerRequestFilter"]], [[["filename", "ident-shingle"], "hiddenhttpmethodfilter.java"], [["function", "ident-shingle"], "doFilterInternal"], [["module", "ident-shingle"], "org.springframework.web.filter.HiddenHttpMethodFilter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "onceperrequestfilter.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.springframework.web.filter.OncePerRequestFilter"]], [[["filename", "ident-shingle"], "httpputformcontentfilter.java"], [["function", "ident-shingle"], "doFilterInternal"], [["module", "ident-shingle"], "org.springframework.web.filter.HttpPutFormContentFilter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "onceperrequestfilter.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.springframework.web.filter.OncePerRequestFilter"]], [[["filename", "ident-shingle"], "requestcontextfilter.java"], [["function", "ident-shingle"], "doFilterInternal"], [["module", "ident-shingle"], "org.springframework.web.filter.RequestContextFilter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "requestcontextfilter.java"], [["function", "ident-shingle"], "doFilterInternal"], [["module", "ident-shingle"], "org.springframework.web.filter.RequestContextFilter"]], [[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "requestmappinghandleradapter.java"], [["function", "ident-shingle"], "handleInternal"], [["module", "ident-shingle"], "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"]], [[["filename", "ident-shingle"], "requestmappinghandleradapter.java"], [["function", "ident-shingle"], "invokeHandlerMethod"], [["module", "ident-shingle"], "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "requestmappinghandleradapter.java"], [["function", "ident-shingle"], "invokeHandlerMethod"], [["module", "ident-shingle"], "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"]], [[["filename", "ident-shingle"], "servletinvocablehandlermethod.java"], [["function", "ident-shingle"], "invokeAndHandle"], [["module", "ident-shingle"], "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "servletinvocablehandlermethod.java"], [["function", "ident-shingle"], "invokeAndHandle"], [["module", "ident-shingle"], "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"]], [[["filename", "ident-shingle"], "invocablehandlermethod.java"], [["function", "ident-shingle"], "invokeForRequest"], [["module", "ident-shingle"], "org.springframework.web.method.support.InvocableHandlerMethod"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "socketprocessorbase.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "org.apache.tomcat.util.net.SocketProcessorBase"]], [[["filename", "ident-shingle"], "nioendpoint.java"], [["function", "ident-shingle"], "doRun"], [["module", "ident-shingle"], "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "standardcontextvalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardContextValve"]], [[["filename", "ident-shingle"], "standardwrappervalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardWrapperValve"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "standardenginevalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardEngineValve"]], [[["filename", "ident-shingle"], "errorreportvalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.valves.ErrorReportValve"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "standardhostvalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardHostValve"]], [[["filename", "ident-shingle"], "authenticatorbase.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.authenticator.AuthenticatorBase"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "standardwrappervalve.java"], [["function", "ident-shingle"], "invoke"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardWrapperValve"]], [[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "taskthread.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"]], [[["filename", "ident-shingle"], "threadpoolexecutor.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "java.util.concurrent.ThreadPoolExecutor$Worker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "thread.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "java.lang.Thread"]], [[["filename", "ident-shingle"], "taskthread.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "threadpoolexecutor.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "java.util.concurrent.ThreadPoolExecutor$Worker"]], [[["filename", "ident-shingle"], "threadpoolexecutor.java"], [["function", "ident-shingle"], "runWorker"], [["module", "ident-shingle"], "java.util.concurrent.ThreadPoolExecutor"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "threadpoolexecutor.java"], [["function", "ident-shingle"], "runWorker"], [["module", "ident-shingle"], "java.util.concurrent.ThreadPoolExecutor"]], [[["filename", "ident-shingle"], "socketprocessorbase.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "org.apache.tomcat.util.net.SocketProcessorBase"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "wsfilter.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.apache.tomcat.websocket.server.WsFilter"]], [[["filename", "ident-shingle"], "applicationfilterchain.java"], [["function", "ident-shingle"], "doFilter"], [["module", "ident-shingle"], "org.apache.catalina.core.ApplicationFilterChain"]]]
-newstyle:2019-10-29:value:character-5-shingle: " by z"
-newstyle:2019-10-29:value:character-5-shingle: " zero"
-newstyle:2019-10-29:value:character-5-shingle: "/ by "
-newstyle:2019-10-29:value:character-5-shingle: "by ze"
-newstyle:2019-10-29:value:character-5-shingle: "y zer"
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doDispatch"], ["module", "org.springframework.web.servlet.DispatcherServlet"]], [["function", "handle"], ["module", "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]], [["function", "internalDoFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilter"], ["module", "org.apache.tomcat.websocket.server.WsFilter"]], [["function", "doFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilter"], ["module", "org.springframework.web.filter.OncePerRequestFilter"]], [["function", "doFilterInternal"], ["module", "org.springframework.web.filter.CharacterEncodingFilter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilter"], ["module", "org.springframework.web.filter.OncePerRequestFilter"]], [["function", "doFilterInternal"], ["module", "org.springframework.web.filter.HiddenHttpMethodFilter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilter"], ["module", "org.springframework.web.filter.OncePerRequestFilter"]], [["function", "doFilterInternal"], ["module", "org.springframework.web.filter.HttpPutFormContentFilter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilter"], ["module", "org.springframework.web.filter.OncePerRequestFilter"]], [["function", "doFilterInternal"], ["module", "org.springframework.web.filter.RequestContextFilter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilterInternal"], ["module", "org.springframework.web.filter.CharacterEncodingFilter"]], [["function", "doFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilterInternal"], ["module", "org.springframework.web.filter.HiddenHttpMethodFilter"]], [["function", "doFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilterInternal"], ["module", "org.springframework.web.filter.HttpPutFormContentFilter"]], [["function", "doFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doFilterInternal"], ["module", "org.springframework.web.filter.RequestContextFilter"]], [["function", "doFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doGet"], ["module", "org.springframework.web.servlet.FrameworkServlet"]], [["function", "processRequest"], ["module", "org.springframework.web.servlet.FrameworkServlet"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doInvoke"], ["module", "org.springframework.web.method.support.InvocableHandlerMethod"]], [["function", "invoke"], ["module", "java.lang.reflect.Method"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doRun"], ["module", "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"]], [["function", "process"], ["module", "org.apache.coyote.AbstractProtocol$ConnectionHandler"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "doService"], ["module", "org.springframework.web.servlet.DispatcherServlet"]], [["function", "doDispatch"], ["module", "org.springframework.web.servlet.DispatcherServlet"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "handle"], ["module", "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"]], [["function", "handleInternal"], ["module", "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "handleInternal"], ["module", "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"]], [["function", "invokeHandlerMethod"], ["module", "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "internalDoFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]], [["function", "doFilter"], ["module", "org.apache.tomcat.websocket.server.WsFilter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "internalDoFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]], [["function", "doFilter"], ["module", "org.springframework.web.filter.OncePerRequestFilter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "internalDoFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]], [["function", "service"], ["module", "javax.servlet.http.HttpServlet"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "java.lang.reflect.Method"]], [["function", "invoke"], ["module", "jdk.internal.reflect.DelegatingMethodAccessorImpl"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "jdk.internal.reflect.DelegatingMethodAccessorImpl"]], [["function", "invoke"], ["module", "jdk.internal.reflect.NativeMethodAccessorImpl"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "jdk.internal.reflect.NativeMethodAccessorImpl"]], [["function", "invoke0"], ["module", "jdk.internal.reflect.NativeMethodAccessorImpl"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "org.apache.catalina.authenticator.AuthenticatorBase"]], [["function", "invoke"], ["module", "org.apache.catalina.core.StandardContextValve"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "org.apache.catalina.core.StandardContextValve"]], [["function", "invoke"], ["module", "org.apache.catalina.core.StandardWrapperValve"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "org.apache.catalina.core.StandardEngineValve"]], [["function", "invoke"], ["module", "org.apache.catalina.valves.ErrorReportValve"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "org.apache.catalina.core.StandardHostValve"]], [["function", "invoke"], ["module", "org.apache.catalina.authenticator.AuthenticatorBase"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "org.apache.catalina.core.StandardWrapperValve"]], [["function", "doFilter"], ["module", "org.apache.catalina.core.ApplicationFilterChain"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke"], ["module", "org.apache.catalina.valves.ErrorReportValve"]], [["function", "invoke"], ["module", "org.apache.catalina.core.StandardHostValve"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invoke0"], ["module", "jdk.internal.reflect.NativeMethodAccessorImpl"]], [["function", "home"], ["module", "io.sentry.example.Application"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invokeAndHandle"], ["module", "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"]], [["function", "invokeForRequest"], ["module", "org.springframework.web.method.support.InvocableHandlerMethod"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invokeForRequest"], ["module", "org.springframework.web.method.support.InvocableHandlerMethod"]], [["function", "doInvoke"], ["module", "org.springframework.web.method.support.InvocableHandlerMethod"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "invokeHandlerMethod"], ["module", "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"]], [["function", "invokeAndHandle"], ["module", "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "process"], ["module", "org.apache.coyote.AbstractProcessorLight"]], [["function", "service"], ["module", "org.apache.coyote.http11.Http11Processor"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "process"], ["module", "org.apache.coyote.AbstractProtocol$ConnectionHandler"]], [["function", "process"], ["module", "org.apache.coyote.AbstractProcessorLight"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "processRequest"], ["module", "org.springframework.web.servlet.FrameworkServlet"]], [["function", "doService"], ["module", "org.springframework.web.servlet.DispatcherServlet"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "run"], ["module", "java.lang.Thread"]], [["function", "run"], ["module", "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "run"], ["module", "java.util.concurrent.ThreadPoolExecutor$Worker"]], [["function", "runWorker"], ["module", "java.util.concurrent.ThreadPoolExecutor"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "run"], ["module", "org.apache.tomcat.util.net.SocketProcessorBase"]], [["function", "doRun"], ["module", "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "run"], ["module", "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"]], [["function", "run"], ["module", "java.util.concurrent.ThreadPoolExecutor$Worker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "runWorker"], ["module", "java.util.concurrent.ThreadPoolExecutor"]], [["function", "run"], ["module", "org.apache.tomcat.util.net.SocketProcessorBase"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "service"], ["module", "javax.servlet.http.HttpServlet"]], [["function", "doGet"], ["module", "org.springframework.web.servlet.FrameworkServlet"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "service"], ["module", "javax.servlet.http.HttpServlet"]], [["function", "service"], ["module", "org.springframework.web.servlet.FrameworkServlet"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "service"], ["module", "org.apache.catalina.connector.CoyoteAdapter"]], [["function", "invoke"], ["module", "org.apache.catalina.core.StandardEngineValve"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "service"], ["module", "org.apache.coyote.http11.Http11Processor"]], [["function", "service"], ["module", "org.apache.catalina.connector.CoyoteAdapter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "service"], ["module", "org.springframework.web.servlet.FrameworkServlet"]], [["function", "service"], ["module", "javax.servlet.http.HttpServlet"]]]
 newstyle:2019-10-29:type:ident-shingle: "ArithmeticException"

@@ -1,14 +1,13 @@
 ---
-created: '2020-07-23T11:20:22.884203Z'
+created: '2020-07-23T15:41:46.563037Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "testMethod"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "aha"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "eval"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "callAnotherThing"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "aha"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "callback"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "callAnotherThing"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "eval"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "test"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "test"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "test/<"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "test/<"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "callback"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "testMethod"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "aha"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "test.html"]], [["filename", "test.html"], ["function", "callback"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "test.html"]], [["filename", "test.html"], ["function", "testMethod"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "test.html"], ["function", "aha"]], [["filename", "test.html"], ["function", "test"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "test.html"], ["function", "callAnotherThing"]], [["filename", "test.html"], ["function", "aha"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "test.html"], ["function", "callback"]], [["filename", "test.html"], ["function", "callAnotherThing"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "test.html"], ["function", "test"]], [["filename", "test.html"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "test.html"], ["function", "testMethod"]], [["filename", "test.html"], ["function", "aha"]]]
 newstyle:2019-10-29:type:ident-shingle: "Error"

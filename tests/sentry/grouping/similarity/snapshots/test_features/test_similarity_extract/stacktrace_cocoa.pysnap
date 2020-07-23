@@ -1,6 +1,7 @@
 ---
-created: '2020-07-23T11:20:22.645663Z'
+created: '2020-07-23T15:41:46.304671Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "bar.m"]], [[["filename", "ident-shingle"], "baz.m"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "bar.m"]], [["filename", "baz.m"]]]
+newstyle:2019-10-29:stacktrace:frames-ident: [["filename", "bar.m"]]

@@ -1,101 +1,31 @@
 ---
-created: '2020-07-23T11:20:22.624013Z'
+created: '2020-07-23T15:41:46.283165Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:message:character-5-shingle: " exce"
-newstyle:2019-10-29:message:character-5-shingle: " exec"
-newstyle:2019-10-29:message:character-5-shingle: " has "
-newstyle:2019-10-29:message:character-5-shingle: " occu"
-newstyle:2019-10-29:message:character-5-shingle: " requ"
-newstyle:2019-10-29:message:character-5-shingle: " the "
-newstyle:2019-10-29:message:character-5-shingle: " unha"
-newstyle:2019-10-29:message:character-5-shingle: " whil"
-newstyle:2019-10-29:message:character-5-shingle: "An un"
-newstyle:2019-10-29:message:character-5-shingle: "andle"
-newstyle:2019-10-29:message:character-5-shingle: "as oc"
-newstyle:2019-10-29:message:character-5-shingle: "ccurr"
-newstyle:2019-10-29:message:character-5-shingle: "cepti"
-newstyle:2019-10-29:message:character-5-shingle: "curre"
-newstyle:2019-10-29:message:character-5-shingle: "cutin"
-newstyle:2019-10-29:message:character-5-shingle: "d exc"
-newstyle:2019-10-29:message:character-5-shingle: "d whi"
-newstyle:2019-10-29:message:character-5-shingle: "dled "
-newstyle:2019-10-29:message:character-5-shingle: "e exe"
-newstyle:2019-10-29:message:character-5-shingle: "e req"
-newstyle:2019-10-29:message:character-5-shingle: "ecuti"
-newstyle:2019-10-29:message:character-5-shingle: "ed ex"
-newstyle:2019-10-29:message:character-5-shingle: "ed wh"
-newstyle:2019-10-29:message:character-5-shingle: "eptio"
-newstyle:2019-10-29:message:character-5-shingle: "eques"
-newstyle:2019-10-29:message:character-5-shingle: "excep"
-newstyle:2019-10-29:message:character-5-shingle: "execu"
-newstyle:2019-10-29:message:character-5-shingle: "g the"
-newstyle:2019-10-29:message:character-5-shingle: "handl"
-newstyle:2019-10-29:message:character-5-shingle: "has o"
-newstyle:2019-10-29:message:character-5-shingle: "he re"
-newstyle:2019-10-29:message:character-5-shingle: "hile "
-newstyle:2019-10-29:message:character-5-shingle: "ile e"
-newstyle:2019-10-29:message:character-5-shingle: "ing t"
-newstyle:2019-10-29:message:character-5-shingle: "ion h"
-newstyle:2019-10-29:message:character-5-shingle: "le ex"
-newstyle:2019-10-29:message:character-5-shingle: "led e"
-newstyle:2019-10-29:message:character-5-shingle: "n has"
-newstyle:2019-10-29:message:character-5-shingle: "n unh"
-newstyle:2019-10-29:message:character-5-shingle: "ndled"
-newstyle:2019-10-29:message:character-5-shingle: "ng th"
-newstyle:2019-10-29:message:character-5-shingle: "nhand"
-newstyle:2019-10-29:message:character-5-shingle: "occur"
-newstyle:2019-10-29:message:character-5-shingle: "on ha"
-newstyle:2019-10-29:message:character-5-shingle: "ption"
-newstyle:2019-10-29:message:character-5-shingle: "quest"
-newstyle:2019-10-29:message:character-5-shingle: "red w"
-newstyle:2019-10-29:message:character-5-shingle: "reque"
-newstyle:2019-10-29:message:character-5-shingle: "rred "
-newstyle:2019-10-29:message:character-5-shingle: "s occ"
-newstyle:2019-10-29:message:character-5-shingle: "the r"
-newstyle:2019-10-29:message:character-5-shingle: "ting "
-newstyle:2019-10-29:message:character-5-shingle: "tion "
-newstyle:2019-10-29:message:character-5-shingle: "uest."
-newstyle:2019-10-29:message:character-5-shingle: "unhan"
-newstyle:2019-10-29:message:character-5-shingle: "urred"
-newstyle:2019-10-29:message:character-5-shingle: "uting"
-newstyle:2019-10-29:message:character-5-shingle: "while"
-newstyle:2019-10-29:message:character-5-shingle: "xcept"
-newstyle:2019-10-29:message:character-5-shingle: "xecut"
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Execute"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"]], [[["function", "ident-shingle"], "Execute"], [["module", "ident-shingle"], "Microsoft.Extensions.Internal.ObjectMethodExecutor"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Execute"], [["module", "ident-shingle"], "Microsoft.Extensions.Internal.ObjectMethodExecutor"]], [[["function", "ident-shingle"], "lambda_method"], [["module", "ident-shingle"], "(unknown)"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "HandleNonSuccessAndDebuggerNotification"], [["module", "ident-shingle"], "System.Runtime.CompilerServices.TaskAwaiter"]], [[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Invoke"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"]], [[["function", "ident-shingle"], "HandleNonSuccessAndDebuggerNotification"], [["module", "ident-shingle"], "System.Runtime.CompilerServices.TaskAwaiter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Invoke"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Routing.EndpointMiddleware"]], [[["function", "ident-shingle"], "HandleNonSuccessAndDebuggerNotification"], [["module", "ident-shingle"], "System.Runtime.CompilerServices.TaskAwaiter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Invoke"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"]], [[["function", "ident-shingle"], "HandleNonSuccessAndDebuggerNotification"], [["module", "ident-shingle"], "System.Runtime.CompilerServices.TaskAwaiter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "InvokeActionMethodAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [[["function", "ident-shingle"], "Execute"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "InvokeAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [[["function", "ident-shingle"], "HandleNonSuccessAndDebuggerNotification"], [["module", "ident-shingle"], "System.Runtime.CompilerServices.TaskAwaiter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "InvokeFilterPipelineAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [[["function", "ident-shingle"], "Next"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "InvokeInnerFilterAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [[["function", "ident-shingle"], "Next"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "InvokeNextActionFilterAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [[["function", "ident-shingle"], "HandleNonSuccessAndDebuggerNotification"], [["module", "ident-shingle"], "System.Runtime.CompilerServices.TaskAwaiter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "InvokeNextResourceFilter"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [[["function", "ident-shingle"], "HandleNonSuccessAndDebuggerNotification"], [["module", "ident-shingle"], "System.Runtime.CompilerServices.TaskAwaiter"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Next"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [[["function", "ident-shingle"], "Rethrow"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Next"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [[["function", "ident-shingle"], "Rethrow"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Rethrow"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Rethrow"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [[["function", "ident-shingle"], "Invoke"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Routing.EndpointMiddleware"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [[["function", "ident-shingle"], "Invoke"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [[["function", "ident-shingle"], "InvokeActionMethodAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [[["function", "ident-shingle"], "InvokeAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [[["function", "ident-shingle"], "InvokeFilterPipelineAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [[["function", "ident-shingle"], "InvokeInnerFilterAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [[["function", "ident-shingle"], "InvokeNextActionFilterAsync"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "Throw"], [["module", "ident-shingle"], "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [[["function", "ident-shingle"], "InvokeNextResourceFilter"], [["module", "ident-shingle"], "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "lambda_method"], [["module", "ident-shingle"], "(unknown)"]], [[["filename", "ident-shingle"], "valuescontroller.cs"], [["function", "ident-shingle"], "Get"], [["module", "ident-shingle"], "SentryTest2.Controllers.ValuesController"]]]
-newstyle:2019-10-29:value:character-5-shingle: " exce"
-newstyle:2019-10-29:value:character-5-shingle: "c exc"
-newstyle:2019-10-29:value:character-5-shingle: "cepti"
-newstyle:2019-10-29:value:character-5-shingle: "eptio"
-newstyle:2019-10-29:value:character-5-shingle: "excep"
-newstyle:2019-10-29:value:character-5-shingle: "nc ex"
-newstyle:2019-10-29:value:character-5-shingle: "ption"
-newstyle:2019-10-29:value:character-5-shingle: "sync "
-newstyle:2019-10-29:value:character-5-shingle: "xcept"
-newstyle:2019-10-29:value:character-5-shingle: "ync e"
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Execute"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"]], [["function", "Execute"], ["module", "Microsoft.Extensions.Internal.ObjectMethodExecutor"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Execute"], ["module", "Microsoft.Extensions.Internal.ObjectMethodExecutor"]], [["function", "lambda_method"], ["module", "(unknown)"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "HandleNonSuccessAndDebuggerNotification"], ["module", "System.Runtime.CompilerServices.TaskAwaiter"]], [["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Invoke"], ["module", "Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware"]], [["function", "HandleNonSuccessAndDebuggerNotification"], ["module", "System.Runtime.CompilerServices.TaskAwaiter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Invoke"], ["module", "Microsoft.AspNetCore.Routing.EndpointMiddleware"]], [["function", "HandleNonSuccessAndDebuggerNotification"], ["module", "System.Runtime.CompilerServices.TaskAwaiter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Invoke"], ["module", "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"]], [["function", "HandleNonSuccessAndDebuggerNotification"], ["module", "System.Runtime.CompilerServices.TaskAwaiter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "InvokeActionMethodAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [["function", "Execute"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ActionMethodExecutor+SyncObjectResultExecutor"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "InvokeAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [["function", "HandleNonSuccessAndDebuggerNotification"], ["module", "System.Runtime.CompilerServices.TaskAwaiter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "InvokeFilterPipelineAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [["function", "Next"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "InvokeInnerFilterAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [["function", "Next"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "InvokeNextActionFilterAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [["function", "HandleNonSuccessAndDebuggerNotification"], ["module", "System.Runtime.CompilerServices.TaskAwaiter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "InvokeNextResourceFilter"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [["function", "HandleNonSuccessAndDebuggerNotification"], ["module", "System.Runtime.CompilerServices.TaskAwaiter"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Next"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [["function", "Rethrow"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Next"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [["function", "Rethrow"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Rethrow"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]], [["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Rethrow"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]], [["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [["function", "Invoke"], ["module", "Microsoft.AspNetCore.Routing.EndpointMiddleware"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [["function", "Invoke"], ["module", "Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [["function", "InvokeActionMethodAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [["function", "InvokeAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [["function", "InvokeFilterPipelineAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [["function", "InvokeInnerFilterAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [["function", "InvokeNextActionFilterAsync"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ControllerActionInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "Throw"], ["module", "System.Runtime.ExceptionServices.ExceptionDispatchInfo"]], [["function", "InvokeNextResourceFilter"], ["module", "Microsoft.AspNetCore.Mvc.Internal.ResourceInvoker"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "lambda_method"], ["module", "(unknown)"]], [["function", "Get"], ["module", "SentryTest2.Controllers.ValuesController"]]]
 newstyle:2019-10-29:type:ident-shingle: "System.Exception"

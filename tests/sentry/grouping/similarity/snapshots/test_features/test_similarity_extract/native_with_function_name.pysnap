@@ -1,55 +1,8 @@
 ---
-created: '2020-07-23T11:20:23.851281Z'
+created: '2020-07-23T15:41:47.743226Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "(anonymous namespace)::crash"]], [[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "(anonymous namespace)::something::nested::Foo<T>::crash"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "(anonymous namespace)::start"]], [[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "(anonymous namespace)::crash"]]]
-newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "main"]], [[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "(anonymous namespace)::start"]]]
-newstyle:2019-10-29:value:character-5-shingle: " / KE"
-newstyle:2019-10-29:value:character-5-shingle: " EXC_"
-newstyle:2019-10-29:value:character-5-shingle: " Erro"
-newstyle:2019-10-29:value:character-5-shingle: " KERN"
-newstyle:2019-10-29:value:character-5-shingle: "/ KER"
-newstyle:2019-10-29:value:character-5-shingle: ": EXC"
-newstyle:2019-10-29:value:character-5-shingle: "ACCES"
-newstyle:2019-10-29:value:character-5-shingle: "ADDRE"
-newstyle:2019-10-29:value:character-5-shingle: "AD_AC"
-newstyle:2019-10-29:value:character-5-shingle: "ALID_"
-newstyle:2019-10-29:value:character-5-shingle: "BAD_A"
-newstyle:2019-10-29:value:character-5-shingle: "CCESS"
-newstyle:2019-10-29:value:character-5-shingle: "CESS "
-newstyle:2019-10-29:value:character-5-shingle: "C_BAD"
-newstyle:2019-10-29:value:character-5-shingle: "DDRES"
-newstyle:2019-10-29:value:character-5-shingle: "DRESS"
-newstyle:2019-10-29:value:character-5-shingle: "D_ACC"
-newstyle:2019-10-29:value:character-5-shingle: "D_ADD"
-newstyle:2019-10-29:value:character-5-shingle: "ERN_I"
-newstyle:2019-10-29:value:character-5-shingle: "ESS /"
-newstyle:2019-10-29:value:character-5-shingle: "EXC_B"
-newstyle:2019-10-29:value:character-5-shingle: "Error"
-newstyle:2019-10-29:value:character-5-shingle: "Fatal"
-newstyle:2019-10-29:value:character-5-shingle: "ID_AD"
-newstyle:2019-10-29:value:character-5-shingle: "INVAL"
-newstyle:2019-10-29:value:character-5-shingle: "KERN_"
-newstyle:2019-10-29:value:character-5-shingle: "LID_A"
-newstyle:2019-10-29:value:character-5-shingle: "NVALI"
-newstyle:2019-10-29:value:character-5-shingle: "N_INV"
-newstyle:2019-10-29:value:character-5-shingle: "RN_IN"
-newstyle:2019-10-29:value:character-5-shingle: "S / K"
-newstyle:2019-10-29:value:character-5-shingle: "SS / "
-newstyle:2019-10-29:value:character-5-shingle: "VALID"
-newstyle:2019-10-29:value:character-5-shingle: "XC_BA"
-newstyle:2019-10-29:value:character-5-shingle: "_ACCE"
-newstyle:2019-10-29:value:character-5-shingle: "_ADDR"
-newstyle:2019-10-29:value:character-5-shingle: "_BAD_"
-newstyle:2019-10-29:value:character-5-shingle: "_INVA"
-newstyle:2019-10-29:value:character-5-shingle: "al Er"
-newstyle:2019-10-29:value:character-5-shingle: "atal "
-newstyle:2019-10-29:value:character-5-shingle: "l Err"
-newstyle:2019-10-29:value:character-5-shingle: "or: E"
-newstyle:2019-10-29:value:character-5-shingle: "r: EX"
-newstyle:2019-10-29:value:character-5-shingle: "ror: "
-newstyle:2019-10-29:value:character-5-shingle: "rror:"
-newstyle:2019-10-29:value:character-5-shingle: "tal E"
-newstyle:2019-10-29:type:ident-shingle: "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "main.cpp"], ["function", "(anonymous namespace)::crash"]], [["filename", "main.cpp"], ["function", "(anonymous namespace)::something::nested::Foo<T>::crash"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "main.cpp"], ["function", "(anonymous namespace)::start"]], [["filename", "main.cpp"], ["function", "(anonymous namespace)::crash"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "main.cpp"], ["function", "main"]], [["filename", "main.cpp"], ["function", "(anonymous namespace)::start"]]]

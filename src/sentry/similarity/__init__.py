@@ -26,27 +26,8 @@ from sentry.utils.iterators import shingle
 logger = logging.getLogger(__name__)
 
 
-def shingle_encoder(label):
-    def inner(f):
-        f._sentry_similarity_shingle_label = label
-        return f
-
-    return inner
-
-
-def text_shingle(n):
-    @shingle_encoder("character-{}-shingle".format(n))
-    def inner(value):
-        return map(u"".join, shingle(n, value))
-
-    return inner
-
-
-@shingle_encoder("ident-shingle")
-def ident_shingle(value):
-    # aka text_shingle(len(value), value)
-    # TODO: test
-    return [value]
+def text_shingle(n, value):
+    return map(u"".join, shingle(n, value))
 
 
 class FrameEncodingError(ValueError):
@@ -111,7 +92,7 @@ features = FeatureSet(
     ),
     {
         "exception:message:character-shingles": ExceptionFeature(
-            lambda exception: text_shingle(5)(exception.value)
+            lambda exception: text_shingle(5, exception.value)
         ),
         "exception:stacktrace:application-chunks": ExceptionFeature(
             lambda exception: get_application_chunks(exception)
@@ -120,7 +101,7 @@ features = FeatureSet(
             lambda exception: shingle(2, exception.stacktrace.frames)
         ),
         "message:message:character-shingles": MessageFeature(
-            lambda message: text_shingle(5)(message.formatted)
+            lambda message: text_shingle(5, message.formatted)
         ),
     },
     expected_extraction_errors=(InterfaceDoesNotExist,),

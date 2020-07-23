@@ -1,6 +1,6 @@
 ---
-created: '2020-07-23T11:20:23.492824Z'
+created: '2020-07-23T15:41:47.327192Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs: [[["function", "ident-shingle"], "int main()"], [["module", "ident-shingle"], "libfoo"]]
+newstyle:2019-10-29:stacktrace:frames-ident: [["function", "int main()"], ["module", "libfoo"]]

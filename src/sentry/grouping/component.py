@@ -123,21 +123,26 @@ class GroupingComponent(object):
             return hash_from_values(self.iter_values())
 
     def encode_for_similarity(self):
+        if not self.contributes:
+            return
+
         id = self.id
 
         if self.similarity_self_encoder is not None:
-            id2 = (id, self.similarity_self_encoder._sentry_similarity_shingle_label)
-            yield id2, self.similarity_self_encoder(self)
+            for x in self.similarity_self_encoder(id, self):
+                yield x
+
             return
 
         encoder = self.similarity_encoder
 
         for i, value in enumerate(self.values):
             if encoder is not None:
-                yield (id, encoder._sentry_similarity_shingle_label), encoder(value)
+                for x in encoder(id, value):
+                    yield x
             elif isinstance(value, GroupingComponent):
-                for id2, value2 in value.encode_for_similarity():
-                    yield id2, value2
+                for x in value.encode_for_similarity():
+                    yield x
 
     def as_dict(self):
         """Converts the component tree into a dictionary."""
