@@ -82,7 +82,7 @@ export function generatePerformanceEventView(
       'failure_rate()',
       `apdex(${organization.apdexThreshold})`,
       'count_unique(user)',
-      'user_misery(300)',
+      `user_misery(${organization.apdexThreshold})`,
     ],
     version: 2,
   };

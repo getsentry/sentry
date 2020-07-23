@@ -23,21 +23,21 @@ type Results = {
   [key: string]: React.ReactNode;
 } | null;
 
-const userMiseryLimit = 300;
-
 class UserStats extends React.Component<Props> {
   generateUserStatsEventView(eventView: EventView): EventView {
     // narrow the search conditions of the Performance Summary event view
     // by modifying the columns to only show user impact and apdex scores
+    const {organization} = this.props;
+    const threshold = organization.apdexThreshold.toString();
 
     eventView = eventView.withColumns([
       {
         kind: 'function',
-        function: ['apdex', '', undefined],
+        function: ['apdex', threshold, undefined],
       },
       {
         kind: 'function',
-        function: ['user_misery', `${userMiseryLimit}`, undefined],
+        function: ['user_misery', threshold, undefined],
       },
       {
         kind: 'function',
@@ -52,16 +52,18 @@ class UserStats extends React.Component<Props> {
 
   renderContents(stats: Results, row?) {
     let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
+    const {organization} = this.props;
+    const threshold = organization.apdexThreshold;
 
     if (stats) {
-      const miserableUsers = Number(row[`user_misery_${userMiseryLimit}`]);
+      const miserableUsers = Number(row[`user_misery_${threshold}`]);
       const totalUsers = Number(row.count_unique_user);
       if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
         userMisery = (
           <UserMisery
             bars={40}
             barHeight={30}
-            miseryLimit={userMiseryLimit}
+            miseryLimit={threshold}
             totalUsers={totalUsers}
             miserableUsers={miserableUsers}
           />

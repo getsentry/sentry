@@ -220,6 +220,9 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   user_misery: {
+    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    },
     parameters: [
       {
         kind: 'value',
