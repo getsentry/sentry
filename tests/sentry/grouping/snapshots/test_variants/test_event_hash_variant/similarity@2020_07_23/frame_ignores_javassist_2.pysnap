@@ -1,0 +1,26 @@
+---
+created: '2020-07-23T17:38:22.571650Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module* (removed codegen marker)
+            "com.example.api.entry.EntriesResource_$$_javassist<auto>"
+          function*
+            "fn"
+--------------------------------------------------------------------------
+system:
+  hash: "538bdfd8d7bb2495d0d6429c3689a420"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "com.example.api.entry.EntriesResource_$$_javassist<auto>"
+          function*
+            "fn"
