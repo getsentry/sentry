@@ -111,9 +111,8 @@ def build_welcome_card(signed_params):
     }
 
 
-def build_incident_title(group):
+def build_group_title(group):
     # TODO: implement with event as well
-    title = {"type": "TextBlock", "size": "Large", "weight": "Bolder"}
     ev_metadata = group.get_event_metadata()
     ev_type = group.get_event_type()
 
@@ -125,11 +124,10 @@ def build_incident_title(group):
     link = group.get_absolute_url()
 
     title_text = u"[{}]({})".format(text, link)
-    title["text"] = title_text
-    return title
+    return {"type": "TextBlock", "size": "Large", "weight": "Bolder", "text": title_text}
 
 
-def build_incident_desc(group):
+def build_group_desc(group):
     # TODO: implement with event as well
     ev_type = group.get_event_type()
     if ev_type == "error":
@@ -147,7 +145,7 @@ def build_rule_url(rule, group, project):
     return absolute_uri(rule_url)
 
 
-def build_incident_footer(group, rules, project):
+def build_group_footer(group, rules, project):
     # TODO: implement with event as well
     image_column = {
         "type": "Column",
@@ -190,13 +188,12 @@ def build_incident_footer(group, rules, project):
             }
         ],
         "width": "auto",
-        "separator": True,
     }
 
     return {"type": "ColumnSet", "columns": [image_column, text_column, date_column]}
 
 
-def build_incident_actions(group):
+def build_group_actions(group):
     status = group.get_status()
 
     # These targets are made so that the button will toggle its element
@@ -295,7 +292,7 @@ def build_incident_actions(group):
     }
 
 
-def build_incident_resolve_card():
+def build_group_resolve_card():
     title_card = {
         "type": "TextBlock",
         "size": "Large",
@@ -311,9 +308,9 @@ def build_incident_resolve_card():
         "id": "resolveInput",
         "isVisible": False,
         "choices": [
-            {"title": "Immediately", "value": "0"},
-            {"title": "In the current release", "value": "1"},
-            {"title": "In the next release", "value": "2"},
+            {"title": "Immediately", "value": "resolved"},
+            {"title": "In the current release", "value": "resolved:inCurrentRelease"},
+            {"title": "In the next release", "value": "resolved:inNextRelease"},
         ],
     }
 
@@ -329,7 +326,7 @@ def build_incident_resolve_card():
     return [title_card, input_card, submit_card]
 
 
-def build_incident_ignore_card():
+def build_group_ignore_card():
     title_card = {
         "type": "TextBlock",
         "size": "Large",
@@ -345,11 +342,12 @@ def build_incident_ignore_card():
         "id": "ignoreInput",
         "isVisible": False,
         "choices": [
-            {"title": "1 time", "value": "0"},
-            {"title": "10 times", "value": "1"},
-            {"title": "100 times", "value": "2"},
-            {"title": "1,000 times", "value": "3"},
-            {"title": "10,000 times", "value": "4"},
+            {"title": "Ignore indefinitely", "value": -1},
+            {"title": "1 time", "value": 1},
+            {"title": "10 times", "value": 10},
+            {"title": "100 times", "value": 100},
+            {"title": "1,000 times", "value": 1000},
+            {"title": "10,000 times", "value": 10000},
         ],
     }
 
@@ -363,13 +361,13 @@ def build_incident_ignore_card():
     return [title_card, input_card, submit_card]
 
 
-def build_incident_assign_card(group):
+def build_group_assign_card(group):
     teams = [
         {"title": u"#{}".format(u.slug), "value": u"team:{}".format(u.id)}
         for u in group.project.teams.all()
     ]
     teams.sort()
-    teams = [{"title": "Me", "value": "0"}] + teams
+    teams = [{"title": "Me", "value": "ME"}] + teams
     title_card = {
         "type": "TextBlock",
         "size": "Large",
@@ -396,35 +394,35 @@ def build_incident_assign_card(group):
     return [title_card, input_card, submit_card]
 
 
-def build_incident_action_cards(group):
+def build_group_action_cards(group):
     status = group.get_status()
     action_cards = []
     if status != GroupStatus.RESOLVED:
-        action_cards += build_incident_resolve_card()
+        action_cards += build_group_resolve_card()
     if status != GroupStatus.IGNORED:
-        action_cards += build_incident_ignore_card()
-    action_cards += build_incident_assign_card(group)
+        action_cards += build_group_ignore_card()
+    action_cards += build_group_assign_card(group)
 
     return {"type": "ColumnSet", "columns": [{"type": "Column", "items": action_cards}]}
 
 
-def build_incident_card(group, event, rules):
+def build_group_card(group, event, rules):
     project = Project.objects.get_from_cache(id=group.project_id)
 
-    title = build_incident_title(group)
+    title = build_group_title(group)
     body = [title]
 
-    desc = build_incident_desc(group)
+    desc = build_group_desc(group)
     if desc:
         body.append(desc)
 
-    footer = build_incident_footer(group, rules, project)
+    footer = build_group_footer(group, rules, project)
     body.append(footer)
 
-    actions = build_incident_actions(group)
+    actions = build_group_actions(group)
     body.append(actions)
 
-    action_cards = build_incident_action_cards(group)
+    action_cards = build_group_action_cards(group)
     body.append(action_cards)
 
     return {"type": "AdaptiveCard", "body": body}

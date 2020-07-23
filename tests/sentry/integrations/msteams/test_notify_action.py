@@ -63,7 +63,7 @@ class MsTeamsNotifyActionTest(RuleTestCase):
         # with MS Teams cards.
         title_card = attachments[0]["content"]["body"][0]
         title_pattern = "\[%s\](.*)" % event.title
-        assert re.match(title_pattern, title_card["text"]) is not None
+        assert re.match(title_pattern, title_card["text"])
 
     def test_render_label(self):
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Tatooine"})
