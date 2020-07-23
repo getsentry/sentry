@@ -1,5 +1,5 @@
 ---
-created: '2019-11-19T11:22:56.297739Z'
+created: '2020-07-23T18:18:44.303684Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -252,6 +252,10 @@ debug_meta:
     type: pe
     unwind_status: missing
 errors:
+- name: timestamp
+  sdk_time: '2018-03-22T10:07:53+00:00'
+  server_time: '2020-07-23T18:18:41.236555500+00:00'
+  type: past_timestamp
 - name: timestamp
   type: past_timestamp
   value: 1521713273
