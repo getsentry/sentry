@@ -101,7 +101,8 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
             html_template="sentry/emails/requests/organization-integration.html",
             type="organization.integration.request",
             context={
-                "integration_link": get_url(organization, provider_type, provider_slug),
+                "integration_link": get_url(organization, provider_type, provider_slug)
+                + "/?referrer=request_email",
                 "integration_name": provider_name,
                 "message": message_option,
                 "organization_name": organization.name,
@@ -116,7 +117,6 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
                 ),
             },
         )
-
         msg.send_async([user.email for user in owners_list])
 
         return Response(status=201)
