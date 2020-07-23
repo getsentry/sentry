@@ -101,7 +101,6 @@ jobs:
           id: visual-snapshots-diff
           uses: getsentry/action-visual-snapshot@v2-dev
           with:
-            api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
             github-token: ${{ secrets.GITHUB_TOKEN }}
             action-name: Jest Snapshots
             gcs-bucket: 'sentry-visual-snapshots'
