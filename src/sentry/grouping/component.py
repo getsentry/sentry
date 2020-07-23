@@ -126,7 +126,7 @@ class GroupingComponent(object):
         id = self.id
 
         if self.similarity_self_encoder is not None:
-            id2 = "{}:{}".format(id, self.similarity_self_encoder._sentry_similarity_shingle_label)
+            id2 = (id, self.similarity_self_encoder._sentry_similarity_shingle_label)
             yield id2, self.similarity_self_encoder(self)
             return
 
@@ -134,7 +134,7 @@ class GroupingComponent(object):
 
         for i, value in enumerate(self.values):
             if encoder is not None:
-                yield "{}:{}".format(id, encoder._sentry_similarity_shingle_label), encoder(value)
+                yield (id, encoder._sentry_similarity_shingle_label), encoder(value)
             elif isinstance(value, GroupingComponent):
                 for id2, value2 in value.encode_for_similarity():
                     yield id2, value2

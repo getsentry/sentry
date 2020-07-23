@@ -1,44 +1,43 @@
 ---
-created: '2020-07-22T12:08:09.172616Z'
+created: '2020-07-23T11:20:24.274886Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:message:character-5-shingle:
-- ' ''sty'
-- ' ''use'
-- ' from'
-- ''' fro'
-- '''styl'
-- '''use.'
-- .com'
-- .font
-- Block
-- aweso
-- 'cked '
-- d 'st
-- e' fr
-- e.com
-- e.fon
-- ed 's
-- esome
-- fonta
-- 'from '
-- ked '
-- le' f
-- locke
-- m 'us
-- me.co
-- ntawe
-- ocked
-- om 'u
-- ome.c
-- ontaw
-- rom '
-- se.fo
-- some.
-- style
-- tawes
-- tyle'
-- use.f
-- wesom
-- 'yle'' '
+newstyle:2019-10-29:message:character-5-shingle: " 'sty"
+newstyle:2019-10-29:message:character-5-shingle: " 'use"
+newstyle:2019-10-29:message:character-5-shingle: " from"
+newstyle:2019-10-29:message:character-5-shingle: "' fro"
+newstyle:2019-10-29:message:character-5-shingle: "'styl"
+newstyle:2019-10-29:message:character-5-shingle: "'use."
+newstyle:2019-10-29:message:character-5-shingle: ".com'"
+newstyle:2019-10-29:message:character-5-shingle: ".font"
+newstyle:2019-10-29:message:character-5-shingle: "Block"
+newstyle:2019-10-29:message:character-5-shingle: "aweso"
+newstyle:2019-10-29:message:character-5-shingle: "cked "
+newstyle:2019-10-29:message:character-5-shingle: "d 'st"
+newstyle:2019-10-29:message:character-5-shingle: "e' fr"
+newstyle:2019-10-29:message:character-5-shingle: "e.com"
+newstyle:2019-10-29:message:character-5-shingle: "e.fon"
+newstyle:2019-10-29:message:character-5-shingle: "ed 's"
+newstyle:2019-10-29:message:character-5-shingle: "esome"
+newstyle:2019-10-29:message:character-5-shingle: "fonta"
+newstyle:2019-10-29:message:character-5-shingle: "from "
+newstyle:2019-10-29:message:character-5-shingle: "ked '"
+newstyle:2019-10-29:message:character-5-shingle: "le' f"
+newstyle:2019-10-29:message:character-5-shingle: "locke"
+newstyle:2019-10-29:message:character-5-shingle: "m 'us"
+newstyle:2019-10-29:message:character-5-shingle: "me.co"
+newstyle:2019-10-29:message:character-5-shingle: "ntawe"
+newstyle:2019-10-29:message:character-5-shingle: "ocked"
+newstyle:2019-10-29:message:character-5-shingle: "om 'u"
+newstyle:2019-10-29:message:character-5-shingle: "ome.c"
+newstyle:2019-10-29:message:character-5-shingle: "ontaw"
+newstyle:2019-10-29:message:character-5-shingle: "rom '"
+newstyle:2019-10-29:message:character-5-shingle: "se.fo"
+newstyle:2019-10-29:message:character-5-shingle: "some."
+newstyle:2019-10-29:message:character-5-shingle: "style"
+newstyle:2019-10-29:message:character-5-shingle: "tawes"
+newstyle:2019-10-29:message:character-5-shingle: "tyle'"
+newstyle:2019-10-29:message:character-5-shingle: "use.f"
+newstyle:2019-10-29:message:character-5-shingle: "wesom"
+newstyle:2019-10-29:message:character-5-shingle: "yle' "

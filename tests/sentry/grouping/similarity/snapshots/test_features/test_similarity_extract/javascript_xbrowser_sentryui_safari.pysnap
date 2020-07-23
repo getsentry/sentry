@@ -1,274 +1,53 @@
 ---
-created: '2020-07-22T12:08:10.015972Z'
+created: '2020-07-23T11:20:24.790806Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs:
-- - - - context-line:ident-shingle
-      - asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
-    - - filename:ident-shingle
-      - asynctogenerator.js
-    - - function:ident-shingle
-      - _next
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
-  - - - context-line:ident-shingle
-      - var info = gen[key](arg);
-    - - filename:ident-shingle
-      - asynctogenerator.js
-    - - function:ident-shingle
-      - asyncGeneratorStep
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
-- - - - context-line:ident-shingle
-      - fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)
-    - - filename:ident-shingle
-      - groupeventdetails.jsx
-    - - function:ident-shingle
-      - fetchData
-    - - module:ident-shingle
-      - app/views/groupDetails/shared/groupEventDetails
-  - - - context-line:ident-shingle
-      - const preservedError = new Error();
-    - - filename:ident-shingle
-      - api.jsx
-    - - function:ident-shingle
-      - fetchGroupEventAndMarkSeen
-    - - module:ident-shingle
-      - app/api
-- - - - context-line:ident-shingle
-      - function Xg(a,b,c){V?t("245"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis
-        {snip}
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - Yg
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-  - - - context-line:ident-shingle
-      - function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati
-        {snip}
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - Xg
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-- - - - context-line:ident-shingle
-      - function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati
-        {snip}
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - Xg
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-  - - - context-line:ident-shingle
-      - '{snip} .__reactInternalSnapshotBeforeUpdate)}var kg=q.updateQueue;null!==kg&&(X.props=q.memoizedProps,X.state=q.memoizedState,lf(q,kg,X,p));break;c
-        {snip}'
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - ih
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-- - - - context-line:ident-shingle
-      - 'return { type: "normal", arg: fn.call(obj, arg) };'
-    - - filename:ident-shingle
-      - runtime.js
-    - - function:ident-shingle
-      - tryCatch
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
-  - - - context-line:ident-shingle
-      - this.setState({
-    - - filename:ident-shingle
-      - lazyload.jsx
-    - - function:ident-shingle
-      - call
-    - - module:ident-shingle
-      - app/components/lazyLoad
-- - - - context-line:ident-shingle
-      - this.fetchData();
-    - - filename:ident-shingle
-      - groupeventdetails.jsx
-    - - function:ident-shingle
-      - q
-    - - module:ident-shingle
-      - app/views/groupDetails/shared/groupEventDetails
-  - - - context-line:ident-shingle
-      - fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)
-    - - filename:ident-shingle
-      - groupeventdetails.jsx
-    - - function:ident-shingle
-      - fetchData
-    - - module:ident-shingle
-      - app/views/groupDetails/shared/groupEventDetails
-- - - - context-line:ident-shingle
-      - this.setState({
-    - - filename:ident-shingle
-      - lazyload.jsx
-    - - function:ident-shingle
-      - call
-    - - module:ident-shingle
-      - app/components/lazyLoad
-  - - - context-line:ident-shingle
-      - '{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0,
-        {snip}'
-    - - filename:ident-shingle
-      - react.production.min.js
-    - - function:ident-shingle
-      - setState
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production
-- - - - context-line:ident-shingle
-      - var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0)
-        {snip}
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - tag
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-  - - - context-line:ident-shingle
-      - function Xg(a,b,c){V?t("245"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis
-        {snip}
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - Yg
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-- - - - context-line:ident-shingle
-      - var info = gen[key](arg);
-    - - filename:ident-shingle
-      - asynctogenerator.js
-    - - function:ident-shingle
-      - asyncGeneratorStep
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
-  - - - context-line:ident-shingle
-      - var record = tryCatch(innerFn, self, context);
-    - - filename:ident-shingle
-      - runtime.js
-    - - function:ident-shingle
-      - key
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
-- - - - context-line:ident-shingle
-      - var record = tryCatch(innerFn, self, context);
-    - - filename:ident-shingle
-      - runtime.js
-    - - function:ident-shingle
-      - key
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
-  - - - context-line:ident-shingle
-      - 'return { type: "normal", arg: fn.call(obj, arg) };'
-    - - filename:ident-shingle
-      - runtime.js
-    - - function:ident-shingle
-      - tryCatch
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime
-- - - - context-line:ident-shingle
-      - '{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var
-        c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=='
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - enqueueSetState
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-  - - - context-line:ident-shingle
-      - var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0)
-        {snip}
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - tag
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-- - - - context-line:ident-shingle
-      - '{snip} .__reactInternalSnapshotBeforeUpdate)}var kg=q.updateQueue;null!==kg&&(X.props=q.memoizedProps,X.state=q.memoizedState,lf(q,kg,X,p));break;c
-        {snip}'
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - ih
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-  - - - context-line:ident-shingle
-      - this.fetchData();
-    - - filename:ident-shingle
-      - groupeventdetails.jsx
-    - - function:ident-shingle
-      - q
-    - - module:ident-shingle
-      - app/views/groupDetails/shared/groupEventDetails
-- - - - context-line:ident-shingle
-      - '{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0,
-        {snip}'
-    - - filename:ident-shingle
-      - react.production.min.js
-    - - function:ident-shingle
-      - setState
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production
-  - - - context-line:ident-shingle
-      - '{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var
-        c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=='
-    - - filename:ident-shingle
-      - react-dom.production.min.js
-    - - function:ident-shingle
-      - enqueueSetState
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production
-- - - - filename:ident-shingle
-      - '[native code]'
-    - - function:ident-shingle
-      - promiseReactionJob
-  - - - context-line:ident-shingle
-      - asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
-    - - filename:ident-shingle
-      - asynctogenerator.js
-    - - function:ident-shingle
-      - _next
-    - - module:ident-shingle
-      - usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator
-newstyle:2019-10-29:type:ident-shingle:
-- NotFoundError
-newstyle:2019-10-29:value:character-5-shingle:
-- ' /iss'
-- ' <int'
-- / <in
-- /<int
-- /even
-- /issu
-- /late
-- <int>
-- '>/eve'
-- ET /i
-- GET /
-- T /is
-- atest
-- ents/
-- es/<i
-- 'est/ '
-- event
-- int>/
-- issue
-- lates
-- nt>/e
-- nts/l
-- s/<in
-- s/lat
-- ssues
-- st/ <
-- sues/
-- t/ <i
-- t>/ev
-- test/
-- ts/la
-- ues/<
-- vents
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"], [["filename", "ident-shingle"], "asynctogenerator.js"], [["function", "ident-shingle"], "_next"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"]], [[["context-line", "ident-shingle"], "var info = gen[key](arg);"], [["filename", "ident-shingle"], "asynctogenerator.js"], [["function", "ident-shingle"], "asyncGeneratorStep"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"], [["filename", "ident-shingle"], "groupeventdetails.jsx"], [["function", "ident-shingle"], "fetchData"], [["module", "ident-shingle"], "app/views/groupDetails/shared/groupEventDetails"]], [[["context-line", "ident-shingle"], "const preservedError = new Error();"], [["filename", "ident-shingle"], "api.jsx"], [["function", "ident-shingle"], "fetchGroupEventAndMarkSeen"], [["module", "ident-shingle"], "app/api"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "function Xg(a,b,c){V?t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}"], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "Yg"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]], [[["context-line", "ident-shingle"], "function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}"], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "Xg"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}"], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "Xg"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]], [[["context-line", "ident-shingle"], "{snip} .__reactInternalSnapshotBeforeUpdate)}var kg=q.updateQueue;null!==kg&&(X.props=q.memoizedProps,X.state=q.memoizedState,lf(q,kg,X,p));break;c {snip}"], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "ih"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "return { type: \"normal\", arg: fn.call(obj, arg) };"], [["filename", "ident-shingle"], "runtime.js"], [["function", "ident-shingle"], "tryCatch"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"]], [[["context-line", "ident-shingle"], "this.setState({"], [["filename", "ident-shingle"], "lazyload.jsx"], [["function", "ident-shingle"], "call"], [["module", "ident-shingle"], "app/components/lazyLoad"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "this.fetchData();"], [["filename", "ident-shingle"], "groupeventdetails.jsx"], [["function", "ident-shingle"], "q"], [["module", "ident-shingle"], "app/views/groupDetails/shared/groupEventDetails"]], [[["context-line", "ident-shingle"], "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"], [["filename", "ident-shingle"], "groupeventdetails.jsx"], [["function", "ident-shingle"], "fetchData"], [["module", "ident-shingle"], "app/views/groupDetails/shared/groupEventDetails"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "this.setState({"], [["filename", "ident-shingle"], "lazyload.jsx"], [["function", "ident-shingle"], "call"], [["module", "ident-shingle"], "app/components/lazyLoad"]], [[["context-line", "ident-shingle"], "{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0, {snip}"], [["filename", "ident-shingle"], "react.production.min.js"], [["function", "ident-shingle"], "setState"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}"], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "tag"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]], [[["context-line", "ident-shingle"], "function Xg(a,b,c){V?t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}"], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "Yg"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "var info = gen[key](arg);"], [["filename", "ident-shingle"], "asynctogenerator.js"], [["function", "ident-shingle"], "asyncGeneratorStep"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"]], [[["context-line", "ident-shingle"], "var record = tryCatch(innerFn, self, context);"], [["filename", "ident-shingle"], "runtime.js"], [["function", "ident-shingle"], "key"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "var record = tryCatch(innerFn, self, context);"], [["filename", "ident-shingle"], "runtime.js"], [["function", "ident-shingle"], "key"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"]], [[["context-line", "ident-shingle"], "return { type: \"normal\", arg: fn.call(obj, arg) };"], [["filename", "ident-shingle"], "runtime.js"], [["function", "ident-shingle"], "tryCatch"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=="], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "enqueueSetState"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]], [[["context-line", "ident-shingle"], "var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}"], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "tag"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "{snip} .__reactInternalSnapshotBeforeUpdate)}var kg=q.updateQueue;null!==kg&&(X.props=q.memoizedProps,X.state=q.memoizedState,lf(q,kg,X,p));break;c {snip}"], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "ih"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]], [[["context-line", "ident-shingle"], "this.fetchData();"], [["filename", "ident-shingle"], "groupeventdetails.jsx"], [["function", "ident-shingle"], "q"], [["module", "ident-shingle"], "app/views/groupDetails/shared/groupEventDetails"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0, {snip}"], [["filename", "ident-shingle"], "react.production.min.js"], [["function", "ident-shingle"], "setState"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"]], [[["context-line", "ident-shingle"], "{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=="], [["filename", "ident-shingle"], "react-dom.production.min.js"], [["function", "ident-shingle"], "enqueueSetState"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "[native code]"], [["function", "ident-shingle"], "promiseReactionJob"]], [[["context-line", "ident-shingle"], "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"], [["filename", "ident-shingle"], "asynctogenerator.js"], [["function", "ident-shingle"], "_next"], [["module", "ident-shingle"], "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"]]]
+newstyle:2019-10-29:value:character-5-shingle: " /iss"
+newstyle:2019-10-29:value:character-5-shingle: " <int"
+newstyle:2019-10-29:value:character-5-shingle: "/ <in"
+newstyle:2019-10-29:value:character-5-shingle: "/<int"
+newstyle:2019-10-29:value:character-5-shingle: "/even"
+newstyle:2019-10-29:value:character-5-shingle: "/issu"
+newstyle:2019-10-29:value:character-5-shingle: "/late"
+newstyle:2019-10-29:value:character-5-shingle: "<int>"
+newstyle:2019-10-29:value:character-5-shingle: ">/eve"
+newstyle:2019-10-29:value:character-5-shingle: "ET /i"
+newstyle:2019-10-29:value:character-5-shingle: "GET /"
+newstyle:2019-10-29:value:character-5-shingle: "T /is"
+newstyle:2019-10-29:value:character-5-shingle: "atest"
+newstyle:2019-10-29:value:character-5-shingle: "ents/"
+newstyle:2019-10-29:value:character-5-shingle: "es/<i"
+newstyle:2019-10-29:value:character-5-shingle: "est/ "
+newstyle:2019-10-29:value:character-5-shingle: "event"
+newstyle:2019-10-29:value:character-5-shingle: "int>/"
+newstyle:2019-10-29:value:character-5-shingle: "issue"
+newstyle:2019-10-29:value:character-5-shingle: "lates"
+newstyle:2019-10-29:value:character-5-shingle: "nt>/e"
+newstyle:2019-10-29:value:character-5-shingle: "nts/l"
+newstyle:2019-10-29:value:character-5-shingle: "s/<in"
+newstyle:2019-10-29:value:character-5-shingle: "s/lat"
+newstyle:2019-10-29:value:character-5-shingle: "ssues"
+newstyle:2019-10-29:value:character-5-shingle: "st/ <"
+newstyle:2019-10-29:value:character-5-shingle: "sues/"
+newstyle:2019-10-29:value:character-5-shingle: "t/ <i"
+newstyle:2019-10-29:value:character-5-shingle: "t>/ev"
+newstyle:2019-10-29:value:character-5-shingle: "test/"
+newstyle:2019-10-29:value:character-5-shingle: "ts/la"
+newstyle:2019-10-29:value:character-5-shingle: "ues/<"
+newstyle:2019-10-29:value:character-5-shingle: "vents"
+newstyle:2019-10-29:type:ident-shingle: "NotFoundError"

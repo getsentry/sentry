@@ -1,18 +1,14 @@
 ---
-created: '2020-07-22T12:08:08.497635Z'
+created: '2020-07-23T11:20:23.861856Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs:
-- - - filename:ident-shingle
-    - baz.py
-newstyle:2019-10-29:type:ident-shingle:
-- ValueError
-newstyle:2019-10-29:value:character-5-shingle:
-- ' worl'
-- 'ello '
-- hello
-- llo w
-- lo wo
-- o wor
-- world
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["filename", "ident-shingle"], "baz.py"]]
+newstyle:2019-10-29:value:character-5-shingle: " worl"
+newstyle:2019-10-29:value:character-5-shingle: "ello "
+newstyle:2019-10-29:value:character-5-shingle: "hello"
+newstyle:2019-10-29:value:character-5-shingle: "llo w"
+newstyle:2019-10-29:value:character-5-shingle: "lo wo"
+newstyle:2019-10-29:value:character-5-shingle: "o wor"
+newstyle:2019-10-29:value:character-5-shingle: "world"
+newstyle:2019-10-29:type:ident-shingle: "ValueError"

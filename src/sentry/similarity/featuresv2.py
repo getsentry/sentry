@@ -20,21 +20,21 @@ logger = logging.getLogger(__name__)
 # of (config_name) -> (set of labels). Even better would be to be able to
 # statically determine this for any given strategy configuration without this
 # list (requires refactor of grouping)
-_KNOWN_COMPONENT_LABEL_SUFFIXES = frozenset(
-    [
-        "message:character-5-shingle",
-        "symbol:ident-shingle",
-        "context-line:ident-shingle",
-        "frame:frame-ident",
-        "filename:ident-shingle",
-        "module:ident-shingle",
-        "function:ident-shingle",
-        "lineno:ident-shingle",
-        "stacktrace:frames-pairs",
-        "type:ident-shingle",
-        "value:character-5-shingle",
-    ]
-)
+#
+# (<component ID>, <shingle label>) -> <redis prefix>
+_KNOWN_COMPONENT_LABEL_SUFFIXES = {
+    ("message", "character-5-shingle"): "a",
+    ("symbol", "ident-shingle"): "b",
+    ("context-line", "ident-shingle"): "c",
+    ("frame", "frame-ident"): "d",
+    ("filename", "ident-shingle"): "e",
+    ("module", "ident-shingle"): "f",
+    ("function", "ident-shingle"): "g",
+    ("lineno", "ident-shingle"): "h",
+    ("stacktrace", "frames-pairs"): "i",
+    ("type", "ident-shingle"): "j",
+    ("value", "character-5-shingle"): "k",
+}
 
 
 class GroupingBasedFeatureSet(FeatureSet):
@@ -54,12 +54,18 @@ class GroupingBasedFeatureSet(FeatureSet):
         self.expected_encoding_errors = ()
 
         self.features = {
-            "{}:{}".format(cfg, suffix): None
-            for cfg in self.configurations
-            for suffix in _KNOWN_COMPONENT_LABEL_SUFFIXES
+            (config_id, component_id, shingle_label): None
+            for config_id in self.configurations
+            for component_id, shingle_label in _KNOWN_COMPONENT_LABEL_SUFFIXES
         }
 
-        self.aliases = {k: k for k in self.features}
+        self.aliases = {
+            (config_id, component_id, shingle_label): "{}:{}".format(
+                self.configurations[config_id],
+                _KNOWN_COMPONENT_LABEL_SUFFIXES[component_id, shingle_label],
+            )
+            for config_id, component_id, shingle_label in self.features
+        }
 
     def extract(self, event):
         results = {}
@@ -74,10 +80,9 @@ class GroupingBasedFeatureSet(FeatureSet):
             event._data = data_bak
 
             for variant in variants.values():
-                for label_suffix, feature in variant.encode_for_similarity():
-                    label = "{}:{}".format(configuration, label_suffix)
+                for (component_id, shingle_label), feature in variant.encode_for_similarity():
+                    label = (configuration, component_id, shingle_label)
                     assert label in self.features
-
                     results.setdefault(label, set()).update(feature)
 
         return {label: sorted(features) for label, features in six.iteritems(results)}

@@ -1,61 +1,45 @@
 ---
-created: '2020-07-22T12:08:08.406541Z'
+created: '2020-07-23T11:20:23.786309Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs:
-- - - - context-line:ident-shingle
-      - onError(err);
-    - - filename:ident-shingle
-      - createteammodal.jsx
-    - - module:ident-shingle
-      - app/components/modals/createTeamModal
-  - - - context-line:ident-shingle
-      - this.model.submitError(error);
-    - - filename:ident-shingle
-      - form.jsx
-    - - function:ident-shingle
-      - onError
-    - - module:ident-shingle
-      - app/views/settings/components/forms/form
-newstyle:2019-10-29:type:ident-shingle:
-- TypeError
-newstyle:2019-10-29:value:character-5-shingle:
-- ' ''sub'
-- ' null'
-- ' of n'
-- ' prop'
-- ' read'
-- ''' of '
-- '''subm'
-- Canno
-- Error
-- ad pr
-- annot
-- bmitE
-- d pro
-- ead p
-- 'erty '
-- f nul
-- itErr
-- mitEr
-- 'nnot '
-- not r
-- of nu
-- opert
-- or' o
-- ot re
-- perty
-- prope
-- r' of
-- 'read '
-- roper
-- 'ror'' '
-- rror'
-- rty '
-- submi
-- t rea
-- tErro
-- ty 's
-- ubmit
-- y 'su
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "onError(err);"], [["filename", "ident-shingle"], "createteammodal.jsx"], [["module", "ident-shingle"], "app/components/modals/createTeamModal"]], [[["context-line", "ident-shingle"], "this.model.submitError(error);"], [["filename", "ident-shingle"], "form.jsx"], [["function", "ident-shingle"], "onError"], [["module", "ident-shingle"], "app/views/settings/components/forms/form"]]]
+newstyle:2019-10-29:value:character-5-shingle: " 'sub"
+newstyle:2019-10-29:value:character-5-shingle: " null"
+newstyle:2019-10-29:value:character-5-shingle: " of n"
+newstyle:2019-10-29:value:character-5-shingle: " prop"
+newstyle:2019-10-29:value:character-5-shingle: " read"
+newstyle:2019-10-29:value:character-5-shingle: "' of "
+newstyle:2019-10-29:value:character-5-shingle: "'subm"
+newstyle:2019-10-29:value:character-5-shingle: "Canno"
+newstyle:2019-10-29:value:character-5-shingle: "Error"
+newstyle:2019-10-29:value:character-5-shingle: "ad pr"
+newstyle:2019-10-29:value:character-5-shingle: "annot"
+newstyle:2019-10-29:value:character-5-shingle: "bmitE"
+newstyle:2019-10-29:value:character-5-shingle: "d pro"
+newstyle:2019-10-29:value:character-5-shingle: "ead p"
+newstyle:2019-10-29:value:character-5-shingle: "erty "
+newstyle:2019-10-29:value:character-5-shingle: "f nul"
+newstyle:2019-10-29:value:character-5-shingle: "itErr"
+newstyle:2019-10-29:value:character-5-shingle: "mitEr"
+newstyle:2019-10-29:value:character-5-shingle: "nnot "
+newstyle:2019-10-29:value:character-5-shingle: "not r"
+newstyle:2019-10-29:value:character-5-shingle: "of nu"
+newstyle:2019-10-29:value:character-5-shingle: "opert"
+newstyle:2019-10-29:value:character-5-shingle: "or' o"
+newstyle:2019-10-29:value:character-5-shingle: "ot re"
+newstyle:2019-10-29:value:character-5-shingle: "perty"
+newstyle:2019-10-29:value:character-5-shingle: "prope"
+newstyle:2019-10-29:value:character-5-shingle: "r' of"
+newstyle:2019-10-29:value:character-5-shingle: "read "
+newstyle:2019-10-29:value:character-5-shingle: "roper"
+newstyle:2019-10-29:value:character-5-shingle: "ror' "
+newstyle:2019-10-29:value:character-5-shingle: "rror'"
+newstyle:2019-10-29:value:character-5-shingle: "rty '"
+newstyle:2019-10-29:value:character-5-shingle: "submi"
+newstyle:2019-10-29:value:character-5-shingle: "t rea"
+newstyle:2019-10-29:value:character-5-shingle: "tErro"
+newstyle:2019-10-29:value:character-5-shingle: "ty 's"
+newstyle:2019-10-29:value:character-5-shingle: "ubmit"
+newstyle:2019-10-29:value:character-5-shingle: "y 'su"
+newstyle:2019-10-29:type:ident-shingle: "TypeError"

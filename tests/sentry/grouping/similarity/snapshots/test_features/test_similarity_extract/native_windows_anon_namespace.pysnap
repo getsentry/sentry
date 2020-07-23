@@ -1,81 +1,50 @@
 ---
-created: '2020-07-22T12:08:09.961986Z'
+created: '2020-07-23T11:20:24.752989Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs:
-- - - - filename:ident-shingle
-      - exe_common.inl
-    - - function:ident-shingle
-      - __scrt_common_main_seh
-  - - - filename:ident-shingle
-      - exe_common.inl
-    - - function:ident-shingle
-      - invoke_main
-- - - - filename:ident-shingle
-      - exe_common.inl
-    - - function:ident-shingle
-      - invoke_main
-  - - - filename:ident-shingle
-      - main.cpp
-    - - function:ident-shingle
-      - main
-- - - - filename:ident-shingle
-      - main.cpp
-    - - function:ident-shingle
-      - '`anonymous namespace''::start'
-  - - - filename:ident-shingle
-      - main.cpp
-    - - function:ident-shingle
-      - '`anonymous namespace''::crash'
-- - - - filename:ident-shingle
-      - main.cpp
-    - - function:ident-shingle
-      - main
-  - - - filename:ident-shingle
-      - main.cpp
-    - - function:ident-shingle
-      - '`anonymous namespace''::start'
-newstyle:2019-10-29:type:ident-shingle:
-- EXCEPTION_ACCESS_VIOLATION_WRITE
-newstyle:2019-10-29:value:character-5-shingle:
-- ' EXCE'
-- ' Erro'
-- ': EXC'
-- ACCES
-- ATION
-- CCESS
-- CEPTI
-- CESS_
-- EPTIO
-- ESS_V
-- EXCEP
-- Error
-- Fatal
-- IOLAT
-- ION_A
-- ION_W
-- LATIO
-- N_ACC
-- N_WRI
-- OLATI
-- ON_AC
-- ON_WR
-- PTION
-- SS_VI
-- S_VIO
-- TION_
-- VIOLA
-- WRITE
-- XCEPT
-- _ACCE
-- _VIOL
-- _WRIT
-- al Er
-- 'atal '
-- l Err
-- 'or: E'
-- 'r: EX'
-- 'ror: '
-- 'rror:'
-- tal E
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "exe_common.inl"], [["function", "ident-shingle"], "__scrt_common_main_seh"]], [[["filename", "ident-shingle"], "exe_common.inl"], [["function", "ident-shingle"], "invoke_main"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "exe_common.inl"], [["function", "ident-shingle"], "invoke_main"]], [[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "main"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "`anonymous namespace'::start"]], [[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "`anonymous namespace'::crash"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "main"]], [[["filename", "ident-shingle"], "main.cpp"], [["function", "ident-shingle"], "`anonymous namespace'::start"]]]
+newstyle:2019-10-29:value:character-5-shingle: " EXCE"
+newstyle:2019-10-29:value:character-5-shingle: " Erro"
+newstyle:2019-10-29:value:character-5-shingle: ": EXC"
+newstyle:2019-10-29:value:character-5-shingle: "ACCES"
+newstyle:2019-10-29:value:character-5-shingle: "ATION"
+newstyle:2019-10-29:value:character-5-shingle: "CCESS"
+newstyle:2019-10-29:value:character-5-shingle: "CEPTI"
+newstyle:2019-10-29:value:character-5-shingle: "CESS_"
+newstyle:2019-10-29:value:character-5-shingle: "EPTIO"
+newstyle:2019-10-29:value:character-5-shingle: "ESS_V"
+newstyle:2019-10-29:value:character-5-shingle: "EXCEP"
+newstyle:2019-10-29:value:character-5-shingle: "Error"
+newstyle:2019-10-29:value:character-5-shingle: "Fatal"
+newstyle:2019-10-29:value:character-5-shingle: "IOLAT"
+newstyle:2019-10-29:value:character-5-shingle: "ION_A"
+newstyle:2019-10-29:value:character-5-shingle: "ION_W"
+newstyle:2019-10-29:value:character-5-shingle: "LATIO"
+newstyle:2019-10-29:value:character-5-shingle: "N_ACC"
+newstyle:2019-10-29:value:character-5-shingle: "N_WRI"
+newstyle:2019-10-29:value:character-5-shingle: "OLATI"
+newstyle:2019-10-29:value:character-5-shingle: "ON_AC"
+newstyle:2019-10-29:value:character-5-shingle: "ON_WR"
+newstyle:2019-10-29:value:character-5-shingle: "PTION"
+newstyle:2019-10-29:value:character-5-shingle: "SS_VI"
+newstyle:2019-10-29:value:character-5-shingle: "S_VIO"
+newstyle:2019-10-29:value:character-5-shingle: "TION_"
+newstyle:2019-10-29:value:character-5-shingle: "VIOLA"
+newstyle:2019-10-29:value:character-5-shingle: "WRITE"
+newstyle:2019-10-29:value:character-5-shingle: "XCEPT"
+newstyle:2019-10-29:value:character-5-shingle: "_ACCE"
+newstyle:2019-10-29:value:character-5-shingle: "_VIOL"
+newstyle:2019-10-29:value:character-5-shingle: "_WRIT"
+newstyle:2019-10-29:value:character-5-shingle: "al Er"
+newstyle:2019-10-29:value:character-5-shingle: "atal "
+newstyle:2019-10-29:value:character-5-shingle: "l Err"
+newstyle:2019-10-29:value:character-5-shingle: "or: E"
+newstyle:2019-10-29:value:character-5-shingle: "r: EX"
+newstyle:2019-10-29:value:character-5-shingle: "ror: "
+newstyle:2019-10-29:value:character-5-shingle: "rror:"
+newstyle:2019-10-29:value:character-5-shingle: "tal E"
+newstyle:2019-10-29:type:ident-shingle: "EXCEPTION_ACCESS_VIOLATION_WRITE"

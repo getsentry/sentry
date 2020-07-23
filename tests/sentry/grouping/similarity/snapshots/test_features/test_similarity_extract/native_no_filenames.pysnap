@@ -1,89 +1,47 @@
 ---
-created: '2020-07-22T12:08:08.971184Z'
+created: '2020-07-23T11:20:24.178601Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs:
-- - - - function:ident-shingle
-      - <unknown>
-  - - - function:ident-shingle
-      - <redacted>
-- - - - function:ident-shingle
-      - ___rust_maybe_catch_panic
-  - - - function:ident-shingle
-      - std::panicking::try::do_call
-- - - - function:ident-shingle
-      - _main
-  - - - function:ident-shingle
-      - std::rt::lang_start
-- - - - function:ident-shingle
-      - log::__private_api_log
-  - - - function:ident-shingle
-      - sentry::integrations::log::Logger::log
-- - - - function:ident-shingle
-      - log_demo::main
-  - - - function:ident-shingle
-      - log::__private_api_log
-- - - - function:ident-shingle
-      - sentry::hub::Hub::with
-  - - - function:ident-shingle
-      - sentry::hub::Hub::with_active::{{closure}}
-- - - - function:ident-shingle
-      - sentry::hub::Hub::with_active
-  - - - function:ident-shingle
-      - sentry::hub::Hub::with
-- - - - function:ident-shingle
-      - sentry::hub::Hub::with_active::{{closure}}
-  - - - function:ident-shingle
-      - <unknown>
-- - - - function:ident-shingle
-      - sentry::integrations::log::Logger::log
-  - - - function:ident-shingle
-      - sentry::hub::Hub::with_active
-- - - - function:ident-shingle
-      - std::panicking::try::do_call
-  - - - function:ident-shingle
-      - std::rt::lang_start::{{closure}}
-- - - - function:ident-shingle
-      - std::rt::lang_start
-  - - - function:ident-shingle
-      - std::rt::lang_start_internal
-- - - - function:ident-shingle
-      - std::rt::lang_start::{{closure}}
-  - - - function:ident-shingle
-      - log_demo::main
-- - - - function:ident-shingle
-      - std::rt::lang_start_internal
-  - - - function:ident-shingle
-      - ___rust_maybe_catch_panic
-newstyle:2019-10-29:type:ident-shingle:
-- log_demo
-newstyle:2019-10-29:value:character-5-shingle:
-- ' ever'
-- ' fire'
-- ' is o'
-- ' on f'
-- ' shit'
-- 'Holy '
-- eryth
-- every
-- fire!
-- 'g is '
-- 'hing '
-- hit e
-- ing i
-- is on
-- it ev
-- ly sh
-- n fir
-- ng is
-- oly s
-- on fi
-- rythi
-- 's on '
-- 'shit '
-- t eve
-- thing
-- veryt
-- y shi
-- ythin
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "<unknown>"]], [[["function", "ident-shingle"], "<redacted>"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "___rust_maybe_catch_panic"]], [[["function", "ident-shingle"], "std::panicking::try::do_call"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "_main"]], [[["function", "ident-shingle"], "std::rt::lang_start"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "log::__private_api_log"]], [[["function", "ident-shingle"], "sentry::integrations::log::Logger::log"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "log_demo::main"]], [[["function", "ident-shingle"], "log::__private_api_log"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "sentry::hub::Hub::with"]], [[["function", "ident-shingle"], "sentry::hub::Hub::with_active::{{closure}}"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "sentry::hub::Hub::with_active"]], [[["function", "ident-shingle"], "sentry::hub::Hub::with"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "sentry::hub::Hub::with_active::{{closure}}"]], [[["function", "ident-shingle"], "<unknown>"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "sentry::integrations::log::Logger::log"]], [[["function", "ident-shingle"], "sentry::hub::Hub::with_active"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "std::panicking::try::do_call"]], [[["function", "ident-shingle"], "std::rt::lang_start::{{closure}}"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "std::rt::lang_start"]], [[["function", "ident-shingle"], "std::rt::lang_start_internal"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "std::rt::lang_start::{{closure}}"]], [[["function", "ident-shingle"], "log_demo::main"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["function", "ident-shingle"], "std::rt::lang_start_internal"]], [[["function", "ident-shingle"], "___rust_maybe_catch_panic"]]]
+newstyle:2019-10-29:value:character-5-shingle: " ever"
+newstyle:2019-10-29:value:character-5-shingle: " fire"
+newstyle:2019-10-29:value:character-5-shingle: " is o"
+newstyle:2019-10-29:value:character-5-shingle: " on f"
+newstyle:2019-10-29:value:character-5-shingle: " shit"
+newstyle:2019-10-29:value:character-5-shingle: "Holy "
+newstyle:2019-10-29:value:character-5-shingle: "eryth"
+newstyle:2019-10-29:value:character-5-shingle: "every"
+newstyle:2019-10-29:value:character-5-shingle: "fire!"
+newstyle:2019-10-29:value:character-5-shingle: "g is "
+newstyle:2019-10-29:value:character-5-shingle: "hing "
+newstyle:2019-10-29:value:character-5-shingle: "hit e"
+newstyle:2019-10-29:value:character-5-shingle: "ing i"
+newstyle:2019-10-29:value:character-5-shingle: "is on"
+newstyle:2019-10-29:value:character-5-shingle: "it ev"
+newstyle:2019-10-29:value:character-5-shingle: "ly sh"
+newstyle:2019-10-29:value:character-5-shingle: "n fir"
+newstyle:2019-10-29:value:character-5-shingle: "ng is"
+newstyle:2019-10-29:value:character-5-shingle: "oly s"
+newstyle:2019-10-29:value:character-5-shingle: "on fi"
+newstyle:2019-10-29:value:character-5-shingle: "rythi"
+newstyle:2019-10-29:value:character-5-shingle: "s on "
+newstyle:2019-10-29:value:character-5-shingle: "shit "
+newstyle:2019-10-29:value:character-5-shingle: "t eve"
+newstyle:2019-10-29:value:character-5-shingle: "thing"
+newstyle:2019-10-29:value:character-5-shingle: "veryt"
+newstyle:2019-10-29:value:character-5-shingle: "y shi"
+newstyle:2019-10-29:value:character-5-shingle: "ythin"
+newstyle:2019-10-29:type:ident-shingle: "log_demo"

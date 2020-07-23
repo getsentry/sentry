@@ -1948,5 +1948,9 @@ SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 # strategies here to index them all. This is useful for transitioning a
 # similarity dataset to newer grouping configurations.
 #
+# The dictionary value represents the redis prefix to use.
+#
 # Check out `test_similarity_config_migration` to understand the procedure and risks.
-SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = frozenset(["newstyle:2019-10-29"])
+SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
+    "newstyle:2019-10-29": "a",
+}

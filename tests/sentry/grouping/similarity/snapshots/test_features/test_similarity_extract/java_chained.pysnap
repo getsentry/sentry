@@ -1,432 +1,197 @@
 ---
-created: '2020-07-22T12:08:08.111239Z'
+created: '2020-07-23T11:20:23.565159Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:message:character-5-shingle:
-- ' [Con'
-- ' conn'
-- ' star'
-- ' to s'
-- /<flo
-- <floa
-- <int>
-- '><int'
-- Conne
-- Faile
-- HTTP/
-- P/<fl
-- TP/<f
-- TTP/<
-- '[Conn'
-- '[HTTP'
-- ailed
-- art c
-- at><i
-- conne
-- 'ctor '
-- ctor[
-- 'd to '
-- ector
-- ed to
-- float
-- 'iled '
-- int>]
-- led t
-- loat>
-- necto
-- nnect
-- nt>]]
-- o sta
-- oat><
-- onnec
-- or [C
-- or[HT
-- r [Co
-- r[HTT
-- rt co
-- start
-- t con
-- t><in
-- 'tart '
-- to st
-- tor [
-- tor[H
-newstyle:2019-10-29:stacktrace:frames-pairs:
-- - - - filename:ident-shingle
-      - abstractapplicationcontext.java
-    - - function:ident-shingle
-      - refresh
-    - - module:ident-shingle
-      - org.springframework.context.support.AbstractApplicationContext
-  - - - filename:ident-shingle
-      - embeddedwebapplicationcontext.java
-    - - function:ident-shingle
-      - finishRefresh
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
-- - - - filename:ident-shingle
-      - abstractendpoint.java
-    - - function:ident-shingle
-      - start
-    - - module:ident-shingle
-      - org.apache.tomcat.util.net.AbstractEndpoint
-  - - - filename:ident-shingle
-      - nioendpoint.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - org.apache.tomcat.util.net.NioEndpoint
-- - - - filename:ident-shingle
-      - abstractprotocol.java
-    - - function:ident-shingle
-      - start
-    - - module:ident-shingle
-      - org.apache.coyote.AbstractProtocol
-  - - - filename:ident-shingle
-      - abstractendpoint.java
-    - - function:ident-shingle
-      - start
-    - - module:ident-shingle
-      - org.apache.tomcat.util.net.AbstractEndpoint
-- - - - filename:ident-shingle
-      - application.java
-    - - function:ident-shingle
-      - main
-    - - module:ident-shingle
-      - io.sentry.example.Application
-  - - - filename:ident-shingle
-      - springapplication.java
-    - - function:ident-shingle
-      - run
-    - - module:ident-shingle
-      - org.springframework.boot.SpringApplication
-- - - - filename:ident-shingle
-      - connector.java
-    - - function:ident-shingle
-      - startInternal
-    - - module:ident-shingle
-      - org.apache.catalina.connector.Connector
-  - - - filename:ident-shingle
-      - abstractprotocol.java
-    - - function:ident-shingle
-      - start
-    - - module:ident-shingle
-      - org.apache.coyote.AbstractProtocol
-- - - - filename:ident-shingle
-      - embeddedwebapplicationcontext.java
-    - - function:ident-shingle
-      - finishRefresh
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
-  - - - filename:ident-shingle
-      - embeddedwebapplicationcontext.java
-    - - function:ident-shingle
-      - startEmbeddedServletContainer
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
-- - - - filename:ident-shingle
-      - embeddedwebapplicationcontext.java
-    - - function:ident-shingle
-      - refresh
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
-  - - - filename:ident-shingle
-      - abstractapplicationcontext.java
-    - - function:ident-shingle
-      - refresh
-    - - module:ident-shingle
-      - org.springframework.context.support.AbstractApplicationContext
-- - - - filename:ident-shingle
-      - embeddedwebapplicationcontext.java
-    - - function:ident-shingle
-      - startEmbeddedServletContainer
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
-  - - - filename:ident-shingle
-      - tomcatembeddedservletcontainer.java
-    - - function:ident-shingle
-      - start
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer
-- - - - filename:ident-shingle
-      - lifecyclebase.java
-    - - function:ident-shingle
-      - start
-    - - module:ident-shingle
-      - org.apache.catalina.util.LifecycleBase
-  - - - filename:ident-shingle
-      - connector.java
-    - - function:ident-shingle
-      - startInternal
-    - - module:ident-shingle
-      - org.apache.catalina.connector.Connector
-- - - - filename:ident-shingle
-      - net.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - sun.nio.ch.Net
-  - - - filename:ident-shingle
-      - net.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - sun.nio.ch.Net
-- - - - filename:ident-shingle
-      - net.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - sun.nio.ch.Net
-  - - - filename:ident-shingle
-      - net.java
-    - - function:ident-shingle
-      - bind0
-    - - module:ident-shingle
-      - sun.nio.ch.Net
-- - - - filename:ident-shingle
-      - nioendpoint.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - org.apache.tomcat.util.net.NioEndpoint
-  - - - filename:ident-shingle
-      - serversocketadaptor.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - sun.nio.ch.ServerSocketAdaptor
-- - - - filename:ident-shingle
-      - serversocketadaptor.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - sun.nio.ch.ServerSocketAdaptor
-  - - - filename:ident-shingle
-      - serversocketchannelimpl.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - sun.nio.ch.ServerSocketChannelImpl
-- - - - filename:ident-shingle
-      - serversocketchannelimpl.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - sun.nio.ch.ServerSocketChannelImpl
-  - - - filename:ident-shingle
-      - net.java
-    - - function:ident-shingle
-      - bind
-    - - module:ident-shingle
-      - sun.nio.ch.Net
-- - - - filename:ident-shingle
-      - springapplication.java
-    - - function:ident-shingle
-      - refresh
-    - - module:ident-shingle
-      - org.springframework.boot.SpringApplication
-  - - - filename:ident-shingle
-      - embeddedwebapplicationcontext.java
-    - - function:ident-shingle
-      - refresh
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.EmbeddedWebApplicationContext
-- - - - filename:ident-shingle
-      - springapplication.java
-    - - function:ident-shingle
-      - refreshContext
-    - - module:ident-shingle
-      - org.springframework.boot.SpringApplication
-  - - - filename:ident-shingle
-      - springapplication.java
-    - - function:ident-shingle
-      - refresh
-    - - module:ident-shingle
-      - org.springframework.boot.SpringApplication
-- - - - filename:ident-shingle
-      - springapplication.java
-    - - function:ident-shingle
-      - run
-    - - module:ident-shingle
-      - org.springframework.boot.SpringApplication
-  - - - filename:ident-shingle
-      - springapplication.java
-    - - function:ident-shingle
-      - refreshContext
-    - - module:ident-shingle
-      - org.springframework.boot.SpringApplication
-- - - - filename:ident-shingle
-      - springapplication.java
-    - - function:ident-shingle
-      - run
-    - - module:ident-shingle
-      - org.springframework.boot.SpringApplication
-  - - - filename:ident-shingle
-      - springapplication.java
-    - - function:ident-shingle
-      - run
-    - - module:ident-shingle
-      - org.springframework.boot.SpringApplication
-- - - - filename:ident-shingle
-      - standardservice.java
-    - - function:ident-shingle
-      - addConnector
-    - - module:ident-shingle
-      - org.apache.catalina.core.StandardService
-  - - - filename:ident-shingle
-      - lifecyclebase.java
-    - - function:ident-shingle
-      - start
-    - - module:ident-shingle
-      - org.apache.catalina.util.LifecycleBase
-- - - - filename:ident-shingle
-      - tomcatembeddedservletcontainer.java
-    - - function:ident-shingle
-      - addPreviouslyRemovedConnectors
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer
-  - - - filename:ident-shingle
-      - standardservice.java
-    - - function:ident-shingle
-      - addConnector
-    - - module:ident-shingle
-      - org.apache.catalina.core.StandardService
-- - - - filename:ident-shingle
-      - tomcatembeddedservletcontainer.java
-    - - function:ident-shingle
-      - start
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer
-  - - - filename:ident-shingle
-      - tomcatembeddedservletcontainer.java
-    - - function:ident-shingle
-      - addPreviouslyRemovedConnectors
-    - - module:ident-shingle
-      - org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer
-newstyle:2019-10-29:type:ident-shingle:
-- BindException
-- LifecycleException
-newstyle:2019-10-29:value:character-5-shingle:
-- '  Pro'
-- ' "Tom'
-- ' Prot'
-- ' [Con'
-- ' alre'
-- ' comp'
-- ' fail'
-- ' hand'
-- ' in u'
-- ' star'
-- ' to s'
-- '";  P'
-- '"Tomc'
-- '(): "'
-- '): "T'
-- .getN
-- /<flo
-- ': "To'
-- ;  Pr
-- <floa
-- <int>
-- '><int'
-- Addre
-- Conne
-- Faile
-- HTTP/
-- Name(
-- P/<fl
-- Proto
-- TP/<f
-- TTP/<
-- Tomca
-- '[Conn'
-- '[HTTP'
-- ady i
-- ailed
-- alrea
-- ame()
-- andle
-- art c
-- art f
-- 'at"; '
-- at><i
-- cat";
-- ce.ge
-- col h
-- compo
-- ctor[
-- 'd to '
-- ddres
-- 'dler '
-- dress
-- dy in
-- 'e(): '
-- e.get
-- 'eady '
-- ector
-- ed to
-- ent [
-- er st
-- ervic
-- ess a
-- etNam
-- faile
-- float
-- getNa
-- handl
-- ice.g
-- 'iled '
-- in us
-- int>]
-- l han
-- led t
-- ler s
-- loat>
-- lread
-- mcat"
-- 'me():'
-- mpone
-- n use
-- ndler
-- necto
-- 'nent '
-- nnect
-- nt [C
-- nt>]]
-- o sta
-- oat><
-- 'ocol '
-- ol ha
-- omcat
-- ompon
-- onent
-- onnec
-- or[HT
-- otoco
-- ponen
-- r sta
-- r[HTT
-- ready
-- 'ress '
-- rotoc
-- rt co
-- rt fa
-- rvice
-- s alr
-- servi
-- ss al
-- start
-- t [Co
-- t com
-- t fai
-- 't";  '
-- t><in
-- tName
-- 'tart '
-- to st
-- tocol
-- tor[H
-- vice.
-- 'y in '
+newstyle:2019-10-29:message:character-5-shingle: " [Con"
+newstyle:2019-10-29:message:character-5-shingle: " conn"
+newstyle:2019-10-29:message:character-5-shingle: " star"
+newstyle:2019-10-29:message:character-5-shingle: " to s"
+newstyle:2019-10-29:message:character-5-shingle: "/<flo"
+newstyle:2019-10-29:message:character-5-shingle: "<floa"
+newstyle:2019-10-29:message:character-5-shingle: "<int>"
+newstyle:2019-10-29:message:character-5-shingle: "><int"
+newstyle:2019-10-29:message:character-5-shingle: "Conne"
+newstyle:2019-10-29:message:character-5-shingle: "Faile"
+newstyle:2019-10-29:message:character-5-shingle: "HTTP/"
+newstyle:2019-10-29:message:character-5-shingle: "P/<fl"
+newstyle:2019-10-29:message:character-5-shingle: "TP/<f"
+newstyle:2019-10-29:message:character-5-shingle: "TTP/<"
+newstyle:2019-10-29:message:character-5-shingle: "[Conn"
+newstyle:2019-10-29:message:character-5-shingle: "[HTTP"
+newstyle:2019-10-29:message:character-5-shingle: "ailed"
+newstyle:2019-10-29:message:character-5-shingle: "art c"
+newstyle:2019-10-29:message:character-5-shingle: "at><i"
+newstyle:2019-10-29:message:character-5-shingle: "conne"
+newstyle:2019-10-29:message:character-5-shingle: "ctor "
+newstyle:2019-10-29:message:character-5-shingle: "ctor["
+newstyle:2019-10-29:message:character-5-shingle: "d to "
+newstyle:2019-10-29:message:character-5-shingle: "ector"
+newstyle:2019-10-29:message:character-5-shingle: "ed to"
+newstyle:2019-10-29:message:character-5-shingle: "float"
+newstyle:2019-10-29:message:character-5-shingle: "iled "
+newstyle:2019-10-29:message:character-5-shingle: "int>]"
+newstyle:2019-10-29:message:character-5-shingle: "led t"
+newstyle:2019-10-29:message:character-5-shingle: "loat>"
+newstyle:2019-10-29:message:character-5-shingle: "necto"
+newstyle:2019-10-29:message:character-5-shingle: "nnect"
+newstyle:2019-10-29:message:character-5-shingle: "nt>]]"
+newstyle:2019-10-29:message:character-5-shingle: "o sta"
+newstyle:2019-10-29:message:character-5-shingle: "oat><"
+newstyle:2019-10-29:message:character-5-shingle: "onnec"
+newstyle:2019-10-29:message:character-5-shingle: "or [C"
+newstyle:2019-10-29:message:character-5-shingle: "or[HT"
+newstyle:2019-10-29:message:character-5-shingle: "r [Co"
+newstyle:2019-10-29:message:character-5-shingle: "r[HTT"
+newstyle:2019-10-29:message:character-5-shingle: "rt co"
+newstyle:2019-10-29:message:character-5-shingle: "start"
+newstyle:2019-10-29:message:character-5-shingle: "t con"
+newstyle:2019-10-29:message:character-5-shingle: "t><in"
+newstyle:2019-10-29:message:character-5-shingle: "tart "
+newstyle:2019-10-29:message:character-5-shingle: "to st"
+newstyle:2019-10-29:message:character-5-shingle: "tor ["
+newstyle:2019-10-29:message:character-5-shingle: "tor[H"
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "abstractapplicationcontext.java"], [["function", "ident-shingle"], "refresh"], [["module", "ident-shingle"], "org.springframework.context.support.AbstractApplicationContext"]], [[["filename", "ident-shingle"], "embeddedwebapplicationcontext.java"], [["function", "ident-shingle"], "finishRefresh"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "abstractendpoint.java"], [["function", "ident-shingle"], "start"], [["module", "ident-shingle"], "org.apache.tomcat.util.net.AbstractEndpoint"]], [[["filename", "ident-shingle"], "nioendpoint.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "org.apache.tomcat.util.net.NioEndpoint"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "abstractprotocol.java"], [["function", "ident-shingle"], "start"], [["module", "ident-shingle"], "org.apache.coyote.AbstractProtocol"]], [[["filename", "ident-shingle"], "abstractendpoint.java"], [["function", "ident-shingle"], "start"], [["module", "ident-shingle"], "org.apache.tomcat.util.net.AbstractEndpoint"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "application.java"], [["function", "ident-shingle"], "main"], [["module", "ident-shingle"], "io.sentry.example.Application"]], [[["filename", "ident-shingle"], "springapplication.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "org.springframework.boot.SpringApplication"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "connector.java"], [["function", "ident-shingle"], "startInternal"], [["module", "ident-shingle"], "org.apache.catalina.connector.Connector"]], [[["filename", "ident-shingle"], "abstractprotocol.java"], [["function", "ident-shingle"], "start"], [["module", "ident-shingle"], "org.apache.coyote.AbstractProtocol"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "embeddedwebapplicationcontext.java"], [["function", "ident-shingle"], "finishRefresh"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]], [[["filename", "ident-shingle"], "embeddedwebapplicationcontext.java"], [["function", "ident-shingle"], "startEmbeddedServletContainer"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "embeddedwebapplicationcontext.java"], [["function", "ident-shingle"], "refresh"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]], [[["filename", "ident-shingle"], "abstractapplicationcontext.java"], [["function", "ident-shingle"], "refresh"], [["module", "ident-shingle"], "org.springframework.context.support.AbstractApplicationContext"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "embeddedwebapplicationcontext.java"], [["function", "ident-shingle"], "startEmbeddedServletContainer"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]], [[["filename", "ident-shingle"], "tomcatembeddedservletcontainer.java"], [["function", "ident-shingle"], "start"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "lifecyclebase.java"], [["function", "ident-shingle"], "start"], [["module", "ident-shingle"], "org.apache.catalina.util.LifecycleBase"]], [[["filename", "ident-shingle"], "connector.java"], [["function", "ident-shingle"], "startInternal"], [["module", "ident-shingle"], "org.apache.catalina.connector.Connector"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "net.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "sun.nio.ch.Net"]], [[["filename", "ident-shingle"], "net.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "sun.nio.ch.Net"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "net.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "sun.nio.ch.Net"]], [[["filename", "ident-shingle"], "net.java"], [["function", "ident-shingle"], "bind0"], [["module", "ident-shingle"], "sun.nio.ch.Net"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "nioendpoint.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "org.apache.tomcat.util.net.NioEndpoint"]], [[["filename", "ident-shingle"], "serversocketadaptor.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "sun.nio.ch.ServerSocketAdaptor"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "serversocketadaptor.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "sun.nio.ch.ServerSocketAdaptor"]], [[["filename", "ident-shingle"], "serversocketchannelimpl.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "sun.nio.ch.ServerSocketChannelImpl"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "serversocketchannelimpl.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "sun.nio.ch.ServerSocketChannelImpl"]], [[["filename", "ident-shingle"], "net.java"], [["function", "ident-shingle"], "bind"], [["module", "ident-shingle"], "sun.nio.ch.Net"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "springapplication.java"], [["function", "ident-shingle"], "refresh"], [["module", "ident-shingle"], "org.springframework.boot.SpringApplication"]], [[["filename", "ident-shingle"], "embeddedwebapplicationcontext.java"], [["function", "ident-shingle"], "refresh"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.EmbeddedWebApplicationContext"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "springapplication.java"], [["function", "ident-shingle"], "refreshContext"], [["module", "ident-shingle"], "org.springframework.boot.SpringApplication"]], [[["filename", "ident-shingle"], "springapplication.java"], [["function", "ident-shingle"], "refresh"], [["module", "ident-shingle"], "org.springframework.boot.SpringApplication"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "springapplication.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "org.springframework.boot.SpringApplication"]], [[["filename", "ident-shingle"], "springapplication.java"], [["function", "ident-shingle"], "refreshContext"], [["module", "ident-shingle"], "org.springframework.boot.SpringApplication"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "springapplication.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "org.springframework.boot.SpringApplication"]], [[["filename", "ident-shingle"], "springapplication.java"], [["function", "ident-shingle"], "run"], [["module", "ident-shingle"], "org.springframework.boot.SpringApplication"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "standardservice.java"], [["function", "ident-shingle"], "addConnector"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardService"]], [[["filename", "ident-shingle"], "lifecyclebase.java"], [["function", "ident-shingle"], "start"], [["module", "ident-shingle"], "org.apache.catalina.util.LifecycleBase"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "tomcatembeddedservletcontainer.java"], [["function", "ident-shingle"], "addPreviouslyRemovedConnectors"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]], [[["filename", "ident-shingle"], "standardservice.java"], [["function", "ident-shingle"], "addConnector"], [["module", "ident-shingle"], "org.apache.catalina.core.StandardService"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "tomcatembeddedservletcontainer.java"], [["function", "ident-shingle"], "start"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]], [[["filename", "ident-shingle"], "tomcatembeddedservletcontainer.java"], [["function", "ident-shingle"], "addPreviouslyRemovedConnectors"], [["module", "ident-shingle"], "org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainer"]]]
+newstyle:2019-10-29:value:character-5-shingle: "  Pro"
+newstyle:2019-10-29:value:character-5-shingle: " \"Tom"
+newstyle:2019-10-29:value:character-5-shingle: " Prot"
+newstyle:2019-10-29:value:character-5-shingle: " [Con"
+newstyle:2019-10-29:value:character-5-shingle: " alre"
+newstyle:2019-10-29:value:character-5-shingle: " comp"
+newstyle:2019-10-29:value:character-5-shingle: " fail"
+newstyle:2019-10-29:value:character-5-shingle: " hand"
+newstyle:2019-10-29:value:character-5-shingle: " in u"
+newstyle:2019-10-29:value:character-5-shingle: " star"
+newstyle:2019-10-29:value:character-5-shingle: " to s"
+newstyle:2019-10-29:value:character-5-shingle: "\";  P"
+newstyle:2019-10-29:value:character-5-shingle: "\"Tomc"
+newstyle:2019-10-29:value:character-5-shingle: "(): \""
+newstyle:2019-10-29:value:character-5-shingle: "): \"T"
+newstyle:2019-10-29:value:character-5-shingle: ".getN"
+newstyle:2019-10-29:value:character-5-shingle: "/<flo"
+newstyle:2019-10-29:value:character-5-shingle: ": \"To"
+newstyle:2019-10-29:value:character-5-shingle: ";  Pr"
+newstyle:2019-10-29:value:character-5-shingle: "<floa"
+newstyle:2019-10-29:value:character-5-shingle: "<int>"
+newstyle:2019-10-29:value:character-5-shingle: "><int"
+newstyle:2019-10-29:value:character-5-shingle: "Addre"
+newstyle:2019-10-29:value:character-5-shingle: "Conne"
+newstyle:2019-10-29:value:character-5-shingle: "Faile"
+newstyle:2019-10-29:value:character-5-shingle: "HTTP/"
+newstyle:2019-10-29:value:character-5-shingle: "Name("
+newstyle:2019-10-29:value:character-5-shingle: "P/<fl"
+newstyle:2019-10-29:value:character-5-shingle: "Proto"
+newstyle:2019-10-29:value:character-5-shingle: "TP/<f"
+newstyle:2019-10-29:value:character-5-shingle: "TTP/<"
+newstyle:2019-10-29:value:character-5-shingle: "Tomca"
+newstyle:2019-10-29:value:character-5-shingle: "[Conn"
+newstyle:2019-10-29:value:character-5-shingle: "[HTTP"
+newstyle:2019-10-29:value:character-5-shingle: "ady i"
+newstyle:2019-10-29:value:character-5-shingle: "ailed"
+newstyle:2019-10-29:value:character-5-shingle: "alrea"
+newstyle:2019-10-29:value:character-5-shingle: "ame()"
+newstyle:2019-10-29:value:character-5-shingle: "andle"
+newstyle:2019-10-29:value:character-5-shingle: "art c"
+newstyle:2019-10-29:value:character-5-shingle: "art f"
+newstyle:2019-10-29:value:character-5-shingle: "at\"; "
+newstyle:2019-10-29:value:character-5-shingle: "at><i"
+newstyle:2019-10-29:value:character-5-shingle: "cat\";"
+newstyle:2019-10-29:value:character-5-shingle: "ce.ge"
+newstyle:2019-10-29:value:character-5-shingle: "col h"
+newstyle:2019-10-29:value:character-5-shingle: "compo"
+newstyle:2019-10-29:value:character-5-shingle: "ctor["
+newstyle:2019-10-29:value:character-5-shingle: "d to "
+newstyle:2019-10-29:value:character-5-shingle: "ddres"
+newstyle:2019-10-29:value:character-5-shingle: "dler "
+newstyle:2019-10-29:value:character-5-shingle: "dress"
+newstyle:2019-10-29:value:character-5-shingle: "dy in"
+newstyle:2019-10-29:value:character-5-shingle: "e(): "
+newstyle:2019-10-29:value:character-5-shingle: "e.get"
+newstyle:2019-10-29:value:character-5-shingle: "eady "
+newstyle:2019-10-29:value:character-5-shingle: "ector"
+newstyle:2019-10-29:value:character-5-shingle: "ed to"
+newstyle:2019-10-29:value:character-5-shingle: "ent ["
+newstyle:2019-10-29:value:character-5-shingle: "er st"
+newstyle:2019-10-29:value:character-5-shingle: "ervic"
+newstyle:2019-10-29:value:character-5-shingle: "ess a"
+newstyle:2019-10-29:value:character-5-shingle: "etNam"
+newstyle:2019-10-29:value:character-5-shingle: "faile"
+newstyle:2019-10-29:value:character-5-shingle: "float"
+newstyle:2019-10-29:value:character-5-shingle: "getNa"
+newstyle:2019-10-29:value:character-5-shingle: "handl"
+newstyle:2019-10-29:value:character-5-shingle: "ice.g"
+newstyle:2019-10-29:value:character-5-shingle: "iled "
+newstyle:2019-10-29:value:character-5-shingle: "in us"
+newstyle:2019-10-29:value:character-5-shingle: "int>]"
+newstyle:2019-10-29:value:character-5-shingle: "l han"
+newstyle:2019-10-29:value:character-5-shingle: "led t"
+newstyle:2019-10-29:value:character-5-shingle: "ler s"
+newstyle:2019-10-29:value:character-5-shingle: "loat>"
+newstyle:2019-10-29:value:character-5-shingle: "lread"
+newstyle:2019-10-29:value:character-5-shingle: "mcat\""
+newstyle:2019-10-29:value:character-5-shingle: "me():"
+newstyle:2019-10-29:value:character-5-shingle: "mpone"
+newstyle:2019-10-29:value:character-5-shingle: "n use"
+newstyle:2019-10-29:value:character-5-shingle: "ndler"
+newstyle:2019-10-29:value:character-5-shingle: "necto"
+newstyle:2019-10-29:value:character-5-shingle: "nent "
+newstyle:2019-10-29:value:character-5-shingle: "nnect"
+newstyle:2019-10-29:value:character-5-shingle: "nt [C"
+newstyle:2019-10-29:value:character-5-shingle: "nt>]]"
+newstyle:2019-10-29:value:character-5-shingle: "o sta"
+newstyle:2019-10-29:value:character-5-shingle: "oat><"
+newstyle:2019-10-29:value:character-5-shingle: "ocol "
+newstyle:2019-10-29:value:character-5-shingle: "ol ha"
+newstyle:2019-10-29:value:character-5-shingle: "omcat"
+newstyle:2019-10-29:value:character-5-shingle: "ompon"
+newstyle:2019-10-29:value:character-5-shingle: "onent"
+newstyle:2019-10-29:value:character-5-shingle: "onnec"
+newstyle:2019-10-29:value:character-5-shingle: "or[HT"
+newstyle:2019-10-29:value:character-5-shingle: "otoco"
+newstyle:2019-10-29:value:character-5-shingle: "ponen"
+newstyle:2019-10-29:value:character-5-shingle: "r sta"
+newstyle:2019-10-29:value:character-5-shingle: "r[HTT"
+newstyle:2019-10-29:value:character-5-shingle: "ready"
+newstyle:2019-10-29:value:character-5-shingle: "ress "
+newstyle:2019-10-29:value:character-5-shingle: "rotoc"
+newstyle:2019-10-29:value:character-5-shingle: "rt co"
+newstyle:2019-10-29:value:character-5-shingle: "rt fa"
+newstyle:2019-10-29:value:character-5-shingle: "rvice"
+newstyle:2019-10-29:value:character-5-shingle: "s alr"
+newstyle:2019-10-29:value:character-5-shingle: "servi"
+newstyle:2019-10-29:value:character-5-shingle: "ss al"
+newstyle:2019-10-29:value:character-5-shingle: "start"
+newstyle:2019-10-29:value:character-5-shingle: "t [Co"
+newstyle:2019-10-29:value:character-5-shingle: "t com"
+newstyle:2019-10-29:value:character-5-shingle: "t fai"
+newstyle:2019-10-29:value:character-5-shingle: "t\";  "
+newstyle:2019-10-29:value:character-5-shingle: "t><in"
+newstyle:2019-10-29:value:character-5-shingle: "tName"
+newstyle:2019-10-29:value:character-5-shingle: "tart "
+newstyle:2019-10-29:value:character-5-shingle: "to st"
+newstyle:2019-10-29:value:character-5-shingle: "tocol"
+newstyle:2019-10-29:value:character-5-shingle: "tor[H"
+newstyle:2019-10-29:value:character-5-shingle: "vice."
+newstyle:2019-10-29:value:character-5-shingle: "y in "
+newstyle:2019-10-29:type:ident-shingle: "BindException"
+newstyle:2019-10-29:type:ident-shingle: "LifecycleException"

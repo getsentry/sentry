@@ -1,102 +1,68 @@
 ---
-created: '2020-07-22T12:08:08.389708Z'
+created: '2020-07-23T11:20:23.771851Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:message:character-5-shingle:
-- '%s.pr'
-- .proc
-- _erro
-- cess_
-- error
-- ess_e
-- ocess
-- proce
-- roces
-- s.pro
-- s_err
-- ss_er
-newstyle:2019-10-29:stacktrace:frames-pairs:
-- - - - context-line:ident-shingle
-      - resp.raise_for_status()
-    - - filename:ident-shingle
-      - notify_action.py
-    - - function:ident-shingle
-      - send_notification
-    - - module:ident-shingle
-      - sentry.integrations.slack.notify_action
-  - - - context-line:ident-shingle
-      - raise HTTPError(http_error_msg, response=self)
-    - - filename:ident-shingle
-      - models.py
-    - - function:ident-shingle
-      - raise_for_status
-    - - module:ident-shingle
-      - requests.models
-- - - - context-line:ident-shingle
-      - result = func(*args, **kwargs)
-    - - filename:ident-shingle
-      - safe.py
-    - - function:ident-shingle
-      - safe_execute
-    - - module:ident-shingle
-      - sentry.utils.safe
-  - - - context-line:ident-shingle
-      - resp.raise_for_status()
-    - - filename:ident-shingle
-      - notify_action.py
-    - - function:ident-shingle
-      - send_notification
-    - - module:ident-shingle
-      - sentry.integrations.slack.notify_action
-newstyle:2019-10-29:type:ident-shingle:
-- HTTPError
-newstyle:2019-10-29:value:character-5-shingle:
-- ' <url'
-- ' Clie'
-- ' Erro'
-- ' Many'
-- ' Requ'
-- ' Too '
-- ' for '
-- ' url:'
-- ': <ur'
-- ': Too'
-- <int>
-- <url>
-- '> Cli'
-- Clien
-- Error
-- 'Many '
-- Reque
-- Too M
-- any R
-- ent E
-- eques
-- 'ests '
-- for u
-- 'ient '
-- 'int> '
-- 'l: <u'
-- lient
-- nt Er
-- nt> C
-- ny Re
-- o Man
-- oo Ma
-- or ur
-- 'or: T'
-- quest
-- r url
-- 'r: To'
-- 'rl: <'
-- 'ror: '
-- 'rror:'
-- s for
-- sts f
-- t Err
-- t> Cl
-- ts fo
-- uests
-- 'url: '
-- y Req
+newstyle:2019-10-29:message:character-5-shingle: "%s.pr"
+newstyle:2019-10-29:message:character-5-shingle: ".proc"
+newstyle:2019-10-29:message:character-5-shingle: "_erro"
+newstyle:2019-10-29:message:character-5-shingle: "cess_"
+newstyle:2019-10-29:message:character-5-shingle: "error"
+newstyle:2019-10-29:message:character-5-shingle: "ess_e"
+newstyle:2019-10-29:message:character-5-shingle: "ocess"
+newstyle:2019-10-29:message:character-5-shingle: "proce"
+newstyle:2019-10-29:message:character-5-shingle: "roces"
+newstyle:2019-10-29:message:character-5-shingle: "s.pro"
+newstyle:2019-10-29:message:character-5-shingle: "s_err"
+newstyle:2019-10-29:message:character-5-shingle: "ss_er"
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "resp.raise_for_status()"], [["filename", "ident-shingle"], "notify_action.py"], [["function", "ident-shingle"], "send_notification"], [["module", "ident-shingle"], "sentry.integrations.slack.notify_action"]], [[["context-line", "ident-shingle"], "raise HTTPError(http_error_msg, response=self)"], [["filename", "ident-shingle"], "models.py"], [["function", "ident-shingle"], "raise_for_status"], [["module", "ident-shingle"], "requests.models"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["context-line", "ident-shingle"], "result = func(*args, **kwargs)"], [["filename", "ident-shingle"], "safe.py"], [["function", "ident-shingle"], "safe_execute"], [["module", "ident-shingle"], "sentry.utils.safe"]], [[["context-line", "ident-shingle"], "resp.raise_for_status()"], [["filename", "ident-shingle"], "notify_action.py"], [["function", "ident-shingle"], "send_notification"], [["module", "ident-shingle"], "sentry.integrations.slack.notify_action"]]]
+newstyle:2019-10-29:value:character-5-shingle: " <url"
+newstyle:2019-10-29:value:character-5-shingle: " Clie"
+newstyle:2019-10-29:value:character-5-shingle: " Erro"
+newstyle:2019-10-29:value:character-5-shingle: " Many"
+newstyle:2019-10-29:value:character-5-shingle: " Requ"
+newstyle:2019-10-29:value:character-5-shingle: " Too "
+newstyle:2019-10-29:value:character-5-shingle: " for "
+newstyle:2019-10-29:value:character-5-shingle: " url:"
+newstyle:2019-10-29:value:character-5-shingle: ": <ur"
+newstyle:2019-10-29:value:character-5-shingle: ": Too"
+newstyle:2019-10-29:value:character-5-shingle: "<int>"
+newstyle:2019-10-29:value:character-5-shingle: "<url>"
+newstyle:2019-10-29:value:character-5-shingle: "> Cli"
+newstyle:2019-10-29:value:character-5-shingle: "Clien"
+newstyle:2019-10-29:value:character-5-shingle: "Error"
+newstyle:2019-10-29:value:character-5-shingle: "Many "
+newstyle:2019-10-29:value:character-5-shingle: "Reque"
+newstyle:2019-10-29:value:character-5-shingle: "Too M"
+newstyle:2019-10-29:value:character-5-shingle: "any R"
+newstyle:2019-10-29:value:character-5-shingle: "ent E"
+newstyle:2019-10-29:value:character-5-shingle: "eques"
+newstyle:2019-10-29:value:character-5-shingle: "ests "
+newstyle:2019-10-29:value:character-5-shingle: "for u"
+newstyle:2019-10-29:value:character-5-shingle: "ient "
+newstyle:2019-10-29:value:character-5-shingle: "int> "
+newstyle:2019-10-29:value:character-5-shingle: "l: <u"
+newstyle:2019-10-29:value:character-5-shingle: "lient"
+newstyle:2019-10-29:value:character-5-shingle: "nt Er"
+newstyle:2019-10-29:value:character-5-shingle: "nt> C"
+newstyle:2019-10-29:value:character-5-shingle: "ny Re"
+newstyle:2019-10-29:value:character-5-shingle: "o Man"
+newstyle:2019-10-29:value:character-5-shingle: "oo Ma"
+newstyle:2019-10-29:value:character-5-shingle: "or ur"
+newstyle:2019-10-29:value:character-5-shingle: "or: T"
+newstyle:2019-10-29:value:character-5-shingle: "quest"
+newstyle:2019-10-29:value:character-5-shingle: "r url"
+newstyle:2019-10-29:value:character-5-shingle: "r: To"
+newstyle:2019-10-29:value:character-5-shingle: "rl: <"
+newstyle:2019-10-29:value:character-5-shingle: "ror: "
+newstyle:2019-10-29:value:character-5-shingle: "rror:"
+newstyle:2019-10-29:value:character-5-shingle: "s for"
+newstyle:2019-10-29:value:character-5-shingle: "sts f"
+newstyle:2019-10-29:value:character-5-shingle: "t Err"
+newstyle:2019-10-29:value:character-5-shingle: "t> Cl"
+newstyle:2019-10-29:value:character-5-shingle: "ts fo"
+newstyle:2019-10-29:value:character-5-shingle: "uests"
+newstyle:2019-10-29:value:character-5-shingle: "url: "
+newstyle:2019-10-29:value:character-5-shingle: "y Req"
+newstyle:2019-10-29:type:ident-shingle: "HTTPError"

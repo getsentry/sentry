@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import json
+
 import pytest
 
 from sentry.models import Group, Project
@@ -30,7 +32,7 @@ def test_basic(similarity, factories, default_project):
     if similarity is sentry.similarity.features:
         msg_label = "message:message:character-shingles"
     else:
-        msg_label = "newstyle:2019-10-29:message:character-5-shingle"
+        msg_label = ("newstyle:2019-10-29", "message", "character-5-shingle")
 
     comparison = dict(similarity.compare(evt1.group))
 
@@ -51,7 +53,12 @@ def test_similarity_extract(grouping_input, insta_snapshot):
     evt.project = project = Project(id=123)
     evt.group = Group(id=123, project=project)
 
-    insta_snapshot(similarity.extract(evt))
+    snapshot = []
+    for label, features in similarity.extract(evt).items():
+        for feature in features:
+            snapshot.append("{}: {}".format(":".join(label), json.dumps(feature, sort_keys=True)))
+
+    insta_snapshot("\n".join(snapshot))
 
 
 @with_grouping_input("grouping_input")
@@ -65,7 +72,9 @@ def test_similarity_config_migration(grouping_input):
 
     def get_feature_set(configs):
         index = sentry.similarity.features2.index
-        return sentry.similarity.GroupingBasedFeatureSet(index=index, configurations=configs)
+        return sentry.similarity.GroupingBasedFeatureSet(
+            index=index, configurations={c: c for c in configs}
+        )
 
     project = Project(id=123)
 
@@ -127,7 +136,7 @@ def test_similarity_config_migration(grouping_input):
     assert compare(similarity, g2) == {g1.id, g2.id, g3.id}
     assert compare(similarity, g3) == {g2.id, g3.id}
 
-    # Step 5: New event goes into g1, new event goes into g3
+    # Step 5: New event goes into g1
     # g1 now has newstyle features and is comparable to all groups
     send_event(similarity, g1)
     assert (
@@ -140,6 +149,8 @@ def test_similarity_config_migration(grouping_input):
     # Step 6: Second attempt at using new config exclusively
     # Since all groups now have newstyle features, they are all comparable
     # Migration successful!
+    # NOTE: At this point you will have dangling keys for the legacy features
+    # in your Redis that need manual cleanup.
     similarity = get_feature_set([next_config])
     assert (
         compare(similarity, g1)

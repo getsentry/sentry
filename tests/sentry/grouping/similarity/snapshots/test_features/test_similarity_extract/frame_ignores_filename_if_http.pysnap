@@ -1,12 +1,6 @@
 ---
-created: '2020-07-22T12:08:09.393583Z'
+created: '2020-07-23T11:20:24.390333Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs:
-- - - context-line:ident-shingle
-    - hello world
-  - - filename:ident-shingle
-    - foo.py
-  - - function:ident-shingle
-    - test
+newstyle:2019-10-29:stacktrace:frames-pairs: [[["context-line", "ident-shingle"], "hello world"], [["filename", "ident-shingle"], "foo.py"], [["function", "ident-shingle"], "test"]]

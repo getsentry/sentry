@@ -1,81 +1,15 @@
 ---
-created: '2020-07-22T12:08:09.298289Z'
+created: '2020-07-23T11:20:24.332674Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
-newstyle:2019-10-29:stacktrace:frames-pairs:
-- - - - filename:ident-shingle
-      - eval code
-    - - function:ident-shingle
-      - eval code
-  - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - test
-- - - - filename:ident-shingle
-      - native code
-    - - function:ident-shingle
-      - map
-  - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - Anonymous function
-- - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - Anonymous function
-  - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - callback
-- - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - Anonymous function
-  - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - testMethod
-- - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - aha
-  - - - filename:ident-shingle
-      - eval code
-    - - function:ident-shingle
-      - eval code
-- - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - callAnotherThing
-  - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - aha
-- - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - callback
-  - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - callAnotherThing
-- - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - test
-  - - - filename:ident-shingle
-      - native code
-    - - function:ident-shingle
-      - map
-- - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - testMethod
-  - - - filename:ident-shingle
-      - test.html
-    - - function:ident-shingle
-      - aha
-newstyle:2019-10-29:type:ident-shingle:
-- Error
-newstyle:2019-10-29:value:character-5-shingle: []
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "eval code"], [["function", "ident-shingle"], "eval code"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "test"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "native code"], [["function", "ident-shingle"], "map"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "Anonymous function"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "Anonymous function"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "callback"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "Anonymous function"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "testMethod"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "aha"]], [[["filename", "ident-shingle"], "eval code"], [["function", "ident-shingle"], "eval code"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "callAnotherThing"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "aha"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "callback"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "callAnotherThing"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "test"]], [[["filename", "ident-shingle"], "native code"], [["function", "ident-shingle"], "map"]]]
+newstyle:2019-10-29:stacktrace:frames-pairs: [[[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "testMethod"]], [[["filename", "ident-shingle"], "test.html"], [["function", "ident-shingle"], "aha"]]]
+newstyle:2019-10-29:type:ident-shingle: "Error"
