@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import random
 import six
 
 from django import forms
@@ -11,7 +12,16 @@ from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 
 from .client import SlackClient
-from .utils import build_group_attachment, get_channel_id, strip_channel_name
+from .utils import (
+    build_group_attachment,
+    build_upgrade_notice_attachment,
+    get_channel_id,
+    strip_channel_name,
+    get_integration_type,
+)
+
+
+UPGRADE_MESSAGE_FREQUENCY = 0.05
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -121,13 +131,19 @@ class SlackNotifyServiceAction(EventAction):
 
         def send_notification(event, futures):
             rules = [f.rule for f in futures]
-            attachment = build_group_attachment(event.group, event=event, tags=tags, rules=rules)
+            attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
+            # check if we should have the upgrade notice attachment
+            if get_integration_type(integration) == "workspace_app":
+                if random.random() < UPGRADE_MESSAGE_FREQUENCY:
+                    attachments = [
+                        build_upgrade_notice_attachment(event.group, integration)
+                    ] + attachments
 
             payload = {
                 "token": integration.metadata["access_token"],
                 "channel": channel,
                 "link_names": 1,
-                "attachments": json.dumps([attachment]),
+                "attachments": json.dumps(attachments),
             }
 
             client = SlackClient()

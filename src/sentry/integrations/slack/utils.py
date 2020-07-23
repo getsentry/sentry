@@ -57,6 +57,13 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
+def get_integration_type(integration):
+    metadata = integration.metadata
+    # classic bots had a user_access_token in the metadata
+    default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
+    return metadata.get("installation_type", default_installation)
+
+
 def format_actor_option(actor):
     if isinstance(actor, User):
         return {"text": actor.get_display_name(), "value": u"user:{}".format(actor.id)}
@@ -171,6 +178,20 @@ def build_rule_url(rule, group, project):
     project_slug = project.slug
     rule_url = u"/settings/{}/projects/{}/alerts/rules/{}/".format(org_slug, project_slug, rule.id)
     return absolute_uri(rule_url)
+
+
+def build_upgrade_notice_attachment(group, integration):
+    org_slug = group.organization.slug
+    url = absolute_uri(u"/settings/{}/integrations/slack/{}/".format(org_slug, integration.id))
+
+    return {
+        "title": "Reminder",
+        "text": (
+            u"It looks like you are still using the Legacy Sentry-Slack integration. "
+            u"You will need to upgrade by October 1st to continue receiving alerts. "
+            u"Click <{}|here> to upgrade.".format(url)
+        ),
+    }
 
 
 def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
