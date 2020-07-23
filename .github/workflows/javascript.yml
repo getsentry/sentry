@@ -103,5 +103,6 @@ jobs:
           with:
             github-token: ${{ secrets.GITHUB_TOKEN }}
             action-name: Jest Snapshots
+            artifact-name: visual-snapshots-jest
             gcs-bucket: 'sentry-visual-snapshots'
             gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
