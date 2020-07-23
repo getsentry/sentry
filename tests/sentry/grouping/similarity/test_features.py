@@ -119,9 +119,6 @@ def test_config_migration(config, next_config):
 
         evt = create_event(data={"message": "hello world"}, group_id=group_id)
 
-        if not similarity.extract(evt):
-            pytest.skip("Event does not produce similarity features")
-
         similarity.record([evt])
         events.append(evt)
         return evt.group
