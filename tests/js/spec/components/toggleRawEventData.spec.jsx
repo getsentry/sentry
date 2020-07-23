@@ -42,6 +42,7 @@ describe('EventDataSection', function() {
     );
 
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders raw', function() {
@@ -55,6 +56,7 @@ describe('EventDataSection', function() {
       />
     );
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 });
 
@@ -72,6 +74,7 @@ describe('KeyValueList', function() {
     );
 
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders raw', function() {
@@ -80,5 +83,6 @@ describe('KeyValueList', function() {
     );
 
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 });

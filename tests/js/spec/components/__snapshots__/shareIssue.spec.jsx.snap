@@ -1,0 +1,938 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ShareIssue renders when busy 1`] = `
+<ShareIssue
+  busy={true}
+  onShare={[Function]}
+  onToggle={[Function]}
+>
+  <DropdownLink
+    alwaysRenderMenu={true}
+    anchorRight={false}
+    caret={true}
+    className="share-issue btn-sm btn btn-default"
+    disabled={false}
+    keepMenuOpen={true}
+    onOpen={[Function]}
+    shouldIgnoreClickOutside={[Function]}
+    title={
+      <div
+        style={
+          Object {
+            "marginRight": 4,
+          }
+        }
+      >
+        <ForwardRef(render)
+          center={true}
+          truncate={true}
+        >
+          <IndicatorDot />
+          Share
+        </ForwardRef(render)>
+      </div>
+    }
+  >
+    <DropdownMenu
+      alwaysRenderMenu={true}
+      closeOnEscape={true}
+      keepMenuOpen={true}
+      onOpen={[Function]}
+      shouldIgnoreClickOutside={[Function]}
+    >
+      <span
+        className="dropdown"
+      >
+        <a
+          className="dropdown-actor share-issue btn-sm btn btn-default dropdown-toggle"
+          onClick={[Function]}
+          onKeyDown={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+          style={
+            Object {
+              "outline": "none",
+            }
+          }
+        >
+          <div
+            className="dropdown-actor-title"
+          >
+            <span>
+              <div
+                style={
+                  Object {
+                    "marginRight": 4,
+                  }
+                }
+              >
+                <FlowLayout
+                  center={true}
+                  truncate={true}
+                >
+                  <div
+                    className="css-1apnk1a-FlowLayout e1uibv5p0"
+                  >
+                    <IndicatorDot>
+                      <span
+                        style={
+                          Object {
+                            "background": "#dfdbe4",
+                            "borderRadius": "50%",
+                            "display": "inline-block",
+                            "height": 10,
+                            "marginRight": 4,
+                            "width": 10,
+                          }
+                        }
+                      />
+                    </IndicatorDot>
+                    Share
+                  </div>
+                </FlowLayout>
+              </div>
+            </span>
+            <IconChevron
+              direction="down"
+              size="xs"
+            >
+              <EmotionCssPropInternal
+                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                  Object {
+                    "$$typeof": Symbol(react.forward_ref),
+                    "propTypes": Object {
+                      "color": [Function],
+                      "size": [Function],
+                      "viewBox": [Function],
+                    },
+                    "render": [Function],
+                  }
+                }
+                css={
+                  Object {
+                    "map": undefined,
+                    "name": "7chgxg-IconChevron",
+                    "next": undefined,
+                    "styles": "transform:rotate(180deg);;label:IconChevron;",
+                    "toString": [Function],
+                  }
+                }
+                size="xs"
+              >
+                <ForwardRef(SvgIcon)
+                  className="css-7chgxg-IconChevron"
+                  size="xs"
+                >
+                  <svg
+                    className="css-7chgxg-IconChevron"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </ForwardRef(SvgIcon)>
+              </EmotionCssPropInternal>
+            </IconChevron>
+          </div>
+        </a>
+        <ul
+          className="dropdown-menu"
+          onClick={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+        >
+          <li
+            style={
+              Object {
+                "padding": "12px 18px",
+              }
+            }
+          >
+            <SpreadLayout
+              style={
+                Object {
+                  "marginBottom": undefined,
+                }
+              }
+            >
+              <div
+                className="spread-layout center"
+                style={
+                  Object {
+                    "marginBottom": undefined,
+                  }
+                }
+              >
+                <SmallHeading>
+                  <h6
+                    style={
+                      Object {
+                        "margin": 0,
+                        "paddingRight": 30,
+                        "whiteSpace": "nowrap",
+                      }
+                    }
+                  >
+                    Enable public share link
+                  </h6>
+                </SmallHeading>
+                <ForwardRef
+                  size="sm"
+                  toggle={[Function]}
+                >
+                  <Switch
+                    forwardRef={null}
+                    size="sm"
+                    toggle={[Function]}
+                  >
+                    <SwitchButton
+                      data-test-id="switch"
+                      onClick={[Function]}
+                      role="checkbox"
+                      size="sm"
+                      type="button"
+                    >
+                      <button
+                        className="css-2a1qoc-SwitchButton ezmyi9u0"
+                        data-test-id="switch"
+                        onClick={[Function]}
+                        role="checkbox"
+                        size="sm"
+                        type="button"
+                      >
+                        <Toggle
+                          size="sm"
+                        >
+                          <span
+                            className="css-1o1ki2m-Toggle ezmyi9u1"
+                            size="sm"
+                          />
+                        </Toggle>
+                      </button>
+                    </SwitchButton>
+                  </Switch>
+                </ForwardRef>
+              </div>
+            </SpreadLayout>
+          </li>
+        </ul>
+      </span>
+    </DropdownMenu>
+  </DropdownLink>
+</ShareIssue>
+`;
+
+exports[`ShareIssue renders when not shared 1`] = `
+<ShareIssue
+  isSharing={false}
+  onShare={[Function]}
+  onToggle={[Function]}
+>
+  <DropdownLink
+    alwaysRenderMenu={true}
+    anchorRight={false}
+    caret={true}
+    className="share-issue btn-sm btn btn-default"
+    disabled={false}
+    keepMenuOpen={true}
+    onOpen={[Function]}
+    shouldIgnoreClickOutside={[Function]}
+    title={
+      <div
+        style={
+          Object {
+            "marginRight": 4,
+          }
+        }
+      >
+        <ForwardRef(render)
+          center={true}
+          truncate={true}
+        >
+          <IndicatorDot
+            active={false}
+          />
+          Share
+        </ForwardRef(render)>
+      </div>
+    }
+  >
+    <DropdownMenu
+      alwaysRenderMenu={true}
+      closeOnEscape={true}
+      keepMenuOpen={true}
+      onOpen={[Function]}
+      shouldIgnoreClickOutside={[Function]}
+    >
+      <span
+        className="dropdown"
+      >
+        <a
+          className="dropdown-actor share-issue btn-sm btn btn-default dropdown-toggle"
+          onClick={[Function]}
+          onKeyDown={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+          style={
+            Object {
+              "outline": "none",
+            }
+          }
+        >
+          <div
+            className="dropdown-actor-title"
+          >
+            <span>
+              <div
+                style={
+                  Object {
+                    "marginRight": 4,
+                  }
+                }
+              >
+                <FlowLayout
+                  center={true}
+                  truncate={true}
+                >
+                  <div
+                    className="css-1apnk1a-FlowLayout e1uibv5p0"
+                  >
+                    <IndicatorDot
+                      active={false}
+                    >
+                      <span
+                        style={
+                          Object {
+                            "background": "#dfdbe4",
+                            "borderRadius": "50%",
+                            "display": "inline-block",
+                            "height": 10,
+                            "marginRight": 4,
+                            "width": 10,
+                          }
+                        }
+                      />
+                    </IndicatorDot>
+                    Share
+                  </div>
+                </FlowLayout>
+              </div>
+            </span>
+            <IconChevron
+              direction="down"
+              size="xs"
+            >
+              <EmotionCssPropInternal
+                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                  Object {
+                    "$$typeof": Symbol(react.forward_ref),
+                    "propTypes": Object {
+                      "color": [Function],
+                      "size": [Function],
+                      "viewBox": [Function],
+                    },
+                    "render": [Function],
+                  }
+                }
+                css={
+                  Object {
+                    "map": undefined,
+                    "name": "7chgxg-IconChevron",
+                    "next": undefined,
+                    "styles": "transform:rotate(180deg);;label:IconChevron;",
+                    "toString": [Function],
+                  }
+                }
+                size="xs"
+              >
+                <ForwardRef(SvgIcon)
+                  className="css-7chgxg-IconChevron"
+                  size="xs"
+                >
+                  <svg
+                    className="css-7chgxg-IconChevron"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </ForwardRef(SvgIcon)>
+              </EmotionCssPropInternal>
+            </IconChevron>
+          </div>
+        </a>
+        <ul
+          className="dropdown-menu"
+          onClick={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+        >
+          <li
+            style={
+              Object {
+                "padding": "12px 18px",
+              }
+            }
+          >
+            <SpreadLayout
+              style={
+                Object {
+                  "marginBottom": undefined,
+                }
+              }
+            >
+              <div
+                className="spread-layout center"
+                style={
+                  Object {
+                    "marginBottom": undefined,
+                  }
+                }
+              >
+                <SmallHeading>
+                  <h6
+                    style={
+                      Object {
+                        "margin": 0,
+                        "paddingRight": 30,
+                        "whiteSpace": "nowrap",
+                      }
+                    }
+                  >
+                    Enable public share link
+                  </h6>
+                </SmallHeading>
+                <ForwardRef
+                  isActive={false}
+                  size="sm"
+                  toggle={[Function]}
+                >
+                  <Switch
+                    forwardRef={null}
+                    isActive={false}
+                    size="sm"
+                    toggle={[Function]}
+                  >
+                    <SwitchButton
+                      aria-checked={false}
+                      data-test-id="switch"
+                      isActive={false}
+                      onClick={[Function]}
+                      role="checkbox"
+                      size="sm"
+                      type="button"
+                    >
+                      <button
+                        aria-checked={false}
+                        className="css-2a1qoc-SwitchButton ezmyi9u0"
+                        data-test-id="switch"
+                        onClick={[Function]}
+                        role="checkbox"
+                        size="sm"
+                        type="button"
+                      >
+                        <Toggle
+                          isActive={false}
+                          size="sm"
+                        >
+                          <span
+                            className="css-1o1ki2m-Toggle ezmyi9u1"
+                            size="sm"
+                          />
+                        </Toggle>
+                      </button>
+                    </SwitchButton>
+                  </Switch>
+                </ForwardRef>
+              </div>
+            </SpreadLayout>
+          </li>
+        </ul>
+      </span>
+    </DropdownMenu>
+  </DropdownLink>
+</ShareIssue>
+`;
+
+exports[`ShareIssue renders when shared  1`] = `
+<ShareIssue
+  isSharing={true}
+  onShare={[Function]}
+  onToggle={[Function]}
+  shareUrl="http://sentry.io/share/test/"
+>
+  <DropdownLink
+    alwaysRenderMenu={true}
+    anchorRight={false}
+    caret={true}
+    className="share-issue btn-sm btn btn-default"
+    disabled={false}
+    keepMenuOpen={true}
+    onOpen={[Function]}
+    shouldIgnoreClickOutside={[Function]}
+    title={
+      <div
+        style={
+          Object {
+            "marginRight": 4,
+          }
+        }
+      >
+        <ForwardRef(render)
+          center={true}
+          truncate={true}
+        >
+          <IndicatorDot
+            active={true}
+          />
+          Share
+        </ForwardRef(render)>
+      </div>
+    }
+  >
+    <DropdownMenu
+      alwaysRenderMenu={true}
+      closeOnEscape={true}
+      keepMenuOpen={true}
+      onOpen={[Function]}
+      shouldIgnoreClickOutside={[Function]}
+    >
+      <span
+        className="dropdown"
+      >
+        <a
+          className="dropdown-actor share-issue btn-sm btn btn-default dropdown-toggle"
+          onClick={[Function]}
+          onKeyDown={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+          style={
+            Object {
+              "outline": "none",
+            }
+          }
+        >
+          <div
+            className="dropdown-actor-title"
+          >
+            <span>
+              <div
+                style={
+                  Object {
+                    "marginRight": 4,
+                  }
+                }
+              >
+                <FlowLayout
+                  center={true}
+                  truncate={true}
+                >
+                  <div
+                    className="css-1apnk1a-FlowLayout e1uibv5p0"
+                  >
+                    <IndicatorDot
+                      active={true}
+                    >
+                      <span
+                        style={
+                          Object {
+                            "background": "#57be8c",
+                            "borderRadius": "50%",
+                            "display": "inline-block",
+                            "height": 10,
+                            "marginRight": 4,
+                            "width": 10,
+                          }
+                        }
+                      />
+                    </IndicatorDot>
+                    Share
+                  </div>
+                </FlowLayout>
+              </div>
+            </span>
+            <IconChevron
+              direction="down"
+              size="xs"
+            >
+              <EmotionCssPropInternal
+                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                  Object {
+                    "$$typeof": Symbol(react.forward_ref),
+                    "propTypes": Object {
+                      "color": [Function],
+                      "size": [Function],
+                      "viewBox": [Function],
+                    },
+                    "render": [Function],
+                  }
+                }
+                css={
+                  Object {
+                    "map": undefined,
+                    "name": "7chgxg-IconChevron",
+                    "next": undefined,
+                    "styles": "transform:rotate(180deg);;label:IconChevron;",
+                    "toString": [Function],
+                  }
+                }
+                size="xs"
+              >
+                <ForwardRef(SvgIcon)
+                  className="css-7chgxg-IconChevron"
+                  size="xs"
+                >
+                  <svg
+                    className="css-7chgxg-IconChevron"
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                    />
+                  </svg>
+                </ForwardRef(SvgIcon)>
+              </EmotionCssPropInternal>
+            </IconChevron>
+          </div>
+        </a>
+        <ul
+          className="dropdown-menu"
+          onClick={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+        >
+          <li
+            style={
+              Object {
+                "padding": "12px 18px",
+              }
+            }
+          >
+            <SpreadLayout
+              style={
+                Object {
+                  "marginBottom": 12,
+                }
+              }
+            >
+              <div
+                className="spread-layout center"
+                style={
+                  Object {
+                    "marginBottom": 12,
+                  }
+                }
+              >
+                <SmallHeading>
+                  <h6
+                    style={
+                      Object {
+                        "margin": 0,
+                        "paddingRight": 30,
+                        "whiteSpace": "nowrap",
+                      }
+                    }
+                  >
+                    Enable public share link
+                  </h6>
+                </SmallHeading>
+                <ForwardRef
+                  isActive={true}
+                  size="sm"
+                  toggle={[Function]}
+                >
+                  <Switch
+                    forwardRef={null}
+                    isActive={true}
+                    size="sm"
+                    toggle={[Function]}
+                  >
+                    <SwitchButton
+                      aria-checked={true}
+                      data-test-id="switch"
+                      isActive={true}
+                      onClick={[Function]}
+                      role="checkbox"
+                      size="sm"
+                      type="button"
+                    >
+                      <button
+                        aria-checked={true}
+                        className="css-1oe1uqr-SwitchButton ezmyi9u0"
+                        data-test-id="switch"
+                        onClick={[Function]}
+                        role="checkbox"
+                        size="sm"
+                        type="button"
+                      >
+                        <Toggle
+                          isActive={true}
+                          size="sm"
+                        >
+                          <span
+                            className="css-126bu87-Toggle ezmyi9u1"
+                            size="sm"
+                          />
+                        </Toggle>
+                      </button>
+                    </SwitchButton>
+                  </Switch>
+                </ForwardRef>
+              </div>
+            </SpreadLayout>
+            <ShareUrlContainer
+              isSharing={true}
+              onCancel={[Function]}
+              onConfirming={[Function]}
+              onShare={[Function]}
+              onToggle={[Function]}
+              shareUrl="http://sentry.io/share/test/"
+            >
+              <FlowLayout
+                style={
+                  Object {
+                    "alignItems": "stretch",
+                    "border": "1px solid #dad5df",
+                    "borderRadius": 4,
+                    "flex": "none",
+                  }
+                }
+                truncate={true}
+              >
+                <div
+                  className="css-dk1sds-FlowLayout e1uibv5p0"
+                  style={
+                    Object {
+                      "alignItems": "stretch",
+                      "border": "1px solid #dad5df",
+                      "borderRadius": 4,
+                      "flex": "none",
+                    }
+                  }
+                >
+                  <div
+                    style={
+                      Object {
+                        "backgroundColor": "transparent",
+                        "borderRight": "1px solid #dad5df",
+                        "display": "flex",
+                        "flex": 1,
+                        "maxWidth": 288,
+                        "position": "relative",
+                      }
+                    }
+                  >
+                    <AutoSelectText
+                      style={
+                        Object {
+                          "border": "none",
+                          "flex": 1,
+                          "overflow": "hidden",
+                          "padding": "4px 6px 4px 10px",
+                          "textOverflow": "ellipsis",
+                          "whiteSpace": "nowrap",
+                        }
+                      }
+                    >
+                      <div
+                        className="auto-select-text"
+                        onClick={[Function]}
+                        style={
+                          Object {
+                            "border": "none",
+                            "flex": 1,
+                            "overflow": "hidden",
+                            "padding": "4px 6px 4px 10px",
+                            "textOverflow": "ellipsis",
+                            "whiteSpace": "nowrap",
+                          }
+                        }
+                      >
+                        <span>
+                          http://sentry.io/share/test/
+                        </span>
+                      </div>
+                    </AutoSelectText>
+                  </div>
+                  <FlowLayout
+                    style={
+                      Object {
+                        "alignItems": "stretch",
+                      }
+                    }
+                    truncate={true}
+                  >
+                    <div
+                      className="css-dk1sds-FlowLayout e1uibv5p0"
+                      style={
+                        Object {
+                          "alignItems": "stretch",
+                        }
+                      }
+                    >
+                      <Clipboard
+                        errorMessage="Error copying to clipboard"
+                        hideMessages={false}
+                        hideUnsupported={true}
+                        successMessage="Copied to clipboard"
+                        value="http://sentry.io/share/test/"
+                      />
+                      <Confirm
+                        cancelText="Cancel"
+                        confirmText="Confirm"
+                        disableConfirmButton={false}
+                        message="You are about to regenerate a new shared URL. Your previously shared URL will no longer work. Do you want to continue?"
+                        onCancel={[Function]}
+                        onConfirm={[Function]}
+                        onConfirming={[Function]}
+                        priority="primary"
+                        stopPropagation={false}
+                      >
+                        <forwardRef<Button>
+                          borderless={true}
+                          onClick={[Function]}
+                          size="xsmall"
+                        >
+                          <Button
+                            align="center"
+                            borderless={true}
+                            disabled={false}
+                            forwardRef={null}
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <StyledButton
+                              aria-disabled={false}
+                              borderless={true}
+                              disabled={false}
+                              forwardRef={null}
+                              onClick={[Function]}
+                              role="button"
+                              size="xsmall"
+                            >
+                              <Component
+                                aria-disabled={false}
+                                className="css-mma2z9-StyledButton edwq9my0"
+                                forwardRef={null}
+                                onClick={[Function]}
+                                role="button"
+                                size="xsmall"
+                              >
+                                <button
+                                  aria-disabled={false}
+                                  className="css-mma2z9-StyledButton edwq9my0"
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
+                                >
+                                  <ButtonLabel
+                                    align="center"
+                                    borderless={true}
+                                    size="xsmall"
+                                  >
+                                    <span
+                                      className="css-1dw46ju-ButtonLabel edwq9my1"
+                                    >
+                                      <IconRefresh>
+                                        <ForwardRef(SvgIcon)>
+                                          <svg
+                                            fill="currentColor"
+                                            height="16px"
+                                            viewBox="0 0 16 16"
+                                            width="16px"
+                                          >
+                                            <path
+                                              d="M11.14,6.35a.76.76,0,0,1-.75-.75v-4a.75.75,0,0,1,.75-.75h4a.75.75,0,1,1,0,1.5H11.89V5.6A.76.76,0,0,1,11.14,6.35Z"
+                                            />
+                                            <path
+                                              d="M8,15.9A7.9,7.9,0,0,1,8,.1.75.75,0,0,1,8,1.6a6.39,6.39,0,1,0,2.81.65A.75.75,0,1,1,11.48.91,7.83,7.83,0,0,1,15.9,8,7.91,7.91,0,0,1,8,15.9Z"
+                                            />
+                                          </svg>
+                                        </ForwardRef(SvgIcon)>
+                                      </IconRefresh>
+                                    </span>
+                                  </ButtonLabel>
+                                </button>
+                              </Component>
+                            </StyledButton>
+                          </Button>
+                        </forwardRef<Button>>
+                        <Modal
+                          animation={false}
+                          autoFocus={true}
+                          backdrop={true}
+                          bsClass="modal"
+                          dialogComponentClass={[Function]}
+                          enforceFocus={true}
+                          keyboard={true}
+                          manager={
+                            ModalManager {
+                              "add": [Function],
+                              "containers": Array [],
+                              "data": Array [],
+                              "handleContainerOverflow": true,
+                              "hideSiblingNodes": true,
+                              "isTopModal": [Function],
+                              "modals": Array [],
+                              "remove": [Function],
+                            }
+                          }
+                          onHide={[Function]}
+                          renderBackdrop={[Function]}
+                          restoreFocus={true}
+                          show={false}
+                        >
+                          <Modal
+                            autoFocus={true}
+                            backdrop={true}
+                            backdropClassName="modal-backdrop"
+                            containerClassName="modal-open"
+                            enforceFocus={true}
+                            keyboard={true}
+                            manager={
+                              ModalManager {
+                                "add": [Function],
+                                "containers": Array [],
+                                "data": Array [],
+                                "handleContainerOverflow": true,
+                                "hideSiblingNodes": true,
+                                "isTopModal": [Function],
+                                "modals": Array [],
+                                "remove": [Function],
+                              }
+                            }
+                            onEntering={[Function]}
+                            onExited={[Function]}
+                            onHide={[Function]}
+                            renderBackdrop={[Function]}
+                            restoreFocus={true}
+                            show={false}
+                          />
+                        </Modal>
+                      </Confirm>
+                    </div>
+                  </FlowLayout>
+                </div>
+              </FlowLayout>
+            </ShareUrlContainer>
+          </li>
+        </ul>
+      </span>
+    </DropdownMenu>
+  </DropdownLink>
+</ShareIssue>
+`;

@@ -42,6 +42,7 @@ describe('OrganizationRepositoriesContainer', function() {
           }
         );
         expect(wrapper).toSnapshot();
+        expect(wrapper).toMatchSnapshot();
       });
     });
   });

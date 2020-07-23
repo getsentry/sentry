@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Tooltip renders 1`] = `
+<Tooltip
+  containerDisplayMode="inline-block"
+  position="top"
+  title="test"
+>
+  <Manager>
+    <Reference>
+      <InnerReference
+        setReferenceNode={[Function]}
+      >
+        <span
+          aria-describedby="tooltip-123456"
+          onBlur={[Function]}
+          onFocus={[Function]}
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+        >
+          My Button
+        </span>
+      </InnerReference>
+    </Reference>
+  </Manager>
+</Tooltip>
+`;

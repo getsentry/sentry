@@ -16,6 +16,7 @@ describe('ProjectPluginRow', function() {
     wrapper = mount(<ProjectPluginRow {...params} {...plugin} />, routerContext);
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('calls `onChange` when clicked', function() {

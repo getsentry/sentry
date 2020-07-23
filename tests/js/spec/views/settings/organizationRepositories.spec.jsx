@@ -15,6 +15,7 @@ describe('OrganizationRepositories', function() {
       />
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with github provider', function() {
@@ -26,6 +27,7 @@ describe('OrganizationRepositories', function() {
       />
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with a repository', function() {
@@ -42,5 +44,6 @@ describe('OrganizationRepositories', function() {
       />
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

@@ -1,0 +1,237 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AlertLink renders 1`] = `
+<AlertLink
+  openInNewTab={false}
+  priority="warning"
+  size="normal"
+  to="/settings/accounts/notifications"
+  withoutMarginBottom={false}
+>
+  <StyledLink
+    openInNewTab={false}
+    priority="warning"
+    size="normal"
+    to="/settings/accounts/notifications"
+    withoutMarginBottom={false}
+  >
+    <Component
+      className="css-1bza080-StyledLink e1ylhppg0"
+      openInNewTab={false}
+      priority="warning"
+      size="normal"
+      to="/settings/accounts/notifications"
+      withoutMarginBottom={false}
+    >
+      <Link
+        className="css-1bza080-StyledLink e1ylhppg0"
+        to="/settings/accounts/notifications"
+      >
+        <Anchor
+          className="css-1bza080-StyledLink e1ylhppg0"
+          href="/settings/accounts/notifications"
+        >
+          <a
+            className="e1ylhppg0 css-1ku03mk-Anchor-StyledLink e18jdd0v0"
+            href="/settings/accounts/notifications"
+          >
+            <AlertLinkText>
+              <div
+                className="css-o9emef-AlertLinkText e1ylhppg3"
+              >
+                This is an external link button
+              </div>
+            </AlertLinkText>
+            <IconLink>
+              <span
+                className="css-1nl5kog-IconWrapper-IconLink e1ylhppg2"
+              >
+                <IconChevron
+                  direction="right"
+                >
+                  <EmotionCssPropInternal
+                    __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                    __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                      Object {
+                        "$$typeof": Symbol(react.forward_ref),
+                        "propTypes": Object {
+                          "color": [Function],
+                          "size": [Function],
+                          "viewBox": [Function],
+                        },
+                        "render": [Function],
+                      }
+                    }
+                    css={
+                      Object {
+                        "map": undefined,
+                        "name": "72rehw-IconChevron",
+                        "next": undefined,
+                        "styles": "transform:rotate(90deg);;label:IconChevron;",
+                        "toString": [Function],
+                      }
+                    }
+                  >
+                    <ForwardRef(SvgIcon)
+                      className="css-72rehw-IconChevron"
+                    >
+                      <svg
+                        className="css-72rehw-IconChevron"
+                        fill="currentColor"
+                        height="16px"
+                        viewBox="0 0 16 16"
+                        width="16px"
+                      >
+                        <path
+                          d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                        />
+                      </svg>
+                    </ForwardRef(SvgIcon)>
+                  </EmotionCssPropInternal>
+                </IconChevron>
+              </span>
+            </IconLink>
+          </a>
+        </Anchor>
+      </Link>
+    </Component>
+  </StyledLink>
+</AlertLink>
+`;
+
+exports[`AlertLink renders with icon 1`] = `
+<AlertLink
+  icon={<ForwardRef(IconMail) />}
+  openInNewTab={false}
+  priority="warning"
+  size="normal"
+  to="/settings/accounts/notifications"
+  withoutMarginBottom={false}
+>
+  <StyledLink
+    openInNewTab={false}
+    priority="warning"
+    size="normal"
+    to="/settings/accounts/notifications"
+    withoutMarginBottom={false}
+  >
+    <Component
+      className="css-1bza080-StyledLink e1ylhppg0"
+      openInNewTab={false}
+      priority="warning"
+      size="normal"
+      to="/settings/accounts/notifications"
+      withoutMarginBottom={false}
+    >
+      <Link
+        className="css-1bza080-StyledLink e1ylhppg0"
+        to="/settings/accounts/notifications"
+      >
+        <Anchor
+          className="css-1bza080-StyledLink e1ylhppg0"
+          href="/settings/accounts/notifications"
+        >
+          <a
+            className="e1ylhppg0 css-1ku03mk-Anchor-StyledLink e18jdd0v0"
+            href="/settings/accounts/notifications"
+          >
+            <IconWrapper>
+              <span
+                className="css-dhrf1z-IconWrapper e1ylhppg1"
+              >
+                <IconMail>
+                  <ForwardRef(SvgIcon)>
+                    <svg
+                      fill="currentColor"
+                      height="16px"
+                      viewBox="0 0 16 16"
+                      width="16px"
+                    >
+                      <path
+                        d="M15.25,14.09H.75A.76.76,0,0,1,0,13.34V2.66a.76.76,0,0,1,.75-.75h14.5a.76.76,0,0,1,.75.75V13.34A.76.76,0,0,1,15.25,14.09ZM1.5,12.59h13V3.41H1.5Z"
+                      />
+                      <path
+                        d="M8,9.92a.78.78,0,0,1-.5-.19L.25,3.22a.75.75,0,1,1,1-1.12L8,8.16,14.75,2.1a.75.75,0,1,1,1,1.12L8.5,9.73A.78.78,0,0,1,8,9.92Z"
+                      />
+                      <rect
+                        height="1.5"
+                        transform="translate(-6.17 5.21) rotate(-41.89)"
+                        width="7.99"
+                        x="-0.27"
+                        y="9.92"
+                      />
+                      <rect
+                        height="7.99"
+                        transform="translate(-3.86 12.68) rotate(-48.09)"
+                        width="1.5"
+                        x="11.52"
+                        y="6.67"
+                      />
+                    </svg>
+                  </ForwardRef(SvgIcon)>
+                </IconMail>
+              </span>
+            </IconWrapper>
+            <AlertLinkText>
+              <div
+                className="css-o9emef-AlertLinkText e1ylhppg3"
+              >
+                This is an external link button
+              </div>
+            </AlertLinkText>
+            <IconLink>
+              <span
+                className="css-1nl5kog-IconWrapper-IconLink e1ylhppg2"
+              >
+                <IconChevron
+                  direction="right"
+                >
+                  <EmotionCssPropInternal
+                    __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                    __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                      Object {
+                        "$$typeof": Symbol(react.forward_ref),
+                        "propTypes": Object {
+                          "color": [Function],
+                          "size": [Function],
+                          "viewBox": [Function],
+                        },
+                        "render": [Function],
+                      }
+                    }
+                    css={
+                      Object {
+                        "map": undefined,
+                        "name": "72rehw-IconChevron",
+                        "next": undefined,
+                        "styles": "transform:rotate(90deg);;label:IconChevron;",
+                        "toString": [Function],
+                      }
+                    }
+                  >
+                    <ForwardRef(SvgIcon)
+                      className="css-72rehw-IconChevron"
+                    >
+                      <svg
+                        className="css-72rehw-IconChevron"
+                        fill="currentColor"
+                        height="16px"
+                        viewBox="0 0 16 16"
+                        width="16px"
+                      >
+                        <path
+                          d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                        />
+                      </svg>
+                    </ForwardRef(SvgIcon)>
+                  </EmotionCssPropInternal>
+                </IconChevron>
+              </span>
+            </IconLink>
+          </a>
+        </Anchor>
+      </Link>
+    </Component>
+  </StyledLink>
+</AlertLink>
+`;

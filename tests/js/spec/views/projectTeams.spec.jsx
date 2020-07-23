@@ -59,6 +59,7 @@ describe('ProjectTeams', function() {
     await wrapper.update();
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('can remove a team from project', async function() {

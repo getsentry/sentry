@@ -63,6 +63,7 @@ describe('Sidebar', function() {
 
     wrapper.find('SidebarDropdownActor').simulate('click');
     expect(wrapper.find('OrgAndUserMenu')).toSnapshot();
+    expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
   });
 
   it('can toggle collapsed state', async function() {
@@ -148,6 +149,7 @@ describe('Sidebar', function() {
       const menu = wrapper.find('HelpMenu');
       expect(menu).toHaveLength(1);
       expect(menu).toSnapshot();
+      expect(menu).toMatchSnapshot();
       expect(menu.find('SidebarMenuItem')).toHaveLength(3);
       wrapper.find('HelpActor').simulate('click');
       expect(wrapper.find('HelpMenu')).toHaveLength(0);
@@ -160,6 +162,7 @@ describe('Sidebar', function() {
       wrapper.find('SidebarDropdownActor').simulate('click');
       expect(wrapper.find('OrgAndUserMenu')).toHaveLength(1);
       expect(wrapper.find('OrgAndUserMenu')).toSnapshot();
+      expect(wrapper.find('OrgAndUserMenu')).toMatchSnapshot();
     });
 
     it('has link to Members settings with `member:write`', function() {
@@ -189,6 +192,7 @@ describe('Sidebar', function() {
       wrapper.update();
       expect(wrapper.find('SwitchOrganizationMenu')).toHaveLength(1);
       expect(wrapper.find('SwitchOrganizationMenu')).toSnapshot();
+      expect(wrapper.find('SwitchOrganizationMenu')).toMatchSnapshot();
       jest.useRealTimers();
     });
 
@@ -250,6 +254,7 @@ describe('Sidebar', function() {
       expect(wrapper.find('SidebarPanelItem').prop('hasSeen')).toBe(false);
 
       expect(wrapper.find('SidebarPanelItem')).toSnapshot();
+      expect(wrapper.find('SidebarPanelItem')).toMatchSnapshot();
 
       // Should mark as seen after a delay
       jest.advanceTimersByTime(2000);
@@ -318,6 +323,7 @@ describe('Sidebar', function() {
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
       expect(wrapper.find('IncidentList')).toSnapshot();
+      expect(wrapper.find('IncidentList')).toMatchSnapshot();
     });
 
     it('hides when path changes', async function() {

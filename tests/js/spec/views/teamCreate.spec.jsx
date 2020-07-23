@@ -18,6 +18,7 @@ describe('TeamCreate', function() {
         routerContext
       );
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 

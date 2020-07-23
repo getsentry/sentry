@@ -12,6 +12,7 @@ describe('ScoreBar', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<ScoreBar size={60} thickness={2} score={3} />);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders vertically', function() {
@@ -19,21 +20,25 @@ describe('ScoreBar', function() {
       <ScoreBar size={60} thickness={2} vertical score={2} />
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with score = 0', function() {
     const wrapper = mountWithTheme(<ScoreBar size={60} thickness={2} score={0} />);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with score > max score', function() {
     const wrapper = mountWithTheme(<ScoreBar size={60} thickness={2} score={10} />);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with < 0 score', function() {
     const wrapper = mountWithTheme(<ScoreBar size={60} thickness={2} score={-2} />);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('has custom palette', function() {
@@ -47,5 +52,6 @@ describe('ScoreBar', function() {
       />
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

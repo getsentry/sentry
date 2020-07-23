@@ -1,0 +1,1094 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountEmails renders with emails 1`] = `
+<AccountEmails>
+  <SideEffect(DocumentTitle)
+    title="Emails - Sentry"
+  >
+    <DocumentTitle
+      title="Emails - Sentry"
+    >
+      <div>
+        <StyledSettingsPageHeading
+          noTitleStyles={false}
+          title="Emails"
+        >
+          <SettingsPageHeading
+            className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            noTitleStyles={false}
+            title="Emails"
+          >
+            <div
+              className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            >
+              <TitleAndActions>
+                <div
+                  className="css-ifzfc5-TitleAndActions e1uay4fd0"
+                >
+                  <Title
+                    styled={false}
+                  >
+                    <div
+                      className="css-u2ls9d-Title e1uay4fd1"
+                    >
+                      <HeaderTitle>
+                        <h4
+                          className="css-1bosio6-HeaderTitle eqkydle2"
+                        >
+                          Emails
+                        </h4>
+                      </HeaderTitle>
+                    </div>
+                  </Title>
+                </div>
+              </TitleAndActions>
+            </div>
+          </SettingsPageHeading>
+        </StyledSettingsPageHeading>
+        <Panel>
+          <Component
+            className="css-ietoyz-Panel e119nu470"
+          >
+            <div
+              className="css-ietoyz-Panel e119nu470"
+            >
+              <PanelHeader>
+                <div
+                  className="css-pi486d-PanelHeader en8g1d30"
+                >
+                  Emails
+                </div>
+              </PanelHeader>
+              <PanelBody
+                flexible={false}
+                withPadding={false}
+              >
+                <FlexBox
+                  withPadding={false}
+                >
+                  <div
+                    className="css-1nto0rx-FlexBox e1vnwt6f0"
+                  >
+                    <EmailRow
+                      email="primary@example.com"
+                      isPrimary={true}
+                      isVerified={true}
+                      onRemove={[Function]}
+                      onVerify={[Function]}
+                    >
+                      <EmailItem
+                        p={2}
+                      >
+                        <div
+                          className="css-umapqw-PanelItem-EmailItem e1pxbwsd1"
+                        >
+                          <EmailTags>
+                            <div
+                              className="css-1tyjxui-EmailTags e1pxbwsd0"
+                            >
+                              primary@example.com
+                              <Tag
+                                priority="success"
+                              >
+                                <Component
+                                  className="css-1gxf9vh-Tag e1glkkip0"
+                                  priority="success"
+                                >
+                                  <div
+                                    className="css-1gxf9vh-Tag e1glkkip0"
+                                  >
+                                    Primary
+                                  </div>
+                                </Component>
+                              </Tag>
+                            </div>
+                          </EmailTags>
+                          <ButtonBar
+                            gap={1}
+                          >
+                            <ButtonGrid
+                              gap={1}
+                              merged={false}
+                            >
+                              <div
+                                className="css-dhkb9a-ButtonGrid e1iu08980"
+                              />
+                            </ButtonGrid>
+                          </ButtonBar>
+                        </div>
+                      </EmailItem>
+                    </EmailRow>
+                    <EmailRow
+                      email="secondary1@example.com"
+                      isPrimary={false}
+                      isVerified={true}
+                      key="secondary1@example.com"
+                      onRemove={[Function]}
+                      onSetPrimary={[Function]}
+                      onVerify={[Function]}
+                    >
+                      <EmailItem
+                        p={2}
+                      >
+                        <div
+                          className="css-umapqw-PanelItem-EmailItem e1pxbwsd1"
+                        >
+                          <EmailTags>
+                            <div
+                              className="css-1tyjxui-EmailTags e1pxbwsd0"
+                            >
+                              secondary1@example.com
+                            </div>
+                          </EmailTags>
+                          <ButtonBar
+                            gap={1}
+                          >
+                            <ButtonGrid
+                              gap={1}
+                              merged={false}
+                            >
+                              <div
+                                className="css-dhkb9a-ButtonGrid e1iu08980"
+                              >
+                                <forwardRef<Button>
+                                  onClick={[Function]}
+                                  size="small"
+                                >
+                                  <Button
+                                    align="center"
+                                    disabled={false}
+                                    forwardRef={null}
+                                    onClick={[Function]}
+                                    size="small"
+                                  >
+                                    <StyledButton
+                                      aria-disabled={false}
+                                      aria-label="Set as primary"
+                                      disabled={false}
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      size="small"
+                                    >
+                                      <Component
+                                        aria-disabled={false}
+                                        aria-label="Set as primary"
+                                        className="css-8od3q1-StyledButton edwq9my0"
+                                        forwardRef={null}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="small"
+                                      >
+                                        <button
+                                          aria-disabled={false}
+                                          aria-label="Set as primary"
+                                          className="css-8od3q1-StyledButton edwq9my0"
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="small"
+                                        >
+                                          <ButtonLabel
+                                            align="center"
+                                            size="small"
+                                          >
+                                            <span
+                                              className="css-n7mdnv-ButtonLabel edwq9my1"
+                                            >
+                                              Set as primary
+                                            </span>
+                                          </ButtonLabel>
+                                        </button>
+                                      </Component>
+                                    </StyledButton>
+                                  </Button>
+                                </forwardRef<Button>>
+                                <forwardRef<Button>
+                                  data-test-id="remove"
+                                  icon={<ForwardRef(IconDelete) />}
+                                  onClick={[Function]}
+                                  priority="danger"
+                                  size="small"
+                                >
+                                  <Button
+                                    align="center"
+                                    data-test-id="remove"
+                                    disabled={false}
+                                    forwardRef={null}
+                                    icon={<ForwardRef(IconDelete) />}
+                                    onClick={[Function]}
+                                    priority="danger"
+                                    size="small"
+                                  >
+                                    <StyledButton
+                                      aria-disabled={false}
+                                      data-test-id="remove"
+                                      disabled={false}
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      priority="danger"
+                                      role="button"
+                                      size="small"
+                                    >
+                                      <Component
+                                        aria-disabled={false}
+                                        className="css-1cv5npd-StyledButton edwq9my0"
+                                        data-test-id="remove"
+                                        forwardRef={null}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="small"
+                                      >
+                                        <button
+                                          aria-disabled={false}
+                                          className="css-1cv5npd-StyledButton edwq9my0"
+                                          data-test-id="remove"
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="small"
+                                        >
+                                          <ButtonLabel
+                                            align="center"
+                                            priority="danger"
+                                            size="small"
+                                          >
+                                            <span
+                                              className="css-n7mdnv-ButtonLabel edwq9my1"
+                                            >
+                                              <Icon
+                                                hasChildren={false}
+                                                size="small"
+                                              >
+                                                <span
+                                                  className="css-dm7gfi-Icon edwq9my2"
+                                                  size="small"
+                                                >
+                                                  <ForwardRef(IconDelete)>
+                                                    <ForwardRef(SvgIcon)>
+                                                      <svg
+                                                        fill="currentColor"
+                                                        height="16px"
+                                                        viewBox="0 0 16 16"
+                                                        width="16px"
+                                                      >
+                                                        <path
+                                                          d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                                                        />
+                                                        <path
+                                                          d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                                                        />
+                                                        <path
+                                                          d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                                                        />
+                                                        <path
+                                                          d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                                                        />
+                                                        <path
+                                                          d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                                                        />
+                                                        <path
+                                                          d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                                                        />
+                                                      </svg>
+                                                    </ForwardRef(SvgIcon)>
+                                                  </ForwardRef(IconDelete)>
+                                                </span>
+                                              </Icon>
+                                            </span>
+                                          </ButtonLabel>
+                                        </button>
+                                      </Component>
+                                    </StyledButton>
+                                  </Button>
+                                </forwardRef<Button>>
+                              </div>
+                            </ButtonGrid>
+                          </ButtonBar>
+                        </div>
+                      </EmailItem>
+                    </EmailRow>
+                    <EmailRow
+                      email="secondary2@example.com"
+                      isPrimary={false}
+                      isVerified={false}
+                      key="secondary2@example.com"
+                      onRemove={[Function]}
+                      onSetPrimary={[Function]}
+                      onVerify={[Function]}
+                    >
+                      <EmailItem
+                        p={2}
+                      >
+                        <div
+                          className="css-umapqw-PanelItem-EmailItem e1pxbwsd1"
+                        >
+                          <EmailTags>
+                            <div
+                              className="css-1tyjxui-EmailTags e1pxbwsd0"
+                            >
+                              secondary2@example.com
+                              <Tag
+                                priority="warning"
+                              >
+                                <Component
+                                  className="css-frrzun-Tag e1glkkip0"
+                                  priority="warning"
+                                >
+                                  <div
+                                    className="css-frrzun-Tag e1glkkip0"
+                                  >
+                                    Unverified
+                                  </div>
+                                </Component>
+                              </Tag>
+                            </div>
+                          </EmailTags>
+                          <ButtonBar
+                            gap={1}
+                          >
+                            <ButtonGrid
+                              gap={1}
+                              merged={false}
+                            >
+                              <div
+                                className="css-dhkb9a-ButtonGrid e1iu08980"
+                              >
+                                <forwardRef<Button>
+                                  onClick={[Function]}
+                                  size="small"
+                                >
+                                  <Button
+                                    align="center"
+                                    disabled={false}
+                                    forwardRef={null}
+                                    onClick={[Function]}
+                                    size="small"
+                                  >
+                                    <StyledButton
+                                      aria-disabled={false}
+                                      aria-label="Resend verification"
+                                      disabled={false}
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      size="small"
+                                    >
+                                      <Component
+                                        aria-disabled={false}
+                                        aria-label="Resend verification"
+                                        className="css-8od3q1-StyledButton edwq9my0"
+                                        forwardRef={null}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="small"
+                                      >
+                                        <button
+                                          aria-disabled={false}
+                                          aria-label="Resend verification"
+                                          className="css-8od3q1-StyledButton edwq9my0"
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="small"
+                                        >
+                                          <ButtonLabel
+                                            align="center"
+                                            size="small"
+                                          >
+                                            <span
+                                              className="css-n7mdnv-ButtonLabel edwq9my1"
+                                            >
+                                              Resend verification
+                                            </span>
+                                          </ButtonLabel>
+                                        </button>
+                                      </Component>
+                                    </StyledButton>
+                                  </Button>
+                                </forwardRef<Button>>
+                                <forwardRef<Button>
+                                  data-test-id="remove"
+                                  icon={<ForwardRef(IconDelete) />}
+                                  onClick={[Function]}
+                                  priority="danger"
+                                  size="small"
+                                >
+                                  <Button
+                                    align="center"
+                                    data-test-id="remove"
+                                    disabled={false}
+                                    forwardRef={null}
+                                    icon={<ForwardRef(IconDelete) />}
+                                    onClick={[Function]}
+                                    priority="danger"
+                                    size="small"
+                                  >
+                                    <StyledButton
+                                      aria-disabled={false}
+                                      data-test-id="remove"
+                                      disabled={false}
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      priority="danger"
+                                      role="button"
+                                      size="small"
+                                    >
+                                      <Component
+                                        aria-disabled={false}
+                                        className="css-1cv5npd-StyledButton edwq9my0"
+                                        data-test-id="remove"
+                                        forwardRef={null}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="small"
+                                      >
+                                        <button
+                                          aria-disabled={false}
+                                          className="css-1cv5npd-StyledButton edwq9my0"
+                                          data-test-id="remove"
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="small"
+                                        >
+                                          <ButtonLabel
+                                            align="center"
+                                            priority="danger"
+                                            size="small"
+                                          >
+                                            <span
+                                              className="css-n7mdnv-ButtonLabel edwq9my1"
+                                            >
+                                              <Icon
+                                                hasChildren={false}
+                                                size="small"
+                                              >
+                                                <span
+                                                  className="css-dm7gfi-Icon edwq9my2"
+                                                  size="small"
+                                                >
+                                                  <ForwardRef(IconDelete)>
+                                                    <ForwardRef(SvgIcon)>
+                                                      <svg
+                                                        fill="currentColor"
+                                                        height="16px"
+                                                        viewBox="0 0 16 16"
+                                                        width="16px"
+                                                      >
+                                                        <path
+                                                          d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                                                        />
+                                                        <path
+                                                          d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                                                        />
+                                                        <path
+                                                          d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                                                        />
+                                                        <path
+                                                          d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                                                        />
+                                                        <path
+                                                          d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                                                        />
+                                                        <path
+                                                          d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                                                        />
+                                                      </svg>
+                                                    </ForwardRef(SvgIcon)>
+                                                  </ForwardRef(IconDelete)>
+                                                </span>
+                                              </Icon>
+                                            </span>
+                                          </ButtonLabel>
+                                        </button>
+                                      </Component>
+                                    </StyledButton>
+                                  </Button>
+                                </forwardRef<Button>>
+                              </div>
+                            </ButtonGrid>
+                          </ButtonBar>
+                        </div>
+                      </EmailItem>
+                    </EmailRow>
+                  </div>
+                </FlexBox>
+              </PanelBody>
+            </div>
+          </Component>
+        </Panel>
+        <Form
+          allowUndo={false}
+          apiEndpoint="/users/me/emails/"
+          apiMethod="POST"
+          cancelLabel="Cancel"
+          className="form-stacked"
+          onSubmitSuccess={[Function]}
+          requireChanges={false}
+          saveOnBlur={true}
+          submitDisabled={false}
+          submitLabel="Save Changes"
+          submitPriority="primary"
+        >
+          <form
+            className="form-stacked"
+            onSubmit={[Function]}
+          >
+            <div>
+              <JsonForm
+                additionalFieldProps={Object {}}
+                forms={
+                  Array [
+                    Object {
+                      "fields": Array [
+                        Object {
+                          "help": "Designate an alternative email for this account",
+                          "label": "Additional Email",
+                          "name": "email",
+                          "placeholder": "e.g. secondary@example.com",
+                          "showReturnButton": true,
+                          "type": "string",
+                        },
+                      ],
+                      "title": "Add Secondary Emails",
+                    },
+                  ]
+                }
+              >
+                <Styled(div)>
+                  <div
+                    className="css-vurnku"
+                  >
+                    <FormPanel
+                      additionalFieldProps={Object {}}
+                      fields={
+                        Array [
+                          Object {
+                            "help": "Designate an alternative email for this account",
+                            "label": "Additional Email",
+                            "name": "email",
+                            "placeholder": "e.g. secondary@example.com",
+                            "showReturnButton": true,
+                            "type": "string",
+                          },
+                        ]
+                      }
+                      title="Add Secondary Emails"
+                    >
+                      <Panel
+                        id="Add-Secondary-Emails"
+                      >
+                        <Component
+                          className="css-ietoyz-Panel e119nu470"
+                          id="Add-Secondary-Emails"
+                        >
+                          <div
+                            className="css-ietoyz-Panel e119nu470"
+                            id="Add-Secondary-Emails"
+                          >
+                            <PanelHeader>
+                              <div
+                                className="css-pi486d-PanelHeader en8g1d30"
+                              >
+                                Add Secondary Emails
+                              </div>
+                            </PanelHeader>
+                            <PanelBody
+                              flexible={false}
+                              withPadding={false}
+                            >
+                              <FlexBox
+                                withPadding={false}
+                              >
+                                <div
+                                  className="css-1nto0rx-FlexBox e1vnwt6f0"
+                                >
+                                  <FieldFromConfig
+                                    field={
+                                      Object {
+                                        "help": "Designate an alternative email for this account",
+                                        "label": "Additional Email",
+                                        "name": "email",
+                                        "placeholder": "e.g. secondary@example.com",
+                                        "showReturnButton": true,
+                                        "type": "string",
+                                      }
+                                    }
+                                    highlighted={false}
+                                    key="email"
+                                  >
+                                    <TextField
+                                      help="Designate an alternative email for this account"
+                                      highlighted={false}
+                                      label="Additional Email"
+                                      name="email"
+                                      placeholder="e.g. secondary@example.com"
+                                      showReturnButton={true}
+                                      type="string"
+                                    >
+                                      <InputField
+                                        field={[Function]}
+                                        help="Designate an alternative email for this account"
+                                        highlighted={false}
+                                        label="Additional Email"
+                                        name="email"
+                                        placeholder="e.g. secondary@example.com"
+                                        showReturnButton={true}
+                                        type="text"
+                                      >
+                                        <FormField
+                                          field={[Function]}
+                                          flexibleControlStateSize={false}
+                                          help="Designate an alternative email for this account"
+                                          hideErrorMessage={false}
+                                          highlighted={false}
+                                          label="Additional Email"
+                                          name="email"
+                                          placeholder="e.g. secondary@example.com"
+                                          showReturnButton={true}
+                                          type="text"
+                                        >
+                                          <Field
+                                            alignRight={false}
+                                            disabled={false}
+                                            field={[Function]}
+                                            flexibleControlStateSize={false}
+                                            help="Designate an alternative email for this account"
+                                            highlighted={false}
+                                            id="email"
+                                            inline={true}
+                                            label="Additional Email"
+                                            name="email"
+                                            placeholder="e.g. secondary@example.com"
+                                            required={false}
+                                            showHelpInTooltip={false}
+                                            showReturnButton={true}
+                                            type="text"
+                                            visible={true}
+                                          >
+                                            <FieldWrapper
+                                              hasControlState={true}
+                                              highlighted={false}
+                                              inline={true}
+                                            >
+                                              <div
+                                                className="css-zwp5he-FieldWrapper-FieldWrapper e2iyls20"
+                                              >
+                                                <FieldDescription
+                                                  htmlFor="email"
+                                                  inline={true}
+                                                >
+                                                  <label
+                                                    className="css-boiybi-FieldDescription e3z18c30"
+                                                    htmlFor="email"
+                                                  >
+                                                    <FieldLabel
+                                                      disabled={false}
+                                                    >
+                                                      <div
+                                                        className="css-wufuns-FieldLabel e16ushrl0"
+                                                      >
+                                                        <span>
+                                                          Additional Email
+                                                        </span>
+                                                      </div>
+                                                    </FieldLabel>
+                                                    <FieldHelp
+                                                      inline={true}
+                                                    >
+                                                      <div
+                                                        className="css-1ooulq2-FieldHelp e54sr8f0"
+                                                      >
+                                                        Designate an alternative email for this account
+                                                      </div>
+                                                    </FieldHelp>
+                                                  </label>
+                                                </FieldDescription>
+                                                <FieldControl
+                                                  alignRight={false}
+                                                  controlState={
+                                                    <FormFieldControlState
+                                                      model={
+                                                        FormModel {
+                                                          "api": Client {
+                                                            "_chain": [Function],
+                                                            "_wrapRequest": [Function],
+                                                            "bulkUpdate": [Function],
+                                                            "handleRequestError": [Function],
+                                                            "hasProjectBeenRenamed": [Function],
+                                                          },
+                                                          "errors": Object {},
+                                                          "fieldDescriptor": Map {
+                                                            "email" => Object {
+                                                              "access": undefined,
+                                                              "children": [Function],
+                                                              "className": undefined,
+                                                              "disabled": undefined,
+                                                              "features": undefined,
+                                                              "field": [Function],
+                                                              "flexibleControlStateSize": false,
+                                                              "help": "Designate an alternative email for this account",
+                                                              "hideErrorMessage": false,
+                                                              "highlighted": false,
+                                                              "label": "Additional Email",
+                                                              "name": "email",
+                                                              "placeholder": "e.g. secondary@example.com",
+                                                              "showReturnButton": true,
+                                                              "type": "text",
+                                                            },
+                                                          },
+                                                          "fieldState": Object {},
+                                                          "fields": Object {},
+                                                          "formErrors": undefined,
+                                                          "formState": undefined,
+                                                          "initialData": Object {},
+                                                          "options": Object {
+                                                            "allowUndo": false,
+                                                            "apiEndpoint": "/users/me/emails/",
+                                                            "apiMethod": "POST",
+                                                            "onFieldChange": undefined,
+                                                            "onSubmitError": undefined,
+                                                            "onSubmitSuccess": [Function],
+                                                            "resetOnError": undefined,
+                                                            "saveOnBlur": true,
+                                                          },
+                                                          "snapshots": Array [
+                                                            Map {},
+                                                          ],
+                                                        }
+                                                      }
+                                                      name="email"
+                                                    />
+                                                  }
+                                                  disabled={false}
+                                                  errorState={
+                                                    <Observer>
+                                                      [Function]
+                                                    </Observer>
+                                                  }
+                                                  flexibleControlStateSize={false}
+                                                  inline={true}
+                                                >
+                                                  <FieldControlErrorWrapper
+                                                    inline={true}
+                                                  >
+                                                    <div
+                                                      className="css-qe5fr0-FieldControlErrorWrapper e12jpfuq0"
+                                                    >
+                                                      <FieldControlWrapper>
+                                                        <div
+                                                          className="css-1evsibf-FieldControlWrapper e12jpfuq2"
+                                                        >
+                                                          <FieldControlStyled
+                                                            alignRight={false}
+                                                          >
+                                                            <div
+                                                              className="css-ld1e0a-FieldControlStyled e12jpfuq1"
+                                                            >
+                                                              <Observer>
+                                                                <Input
+                                                                  disabled={false}
+                                                                  error={false}
+                                                                  field={[Function]}
+                                                                  help="Designate an alternative email for this account"
+                                                                  highlighted={false}
+                                                                  id="email"
+                                                                  initialData={Object {}}
+                                                                  label="Additional Email"
+                                                                  model={
+                                                                    FormModel {
+                                                                      "api": Client {
+                                                                        "_chain": [Function],
+                                                                        "_wrapRequest": [Function],
+                                                                        "bulkUpdate": [Function],
+                                                                        "handleRequestError": [Function],
+                                                                        "hasProjectBeenRenamed": [Function],
+                                                                      },
+                                                                      "errors": Object {},
+                                                                      "fieldDescriptor": Map {
+                                                                        "email" => Object {
+                                                                          "access": undefined,
+                                                                          "children": [Function],
+                                                                          "className": undefined,
+                                                                          "disabled": undefined,
+                                                                          "features": undefined,
+                                                                          "field": [Function],
+                                                                          "flexibleControlStateSize": false,
+                                                                          "help": "Designate an alternative email for this account",
+                                                                          "hideErrorMessage": false,
+                                                                          "highlighted": false,
+                                                                          "label": "Additional Email",
+                                                                          "name": "email",
+                                                                          "placeholder": "e.g. secondary@example.com",
+                                                                          "showReturnButton": true,
+                                                                          "type": "text",
+                                                                        },
+                                                                      },
+                                                                      "fieldState": Object {},
+                                                                      "fields": Object {},
+                                                                      "formErrors": undefined,
+                                                                      "formState": undefined,
+                                                                      "initialData": Object {},
+                                                                      "options": Object {
+                                                                        "allowUndo": false,
+                                                                        "apiEndpoint": "/users/me/emails/",
+                                                                        "apiMethod": "POST",
+                                                                        "onFieldChange": undefined,
+                                                                        "onSubmitError": undefined,
+                                                                        "onSubmitSuccess": [Function],
+                                                                        "resetOnError": undefined,
+                                                                        "saveOnBlur": true,
+                                                                      },
+                                                                      "snapshots": Array [
+                                                                        Map {},
+                                                                      ],
+                                                                    }
+                                                                  }
+                                                                  name="email"
+                                                                  onBlur={[Function]}
+                                                                  onChange={[Function]}
+                                                                  onKeyDown={[Function]}
+                                                                  placeholder="e.g. secondary@example.com"
+                                                                  showReturnButton={true}
+                                                                  type="text"
+                                                                  value=""
+                                                                >
+                                                                  <input
+                                                                    className="css-1g2jzij-Input e1xej46s0"
+                                                                    disabled={false}
+                                                                    id="email"
+                                                                    label="Additional Email"
+                                                                    name="email"
+                                                                    onBlur={[Function]}
+                                                                    onChange={[Function]}
+                                                                    onKeyDown={[Function]}
+                                                                    placeholder="e.g. secondary@example.com"
+                                                                    type="text"
+                                                                    value=""
+                                                                  />
+                                                                </Input>
+                                                              </Observer>
+                                                            </div>
+                                                          </FieldControlStyled>
+                                                          <FieldControlState
+                                                            flexibleControlStateSize={false}
+                                                          >
+                                                            <div
+                                                              className="css-1347hil-FieldControlState ep9s0su0"
+                                                            >
+                                                              <FormFieldControlState
+                                                                model={
+                                                                  FormModel {
+                                                                    "api": Client {
+                                                                      "_chain": [Function],
+                                                                      "_wrapRequest": [Function],
+                                                                      "bulkUpdate": [Function],
+                                                                      "handleRequestError": [Function],
+                                                                      "hasProjectBeenRenamed": [Function],
+                                                                    },
+                                                                    "errors": Object {},
+                                                                    "fieldDescriptor": Map {
+                                                                      "email" => Object {
+                                                                        "access": undefined,
+                                                                        "children": [Function],
+                                                                        "className": undefined,
+                                                                        "disabled": undefined,
+                                                                        "features": undefined,
+                                                                        "field": [Function],
+                                                                        "flexibleControlStateSize": false,
+                                                                        "help": "Designate an alternative email for this account",
+                                                                        "hideErrorMessage": false,
+                                                                        "highlighted": false,
+                                                                        "label": "Additional Email",
+                                                                        "name": "email",
+                                                                        "placeholder": "e.g. secondary@example.com",
+                                                                        "showReturnButton": true,
+                                                                        "type": "text",
+                                                                      },
+                                                                    },
+                                                                    "fieldState": Object {},
+                                                                    "fields": Object {},
+                                                                    "formErrors": undefined,
+                                                                    "formState": undefined,
+                                                                    "initialData": Object {},
+                                                                    "options": Object {
+                                                                      "allowUndo": false,
+                                                                      "apiEndpoint": "/users/me/emails/",
+                                                                      "apiMethod": "POST",
+                                                                      "onFieldChange": undefined,
+                                                                      "onSubmitError": undefined,
+                                                                      "onSubmitSuccess": [Function],
+                                                                      "resetOnError": undefined,
+                                                                      "saveOnBlur": true,
+                                                                    },
+                                                                    "snapshots": Array [
+                                                                      Map {},
+                                                                    ],
+                                                                  }
+                                                                }
+                                                                name="email"
+                                                              >
+                                                                <Observer>
+                                                                  <ControlState
+                                                                    error={false}
+                                                                    isSaved={null}
+                                                                    isSaving={null}
+                                                                  />
+                                                                </Observer>
+                                                              </FormFieldControlState>
+                                                            </div>
+                                                          </FieldControlState>
+                                                        </div>
+                                                      </FieldControlWrapper>
+                                                      <Observer />
+                                                    </div>
+                                                  </FieldControlErrorWrapper>
+                                                </FieldControl>
+                                              </div>
+                                            </FieldWrapper>
+                                          </Field>
+                                        </FormField>
+                                      </InputField>
+                                    </TextField>
+                                  </FieldFromConfig>
+                                </div>
+                              </FlexBox>
+                            </PanelBody>
+                          </div>
+                        </Component>
+                      </Panel>
+                    </FormPanel>
+                  </div>
+                </Styled(div)>
+              </JsonForm>
+            </div>
+          </form>
+        </Form>
+        <AlertLink
+          icon={<ForwardRef(IconStack) />}
+          openInNewTab={false}
+          priority="warning"
+          size="normal"
+          to="/settings/account/notifications"
+          withoutMarginBottom={false}
+        >
+          <StyledLink
+            openInNewTab={false}
+            priority="warning"
+            size="normal"
+            to="/settings/account/notifications"
+            withoutMarginBottom={false}
+          >
+            <Component
+              className="css-1bza080-StyledLink e1ylhppg0"
+              openInNewTab={false}
+              priority="warning"
+              size="normal"
+              to="/settings/account/notifications"
+              withoutMarginBottom={false}
+            >
+              <Link
+                className="css-1bza080-StyledLink e1ylhppg0"
+                to="/settings/account/notifications"
+              >
+                <Link
+                  className="css-1bza080-StyledLink e1ylhppg0"
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to="/settings/account/notifications"
+                >
+                  <a
+                    className="css-1bza080-StyledLink e1ylhppg0"
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    <IconWrapper>
+                      <span
+                        className="css-dhrf1z-IconWrapper e1ylhppg1"
+                      >
+                        <IconStack>
+                          <ForwardRef(SvgIcon)>
+                            <svg
+                              fill="currentColor"
+                              height="16px"
+                              viewBox="0 0 16 16"
+                              width="16px"
+                            >
+                              <path
+                                d="M8,9.87a.76.76,0,0,1-.38-.11L.39,5.59A.74.74,0,0,1,0,4.94a.77.77,0,0,1,.37-.65L7.62.12a.79.79,0,0,1,.76,0l7.23,4.17a.77.77,0,0,1,.37.65.74.74,0,0,1-.37.65L8.38,9.76A.76.76,0,0,1,8,9.87ZM2.27,4.94,8,8.25l5.73-3.31L8,1.64Z"
+                              />
+                              <path
+                                d="M8,12.93a.75.75,0,0,1-.38-.1L.39,8.66a.76.76,0,0,1-.27-1,.75.75,0,0,1,1-.27l6.86,4,6.86-3.95a.75.75,0,0,1,1,.27.76.76,0,0,1-.27,1L8.38,12.83A.75.75,0,0,1,8,12.93Z"
+                              />
+                              <path
+                                d="M8,16a.76.76,0,0,1-.38-.11L.39,11.72a.75.75,0,0,1,.75-1.3l6.86,4,6.86-4a.75.75,0,0,1,1,.28.75.75,0,0,1-.27,1L8.38,15.89A.76.76,0,0,1,8,16Z"
+                              />
+                            </svg>
+                          </ForwardRef(SvgIcon)>
+                        </IconStack>
+                      </span>
+                    </IconWrapper>
+                    <AlertLinkText>
+                      <div
+                        className="css-o9emef-AlertLinkText e1ylhppg3"
+                      >
+                        Want to change how many emails you get? Use the notifications panel.
+                      </div>
+                    </AlertLinkText>
+                    <IconLink>
+                      <span
+                        className="css-1nl5kog-IconWrapper-IconLink e1ylhppg2"
+                      >
+                        <IconChevron
+                          direction="right"
+                        >
+                          <EmotionCssPropInternal
+                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                              Object {
+                                "$$typeof": Symbol(react.forward_ref),
+                                "propTypes": Object {
+                                  "color": [Function],
+                                  "size": [Function],
+                                  "viewBox": [Function],
+                                },
+                                "render": [Function],
+                              }
+                            }
+                            css={
+                              Object {
+                                "map": undefined,
+                                "name": "72rehw-IconChevron",
+                                "next": undefined,
+                                "styles": "transform:rotate(90deg);;label:IconChevron;",
+                                "toString": [Function],
+                              }
+                            }
+                          >
+                            <ForwardRef(SvgIcon)
+                              className="css-72rehw-IconChevron"
+                            >
+                              <svg
+                                className="css-72rehw-IconChevron"
+                                fill="currentColor"
+                                height="16px"
+                                viewBox="0 0 16 16"
+                                width="16px"
+                              >
+                                <path
+                                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                />
+                              </svg>
+                            </ForwardRef(SvgIcon)>
+                          </EmotionCssPropInternal>
+                        </IconChevron>
+                      </span>
+                    </IconLink>
+                  </a>
+                </Link>
+              </Link>
+            </Component>
+          </StyledLink>
+        </AlertLink>
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</AccountEmails>
+`;

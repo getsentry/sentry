@@ -1,0 +1,421 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationCreate render() renders with terms 1`] = `
+<OrganizationCreate>
+  <SideEffect(DocumentTitle)
+    title="Create Organization - Sentry"
+  >
+    <DocumentTitle
+      title="Create Organization - Sentry"
+    >
+      <NarrowLayout
+        showLogout={true}
+      >
+        <div
+          className="app"
+        >
+          <div
+            className="pattern-bg"
+          />
+          <div
+            className="container"
+            style={
+              Object {
+                "maxWidth": undefined,
+              }
+            }
+          >
+            <div
+              className="box box-modal"
+            >
+              <div
+                className="box-header"
+              >
+                <a
+                  href="/"
+                >
+                  <IconSentry
+                    size="lg"
+                  >
+                    <ForwardRef(SvgIcon)
+                      size="lg"
+                    >
+                      <svg
+                        fill="currentColor"
+                        height="24px"
+                        viewBox="0 0 16 16"
+                        width="24px"
+                      >
+                        <path
+                          d="M15.8,14.57a1.53,1.53,0,0,0,0-1.52L9.28,1.43a1.46,1.46,0,0,0-2.56,0L4.61,5.18l.54.32A10.43,10.43,0,0,1,8.92,9.39a10.84,10.84,0,0,1,1.37,4.67H8.81a9.29,9.29,0,0,0-1.16-3.91A9,9,0,0,0,4.41,6.81L3.88,6.5,1.91,10l.53.32a5.12,5.12,0,0,1,2.42,3.73H1.48a.25.25,0,0,1-.21-.12.24.24,0,0,1,0-.25L2.21,12a3.32,3.32,0,0,0-1.07-.63L.2,13.05a1.53,1.53,0,0,0,0,1.52,1.46,1.46,0,0,0,1.28.76H6.13V14.7a6.55,6.55,0,0,0-.82-3.16,6.31,6.31,0,0,0-1.73-2l.74-1.32a7.85,7.85,0,0,1,2.26,2.53,8,8,0,0,1,1,3.92v.63h3.94V14.7A12.14,12.14,0,0,0,10,8.75a11.8,11.8,0,0,0-3.7-4l1.5-2.67a.24.24,0,0,1,.42,0l6.52,11.63a.24.24,0,0,1,0,.25.24.24,0,0,1-.21.12H13c0,.43,0,.85,0,1.27h1.53a1.46,1.46,0,0,0,1.28-.76"
+                        />
+                      </svg>
+                    </ForwardRef(SvgIcon)>
+                  </IconSentry>
+                </a>
+                <a
+                  className="logout pull-right"
+                  onClick={[Function]}
+                >
+                  <Logout>
+                    <span
+                      className="css-1r5n2yn-Logout e12239ir0"
+                    >
+                      Sign out
+                    </span>
+                  </Logout>
+                </a>
+              </div>
+              <div
+                className="box-content with-padding"
+              >
+                <h3>
+                  Create a New Organization
+                </h3>
+                <p>
+                  Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users.
+                </p>
+                <ApiForm
+                  apiEndpoint="/organizations/"
+                  apiMethod="POST"
+                  cancelLabel="Cancel"
+                  className="form-stacked"
+                  errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+                  footerClass="form-actions align-right"
+                  hideErrors={false}
+                  initialData={
+                    Object {
+                      "defaultTeam": true,
+                    }
+                  }
+                  onSubmitSuccess={[Function]}
+                  requireChanges={true}
+                  resetOnError={false}
+                  submitDisabled={false}
+                  submitErrorMessage="There was an error saving your changes."
+                  submitLabel="Create Organization"
+                  submitLoadingMessage="Saving changes…"
+                >
+                  <StyledForm
+                    className="form-stacked"
+                    onSubmit={[Function]}
+                  >
+                    <form
+                      className="form-stacked css-1z07nlv-StyledForm e18zovyk0"
+                      onSubmit={[Function]}
+                    >
+                      <TextField
+                        disabled={false}
+                        hideErrorMessage={false}
+                        label="Organization Name"
+                        name="name"
+                        placeholder="e.g. My Company"
+                        required={true}
+                      >
+                        <div
+                          className="control-group required"
+                        >
+                          <div
+                            className="controls"
+                          >
+                            <label
+                              className="control-label"
+                              htmlFor="id-name"
+                            >
+                              Organization Name
+                            </label>
+                            <input
+                              className="form-control"
+                              disabled={false}
+                              id="id-name"
+                              name="name"
+                              onChange={[Function]}
+                              placeholder="e.g. My Company"
+                              required={true}
+                              type="text"
+                              value=""
+                            />
+                          </div>
+                        </div>
+                      </TextField>
+                      <BooleanField
+                        disabled={false}
+                        hideErrorMessage={false}
+                        label={
+                          <React.Fragment>
+                            <span>
+                              <span>
+                                I agree to the 
+                              </span>
+                              <a
+                                href="https://example.com/terms"
+                              >
+                                <span>
+                                  Terms of Service
+                                </span>
+                              </a>
+                              <span>
+                                 and the 
+                              </span>
+                              <a
+                                href="https://example.com/privacy"
+                              >
+                                <span>
+                                  Privacy Policy
+                                </span>
+                              </a>
+                            </span>
+                          </React.Fragment>
+                        }
+                        name="agreeTerms"
+                        required={true}
+                      >
+                        <div
+                          className="control-group checkbox"
+                        >
+                          <div
+                            className="controls"
+                          >
+                            <label
+                              className="control-label"
+                            >
+                              <input
+                                checked=""
+                                disabled={false}
+                                id="id-agreeTerms"
+                                onChange={[Function]}
+                                type="checkbox"
+                              />
+                              <span
+                                key="7"
+                              >
+                                <span
+                                  key="0"
+                                >
+                                  I agree to the 
+                                </span>
+                                <a
+                                  href="https://example.com/terms"
+                                  key="2"
+                                >
+                                  <span
+                                    key="1"
+                                  >
+                                    Terms of Service
+                                  </span>
+                                </a>
+                                <span
+                                  key="3"
+                                >
+                                   and the 
+                                </span>
+                                <a
+                                  href="https://example.com/privacy"
+                                  key="5"
+                                >
+                                  <span
+                                    key="4"
+                                  >
+                                    Privacy Policy
+                                  </span>
+                                </a>
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                      </BooleanField>
+                      <div
+                        className="form-actions align-right"
+                        style={
+                          Object {
+                            "marginTop": 25,
+                          }
+                        }
+                      >
+                        <button
+                          className="btn btn-primary"
+                          disabled={true}
+                          type="submit"
+                        >
+                          Create Organization
+                        </button>
+                      </div>
+                    </form>
+                  </StyledForm>
+                </ApiForm>
+              </div>
+            </div>
+          </div>
+        </div>
+      </NarrowLayout>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</OrganizationCreate>
+`;
+
+exports[`OrganizationCreate render() renders without terms 1`] = `
+<OrganizationCreate>
+  <SideEffect(DocumentTitle)
+    title="Create Organization - Sentry"
+  >
+    <DocumentTitle
+      title="Create Organization - Sentry"
+    >
+      <NarrowLayout
+        showLogout={true}
+      >
+        <div
+          className="app"
+        >
+          <div
+            className="pattern-bg"
+          />
+          <div
+            className="container"
+            style={
+              Object {
+                "maxWidth": undefined,
+              }
+            }
+          >
+            <div
+              className="box box-modal"
+            >
+              <div
+                className="box-header"
+              >
+                <a
+                  href="/"
+                >
+                  <IconSentry
+                    size="lg"
+                  >
+                    <ForwardRef(SvgIcon)
+                      size="lg"
+                    >
+                      <svg
+                        fill="currentColor"
+                        height="24px"
+                        viewBox="0 0 16 16"
+                        width="24px"
+                      >
+                        <path
+                          d="M15.8,14.57a1.53,1.53,0,0,0,0-1.52L9.28,1.43a1.46,1.46,0,0,0-2.56,0L4.61,5.18l.54.32A10.43,10.43,0,0,1,8.92,9.39a10.84,10.84,0,0,1,1.37,4.67H8.81a9.29,9.29,0,0,0-1.16-3.91A9,9,0,0,0,4.41,6.81L3.88,6.5,1.91,10l.53.32a5.12,5.12,0,0,1,2.42,3.73H1.48a.25.25,0,0,1-.21-.12.24.24,0,0,1,0-.25L2.21,12a3.32,3.32,0,0,0-1.07-.63L.2,13.05a1.53,1.53,0,0,0,0,1.52,1.46,1.46,0,0,0,1.28.76H6.13V14.7a6.55,6.55,0,0,0-.82-3.16,6.31,6.31,0,0,0-1.73-2l.74-1.32a7.85,7.85,0,0,1,2.26,2.53,8,8,0,0,1,1,3.92v.63h3.94V14.7A12.14,12.14,0,0,0,10,8.75a11.8,11.8,0,0,0-3.7-4l1.5-2.67a.24.24,0,0,1,.42,0l6.52,11.63a.24.24,0,0,1,0,.25.24.24,0,0,1-.21.12H13c0,.43,0,.85,0,1.27h1.53a1.46,1.46,0,0,0,1.28-.76"
+                        />
+                      </svg>
+                    </ForwardRef(SvgIcon)>
+                  </IconSentry>
+                </a>
+                <a
+                  className="logout pull-right"
+                  onClick={[Function]}
+                >
+                  <Logout>
+                    <span
+                      className="css-1r5n2yn-Logout e12239ir0"
+                    >
+                      Sign out
+                    </span>
+                  </Logout>
+                </a>
+              </div>
+              <div
+                className="box-content with-padding"
+              >
+                <h3>
+                  Create a New Organization
+                </h3>
+                <p>
+                  Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users.
+                </p>
+                <ApiForm
+                  apiEndpoint="/organizations/"
+                  apiMethod="POST"
+                  cancelLabel="Cancel"
+                  className="form-stacked"
+                  errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+                  footerClass="form-actions align-right"
+                  hideErrors={false}
+                  initialData={
+                    Object {
+                      "defaultTeam": true,
+                    }
+                  }
+                  onSubmitSuccess={[Function]}
+                  requireChanges={true}
+                  resetOnError={false}
+                  submitDisabled={false}
+                  submitErrorMessage="There was an error saving your changes."
+                  submitLabel="Create Organization"
+                  submitLoadingMessage="Saving changes…"
+                >
+                  <StyledForm
+                    className="form-stacked"
+                    onSubmit={[Function]}
+                  >
+                    <form
+                      className="form-stacked css-1z07nlv-StyledForm e18zovyk0"
+                      onSubmit={[Function]}
+                    >
+                      <TextField
+                        disabled={false}
+                        hideErrorMessage={false}
+                        label="Organization Name"
+                        name="name"
+                        placeholder="e.g. My Company"
+                        required={true}
+                      >
+                        <div
+                          className="control-group required"
+                        >
+                          <div
+                            className="controls"
+                          >
+                            <label
+                              className="control-label"
+                              htmlFor="id-name"
+                            >
+                              Organization Name
+                            </label>
+                            <input
+                              className="form-control"
+                              disabled={false}
+                              id="id-name"
+                              name="name"
+                              onChange={[Function]}
+                              placeholder="e.g. My Company"
+                              required={true}
+                              type="text"
+                              value=""
+                            />
+                          </div>
+                        </div>
+                      </TextField>
+                      <div
+                        className="form-actions align-right"
+                        style={
+                          Object {
+                            "marginTop": 25,
+                          }
+                        }
+                      >
+                        <button
+                          className="btn btn-primary"
+                          disabled={true}
+                          type="submit"
+                        >
+                          Create Organization
+                        </button>
+                      </div>
+                    </form>
+                  </StyledForm>
+                </ApiForm>
+              </div>
+            </div>
+          </div>
+        </div>
+      </NarrowLayout>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</OrganizationCreate>
+`;

@@ -39,10 +39,12 @@ describe('TableField', function() {
         TestStubs.routerContext()
       );
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders button text', function() {

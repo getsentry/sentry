@@ -40,6 +40,7 @@ describe('CreateProject', function() {
     );
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('can create a new team', function() {
@@ -99,6 +100,7 @@ describe('CreateProject', function() {
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('another');
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('should fill in platform name if its provided by url', function() {
@@ -123,6 +125,7 @@ describe('CreateProject', function() {
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('Ruby');
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('should deal with incorrect platform name if its provided by url', function() {
@@ -147,6 +150,7 @@ describe('CreateProject', function() {
     expect(wrapper.find('ProjectNameInput input').props().value).toBe('');
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   describe('Issue Alerts Options', () => {

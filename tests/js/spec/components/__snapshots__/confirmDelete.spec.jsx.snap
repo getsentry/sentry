@@ -1,0 +1,303 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ConfirmDelete renders 1`] = `
+<ModalDialog
+  bsClass="modal"
+  className="in"
+  onClick={[Function]}
+  role="document"
+  style={Object {}}
+  tabIndex="-1"
+>
+  <div
+    className="in modal"
+    onClick={[Function]}
+    role="dialog"
+    style={
+      Object {
+        "display": "block",
+      }
+    }
+    tabIndex="-1"
+  >
+    <div
+      className="modal-dialog"
+    >
+      <div
+        className="modal-content"
+        role="document"
+      >
+        <div
+          className="modal-body"
+        >
+          <Alert
+            iconSize="20px"
+            type="error"
+          >
+            <Component
+              className="css-1f91eup-Alert ejthpj82"
+              iconSize="20px"
+              type="error"
+            >
+              <div
+                className="ref-error css-1f91eup-Alert ejthpj82"
+              >
+                <StyledTextBlock>
+                  <span
+                    className="css-6y2q80-StyledTextBlock ejthpj81"
+                  >
+                    Are you sure?
+                  </span>
+                </StyledTextBlock>
+              </div>
+            </Component>
+          </Alert>
+          <Field
+            alignRight={false}
+            disabled={false}
+            flexibleControlStateSize={true}
+            inline={false}
+            label={
+              Array [
+                "Please enter ",
+                <code>
+                  CoolOrg
+                </code>,
+                " to confirm the deletion",
+              ]
+            }
+            required={false}
+            showHelpInTooltip={false}
+            visible={true}
+          >
+            <FieldWrapper
+              hasControlState={false}
+              inline={false}
+            >
+              <div
+                className="css-5lt4z9-FieldWrapper-FieldWrapper-FieldWrapper e2iyls20"
+              >
+                <FieldDescription
+                  inline={false}
+                >
+                  <label
+                    className="css-1q141sp-FieldDescription e3z18c30"
+                  >
+                    <FieldLabel
+                      disabled={false}
+                    >
+                      <div
+                        className="css-wufuns-FieldLabel e16ushrl0"
+                      >
+                        <span>
+                          Please enter 
+                          <code
+                            key="1"
+                          >
+                            CoolOrg
+                          </code>
+                           to confirm the deletion
+                        </span>
+                      </div>
+                    </FieldLabel>
+                  </label>
+                </FieldDescription>
+                <FieldControl
+                  alignRight={false}
+                  controlState={<ControlState />}
+                  disabled={false}
+                  errorState={null}
+                  flexibleControlStateSize={true}
+                  inline={false}
+                >
+                  <FieldControlErrorWrapper
+                    inline={false}
+                  >
+                    <div
+                      className="css-szisuz-FieldControlErrorWrapper e12jpfuq0"
+                    >
+                      <FieldControlWrapper>
+                        <div
+                          className="css-1evsibf-FieldControlWrapper e12jpfuq2"
+                        >
+                          <FieldControlStyled
+                            alignRight={false}
+                          >
+                            <div
+                              className="css-ld1e0a-FieldControlStyled e12jpfuq1"
+                            >
+                              <Input
+                                onChange={[Function]}
+                                placeholder="CoolOrg"
+                                type="text"
+                                value=""
+                              >
+                                <input
+                                  className="css-1g2jzij-Input e1xej46s0"
+                                  onChange={[Function]}
+                                  placeholder="CoolOrg"
+                                  type="text"
+                                  value=""
+                                />
+                              </Input>
+                            </div>
+                          </FieldControlStyled>
+                          <FieldControlState
+                            flexibleControlStateSize={true}
+                          >
+                            <div
+                              className="css-mlgkyn-FieldControlState ep9s0su0"
+                            >
+                              <ControlState />
+                            </div>
+                          </FieldControlState>
+                        </div>
+                      </FieldControlWrapper>
+                    </div>
+                  </FieldControlErrorWrapper>
+                </FieldControl>
+              </div>
+            </FieldWrapper>
+          </Field>
+        </div>
+        <div
+          className="modal-footer"
+        >
+          <forwardRef<Button>
+            onClick={[Function]}
+            style={
+              Object {
+                "marginRight": 10,
+              }
+            }
+          >
+            <Button
+              align="center"
+              disabled={false}
+              forwardRef={null}
+              onClick={[Function]}
+              style={
+                Object {
+                  "marginRight": 10,
+                }
+              }
+            >
+              <StyledButton
+                aria-disabled={false}
+                aria-label="Cancel"
+                disabled={false}
+                forwardRef={null}
+                onClick={[Function]}
+                role="button"
+                style={
+                  Object {
+                    "marginRight": 10,
+                  }
+                }
+              >
+                <Component
+                  aria-disabled={false}
+                  aria-label="Cancel"
+                  className="css-1ili4om-StyledButton edwq9my0"
+                  forwardRef={null}
+                  onClick={[Function]}
+                  role="button"
+                  style={
+                    Object {
+                      "marginRight": 10,
+                    }
+                  }
+                >
+                  <button
+                    aria-disabled={false}
+                    aria-label="Cancel"
+                    className="css-1ili4om-StyledButton edwq9my0"
+                    onClick={[Function]}
+                    role="button"
+                    style={
+                      Object {
+                        "marginRight": 10,
+                      }
+                    }
+                  >
+                    <ButtonLabel
+                      align="center"
+                    >
+                      <span
+                        className="css-zmpclt-ButtonLabel edwq9my1"
+                      >
+                        Cancel
+                      </span>
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
+          <forwardRef<Button>
+            autoFocus={true}
+            data-test-id="confirm-button"
+            disabled={true}
+            onClick={[Function]}
+            priority="primary"
+          >
+            <Button
+              align="center"
+              autoFocus={true}
+              data-test-id="confirm-button"
+              disabled={true}
+              forwardRef={null}
+              onClick={[Function]}
+              priority="primary"
+            >
+              <StyledButton
+                aria-disabled={true}
+                aria-label="Confirm"
+                autoFocus={true}
+                data-test-id="confirm-button"
+                disabled={true}
+                forwardRef={null}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
+              >
+                <Component
+                  aria-disabled={true}
+                  aria-label="Confirm"
+                  autoFocus={true}
+                  className="css-9j7ei9-StyledButton edwq9my0"
+                  data-test-id="confirm-button"
+                  forwardRef={null}
+                  onClick={[Function]}
+                  role="button"
+                >
+                  <button
+                    aria-disabled={true}
+                    aria-label="Confirm"
+                    autoFocus={true}
+                    className="css-9j7ei9-StyledButton edwq9my0"
+                    data-test-id="confirm-button"
+                    onClick={[Function]}
+                    role="button"
+                  >
+                    <ButtonLabel
+                      align="center"
+                      priority="primary"
+                    >
+                      <span
+                        className="css-zmpclt-ButtonLabel edwq9my1"
+                      >
+                        Confirm
+                      </span>
+                    </ButtonLabel>
+                  </button>
+                </Component>
+              </StyledButton>
+            </Button>
+          </forwardRef<Button>>
+        </div>
+      </div>
+    </div>
+  </div>
+</ModalDialog>
+`;

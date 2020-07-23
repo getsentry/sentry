@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SpreadLayout renders with multiple children 1`] = `
+<SpreadLayout>
+  <div
+    className="spread-layout center"
+  >
+    <div>
+      child #1
+    </div>
+    <div>
+      child #2
+    </div>
+  </div>
+</SpreadLayout>
+`;
+
+exports[`SpreadLayout renders with one child 1`] = `
+<SpreadLayout>
+  <div
+    className="spread-layout center"
+  >
+    <div>
+      child
+    </div>
+  </div>
+</SpreadLayout>
+`;

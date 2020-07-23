@@ -29,6 +29,7 @@ describe('GlobalSelectionLink', function() {
     expect(updatedToProp).toEqual({pathname: path, query});
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('does not have global selection values in query', function() {
@@ -48,6 +49,7 @@ describe('GlobalSelectionLink', function() {
     expect(updatedToProp).toEqual(path);
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('combines query parameters with custom query', function() {

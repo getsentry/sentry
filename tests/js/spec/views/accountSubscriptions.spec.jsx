@@ -28,6 +28,7 @@ describe('AccountSubscriptions', function() {
     });
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders list and can toggle', function() {
@@ -50,6 +51,7 @@ describe('AccountSubscriptions', function() {
     });
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
 
     expect(mock).not.toHaveBeenCalled();
 

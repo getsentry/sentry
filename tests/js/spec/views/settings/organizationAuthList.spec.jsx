@@ -14,6 +14,7 @@ describe('OrganizationAuthList', function() {
     );
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders', function() {
@@ -27,6 +28,7 @@ describe('OrganizationAuthList', function() {
     );
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders for members', function() {

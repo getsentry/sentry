@@ -1,0 +1,570 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationApiKeysList renders 1`] = `
+<OrganizationApiKeysList
+  keys={
+    Array [
+      Object {
+        "allowed_origins": "",
+        "id": 1,
+        "key": "aa624bcc12024702a202cd90be5feda0",
+        "label": "Default",
+        "scope_list": Array [
+          "project:read",
+          "event:read",
+          "team:read",
+          "member:read",
+        ],
+        "status": 0,
+      },
+    ]
+  }
+  params={
+    Object {
+      "orgId": "org-slug",
+    }
+  }
+  routes={
+    Array [
+      Object {
+        "path": "/",
+      },
+      Object {
+        "path": "/:orgId/",
+      },
+      Object {
+        "path": "/organizations/:orgId/",
+      },
+      Object {
+        "name": "API Key",
+        "path": "api-keys/",
+      },
+    ]
+  }
+>
+  <div>
+    <StyledSettingsPageHeading
+      action={
+        <ForwardRef
+          icon={
+            <ForwardRef(IconAdd)
+              isCircled={true}
+              size="xs"
+            />
+          }
+          priority="primary"
+          size="small"
+        >
+          New API Key
+        </ForwardRef>
+      }
+      noTitleStyles={false}
+      title="API Keys"
+    >
+      <SettingsPageHeading
+        action={
+          <ForwardRef
+            icon={
+              <ForwardRef(IconAdd)
+                isCircled={true}
+                size="xs"
+              />
+            }
+            priority="primary"
+            size="small"
+          >
+            New API Key
+          </ForwardRef>
+        }
+        className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        noTitleStyles={false}
+        title="API Keys"
+      >
+        <div
+          className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        >
+          <TitleAndActions>
+            <div
+              className="css-ifzfc5-TitleAndActions e1uay4fd0"
+            >
+              <Title
+                styled={false}
+              >
+                <div
+                  className="css-u2ls9d-Title e1uay4fd1"
+                >
+                  <HeaderTitle>
+                    <h4
+                      className="css-1bosio6-HeaderTitle eqkydle2"
+                    >
+                      API Keys
+                    </h4>
+                  </HeaderTitle>
+                </div>
+              </Title>
+              <Action>
+                <div
+                  className="css-au7gsx-Action e1uay4fd3"
+                >
+                  <forwardRef<Button>
+                    icon={
+                      <ForwardRef(IconAdd)
+                        isCircled={true}
+                        size="xs"
+                      />
+                    }
+                    priority="primary"
+                    size="small"
+                  >
+                    <Button
+                      align="center"
+                      disabled={false}
+                      forwardRef={null}
+                      icon={
+                        <ForwardRef(IconAdd)
+                          isCircled={true}
+                          size="xs"
+                        />
+                      }
+                      priority="primary"
+                      size="small"
+                    >
+                      <StyledButton
+                        aria-disabled={false}
+                        aria-label="New API Key"
+                        disabled={false}
+                        forwardRef={null}
+                        onClick={[Function]}
+                        priority="primary"
+                        role="button"
+                        size="small"
+                      >
+                        <Component
+                          aria-disabled={false}
+                          aria-label="New API Key"
+                          className="css-z8at1v-StyledButton edwq9my0"
+                          forwardRef={null}
+                          onClick={[Function]}
+                          role="button"
+                          size="small"
+                        >
+                          <button
+                            aria-disabled={false}
+                            aria-label="New API Key"
+                            className="css-z8at1v-StyledButton edwq9my0"
+                            onClick={[Function]}
+                            role="button"
+                            size="small"
+                          >
+                            <ButtonLabel
+                              align="center"
+                              priority="primary"
+                              size="small"
+                            >
+                              <span
+                                className="css-n7mdnv-ButtonLabel edwq9my1"
+                              >
+                                <Icon
+                                  hasChildren={true}
+                                  size="small"
+                                >
+                                  <span
+                                    className="css-1hbuack-Icon edwq9my2"
+                                    size="small"
+                                  >
+                                    <IconAdd
+                                      isCircled={true}
+                                      size="xs"
+                                    >
+                                      <ForwardRef(SvgIcon)
+                                        size="xs"
+                                      >
+                                        <svg
+                                          fill="currentColor"
+                                          height="12px"
+                                          viewBox="0 0 16 16"
+                                          width="12px"
+                                        >
+                                          <path
+                                            d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                          />
+                                          <path
+                                            d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                          />
+                                          <path
+                                            d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                          />
+                                        </svg>
+                                      </ForwardRef(SvgIcon)>
+                                    </IconAdd>
+                                  </span>
+                                </Icon>
+                                New API Key
+                              </span>
+                            </ButtonLabel>
+                          </button>
+                        </Component>
+                      </StyledButton>
+                    </Button>
+                  </forwardRef<Button>>
+                </div>
+              </Action>
+            </div>
+          </TitleAndActions>
+        </div>
+      </SettingsPageHeading>
+    </StyledSettingsPageHeading>
+    <TextBlock>
+      <div
+        className="css-1j3tvli-TextBlock e1x1lar10"
+      >
+        <span
+          key="5"
+        >
+          <span
+            key="0"
+          >
+            API keys grant access to the 
+          </span>
+          <ForwardRef(ExternalLink)
+            href="https://docs.sentry.io/hosted/api/"
+            key="2"
+          >
+            <a
+              href="https://docs.sentry.io/hosted/api/"
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              <span
+                key="1"
+              >
+                developer web API
+              </span>
+            </a>
+          </ForwardRef(ExternalLink)>
+          <span
+            key="3"
+          >
+            .
+          If you're looking to configure a Sentry client, you'll need a
+          client key which is available in your project settings.
+          </span>
+        </span>
+      </div>
+    </TextBlock>
+    <div
+      className="alert alert-block alert-info"
+    >
+      <span
+        key="5"
+      >
+        <span
+          key="0"
+        >
+          psst. Until Sentry supports OAuth, you might want to switch to using 
+        </span>
+        <Link
+          key="2"
+          to="/settings/account/api/auth-tokens/"
+        >
+          <Link
+            onlyActiveOnIndex={false}
+            style={Object {}}
+            to="/settings/account/api/auth-tokens/"
+          >
+            <a
+              onClick={[Function]}
+              style={Object {}}
+            >
+              <span
+                key="1"
+              >
+                Auth Tokens
+              </span>
+            </a>
+          </Link>
+        </Link>
+        <span
+          key="3"
+        >
+           instead.
+        </span>
+      </span>
+    </div>
+    <Panel>
+      <Component
+        className="css-ietoyz-Panel e119nu470"
+      >
+        <div
+          className="css-ietoyz-Panel e119nu470"
+        >
+          <PanelHeader
+            disablePadding={true}
+          >
+            <div
+              className="css-lv9x73-PanelHeader en8g1d30"
+            >
+              <Styled(div)
+                alignItems="center"
+                flex="1"
+              >
+                <div
+                  className="css-13v7zkb"
+                >
+                  <Styled(div)
+                    flex="1"
+                    px={2}
+                  >
+                    <div
+                      className="css-lni81q"
+                    >
+                      Name
+                    </div>
+                  </Styled(div)>
+                  <Styled(div)
+                    flex="2"
+                    px={2}
+                  >
+                    <div
+                      className="css-dyvbnb"
+                    >
+                      Key
+                    </div>
+                  </Styled(div)>
+                </div>
+              </Styled(div)>
+              <Styled(div)
+                px={2}
+                width={100}
+              >
+                <div
+                  className="css-2imhbe"
+                >
+                  Actions
+                </div>
+              </Styled(div)>
+            </div>
+          </PanelHeader>
+          <PanelBody
+            flexible={false}
+            withPadding={false}
+          >
+            <FlexBox
+              withPadding={false}
+            >
+              <div
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
+              >
+                <PanelItem
+                  alignItems="center"
+                  key="1"
+                  p={0}
+                  py={1}
+                >
+                  <div
+                    className="css-gf486z-PanelItem ej5ox20"
+                  >
+                    <Styled(div)
+                      alignItems="center"
+                      flex="1"
+                    >
+                      <div
+                        className="css-13v7zkb"
+                      >
+                        <Styled(div)
+                          alignItems="center"
+                          flex="1"
+                          px={2}
+                        >
+                          <div
+                            className="css-1izfy6z"
+                          >
+                            <Link
+                              to="/organizations/org-slug/api-keys/1/"
+                            >
+                              <Link
+                                onlyActiveOnIndex={false}
+                                style={Object {}}
+                                to="/organizations/org-slug/api-keys/1/"
+                              >
+                                <a
+                                  onClick={[Function]}
+                                  style={Object {}}
+                                >
+                                  Default
+                                </a>
+                              </Link>
+                            </Link>
+                          </div>
+                        </Styled(div)>
+                        <Styled(div)
+                          flex="2"
+                          px={2}
+                        >
+                          <div
+                            className="css-dyvbnb"
+                          >
+                            <AutoSelectText
+                              className="form-control disabled"
+                            >
+                              <div
+                                className="auto-select-text form-control disabled"
+                                onClick={[Function]}
+                              >
+                                <span>
+                                  aa624bcc12024702a202cd90be5feda0
+                                </span>
+                              </div>
+                            </AutoSelectText>
+                          </div>
+                        </Styled(div)>
+                      </div>
+                    </Styled(div)>
+                    <Styled(div)
+                      px={2}
+                      width={100}
+                    >
+                      <div
+                        className="css-2imhbe"
+                      >
+                        <LinkWithConfirmation
+                          className="btn btn-default btn-sm"
+                          message="Are you sure you want to remove this API key?"
+                          onConfirm={[Function]}
+                          title="Remove API Key?"
+                        >
+                          <Confirm
+                            cancelText="Cancel"
+                            confirmText="Confirm"
+                            disableConfirmButton={false}
+                            message="Are you sure you want to remove this API key?"
+                            onConfirm={[Function]}
+                            priority="primary"
+                            stopPropagation={false}
+                          >
+                            <a
+                              className="btn btn-default btn-sm"
+                              href="#"
+                              onClick={[Function]}
+                              title="Remove API Key?"
+                            >
+                              <EmotionCssPropInternal
+                                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                  Object {
+                                    "$$typeof": Symbol(react.forward_ref),
+                                    "render": [Function],
+                                  }
+                                }
+                                css={
+                                  Object {
+                                    "name": "17ls4qs-OrganizationApiKeysList",
+                                    "styles": "position:relative;top:2px;;label:OrganizationApiKeysList;",
+                                  }
+                                }
+                                size="xs"
+                              >
+                                <ForwardRef(IconDelete)
+                                  className="css-17ls4qs-OrganizationApiKeysList"
+                                  size="xs"
+                                >
+                                  <ForwardRef(SvgIcon)
+                                    className="css-17ls4qs-OrganizationApiKeysList"
+                                    size="xs"
+                                  >
+                                    <svg
+                                      className="css-17ls4qs-OrganizationApiKeysList"
+                                      fill="currentColor"
+                                      height="12px"
+                                      viewBox="0 0 16 16"
+                                      width="12px"
+                                    >
+                                      <path
+                                        d="M14.71,3.94H1.29a.75.75,0,0,1,0-1.5H14.71a.75.75,0,0,1,0,1.5Z"
+                                      />
+                                      <path
+                                        d="M12.69,15.94H3.31a1.75,1.75,0,0,1-1.75-1.75v-11h1.5v11a.25.25,0,0,0,.25.25h9.38a.25.25,0,0,0,.25-.25v-11h1.5v11A1.75,1.75,0,0,1,12.69,15.94Z"
+                                      />
+                                      <path
+                                        d="M5,13a.74.74,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,5,13Z"
+                                      />
+                                      <path
+                                        d="M8,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.75.75,0,0,1,8,13Z"
+                                      />
+                                      <path
+                                        d="M11.05,13a.75.75,0,0,1-.75-.75V6.14a.75.75,0,0,1,1.5,0v6.1A.74.74,0,0,1,11.05,13Z"
+                                      />
+                                      <path
+                                        d="M10.51,3.47l-.81-2H6.3l-.81,2L4.1,2.91,5,.77A1.26,1.26,0,0,1,6.13,0H9.87A1.26,1.26,0,0,1,11,.77l.87,2.14Z"
+                                      />
+                                    </svg>
+                                  </ForwardRef(SvgIcon)>
+                                </ForwardRef(IconDelete)>
+                              </EmotionCssPropInternal>
+                            </a>
+                            <Modal
+                              animation={false}
+                              autoFocus={true}
+                              backdrop={true}
+                              bsClass="modal"
+                              dialogComponentClass={[Function]}
+                              enforceFocus={true}
+                              keyboard={true}
+                              manager={
+                                ModalManager {
+                                  "add": [Function],
+                                  "containers": Array [],
+                                  "data": Array [],
+                                  "handleContainerOverflow": true,
+                                  "hideSiblingNodes": true,
+                                  "isTopModal": [Function],
+                                  "modals": Array [],
+                                  "remove": [Function],
+                                }
+                              }
+                              onHide={[Function]}
+                              renderBackdrop={[Function]}
+                              restoreFocus={true}
+                              show={false}
+                            >
+                              <Modal
+                                autoFocus={true}
+                                backdrop={true}
+                                backdropClassName="modal-backdrop"
+                                containerClassName="modal-open"
+                                enforceFocus={true}
+                                keyboard={true}
+                                manager={
+                                  ModalManager {
+                                    "add": [Function],
+                                    "containers": Array [],
+                                    "data": Array [],
+                                    "handleContainerOverflow": true,
+                                    "hideSiblingNodes": true,
+                                    "isTopModal": [Function],
+                                    "modals": Array [],
+                                    "remove": [Function],
+                                  }
+                                }
+                                onEntering={[Function]}
+                                onExited={[Function]}
+                                onHide={[Function]}
+                                renderBackdrop={[Function]}
+                                restoreFocus={true}
+                                show={false}
+                              />
+                            </Modal>
+                          </Confirm>
+                        </LinkWithConfirmation>
+                      </div>
+                    </Styled(div)>
+                  </div>
+                </PanelItem>
+              </div>
+            </FlexBox>
+          </PanelBody>
+        </div>
+      </Component>
+    </Panel>
+  </div>
+</OrganizationApiKeysList>
+`;

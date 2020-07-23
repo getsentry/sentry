@@ -1,0 +1,354 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RadioGroup can select a different item 1`] = `
+<RadioGroup
+  choices={
+    Array [
+      Array [
+        "choice_one",
+        "Choice One",
+      ],
+      Array [
+        "choice_two",
+        "Choice Two",
+      ],
+      Array [
+        "choice_three",
+        "Choice Three",
+      ],
+    ]
+  }
+  label="test"
+  name="radio"
+  onChange={[MockFunction]}
+  value="choice_three"
+>
+  <Container
+    aria-labelledby="test"
+    name="radio"
+    role="radiogroup"
+  >
+    <div
+      aria-labelledby="test"
+      className="css-9cc0pc-Container e1r42lk41"
+      name="radio"
+      role="radiogroup"
+    >
+      <RadioLineItem
+        aria-checked={false}
+        index={0}
+        key="0"
+        role="radio"
+      >
+        <label
+          aria-checked={false}
+          className="css-ggam5t-RadioLineItem e1r42lk40"
+          role="radio"
+        >
+          <Radio
+            aria-label="choice_one"
+            checked={false}
+            onChange={[Function]}
+            type="radio"
+          >
+            <input
+              aria-label="choice_one"
+              checked={false}
+              className="css-d56vsv-Radio e1d7o7s40"
+              onChange={[Function]}
+              type="radio"
+            />
+          </Radio>
+          <RadioLineText>
+            <div
+              className="css-1nwjsmg-RadioLineText e1r42lk42"
+            >
+              Choice One
+            </div>
+          </RadioLineText>
+        </label>
+      </RadioLineItem>
+      <RadioLineItem
+        aria-checked={false}
+        index={1}
+        key="1"
+        role="radio"
+      >
+        <label
+          aria-checked={false}
+          className="css-ggam5t-RadioLineItem e1r42lk40"
+          role="radio"
+        >
+          <Radio
+            aria-label="choice_two"
+            checked={false}
+            onChange={[Function]}
+            type="radio"
+          >
+            <input
+              aria-label="choice_two"
+              checked={false}
+              className="css-d56vsv-Radio e1d7o7s40"
+              onChange={[Function]}
+              type="radio"
+            />
+          </Radio>
+          <RadioLineText>
+            <div
+              className="css-1nwjsmg-RadioLineText e1r42lk42"
+            >
+              Choice Two
+            </div>
+          </RadioLineText>
+        </label>
+      </RadioLineItem>
+      <RadioLineItem
+        aria-checked={true}
+        index={2}
+        key="2"
+        role="radio"
+      >
+        <label
+          aria-checked={true}
+          className="css-ggam5t-RadioLineItem e1r42lk40"
+          role="radio"
+        >
+          <Radio
+            aria-label="choice_three"
+            checked={true}
+            onChange={[Function]}
+            type="radio"
+          >
+            <input
+              aria-label="choice_three"
+              checked={true}
+              className="css-d56vsv-Radio e1d7o7s40"
+              onChange={[Function]}
+              type="radio"
+            />
+          </Radio>
+          <RadioLineText>
+            <div
+              className="css-1nwjsmg-RadioLineText e1r42lk42"
+            >
+              Choice Three
+            </div>
+          </RadioLineText>
+        </label>
+      </RadioLineItem>
+    </div>
+  </Container>
+</RadioGroup>
+`;
+
+exports[`RadioGroup renders 1`] = `
+<RadioGroup
+  choices={
+    Array [
+      Array [
+        "choice_one",
+        "Choice One",
+      ],
+      Array [
+        "choice_two",
+        "Choice Two",
+      ],
+      Array [
+        "choice_three",
+        "Choice Three",
+      ],
+    ]
+  }
+  label="test"
+  name="radio"
+  onChange={[MockFunction]}
+  value="choice_one"
+>
+  <Container
+    aria-labelledby="test"
+    name="radio"
+    role="radiogroup"
+  >
+    <div
+      aria-labelledby="test"
+      className="css-9cc0pc-Container e1r42lk41"
+      name="radio"
+      role="radiogroup"
+    >
+      <RadioLineItem
+        aria-checked={true}
+        index={0}
+        key="0"
+        role="radio"
+      >
+        <label
+          aria-checked={true}
+          className="css-ggam5t-RadioLineItem e1r42lk40"
+          role="radio"
+        >
+          <Radio
+            aria-label="choice_one"
+            checked={true}
+            onChange={[Function]}
+            type="radio"
+          >
+            <input
+              aria-label="choice_one"
+              checked={true}
+              className="css-d56vsv-Radio e1d7o7s40"
+              onChange={[Function]}
+              type="radio"
+            />
+          </Radio>
+          <RadioLineText>
+            <div
+              className="css-1nwjsmg-RadioLineText e1r42lk42"
+            >
+              Choice One
+            </div>
+          </RadioLineText>
+        </label>
+      </RadioLineItem>
+      <RadioLineItem
+        aria-checked={false}
+        index={1}
+        key="1"
+        role="radio"
+      >
+        <label
+          aria-checked={false}
+          className="css-ggam5t-RadioLineItem e1r42lk40"
+          role="radio"
+        >
+          <Radio
+            aria-label="choice_two"
+            checked={false}
+            onChange={[Function]}
+            type="radio"
+          >
+            <input
+              aria-label="choice_two"
+              checked={false}
+              className="css-d56vsv-Radio e1d7o7s40"
+              onChange={[Function]}
+              type="radio"
+            />
+          </Radio>
+          <RadioLineText>
+            <div
+              className="css-1nwjsmg-RadioLineText e1r42lk42"
+            >
+              Choice Two
+            </div>
+          </RadioLineText>
+        </label>
+      </RadioLineItem>
+      <RadioLineItem
+        aria-checked={false}
+        index={2}
+        key="2"
+        role="radio"
+      >
+        <label
+          aria-checked={false}
+          className="css-ggam5t-RadioLineItem e1r42lk40"
+          role="radio"
+        >
+          <Radio
+            aria-label="choice_three"
+            checked={false}
+            onChange={[Function]}
+            type="radio"
+          >
+            <input
+              aria-label="choice_three"
+              checked={false}
+              className="css-d56vsv-Radio e1d7o7s40"
+              onChange={[Function]}
+              type="radio"
+            />
+          </Radio>
+          <RadioLineText>
+            <div
+              className="css-1nwjsmg-RadioLineText e1r42lk42"
+            >
+              Choice Three
+            </div>
+          </RadioLineText>
+        </label>
+      </RadioLineItem>
+    </div>
+  </Container>
+</RadioGroup>
+`;
+
+exports[`RadioGroup renders disabled 1`] = `
+<RadioGroup
+  choices={
+    Array [
+      Array [
+        "choice_one",
+        "Choice One",
+      ],
+    ]
+  }
+  disabled={true}
+  label="test"
+  name="radio"
+  onChange={[MockFunction]}
+  value="choice_one"
+>
+  <Container
+    aria-labelledby="test"
+    name="radio"
+    role="radiogroup"
+  >
+    <div
+      aria-labelledby="test"
+      className="css-9cc0pc-Container e1r42lk41"
+      name="radio"
+      role="radiogroup"
+    >
+      <RadioLineItem
+        aria-checked={true}
+        disabled={true}
+        index={0}
+        key="0"
+        role="radio"
+      >
+        <label
+          aria-checked={true}
+          className="css-1o4rg7a-RadioLineItem e1r42lk40"
+          role="radio"
+        >
+          <Radio
+            aria-label="choice_one"
+            checked={true}
+            disabled={true}
+            onChange={[Function]}
+            type="radio"
+          >
+            <input
+              aria-label="choice_one"
+              checked={true}
+              className="css-3pmlh6-Radio e1d7o7s40"
+              disabled={true}
+              onChange={[Function]}
+              type="radio"
+            />
+          </Radio>
+          <RadioLineText
+            disabled={true}
+          >
+            <div
+              className="css-m8i2g4-RadioLineText e1r42lk42"
+            >
+              Choice One
+            </div>
+          </RadioLineText>
+        </label>
+      </RadioLineItem>
+    </div>
+  </Container>
+</RadioGroup>
+`;

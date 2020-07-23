@@ -63,6 +63,7 @@ describe('groupEvents', function() {
     );
 
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('handles search', function() {

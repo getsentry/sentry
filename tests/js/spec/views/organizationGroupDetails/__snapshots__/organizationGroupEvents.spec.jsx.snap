@@ -1,0 +1,584 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`groupEvents renders 1`] = `
+<GroupEvents
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
+  group={
+    Object {
+      "activity": Array [],
+      "annotations": Array [],
+      "assignedTo": null,
+      "count": "327482",
+      "culprit": "fetchData(app/components/group/suggestedOwners/suggestedOwners)",
+      "firstRelease": null,
+      "firstSeen": "2019-04-05T19:44:05.963Z",
+      "hasSeen": false,
+      "id": "1",
+      "isBookmarked": false,
+      "isPublic": false,
+      "isSubscribed": false,
+      "lastRelease": null,
+      "lastSeen": "2019-04-11T01:08:59Z",
+      "level": "warning",
+      "logger": null,
+      "metadata": Object {
+        "function": "fetchData",
+        "type": "RequestError",
+      },
+      "numComments": 0,
+      "participants": Array [],
+      "permalink": "https://foo.io/organizations/foo/issues/1234/",
+      "platform": "javascript",
+      "pluginActions": Array [],
+      "pluginContexts": Array [],
+      "pluginIssues": Array [],
+      "project": Object {
+        "id": "2",
+        "platform": "javascript",
+        "slug": "project-slug",
+      },
+      "seenBy": Array [],
+      "shareId": null,
+      "shortId": "JAVASCRIPT-6QS",
+      "stats": Object {
+        "24h": Array [
+          Array [
+            1517281200,
+            2,
+          ],
+          Array [
+            1517310000,
+            1,
+          ],
+        ],
+        "30d": Array [
+          Array [
+            1514764800,
+            1,
+          ],
+          Array [
+            1515024000,
+            122,
+          ],
+        ],
+      },
+      "status": "unresolved",
+      "statusDetails": Object {},
+      "subscriptionDetails": null,
+      "tags": Array [],
+      "title": "RequestError: GET /issues/ 404",
+      "type": "error",
+      "userCount": 35097,
+      "userReportCount": 0,
+    }
+  }
+  location={
+    Object {
+      "query": Object {},
+    }
+  }
+  params={
+    Object {
+      "groupId": "1",
+      "orgId": "orgId",
+      "projectId": "projectId",
+    }
+  }
+>
+  <div>
+    <div
+      style={
+        Object {
+          "marginBottom": 20,
+        }
+      }
+    >
+      <SearchBar
+        defaultQuery=""
+        onSearch={[Function]}
+        placeholder="search event id, message, or tags"
+        query=""
+      >
+        <div
+          className="search"
+        >
+          <form
+            className="form-horizontal"
+            onSubmit={[Function]}
+          >
+            <div>
+              <Input
+                autoComplete="off"
+                className="search-input form-control"
+                name="query"
+                onBlur={[Function]}
+                onChange={[Function]}
+                placeholder="search event id, message, or tags"
+                type="text"
+                value=""
+              >
+                <input
+                  autoComplete="off"
+                  className="search-input form-control css-x4hpdz-Input e5a9jdx0"
+                  name="query"
+                  onBlur={[Function]}
+                  onChange={[Function]}
+                  placeholder="search event id, message, or tags"
+                  type="text"
+                  value=""
+                />
+              </Input>
+              <StyledIconSearch
+                className="search-input-icon"
+                color="gray500"
+                size="sm"
+              >
+                <IconSearch
+                  className="search-input-icon css-1m821z7-StyledIconSearch e5a9jdx1"
+                  color="gray500"
+                  size="sm"
+                >
+                  <ForwardRef(SvgIcon)
+                    className="search-input-icon css-1m821z7-StyledIconSearch e5a9jdx1"
+                    color="gray500"
+                    size="sm"
+                  >
+                    <svg
+                      className="search-input-icon css-1m821z7-StyledIconSearch e5a9jdx1"
+                      fill="#9585A3"
+                      height="16px"
+                      viewBox="0 0 16 16"
+                      width="16px"
+                    >
+                      <path
+                        d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                      />
+                      <path
+                        d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+                      />
+                    </svg>
+                  </ForwardRef(SvgIcon)>
+                </IconSearch>
+              </StyledIconSearch>
+            </div>
+          </form>
+        </div>
+      </SearchBar>
+    </div>
+    <Panel
+      className="event-list"
+    >
+      <Component
+        className="event-list css-ietoyz-Panel e119nu470"
+      >
+        <div
+          className="event-list css-ietoyz-Panel e119nu470"
+        >
+          <PanelBody
+            flexible={false}
+            withPadding={false}
+          >
+            <FlexBox
+              withPadding={false}
+            >
+              <div
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
+              >
+                <EventsTable
+                  events={
+                    Array [
+                      Object {
+                        "dateCreated": "2019-05-21T18:01:48.762Z",
+                        "eventID": "12345",
+                        "groupID": "1",
+                        "id": "1",
+                        "message": "ApiException",
+                        "tags": Array [],
+                        "title": "ApiException",
+                      },
+                      Object {
+                        "crashFile": Object {
+                          "dateCreated": "2019-05-21T18:01:48.762Z",
+                          "headers": Object {
+                            "Content-Type": "application/octet-stream",
+                          },
+                          "id": "12345",
+                          "name": "name.dmp",
+                          "sha1": "sha1",
+                          "size": 123456,
+                          "type": "event.minidump",
+                        },
+                        "culprit": "",
+                        "dateCreated": "2019-05-21T18:00:23Z",
+                        "event.type": "error",
+                        "eventID": "123456",
+                        "groupID": "1",
+                        "id": "98654",
+                        "location": "main.js",
+                        "message": "TestException",
+                        "platform": "native",
+                        "projectID": "123",
+                        "tags": Array [
+                          Object {
+                            "key": "production",
+                            "value": "production",
+                          },
+                        ],
+                        "title": "TestException",
+                      },
+                    ]
+                  }
+                  groupId="1"
+                  orgId="orgId"
+                  projectId="project-slug"
+                  tagList={Array []}
+                >
+                  <table
+                    className="table events-table"
+                  >
+                    <thead>
+                      <tr>
+                        <th>
+                          ID
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <WithOrganizationMockWrapper
+                        event={
+                          Object {
+                            "dateCreated": "2019-05-21T18:01:48.762Z",
+                            "eventID": "12345",
+                            "groupID": "1",
+                            "id": "1",
+                            "message": "ApiException",
+                            "tags": Array [],
+                            "title": "ApiException",
+                          }
+                        }
+                        groupId="1"
+                        hasUser={false}
+                        key="1"
+                        orgId="orgId"
+                        projectId="project-slug"
+                        tagList={Array []}
+                      >
+                        <EventsTableRow
+                          event={
+                            Object {
+                              "dateCreated": "2019-05-21T18:01:48.762Z",
+                              "eventID": "12345",
+                              "groupID": "1",
+                              "id": "1",
+                              "message": "ApiException",
+                              "tags": Array [],
+                              "title": "ApiException",
+                            }
+                          }
+                          groupId="1"
+                          hasUser={false}
+                          orgId="orgId"
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "experiments": Object {},
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
+                          projectId="project-slug"
+                          tagList={Array []}
+                        >
+                          <tr
+                            key="1"
+                          >
+                            <td>
+                              <h5>
+                                <GlobalSelectionLink
+                                  to="/organizations/orgId/issues/1/events/1/"
+                                >
+                                  <Link
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to="/organizations/orgId/issues/1/events/1/"
+                                  >
+                                    <a
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      <DateTime
+                                        date="2019-05-21T18:01:48.762Z"
+                                        seconds={true}
+                                      >
+                                        <time>
+                                          May 21, 2019 6:01:48 PM UTC
+                                        </time>
+                                      </DateTime>
+                                    </a>
+                                  </Link>
+                                </GlobalSelectionLink>
+                                <small>
+                                  ApiException
+                                </small>
+                              </h5>
+                            </td>
+                          </tr>
+                        </EventsTableRow>
+                      </WithOrganizationMockWrapper>
+                      <WithOrganizationMockWrapper
+                        event={
+                          Object {
+                            "crashFile": Object {
+                              "dateCreated": "2019-05-21T18:01:48.762Z",
+                              "headers": Object {
+                                "Content-Type": "application/octet-stream",
+                              },
+                              "id": "12345",
+                              "name": "name.dmp",
+                              "sha1": "sha1",
+                              "size": 123456,
+                              "type": "event.minidump",
+                            },
+                            "culprit": "",
+                            "dateCreated": "2019-05-21T18:00:23Z",
+                            "event.type": "error",
+                            "eventID": "123456",
+                            "groupID": "1",
+                            "id": "98654",
+                            "location": "main.js",
+                            "message": "TestException",
+                            "platform": "native",
+                            "projectID": "123",
+                            "tags": Array [
+                              Object {
+                                "key": "production",
+                                "value": "production",
+                              },
+                            ],
+                            "title": "TestException",
+                          }
+                        }
+                        groupId="1"
+                        hasUser={false}
+                        key="98654"
+                        orgId="orgId"
+                        projectId="project-slug"
+                        tagList={Array []}
+                      >
+                        <EventsTableRow
+                          event={
+                            Object {
+                              "crashFile": Object {
+                                "dateCreated": "2019-05-21T18:01:48.762Z",
+                                "headers": Object {
+                                  "Content-Type": "application/octet-stream",
+                                },
+                                "id": "12345",
+                                "name": "name.dmp",
+                                "sha1": "sha1",
+                                "size": 123456,
+                                "type": "event.minidump",
+                              },
+                              "culprit": "",
+                              "dateCreated": "2019-05-21T18:00:23Z",
+                              "event.type": "error",
+                              "eventID": "123456",
+                              "groupID": "1",
+                              "id": "98654",
+                              "location": "main.js",
+                              "message": "TestException",
+                              "platform": "native",
+                              "projectID": "123",
+                              "tags": Array [
+                                Object {
+                                  "key": "production",
+                                  "value": "production",
+                                },
+                              ],
+                              "title": "TestException",
+                            }
+                          }
+                          groupId="1"
+                          hasUser={false}
+                          orgId="orgId"
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "experiments": Object {},
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
+                          projectId="project-slug"
+                          tagList={Array []}
+                        >
+                          <tr
+                            key="98654"
+                          >
+                            <td>
+                              <h5>
+                                <GlobalSelectionLink
+                                  to="/organizations/orgId/issues/1/events/98654/"
+                                >
+                                  <Link
+                                    onlyActiveOnIndex={false}
+                                    style={Object {}}
+                                    to="/organizations/orgId/issues/1/events/98654/"
+                                  >
+                                    <a
+                                      onClick={[Function]}
+                                      style={Object {}}
+                                    >
+                                      <DateTime
+                                        date="2019-05-21T18:00:23Z"
+                                        seconds={true}
+                                      >
+                                        <time>
+                                          May 21, 2019 6:00:23 PM UTC
+                                        </time>
+                                      </DateTime>
+                                    </a>
+                                  </Link>
+                                </GlobalSelectionLink>
+                                <small>
+                                  TestException
+                                </small>
+                                <WithOrganizationMockWrapper
+                                  attachment={
+                                    Object {
+                                      "dateCreated": "2019-05-21T18:01:48.762Z",
+                                      "headers": Object {
+                                        "Content-Type": "application/octet-stream",
+                                      },
+                                      "id": "12345",
+                                      "name": "name.dmp",
+                                      "sha1": "sha1",
+                                      "size": 123456,
+                                      "type": "event.minidump",
+                                    }
+                                  }
+                                  eventId="98654"
+                                  projectId="project-slug"
+                                >
+                                  <AttachmentUrl
+                                    attachment={
+                                      Object {
+                                        "dateCreated": "2019-05-21T18:01:48.762Z",
+                                        "headers": Object {
+                                          "Content-Type": "application/octet-stream",
+                                        },
+                                        "id": "12345",
+                                        "name": "name.dmp",
+                                        "sha1": "sha1",
+                                        "size": 123456,
+                                        "type": "event.minidump",
+                                      }
+                                    }
+                                    eventId="98654"
+                                    organization={
+                                      Object {
+                                        "access": Array [
+                                          "org:read",
+                                          "org:write",
+                                          "org:admin",
+                                          "org:integrations",
+                                          "project:read",
+                                          "project:write",
+                                          "project:admin",
+                                          "team:read",
+                                          "team:write",
+                                          "team:admin",
+                                        ],
+                                        "experiments": Object {},
+                                        "features": Array [],
+                                        "id": "3",
+                                        "name": "Organization Name",
+                                        "onboardingTasks": Array [],
+                                        "projects": Array [],
+                                        "scrapeJavaScript": true,
+                                        "slug": "org-slug",
+                                        "status": Object {
+                                          "id": "active",
+                                          "name": "active",
+                                        },
+                                        "teams": Array [],
+                                      }
+                                    }
+                                    projectId="project-slug"
+                                  />
+                                </WithOrganizationMockWrapper>
+                              </h5>
+                            </td>
+                          </tr>
+                        </EventsTableRow>
+                      </WithOrganizationMockWrapper>
+                    </tbody>
+                  </table>
+                </EventsTable>
+              </div>
+            </FlexBox>
+          </PanelBody>
+        </div>
+      </Component>
+    </Panel>
+    <Styled(Pagination)
+      onCursor={[Function]}
+    >
+      <Pagination
+        className="css-1vzq2o e1vkspke0"
+        onCursor={[Function]}
+      />
+    </Styled(Pagination)>
+  </div>
+</GroupEvents>
+`;

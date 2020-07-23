@@ -31,5 +31,6 @@ describe('ProjectExpectCtReports', function() {
       TestStubs.routerContext()
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

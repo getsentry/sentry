@@ -1,0 +1,247 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccountIdentities renders empty 1`] = `
+<AccountIdentities>
+  <SideEffect(DocumentTitle)
+    title="Identities - Sentry"
+  >
+    <DocumentTitle
+      title="Identities - Sentry"
+    >
+      <div>
+        <StyledSettingsPageHeading
+          noTitleStyles={false}
+          title="Identities"
+        >
+          <SettingsPageHeading
+            className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            noTitleStyles={false}
+            title="Identities"
+          >
+            <div
+              className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            >
+              <TitleAndActions>
+                <div
+                  className="css-ifzfc5-TitleAndActions e1uay4fd0"
+                >
+                  <Title
+                    styled={false}
+                  >
+                    <div
+                      className="css-u2ls9d-Title e1uay4fd1"
+                    >
+                      <HeaderTitle>
+                        <h4
+                          className="css-1bosio6-HeaderTitle eqkydle2"
+                        >
+                          Identities
+                        </h4>
+                      </HeaderTitle>
+                    </div>
+                  </Title>
+                </div>
+              </TitleAndActions>
+            </div>
+          </SettingsPageHeading>
+        </StyledSettingsPageHeading>
+        <Panel>
+          <Component
+            className="css-ietoyz-Panel e119nu470"
+          >
+            <div
+              className="css-ietoyz-Panel e119nu470"
+            >
+              <PanelHeader>
+                <div
+                  className="css-pi486d-PanelHeader en8g1d30"
+                >
+                  Identities
+                </div>
+              </PanelHeader>
+              <PanelBody
+                flexible={false}
+                withPadding={false}
+              >
+                <FlexBox
+                  withPadding={false}
+                >
+                  <div
+                    className="css-1nto0rx-FlexBox e1vnwt6f0"
+                  >
+                    <EmptyMessage>
+                      <Component
+                        className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
+                      >
+                        <div
+                          className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
+                          data-test-id="empty-message"
+                        >
+                          <Description
+                            noMargin={true}
+                          >
+                            <div
+                              className="css-iex7sn-TextBlock-Description e1h3yfdx3"
+                            >
+                              There are no identities associated with this account
+                            </div>
+                          </Description>
+                        </div>
+                      </Component>
+                    </EmptyMessage>
+                  </div>
+                </FlexBox>
+              </PanelBody>
+            </div>
+          </Component>
+        </Panel>
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</AccountIdentities>
+`;
+
+exports[`AccountIdentities renders list 1`] = `
+<AccountIdentities>
+  <SideEffect(DocumentTitle)
+    title="Identities - Sentry"
+  >
+    <DocumentTitle
+      title="Identities - Sentry"
+    >
+      <div>
+        <StyledSettingsPageHeading
+          noTitleStyles={false}
+          title="Identities"
+        >
+          <SettingsPageHeading
+            className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            noTitleStyles={false}
+            title="Identities"
+          >
+            <div
+              className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            >
+              <TitleAndActions>
+                <div
+                  className="css-ifzfc5-TitleAndActions e1uay4fd0"
+                >
+                  <Title
+                    styled={false}
+                  >
+                    <div
+                      className="css-u2ls9d-Title e1uay4fd1"
+                    >
+                      <HeaderTitle>
+                        <h4
+                          className="css-1bosio6-HeaderTitle eqkydle2"
+                        >
+                          Identities
+                        </h4>
+                      </HeaderTitle>
+                    </div>
+                  </Title>
+                </div>
+              </TitleAndActions>
+            </div>
+          </SettingsPageHeading>
+        </StyledSettingsPageHeading>
+        <Panel>
+          <Component
+            className="css-ietoyz-Panel e119nu470"
+          >
+            <div
+              className="css-ietoyz-Panel e119nu470"
+            >
+              <PanelHeader>
+                <div
+                  className="css-pi486d-PanelHeader en8g1d30"
+                >
+                  Identities
+                </div>
+              </PanelHeader>
+              <PanelBody
+                flexible={false}
+                withPadding={false}
+              >
+                <FlexBox
+                  withPadding={false}
+                >
+                  <div
+                    className="css-1nto0rx-FlexBox e1vnwt6f0"
+                  >
+                    <IdentityPanelItem
+                      key="1"
+                      p={2}
+                    >
+                      <div
+                        className="css-104ogw1-PanelItem-IdentityPanelItem e1j73dwh0"
+                      >
+                        <div>
+                          GitHub
+                        </div>
+                        <forwardRef<Button>
+                          onClick={[Function]}
+                          size="small"
+                        >
+                          <Button
+                            align="center"
+                            disabled={false}
+                            forwardRef={null}
+                            onClick={[Function]}
+                            size="small"
+                          >
+                            <StyledButton
+                              aria-disabled={false}
+                              aria-label="Disconnect"
+                              disabled={false}
+                              forwardRef={null}
+                              onClick={[Function]}
+                              role="button"
+                              size="small"
+                            >
+                              <Component
+                                aria-disabled={false}
+                                aria-label="Disconnect"
+                                className="css-8od3q1-StyledButton edwq9my0"
+                                forwardRef={null}
+                                onClick={[Function]}
+                                role="button"
+                                size="small"
+                              >
+                                <button
+                                  aria-disabled={false}
+                                  aria-label="Disconnect"
+                                  className="css-8od3q1-StyledButton edwq9my0"
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="small"
+                                >
+                                  <ButtonLabel
+                                    align="center"
+                                    size="small"
+                                  >
+                                    <span
+                                      className="css-n7mdnv-ButtonLabel edwq9my1"
+                                    >
+                                      Disconnect
+                                    </span>
+                                  </ButtonLabel>
+                                </button>
+                              </Component>
+                            </StyledButton>
+                          </Button>
+                        </forwardRef<Button>>
+                      </div>
+                    </IdentityPanelItem>
+                  </div>
+                </FlexBox>
+              </PanelBody>
+            </div>
+          </Component>
+        </Panel>
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</AccountIdentities>
+`;

@@ -15,6 +15,7 @@ describe('FrameRegisters', () => {
 
     const wrapper = mount(<FrameRegisters data={registers} />);
     expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
+    expect(wrapper.find('[data-test-id="frame-registers-value"]')).toMatchSnapshot();
   });
 
   it('should skip registers without a value', () => {
@@ -26,6 +27,7 @@ describe('FrameRegisters', () => {
 
     const wrapper = mount(<FrameRegisters data={registers} />);
     expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
+    expect(wrapper.find('[data-test-id="frame-registers-value"]')).toMatchSnapshot();
   });
 });
 

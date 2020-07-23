@@ -1,0 +1,1386 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
+<withRouter(EventOrGroupExtraDetails)
+  annotations={
+    Array [
+      "annotation1",
+      "annotation2",
+    ]
+  }
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  logger="javascript logger"
+  numComments={14}
+  orgId="orgId"
+  projectId="projectId"
+  shortId="shortId"
+  subscriptionDetails={
+    Object {
+      "reason": "mentioned",
+    }
+  }
+>
+  <EventOrGroupExtraDetails
+    annotations={
+      Array [
+        "annotation1",
+        "annotation2",
+      ]
+    }
+    firstSeen="2017-07-01T02:06:02Z"
+    groupId="groupId"
+    lastSeen="2017-07-25T22:56:12Z"
+    location={
+      Object {
+        "query": Object {},
+      }
+    }
+    logger="javascript logger"
+    numComments={14}
+    orgId="orgId"
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+    projectId="projectId"
+    router={
+      Object {
+        "createHref": [MockFunction] {
+          "calls": Array [
+            Array [
+              "/organizations/org-slug/issues/undefined/activity/",
+            ],
+            Array [
+              Object {
+                "pathname": "/organizations/org-slug/issues/",
+                "query": Object {
+                  "query": "logger:javascript logger",
+                },
+              },
+            ],
+            Array [
+              "/organizations/org-slug/issues/undefined/activity/",
+            ],
+            Array [
+              Object {
+                "pathname": "/organizations/org-slug/issues/",
+                "query": Object {
+                  "query": "logger:javascript logger",
+                },
+              },
+            ],
+            Array [
+              "/organizations/org-slug/issues/undefined/activity/",
+            ],
+            Array [
+              Object {
+                "pathname": "/organizations/org-slug/issues/",
+                "query": Object {
+                  "query": "logger:javascript logger",
+                },
+              },
+            ],
+          ],
+          "results": Array [
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+          ],
+        },
+        "go": [MockFunction],
+        "goBack": [MockFunction],
+        "goForward": [MockFunction],
+        "isActive": [MockFunction],
+        "listen": [MockFunction],
+        "location": Object {
+          "query": Object {},
+        },
+        "params": Object {
+          "orgId": "org-slug",
+        },
+        "push": [MockFunction],
+        "replace": [MockFunction],
+        "setRouteLeaveHook": [MockFunction],
+      }
+    }
+    shortId="shortId"
+    subscriptionDetails={
+      Object {
+        "reason": "mentioned",
+      }
+    }
+  >
+    <GroupExtra>
+      <div
+        className="css-q0ziu0-GroupExtra eec9orn0"
+      >
+        <GroupShortId
+          shortId="shortId"
+        >
+          <ShortId
+            className="css-1fj2cf7-GroupShortId eec9orn3"
+            shortId="shortId"
+          >
+            <StyledShortId
+              className="css-1fj2cf7-GroupShortId eec9orn3"
+              onClick={[Function]}
+              shortId="shortId"
+            >
+              <div
+                className="eec9orn3 css-dcccbj-StyledShortId-GroupShortId e10rcxf30"
+                onClick={[Function]}
+              >
+                <StyledAutoSelectText
+                  avatar={false}
+                >
+                  <AutoSelectText
+                    className="css-1lv5ikn-StyledAutoSelectText e10rcxf31"
+                  >
+                    <div
+                      className="auto-select-text css-1lv5ikn-StyledAutoSelectText e10rcxf31"
+                      onClick={[Function]}
+                    >
+                      <span>
+                        shortId
+                      </span>
+                    </div>
+                  </AutoSelectText>
+                </StyledAutoSelectText>
+              </div>
+            </StyledShortId>
+          </ShortId>
+        </GroupShortId>
+        <StyledTimes
+          firstSeen="2017-07-01T02:06:02Z"
+          lastSeen="2017-07-25T22:56:12Z"
+        >
+          <Times
+            className="css-2hucfb-StyledTimes eec9orn1"
+            firstSeen="2017-07-01T02:06:02Z"
+            lastSeen="2017-07-25T22:56:12Z"
+          >
+            <Container>
+              <div
+                className="css-1lz86t0-Container e1fmxtba0"
+              >
+                <FlexWrapper>
+                  <div
+                    className="css-13zgepw-FlexWrapper e1fmxtba1"
+                  >
+                    <StyledIconClock
+                      size="11px"
+                    >
+                      <IconClock
+                        className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                        size="11px"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                          size="11px"
+                        >
+                          <svg
+                            className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                            fill="currentColor"
+                            height="11px"
+                            viewBox="0 0 16 16"
+                            width="11px"
+                          >
+                            <path
+                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.52A6.48,6.48,0,1,0,14.48,8,6.49,6.49,0,0,0,8,1.52Z"
+                            />
+                            <path
+                              d="M11.62,8.75H8A.76.76,0,0,1,7.25,8V2.88a.75.75,0,1,1,1.5,0V7.25h2.87a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </IconClock>
+                    </StyledIconClock>
+                    <TimeSince
+                      date="2017-07-25T22:56:12Z"
+                      suffix="ago"
+                    >
+                      <time
+                        dateTime="2017-07-25T22:56:12.000Z"
+                        title="July 25, 2017 10:56 PM UTC"
+                      >
+                        3 months ago
+                      </time>
+                    </TimeSince>
+                    <span
+                      className="hidden-xs hidden-sm"
+                    >
+                       — 
+                    </span>
+                    <TimeSince
+                      className="hidden-xs hidden-sm"
+                      date="2017-07-01T02:06:02Z"
+                      suffix="old"
+                    >
+                      <time
+                        className="hidden-xs hidden-sm"
+                        dateTime="2017-07-01T02:06:02.000Z"
+                        title="July 1, 2017 2:06 AM UTC"
+                      >
+                        4 months old
+                      </time>
+                    </TimeSince>
+                  </div>
+                </FlexWrapper>
+              </div>
+            </Container>
+          </Times>
+        </StyledTimes>
+        <CommentsLink
+          className="comments"
+          onlyActiveOnIndex={false}
+          style={Object {}}
+          to="/organizations/org-slug/issues/undefined/activity/"
+        >
+          <Link
+            className="comments css-1pdn1y8-CommentsLink eec9orn2"
+            onlyActiveOnIndex={false}
+            style={Object {}}
+            to="/organizations/org-slug/issues/undefined/activity/"
+          >
+            <a
+              className="comments css-1pdn1y8-CommentsLink eec9orn2"
+              onClick={[Function]}
+              style={Object {}}
+            >
+              <IconChat
+                color="green400"
+                size="xs"
+              >
+                <ForwardRef(SvgIcon)
+                  color="green400"
+                  size="xs"
+                >
+                  <svg
+                    fill="#4DC771"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M.94,16a.73.73,0,0,1-.47-.17A.74.74,0,0,1,.21,15l.93-3.92A6.83,6.83,0,0,1,0,7.35c0-4,3.59-7.3,8-7.3s8,3.28,8,7.3-3.59,7.29-8,7.29a8.59,8.59,0,0,1-3.11-.58L1.27,15.87A.8.8,0,0,1,.94,16Zm1.59-5.48a.74.74,0,0,1,.15.65L2,13.81l2.49-1.24a.73.73,0,0,1,.63,0A7,7,0,0,0,8,13.14c3.58,0,6.5-2.6,6.5-5.79S11.58,1.55,8,1.55s-6.5,2.6-6.5,5.8A5.32,5.32,0,0,0,2.53,10.47Z"
+                    />
+                  </svg>
+                </ForwardRef(SvgIcon)>
+              </IconChat>
+              <span>
+                14
+              </span>
+            </a>
+          </Link>
+        </CommentsLink>
+        <LoggerAnnotation>
+          <span
+            className="css-ifiu8p-EventAnnotation-AnnotationNoMargin-LoggerAnnotation eec9orn5"
+          >
+            <Link
+              onlyActiveOnIndex={false}
+              style={Object {}}
+              to={
+                Object {
+                  "pathname": "/organizations/org-slug/issues/",
+                  "query": Object {
+                    "query": "logger:javascript logger",
+                  },
+                }
+              }
+            >
+              <a
+                onClick={[Function]}
+                style={Object {}}
+              >
+                javascript logger
+              </a>
+            </Link>
+          </span>
+        </LoggerAnnotation>
+        <AnnotationNoMargin
+          dangerouslySetInnerHTML={
+            Object {
+              "__html": "annotation1",
+            }
+          }
+          key="0"
+        >
+          <span
+            className="css-1yy2qq1-EventAnnotation-AnnotationNoMargin eec9orn4"
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "annotation1",
+              }
+            }
+          />
+        </AnnotationNoMargin>
+        <AnnotationNoMargin
+          dangerouslySetInnerHTML={
+            Object {
+              "__html": "annotation2",
+            }
+          }
+          key="1"
+        >
+          <span
+            className="css-1yy2qq1-EventAnnotation-AnnotationNoMargin eec9orn4"
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "annotation2",
+              }
+            }
+          />
+        </AnnotationNoMargin>
+      </div>
+    </GroupExtra>
+  </EventOrGroupExtraDetails>
+</withRouter(EventOrGroupExtraDetails)>
+`;
+
+exports[`EventOrGroupExtraDetails renders all details 1`] = `
+<withRouter(EventOrGroupExtraDetails)
+  annotations={
+    Array [
+      "annotation1",
+      "annotation2",
+    ]
+  }
+  assignedTo={
+    Object {
+      "name": "Assignee Name",
+    }
+  }
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  logger="javascript logger"
+  numComments={14}
+  orgId="orgId"
+  projectId="projectId"
+  shortId="shortId"
+  status="resolved"
+>
+  <EventOrGroupExtraDetails
+    annotations={
+      Array [
+        "annotation1",
+        "annotation2",
+      ]
+    }
+    assignedTo={
+      Object {
+        "name": "Assignee Name",
+      }
+    }
+    firstSeen="2017-07-01T02:06:02Z"
+    groupId="groupId"
+    lastSeen="2017-07-25T22:56:12Z"
+    location={
+      Object {
+        "query": Object {},
+      }
+    }
+    logger="javascript logger"
+    numComments={14}
+    orgId="orgId"
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+    projectId="projectId"
+    router={
+      Object {
+        "createHref": [MockFunction] {
+          "calls": Array [
+            Array [
+              "/organizations/org-slug/issues/undefined/activity/",
+            ],
+            Array [
+              Object {
+                "pathname": "/organizations/org-slug/issues/",
+                "query": Object {
+                  "query": "logger:javascript logger",
+                },
+              },
+            ],
+          ],
+          "results": Array [
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+          ],
+        },
+        "go": [MockFunction],
+        "goBack": [MockFunction],
+        "goForward": [MockFunction],
+        "isActive": [MockFunction],
+        "listen": [MockFunction],
+        "location": Object {
+          "query": Object {},
+        },
+        "params": Object {
+          "orgId": "org-slug",
+        },
+        "push": [MockFunction],
+        "replace": [MockFunction],
+        "setRouteLeaveHook": [MockFunction],
+      }
+    }
+    shortId="shortId"
+    status="resolved"
+  >
+    <GroupExtra>
+      <div
+        className="css-q0ziu0-GroupExtra eec9orn0"
+      >
+        <GroupShortId
+          shortId="shortId"
+        >
+          <ShortId
+            className="css-1fj2cf7-GroupShortId eec9orn3"
+            shortId="shortId"
+          >
+            <StyledShortId
+              className="css-1fj2cf7-GroupShortId eec9orn3"
+              onClick={[Function]}
+              shortId="shortId"
+            >
+              <div
+                className="eec9orn3 css-dcccbj-StyledShortId-GroupShortId e10rcxf30"
+                onClick={[Function]}
+              >
+                <StyledAutoSelectText
+                  avatar={false}
+                >
+                  <AutoSelectText
+                    className="css-1lv5ikn-StyledAutoSelectText e10rcxf31"
+                  >
+                    <div
+                      className="auto-select-text css-1lv5ikn-StyledAutoSelectText e10rcxf31"
+                      onClick={[Function]}
+                    >
+                      <span>
+                        shortId
+                      </span>
+                    </div>
+                  </AutoSelectText>
+                </StyledAutoSelectText>
+              </div>
+            </StyledShortId>
+          </ShortId>
+        </GroupShortId>
+        <StyledTimes
+          firstSeen="2017-07-01T02:06:02Z"
+          lastSeen="2017-07-25T22:56:12Z"
+        >
+          <Times
+            className="css-2hucfb-StyledTimes eec9orn1"
+            firstSeen="2017-07-01T02:06:02Z"
+            lastSeen="2017-07-25T22:56:12Z"
+          >
+            <Container>
+              <div
+                className="css-1lz86t0-Container e1fmxtba0"
+              >
+                <FlexWrapper>
+                  <div
+                    className="css-13zgepw-FlexWrapper e1fmxtba1"
+                  >
+                    <StyledIconClock
+                      size="11px"
+                    >
+                      <IconClock
+                        className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                        size="11px"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                          size="11px"
+                        >
+                          <svg
+                            className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                            fill="currentColor"
+                            height="11px"
+                            viewBox="0 0 16 16"
+                            width="11px"
+                          >
+                            <path
+                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.52A6.48,6.48,0,1,0,14.48,8,6.49,6.49,0,0,0,8,1.52Z"
+                            />
+                            <path
+                              d="M11.62,8.75H8A.76.76,0,0,1,7.25,8V2.88a.75.75,0,1,1,1.5,0V7.25h2.87a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </IconClock>
+                    </StyledIconClock>
+                    <TimeSince
+                      date="2017-07-25T22:56:12Z"
+                      suffix="ago"
+                    >
+                      <time
+                        dateTime="2017-07-25T22:56:12.000Z"
+                        title="July 25, 2017 10:56 PM UTC"
+                      >
+                        3 months ago
+                      </time>
+                    </TimeSince>
+                    <span
+                      className="hidden-xs hidden-sm"
+                    >
+                       — 
+                    </span>
+                    <TimeSince
+                      className="hidden-xs hidden-sm"
+                      date="2017-07-01T02:06:02Z"
+                      suffix="old"
+                    >
+                      <time
+                        className="hidden-xs hidden-sm"
+                        dateTime="2017-07-01T02:06:02.000Z"
+                        title="July 1, 2017 2:06 AM UTC"
+                      >
+                        4 months old
+                      </time>
+                    </TimeSince>
+                  </div>
+                </FlexWrapper>
+              </div>
+            </Container>
+          </Times>
+        </StyledTimes>
+        <CommentsLink
+          className="comments"
+          onlyActiveOnIndex={false}
+          style={Object {}}
+          to="/organizations/org-slug/issues/undefined/activity/"
+        >
+          <Link
+            className="comments css-1pdn1y8-CommentsLink eec9orn2"
+            onlyActiveOnIndex={false}
+            style={Object {}}
+            to="/organizations/org-slug/issues/undefined/activity/"
+          >
+            <a
+              className="comments css-1pdn1y8-CommentsLink eec9orn2"
+              onClick={[Function]}
+              style={Object {}}
+            >
+              <IconChat
+                color="currentColor"
+                size="xs"
+              >
+                <ForwardRef(SvgIcon)
+                  color="currentColor"
+                  size="xs"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M.94,16a.73.73,0,0,1-.47-.17A.74.74,0,0,1,.21,15l.93-3.92A6.83,6.83,0,0,1,0,7.35c0-4,3.59-7.3,8-7.3s8,3.28,8,7.3-3.59,7.29-8,7.29a8.59,8.59,0,0,1-3.11-.58L1.27,15.87A.8.8,0,0,1,.94,16Zm1.59-5.48a.74.74,0,0,1,.15.65L2,13.81l2.49-1.24a.73.73,0,0,1,.63,0A7,7,0,0,0,8,13.14c3.58,0,6.5-2.6,6.5-5.79S11.58,1.55,8,1.55s-6.5,2.6-6.5,5.8A5.32,5.32,0,0,0,2.53,10.47Z"
+                    />
+                  </svg>
+                </ForwardRef(SvgIcon)>
+              </IconChat>
+              <span>
+                14
+              </span>
+            </a>
+          </Link>
+        </CommentsLink>
+        <LoggerAnnotation>
+          <span
+            className="css-ifiu8p-EventAnnotation-AnnotationNoMargin-LoggerAnnotation eec9orn5"
+          >
+            <Link
+              onlyActiveOnIndex={false}
+              style={Object {}}
+              to={
+                Object {
+                  "pathname": "/organizations/org-slug/issues/",
+                  "query": Object {
+                    "query": "logger:javascript logger",
+                  },
+                }
+              }
+            >
+              <a
+                onClick={[Function]}
+                style={Object {}}
+              >
+                javascript logger
+              </a>
+            </Link>
+          </span>
+        </LoggerAnnotation>
+        <AnnotationNoMargin
+          dangerouslySetInnerHTML={
+            Object {
+              "__html": "annotation1",
+            }
+          }
+          key="0"
+        >
+          <span
+            className="css-1yy2qq1-EventAnnotation-AnnotationNoMargin eec9orn4"
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "annotation1",
+              }
+            }
+          />
+        </AnnotationNoMargin>
+        <AnnotationNoMargin
+          dangerouslySetInnerHTML={
+            Object {
+              "__html": "annotation2",
+            }
+          }
+          key="1"
+        >
+          <span
+            className="css-1yy2qq1-EventAnnotation-AnnotationNoMargin eec9orn4"
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "annotation2",
+              }
+            }
+          />
+        </AnnotationNoMargin>
+      </div>
+    </GroupExtra>
+  </EventOrGroupExtraDetails>
+</withRouter(EventOrGroupExtraDetails)>
+`;
+
+exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
+<withRouter(EventOrGroupExtraDetails)
+  annotations={
+    Array [
+      "annotation1",
+      "annotation2",
+    ]
+  }
+  assignedTo={
+    Object {
+      "name": "Assignee Name",
+    }
+  }
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  logger="javascript logger"
+  numComments={14}
+  orgId="orgId"
+  projectId="projectId"
+  shortId="shortId"
+  showAssignee={true}
+  showStatus={true}
+  status="resolved"
+>
+  <EventOrGroupExtraDetails
+    annotations={
+      Array [
+        "annotation1",
+        "annotation2",
+      ]
+    }
+    assignedTo={
+      Object {
+        "name": "Assignee Name",
+      }
+    }
+    firstSeen="2017-07-01T02:06:02Z"
+    groupId="groupId"
+    lastSeen="2017-07-25T22:56:12Z"
+    location={
+      Object {
+        "query": Object {},
+      }
+    }
+    logger="javascript logger"
+    numComments={14}
+    orgId="orgId"
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+    projectId="projectId"
+    router={
+      Object {
+        "createHref": [MockFunction] {
+          "calls": Array [
+            Array [
+              "/organizations/org-slug/issues/undefined/activity/",
+            ],
+            Array [
+              Object {
+                "pathname": "/organizations/org-slug/issues/",
+                "query": Object {
+                  "query": "logger:javascript logger",
+                },
+              },
+            ],
+            Array [
+              "/organizations/org-slug/issues/undefined/activity/",
+            ],
+            Array [
+              Object {
+                "pathname": "/organizations/org-slug/issues/",
+                "query": Object {
+                  "query": "logger:javascript logger",
+                },
+              },
+            ],
+          ],
+          "results": Array [
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+            Object {
+              "type": "return",
+              "value": undefined,
+            },
+          ],
+        },
+        "go": [MockFunction],
+        "goBack": [MockFunction],
+        "goForward": [MockFunction],
+        "isActive": [MockFunction],
+        "listen": [MockFunction],
+        "location": Object {
+          "query": Object {},
+        },
+        "params": Object {
+          "orgId": "org-slug",
+        },
+        "push": [MockFunction],
+        "replace": [MockFunction],
+        "setRouteLeaveHook": [MockFunction],
+      }
+    }
+    shortId="shortId"
+    showAssignee={true}
+    showStatus={true}
+    status="resolved"
+  >
+    <GroupExtra>
+      <div
+        className="css-q0ziu0-GroupExtra eec9orn0"
+      >
+        <GroupShortId
+          shortId="shortId"
+        >
+          <ShortId
+            className="css-1fj2cf7-GroupShortId eec9orn3"
+            shortId="shortId"
+          >
+            <StyledShortId
+              className="css-1fj2cf7-GroupShortId eec9orn3"
+              onClick={[Function]}
+              shortId="shortId"
+            >
+              <div
+                className="eec9orn3 css-dcccbj-StyledShortId-GroupShortId e10rcxf30"
+                onClick={[Function]}
+              >
+                <StyledAutoSelectText
+                  avatar={false}
+                >
+                  <AutoSelectText
+                    className="css-1lv5ikn-StyledAutoSelectText e10rcxf31"
+                  >
+                    <div
+                      className="auto-select-text css-1lv5ikn-StyledAutoSelectText e10rcxf31"
+                      onClick={[Function]}
+                    >
+                      <span>
+                        shortId
+                      </span>
+                    </div>
+                  </AutoSelectText>
+                </StyledAutoSelectText>
+              </div>
+            </StyledShortId>
+          </ShortId>
+        </GroupShortId>
+        <StyledTimes
+          firstSeen="2017-07-01T02:06:02Z"
+          lastSeen="2017-07-25T22:56:12Z"
+        >
+          <Times
+            className="css-2hucfb-StyledTimes eec9orn1"
+            firstSeen="2017-07-01T02:06:02Z"
+            lastSeen="2017-07-25T22:56:12Z"
+          >
+            <Container>
+              <div
+                className="css-1lz86t0-Container e1fmxtba0"
+              >
+                <FlexWrapper>
+                  <div
+                    className="css-13zgepw-FlexWrapper e1fmxtba1"
+                  >
+                    <StyledIconClock
+                      size="11px"
+                    >
+                      <IconClock
+                        className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                        size="11px"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                          size="11px"
+                        >
+                          <svg
+                            className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                            fill="currentColor"
+                            height="11px"
+                            viewBox="0 0 16 16"
+                            width="11px"
+                          >
+                            <path
+                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.52A6.48,6.48,0,1,0,14.48,8,6.49,6.49,0,0,0,8,1.52Z"
+                            />
+                            <path
+                              d="M11.62,8.75H8A.76.76,0,0,1,7.25,8V2.88a.75.75,0,1,1,1.5,0V7.25h2.87a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </IconClock>
+                    </StyledIconClock>
+                    <TimeSince
+                      date="2017-07-25T22:56:12Z"
+                      suffix="ago"
+                    >
+                      <time
+                        dateTime="2017-07-25T22:56:12.000Z"
+                        title="July 25, 2017 10:56 PM UTC"
+                      >
+                        3 months ago
+                      </time>
+                    </TimeSince>
+                    <span
+                      className="hidden-xs hidden-sm"
+                    >
+                       — 
+                    </span>
+                    <TimeSince
+                      className="hidden-xs hidden-sm"
+                      date="2017-07-01T02:06:02Z"
+                      suffix="old"
+                    >
+                      <time
+                        className="hidden-xs hidden-sm"
+                        dateTime="2017-07-01T02:06:02.000Z"
+                        title="July 1, 2017 2:06 AM UTC"
+                      >
+                        4 months old
+                      </time>
+                    </TimeSince>
+                  </div>
+                </FlexWrapper>
+              </div>
+            </Container>
+          </Times>
+        </StyledTimes>
+        <CommentsLink
+          className="comments"
+          onlyActiveOnIndex={false}
+          style={Object {}}
+          to="/organizations/org-slug/issues/undefined/activity/"
+        >
+          <Link
+            className="comments css-1pdn1y8-CommentsLink eec9orn2"
+            onlyActiveOnIndex={false}
+            style={Object {}}
+            to="/organizations/org-slug/issues/undefined/activity/"
+          >
+            <a
+              className="comments css-1pdn1y8-CommentsLink eec9orn2"
+              onClick={[Function]}
+              style={Object {}}
+            >
+              <IconChat
+                color="currentColor"
+                size="xs"
+              >
+                <ForwardRef(SvgIcon)
+                  color="currentColor"
+                  size="xs"
+                >
+                  <svg
+                    fill="currentColor"
+                    height="12px"
+                    viewBox="0 0 16 16"
+                    width="12px"
+                  >
+                    <path
+                      d="M.94,16a.73.73,0,0,1-.47-.17A.74.74,0,0,1,.21,15l.93-3.92A6.83,6.83,0,0,1,0,7.35c0-4,3.59-7.3,8-7.3s8,3.28,8,7.3-3.59,7.29-8,7.29a8.59,8.59,0,0,1-3.11-.58L1.27,15.87A.8.8,0,0,1,.94,16Zm1.59-5.48a.74.74,0,0,1,.15.65L2,13.81l2.49-1.24a.73.73,0,0,1,.63,0A7,7,0,0,0,8,13.14c3.58,0,6.5-2.6,6.5-5.79S11.58,1.55,8,1.55s-6.5,2.6-6.5,5.8A5.32,5.32,0,0,0,2.53,10.47Z"
+                    />
+                  </svg>
+                </ForwardRef(SvgIcon)>
+              </IconChat>
+              <span>
+                14
+              </span>
+            </a>
+          </Link>
+        </CommentsLink>
+        <LoggerAnnotation>
+          <span
+            className="css-ifiu8p-EventAnnotation-AnnotationNoMargin-LoggerAnnotation eec9orn5"
+          >
+            <Link
+              onlyActiveOnIndex={false}
+              style={Object {}}
+              to={
+                Object {
+                  "pathname": "/organizations/org-slug/issues/",
+                  "query": Object {
+                    "query": "logger:javascript logger",
+                  },
+                }
+              }
+            >
+              <a
+                onClick={[Function]}
+                style={Object {}}
+              >
+                javascript logger
+              </a>
+            </Link>
+          </span>
+        </LoggerAnnotation>
+        <AnnotationNoMargin
+          dangerouslySetInnerHTML={
+            Object {
+              "__html": "annotation1",
+            }
+          }
+          key="0"
+        >
+          <span
+            className="css-1yy2qq1-EventAnnotation-AnnotationNoMargin eec9orn4"
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "annotation1",
+              }
+            }
+          />
+        </AnnotationNoMargin>
+        <AnnotationNoMargin
+          dangerouslySetInnerHTML={
+            Object {
+              "__html": "annotation2",
+            }
+          }
+          key="1"
+        >
+          <span
+            className="css-1yy2qq1-EventAnnotation-AnnotationNoMargin eec9orn4"
+            dangerouslySetInnerHTML={
+              Object {
+                "__html": "annotation2",
+              }
+            }
+          />
+        </AnnotationNoMargin>
+        <div>
+          <span
+            key="4"
+          >
+            <span
+              key="0"
+            >
+              Assigned to 
+            </span>
+            <span
+              key="2"
+            >
+              Assignee Name
+            </span>
+          </span>
+        </div>
+      </div>
+    </GroupExtra>
+  </EventOrGroupExtraDetails>
+</withRouter(EventOrGroupExtraDetails)>
+`;
+
+exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
+<withRouter(EventOrGroupExtraDetails)
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  orgId="orgId"
+  projectId="projectId"
+>
+  <EventOrGroupExtraDetails
+    firstSeen="2017-07-01T02:06:02Z"
+    groupId="groupId"
+    lastSeen="2017-07-25T22:56:12Z"
+    location={
+      Object {
+        "query": Object {},
+      }
+    }
+    orgId="orgId"
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+    projectId="projectId"
+    router={
+      Object {
+        "createHref": [MockFunction],
+        "go": [MockFunction],
+        "goBack": [MockFunction],
+        "goForward": [MockFunction],
+        "isActive": [MockFunction],
+        "listen": [MockFunction],
+        "location": Object {
+          "query": Object {},
+        },
+        "params": Object {
+          "orgId": "org-slug",
+        },
+        "push": [MockFunction],
+        "replace": [MockFunction],
+        "setRouteLeaveHook": [MockFunction],
+      }
+    }
+  >
+    <GroupExtra>
+      <div
+        className="css-q0ziu0-GroupExtra eec9orn0"
+      >
+        <StyledTimes
+          firstSeen="2017-07-01T02:06:02Z"
+          lastSeen="2017-07-25T22:56:12Z"
+        >
+          <Times
+            className="css-2hucfb-StyledTimes eec9orn1"
+            firstSeen="2017-07-01T02:06:02Z"
+            lastSeen="2017-07-25T22:56:12Z"
+          >
+            <Container>
+              <div
+                className="css-1lz86t0-Container e1fmxtba0"
+              >
+                <FlexWrapper>
+                  <div
+                    className="css-13zgepw-FlexWrapper e1fmxtba1"
+                  >
+                    <StyledIconClock
+                      size="11px"
+                    >
+                      <IconClock
+                        className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                        size="11px"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                          size="11px"
+                        >
+                          <svg
+                            className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                            fill="currentColor"
+                            height="11px"
+                            viewBox="0 0 16 16"
+                            width="11px"
+                          >
+                            <path
+                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.52A6.48,6.48,0,1,0,14.48,8,6.49,6.49,0,0,0,8,1.52Z"
+                            />
+                            <path
+                              d="M11.62,8.75H8A.76.76,0,0,1,7.25,8V2.88a.75.75,0,1,1,1.5,0V7.25h2.87a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </IconClock>
+                    </StyledIconClock>
+                    <TimeSince
+                      date="2017-07-25T22:56:12Z"
+                      suffix="ago"
+                    >
+                      <time
+                        dateTime="2017-07-25T22:56:12.000Z"
+                        title="July 25, 2017 10:56 PM UTC"
+                      >
+                        3 months ago
+                      </time>
+                    </TimeSince>
+                    <span
+                      className="hidden-xs hidden-sm"
+                    >
+                       — 
+                    </span>
+                    <TimeSince
+                      className="hidden-xs hidden-sm"
+                      date="2017-07-01T02:06:02Z"
+                      suffix="old"
+                    >
+                      <time
+                        className="hidden-xs hidden-sm"
+                        dateTime="2017-07-01T02:06:02.000Z"
+                        title="July 1, 2017 2:06 AM UTC"
+                      >
+                        4 months old
+                      </time>
+                    </TimeSince>
+                  </div>
+                </FlexWrapper>
+              </div>
+            </Container>
+          </Times>
+        </StyledTimes>
+      </div>
+    </GroupExtra>
+  </EventOrGroupExtraDetails>
+</withRouter(EventOrGroupExtraDetails)>
+`;
+
+exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
+<withRouter(EventOrGroupExtraDetails)
+  firstSeen="2017-07-01T02:06:02Z"
+  groupId="groupId"
+  orgId="orgId"
+  projectId="projectId"
+>
+  <EventOrGroupExtraDetails
+    firstSeen="2017-07-01T02:06:02Z"
+    groupId="groupId"
+    location={
+      Object {
+        "query": Object {},
+      }
+    }
+    orgId="orgId"
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+    projectId="projectId"
+    router={
+      Object {
+        "createHref": [MockFunction],
+        "go": [MockFunction],
+        "goBack": [MockFunction],
+        "goForward": [MockFunction],
+        "isActive": [MockFunction],
+        "listen": [MockFunction],
+        "location": Object {
+          "query": Object {},
+        },
+        "params": Object {
+          "orgId": "org-slug",
+        },
+        "push": [MockFunction],
+        "replace": [MockFunction],
+        "setRouteLeaveHook": [MockFunction],
+      }
+    }
+  >
+    <GroupExtra>
+      <div
+        className="css-q0ziu0-GroupExtra eec9orn0"
+      >
+        <StyledTimes
+          firstSeen="2017-07-01T02:06:02Z"
+        >
+          <Times
+            className="css-2hucfb-StyledTimes eec9orn1"
+            firstSeen="2017-07-01T02:06:02Z"
+          >
+            <Container>
+              <div
+                className="css-1lz86t0-Container e1fmxtba0"
+              >
+                <FlexWrapper>
+                  <div
+                    className="css-13zgepw-FlexWrapper e1fmxtba1"
+                  >
+                    <TimeSince
+                      className="hidden-xs hidden-sm"
+                      date="2017-07-01T02:06:02Z"
+                      suffix="old"
+                    >
+                      <time
+                        className="hidden-xs hidden-sm"
+                        dateTime="2017-07-01T02:06:02.000Z"
+                        title="July 1, 2017 2:06 AM UTC"
+                      >
+                        4 months old
+                      </time>
+                    </TimeSince>
+                  </div>
+                </FlexWrapper>
+              </div>
+            </Container>
+          </Times>
+        </StyledTimes>
+      </div>
+    </GroupExtra>
+  </EventOrGroupExtraDetails>
+</withRouter(EventOrGroupExtraDetails)>
+`;
+
+exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
+<withRouter(EventOrGroupExtraDetails)
+  groupId="groupId"
+  lastSeen="2017-07-25T22:56:12Z"
+  orgId="orgId"
+  projectId="projectId"
+>
+  <EventOrGroupExtraDetails
+    groupId="groupId"
+    lastSeen="2017-07-25T22:56:12Z"
+    location={
+      Object {
+        "query": Object {},
+      }
+    }
+    orgId="orgId"
+    params={
+      Object {
+        "orgId": "org-slug",
+      }
+    }
+    projectId="projectId"
+    router={
+      Object {
+        "createHref": [MockFunction],
+        "go": [MockFunction],
+        "goBack": [MockFunction],
+        "goForward": [MockFunction],
+        "isActive": [MockFunction],
+        "listen": [MockFunction],
+        "location": Object {
+          "query": Object {},
+        },
+        "params": Object {
+          "orgId": "org-slug",
+        },
+        "push": [MockFunction],
+        "replace": [MockFunction],
+        "setRouteLeaveHook": [MockFunction],
+      }
+    }
+  >
+    <GroupExtra>
+      <div
+        className="css-q0ziu0-GroupExtra eec9orn0"
+      >
+        <StyledTimes
+          lastSeen="2017-07-25T22:56:12Z"
+        >
+          <Times
+            className="css-2hucfb-StyledTimes eec9orn1"
+            lastSeen="2017-07-25T22:56:12Z"
+          >
+            <Container>
+              <div
+                className="css-1lz86t0-Container e1fmxtba0"
+              >
+                <FlexWrapper>
+                  <div
+                    className="css-13zgepw-FlexWrapper e1fmxtba1"
+                  >
+                    <StyledIconClock
+                      size="11px"
+                    >
+                      <IconClock
+                        className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                        size="11px"
+                      >
+                        <ForwardRef(SvgIcon)
+                          className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                          size="11px"
+                        >
+                          <svg
+                            className="css-1ounr7j-StyledIconClock e1fmxtba2"
+                            fill="currentColor"
+                            height="11px"
+                            viewBox="0 0 16 16"
+                            width="11px"
+                          >
+                            <path
+                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.52A6.48,6.48,0,1,0,14.48,8,6.49,6.49,0,0,0,8,1.52Z"
+                            />
+                            <path
+                              d="M11.62,8.75H8A.76.76,0,0,1,7.25,8V2.88a.75.75,0,1,1,1.5,0V7.25h2.87a.75.75,0,0,1,0,1.5Z"
+                            />
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </IconClock>
+                    </StyledIconClock>
+                    <TimeSince
+                      date="2017-07-25T22:56:12Z"
+                      suffix="ago"
+                    >
+                      <time
+                        dateTime="2017-07-25T22:56:12.000Z"
+                        title="July 25, 2017 10:56 PM UTC"
+                      >
+                        3 months ago
+                      </time>
+                    </TimeSince>
+                  </div>
+                </FlexWrapper>
+              </div>
+            </Container>
+          </Times>
+        </StyledTimes>
+      </div>
+    </GroupExtra>
+  </EventOrGroupExtraDetails>
+</withRouter(EventOrGroupExtraDetails)>
+`;

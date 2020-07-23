@@ -1,0 +1,975 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ApiTokens renders empty result 1`] = `
+<ApiTokens
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "experiments": Object {},
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+>
+  <SideEffect(DocumentTitle)
+    title="API Tokens - Sentry"
+  >
+    <DocumentTitle
+      title="API Tokens - Sentry"
+    >
+      <div>
+        <StyledSettingsPageHeading
+          action={
+            <ForwardRef
+              data-test-id="create-token"
+              priority="primary"
+              size="small"
+              to="/settings/account/api/auth-tokens/new-token/"
+            >
+              Create New Token
+            </ForwardRef>
+          }
+          noTitleStyles={false}
+          title="Auth Tokens"
+        >
+          <SettingsPageHeading
+            action={
+              <ForwardRef
+                data-test-id="create-token"
+                priority="primary"
+                size="small"
+                to="/settings/account/api/auth-tokens/new-token/"
+              >
+                Create New Token
+              </ForwardRef>
+            }
+            className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            noTitleStyles={false}
+            title="Auth Tokens"
+          >
+            <div
+              className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            >
+              <TitleAndActions>
+                <div
+                  className="css-ifzfc5-TitleAndActions e1uay4fd0"
+                >
+                  <Title
+                    styled={false}
+                  >
+                    <div
+                      className="css-u2ls9d-Title e1uay4fd1"
+                    >
+                      <HeaderTitle>
+                        <h4
+                          className="css-1bosio6-HeaderTitle eqkydle2"
+                        >
+                          Auth Tokens
+                        </h4>
+                      </HeaderTitle>
+                    </div>
+                  </Title>
+                  <Action>
+                    <div
+                      className="css-au7gsx-Action e1uay4fd3"
+                    >
+                      <forwardRef<Button>
+                        data-test-id="create-token"
+                        priority="primary"
+                        size="small"
+                        to="/settings/account/api/auth-tokens/new-token/"
+                      >
+                        <Button
+                          align="center"
+                          data-test-id="create-token"
+                          disabled={false}
+                          forwardRef={null}
+                          priority="primary"
+                          size="small"
+                          to="/settings/account/api/auth-tokens/new-token/"
+                        >
+                          <StyledButton
+                            aria-disabled={false}
+                            aria-label="Create New Token"
+                            data-test-id="create-token"
+                            disabled={false}
+                            forwardRef={null}
+                            onClick={[Function]}
+                            priority="primary"
+                            role="button"
+                            size="small"
+                            to="/settings/account/api/auth-tokens/new-token/"
+                          >
+                            <Component
+                              aria-disabled={false}
+                              aria-label="Create New Token"
+                              className="css-z8at1v-StyledButton edwq9my0"
+                              data-test-id="create-token"
+                              forwardRef={null}
+                              onClick={[Function]}
+                              role="button"
+                              size="small"
+                              to="/settings/account/api/auth-tokens/new-token/"
+                            >
+                              <Link
+                                aria-disabled={false}
+                                aria-label="Create New Token"
+                                className="css-z8at1v-StyledButton edwq9my0"
+                                data-test-id="create-token"
+                                onClick={[Function]}
+                                onlyActiveOnIndex={false}
+                                role="button"
+                                size="small"
+                                style={Object {}}
+                                to="/settings/account/api/auth-tokens/new-token/"
+                              >
+                                <a
+                                  aria-disabled={false}
+                                  aria-label="Create New Token"
+                                  className="css-z8at1v-StyledButton edwq9my0"
+                                  data-test-id="create-token"
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="small"
+                                  style={Object {}}
+                                >
+                                  <ButtonLabel
+                                    align="center"
+                                    priority="primary"
+                                    size="small"
+                                  >
+                                    <span
+                                      className="css-n7mdnv-ButtonLabel edwq9my1"
+                                    >
+                                      Create New Token
+                                    </span>
+                                  </ButtonLabel>
+                                </a>
+                              </Link>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </forwardRef<Button>>
+                    </div>
+                  </Action>
+                </div>
+              </TitleAndActions>
+            </div>
+          </SettingsPageHeading>
+        </StyledSettingsPageHeading>
+        <AlertLink
+          openInNewTab={false}
+          priority="warning"
+          size="normal"
+          to="/settings/org-slug/developer-settings/new-internal"
+          withoutMarginBottom={false}
+        >
+          <StyledLink
+            openInNewTab={false}
+            priority="warning"
+            size="normal"
+            to="/settings/org-slug/developer-settings/new-internal"
+            withoutMarginBottom={false}
+          >
+            <Component
+              className="css-1bza080-StyledLink e1ylhppg0"
+              openInNewTab={false}
+              priority="warning"
+              size="normal"
+              to="/settings/org-slug/developer-settings/new-internal"
+              withoutMarginBottom={false}
+            >
+              <Link
+                className="css-1bza080-StyledLink e1ylhppg0"
+                to="/settings/org-slug/developer-settings/new-internal"
+              >
+                <Link
+                  className="css-1bza080-StyledLink e1ylhppg0"
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to="/settings/org-slug/developer-settings/new-internal"
+                >
+                  <a
+                    className="css-1bza080-StyledLink e1ylhppg0"
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    <AlertLinkText>
+                      <div
+                        className="css-o9emef-AlertLinkText e1ylhppg3"
+                      >
+                        Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead.
+                      </div>
+                    </AlertLinkText>
+                    <IconLink>
+                      <span
+                        className="css-1nl5kog-IconWrapper-IconLink e1ylhppg2"
+                      >
+                        <IconChevron
+                          direction="right"
+                        >
+                          <EmotionCssPropInternal
+                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                              Object {
+                                "$$typeof": Symbol(react.forward_ref),
+                                "propTypes": Object {
+                                  "color": [Function],
+                                  "size": [Function],
+                                  "viewBox": [Function],
+                                },
+                                "render": [Function],
+                              }
+                            }
+                            css={
+                              Object {
+                                "map": undefined,
+                                "name": "72rehw-IconChevron",
+                                "next": undefined,
+                                "styles": "transform:rotate(90deg);;label:IconChevron;",
+                                "toString": [Function],
+                              }
+                            }
+                          >
+                            <ForwardRef(SvgIcon)
+                              className="css-72rehw-IconChevron"
+                            >
+                              <svg
+                                className="css-72rehw-IconChevron"
+                                fill="currentColor"
+                                height="16px"
+                                viewBox="0 0 16 16"
+                                width="16px"
+                              >
+                                <path
+                                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                />
+                              </svg>
+                            </ForwardRef(SvgIcon)>
+                          </EmotionCssPropInternal>
+                        </IconChevron>
+                      </span>
+                    </IconLink>
+                  </a>
+                </Link>
+              </Link>
+            </Component>
+          </StyledLink>
+        </AlertLink>
+        <TextBlock>
+          <div
+            className="css-1j3tvli-TextBlock e1x1lar10"
+          >
+            Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
+          </div>
+        </TextBlock>
+        <TextBlock>
+          <div
+            className="css-1j3tvli-TextBlock e1x1lar10"
+          >
+            <span
+              key="5"
+            >
+              <span
+                key="0"
+              >
+                For more information on how to use the web API, see our 
+              </span>
+              <a
+                href="https://docs.sentry.io/hosted/api/"
+                key="2"
+              >
+                <span
+                  key="1"
+                >
+                  documentation
+                </span>
+              </a>
+              <span
+                key="3"
+              >
+                .
+              </span>
+            </span>
+          </div>
+        </TextBlock>
+        <TextBlock>
+          <div
+            className="css-1j3tvli-TextBlock e1x1lar10"
+          >
+            <small>
+              psst. Looking for the 
+              <strong>
+                DSN
+              </strong>
+               for an SDK? You'll find that under
+               
+              <strong>
+                [Project] » Settings » Client Keys
+              </strong>
+              .
+            </small>
+          </div>
+        </TextBlock>
+        <Panel>
+          <Component
+            className="css-ietoyz-Panel e119nu470"
+          >
+            <div
+              className="css-ietoyz-Panel e119nu470"
+            >
+              <PanelHeader>
+                <div
+                  className="css-pi486d-PanelHeader en8g1d30"
+                >
+                  Auth Token
+                </div>
+              </PanelHeader>
+              <PanelBody
+                flexible={false}
+                withPadding={false}
+              >
+                <FlexBox
+                  withPadding={false}
+                >
+                  <div
+                    className="css-1nto0rx-FlexBox e1vnwt6f0"
+                  >
+                    <EmptyMessage>
+                      <Component
+                        className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
+                      >
+                        <div
+                          className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
+                          data-test-id="empty-message"
+                        >
+                          <Description
+                            noMargin={true}
+                          >
+                            <div
+                              className="css-iex7sn-TextBlock-Description e1h3yfdx3"
+                            >
+                              You haven't created any authentication tokens yet.
+                            </div>
+                          </Description>
+                        </div>
+                      </Component>
+                    </EmptyMessage>
+                  </div>
+                </FlexBox>
+              </PanelBody>
+            </div>
+          </Component>
+        </Panel>
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</ApiTokens>
+`;
+
+exports[`ApiTokens renders with result 1`] = `
+<ApiTokens
+  organization={
+    Object {
+      "access": Array [
+        "org:read",
+        "org:write",
+        "org:admin",
+        "org:integrations",
+        "project:read",
+        "project:write",
+        "project:admin",
+        "team:read",
+        "team:write",
+        "team:admin",
+      ],
+      "experiments": Object {},
+      "features": Array [],
+      "id": "3",
+      "name": "Organization Name",
+      "onboardingTasks": Array [],
+      "projects": Array [],
+      "scrapeJavaScript": true,
+      "slug": "org-slug",
+      "status": Object {
+        "id": "active",
+        "name": "active",
+      },
+      "teams": Array [],
+    }
+  }
+>
+  <SideEffect(DocumentTitle)
+    title="API Tokens - Sentry"
+  >
+    <DocumentTitle
+      title="API Tokens - Sentry"
+    >
+      <div>
+        <StyledSettingsPageHeading
+          action={
+            <ForwardRef
+              data-test-id="create-token"
+              priority="primary"
+              size="small"
+              to="/settings/account/api/auth-tokens/new-token/"
+            >
+              Create New Token
+            </ForwardRef>
+          }
+          noTitleStyles={false}
+          title="Auth Tokens"
+        >
+          <SettingsPageHeading
+            action={
+              <ForwardRef
+                data-test-id="create-token"
+                priority="primary"
+                size="small"
+                to="/settings/account/api/auth-tokens/new-token/"
+              >
+                Create New Token
+              </ForwardRef>
+            }
+            className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            noTitleStyles={false}
+            title="Auth Tokens"
+          >
+            <div
+              className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+            >
+              <TitleAndActions>
+                <div
+                  className="css-ifzfc5-TitleAndActions e1uay4fd0"
+                >
+                  <Title
+                    styled={false}
+                  >
+                    <div
+                      className="css-u2ls9d-Title e1uay4fd1"
+                    >
+                      <HeaderTitle>
+                        <h4
+                          className="css-1bosio6-HeaderTitle eqkydle2"
+                        >
+                          Auth Tokens
+                        </h4>
+                      </HeaderTitle>
+                    </div>
+                  </Title>
+                  <Action>
+                    <div
+                      className="css-au7gsx-Action e1uay4fd3"
+                    >
+                      <forwardRef<Button>
+                        data-test-id="create-token"
+                        priority="primary"
+                        size="small"
+                        to="/settings/account/api/auth-tokens/new-token/"
+                      >
+                        <Button
+                          align="center"
+                          data-test-id="create-token"
+                          disabled={false}
+                          forwardRef={null}
+                          priority="primary"
+                          size="small"
+                          to="/settings/account/api/auth-tokens/new-token/"
+                        >
+                          <StyledButton
+                            aria-disabled={false}
+                            aria-label="Create New Token"
+                            data-test-id="create-token"
+                            disabled={false}
+                            forwardRef={null}
+                            onClick={[Function]}
+                            priority="primary"
+                            role="button"
+                            size="small"
+                            to="/settings/account/api/auth-tokens/new-token/"
+                          >
+                            <Component
+                              aria-disabled={false}
+                              aria-label="Create New Token"
+                              className="css-z8at1v-StyledButton edwq9my0"
+                              data-test-id="create-token"
+                              forwardRef={null}
+                              onClick={[Function]}
+                              role="button"
+                              size="small"
+                              to="/settings/account/api/auth-tokens/new-token/"
+                            >
+                              <Link
+                                aria-disabled={false}
+                                aria-label="Create New Token"
+                                className="css-z8at1v-StyledButton edwq9my0"
+                                data-test-id="create-token"
+                                onClick={[Function]}
+                                onlyActiveOnIndex={false}
+                                role="button"
+                                size="small"
+                                style={Object {}}
+                                to="/settings/account/api/auth-tokens/new-token/"
+                              >
+                                <a
+                                  aria-disabled={false}
+                                  aria-label="Create New Token"
+                                  className="css-z8at1v-StyledButton edwq9my0"
+                                  data-test-id="create-token"
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="small"
+                                  style={Object {}}
+                                >
+                                  <ButtonLabel
+                                    align="center"
+                                    priority="primary"
+                                    size="small"
+                                  >
+                                    <span
+                                      className="css-n7mdnv-ButtonLabel edwq9my1"
+                                    >
+                                      Create New Token
+                                    </span>
+                                  </ButtonLabel>
+                                </a>
+                              </Link>
+                            </Component>
+                          </StyledButton>
+                        </Button>
+                      </forwardRef<Button>>
+                    </div>
+                  </Action>
+                </div>
+              </TitleAndActions>
+            </div>
+          </SettingsPageHeading>
+        </StyledSettingsPageHeading>
+        <AlertLink
+          openInNewTab={false}
+          priority="warning"
+          size="normal"
+          to="/settings/org-slug/developer-settings/new-internal"
+          withoutMarginBottom={false}
+        >
+          <StyledLink
+            openInNewTab={false}
+            priority="warning"
+            size="normal"
+            to="/settings/org-slug/developer-settings/new-internal"
+            withoutMarginBottom={false}
+          >
+            <Component
+              className="css-1bza080-StyledLink e1ylhppg0"
+              openInNewTab={false}
+              priority="warning"
+              size="normal"
+              to="/settings/org-slug/developer-settings/new-internal"
+              withoutMarginBottom={false}
+            >
+              <Link
+                className="css-1bza080-StyledLink e1ylhppg0"
+                to="/settings/org-slug/developer-settings/new-internal"
+              >
+                <Link
+                  className="css-1bza080-StyledLink e1ylhppg0"
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to="/settings/org-slug/developer-settings/new-internal"
+                >
+                  <a
+                    className="css-1bza080-StyledLink e1ylhppg0"
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    <AlertLinkText>
+                      <div
+                        className="css-o9emef-AlertLinkText e1ylhppg3"
+                      >
+                        Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using internal integrations to create/manage tokens tied to the organization instead.
+                      </div>
+                    </AlertLinkText>
+                    <IconLink>
+                      <span
+                        className="css-1nl5kog-IconWrapper-IconLink e1ylhppg2"
+                      >
+                        <IconChevron
+                          direction="right"
+                        >
+                          <EmotionCssPropInternal
+                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                              Object {
+                                "$$typeof": Symbol(react.forward_ref),
+                                "propTypes": Object {
+                                  "color": [Function],
+                                  "size": [Function],
+                                  "viewBox": [Function],
+                                },
+                                "render": [Function],
+                              }
+                            }
+                            css={
+                              Object {
+                                "map": undefined,
+                                "name": "72rehw-IconChevron",
+                                "next": undefined,
+                                "styles": "transform:rotate(90deg);;label:IconChevron;",
+                                "toString": [Function],
+                              }
+                            }
+                          >
+                            <ForwardRef(SvgIcon)
+                              className="css-72rehw-IconChevron"
+                            >
+                              <svg
+                                className="css-72rehw-IconChevron"
+                                fill="currentColor"
+                                height="16px"
+                                viewBox="0 0 16 16"
+                                width="16px"
+                              >
+                                <path
+                                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                />
+                              </svg>
+                            </ForwardRef(SvgIcon)>
+                          </EmotionCssPropInternal>
+                        </IconChevron>
+                      </span>
+                    </IconLink>
+                  </a>
+                </Link>
+              </Link>
+            </Component>
+          </StyledLink>
+        </AlertLink>
+        <TextBlock>
+          <div
+            className="css-1j3tvli-TextBlock e1x1lar10"
+          >
+            Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API.
+          </div>
+        </TextBlock>
+        <TextBlock>
+          <div
+            className="css-1j3tvli-TextBlock e1x1lar10"
+          >
+            <span
+              key="5"
+            >
+              <span
+                key="0"
+              >
+                For more information on how to use the web API, see our 
+              </span>
+              <a
+                href="https://docs.sentry.io/hosted/api/"
+                key="2"
+              >
+                <span
+                  key="1"
+                >
+                  documentation
+                </span>
+              </a>
+              <span
+                key="3"
+              >
+                .
+              </span>
+            </span>
+          </div>
+        </TextBlock>
+        <TextBlock>
+          <div
+            className="css-1j3tvli-TextBlock e1x1lar10"
+          >
+            <small>
+              psst. Looking for the 
+              <strong>
+                DSN
+              </strong>
+               for an SDK? You'll find that under
+               
+              <strong>
+                [Project] » Settings » Client Keys
+              </strong>
+              .
+            </small>
+          </div>
+        </TextBlock>
+        <Panel>
+          <Component
+            className="css-ietoyz-Panel e119nu470"
+          >
+            <div
+              className="css-ietoyz-Panel e119nu470"
+            >
+              <PanelHeader>
+                <div
+                  className="css-pi486d-PanelHeader en8g1d30"
+                >
+                  Auth Token
+                </div>
+              </PanelHeader>
+              <PanelBody
+                flexible={false}
+                withPadding={false}
+              >
+                <FlexBox
+                  withPadding={false}
+                >
+                  <div
+                    className="css-1nto0rx-FlexBox e1vnwt6f0"
+                  >
+                    <ApiTokenRow
+                      key="apitoken123"
+                      onRemove={[Function]}
+                      token={
+                        Object {
+                          "dateCreated": 2018-01-12T02:01:41.000Z,
+                          "scopes": Array [
+                            "scope1",
+                            "scope2",
+                          ],
+                          "token": "apitoken123",
+                        }
+                      }
+                    >
+                      <StyledPanelItem
+                        p={2}
+                      >
+                        <div
+                          className="css-4mexqr-PanelItem-StyledPanelItem egigtit0"
+                        >
+                          <Controls>
+                            <div
+                              className="css-1yb85im-Controls egigtit1"
+                            >
+                              <InputWrapper>
+                                <div
+                                  className="css-edtfi-InputWrapper egigtit2"
+                                >
+                                  <TextCopyInput
+                                    onCopy={[Function]}
+                                  >
+                                    <Wrapper>
+                                      <div
+                                        className="css-1xoh4hm-Wrapper e1usehz70"
+                                      >
+                                        <OverflowContainer>
+                                          <div
+                                            className="css-1xzrfg-OverflowContainer e1usehz72"
+                                          >
+                                            <StyledInput
+                                              onClick={[Function]}
+                                              readOnly={true}
+                                              value="apitoken123"
+                                            >
+                                              <input
+                                                className="css-1g3knvk-StyledInput e1usehz71"
+                                                onClick={[Function]}
+                                                readOnly={true}
+                                                value="apitoken123"
+                                              />
+                                            </StyledInput>
+                                          </div>
+                                        </OverflowContainer>
+                                        <Clipboard
+                                          errorMessage="Error copying to clipboard"
+                                          hideMessages={false}
+                                          hideUnsupported={true}
+                                          onClick={[Function]}
+                                          successMessage="Copied to clipboard"
+                                          value="apitoken123"
+                                        />
+                                      </div>
+                                    </Wrapper>
+                                  </TextCopyInput>
+                                </div>
+                              </InputWrapper>
+                              <forwardRef<Button>
+                                icon={
+                                  <ForwardRef(IconSubtract)
+                                    isCircled={true}
+                                    size="xs"
+                                  />
+                                }
+                                onClick={[Function]}
+                                size="small"
+                              >
+                                <Button
+                                  align="center"
+                                  disabled={false}
+                                  forwardRef={null}
+                                  icon={
+                                    <ForwardRef(IconSubtract)
+                                      isCircled={true}
+                                      size="xs"
+                                    />
+                                  }
+                                  onClick={[Function]}
+                                  size="small"
+                                >
+                                  <StyledButton
+                                    aria-disabled={false}
+                                    aria-label="Remove"
+                                    disabled={false}
+                                    forwardRef={null}
+                                    onClick={[Function]}
+                                    role="button"
+                                    size="small"
+                                  >
+                                    <Component
+                                      aria-disabled={false}
+                                      aria-label="Remove"
+                                      className="css-8od3q1-StyledButton edwq9my0"
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      size="small"
+                                    >
+                                      <button
+                                        aria-disabled={false}
+                                        aria-label="Remove"
+                                        className="css-8od3q1-StyledButton edwq9my0"
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="small"
+                                      >
+                                        <ButtonLabel
+                                          align="center"
+                                          size="small"
+                                        >
+                                          <span
+                                            className="css-n7mdnv-ButtonLabel edwq9my1"
+                                          >
+                                            <Icon
+                                              hasChildren={true}
+                                              size="small"
+                                            >
+                                              <span
+                                                className="css-1hbuack-Icon edwq9my2"
+                                                size="small"
+                                              >
+                                                <IconSubtract
+                                                  isCircled={true}
+                                                  size="xs"
+                                                >
+                                                  <ForwardRef(SvgIcon)
+                                                    data-test-id="icon-subtract"
+                                                    size="xs"
+                                                  >
+                                                    <svg
+                                                      data-test-id="icon-subtract"
+                                                      fill="currentColor"
+                                                      height="12px"
+                                                      viewBox="0 0 16 16"
+                                                      width="12px"
+                                                    >
+                                                      <path
+                                                        d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                      />
+                                                      <path
+                                                        d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                      />
+                                                    </svg>
+                                                  </ForwardRef(SvgIcon)>
+                                                </IconSubtract>
+                                              </span>
+                                            </Icon>
+                                            Remove
+                                          </span>
+                                        </ButtonLabel>
+                                      </button>
+                                    </Component>
+                                  </StyledButton>
+                                </Button>
+                              </forwardRef<Button>>
+                            </div>
+                          </Controls>
+                          <Details>
+                            <div
+                              className="css-7fc9vz-Details egigtit3"
+                            >
+                              <ScopesWrapper>
+                                <div
+                                  className="css-znkina-ScopesWrapper egigtit4"
+                                >
+                                  <Heading>
+                                    <div
+                                      className="css-yw8764-Heading egigtit7"
+                                    >
+                                      Scopes
+                                    </div>
+                                  </Heading>
+                                  <ScopeList>
+                                    <div
+                                      className="css-1un1hpp-ScopeList egigtit5"
+                                    >
+                                      scope1, scope2
+                                    </div>
+                                  </ScopeList>
+                                </div>
+                              </ScopesWrapper>
+                              <div>
+                                <Heading>
+                                  <div
+                                    className="css-yw8764-Heading egigtit7"
+                                  >
+                                    Created
+                                  </div>
+                                </Heading>
+                                <Time>
+                                  <time
+                                    className="css-12gsgyi-Time egigtit6"
+                                  >
+                                    <DateTime
+                                      date={2018-01-12T02:01:41.000Z}
+                                      seconds={true}
+                                    >
+                                      <time>
+                                        Jan 12, 2018 2:01:41 AM UTC
+                                      </time>
+                                    </DateTime>
+                                  </time>
+                                </Time>
+                              </div>
+                            </div>
+                          </Details>
+                        </div>
+                      </StyledPanelItem>
+                    </ApiTokenRow>
+                  </div>
+                </FlexBox>
+              </PanelBody>
+            </div>
+          </Component>
+        </Panel>
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</ApiTokens>
+`;

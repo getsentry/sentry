@@ -1,0 +1,272 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DetailedError can hide support links 1`] = `
+<DetailedError
+  heading="Error heading"
+  hideSupportLinks={true}
+  message={
+    <div>
+      Message
+    </div>
+  }
+  onRetry={[Function]}
+>
+  <div
+    className="detailed-error"
+  >
+    <div
+      className="detailed-error-icon"
+    >
+      <IconFlag
+        size="lg"
+      >
+        <ForwardRef(SvgIcon)
+          size="lg"
+        >
+          <svg
+            fill="currentColor"
+            height="24px"
+            viewBox="0 0 16 16"
+            width="24px"
+          >
+            <path
+              d="M1.69,8.43V2.22H13.53l-2,2.65a.78.78,0,0,0,0,.92l2,2.64Zm0-7.7A.74.74,0,0,0,.94.09.75.75,0,0,0,.19.84V15.16a.75.75,0,0,0,1.5,0V9.93H15.06a.75.75,0,0,0,.59-1.21L13,5.33l2.62-3.4a.73.73,0,0,0,.08-.79.75.75,0,0,0-.67-.42H1.69"
+            />
+          </svg>
+        </ForwardRef(SvgIcon)>
+      </IconFlag>
+    </div>
+    <div
+      className="detailed-error-content"
+    >
+      <h4>
+        Error heading
+      </h4>
+      <div
+        className="detailed-error-content-body"
+      >
+        <div>
+          Message
+        </div>
+      </div>
+      <div
+        className="detailed-error-content-footer"
+      >
+        <div>
+          <a
+            className="btn btn-default"
+            onClick={[Function]}
+          >
+            Retry
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</DetailedError>
+`;
+
+exports[`DetailedError hides footer when no "Retry" and no support links 1`] = `
+<DetailedError
+  heading="Error heading"
+  hideSupportLinks={true}
+  message={
+    <div>
+      Message
+    </div>
+  }
+>
+  <div
+    className="detailed-error"
+  >
+    <div
+      className="detailed-error-icon"
+    >
+      <IconFlag
+        size="lg"
+      >
+        <ForwardRef(SvgIcon)
+          size="lg"
+        >
+          <svg
+            fill="currentColor"
+            height="24px"
+            viewBox="0 0 16 16"
+            width="24px"
+          >
+            <path
+              d="M1.69,8.43V2.22H13.53l-2,2.65a.78.78,0,0,0,0,.92l2,2.64Zm0-7.7A.74.74,0,0,0,.94.09.75.75,0,0,0,.19.84V15.16a.75.75,0,0,0,1.5,0V9.93H15.06a.75.75,0,0,0,.59-1.21L13,5.33l2.62-3.4a.73.73,0,0,0,.08-.79.75.75,0,0,0-.67-.42H1.69"
+            />
+          </svg>
+        </ForwardRef(SvgIcon)>
+      </IconFlag>
+    </div>
+    <div
+      className="detailed-error-content"
+    >
+      <h4>
+        Error heading
+      </h4>
+      <div
+        className="detailed-error-content-body"
+      >
+        <div>
+          Message
+        </div>
+      </div>
+    </div>
+  </div>
+</DetailedError>
+`;
+
+exports[`DetailedError renders 1`] = `
+<DetailedError
+  heading="Error heading"
+  hideSupportLinks={false}
+  message={
+    <div>
+      Message
+    </div>
+  }
+>
+  <div
+    className="detailed-error"
+  >
+    <div
+      className="detailed-error-icon"
+    >
+      <IconFlag
+        size="lg"
+      >
+        <ForwardRef(SvgIcon)
+          size="lg"
+        >
+          <svg
+            fill="currentColor"
+            height="24px"
+            viewBox="0 0 16 16"
+            width="24px"
+          >
+            <path
+              d="M1.69,8.43V2.22H13.53l-2,2.65a.78.78,0,0,0,0,.92l2,2.64Zm0-7.7A.74.74,0,0,0,.94.09.75.75,0,0,0,.19.84V15.16a.75.75,0,0,0,1.5,0V9.93H15.06a.75.75,0,0,0,.59-1.21L13,5.33l2.62-3.4a.73.73,0,0,0,.08-.79.75.75,0,0,0-.67-.42H1.69"
+            />
+          </svg>
+        </ForwardRef(SvgIcon)>
+      </IconFlag>
+    </div>
+    <div
+      className="detailed-error-content"
+    >
+      <h4>
+        Error heading
+      </h4>
+      <div
+        className="detailed-error-content-body"
+      >
+        <div>
+          Message
+        </div>
+      </div>
+      <div
+        className="detailed-error-content-footer"
+      >
+        <div />
+        <div
+          className="detailed-error-support-links"
+        >
+          <a
+            href="https://status.sentry.io/"
+          >
+            Service status
+          </a>
+          <a
+            href="https://sentry.io/support/"
+          >
+            Contact support
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</DetailedError>
+`;
+
+exports[`DetailedError renders with "Retry" button 1`] = `
+<DetailedError
+  heading="Error heading"
+  hideSupportLinks={false}
+  message={
+    <div>
+      Message
+    </div>
+  }
+  onRetry={[Function]}
+>
+  <div
+    className="detailed-error"
+  >
+    <div
+      className="detailed-error-icon"
+    >
+      <IconFlag
+        size="lg"
+      >
+        <ForwardRef(SvgIcon)
+          size="lg"
+        >
+          <svg
+            fill="currentColor"
+            height="24px"
+            viewBox="0 0 16 16"
+            width="24px"
+          >
+            <path
+              d="M1.69,8.43V2.22H13.53l-2,2.65a.78.78,0,0,0,0,.92l2,2.64Zm0-7.7A.74.74,0,0,0,.94.09.75.75,0,0,0,.19.84V15.16a.75.75,0,0,0,1.5,0V9.93H15.06a.75.75,0,0,0,.59-1.21L13,5.33l2.62-3.4a.73.73,0,0,0,.08-.79.75.75,0,0,0-.67-.42H1.69"
+            />
+          </svg>
+        </ForwardRef(SvgIcon)>
+      </IconFlag>
+    </div>
+    <div
+      className="detailed-error-content"
+    >
+      <h4>
+        Error heading
+      </h4>
+      <div
+        className="detailed-error-content-body"
+      >
+        <div>
+          Message
+        </div>
+      </div>
+      <div
+        className="detailed-error-content-footer"
+      >
+        <div>
+          <a
+            className="btn btn-default"
+            onClick={[Function]}
+          >
+            Retry
+          </a>
+        </div>
+        <div
+          className="detailed-error-support-links"
+        >
+          <a
+            href="https://status.sentry.io/"
+          >
+            Service status
+          </a>
+          <a
+            href="https://sentry.io/support/"
+          >
+            Contact support
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</DetailedError>
+`;

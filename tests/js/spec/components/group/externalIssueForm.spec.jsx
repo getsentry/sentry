@@ -59,6 +59,7 @@ describe('ExternalIssueForm', () => {
     it('renders', () => {
       wrapper = generateWrapper();
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
   describe('link', () => {
@@ -131,6 +132,7 @@ describe('ExternalIssueForm', () => {
     it('renders', () => {
       wrapper = generateWrapper('link');
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
     it('load options', async () => {
       wrapper = generateWrapper('link');

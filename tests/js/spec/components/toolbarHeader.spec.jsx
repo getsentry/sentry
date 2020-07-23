@@ -16,5 +16,6 @@ describe('ToolbarHeader', function() {
       </ToolbarHeader>
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

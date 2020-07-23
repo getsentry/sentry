@@ -16,6 +16,7 @@ describe('NewProjectPlatform', function() {
       const {routerContext} = initializeOrg();
       const wrapper = mountWithTheme(<NewProject />, routerContext);
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

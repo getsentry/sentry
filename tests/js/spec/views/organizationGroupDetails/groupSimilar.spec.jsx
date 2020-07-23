@@ -53,6 +53,7 @@ describe('Issues Similar View', function() {
     );
 
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders with mocked data', async function() {
@@ -71,6 +72,7 @@ describe('Issues Similar View', function() {
     wrapper.update();
     expect(mock).toHaveBeenCalled();
     expect(wrapper.find('GroupGroupingView')).toSnapshot();
+    expect(wrapper.find('GroupGroupingView')).toMatchSnapshot();
   });
 
   it('can merge and redirect to new parent', async function() {

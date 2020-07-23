@@ -12,5 +12,6 @@ describe('SimilarSpectrum', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<SimilarSpectrum />);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

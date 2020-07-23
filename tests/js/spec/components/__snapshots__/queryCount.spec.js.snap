@@ -1,0 +1,98 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`QueryCount can render when count is 0 when \`hideIfEmpty\` is false 1`] = `
+<QueryCount
+  count={0}
+  hideIfEmpty={false}
+>
+  <div
+    className="query-count inline"
+  >
+    <span>
+      (
+    </span>
+    <span
+      className="query-count-value"
+    >
+      0
+    </span>
+    <span>
+      )
+    </span>
+  </div>
+</QueryCount>
+`;
+
+exports[`QueryCount displays count when count < max 1`] = `
+<QueryCount
+  count={5}
+  max={500}
+>
+  <div
+    className="query-count inline"
+  >
+    <span>
+      (
+    </span>
+    <span
+      className="query-count-value"
+    >
+      5
+    </span>
+    <span>
+      )
+    </span>
+  </div>
+</QueryCount>
+`;
+
+exports[`QueryCount displays count when no max 1`] = `
+<QueryCount
+  count={5}
+>
+  <div
+    className="query-count inline"
+  >
+    <span>
+      (
+    </span>
+    <span
+      className="query-count-value"
+    >
+      5
+    </span>
+    <span>
+      )
+    </span>
+  </div>
+</QueryCount>
+`;
+
+exports[`QueryCount displays max count if count >= max 1`] = `
+<QueryCount
+  count={500}
+  max={500}
+>
+  <div
+    className="query-count inline"
+  >
+    <span>
+      (
+    </span>
+    <span
+      className="query-count-value"
+    >
+      500+
+    </span>
+    <span>
+      )
+    </span>
+  </div>
+</QueryCount>
+`;
+
+exports[`QueryCount does not render if count is 0 1`] = `
+<QueryCount
+  count={0}
+/>
+`;

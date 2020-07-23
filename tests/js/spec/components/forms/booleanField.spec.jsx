@@ -9,6 +9,7 @@ describe('BooleanField', function() {
     it('renders without form context', function() {
       const wrapper = mountWithTheme(<BooleanField name="fieldName" />);
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
@@ -23,6 +24,7 @@ describe('BooleanField', function() {
         },
       });
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

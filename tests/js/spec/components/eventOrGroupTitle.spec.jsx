@@ -28,6 +28,7 @@ describe('EventOrGroupTitle', function() {
     );
 
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders with subtitle when `type = csp`', function() {
@@ -43,6 +44,7 @@ describe('EventOrGroupTitle', function() {
     );
 
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders with no subtitle when `type = default`', function() {
@@ -58,5 +60,6 @@ describe('EventOrGroupTitle', function() {
     );
 
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 });

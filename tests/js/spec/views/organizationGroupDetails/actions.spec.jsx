@@ -1,10 +1,6 @@
 import React from 'react';
 
-<<<<<<< HEAD
-import {shallow, mountWithTheme} from 'sentry-test/enzyme';
-=======
 import {mountWithTheme} from 'sentry-test/enzyme';
->>>>>>> 9ff46eb5ff... update tests to use `toSnapshot` and `mountWithTheme`
 
 import GroupActions from 'app/views/organizationGroupDetails/actions';
 import ConfigStore from 'app/stores/configStore';
@@ -37,6 +33,7 @@ describe('GroupActions', function() {
         />
       );
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 

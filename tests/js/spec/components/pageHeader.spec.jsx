@@ -8,5 +8,6 @@ describe('PageHeading', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<PageHeading>New Header</PageHeading>);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

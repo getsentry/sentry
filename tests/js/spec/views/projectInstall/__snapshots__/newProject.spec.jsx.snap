@@ -1,0 +1,1782 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NewProjectPlatform render() should render 1`] = `
+<NewProject>
+  <Container>
+    <div
+      className="css-1fex863-Container enpzd3s0"
+    >
+      <div
+        className="container"
+      >
+        <Content>
+          <div
+            className="css-grh9vz-Content enpzd3s1"
+          >
+            <SideEffect(DocumentTitle)
+              title="Sentry"
+            >
+              <DocumentTitle
+                title="Sentry"
+              />
+            </SideEffect(DocumentTitle)>
+            <withApi(withTeams(WithOrganizationMockWrapper))>
+              <withTeams(WithOrganizationMockWrapper)
+                api={
+                  Client {
+                    "_chain": [Function],
+                    "_wrapRequest": [Function],
+                    "bulkUpdate": [Function],
+                    "handleRequestError": [Function],
+                    "hasProjectBeenRenamed": [Function],
+                  }
+                }
+              >
+                <WithOrganizationMockWrapper
+                  api={
+                    Client {
+                      "_chain": [Function],
+                      "_wrapRequest": [Function],
+                      "bulkUpdate": [Function],
+                      "handleRequestError": [Function],
+                      "hasProjectBeenRenamed": [Function],
+                    }
+                  }
+                  teams={Array []}
+                >
+                  <CreateProject
+                    api={
+                      Client {
+                        "_chain": [Function],
+                        "_wrapRequest": [Function],
+                        "bulkUpdate": [Function],
+                        "handleRequestError": [Function],
+                        "hasProjectBeenRenamed": [Function],
+                      }
+                    }
+                    organization={
+                      Object {
+                        "access": Array [
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "org:integrations",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        ],
+                        "experiments": Object {},
+                        "features": Array [],
+                        "id": "3",
+                        "name": "Organization Name",
+                        "onboardingTasks": Array [],
+                        "projects": Array [
+                          Object {
+                            "environments": Array [],
+                            "hasAccess": true,
+                            "id": "2",
+                            "isBookmarked": false,
+                            "isMember": true,
+                            "name": "Project Name",
+                            "slug": "project-slug",
+                            "teams": Array [],
+                          },
+                        ],
+                        "scrapeJavaScript": true,
+                        "slug": "org-slug",
+                        "status": Object {
+                          "id": "active",
+                          "name": "active",
+                        },
+                        "teams": Array [],
+                      }
+                    }
+                    teams={Array []}
+                  >
+                    <div
+                      data-test-id="onboarding-info"
+                    >
+                      <PageHeading
+                        withMargins={true}
+                      >
+                        <h1
+                          className="css-uisydj-PageHeading e1bz0f4q0"
+                        >
+                          Create a new Project
+                        </h1>
+                      </PageHeading>
+                      <HelpText>
+                        <p
+                          className="css-zphuw0-HelpText e19kiapg5"
+                        >
+                          Projects allow you to scope events to a specific application in
+               your organization. For example, you might have separate projects
+               for your API server and frontend client.
+                        </p>
+                      </HelpText>
+                      <PageHeading
+                        withMargins={true}
+                      >
+                        <h1
+                          className="css-uisydj-PageHeading e1bz0f4q0"
+                        >
+                          Choose a platform
+                        </h1>
+                      </PageHeading>
+                      <PlatformPicker
+                        platform=""
+                        setPlatform={[Function]}
+                        showOther={true}
+                      >
+                        <NavContainer>
+                          <div
+                            className="css-1lllzuy-NavContainer exv4dm80"
+                          >
+                            <CategoryNav>
+                              <NavTabs
+                                className="css-85pn0y-CategoryNav exv4dm82"
+                              >
+                                <ul
+                                  className="nav nav-tabs css-85pn0y-CategoryNav exv4dm82"
+                                >
+                                  <ListLink
+                                    activeClassName="active"
+                                    index={false}
+                                    isActive={[Function]}
+                                    key="popular"
+                                    onClick={[Function]}
+                                    to=""
+                                  >
+                                    <li
+                                      className="active"
+                                    >
+                                      <Link
+                                        onClick={[Function]}
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to=""
+                                      >
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          Popular
+                                        </a>
+                                      </Link>
+                                    </li>
+                                  </ListLink>
+                                  <ListLink
+                                    activeClassName="active"
+                                    index={false}
+                                    isActive={[Function]}
+                                    key="browser"
+                                    onClick={[Function]}
+                                    to=""
+                                  >
+                                    <li
+                                      className=""
+                                    >
+                                      <Link
+                                        onClick={[Function]}
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to=""
+                                      >
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          Browser
+                                        </a>
+                                      </Link>
+                                    </li>
+                                  </ListLink>
+                                  <ListLink
+                                    activeClassName="active"
+                                    index={false}
+                                    isActive={[Function]}
+                                    key="server"
+                                    onClick={[Function]}
+                                    to=""
+                                  >
+                                    <li
+                                      className=""
+                                    >
+                                      <Link
+                                        onClick={[Function]}
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to=""
+                                      >
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          Server
+                                        </a>
+                                      </Link>
+                                    </li>
+                                  </ListLink>
+                                  <ListLink
+                                    activeClassName="active"
+                                    index={false}
+                                    isActive={[Function]}
+                                    key="mobile"
+                                    onClick={[Function]}
+                                    to=""
+                                  >
+                                    <li
+                                      className=""
+                                    >
+                                      <Link
+                                        onClick={[Function]}
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to=""
+                                      >
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          Mobile
+                                        </a>
+                                      </Link>
+                                    </li>
+                                  </ListLink>
+                                  <ListLink
+                                    activeClassName="active"
+                                    index={false}
+                                    isActive={[Function]}
+                                    key="desktop"
+                                    onClick={[Function]}
+                                    to=""
+                                  >
+                                    <li
+                                      className=""
+                                    >
+                                      <Link
+                                        onClick={[Function]}
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to=""
+                                      >
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          Desktop
+                                        </a>
+                                      </Link>
+                                    </li>
+                                  </ListLink>
+                                  <ListLink
+                                    activeClassName="active"
+                                    index={false}
+                                    isActive={[Function]}
+                                    key="all"
+                                    onClick={[Function]}
+                                    to=""
+                                  >
+                                    <li
+                                      className=""
+                                    >
+                                      <Link
+                                        onClick={[Function]}
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to=""
+                                      >
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          All
+                                        </a>
+                                      </Link>
+                                    </li>
+                                  </ListLink>
+                                </ul>
+                              </NavTabs>
+                            </CategoryNav>
+                            <SearchBar>
+                              <div
+                                className="css-1wzdmtr-SearchBar exv4dm81"
+                              >
+                                <IconSearch
+                                  size="xs"
+                                >
+                                  <ForwardRef(SvgIcon)
+                                    size="xs"
+                                  >
+                                    <svg
+                                      fill="currentColor"
+                                      height="12px"
+                                      viewBox="0 0 16 16"
+                                      width="12px"
+                                    >
+                                      <path
+                                        d="M6,12A6,6,0,1,1,12,6,6,6,0,0,1,6,12ZM6,1.54A4.46,4.46,0,1,0,10.45,6,4.46,4.46,0,0,0,6,1.54Z"
+                                      />
+                                      <path
+                                        d="M15.2,16a.74.74,0,0,1-.53-.22L9.14,10.2A.75.75,0,0,1,10.2,9.14l5.53,5.53a.75.75,0,0,1,0,1.06A.74.74,0,0,1,15.2,16Z"
+                                      />
+                                    </svg>
+                                  </ForwardRef(SvgIcon)>
+                                </IconSearch>
+                                <input
+                                  label="Filter Platforms"
+                                  onChange={[Function]}
+                                  placeholder="Filter Platforms"
+                                  type="text"
+                                  value=""
+                                />
+                              </div>
+                            </SearchBar>
+                          </div>
+                        </NavContainer>
+                        <PlatformList>
+                          <div
+                            className="css-15dkf0-PlatformList exv4dm83"
+                          >
+                            <PlatformCard
+                              data-test-id="platform-csharp"
+                              key="csharp"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "csharp",
+                                  "language": "csharp",
+                                  "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                                  "name": "C#",
+                                  "type": "language",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-csharp"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "csharp",
+                                    "language": "csharp",
+                                    "link": "https://docs.getsentry.com/hosted/clients/csharp/",
+                                    "name": "C#",
+                                    "type": "language",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-csharp"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="csharp"
+                                  >
+                                    <div
+                                      className="css-1heo4sb-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    C#
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-elixir"
+                              key="elixir"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "elixir",
+                                  "language": "elixir",
+                                  "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                                  "name": "Elixir",
+                                  "type": "language",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-elixir"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "elixir",
+                                    "language": "elixir",
+                                    "link": "https://docs.getsentry.com/hosted/clients/elixir/",
+                                    "name": "Elixir",
+                                    "type": "language",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-elixir"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="elixir"
+                                  >
+                                    <div
+                                      className="css-mji5rm-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Elixir
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-java"
+                              key="java"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "java",
+                                  "language": "java",
+                                  "link": "https://docs.getsentry.com/hosted/clients/java/",
+                                  "name": "Java",
+                                  "type": "language",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-java"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "java",
+                                    "language": "java",
+                                    "link": "https://docs.getsentry.com/hosted/clients/java/",
+                                    "name": "Java",
+                                    "type": "language",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-java"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="java"
+                                  >
+                                    <div
+                                      className="css-uf2iyw-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Java
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-javascript-angular"
+                              key="javascript-angular"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "javascript-angular",
+                                  "language": "javascript",
+                                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                                  "name": "Angular",
+                                  "type": "framework",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-javascript-angular"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "javascript-angular",
+                                    "language": "javascript",
+                                    "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/angular/",
+                                    "name": "Angular",
+                                    "type": "framework",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-javascript-angular"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="javascript-angular"
+                                  >
+                                    <div
+                                      className="css-voyw3w-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Angular
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-javascript"
+                              key="javascript"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "javascript",
+                                  "language": "javascript",
+                                  "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                                  "name": "JavaScript",
+                                  "type": "language",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-javascript"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "javascript",
+                                    "language": "javascript",
+                                    "link": "https://docs.getsentry.com/hosted/clients/javascript/install/",
+                                    "name": "JavaScript",
+                                    "type": "language",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-javascript"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="javascript"
+                                  >
+                                    <div
+                                      className="css-gr4mty-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    JavaScript
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-javascript-react"
+                              key="javascript-react"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "javascript-react",
+                                  "language": "javascript",
+                                  "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                                  "name": "React",
+                                  "type": "framework",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-javascript-react"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "javascript-react",
+                                    "language": "javascript",
+                                    "link": "https://docs.getsentry.com/hosted/clients/javascript/integrations/react/",
+                                    "name": "React",
+                                    "type": "framework",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-javascript-react"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="javascript-react"
+                                  >
+                                    <div
+                                      className="css-wu8hm1-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    React
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-node-express"
+                              key="node-express"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "node-express",
+                                  "language": "node",
+                                  "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                                  "name": "Express",
+                                  "type": "framework",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-node-express"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "node-express",
+                                    "language": "node",
+                                    "link": "https://docs.getsentry.com/hosted/clients/node/integrations/express/",
+                                    "name": "Express",
+                                    "type": "framework",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-node-express"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="node-express"
+                                  >
+                                    <div
+                                      className="css-matmgu-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Express
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-node"
+                              key="node"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "node",
+                                  "language": "node",
+                                  "link": "https://docs.getsentry.com/hosted/clients/node/",
+                                  "name": "Node.js",
+                                  "type": "language",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-node"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "node",
+                                    "language": "node",
+                                    "link": "https://docs.getsentry.com/hosted/clients/node/",
+                                    "name": "Node.js",
+                                    "type": "language",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-node"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="node"
+                                  >
+                                    <div
+                                      className="css-matmgu-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Node.js
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-php-laravel"
+                              key="php-laravel"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "php-laravel",
+                                  "language": "php",
+                                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                                  "name": "Laravel",
+                                  "type": "framework",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-php-laravel"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "php-laravel",
+                                    "language": "php",
+                                    "link": "https://docs.getsentry.com/hosted/clients/php/integrations/laravel/",
+                                    "name": "Laravel",
+                                    "type": "framework",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-php-laravel"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="php-laravel"
+                                  >
+                                    <div
+                                      className="css-36oori-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Laravel
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-php"
+                              key="php"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "php",
+                                  "language": "php",
+                                  "link": "https://docs.getsentry.com/hosted/clients/php/",
+                                  "name": "PHP",
+                                  "type": "language",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-php"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "php",
+                                    "language": "php",
+                                    "link": "https://docs.getsentry.com/hosted/clients/php/",
+                                    "name": "PHP",
+                                    "type": "language",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-php"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="php"
+                                  >
+                                    <div
+                                      className="css-1sozbkb-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    PHP
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-php-symfony2"
+                              key="php-symfony2"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "php-symfony2",
+                                  "language": "php",
+                                  "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                                  "name": "Symfony2",
+                                  "type": "framework",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-php-symfony2"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "php-symfony2",
+                                    "language": "php",
+                                    "link": "https://docs.getsentry.com/hosted/clients/php/integrations/symfony2/",
+                                    "name": "Symfony2",
+                                    "type": "framework",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-php-symfony2"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="php-symfony2"
+                                  >
+                                    <div
+                                      className="css-1sozbkb-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Symfony2
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-python-django"
+                              key="python-django"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "python-django",
+                                  "language": "python",
+                                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                                  "name": "Django",
+                                  "type": "framework",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-python-django"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "python-django",
+                                    "language": "python",
+                                    "link": "https://docs.getsentry.com/hosted/clients/python/integrations/django/",
+                                    "name": "Django",
+                                    "type": "framework",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-python-django"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="python-django"
+                                  >
+                                    <div
+                                      className="css-1yf97yq-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Django
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-python-flask"
+                              key="python-flask"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "python-flask",
+                                  "language": "python",
+                                  "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                                  "name": "Flask",
+                                  "type": "framework",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-python-flask"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "python-flask",
+                                    "language": "python",
+                                    "link": "https://docs.getsentry.com/hosted/clients/python/integrations/flask/",
+                                    "name": "Flask",
+                                    "type": "framework",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-python-flask"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="python-flask"
+                                  >
+                                    <div
+                                      className="css-167pad6-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Flask
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-python"
+                              key="python"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "python",
+                                  "language": "python",
+                                  "link": "https://docs.getsentry.com/hosted/clients/python/",
+                                  "name": "Python",
+                                  "type": "language",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-python"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "python",
+                                    "language": "python",
+                                    "link": "https://docs.getsentry.com/hosted/clients/python/",
+                                    "name": "Python",
+                                    "type": "language",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-python"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="python"
+                                  >
+                                    <div
+                                      className="css-n1y9pa-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Python
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-react-native"
+                              key="react-native"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "react-native",
+                                  "language": "react-native",
+                                  "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                                  "name": "React-Native",
+                                  "type": "language",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-react-native"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "react-native",
+                                    "language": "react-native",
+                                    "link": "https://docs.getsentry.com/hosted/clients/react-native/",
+                                    "name": "React-Native",
+                                    "type": "language",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-react-native"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="react-native"
+                                  >
+                                    <div
+                                      className="css-7oad8m-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    React-Native
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-ruby-rails"
+                              key="ruby-rails"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "ruby-rails",
+                                  "language": "ruby",
+                                  "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                                  "name": "Rails",
+                                  "type": "framework",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-ruby-rails"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "ruby-rails",
+                                    "language": "ruby",
+                                    "link": "https://docs.getsentry.com/hosted/clients/ruby/integrations/rails/",
+                                    "name": "Rails",
+                                    "type": "framework",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-ruby-rails"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="ruby-rails"
+                                  >
+                                    <div
+                                      className="css-4fvugx-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Rails
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                            <PlatformCard
+                              data-test-id="platform-ruby"
+                              key="ruby"
+                              onClear={[Function]}
+                              onClick={[Function]}
+                              platform={
+                                Object {
+                                  "id": "ruby",
+                                  "language": "ruby",
+                                  "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                                  "name": "Ruby",
+                                  "type": "language",
+                                }
+                              }
+                              selected={false}
+                            >
+                              <Component
+                                className="css-1h8d9w3-PlatformCard exv4dm86"
+                                data-test-id="platform-ruby"
+                                onClear={[Function]}
+                                onClick={[Function]}
+                                platform={
+                                  Object {
+                                    "id": "ruby",
+                                    "language": "ruby",
+                                    "link": "https://docs.getsentry.com/hosted/clients/ruby/",
+                                    "name": "Ruby",
+                                    "type": "language",
+                                  }
+                                }
+                                selected={false}
+                              >
+                                <div
+                                  className="css-1h8d9w3-PlatformCard exv4dm86"
+                                  data-test-id="platform-ruby"
+                                  onClick={[Function]}
+                                >
+                                  <StyledPlatformIconTile
+                                    platform="ruby"
+                                  >
+                                    <div
+                                      className="css-zduvp1-PlatformIconTile-StyledPlatformIconTile exv4dm84"
+                                    />
+                                  </StyledPlatformIconTile>
+                                  <h3>
+                                    Ruby
+                                  </h3>
+                                </div>
+                              </Component>
+                            </PlatformCard>
+                          </div>
+                        </PlatformList>
+                      </PlatformPicker>
+                      <WithOrganizationMockWrapper
+                        onChange={[Function]}
+                      >
+                        <IssueAlertOptions
+                          onChange={[Function]}
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "experiments": Object {},
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [
+                                Object {
+                                  "environments": Array [],
+                                  "hasAccess": true,
+                                  "id": "2",
+                                  "isBookmarked": false,
+                                  "isMember": true,
+                                  "name": "Project Name",
+                                  "slug": "project-slug",
+                                  "teams": Array [],
+                                },
+                              ],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
+                        >
+                          <profiler(LoadingIndicator)>
+                            <Profiler
+                              disabled={false}
+                              includeRender={true}
+                              includeUpdates={false}
+                              name="LoadingIndicator"
+                              updateProps={Object {}}
+                            >
+                              <LoadingIndicator>
+                                <div
+                                  className="loading"
+                                >
+                                  <div
+                                    className="loading-indicator"
+                                    style={Object {}}
+                                  />
+                                  <div
+                                    className="loading-message"
+                                  />
+                                </div>
+                              </LoadingIndicator>
+                            </Profiler>
+                          </profiler(LoadingIndicator)>
+                        </IssueAlertOptions>
+                      </WithOrganizationMockWrapper>
+                      <PageHeading
+                        withMargins={true}
+                      >
+                        <h1
+                          className="css-uisydj-PageHeading e1bz0f4q0"
+                        >
+                          Give your project a name
+                        </h1>
+                      </PageHeading>
+                      <CreateProjectForm
+                        onSubmit={[Function]}
+                      >
+                        <form
+                          className="css-1dq1lt0-CreateProjectForm e19kiapg0"
+                          onSubmit={[Function]}
+                        >
+                          <div>
+                            <FormLabel>
+                              <div
+                                className="css-1ynor6-FormLabel e19kiapg1"
+                              >
+                                Project name
+                              </div>
+                            </FormLabel>
+                            <ProjectNameInput>
+                              <div
+                                className="css-euuyn4-ProjectNameInput e19kiapg3"
+                              >
+                                <ProjectPlatformIcon
+                                  monoTone={true}
+                                  platform=""
+                                >
+                                  <div
+                                    className="css-12loq7n-PlatformIconTile-ProjectPlatformIcon e19kiapg2"
+                                  />
+                                </ProjectPlatformIcon>
+                                <input
+                                  autoComplete="off"
+                                  label="Project Name"
+                                  name="name"
+                                  onChange={[Function]}
+                                  placeholder="Project name"
+                                  type="text"
+                                  value=""
+                                />
+                              </div>
+                            </ProjectNameInput>
+                          </div>
+                          <div>
+                            <FormLabel>
+                              <div
+                                className="css-1ynor6-FormLabel e19kiapg1"
+                              >
+                                Team
+                              </div>
+                            </FormLabel>
+                            <TeamSelectInput>
+                              <div
+                                className="css-15lxetg-TeamSelectInput e19kiapg4"
+                              >
+                                <ForwardRef(RefForwardedSelectControl)
+                                  clearable={false}
+                                  deprecatedSelectControl={true}
+                                  name="select-team"
+                                  onChange={[Function]}
+                                  options={Array []}
+                                  placeholder="Select a Team"
+                                  value={0}
+                                >
+                                  <SelectControl
+                                    clearable={false}
+                                    deprecatedSelectControl={true}
+                                    forwardedRef={null}
+                                    name="select-team"
+                                    onChange={[Function]}
+                                    options={Array []}
+                                    placeholder="Select a Team"
+                                    value={0}
+                                  >
+                                    <SelectControlLegacy
+                                      clearable={false}
+                                      forwardedRef={null}
+                                      height={36}
+                                      multiple={false}
+                                      name="select-team"
+                                      onChange={[Function]}
+                                      options={Array []}
+                                      placeholder="Select a Team"
+                                      value={0}
+                                    >
+                                      <StyledSelect
+                                        arrowRenderer={[Function]}
+                                        backspaceRemoves={false}
+                                        clearable={false}
+                                        deleteRemoves={false}
+                                        forwardedRef={null}
+                                        height={36}
+                                        multiple={false}
+                                        name="select-team"
+                                        onChange={[Function]}
+                                        options={Array []}
+                                        placeholder="Select a Team"
+                                        value={0}
+                                      >
+                                        <SelectPicker
+                                          arrowRenderer={[Function]}
+                                          backspaceRemoves={false}
+                                          className="css-awk01x-StyledSelect e1ynsgsr0"
+                                          clearable={false}
+                                          deleteRemoves={false}
+                                          forwardedRef={null}
+                                          height={36}
+                                          multiple={false}
+                                          name="select-team"
+                                          onChange={[Function]}
+                                          options={Array []}
+                                          placeholder="Select a Team"
+                                          value={0}
+                                        >
+                                          <Select
+                                            arrowRenderer={[Function]}
+                                            autosize={true}
+                                            backspaceRemoves={false}
+                                            backspaceToRemoveMessage="Press backspace to remove {label}"
+                                            className="css-awk01x-StyledSelect e1ynsgsr0"
+                                            clearAllText="Clear all"
+                                            clearRenderer={[Function]}
+                                            clearValueText="Clear value"
+                                            clearable={false}
+                                            closeOnSelect={true}
+                                            deleteRemoves={false}
+                                            delimiter=","
+                                            disabled={false}
+                                            escapeClearsValue={true}
+                                            filterOptions={[Function]}
+                                            height={36}
+                                            ignoreAccents={true}
+                                            ignoreCase={true}
+                                            inputProps={Object {}}
+                                            isLoading={false}
+                                            joinValues={false}
+                                            labelKey="label"
+                                            matchPos="any"
+                                            matchProp="any"
+                                            menuBuffer={0}
+                                            menuRenderer={[Function]}
+                                            multi={false}
+                                            multiple={false}
+                                            name="select-team"
+                                            noResultsText="No results found"
+                                            onBlurResetsInput={true}
+                                            onChange={[Function]}
+                                            onCloseResetsInput={true}
+                                            onSelectResetsInput={true}
+                                            openOnClick={true}
+                                            optionComponent={[Function]}
+                                            options={Array []}
+                                            pageSize={5}
+                                            placeholder="Select a Team"
+                                            removeSelected={true}
+                                            required={false}
+                                            rtl={false}
+                                            scrollMenuIntoView={true}
+                                            searchable={true}
+                                            simpleValue={false}
+                                            tabSelectsValue={true}
+                                            trimFilter={true}
+                                            value={0}
+                                            valueComponent={[Function]}
+                                            valueKey="value"
+                                          >
+                                            <div
+                                              className="Select css-awk01x-StyledSelect e1ynsgsr0 is-searchable Select--single"
+                                            >
+                                              <div
+                                                className="Select-control"
+                                                onKeyDown={[Function]}
+                                                onMouseDown={[Function]}
+                                                onTouchEnd={[Function]}
+                                                onTouchMove={[Function]}
+                                                onTouchStart={[Function]}
+                                              >
+                                                <div
+                                                  className="Select-multi-value-wrapper"
+                                                  id="react-select-2--value"
+                                                >
+                                                  <div
+                                                    className="Select-placeholder"
+                                                  >
+                                                    Select a Team
+                                                  </div>
+                                                  <AutosizeInput
+                                                    aria-activedescendant="react-select-2--value"
+                                                    aria-expanded="false"
+                                                    aria-haspopup="false"
+                                                    aria-owns=""
+                                                    className="Select-input"
+                                                    injectStyles={true}
+                                                    minWidth="5"
+                                                    onBlur={[Function]}
+                                                    onChange={[Function]}
+                                                    onFocus={[Function]}
+                                                    required={false}
+                                                    role="combobox"
+                                                    value=""
+                                                  >
+                                                    <div
+                                                      className="Select-input"
+                                                      style={
+                                                        Object {
+                                                          "display": "inline-block",
+                                                        }
+                                                      }
+                                                    >
+                                                      <input
+                                                        aria-activedescendant="react-select-2--value"
+                                                        aria-expanded="false"
+                                                        aria-haspopup="false"
+                                                        aria-owns=""
+                                                        onBlur={[Function]}
+                                                        onChange={[Function]}
+                                                        onFocus={[Function]}
+                                                        required={false}
+                                                        role="combobox"
+                                                        style={
+                                                          Object {
+                                                            "boxSizing": "content-box",
+                                                            "width": "5px",
+                                                          }
+                                                        }
+                                                        value=""
+                                                      />
+                                                      <div
+                                                        style={
+                                                          Object {
+                                                            "height": 0,
+                                                            "left": 0,
+                                                            "overflow": "scroll",
+                                                            "position": "absolute",
+                                                            "top": 0,
+                                                            "visibility": "hidden",
+                                                            "whiteSpace": "pre",
+                                                          }
+                                                        }
+                                                      />
+                                                    </div>
+                                                  </AutosizeInput>
+                                                </div>
+                                                <span
+                                                  className="Select-arrow-zone"
+                                                  onMouseDown={[Function]}
+                                                >
+                                                  <StyledIconChevron
+                                                    direction="down"
+                                                    size="xs"
+                                                  >
+                                                    <IconChevron
+                                                      className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                                      direction="down"
+                                                      size="xs"
+                                                    >
+                                                      <EmotionCssPropInternal
+                                                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                                          Object {
+                                                            "$$typeof": Symbol(react.forward_ref),
+                                                            "propTypes": Object {
+                                                              "color": [Function],
+                                                              "size": [Function],
+                                                              "viewBox": [Function],
+                                                            },
+                                                            "render": [Function],
+                                                          }
+                                                        }
+                                                        className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                                        css={
+                                                          Object {
+                                                            "map": undefined,
+                                                            "name": "7chgxg-IconChevron",
+                                                            "next": undefined,
+                                                            "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                                            "toString": [Function],
+                                                          }
+                                                        }
+                                                        size="xs"
+                                                      >
+                                                        <ForwardRef(SvgIcon)
+                                                          className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                                          size="xs"
+                                                        >
+                                                          <svg
+                                                            className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                                            fill="currentColor"
+                                                            height="12px"
+                                                            viewBox="0 0 16 16"
+                                                            width="12px"
+                                                          >
+                                                            <path
+                                                              d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                                            />
+                                                          </svg>
+                                                        </ForwardRef(SvgIcon)>
+                                                      </EmotionCssPropInternal>
+                                                    </IconChevron>
+                                                  </StyledIconChevron>
+                                                </span>
+                                              </div>
+                                            </div>
+                                          </Select>
+                                        </SelectPicker>
+                                      </StyledSelect>
+                                    </SelectControlLegacy>
+                                  </SelectControl>
+                                </ForwardRef(RefForwardedSelectControl)>
+                                <Tooltip
+                                  containerDisplayMode="inline-block"
+                                  position="top"
+                                  title="Create a team"
+                                >
+                                  <Manager>
+                                    <Reference>
+                                      <InnerReference
+                                        setReferenceNode={[Function]}
+                                      >
+                                        <Container
+                                          aria-describedby="tooltip-123456"
+                                          containerDisplayMode="inline-block"
+                                          onBlur={[Function]}
+                                          onFocus={[Function]}
+                                          onMouseEnter={[Function]}
+                                          onMouseLeave={[Function]}
+                                        >
+                                          <span
+                                            aria-describedby="tooltip-123456"
+                                            className="css-1y4rfpo-Container eowlwvy0"
+                                            onBlur={[Function]}
+                                            onFocus={[Function]}
+                                            onMouseEnter={[Function]}
+                                            onMouseLeave={[Function]}
+                                          >
+                                            <forwardRef<Button>
+                                              borderless={true}
+                                              data-test-id="create-team"
+                                              icon={
+                                                <ForwardRef(IconAdd)
+                                                  isCircled={true}
+                                                />
+                                              }
+                                              onClick={[Function]}
+                                              type="button"
+                                            >
+                                              <Button
+                                                align="center"
+                                                borderless={true}
+                                                data-test-id="create-team"
+                                                disabled={false}
+                                                forwardRef={null}
+                                                icon={
+                                                  <ForwardRef(IconAdd)
+                                                    isCircled={true}
+                                                  />
+                                                }
+                                                onClick={[Function]}
+                                                type="button"
+                                              >
+                                                <StyledButton
+                                                  aria-disabled={false}
+                                                  borderless={true}
+                                                  data-test-id="create-team"
+                                                  disabled={false}
+                                                  forwardRef={null}
+                                                  onClick={[Function]}
+                                                  role="button"
+                                                  type="button"
+                                                >
+                                                  <Component
+                                                    aria-disabled={false}
+                                                    className="css-1hvuuup-StyledButton edwq9my0"
+                                                    data-test-id="create-team"
+                                                    forwardRef={null}
+                                                    onClick={[Function]}
+                                                    role="button"
+                                                    type="button"
+                                                  >
+                                                    <button
+                                                      aria-disabled={false}
+                                                      className="css-1hvuuup-StyledButton edwq9my0"
+                                                      data-test-id="create-team"
+                                                      onClick={[Function]}
+                                                      role="button"
+                                                      type="button"
+                                                    >
+                                                      <ButtonLabel
+                                                        align="center"
+                                                        borderless={true}
+                                                      >
+                                                        <span
+                                                          className="css-zmpclt-ButtonLabel edwq9my1"
+                                                        >
+                                                          <Icon
+                                                            hasChildren={false}
+                                                          >
+                                                            <span
+                                                              className="css-1a0nfqj-Icon edwq9my2"
+                                                            >
+                                                              <IconAdd
+                                                                isCircled={true}
+                                                              >
+                                                                <ForwardRef(SvgIcon)>
+                                                                  <svg
+                                                                    fill="currentColor"
+                                                                    height="16px"
+                                                                    viewBox="0 0 16 16"
+                                                                    width="16px"
+                                                                  >
+                                                                    <path
+                                                                      d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
+                                                                    />
+                                                                    <path
+                                                                      d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z"
+                                                                    />
+                                                                    <path
+                                                                      d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                                                    />
+                                                                  </svg>
+                                                                </ForwardRef(SvgIcon)>
+                                                              </IconAdd>
+                                                            </span>
+                                                          </Icon>
+                                                        </span>
+                                                      </ButtonLabel>
+                                                    </button>
+                                                  </Component>
+                                                </StyledButton>
+                                              </Button>
+                                            </forwardRef<Button>>
+                                          </span>
+                                        </Container>
+                                      </InnerReference>
+                                    </Reference>
+                                  </Manager>
+                                </Tooltip>
+                              </div>
+                            </TeamSelectInput>
+                          </div>
+                          <div>
+                            <forwardRef<Button>
+                              data-test-id="create-project"
+                              disabled={true}
+                              priority="primary"
+                            >
+                              <Button
+                                align="center"
+                                data-test-id="create-project"
+                                disabled={true}
+                                forwardRef={null}
+                                priority="primary"
+                              >
+                                <StyledButton
+                                  aria-disabled={true}
+                                  aria-label="Create Project"
+                                  data-test-id="create-project"
+                                  disabled={true}
+                                  forwardRef={null}
+                                  onClick={[Function]}
+                                  priority="primary"
+                                  role="button"
+                                >
+                                  <Component
+                                    aria-disabled={true}
+                                    aria-label="Create Project"
+                                    className="css-9j7ei9-StyledButton edwq9my0"
+                                    data-test-id="create-project"
+                                    forwardRef={null}
+                                    onClick={[Function]}
+                                    role="button"
+                                  >
+                                    <button
+                                      aria-disabled={true}
+                                      aria-label="Create Project"
+                                      className="css-9j7ei9-StyledButton edwq9my0"
+                                      data-test-id="create-project"
+                                      onClick={[Function]}
+                                      role="button"
+                                    >
+                                      <ButtonLabel
+                                        align="center"
+                                        priority="primary"
+                                      >
+                                        <span
+                                          className="css-zmpclt-ButtonLabel edwq9my1"
+                                        >
+                                          Create Project
+                                        </span>
+                                      </ButtonLabel>
+                                    </button>
+                                  </Component>
+                                </StyledButton>
+                              </Button>
+                            </forwardRef<Button>>
+                          </div>
+                        </form>
+                      </CreateProjectForm>
+                    </div>
+                  </CreateProject>
+                </WithOrganizationMockWrapper>
+              </withTeams(WithOrganizationMockWrapper)>
+            </withApi(withTeams(WithOrganizationMockWrapper))>
+          </div>
+        </Content>
+      </div>
+    </div>
+  </Container>
+</NewProject>
+`;

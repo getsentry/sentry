@@ -1,0 +1,139 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MultipleCheckbox renders 1`] = `
+<MultipleCheckbox
+  choices={
+    Array [
+      Array [
+        0,
+        "Choice A",
+      ],
+      Array [
+        1,
+        "Choice B",
+      ],
+      Array [
+        2,
+        "Choice C",
+      ],
+    ]
+  }
+  value={
+    Array [
+      1,
+    ]
+  }
+>
+  <MultipleCheckboxWrapper>
+    <div
+      className="css-1r5vu5z-MultipleCheckboxWrapper e18jwynw0"
+    >
+      <Styled(div)
+        key="0"
+        width={
+          Array [
+            1,
+            0.5,
+            0.3333333333333333,
+            0.25,
+          ]
+        }
+      >
+        <div
+          className="css-13b6ydw"
+        >
+          <Label>
+            <label
+              className="css-1mvrz96-Label e18jwynw1"
+            >
+              <input
+                checked={false}
+                onChange={[Function]}
+                type="checkbox"
+                value={0}
+              />
+              <CheckboxLabel>
+                <span
+                  className="css-1g5zl3s-CheckboxLabel e18jwynw2"
+                >
+                  Choice A
+                </span>
+              </CheckboxLabel>
+            </label>
+          </Label>
+        </div>
+      </Styled(div)>
+      <Styled(div)
+        key="1"
+        width={
+          Array [
+            1,
+            0.5,
+            0.3333333333333333,
+            0.25,
+          ]
+        }
+      >
+        <div
+          className="css-13b6ydw"
+        >
+          <Label>
+            <label
+              className="css-1mvrz96-Label e18jwynw1"
+            >
+              <input
+                checked={true}
+                onChange={[Function]}
+                type="checkbox"
+                value={1}
+              />
+              <CheckboxLabel>
+                <span
+                  className="css-1g5zl3s-CheckboxLabel e18jwynw2"
+                >
+                  Choice B
+                </span>
+              </CheckboxLabel>
+            </label>
+          </Label>
+        </div>
+      </Styled(div)>
+      <Styled(div)
+        key="2"
+        width={
+          Array [
+            1,
+            0.5,
+            0.3333333333333333,
+            0.25,
+          ]
+        }
+      >
+        <div
+          className="css-13b6ydw"
+        >
+          <Label>
+            <label
+              className="css-1mvrz96-Label e18jwynw1"
+            >
+              <input
+                checked={false}
+                onChange={[Function]}
+                type="checkbox"
+                value={2}
+              />
+              <CheckboxLabel>
+                <span
+                  className="css-1g5zl3s-CheckboxLabel e18jwynw2"
+                >
+                  Choice C
+                </span>
+              </CheckboxLabel>
+            </label>
+          </Label>
+        </div>
+      </Styled(div)>
+    </div>
+  </MultipleCheckboxWrapper>
+</MultipleCheckbox>
+`;

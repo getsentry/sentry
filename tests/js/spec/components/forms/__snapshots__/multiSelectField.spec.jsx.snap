@@ -1,0 +1,1697 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MultiSelectField render() renders without form context 1`] = `
+<MultiSelectField
+  clearable={true}
+  disabled={false}
+  hideErrorMessage={false}
+  multiple={false}
+  name="fieldName"
+  options={
+    Array [
+      Object {
+        "label": "a",
+        "value": "a",
+      },
+      Object {
+        "label": "b",
+        "value": "b",
+      },
+    ]
+  }
+  required={false}
+>
+  <div
+    className=""
+  >
+    <div
+      className="controls"
+    >
+      <StyledSelectControl
+        clearable={true}
+        disabled={false}
+        id="id-fieldName"
+        multiple={true}
+        name="fieldName"
+        onChange={[Function]}
+        options={
+          Array [
+            Object {
+              "label": "a",
+              "value": "a",
+            },
+            Object {
+              "label": "b",
+              "value": "b",
+            },
+          ]
+        }
+        required={false}
+        value={Array []}
+      >
+        <ForwardRef(RefForwardedSelectControl)
+          className="css-9gm53a-StyledSelectControl e1qrhqd00"
+          clearable={true}
+          disabled={false}
+          id="id-fieldName"
+          multiple={true}
+          name="fieldName"
+          onChange={[Function]}
+          options={
+            Array [
+              Object {
+                "label": "a",
+                "value": "a",
+              },
+              Object {
+                "label": "b",
+                "value": "b",
+              },
+            ]
+          }
+          required={false}
+          value={Array []}
+        >
+          <SelectControl
+            className="css-9gm53a-StyledSelectControl e1qrhqd00"
+            clearable={true}
+            disabled={false}
+            forwardedRef={null}
+            id="id-fieldName"
+            multiple={true}
+            name="fieldName"
+            onChange={[Function]}
+            options={
+              Array [
+                Object {
+                  "label": "a",
+                  "value": "a",
+                },
+                Object {
+                  "label": "b",
+                  "value": "b",
+                },
+              ]
+            }
+            required={false}
+            value={Array []}
+          >
+            <SelectPicker
+              backspaceRemovesValue={true}
+              className="css-9gm53a-StyledSelectControl e1qrhqd00"
+              clearable={true}
+              components={
+                Object {
+                  "ClearIndicator": [Function],
+                  "DropdownIndicator": [Function],
+                  "IndicatorSeparator": null,
+                  "MultiValueRemove": [Function],
+                }
+              }
+              disabled={false}
+              forwardedRef={null}
+              id="id-fieldName"
+              isMulti={true}
+              multiple={true}
+              name="fieldName"
+              onChange={[Function]}
+              options={
+                Array [
+                  Object {
+                    "label": "a",
+                    "value": "a",
+                  },
+                  Object {
+                    "label": "b",
+                    "value": "b",
+                  },
+                ]
+              }
+              required={false}
+              styles={
+                Object {
+                  "clearIndicator": [Function],
+                  "control": [Function],
+                  "dropdownIndicator": [Function],
+                  "indicatorsContainer": [Function],
+                  "loadingIndicator": [Function],
+                  "menu": [Function],
+                  "multiValue": [Function],
+                  "multiValueLabel": [Function],
+                  "multiValueRemove": [Function],
+                  "option": [Function],
+                  "valueContainer": [Function],
+                }
+              }
+              value={Array []}
+            >
+              <StateManager
+                backspaceRemovesValue={true}
+                className="css-9gm53a-StyledSelectControl e1qrhqd00"
+                clearable={true}
+                components={
+                  Object {
+                    "ClearIndicator": [Function],
+                    "DropdownIndicator": [Function],
+                    "IndicatorSeparator": null,
+                    "MultiValueRemove": [Function],
+                  }
+                }
+                defaultInputValue=""
+                defaultMenuIsOpen={false}
+                defaultValue={null}
+                disabled={false}
+                id="id-fieldName"
+                isMulti={true}
+                multiple={true}
+                name="fieldName"
+                onChange={[Function]}
+                options={
+                  Array [
+                    Object {
+                      "label": "a",
+                      "value": "a",
+                    },
+                    Object {
+                      "label": "b",
+                      "value": "b",
+                    },
+                  ]
+                }
+                required={false}
+                styles={
+                  Object {
+                    "clearIndicator": [Function],
+                    "control": [Function],
+                    "dropdownIndicator": [Function],
+                    "indicatorsContainer": [Function],
+                    "loadingIndicator": [Function],
+                    "menu": [Function],
+                    "multiValue": [Function],
+                    "multiValueLabel": [Function],
+                    "multiValueRemove": [Function],
+                    "option": [Function],
+                    "valueContainer": [Function],
+                  }
+                }
+                value={Array []}
+              >
+                <Select
+                  backspaceRemovesValue={true}
+                  blurInputOnSelect={true}
+                  captureMenuScroll={false}
+                  className="css-9gm53a-StyledSelectControl e1qrhqd00"
+                  clearable={true}
+                  closeMenuOnScroll={false}
+                  closeMenuOnSelect={true}
+                  components={
+                    Object {
+                      "ClearIndicator": [Function],
+                      "DropdownIndicator": [Function],
+                      "IndicatorSeparator": null,
+                      "MultiValueRemove": [Function],
+                    }
+                  }
+                  controlShouldRenderValue={true}
+                  disabled={false}
+                  escapeClearsValue={false}
+                  filterOption={[Function]}
+                  formatGroupLabel={[Function]}
+                  getOptionLabel={[Function]}
+                  getOptionValue={[Function]}
+                  id="id-fieldName"
+                  inputValue=""
+                  isDisabled={false}
+                  isLoading={false}
+                  isMulti={true}
+                  isOptionDisabled={[Function]}
+                  isRtl={false}
+                  isSearchable={true}
+                  loadingMessage={[Function]}
+                  maxMenuHeight={300}
+                  menuIsOpen={false}
+                  menuPlacement="bottom"
+                  menuPosition="absolute"
+                  menuShouldBlockScroll={false}
+                  menuShouldScrollIntoView={true}
+                  minMenuHeight={140}
+                  multiple={true}
+                  name="fieldName"
+                  noOptionsMessage={[Function]}
+                  onChange={[Function]}
+                  onInputChange={[Function]}
+                  onMenuClose={[Function]}
+                  onMenuOpen={[Function]}
+                  openMenuOnClick={true}
+                  openMenuOnFocus={false}
+                  options={
+                    Array [
+                      Object {
+                        "label": "a",
+                        "value": "a",
+                      },
+                      Object {
+                        "label": "b",
+                        "value": "b",
+                      },
+                    ]
+                  }
+                  pageSize={5}
+                  placeholder="Select..."
+                  required={false}
+                  screenReaderStatus={[Function]}
+                  styles={
+                    Object {
+                      "clearIndicator": [Function],
+                      "control": [Function],
+                      "dropdownIndicator": [Function],
+                      "indicatorsContainer": [Function],
+                      "loadingIndicator": [Function],
+                      "menu": [Function],
+                      "multiValue": [Function],
+                      "multiValueLabel": [Function],
+                      "multiValueRemove": [Function],
+                      "option": [Function],
+                      "valueContainer": [Function],
+                    }
+                  }
+                  tabIndex="0"
+                  tabSelectsValue={true}
+                  value={Array []}
+                >
+                  <SelectContainer
+                    className="css-9gm53a-StyledSelectControl e1qrhqd00"
+                    clearValue={[Function]}
+                    cx={[Function]}
+                    getStyles={[Function]}
+                    getValue={[Function]}
+                    hasValue={false}
+                    innerProps={
+                      Object {
+                        "id": "id-fieldName",
+                        "onKeyDown": [Function],
+                      }
+                    }
+                    isDisabled={false}
+                    isFocused={false}
+                    isMulti={true}
+                    isRtl={false}
+                    options={
+                      Array [
+                        Object {
+                          "label": "a",
+                          "value": "a",
+                        },
+                        Object {
+                          "label": "b",
+                          "value": "b",
+                        },
+                      ]
+                    }
+                    selectOption={[Function]}
+                    selectProps={
+                      Object {
+                        "backspaceRemovesValue": true,
+                        "blurInputOnSelect": true,
+                        "captureMenuScroll": false,
+                        "className": "css-9gm53a-StyledSelectControl e1qrhqd00",
+                        "clearable": true,
+                        "closeMenuOnScroll": false,
+                        "closeMenuOnSelect": true,
+                        "components": Object {
+                          "ClearIndicator": [Function],
+                          "DropdownIndicator": [Function],
+                          "IndicatorSeparator": null,
+                          "MultiValueRemove": [Function],
+                        },
+                        "controlShouldRenderValue": true,
+                        "deprecatedSelectControl": undefined,
+                        "disabled": false,
+                        "escapeClearsValue": false,
+                        "filterOption": [Function],
+                        "formatGroupLabel": [Function],
+                        "getOptionLabel": [Function],
+                        "getOptionValue": [Function],
+                        "id": "id-fieldName",
+                        "inputValue": "",
+                        "isDisabled": false,
+                        "isLoading": false,
+                        "isMulti": true,
+                        "isOptionDisabled": [Function],
+                        "isRtl": false,
+                        "isSearchable": true,
+                        "loadingMessage": [Function],
+                        "maxMenuHeight": 300,
+                        "menuIsOpen": false,
+                        "menuPlacement": "bottom",
+                        "menuPosition": "absolute",
+                        "menuShouldBlockScroll": false,
+                        "menuShouldScrollIntoView": true,
+                        "minMenuHeight": 140,
+                        "multiple": true,
+                        "name": "fieldName",
+                        "noOptionsMessage": [Function],
+                        "onChange": [Function],
+                        "onInputChange": [Function],
+                        "onMenuClose": [Function],
+                        "onMenuOpen": [Function],
+                        "openMenuOnClick": true,
+                        "openMenuOnFocus": false,
+                        "options": Array [
+                          Object {
+                            "label": "a",
+                            "value": "a",
+                          },
+                          Object {
+                            "label": "b",
+                            "value": "b",
+                          },
+                        ],
+                        "pageSize": 5,
+                        "placeholder": "Select...",
+                        "required": false,
+                        "screenReaderStatus": [Function],
+                        "styles": Object {
+                          "clearIndicator": [Function],
+                          "control": [Function],
+                          "dropdownIndicator": [Function],
+                          "indicatorsContainer": [Function],
+                          "loadingIndicator": [Function],
+                          "menu": [Function],
+                          "multiValue": [Function],
+                          "multiValueLabel": [Function],
+                          "multiValueRemove": [Function],
+                          "option": [Function],
+                          "valueContainer": [Function],
+                        },
+                        "tabIndex": "0",
+                        "tabSelectsValue": true,
+                        "value": Array [],
+                      }
+                    }
+                    setValue={[Function]}
+                    theme={
+                      Object {
+                        "borderRadius": 4,
+                        "colors": Object {
+                          "danger": "#DE350B",
+                          "dangerLight": "#FFBDAD",
+                          "neutral0": "hsl(0, 0%, 100%)",
+                          "neutral10": "hsl(0, 0%, 90%)",
+                          "neutral20": "hsl(0, 0%, 80%)",
+                          "neutral30": "hsl(0, 0%, 70%)",
+                          "neutral40": "hsl(0, 0%, 60%)",
+                          "neutral5": "hsl(0, 0%, 95%)",
+                          "neutral50": "hsl(0, 0%, 50%)",
+                          "neutral60": "hsl(0, 0%, 40%)",
+                          "neutral70": "hsl(0, 0%, 30%)",
+                          "neutral80": "hsl(0, 0%, 20%)",
+                          "neutral90": "hsl(0, 0%, 10%)",
+                          "primary": "#2684FF",
+                          "primary25": "#DEEBFF",
+                          "primary50": "#B2D4FF",
+                          "primary75": "#4C9AFF",
+                        },
+                        "spacing": Object {
+                          "baseUnit": 4,
+                          "controlHeight": 38,
+                          "menuGutter": 8,
+                        },
+                      }
+                    }
+                  >
+                    <EmotionCssPropInternal
+                      __EMOTION_LABEL_PLEASE_DO_NOT_USE__="SelectContainer"
+                      __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                      className="css-9gm53a-StyledSelectControl e1qrhqd00"
+                      css={
+                        Object {
+                          "boxSizing": "border-box",
+                          "direction": null,
+                          "label": "container",
+                          "pointerEvents": null,
+                          "position": "relative",
+                        }
+                      }
+                      id="id-fieldName"
+                      onKeyDown={[Function]}
+                    >
+                      <div
+                        className="e1qrhqd00 css-1ikbpre-container-StyledSelectControl"
+                        id="id-fieldName"
+                        onKeyDown={[Function]}
+                      >
+                        <Control
+                          clearValue={[Function]}
+                          cx={[Function]}
+                          getStyles={[Function]}
+                          getValue={[Function]}
+                          hasValue={false}
+                          innerProps={
+                            Object {
+                              "onMouseDown": [Function],
+                              "onTouchEnd": [Function],
+                            }
+                          }
+                          innerRef={[Function]}
+                          isDisabled={false}
+                          isFocused={false}
+                          isMulti={true}
+                          isRtl={false}
+                          menuIsOpen={false}
+                          options={
+                            Array [
+                              Object {
+                                "label": "a",
+                                "value": "a",
+                              },
+                              Object {
+                                "label": "b",
+                                "value": "b",
+                              },
+                            ]
+                          }
+                          selectOption={[Function]}
+                          selectProps={
+                            Object {
+                              "backspaceRemovesValue": true,
+                              "blurInputOnSelect": true,
+                              "captureMenuScroll": false,
+                              "className": "css-9gm53a-StyledSelectControl e1qrhqd00",
+                              "clearable": true,
+                              "closeMenuOnScroll": false,
+                              "closeMenuOnSelect": true,
+                              "components": Object {
+                                "ClearIndicator": [Function],
+                                "DropdownIndicator": [Function],
+                                "IndicatorSeparator": null,
+                                "MultiValueRemove": [Function],
+                              },
+                              "controlShouldRenderValue": true,
+                              "deprecatedSelectControl": undefined,
+                              "disabled": false,
+                              "escapeClearsValue": false,
+                              "filterOption": [Function],
+                              "formatGroupLabel": [Function],
+                              "getOptionLabel": [Function],
+                              "getOptionValue": [Function],
+                              "id": "id-fieldName",
+                              "inputValue": "",
+                              "isDisabled": false,
+                              "isLoading": false,
+                              "isMulti": true,
+                              "isOptionDisabled": [Function],
+                              "isRtl": false,
+                              "isSearchable": true,
+                              "loadingMessage": [Function],
+                              "maxMenuHeight": 300,
+                              "menuIsOpen": false,
+                              "menuPlacement": "bottom",
+                              "menuPosition": "absolute",
+                              "menuShouldBlockScroll": false,
+                              "menuShouldScrollIntoView": true,
+                              "minMenuHeight": 140,
+                              "multiple": true,
+                              "name": "fieldName",
+                              "noOptionsMessage": [Function],
+                              "onChange": [Function],
+                              "onInputChange": [Function],
+                              "onMenuClose": [Function],
+                              "onMenuOpen": [Function],
+                              "openMenuOnClick": true,
+                              "openMenuOnFocus": false,
+                              "options": Array [
+                                Object {
+                                  "label": "a",
+                                  "value": "a",
+                                },
+                                Object {
+                                  "label": "b",
+                                  "value": "b",
+                                },
+                              ],
+                              "pageSize": 5,
+                              "placeholder": "Select...",
+                              "required": false,
+                              "screenReaderStatus": [Function],
+                              "styles": Object {
+                                "clearIndicator": [Function],
+                                "control": [Function],
+                                "dropdownIndicator": [Function],
+                                "indicatorsContainer": [Function],
+                                "loadingIndicator": [Function],
+                                "menu": [Function],
+                                "multiValue": [Function],
+                                "multiValueLabel": [Function],
+                                "multiValueRemove": [Function],
+                                "option": [Function],
+                                "valueContainer": [Function],
+                              },
+                              "tabIndex": "0",
+                              "tabSelectsValue": true,
+                              "value": Array [],
+                            }
+                          }
+                          setValue={[Function]}
+                          theme={
+                            Object {
+                              "borderRadius": 4,
+                              "colors": Object {
+                                "danger": "#DE350B",
+                                "dangerLight": "#FFBDAD",
+                                "neutral0": "hsl(0, 0%, 100%)",
+                                "neutral10": "hsl(0, 0%, 90%)",
+                                "neutral20": "hsl(0, 0%, 80%)",
+                                "neutral30": "hsl(0, 0%, 70%)",
+                                "neutral40": "hsl(0, 0%, 60%)",
+                                "neutral5": "hsl(0, 0%, 95%)",
+                                "neutral50": "hsl(0, 0%, 50%)",
+                                "neutral60": "hsl(0, 0%, 40%)",
+                                "neutral70": "hsl(0, 0%, 30%)",
+                                "neutral80": "hsl(0, 0%, 20%)",
+                                "neutral90": "hsl(0, 0%, 10%)",
+                                "primary": "#2684FF",
+                                "primary25": "#DEEBFF",
+                                "primary50": "#B2D4FF",
+                                "primary75": "#4C9AFF",
+                              },
+                              "spacing": Object {
+                                "baseUnit": 4,
+                                "controlHeight": 38,
+                                "menuGutter": 8,
+                              },
+                            }
+                          }
+                        >
+                          <EmotionCssPropInternal
+                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="Control"
+                            __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                            className=""
+                            css={
+                              Object {
+                                "&:hover": Object {
+                                  "borderColor": "#C6BECF",
+                                },
+                                "alignItems": "center",
+                                "background": "#fff",
+                                "border": "1px solid #C6BECF",
+                                "borderRadius": "4px",
+                                "boxShadow": "inset 0 2px 0 rgba(37, 11, 54, 0.04)",
+                                "color": "#302839",
+                                "cursor": "pointer",
+                                "display": "flex",
+                                "fontSize": "15px",
+                                "height": "100%",
+                                "minHeight": "36px",
+                                "transition": "border 0.1s linear",
+                              }
+                            }
+                            onMouseDown={[Function]}
+                            onTouchEnd={[Function]}
+                          >
+                            <div
+                              className=" css-1q827id-Control"
+                              onMouseDown={[Function]}
+                              onTouchEnd={[Function]}
+                            >
+                              <ValueContainer
+                                clearValue={[Function]}
+                                cx={[Function]}
+                                getStyles={[Function]}
+                                getValue={[Function]}
+                                hasValue={false}
+                                isDisabled={false}
+                                isMulti={true}
+                                isRtl={false}
+                                options={
+                                  Array [
+                                    Object {
+                                      "label": "a",
+                                      "value": "a",
+                                    },
+                                    Object {
+                                      "label": "b",
+                                      "value": "b",
+                                    },
+                                  ]
+                                }
+                                selectOption={[Function]}
+                                selectProps={
+                                  Object {
+                                    "backspaceRemovesValue": true,
+                                    "blurInputOnSelect": true,
+                                    "captureMenuScroll": false,
+                                    "className": "css-9gm53a-StyledSelectControl e1qrhqd00",
+                                    "clearable": true,
+                                    "closeMenuOnScroll": false,
+                                    "closeMenuOnSelect": true,
+                                    "components": Object {
+                                      "ClearIndicator": [Function],
+                                      "DropdownIndicator": [Function],
+                                      "IndicatorSeparator": null,
+                                      "MultiValueRemove": [Function],
+                                    },
+                                    "controlShouldRenderValue": true,
+                                    "deprecatedSelectControl": undefined,
+                                    "disabled": false,
+                                    "escapeClearsValue": false,
+                                    "filterOption": [Function],
+                                    "formatGroupLabel": [Function],
+                                    "getOptionLabel": [Function],
+                                    "getOptionValue": [Function],
+                                    "id": "id-fieldName",
+                                    "inputValue": "",
+                                    "isDisabled": false,
+                                    "isLoading": false,
+                                    "isMulti": true,
+                                    "isOptionDisabled": [Function],
+                                    "isRtl": false,
+                                    "isSearchable": true,
+                                    "loadingMessage": [Function],
+                                    "maxMenuHeight": 300,
+                                    "menuIsOpen": false,
+                                    "menuPlacement": "bottom",
+                                    "menuPosition": "absolute",
+                                    "menuShouldBlockScroll": false,
+                                    "menuShouldScrollIntoView": true,
+                                    "minMenuHeight": 140,
+                                    "multiple": true,
+                                    "name": "fieldName",
+                                    "noOptionsMessage": [Function],
+                                    "onChange": [Function],
+                                    "onInputChange": [Function],
+                                    "onMenuClose": [Function],
+                                    "onMenuOpen": [Function],
+                                    "openMenuOnClick": true,
+                                    "openMenuOnFocus": false,
+                                    "options": Array [
+                                      Object {
+                                        "label": "a",
+                                        "value": "a",
+                                      },
+                                      Object {
+                                        "label": "b",
+                                        "value": "b",
+                                      },
+                                    ],
+                                    "pageSize": 5,
+                                    "placeholder": "Select...",
+                                    "required": false,
+                                    "screenReaderStatus": [Function],
+                                    "styles": Object {
+                                      "clearIndicator": [Function],
+                                      "control": [Function],
+                                      "dropdownIndicator": [Function],
+                                      "indicatorsContainer": [Function],
+                                      "loadingIndicator": [Function],
+                                      "menu": [Function],
+                                      "multiValue": [Function],
+                                      "multiValueLabel": [Function],
+                                      "multiValueRemove": [Function],
+                                      "option": [Function],
+                                      "valueContainer": [Function],
+                                    },
+                                    "tabIndex": "0",
+                                    "tabSelectsValue": true,
+                                    "value": Array [],
+                                  }
+                                }
+                                setValue={[Function]}
+                                theme={
+                                  Object {
+                                    "borderRadius": 4,
+                                    "colors": Object {
+                                      "danger": "#DE350B",
+                                      "dangerLight": "#FFBDAD",
+                                      "neutral0": "hsl(0, 0%, 100%)",
+                                      "neutral10": "hsl(0, 0%, 90%)",
+                                      "neutral20": "hsl(0, 0%, 80%)",
+                                      "neutral30": "hsl(0, 0%, 70%)",
+                                      "neutral40": "hsl(0, 0%, 60%)",
+                                      "neutral5": "hsl(0, 0%, 95%)",
+                                      "neutral50": "hsl(0, 0%, 50%)",
+                                      "neutral60": "hsl(0, 0%, 40%)",
+                                      "neutral70": "hsl(0, 0%, 30%)",
+                                      "neutral80": "hsl(0, 0%, 20%)",
+                                      "neutral90": "hsl(0, 0%, 10%)",
+                                      "primary": "#2684FF",
+                                      "primary25": "#DEEBFF",
+                                      "primary50": "#B2D4FF",
+                                      "primary75": "#4C9AFF",
+                                    },
+                                    "spacing": Object {
+                                      "baseUnit": 4,
+                                      "controlHeight": 38,
+                                      "menuGutter": 8,
+                                    },
+                                  }
+                                }
+                              >
+                                <EmotionCssPropInternal
+                                  __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                                  className=""
+                                  css={
+                                    Object {
+                                      "WebkitOverflowScrolling": "touch",
+                                      "alignItems": "center",
+                                      "boxSizing": "border-box",
+                                      "display": "flex",
+                                      "flex": 1,
+                                      "flexWrap": "wrap",
+                                      "overflow": "hidden",
+                                      "padding": "2px 8px",
+                                      "position": "relative",
+                                    }
+                                  }
+                                >
+                                  <div
+                                    className=" css-1hwfws3"
+                                  >
+                                    <Placeholder
+                                      clearValue={[Function]}
+                                      cx={[Function]}
+                                      getStyles={[Function]}
+                                      getValue={[Function]}
+                                      hasValue={false}
+                                      isDisabled={false}
+                                      isFocused={false}
+                                      isMulti={true}
+                                      isRtl={false}
+                                      key="placeholder"
+                                      options={
+                                        Array [
+                                          Object {
+                                            "label": "a",
+                                            "value": "a",
+                                          },
+                                          Object {
+                                            "label": "b",
+                                            "value": "b",
+                                          },
+                                        ]
+                                      }
+                                      selectOption={[Function]}
+                                      selectProps={
+                                        Object {
+                                          "backspaceRemovesValue": true,
+                                          "blurInputOnSelect": true,
+                                          "captureMenuScroll": false,
+                                          "className": "css-9gm53a-StyledSelectControl e1qrhqd00",
+                                          "clearable": true,
+                                          "closeMenuOnScroll": false,
+                                          "closeMenuOnSelect": true,
+                                          "components": Object {
+                                            "ClearIndicator": [Function],
+                                            "DropdownIndicator": [Function],
+                                            "IndicatorSeparator": null,
+                                            "MultiValueRemove": [Function],
+                                          },
+                                          "controlShouldRenderValue": true,
+                                          "deprecatedSelectControl": undefined,
+                                          "disabled": false,
+                                          "escapeClearsValue": false,
+                                          "filterOption": [Function],
+                                          "formatGroupLabel": [Function],
+                                          "getOptionLabel": [Function],
+                                          "getOptionValue": [Function],
+                                          "id": "id-fieldName",
+                                          "inputValue": "",
+                                          "isDisabled": false,
+                                          "isLoading": false,
+                                          "isMulti": true,
+                                          "isOptionDisabled": [Function],
+                                          "isRtl": false,
+                                          "isSearchable": true,
+                                          "loadingMessage": [Function],
+                                          "maxMenuHeight": 300,
+                                          "menuIsOpen": false,
+                                          "menuPlacement": "bottom",
+                                          "menuPosition": "absolute",
+                                          "menuShouldBlockScroll": false,
+                                          "menuShouldScrollIntoView": true,
+                                          "minMenuHeight": 140,
+                                          "multiple": true,
+                                          "name": "fieldName",
+                                          "noOptionsMessage": [Function],
+                                          "onChange": [Function],
+                                          "onInputChange": [Function],
+                                          "onMenuClose": [Function],
+                                          "onMenuOpen": [Function],
+                                          "openMenuOnClick": true,
+                                          "openMenuOnFocus": false,
+                                          "options": Array [
+                                            Object {
+                                              "label": "a",
+                                              "value": "a",
+                                            },
+                                            Object {
+                                              "label": "b",
+                                              "value": "b",
+                                            },
+                                          ],
+                                          "pageSize": 5,
+                                          "placeholder": "Select...",
+                                          "required": false,
+                                          "screenReaderStatus": [Function],
+                                          "styles": Object {
+                                            "clearIndicator": [Function],
+                                            "control": [Function],
+                                            "dropdownIndicator": [Function],
+                                            "indicatorsContainer": [Function],
+                                            "loadingIndicator": [Function],
+                                            "menu": [Function],
+                                            "multiValue": [Function],
+                                            "multiValueLabel": [Function],
+                                            "multiValueRemove": [Function],
+                                            "option": [Function],
+                                            "valueContainer": [Function],
+                                          },
+                                          "tabIndex": "0",
+                                          "tabSelectsValue": true,
+                                          "value": Array [],
+                                        }
+                                      }
+                                      setValue={[Function]}
+                                      theme={
+                                        Object {
+                                          "borderRadius": 4,
+                                          "colors": Object {
+                                            "danger": "#DE350B",
+                                            "dangerLight": "#FFBDAD",
+                                            "neutral0": "hsl(0, 0%, 100%)",
+                                            "neutral10": "hsl(0, 0%, 90%)",
+                                            "neutral20": "hsl(0, 0%, 80%)",
+                                            "neutral30": "hsl(0, 0%, 70%)",
+                                            "neutral40": "hsl(0, 0%, 60%)",
+                                            "neutral5": "hsl(0, 0%, 95%)",
+                                            "neutral50": "hsl(0, 0%, 50%)",
+                                            "neutral60": "hsl(0, 0%, 40%)",
+                                            "neutral70": "hsl(0, 0%, 30%)",
+                                            "neutral80": "hsl(0, 0%, 20%)",
+                                            "neutral90": "hsl(0, 0%, 10%)",
+                                            "primary": "#2684FF",
+                                            "primary25": "#DEEBFF",
+                                            "primary50": "#B2D4FF",
+                                            "primary75": "#4C9AFF",
+                                          },
+                                          "spacing": Object {
+                                            "baseUnit": 4,
+                                            "controlHeight": 38,
+                                            "menuGutter": 8,
+                                          },
+                                        }
+                                      }
+                                    >
+                                      <EmotionCssPropInternal
+                                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="Placeholder"
+                                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                                        className=""
+                                        css={
+                                          Object {
+                                            "boxSizing": "border-box",
+                                            "color": "hsl(0, 0%, 50%)",
+                                            "label": "placeholder",
+                                            "marginLeft": 2,
+                                            "marginRight": 2,
+                                            "position": "absolute",
+                                            "top": "50%",
+                                            "transform": "translateY(-50%)",
+                                          }
+                                        }
+                                      >
+                                        <div
+                                          className=" css-1wa3eu0-placeholder"
+                                        >
+                                          Select...
+                                        </div>
+                                      </EmotionCssPropInternal>
+                                    </Placeholder>
+                                    <Input
+                                      aria-autocomplete="list"
+                                      autoCapitalize="none"
+                                      autoComplete="off"
+                                      autoCorrect="off"
+                                      cx={[Function]}
+                                      getStyles={[Function]}
+                                      id="react-select-2-input"
+                                      innerRef={[Function]}
+                                      isDisabled={false}
+                                      isHidden={false}
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      selectProps={
+                                        Object {
+                                          "backspaceRemovesValue": true,
+                                          "blurInputOnSelect": true,
+                                          "captureMenuScroll": false,
+                                          "className": "css-9gm53a-StyledSelectControl e1qrhqd00",
+                                          "clearable": true,
+                                          "closeMenuOnScroll": false,
+                                          "closeMenuOnSelect": true,
+                                          "components": Object {
+                                            "ClearIndicator": [Function],
+                                            "DropdownIndicator": [Function],
+                                            "IndicatorSeparator": null,
+                                            "MultiValueRemove": [Function],
+                                          },
+                                          "controlShouldRenderValue": true,
+                                          "deprecatedSelectControl": undefined,
+                                          "disabled": false,
+                                          "escapeClearsValue": false,
+                                          "filterOption": [Function],
+                                          "formatGroupLabel": [Function],
+                                          "getOptionLabel": [Function],
+                                          "getOptionValue": [Function],
+                                          "id": "id-fieldName",
+                                          "inputValue": "",
+                                          "isDisabled": false,
+                                          "isLoading": false,
+                                          "isMulti": true,
+                                          "isOptionDisabled": [Function],
+                                          "isRtl": false,
+                                          "isSearchable": true,
+                                          "loadingMessage": [Function],
+                                          "maxMenuHeight": 300,
+                                          "menuIsOpen": false,
+                                          "menuPlacement": "bottom",
+                                          "menuPosition": "absolute",
+                                          "menuShouldBlockScroll": false,
+                                          "menuShouldScrollIntoView": true,
+                                          "minMenuHeight": 140,
+                                          "multiple": true,
+                                          "name": "fieldName",
+                                          "noOptionsMessage": [Function],
+                                          "onChange": [Function],
+                                          "onInputChange": [Function],
+                                          "onMenuClose": [Function],
+                                          "onMenuOpen": [Function],
+                                          "openMenuOnClick": true,
+                                          "openMenuOnFocus": false,
+                                          "options": Array [
+                                            Object {
+                                              "label": "a",
+                                              "value": "a",
+                                            },
+                                            Object {
+                                              "label": "b",
+                                              "value": "b",
+                                            },
+                                          ],
+                                          "pageSize": 5,
+                                          "placeholder": "Select...",
+                                          "required": false,
+                                          "screenReaderStatus": [Function],
+                                          "styles": Object {
+                                            "clearIndicator": [Function],
+                                            "control": [Function],
+                                            "dropdownIndicator": [Function],
+                                            "indicatorsContainer": [Function],
+                                            "loadingIndicator": [Function],
+                                            "menu": [Function],
+                                            "multiValue": [Function],
+                                            "multiValueLabel": [Function],
+                                            "multiValueRemove": [Function],
+                                            "option": [Function],
+                                            "valueContainer": [Function],
+                                          },
+                                          "tabIndex": "0",
+                                          "tabSelectsValue": true,
+                                          "value": Array [],
+                                        }
+                                      }
+                                      spellCheck="false"
+                                      tabIndex="0"
+                                      theme={
+                                        Object {
+                                          "borderRadius": 4,
+                                          "colors": Object {
+                                            "danger": "#DE350B",
+                                            "dangerLight": "#FFBDAD",
+                                            "neutral0": "hsl(0, 0%, 100%)",
+                                            "neutral10": "hsl(0, 0%, 90%)",
+                                            "neutral20": "hsl(0, 0%, 80%)",
+                                            "neutral30": "hsl(0, 0%, 70%)",
+                                            "neutral40": "hsl(0, 0%, 60%)",
+                                            "neutral5": "hsl(0, 0%, 95%)",
+                                            "neutral50": "hsl(0, 0%, 50%)",
+                                            "neutral60": "hsl(0, 0%, 40%)",
+                                            "neutral70": "hsl(0, 0%, 30%)",
+                                            "neutral80": "hsl(0, 0%, 20%)",
+                                            "neutral90": "hsl(0, 0%, 10%)",
+                                            "primary": "#2684FF",
+                                            "primary25": "#DEEBFF",
+                                            "primary50": "#B2D4FF",
+                                            "primary75": "#4C9AFF",
+                                          },
+                                          "spacing": Object {
+                                            "baseUnit": 4,
+                                            "controlHeight": 38,
+                                            "menuGutter": 8,
+                                          },
+                                        }
+                                      }
+                                      type="text"
+                                      value=""
+                                    >
+                                      <EmotionCssPropInternal
+                                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="Input"
+                                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                                        css={
+                                          Object {
+                                            "boxSizing": "border-box",
+                                            "color": "hsl(0, 0%, 20%)",
+                                            "margin": 2,
+                                            "paddingBottom": 2,
+                                            "paddingTop": 2,
+                                            "visibility": "visible",
+                                          }
+                                        }
+                                      >
+                                        <div
+                                          className="css-b8ldur-Input"
+                                        >
+                                          <AutosizeInput
+                                            aria-autocomplete="list"
+                                            autoCapitalize="none"
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            className=""
+                                            disabled={false}
+                                            id="react-select-2-input"
+                                            injectStyles={true}
+                                            inputRef={[Function]}
+                                            inputStyle={
+                                              Object {
+                                                "background": 0,
+                                                "border": 0,
+                                                "color": "inherit",
+                                                "fontSize": "inherit",
+                                                "label": "input",
+                                                "opacity": 1,
+                                                "outline": 0,
+                                                "padding": 0,
+                                              }
+                                            }
+                                            minWidth={1}
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onFocus={[Function]}
+                                            spellCheck="false"
+                                            tabIndex="0"
+                                            type="text"
+                                            value=""
+                                          >
+                                            <div
+                                              className=""
+                                              style={
+                                                Object {
+                                                  "display": "inline-block",
+                                                }
+                                              }
+                                            >
+                                              <input
+                                                aria-autocomplete="list"
+                                                autoCapitalize="none"
+                                                autoComplete="off"
+                                                autoCorrect="off"
+                                                disabled={false}
+                                                id="react-select-2-input"
+                                                onBlur={[Function]}
+                                                onChange={[Function]}
+                                                onFocus={[Function]}
+                                                spellCheck="false"
+                                                style={
+                                                  Object {
+                                                    "background": 0,
+                                                    "border": 0,
+                                                    "boxSizing": "content-box",
+                                                    "color": "inherit",
+                                                    "fontSize": "inherit",
+                                                    "label": "input",
+                                                    "opacity": 1,
+                                                    "outline": 0,
+                                                    "padding": 0,
+                                                    "width": "2px",
+                                                  }
+                                                }
+                                                tabIndex="0"
+                                                type="text"
+                                                value=""
+                                              />
+                                              <div
+                                                style={
+                                                  Object {
+                                                    "height": 0,
+                                                    "left": 0,
+                                                    "overflow": "scroll",
+                                                    "position": "absolute",
+                                                    "top": 0,
+                                                    "visibility": "hidden",
+                                                    "whiteSpace": "pre",
+                                                  }
+                                                }
+                                              />
+                                            </div>
+                                          </AutosizeInput>
+                                        </div>
+                                      </EmotionCssPropInternal>
+                                    </Input>
+                                  </div>
+                                </EmotionCssPropInternal>
+                              </ValueContainer>
+                              <IndicatorsContainer
+                                clearValue={[Function]}
+                                cx={[Function]}
+                                getStyles={[Function]}
+                                getValue={[Function]}
+                                hasValue={false}
+                                isDisabled={false}
+                                isMulti={true}
+                                isRtl={false}
+                                options={
+                                  Array [
+                                    Object {
+                                      "label": "a",
+                                      "value": "a",
+                                    },
+                                    Object {
+                                      "label": "b",
+                                      "value": "b",
+                                    },
+                                  ]
+                                }
+                                selectOption={[Function]}
+                                selectProps={
+                                  Object {
+                                    "backspaceRemovesValue": true,
+                                    "blurInputOnSelect": true,
+                                    "captureMenuScroll": false,
+                                    "className": "css-9gm53a-StyledSelectControl e1qrhqd00",
+                                    "clearable": true,
+                                    "closeMenuOnScroll": false,
+                                    "closeMenuOnSelect": true,
+                                    "components": Object {
+                                      "ClearIndicator": [Function],
+                                      "DropdownIndicator": [Function],
+                                      "IndicatorSeparator": null,
+                                      "MultiValueRemove": [Function],
+                                    },
+                                    "controlShouldRenderValue": true,
+                                    "deprecatedSelectControl": undefined,
+                                    "disabled": false,
+                                    "escapeClearsValue": false,
+                                    "filterOption": [Function],
+                                    "formatGroupLabel": [Function],
+                                    "getOptionLabel": [Function],
+                                    "getOptionValue": [Function],
+                                    "id": "id-fieldName",
+                                    "inputValue": "",
+                                    "isDisabled": false,
+                                    "isLoading": false,
+                                    "isMulti": true,
+                                    "isOptionDisabled": [Function],
+                                    "isRtl": false,
+                                    "isSearchable": true,
+                                    "loadingMessage": [Function],
+                                    "maxMenuHeight": 300,
+                                    "menuIsOpen": false,
+                                    "menuPlacement": "bottom",
+                                    "menuPosition": "absolute",
+                                    "menuShouldBlockScroll": false,
+                                    "menuShouldScrollIntoView": true,
+                                    "minMenuHeight": 140,
+                                    "multiple": true,
+                                    "name": "fieldName",
+                                    "noOptionsMessage": [Function],
+                                    "onChange": [Function],
+                                    "onInputChange": [Function],
+                                    "onMenuClose": [Function],
+                                    "onMenuOpen": [Function],
+                                    "openMenuOnClick": true,
+                                    "openMenuOnFocus": false,
+                                    "options": Array [
+                                      Object {
+                                        "label": "a",
+                                        "value": "a",
+                                      },
+                                      Object {
+                                        "label": "b",
+                                        "value": "b",
+                                      },
+                                    ],
+                                    "pageSize": 5,
+                                    "placeholder": "Select...",
+                                    "required": false,
+                                    "screenReaderStatus": [Function],
+                                    "styles": Object {
+                                      "clearIndicator": [Function],
+                                      "control": [Function],
+                                      "dropdownIndicator": [Function],
+                                      "indicatorsContainer": [Function],
+                                      "loadingIndicator": [Function],
+                                      "menu": [Function],
+                                      "multiValue": [Function],
+                                      "multiValueLabel": [Function],
+                                      "multiValueRemove": [Function],
+                                      "option": [Function],
+                                      "valueContainer": [Function],
+                                    },
+                                    "tabIndex": "0",
+                                    "tabSelectsValue": true,
+                                    "value": Array [],
+                                  }
+                                }
+                                setValue={[Function]}
+                                theme={
+                                  Object {
+                                    "borderRadius": 4,
+                                    "colors": Object {
+                                      "danger": "#DE350B",
+                                      "dangerLight": "#FFBDAD",
+                                      "neutral0": "hsl(0, 0%, 100%)",
+                                      "neutral10": "hsl(0, 0%, 90%)",
+                                      "neutral20": "hsl(0, 0%, 80%)",
+                                      "neutral30": "hsl(0, 0%, 70%)",
+                                      "neutral40": "hsl(0, 0%, 60%)",
+                                      "neutral5": "hsl(0, 0%, 95%)",
+                                      "neutral50": "hsl(0, 0%, 50%)",
+                                      "neutral60": "hsl(0, 0%, 40%)",
+                                      "neutral70": "hsl(0, 0%, 30%)",
+                                      "neutral80": "hsl(0, 0%, 20%)",
+                                      "neutral90": "hsl(0, 0%, 10%)",
+                                      "primary": "#2684FF",
+                                      "primary25": "#DEEBFF",
+                                      "primary50": "#B2D4FF",
+                                      "primary75": "#4C9AFF",
+                                    },
+                                    "spacing": Object {
+                                      "baseUnit": 4,
+                                      "controlHeight": 38,
+                                      "menuGutter": 8,
+                                    },
+                                  }
+                                }
+                              >
+                                <EmotionCssPropInternal
+                                  __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IndicatorsContainer"
+                                  __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                                  className=""
+                                  css={
+                                    Object {
+                                      "display": "grid",
+                                      "gridAutoFlow": "column",
+                                      "gridGap": "2px",
+                                      "marginRight": "6px",
+                                    }
+                                  }
+                                >
+                                  <div
+                                    className=" css-1d4abpz-IndicatorsContainer"
+                                  >
+                                    <DropdownIndicator
+                                      clearValue={[Function]}
+                                      cx={[Function]}
+                                      getStyles={[Function]}
+                                      getValue={[Function]}
+                                      hasValue={false}
+                                      innerProps={
+                                        Object {
+                                          "aria-hidden": "true",
+                                          "onMouseDown": [Function],
+                                          "onTouchEnd": [Function],
+                                        }
+                                      }
+                                      isDisabled={false}
+                                      isFocused={false}
+                                      isMulti={true}
+                                      isRtl={false}
+                                      options={
+                                        Array [
+                                          Object {
+                                            "label": "a",
+                                            "value": "a",
+                                          },
+                                          Object {
+                                            "label": "b",
+                                            "value": "b",
+                                          },
+                                        ]
+                                      }
+                                      selectOption={[Function]}
+                                      selectProps={
+                                        Object {
+                                          "backspaceRemovesValue": true,
+                                          "blurInputOnSelect": true,
+                                          "captureMenuScroll": false,
+                                          "className": "css-9gm53a-StyledSelectControl e1qrhqd00",
+                                          "clearable": true,
+                                          "closeMenuOnScroll": false,
+                                          "closeMenuOnSelect": true,
+                                          "components": Object {
+                                            "ClearIndicator": [Function],
+                                            "DropdownIndicator": [Function],
+                                            "IndicatorSeparator": null,
+                                            "MultiValueRemove": [Function],
+                                          },
+                                          "controlShouldRenderValue": true,
+                                          "deprecatedSelectControl": undefined,
+                                          "disabled": false,
+                                          "escapeClearsValue": false,
+                                          "filterOption": [Function],
+                                          "formatGroupLabel": [Function],
+                                          "getOptionLabel": [Function],
+                                          "getOptionValue": [Function],
+                                          "id": "id-fieldName",
+                                          "inputValue": "",
+                                          "isDisabled": false,
+                                          "isLoading": false,
+                                          "isMulti": true,
+                                          "isOptionDisabled": [Function],
+                                          "isRtl": false,
+                                          "isSearchable": true,
+                                          "loadingMessage": [Function],
+                                          "maxMenuHeight": 300,
+                                          "menuIsOpen": false,
+                                          "menuPlacement": "bottom",
+                                          "menuPosition": "absolute",
+                                          "menuShouldBlockScroll": false,
+                                          "menuShouldScrollIntoView": true,
+                                          "minMenuHeight": 140,
+                                          "multiple": true,
+                                          "name": "fieldName",
+                                          "noOptionsMessage": [Function],
+                                          "onChange": [Function],
+                                          "onInputChange": [Function],
+                                          "onMenuClose": [Function],
+                                          "onMenuOpen": [Function],
+                                          "openMenuOnClick": true,
+                                          "openMenuOnFocus": false,
+                                          "options": Array [
+                                            Object {
+                                              "label": "a",
+                                              "value": "a",
+                                            },
+                                            Object {
+                                              "label": "b",
+                                              "value": "b",
+                                            },
+                                          ],
+                                          "pageSize": 5,
+                                          "placeholder": "Select...",
+                                          "required": false,
+                                          "screenReaderStatus": [Function],
+                                          "styles": Object {
+                                            "clearIndicator": [Function],
+                                            "control": [Function],
+                                            "dropdownIndicator": [Function],
+                                            "indicatorsContainer": [Function],
+                                            "loadingIndicator": [Function],
+                                            "menu": [Function],
+                                            "multiValue": [Function],
+                                            "multiValueLabel": [Function],
+                                            "multiValueRemove": [Function],
+                                            "option": [Function],
+                                            "valueContainer": [Function],
+                                          },
+                                          "tabIndex": "0",
+                                          "tabSelectsValue": true,
+                                          "value": Array [],
+                                        }
+                                      }
+                                      setValue={[Function]}
+                                      theme={
+                                        Object {
+                                          "borderRadius": 4,
+                                          "colors": Object {
+                                            "danger": "#DE350B",
+                                            "dangerLight": "#FFBDAD",
+                                            "neutral0": "hsl(0, 0%, 100%)",
+                                            "neutral10": "hsl(0, 0%, 90%)",
+                                            "neutral20": "hsl(0, 0%, 80%)",
+                                            "neutral30": "hsl(0, 0%, 70%)",
+                                            "neutral40": "hsl(0, 0%, 60%)",
+                                            "neutral5": "hsl(0, 0%, 95%)",
+                                            "neutral50": "hsl(0, 0%, 50%)",
+                                            "neutral60": "hsl(0, 0%, 40%)",
+                                            "neutral70": "hsl(0, 0%, 30%)",
+                                            "neutral80": "hsl(0, 0%, 20%)",
+                                            "neutral90": "hsl(0, 0%, 10%)",
+                                            "primary": "#2684FF",
+                                            "primary25": "#DEEBFF",
+                                            "primary50": "#B2D4FF",
+                                            "primary75": "#4C9AFF",
+                                          },
+                                          "spacing": Object {
+                                            "baseUnit": 4,
+                                            "controlHeight": 38,
+                                            "menuGutter": 8,
+                                          },
+                                        }
+                                      }
+                                    >
+                                      <DropdownIndicator
+                                        clearValue={[Function]}
+                                        cx={[Function]}
+                                        getStyles={[Function]}
+                                        getValue={[Function]}
+                                        hasValue={false}
+                                        innerProps={
+                                          Object {
+                                            "aria-hidden": "true",
+                                            "onMouseDown": [Function],
+                                            "onTouchEnd": [Function],
+                                          }
+                                        }
+                                        isDisabled={false}
+                                        isFocused={false}
+                                        isMulti={true}
+                                        isRtl={false}
+                                        options={
+                                          Array [
+                                            Object {
+                                              "label": "a",
+                                              "value": "a",
+                                            },
+                                            Object {
+                                              "label": "b",
+                                              "value": "b",
+                                            },
+                                          ]
+                                        }
+                                        selectOption={[Function]}
+                                        selectProps={
+                                          Object {
+                                            "backspaceRemovesValue": true,
+                                            "blurInputOnSelect": true,
+                                            "captureMenuScroll": false,
+                                            "className": "css-9gm53a-StyledSelectControl e1qrhqd00",
+                                            "clearable": true,
+                                            "closeMenuOnScroll": false,
+                                            "closeMenuOnSelect": true,
+                                            "components": Object {
+                                              "ClearIndicator": [Function],
+                                              "DropdownIndicator": [Function],
+                                              "IndicatorSeparator": null,
+                                              "MultiValueRemove": [Function],
+                                            },
+                                            "controlShouldRenderValue": true,
+                                            "deprecatedSelectControl": undefined,
+                                            "disabled": false,
+                                            "escapeClearsValue": false,
+                                            "filterOption": [Function],
+                                            "formatGroupLabel": [Function],
+                                            "getOptionLabel": [Function],
+                                            "getOptionValue": [Function],
+                                            "id": "id-fieldName",
+                                            "inputValue": "",
+                                            "isDisabled": false,
+                                            "isLoading": false,
+                                            "isMulti": true,
+                                            "isOptionDisabled": [Function],
+                                            "isRtl": false,
+                                            "isSearchable": true,
+                                            "loadingMessage": [Function],
+                                            "maxMenuHeight": 300,
+                                            "menuIsOpen": false,
+                                            "menuPlacement": "bottom",
+                                            "menuPosition": "absolute",
+                                            "menuShouldBlockScroll": false,
+                                            "menuShouldScrollIntoView": true,
+                                            "minMenuHeight": 140,
+                                            "multiple": true,
+                                            "name": "fieldName",
+                                            "noOptionsMessage": [Function],
+                                            "onChange": [Function],
+                                            "onInputChange": [Function],
+                                            "onMenuClose": [Function],
+                                            "onMenuOpen": [Function],
+                                            "openMenuOnClick": true,
+                                            "openMenuOnFocus": false,
+                                            "options": Array [
+                                              Object {
+                                                "label": "a",
+                                                "value": "a",
+                                              },
+                                              Object {
+                                                "label": "b",
+                                                "value": "b",
+                                              },
+                                            ],
+                                            "pageSize": 5,
+                                            "placeholder": "Select...",
+                                            "required": false,
+                                            "screenReaderStatus": [Function],
+                                            "styles": Object {
+                                              "clearIndicator": [Function],
+                                              "control": [Function],
+                                              "dropdownIndicator": [Function],
+                                              "indicatorsContainer": [Function],
+                                              "loadingIndicator": [Function],
+                                              "menu": [Function],
+                                              "multiValue": [Function],
+                                              "multiValueLabel": [Function],
+                                              "multiValueRemove": [Function],
+                                              "option": [Function],
+                                              "valueContainer": [Function],
+                                            },
+                                            "tabIndex": "0",
+                                            "tabSelectsValue": true,
+                                            "value": Array [],
+                                          }
+                                        }
+                                        setValue={[Function]}
+                                        theme={
+                                          Object {
+                                            "borderRadius": 4,
+                                            "colors": Object {
+                                              "danger": "#DE350B",
+                                              "dangerLight": "#FFBDAD",
+                                              "neutral0": "hsl(0, 0%, 100%)",
+                                              "neutral10": "hsl(0, 0%, 90%)",
+                                              "neutral20": "hsl(0, 0%, 80%)",
+                                              "neutral30": "hsl(0, 0%, 70%)",
+                                              "neutral40": "hsl(0, 0%, 60%)",
+                                              "neutral5": "hsl(0, 0%, 95%)",
+                                              "neutral50": "hsl(0, 0%, 50%)",
+                                              "neutral60": "hsl(0, 0%, 40%)",
+                                              "neutral70": "hsl(0, 0%, 30%)",
+                                              "neutral80": "hsl(0, 0%, 20%)",
+                                              "neutral90": "hsl(0, 0%, 10%)",
+                                              "primary": "#2684FF",
+                                              "primary25": "#DEEBFF",
+                                              "primary50": "#B2D4FF",
+                                              "primary75": "#4C9AFF",
+                                            },
+                                            "spacing": Object {
+                                              "baseUnit": 4,
+                                              "controlHeight": 38,
+                                              "menuGutter": 8,
+                                            },
+                                          }
+                                        }
+                                      >
+                                        <EmotionCssPropInternal
+                                          __EMOTION_LABEL_PLEASE_DO_NOT_USE__="DropdownIndicator"
+                                          __EMOTION_TYPE_PLEASE_DO_NOT_USE__="div"
+                                          aria-hidden="true"
+                                          className=""
+                                          css={
+                                            Object {
+                                              ":hover": Object {
+                                                "color": "hsl(0, 0%, 60%)",
+                                              },
+                                              "alignItems": "center",
+                                              "boxSizing": "border-box",
+                                              "color": "hsl(0, 0%, 80%)",
+                                              "cursor": "pointer",
+                                              "display": "flex",
+                                              "label": "indicatorContainer",
+                                              "padding": "4px",
+                                              "transition": "color 150ms",
+                                            }
+                                          }
+                                          onMouseDown={[Function]}
+                                          onTouchEnd={[Function]}
+                                        >
+                                          <div
+                                            aria-hidden="true"
+                                            className=" css-bpng66-indicatorContainer"
+                                            onMouseDown={[Function]}
+                                            onTouchEnd={[Function]}
+                                          >
+                                            <IconChevron
+                                              direction="down"
+                                              size="14px"
+                                            >
+                                              <EmotionCssPropInternal
+                                                __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                                __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                                  Object {
+                                                    "$$typeof": Symbol(react.forward_ref),
+                                                    "propTypes": Object {
+                                                      "color": [Function],
+                                                      "size": [Function],
+                                                      "viewBox": [Function],
+                                                    },
+                                                    "render": [Function],
+                                                  }
+                                                }
+                                                css={
+                                                  Object {
+                                                    "map": undefined,
+                                                    "name": "7chgxg-IconChevron",
+                                                    "next": undefined,
+                                                    "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                                    "toString": [Function],
+                                                  }
+                                                }
+                                                size="14px"
+                                              >
+                                                <ForwardRef(SvgIcon)
+                                                  className="css-7chgxg-IconChevron"
+                                                  size="14px"
+                                                >
+                                                  <svg
+                                                    className="css-7chgxg-IconChevron"
+                                                    fill="currentColor"
+                                                    height="14px"
+                                                    viewBox="0 0 16 16"
+                                                    width="14px"
+                                                  >
+                                                    <path
+                                                      d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                                    />
+                                                  </svg>
+                                                </ForwardRef(SvgIcon)>
+                                              </EmotionCssPropInternal>
+                                            </IconChevron>
+                                          </div>
+                                        </EmotionCssPropInternal>
+                                      </DropdownIndicator>
+                                    </DropdownIndicator>
+                                  </div>
+                                </EmotionCssPropInternal>
+                              </IndicatorsContainer>
+                            </div>
+                          </EmotionCssPropInternal>
+                        </Control>
+                        <div>
+                          <input
+                            name="fieldName"
+                            type="hidden"
+                          />
+                        </div>
+                      </div>
+                    </EmotionCssPropInternal>
+                  </SelectContainer>
+                </Select>
+              </StateManager>
+            </SelectPicker>
+          </SelectControl>
+        </ForwardRef(RefForwardedSelectControl)>
+      </StyledSelectControl>
+    </div>
+  </div>
+</MultiSelectField>
+`;

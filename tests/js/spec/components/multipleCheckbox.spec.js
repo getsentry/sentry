@@ -18,6 +18,7 @@ describe('MultipleCheckbox', function() {
     );
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('unselects a checked input', function() {

@@ -1,0 +1,99 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SimilarScoreCard renders 1`] = `
+<SimilarScoreCard
+  scoreList={Array []}
+/>
+`;
+
+exports[`SimilarScoreCard renders with score list 1`] = `
+<SimilarScoreCard
+  scoreList={
+    Array [
+      Array [
+        "exception,message,character-shingles",
+        null,
+      ],
+      Array [
+        "exception,stacktrace,application-chunks",
+        0.8,
+      ],
+      Array [
+        "exception,stacktrace,pairs",
+        1,
+      ],
+      Array [
+        "message,message,character-shingles",
+        0.5,
+      ],
+    ]
+  }
+>
+  <div>
+    <Wrapper
+      key="exception,message,character-shingles"
+    >
+      <div
+        className="css-7efqgu-Wrapper e1am9g9r0"
+      >
+        <div />
+        <Score
+          score={null}
+        >
+          <div
+            className="css-1l9x7oq-Score e1am9g9r1"
+          />
+        </Score>
+      </div>
+    </Wrapper>
+    <Wrapper
+      key="exception,stacktrace,application-chunks"
+    >
+      <div
+        className="css-7efqgu-Wrapper e1am9g9r0"
+      >
+        <div />
+        <Score
+          score={4}
+        >
+          <div
+            className="css-5nf72g-Score e1am9g9r1"
+          />
+        </Score>
+      </div>
+    </Wrapper>
+    <Wrapper
+      key="exception,stacktrace,pairs"
+    >
+      <div
+        className="css-7efqgu-Wrapper e1am9g9r0"
+      >
+        <div />
+        <Score
+          score={5}
+        >
+          <div
+            className="css-iy8e2-Score e1am9g9r1"
+          />
+        </Score>
+      </div>
+    </Wrapper>
+    <Wrapper
+      key="message,message,character-shingles"
+    >
+      <div
+        className="css-7efqgu-Wrapper e1am9g9r0"
+      >
+        <div />
+        <Score
+          score={3}
+        >
+          <div
+            className="css-1eaeou7-Score e1am9g9r1"
+          />
+        </Score>
+      </div>
+    </Wrapper>
+  </div>
+</SimilarScoreCard>
+`;

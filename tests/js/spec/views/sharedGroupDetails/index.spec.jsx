@@ -32,5 +32,6 @@ describe('SharedGroupDetails', function() {
       TestStubs.routerContext()
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

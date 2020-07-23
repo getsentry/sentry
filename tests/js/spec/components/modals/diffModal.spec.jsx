@@ -16,5 +16,6 @@ describe('DiffModal', function() {
       />
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

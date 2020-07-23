@@ -8,6 +8,7 @@ describe('AlertLink', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<IssueSyncListElement integrationType="github" />);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('can open', function() {

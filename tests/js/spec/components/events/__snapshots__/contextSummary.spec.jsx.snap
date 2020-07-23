@@ -1,0 +1,2148 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ContextSummary render() renders at least three contexts 1`] = `
+<ContextSummary
+  event={
+    Object {
+      "contexts": Object {
+        "device": Object {
+          "arch": "x86",
+          "family": "iOS",
+          "model": "iPhone10,5",
+          "type": "device",
+        },
+      },
+      "id": "",
+      "user": Object {
+        "email": "mail@example.org",
+        "id": "1",
+      },
+    }
+  }
+>
+  <div
+    className="context-summary"
+  >
+    <ContextSummaryUser
+      data={
+        Object {
+          "email": "mail@example.org",
+          "id": "1",
+        }
+      }
+      key="user"
+    >
+      <div
+        className="context-item user"
+      >
+        <UserAvatar
+          className="context-item-icon"
+          gravatar={false}
+          size={48}
+          user={
+            Object {
+              "email": "mail@example.org",
+              "id": "1",
+            }
+          }
+        >
+          <BaseAvatar
+            className="context-item-icon"
+            gravatarId="mail@example.org"
+            hasTooltip={false}
+            letterId="mail@example.org"
+            round={true}
+            size={48}
+            style={Object {}}
+            title="mail@example.org"
+            tooltip="Unknown author (mail@example.org)"
+            type="letter_avatar"
+            uploadId=""
+            uploadPath="avatar"
+          >
+            <Tooltip
+              containerDisplayMode="inline-block"
+              disabled={true}
+              position="top"
+              title="Unknown author (mail@example.org)"
+            >
+              <StyledBaseAvatar
+                className="avatar context-item-icon"
+                gravatarId="mail@example.org"
+                letterId="mail@example.org"
+                loaded={true}
+                round={true}
+                style={
+                  Object {
+                    "height": "48px",
+                    "width": "48px",
+                  }
+                }
+                title="mail@example.org"
+                type="letter_avatar"
+                uploadId=""
+                uploadPath="avatar"
+              >
+                <span
+                  className="avatar context-item-icon css-1mqfg1n-StyledBaseAvatar e147uwb0"
+                  style={
+                    Object {
+                      "height": "48px",
+                      "width": "48px",
+                    }
+                  }
+                  title="mail@example.org"
+                  type="letter_avatar"
+                >
+                  <ForwardRef
+                    displayName="mail@example.org"
+                    identifier="mail@example.org"
+                    round={true}
+                  >
+                    <LetterAvatar
+                      displayName="mail@example.org"
+                      forwardedRef={null}
+                      identifier="mail@example.org"
+                      round={true}
+                    >
+                      <Component
+                        className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                        displayName="mail@example.org"
+                        forwardedRef={null}
+                        identifier="mail@example.org"
+                        round={true}
+                      >
+                        <svg
+                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                          viewBox="0 0 120 120"
+                        >
+                          <rect
+                            fill="#4e3fb4"
+                            height="120"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            fontSize="65"
+                            style={
+                              Object {
+                                "dominantBaseline": "central",
+                              }
+                            }
+                            textAnchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            M
+                          </text>
+                        </svg>
+                      </Component>
+                    </LetterAvatar>
+                  </ForwardRef>
+                </span>
+              </StyledBaseAvatar>
+            </Tooltip>
+          </BaseAvatar>
+        </UserAvatar>
+        <h3
+          data-test-id="user-title"
+        >
+          <AnnotatedText
+            meta={null}
+            value="mail@example.org"
+          >
+            <span>
+              mail@example.org
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e16uy2gu0"
+              >
+                ID:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1"
+            >
+              <span>
+                1
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryUser>
+    <ContextSummaryGeneric
+      data={Object {}}
+      key="browser"
+      unknownTitle="Unknown Browser"
+    >
+      <ContextSummaryNoSummary
+        title="Unknown Browser"
+      >
+        <div
+          className="context-item"
+        >
+          <span
+            className="context-item-icon"
+          />
+          <h3
+            data-test-id="no-summary-title"
+          >
+            Unknown Browser
+          </h3>
+        </div>
+      </ContextSummaryNoSummary>
+    </ContextSummaryGeneric>
+    <ContextSummaryDevice
+      data={
+        Object {
+          "arch": "x86",
+          "family": "iOS",
+          "model": "iPhone10,5",
+          "type": "device",
+        }
+      }
+      key="device"
+    >
+      <div
+        className="context-item iphone"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <DeviceName
+            value="iPhone10,5"
+          >
+            iPhone10,5
+          </DeviceName>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject ei0ljsy0"
+              >
+                Arch:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="x86"
+            >
+              <span>
+                x86
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryDevice>
+  </div>
+</ContextSummary>
+`;
+
+exports[`ContextSummary render() renders client_os too 1`] = `
+<ContextSummary
+  event={
+    Object {
+      "contexts": Object {
+        "browser": Object {
+          "name": "Chrome",
+          "version": "65.0.3325",
+        },
+        "client_os": Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        },
+        "runtime": Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        },
+      },
+      "id": "",
+      "user": Object {
+        "email": "mail@example.org",
+        "id": "1",
+      },
+    }
+  }
+>
+  <div
+    className="context-summary"
+  >
+    <ContextSummaryUser
+      data={
+        Object {
+          "email": "mail@example.org",
+          "id": "1",
+        }
+      }
+      key="user"
+    >
+      <div
+        className="context-item user"
+      >
+        <UserAvatar
+          className="context-item-icon"
+          gravatar={false}
+          size={48}
+          user={
+            Object {
+              "email": "mail@example.org",
+              "id": "1",
+            }
+          }
+        >
+          <BaseAvatar
+            className="context-item-icon"
+            gravatarId="mail@example.org"
+            hasTooltip={false}
+            letterId="mail@example.org"
+            round={true}
+            size={48}
+            style={Object {}}
+            title="mail@example.org"
+            tooltip="Unknown author (mail@example.org)"
+            type="letter_avatar"
+            uploadId=""
+            uploadPath="avatar"
+          >
+            <Tooltip
+              containerDisplayMode="inline-block"
+              disabled={true}
+              position="top"
+              title="Unknown author (mail@example.org)"
+            >
+              <StyledBaseAvatar
+                className="avatar context-item-icon"
+                gravatarId="mail@example.org"
+                letterId="mail@example.org"
+                loaded={true}
+                round={true}
+                style={
+                  Object {
+                    "height": "48px",
+                    "width": "48px",
+                  }
+                }
+                title="mail@example.org"
+                type="letter_avatar"
+                uploadId=""
+                uploadPath="avatar"
+              >
+                <span
+                  className="avatar context-item-icon css-1mqfg1n-StyledBaseAvatar e147uwb0"
+                  style={
+                    Object {
+                      "height": "48px",
+                      "width": "48px",
+                    }
+                  }
+                  title="mail@example.org"
+                  type="letter_avatar"
+                >
+                  <ForwardRef
+                    displayName="mail@example.org"
+                    identifier="mail@example.org"
+                    round={true}
+                  >
+                    <LetterAvatar
+                      displayName="mail@example.org"
+                      forwardedRef={null}
+                      identifier="mail@example.org"
+                      round={true}
+                    >
+                      <Component
+                        className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                        displayName="mail@example.org"
+                        forwardedRef={null}
+                        identifier="mail@example.org"
+                        round={true}
+                      >
+                        <svg
+                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                          viewBox="0 0 120 120"
+                        >
+                          <rect
+                            fill="#4e3fb4"
+                            height="120"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            fontSize="65"
+                            style={
+                              Object {
+                                "dominantBaseline": "central",
+                              }
+                            }
+                            textAnchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            M
+                          </text>
+                        </svg>
+                      </Component>
+                    </LetterAvatar>
+                  </ForwardRef>
+                </span>
+              </StyledBaseAvatar>
+            </Tooltip>
+          </BaseAvatar>
+        </UserAvatar>
+        <h3
+          data-test-id="user-title"
+        >
+          <AnnotatedText
+            meta={null}
+            value="mail@example.org"
+          >
+            <span>
+              mail@example.org
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e16uy2gu0"
+              >
+                ID:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1"
+            >
+              <span>
+                1
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryUser>
+    <ContextSummaryGeneric
+      data={
+        Object {
+          "name": "Chrome",
+          "version": "65.0.3325",
+        }
+      }
+      key="browser"
+      unknownTitle="Unknown Browser"
+    >
+      <div
+        className="context-item chrome"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Chrome"
+          >
+            <span>
+              Chrome
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e1legfou0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="65.0.3325"
+            >
+              <span>
+                65.0.3325
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryGeneric>
+    <ContextSummaryGeneric
+      data={
+        Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        }
+      }
+      key="runtime"
+      unknownTitle="Unknown Runtime"
+    >
+      <div
+        className="context-item electron"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Electron"
+          >
+            <span>
+              Electron
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e1legfou0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1.7.13"
+            >
+              <span>
+                1.7.13
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryGeneric>
+    <ContextSummaryOS
+      data={
+        Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        }
+      }
+      key="client_os"
+    >
+      <div
+        className="context-item mac-os-x"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Mac OS X"
+          >
+            <span>
+              Mac OS X
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject eh6d4ga0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="10.13.4"
+            >
+              <span>
+                10.13.4
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryOS>
+  </div>
+</ContextSummary>
+`;
+
+exports[`ContextSummary render() renders nothing with a single user context 1`] = `
+<ContextSummary
+  event={
+    Object {
+      "contexts": Object {},
+      "id": "",
+      "user": Object {
+        "email": "mail@example.org",
+        "id": "1",
+      },
+    }
+  }
+/>
+`;
+
+exports[`ContextSummary render() renders nothing without contexts 1`] = `
+<ContextSummary
+  event={
+    Object {
+      "contexts": Object {},
+      "id": "",
+    }
+  }
+/>
+`;
+
+exports[`ContextSummary render() renders up to four contexts 1`] = `
+<ContextSummary
+  event={
+    Object {
+      "contexts": Object {
+        "browser": Object {
+          "name": "Chrome",
+          "version": "65.0.3325",
+        },
+        "device": Object {
+          "arch": "x86",
+          "family": "iOS",
+          "model": "iPhone10,5",
+          "type": "device",
+        },
+        "os": Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        },
+        "runtime": Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        },
+      },
+      "id": "",
+      "user": Object {
+        "email": "mail@example.org",
+        "id": "1",
+      },
+    }
+  }
+>
+  <div
+    className="context-summary"
+  >
+    <ContextSummaryUser
+      data={
+        Object {
+          "email": "mail@example.org",
+          "id": "1",
+        }
+      }
+      key="user"
+    >
+      <div
+        className="context-item user"
+      >
+        <UserAvatar
+          className="context-item-icon"
+          gravatar={false}
+          size={48}
+          user={
+            Object {
+              "email": "mail@example.org",
+              "id": "1",
+            }
+          }
+        >
+          <BaseAvatar
+            className="context-item-icon"
+            gravatarId="mail@example.org"
+            hasTooltip={false}
+            letterId="mail@example.org"
+            round={true}
+            size={48}
+            style={Object {}}
+            title="mail@example.org"
+            tooltip="Unknown author (mail@example.org)"
+            type="letter_avatar"
+            uploadId=""
+            uploadPath="avatar"
+          >
+            <Tooltip
+              containerDisplayMode="inline-block"
+              disabled={true}
+              position="top"
+              title="Unknown author (mail@example.org)"
+            >
+              <StyledBaseAvatar
+                className="avatar context-item-icon"
+                gravatarId="mail@example.org"
+                letterId="mail@example.org"
+                loaded={true}
+                round={true}
+                style={
+                  Object {
+                    "height": "48px",
+                    "width": "48px",
+                  }
+                }
+                title="mail@example.org"
+                type="letter_avatar"
+                uploadId=""
+                uploadPath="avatar"
+              >
+                <span
+                  className="avatar context-item-icon css-1mqfg1n-StyledBaseAvatar e147uwb0"
+                  style={
+                    Object {
+                      "height": "48px",
+                      "width": "48px",
+                    }
+                  }
+                  title="mail@example.org"
+                  type="letter_avatar"
+                >
+                  <ForwardRef
+                    displayName="mail@example.org"
+                    identifier="mail@example.org"
+                    round={true}
+                  >
+                    <LetterAvatar
+                      displayName="mail@example.org"
+                      forwardedRef={null}
+                      identifier="mail@example.org"
+                      round={true}
+                    >
+                      <Component
+                        className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                        displayName="mail@example.org"
+                        forwardedRef={null}
+                        identifier="mail@example.org"
+                        round={true}
+                      >
+                        <svg
+                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                          viewBox="0 0 120 120"
+                        >
+                          <rect
+                            fill="#4e3fb4"
+                            height="120"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            fontSize="65"
+                            style={
+                              Object {
+                                "dominantBaseline": "central",
+                              }
+                            }
+                            textAnchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            M
+                          </text>
+                        </svg>
+                      </Component>
+                    </LetterAvatar>
+                  </ForwardRef>
+                </span>
+              </StyledBaseAvatar>
+            </Tooltip>
+          </BaseAvatar>
+        </UserAvatar>
+        <h3
+          data-test-id="user-title"
+        >
+          <AnnotatedText
+            meta={null}
+            value="mail@example.org"
+          >
+            <span>
+              mail@example.org
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e16uy2gu0"
+              >
+                ID:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1"
+            >
+              <span>
+                1
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryUser>
+    <ContextSummaryGeneric
+      data={
+        Object {
+          "name": "Chrome",
+          "version": "65.0.3325",
+        }
+      }
+      key="browser"
+      unknownTitle="Unknown Browser"
+    >
+      <div
+        className="context-item chrome"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Chrome"
+          >
+            <span>
+              Chrome
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e1legfou0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="65.0.3325"
+            >
+              <span>
+                65.0.3325
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryGeneric>
+    <ContextSummaryGeneric
+      data={
+        Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        }
+      }
+      key="runtime"
+      unknownTitle="Unknown Runtime"
+    >
+      <div
+        className="context-item electron"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Electron"
+          >
+            <span>
+              Electron
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e1legfou0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1.7.13"
+            >
+              <span>
+                1.7.13
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryGeneric>
+    <ContextSummaryOS
+      data={
+        Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        }
+      }
+      key="os"
+    >
+      <div
+        className="context-item mac-os-x"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Mac OS X"
+          >
+            <span>
+              Mac OS X
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject eh6d4ga0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="10.13.4"
+            >
+              <span>
+                10.13.4
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryOS>
+  </div>
+</ContextSummary>
+`;
+
+exports[`ContextSummary render() should bail out with empty contexts 1`] = `
+<ContextSummary
+  event={
+    Object {
+      "contexts": Object {
+        "device": Object {},
+        "os": Object {},
+      },
+      "id": "",
+      "user": Object {
+        "email": "mail@example.org",
+        "id": "1",
+      },
+    }
+  }
+/>
+`;
+
+exports[`ContextSummary render() should prefer client_os over os 1`] = `
+<ContextSummary
+  event={
+    Object {
+      "contexts": Object {
+        "browser": Object {
+          "name": "Chrome",
+          "version": "65.0.3325",
+        },
+        "client_os": Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        },
+        "os": Object {
+          "build": "123123123",
+          "kernel_version": "4.3.0",
+          "name": "Linux",
+          "type": "os",
+          "version": "4.3.0",
+        },
+        "runtime": Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        },
+      },
+      "id": "",
+      "user": Object {
+        "email": "mail@example.org",
+        "id": "1",
+      },
+    }
+  }
+>
+  <div
+    className="context-summary"
+  >
+    <ContextSummaryUser
+      data={
+        Object {
+          "email": "mail@example.org",
+          "id": "1",
+        }
+      }
+      key="user"
+    >
+      <div
+        className="context-item user"
+      >
+        <UserAvatar
+          className="context-item-icon"
+          gravatar={false}
+          size={48}
+          user={
+            Object {
+              "email": "mail@example.org",
+              "id": "1",
+            }
+          }
+        >
+          <BaseAvatar
+            className="context-item-icon"
+            gravatarId="mail@example.org"
+            hasTooltip={false}
+            letterId="mail@example.org"
+            round={true}
+            size={48}
+            style={Object {}}
+            title="mail@example.org"
+            tooltip="Unknown author (mail@example.org)"
+            type="letter_avatar"
+            uploadId=""
+            uploadPath="avatar"
+          >
+            <Tooltip
+              containerDisplayMode="inline-block"
+              disabled={true}
+              position="top"
+              title="Unknown author (mail@example.org)"
+            >
+              <StyledBaseAvatar
+                className="avatar context-item-icon"
+                gravatarId="mail@example.org"
+                letterId="mail@example.org"
+                loaded={true}
+                round={true}
+                style={
+                  Object {
+                    "height": "48px",
+                    "width": "48px",
+                  }
+                }
+                title="mail@example.org"
+                type="letter_avatar"
+                uploadId=""
+                uploadPath="avatar"
+              >
+                <span
+                  className="avatar context-item-icon css-1mqfg1n-StyledBaseAvatar e147uwb0"
+                  style={
+                    Object {
+                      "height": "48px",
+                      "width": "48px",
+                    }
+                  }
+                  title="mail@example.org"
+                  type="letter_avatar"
+                >
+                  <ForwardRef
+                    displayName="mail@example.org"
+                    identifier="mail@example.org"
+                    round={true}
+                  >
+                    <LetterAvatar
+                      displayName="mail@example.org"
+                      forwardedRef={null}
+                      identifier="mail@example.org"
+                      round={true}
+                    >
+                      <Component
+                        className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                        displayName="mail@example.org"
+                        forwardedRef={null}
+                        identifier="mail@example.org"
+                        round={true}
+                      >
+                        <svg
+                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                          viewBox="0 0 120 120"
+                        >
+                          <rect
+                            fill="#4e3fb4"
+                            height="120"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            fontSize="65"
+                            style={
+                              Object {
+                                "dominantBaseline": "central",
+                              }
+                            }
+                            textAnchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            M
+                          </text>
+                        </svg>
+                      </Component>
+                    </LetterAvatar>
+                  </ForwardRef>
+                </span>
+              </StyledBaseAvatar>
+            </Tooltip>
+          </BaseAvatar>
+        </UserAvatar>
+        <h3
+          data-test-id="user-title"
+        >
+          <AnnotatedText
+            meta={null}
+            value="mail@example.org"
+          >
+            <span>
+              mail@example.org
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e16uy2gu0"
+              >
+                ID:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1"
+            >
+              <span>
+                1
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryUser>
+    <ContextSummaryGeneric
+      data={
+        Object {
+          "name": "Chrome",
+          "version": "65.0.3325",
+        }
+      }
+      key="browser"
+      unknownTitle="Unknown Browser"
+    >
+      <div
+        className="context-item chrome"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Chrome"
+          >
+            <span>
+              Chrome
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e1legfou0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="65.0.3325"
+            >
+              <span>
+                65.0.3325
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryGeneric>
+    <ContextSummaryGeneric
+      data={
+        Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        }
+      }
+      key="runtime"
+      unknownTitle="Unknown Runtime"
+    >
+      <div
+        className="context-item electron"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Electron"
+          >
+            <span>
+              Electron
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e1legfou0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1.7.13"
+            >
+              <span>
+                1.7.13
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryGeneric>
+    <ContextSummaryOS
+      data={
+        Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        }
+      }
+      key="client_os"
+    >
+      <div
+        className="context-item mac-os-x"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Mac OS X"
+          >
+            <span>
+              Mac OS X
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject eh6d4ga0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="10.13.4"
+            >
+              <span>
+                10.13.4
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryOS>
+  </div>
+</ContextSummary>
+`;
+
+exports[`ContextSummary render() should skip a missing user context 1`] = `
+<ContextSummary
+  event={
+    Object {
+      "contexts": Object {
+        "chrome": Object {
+          "name": "Chrome",
+          "version": "65.0.3325",
+        },
+        "device": Object {
+          "arch": "x86",
+          "family": "iOS",
+          "model": "iPhone10,5",
+          "type": "device",
+        },
+        "os": Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        },
+        "runtime": Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        },
+      },
+      "id": "",
+    }
+  }
+>
+  <div
+    className="context-summary"
+  >
+    <ContextSummaryGeneric
+      data={
+        Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        }
+      }
+      key="runtime"
+      unknownTitle="Unknown Runtime"
+    >
+      <div
+        className="context-item electron"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Electron"
+          >
+            <span>
+              Electron
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e1legfou0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1.7.13"
+            >
+              <span>
+                1.7.13
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryGeneric>
+    <ContextSummaryOS
+      data={
+        Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        }
+      }
+      key="os"
+    >
+      <div
+        className="context-item mac-os-x"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Mac OS X"
+          >
+            <span>
+              Mac OS X
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject eh6d4ga0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="10.13.4"
+            >
+              <span>
+                10.13.4
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryOS>
+    <ContextSummaryDevice
+      data={
+        Object {
+          "arch": "x86",
+          "family": "iOS",
+          "model": "iPhone10,5",
+          "type": "device",
+        }
+      }
+      key="device"
+    >
+      <div
+        className="context-item iphone"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <DeviceName
+            value="iPhone10,5"
+          >
+            iPhone10,5
+          </DeviceName>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject ei0ljsy0"
+              >
+                Arch:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="x86"
+            >
+              <span>
+                x86
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryDevice>
+  </div>
+</ContextSummary>
+`;
+
+exports[`ContextSummary render() should skip non-default named contexts 1`] = `
+<ContextSummary
+  event={
+    Object {
+      "contexts": Object {
+        "chrome": Object {
+          "name": "Chrome",
+          "version": "65.0.3325",
+        },
+        "device": Object {
+          "arch": "x86",
+          "family": "iOS",
+          "model": "iPhone10,5",
+          "type": "device",
+        },
+        "os": Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        },
+        "runtime": Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        },
+      },
+      "id": "",
+      "user": Object {
+        "email": "mail@example.org",
+        "id": "1",
+      },
+    }
+  }
+>
+  <div
+    className="context-summary"
+  >
+    <ContextSummaryUser
+      data={
+        Object {
+          "email": "mail@example.org",
+          "id": "1",
+        }
+      }
+      key="user"
+    >
+      <div
+        className="context-item user"
+      >
+        <UserAvatar
+          className="context-item-icon"
+          gravatar={false}
+          size={48}
+          user={
+            Object {
+              "email": "mail@example.org",
+              "id": "1",
+            }
+          }
+        >
+          <BaseAvatar
+            className="context-item-icon"
+            gravatarId="mail@example.org"
+            hasTooltip={false}
+            letterId="mail@example.org"
+            round={true}
+            size={48}
+            style={Object {}}
+            title="mail@example.org"
+            tooltip="Unknown author (mail@example.org)"
+            type="letter_avatar"
+            uploadId=""
+            uploadPath="avatar"
+          >
+            <Tooltip
+              containerDisplayMode="inline-block"
+              disabled={true}
+              position="top"
+              title="Unknown author (mail@example.org)"
+            >
+              <StyledBaseAvatar
+                className="avatar context-item-icon"
+                gravatarId="mail@example.org"
+                letterId="mail@example.org"
+                loaded={true}
+                round={true}
+                style={
+                  Object {
+                    "height": "48px",
+                    "width": "48px",
+                  }
+                }
+                title="mail@example.org"
+                type="letter_avatar"
+                uploadId=""
+                uploadPath="avatar"
+              >
+                <span
+                  className="avatar context-item-icon css-1mqfg1n-StyledBaseAvatar e147uwb0"
+                  style={
+                    Object {
+                      "height": "48px",
+                      "width": "48px",
+                    }
+                  }
+                  title="mail@example.org"
+                  type="letter_avatar"
+                >
+                  <ForwardRef
+                    displayName="mail@example.org"
+                    identifier="mail@example.org"
+                    round={true}
+                  >
+                    <LetterAvatar
+                      displayName="mail@example.org"
+                      forwardedRef={null}
+                      identifier="mail@example.org"
+                      round={true}
+                    >
+                      <Component
+                        className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                        displayName="mail@example.org"
+                        forwardedRef={null}
+                        identifier="mail@example.org"
+                        round={true}
+                      >
+                        <svg
+                          className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                          viewBox="0 0 120 120"
+                        >
+                          <rect
+                            fill="#4e3fb4"
+                            height="120"
+                            rx="15"
+                            ry="15"
+                            width="120"
+                            x="0"
+                            y="0"
+                          />
+                          <text
+                            fill="#FFFFFF"
+                            fontSize="65"
+                            style={
+                              Object {
+                                "dominantBaseline": "central",
+                              }
+                            }
+                            textAnchor="middle"
+                            x="50%"
+                            y="50%"
+                          >
+                            M
+                          </text>
+                        </svg>
+                      </Component>
+                    </LetterAvatar>
+                  </ForwardRef>
+                </span>
+              </StyledBaseAvatar>
+            </Tooltip>
+          </BaseAvatar>
+        </UserAvatar>
+        <h3
+          data-test-id="user-title"
+        >
+          <AnnotatedText
+            meta={null}
+            value="mail@example.org"
+          >
+            <span>
+              mail@example.org
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e16uy2gu0"
+              >
+                ID:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1"
+            >
+              <span>
+                1
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryUser>
+    <ContextSummaryGeneric
+      data={
+        Object {
+          "name": "Electron",
+          "type": "runtime",
+          "version": "1.7.13",
+        }
+      }
+      key="runtime"
+      unknownTitle="Unknown Runtime"
+    >
+      <div
+        className="context-item electron"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Electron"
+          >
+            <span>
+              Electron
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject e1legfou0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="1.7.13"
+            >
+              <span>
+                1.7.13
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryGeneric>
+    <ContextSummaryOS
+      data={
+        Object {
+          "build": "17E199",
+          "kernel_version": "17.5.0",
+          "name": "Mac OS X",
+          "type": "os",
+          "version": "10.13.4",
+        }
+      }
+      key="os"
+    >
+      <div
+        className="context-item mac-os-x"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <AnnotatedText
+            meta={null}
+            value="Mac OS X"
+          >
+            <span>
+              Mac OS X
+            </span>
+          </AnnotatedText>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject eh6d4ga0"
+              >
+                Version:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="10.13.4"
+            >
+              <span>
+                10.13.4
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryOS>
+    <ContextSummaryDevice
+      data={
+        Object {
+          "arch": "x86",
+          "family": "iOS",
+          "model": "iPhone10,5",
+          "type": "device",
+        }
+      }
+      key="device"
+    >
+      <div
+        className="context-item iphone"
+      >
+        <span
+          className="context-item-icon"
+        />
+        <h3>
+          <DeviceName
+            value="iPhone10,5"
+          >
+            iPhone10,5
+          </DeviceName>
+        </h3>
+        <ParagraphOverflow>
+          <p
+            className="css-engy80-ParagraphOverflow e1kpcezi1"
+          >
+            <Subject>
+              <strong
+                className="css-ntp2p4-Subject ei0ljsy0"
+              >
+                Arch:
+              </strong>
+            </Subject>
+            <AnnotatedText
+              meta={null}
+              value="x86"
+            >
+              <span>
+                x86
+              </span>
+            </AnnotatedText>
+          </p>
+        </ParagraphOverflow>
+      </div>
+    </ContextSummaryDevice>
+  </div>
+</ContextSummary>
+`;
+
+exports[`GpuSummary render() renders name and vendor 1`] = `
+<ContextSummaryGPU
+  data={
+    Object {
+      "name": "Mali-T880",
+      "vendor_name": "ARM",
+      "version": "OpenGL ES 3.2 v1.r22p0-01rel0.f294e54ceb2cb2d81039204fa4b0402e",
+    }
+  }
+>
+  <div
+    className="context-item arm"
+  >
+    <span
+      className="context-item-icon"
+    />
+    <h3>
+      <AnnotatedText
+        meta={null}
+        value="Mali-T880"
+      >
+        <span>
+          Mali-T880
+        </span>
+      </AnnotatedText>
+    </h3>
+    <ParagraphOverflow>
+      <p
+        className="css-engy80-ParagraphOverflow e1kpcezi1"
+      >
+        <Subject>
+          <strong
+            className="css-ntp2p4-Subject e5o4b8w0"
+          >
+            Vendor:
+          </strong>
+        </Subject>
+        <AnnotatedText
+          meta={null}
+          value="ARM"
+        >
+          <span>
+            ARM
+          </span>
+        </AnnotatedText>
+      </p>
+    </ParagraphOverflow>
+  </div>
+</ContextSummaryGPU>
+`;
+
+exports[`GpuSummary render() renders unknown when no vendor 1`] = `
+<ContextSummaryGPU
+  data={
+    Object {
+      "name": "Apple A8 GPU",
+      "type": "gpu",
+    }
+  }
+>
+  <div
+    className="context-item apple-a"
+  >
+    <span
+      className="context-item-icon"
+    />
+    <h3>
+      <AnnotatedText
+        meta={null}
+        value="Apple A8 GPU"
+      >
+        <span>
+          Apple A8 GPU
+        </span>
+      </AnnotatedText>
+    </h3>
+    <ParagraphOverflow>
+      <p
+        className="css-engy80-ParagraphOverflow e1kpcezi1"
+      >
+        <Subject>
+          <strong
+            className="css-ntp2p4-Subject e5o4b8w0"
+          >
+            Vendor:
+          </strong>
+        </Subject>
+        <AnnotatedText
+          value="Unknown"
+        >
+          <span>
+            Unknown
+          </span>
+        </AnnotatedText>
+      </p>
+    </ParagraphOverflow>
+  </div>
+</ContextSummaryGPU>
+`;
+
+exports[`OsSummary render() renders the kernel version when no version 1`] = `
+<ContextSummaryOS
+  data={
+    Object {
+      "build": "17E199",
+      "kernel_version": "17.5.0",
+      "name": "Mac OS X",
+      "type": "os",
+    }
+  }
+>
+  <div
+    className="context-item mac-os-x"
+  >
+    <span
+      className="context-item-icon"
+    />
+    <h3>
+      <AnnotatedText
+        meta={null}
+        value="Mac OS X"
+      >
+        <span>
+          Mac OS X
+        </span>
+      </AnnotatedText>
+    </h3>
+    <ParagraphOverflow>
+      <p
+        className="css-engy80-ParagraphOverflow e1kpcezi1"
+      >
+        <Subject>
+          <strong
+            className="css-ntp2p4-Subject eh6d4ga0"
+          >
+            Kernel:
+          </strong>
+        </Subject>
+        <AnnotatedText
+          meta={null}
+          value="17.5.0"
+        >
+          <span>
+            17.5.0
+          </span>
+        </AnnotatedText>
+      </p>
+    </ParagraphOverflow>
+  </div>
+</ContextSummaryOS>
+`;
+
+exports[`OsSummary render() renders the version string 1`] = `
+<ContextSummaryOS
+  data={
+    Object {
+      "build": "17E199",
+      "kernel_version": "17.5.0",
+      "name": "Mac OS X",
+      "type": "os",
+      "version": "10.13.4",
+    }
+  }
+>
+  <div
+    className="context-item mac-os-x"
+  >
+    <span
+      className="context-item-icon"
+    />
+    <h3>
+      <AnnotatedText
+        meta={null}
+        value="Mac OS X"
+      >
+        <span>
+          Mac OS X
+        </span>
+      </AnnotatedText>
+    </h3>
+    <ParagraphOverflow>
+      <p
+        className="css-engy80-ParagraphOverflow e1kpcezi1"
+      >
+        <Subject>
+          <strong
+            className="css-ntp2p4-Subject eh6d4ga0"
+          >
+            Version:
+          </strong>
+        </Subject>
+        <AnnotatedText
+          meta={null}
+          value="10.13.4"
+        >
+          <span>
+            10.13.4
+          </span>
+        </AnnotatedText>
+      </p>
+    </ParagraphOverflow>
+  </div>
+</ContextSummaryOS>
+`;
+
+exports[`OsSummary render() renders unknown when no version 1`] = `
+<ContextSummaryOS
+  data={
+    Object {
+      "build": "17E199",
+      "name": "Mac OS X",
+      "type": "os",
+    }
+  }
+>
+  <div
+    className="context-item mac-os-x"
+  >
+    <span
+      className="context-item-icon"
+    />
+    <h3>
+      <AnnotatedText
+        meta={null}
+        value="Mac OS X"
+      >
+        <span>
+          Mac OS X
+        </span>
+      </AnnotatedText>
+    </h3>
+    <ParagraphOverflow>
+      <p
+        className="css-engy80-ParagraphOverflow e1kpcezi1"
+      >
+        <Subject>
+          <strong
+            className="css-ntp2p4-Subject eh6d4ga0"
+          >
+            Version:
+          </strong>
+        </Subject>
+        <AnnotatedText
+          value="Unknown"
+        >
+          <span>
+            Unknown
+          </span>
+        </AnnotatedText>
+      </p>
+    </ParagraphOverflow>
+  </div>
+</ContextSummaryOS>
+`;

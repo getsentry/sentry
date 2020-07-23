@@ -43,6 +43,7 @@ describe('OrganizationProjects', function() {
       routerContext
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
 
     expect(wrapper.find('.project-name').text()).toBe('project-slug');
 

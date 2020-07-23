@@ -26,6 +26,7 @@ describe('ApiTokens', function() {
 
     // Should be loading
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with result', function() {
@@ -41,6 +42,7 @@ describe('ApiTokens', function() {
 
     // Should be loading
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('can delete token', function() {

@@ -1,0 +1,86 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EmailField render() renders 1`] = `
+<EmailField
+  disabled={false}
+  hideErrorMessage={false}
+  name="fieldName"
+  required={false}
+>
+  <div
+    className="control-group"
+  >
+    <div
+      className="controls"
+    >
+      <input
+        className="form-control"
+        disabled={false}
+        id="id-fieldName"
+        name="fieldName"
+        onChange={[Function]}
+        required={false}
+        type="email"
+        value=""
+      />
+    </div>
+  </div>
+</EmailField>
+`;
+
+exports[`EmailField render() renders with form context 1`] = `
+<EmailField
+  disabled={false}
+  hideErrorMessage={false}
+  name="fieldName"
+  required={false}
+>
+  <div
+    className="control-group"
+  >
+    <div
+      className="controls"
+    >
+      <input
+        className="form-control"
+        disabled={false}
+        id="id-fieldName"
+        name="fieldName"
+        onChange={[Function]}
+        required={false}
+        type="email"
+        value="foo@example.com"
+      />
+    </div>
+  </div>
+</EmailField>
+`;
+
+exports[`EmailField render() renders with value 1`] = `
+<EmailField
+  disabled={false}
+  hideErrorMessage={false}
+  name="fieldName"
+  required={false}
+  value="foo@example.com"
+>
+  <div
+    className="control-group"
+  >
+    <div
+      className="controls"
+    >
+      <input
+        className="form-control"
+        disabled={false}
+        id="id-fieldName"
+        name="fieldName"
+        onChange={[Function]}
+        required={false}
+        type="email"
+        value="foo@example.com"
+      />
+    </div>
+  </div>
+</EmailField>
+`;

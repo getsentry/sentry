@@ -9,5 +9,6 @@ describe('Checkbox', function() {
     const component = mountWithTheme(<Checkbox onChange={() => {}} />);
 
     expect(component).toSnapshot();
+    expect(component).toMatchSnapshot();
   });
 });

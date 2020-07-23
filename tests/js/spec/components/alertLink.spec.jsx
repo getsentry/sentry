@@ -13,6 +13,7 @@ describe('AlertLink', function() {
       </AlertLink>
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with icon', function() {
@@ -22,5 +23,6 @@ describe('AlertLink', function() {
       </AlertLink>
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

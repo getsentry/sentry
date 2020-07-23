@@ -1,0 +1,1038 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ResolutionBox render() handles default 1`] = `
+<ResolutionBox
+  projectId="1"
+  statusDetails={Object {}}
+>
+  <BannerContainer
+    priority="default"
+  >
+    <div
+      className="css-1xa0gsm-BannerContainer e1z0bih41"
+    >
+      <BannerSummary>
+        <p
+          className="css-1kzjhn2-BannerSummary e1z0bih42"
+        >
+          <StyledIconCheckmark
+            color="green400"
+          >
+            <IconCheckmark
+              className="css-h68xtf-StyledIconCheckmark e11p474b1"
+              color="green400"
+            >
+              <ForwardRef(SvgIcon)
+                className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                color="green400"
+                data-test-id="icon-check-mark"
+              >
+                <svg
+                  className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                  data-test-id="icon-check-mark"
+                  fill="#4DC771"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                  />
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconCheckmark>
+          </StyledIconCheckmark>
+          <span>
+            This issue has been marked as resolved.
+          </span>
+        </p>
+      </BannerSummary>
+    </div>
+  </BannerContainer>
+</ResolutionBox>
+`;
+
+exports[`ResolutionBox render() handles inCommit 1`] = `
+<ResolutionBox
+  projectId="1"
+  statusDetails={
+    Object {
+      "inCommit": Object {
+        "author": Object {
+          "avatar": Object {
+            "avatarType": "letter_avatar",
+            "avatarUuid": null,
+          },
+          "avatarUrl": "https://example.com/avatar.png",
+          "dateJoined": "2018-02-26T23:57:43.766Z",
+          "email": "example@sentry.io",
+          "emails": Array [
+            Object {
+              "email": "example@sentry.io",
+              "id": "231605",
+              "is_verified": true,
+            },
+          ],
+          "has2fa": false,
+          "hasPasswordAuth": true,
+          "id": "224288",
+          "isActive": true,
+          "isManaged": false,
+          "isSuperuser": true,
+          "lastActive": "2018-11-30T21:25:15.222Z",
+          "lastLogin": "2018-11-30T21:18:09.812Z",
+          "name": "Foo Bar",
+          "username": "example@sentry.io",
+        },
+        "dateCreated": "2018-11-30T18:46:31Z",
+        "id": "f7f395d14b2fe29a4e253bf1d3094d61e6ad4434",
+        "message": "(improve) Add Links to Spike-Protection Email (#2408)
+
+* (improve) Add Links to Spike-Protection Email
+
+Users now have access to useful links from the blogs and docs on Spike-protection.
+
+* fixed wording",
+        "repository": Object {
+          "externalSlug": "example/repo-name",
+          "id": "4",
+          "name": "example/repo-name",
+          "provider": "github",
+          "status": "active",
+          "url": "https://github.com/example/repo-name",
+        },
+      },
+    }
+  }
+>
+  <BannerContainer
+    priority="default"
+  >
+    <div
+      className="css-1xa0gsm-BannerContainer e1z0bih41"
+    >
+      <BannerSummary>
+        <p
+          className="css-1kzjhn2-BannerSummary e1z0bih42"
+        >
+          <StyledIconCheckmark
+            color="green400"
+          >
+            <IconCheckmark
+              className="css-h68xtf-StyledIconCheckmark e11p474b1"
+              color="green400"
+            >
+              <ForwardRef(SvgIcon)
+                className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                color="green400"
+                data-test-id="icon-check-mark"
+              >
+                <svg
+                  className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                  data-test-id="icon-check-mark"
+                  fill="#4DC771"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                  />
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconCheckmark>
+          </StyledIconCheckmark>
+          <span>
+            <span
+              key="3"
+            >
+              <span
+                key="0"
+              >
+                This issue has been marked as resolved by 
+              </span>
+              <CommitLink
+                commitId="f7f395d14b2fe29a4e253bf1d3094d61e6ad4434"
+                repository={
+                  Object {
+                    "externalSlug": "example/repo-name",
+                    "id": "4",
+                    "name": "example/repo-name",
+                    "provider": "github",
+                    "status": "active",
+                    "url": "https://github.com/example/repo-name",
+                  }
+                }
+              >
+                <span>
+                  f7f395d
+                </span>
+              </CommitLink>
+              <StyledTimeSince
+                date="2018-11-30T18:46:31Z"
+                suffix="ago"
+              >
+                <TimeSince
+                  className="css-3cfheg-StyledTimeSince e11p474b0"
+                  date="2018-11-30T18:46:31Z"
+                  suffix="ago"
+                >
+                  <time
+                    className="css-3cfheg-StyledTimeSince e11p474b0"
+                    dateTime="2018-11-30T18:46:31.000Z"
+                    title="November 30, 2018 6:46 PM UTC"
+                  >
+                    in a year
+                  </time>
+                </TimeSince>
+              </StyledTimeSince>
+            </span>
+          </span>
+        </p>
+      </BannerSummary>
+    </div>
+  </BannerContainer>
+</ResolutionBox>
+`;
+
+exports[`ResolutionBox render() handles inNextRelease 1`] = `
+<ResolutionBox
+  projectId="1"
+  statusDetails={
+    Object {
+      "inNextRelease": true,
+    }
+  }
+>
+  <BannerContainer
+    priority="default"
+  >
+    <div
+      className="css-1xa0gsm-BannerContainer e1z0bih41"
+    >
+      <BannerSummary>
+        <p
+          className="css-1kzjhn2-BannerSummary e1z0bih42"
+        >
+          <StyledIconCheckmark
+            color="green400"
+          >
+            <IconCheckmark
+              className="css-h68xtf-StyledIconCheckmark e11p474b1"
+              color="green400"
+            >
+              <ForwardRef(SvgIcon)
+                className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                color="green400"
+                data-test-id="icon-check-mark"
+              >
+                <svg
+                  className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                  data-test-id="icon-check-mark"
+                  fill="#4DC771"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                  />
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconCheckmark>
+          </StyledIconCheckmark>
+          <span>
+            This issue has been marked as resolved in the upcoming release.
+          </span>
+        </p>
+      </BannerSummary>
+    </div>
+  </BannerContainer>
+</ResolutionBox>
+`;
+
+exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
+<ResolutionBox
+  projectId="1"
+  statusDetails={
+    Object {
+      "actor": Object {
+        "email": "david@sentry.io",
+        "id": "111",
+        "name": "David Cramer",
+      },
+      "inNextRelease": true,
+    }
+  }
+>
+  <BannerContainer
+    priority="default"
+  >
+    <div
+      className="css-1xa0gsm-BannerContainer e1z0bih41"
+    >
+      <BannerSummary>
+        <p
+          className="css-1kzjhn2-BannerSummary e1z0bih42"
+        >
+          <StyledIconCheckmark
+            color="green400"
+          >
+            <IconCheckmark
+              className="css-h68xtf-StyledIconCheckmark e11p474b1"
+              color="green400"
+            >
+              <ForwardRef(SvgIcon)
+                className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                color="green400"
+                data-test-id="icon-check-mark"
+              >
+                <svg
+                  className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                  data-test-id="icon-check-mark"
+                  fill="#4DC771"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                  />
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconCheckmark>
+          </StyledIconCheckmark>
+          <span>
+            <span
+              key="3"
+            >
+              <strong
+                key="0"
+              >
+                <UserAvatar
+                  className="avatar"
+                  gravatar={false}
+                  size={20}
+                  user={
+                    Object {
+                      "email": "david@sentry.io",
+                      "id": "111",
+                      "name": "David Cramer",
+                    }
+                  }
+                >
+                  <BaseAvatar
+                    className="avatar"
+                    gravatarId="david@sentry.io"
+                    hasTooltip={false}
+                    letterId="david@sentry.io"
+                    round={true}
+                    size={20}
+                    style={Object {}}
+                    title="David Cramer"
+                    tooltip="David Cramer (david@sentry.io)"
+                    type="letter_avatar"
+                    uploadId=""
+                    uploadPath="avatar"
+                  >
+                    <Tooltip
+                      containerDisplayMode="inline-block"
+                      disabled={true}
+                      position="top"
+                      title="David Cramer (david@sentry.io)"
+                    >
+                      <StyledBaseAvatar
+                        className="avatar avatar"
+                        gravatarId="david@sentry.io"
+                        letterId="david@sentry.io"
+                        loaded={true}
+                        round={true}
+                        style={
+                          Object {
+                            "height": "20px",
+                            "width": "20px",
+                          }
+                        }
+                        title="David Cramer"
+                        type="letter_avatar"
+                        uploadId=""
+                        uploadPath="avatar"
+                      >
+                        <span
+                          className="avatar avatar css-1mqfg1n-StyledBaseAvatar e147uwb0"
+                          style={
+                            Object {
+                              "height": "20px",
+                              "width": "20px",
+                            }
+                          }
+                          title="David Cramer"
+                          type="letter_avatar"
+                        >
+                          <ForwardRef
+                            displayName="David Cramer"
+                            identifier="david@sentry.io"
+                            round={true}
+                          >
+                            <LetterAvatar
+                              displayName="David Cramer"
+                              forwardedRef={null}
+                              identifier="david@sentry.io"
+                              round={true}
+                            >
+                              <Component
+                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                displayName="David Cramer"
+                                forwardedRef={null}
+                                identifier="david@sentry.io"
+                                round={true}
+                              >
+                                <svg
+                                  className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#847a8c"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    DC
+                                  </text>
+                                </svg>
+                              </Component>
+                            </LetterAvatar>
+                          </ForwardRef>
+                        </span>
+                      </StyledBaseAvatar>
+                    </Tooltip>
+                  </BaseAvatar>
+                </UserAvatar>
+                <span
+                  style={
+                    Object {
+                      "marginLeft": 5,
+                    }
+                  }
+                >
+                  David Cramer
+                </span>
+              </strong>
+              <span
+                key="1"
+              >
+                 marked this issue as resolved in the upcoming release.
+              </span>
+            </span>
+          </span>
+        </p>
+      </BannerSummary>
+    </div>
+  </BannerContainer>
+</ResolutionBox>
+`;
+
+exports[`ResolutionBox render() handles inRelease 1`] = `
+<ResolutionBox
+  projectId="1"
+  statusDetails={
+    Object {
+      "inRelease": "1.0",
+    }
+  }
+>
+  <BannerContainer
+    priority="default"
+  >
+    <div
+      className="css-1xa0gsm-BannerContainer e1z0bih41"
+    >
+      <BannerSummary>
+        <p
+          className="css-1kzjhn2-BannerSummary e1z0bih42"
+        >
+          <StyledIconCheckmark
+            color="green400"
+          >
+            <IconCheckmark
+              className="css-h68xtf-StyledIconCheckmark e11p474b1"
+              color="green400"
+            >
+              <ForwardRef(SvgIcon)
+                className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                color="green400"
+                data-test-id="icon-check-mark"
+              >
+                <svg
+                  className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                  data-test-id="icon-check-mark"
+                  fill="#4DC771"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                  />
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconCheckmark>
+          </StyledIconCheckmark>
+          <span>
+            <span
+              key="4"
+            >
+              <span
+                key="0"
+              >
+                This issue has been marked as resolved in version 
+              </span>
+              <WithOrganizationMockWrapper
+                key="1"
+                projectId="1"
+                tooltipRawVersion={true}
+                version="1.0"
+              >
+                <withRouter(Version)
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "experiments": Object {},
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  projectId="1"
+                  tooltipRawVersion={true}
+                  version="1.0"
+                >
+                  <Version
+                    organization={
+                      Object {
+                        "access": Array [
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "org:integrations",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        ],
+                        "experiments": Object {},
+                        "features": Array [],
+                        "id": "3",
+                        "name": "Organization Name",
+                        "onboardingTasks": Array [],
+                        "projects": Array [],
+                        "scrapeJavaScript": true,
+                        "slug": "org-slug",
+                        "status": Object {
+                          "id": "active",
+                          "name": "active",
+                        },
+                        "teams": Array [],
+                      }
+                    }
+                    projectId="1"
+                    tooltipRawVersion={true}
+                    version="1.0"
+                  >
+                    <Tooltip
+                      containerDisplayMode="inline-block"
+                      disabled={false}
+                      isHoverable={true}
+                      position="top"
+                      title={
+                        <ForwardRef(render)
+                          onClick={[Function]}
+                        >
+                          <ForwardRef(render)>
+                            1.0
+                          </ForwardRef(render)>
+                          <Clipboard
+                            errorMessage="Error copying to clipboard"
+                            hideMessages={false}
+                            successMessage="Copied to clipboard"
+                            value="1.0"
+                          >
+                            <ForwardRef(render)>
+                              <ForwardRef(IconCopy)
+                                color="white"
+                                size="xs"
+                              />
+                            </ForwardRef(render)>
+                          </Clipboard>
+                        </ForwardRef(render)>
+                      }
+                    >
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <Container
+                              aria-describedby="tooltip-123456"
+                              containerDisplayMode="inline-block"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <span
+                                aria-describedby="tooltip-123456"
+                                className="css-1y4rfpo-Container eowlwvy0"
+                                onBlur={[Function]}
+                                onFocus={[Function]}
+                                onMouseEnter={[Function]}
+                                onMouseLeave={[Function]}
+                              >
+                                <Link
+                                  to={
+                                    Object {
+                                      "pathname": "/organizations/org-slug/releases/1.0/",
+                                      "query": Object {
+                                        "project": "1",
+                                      },
+                                    }
+                                  }
+                                >
+                                  <Anchor
+                                    disabled={true}
+                                    href=""
+                                  >
+                                    <a
+                                      className="css-1b3gnfl-Anchor e18jdd0v0"
+                                      href=""
+                                    >
+                                      <VersionText>
+                                        <span
+                                          className="css-16sjfe2-VersionText e19pxt500"
+                                        >
+                                          1.0
+                                        </span>
+                                      </VersionText>
+                                    </a>
+                                  </Anchor>
+                                </Link>
+                              </span>
+                            </Container>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Tooltip>
+                  </Version>
+                </withRouter(Version)>
+              </WithOrganizationMockWrapper>
+              <span
+                key="2"
+              >
+                .
+              </span>
+            </span>
+          </span>
+        </p>
+      </BannerSummary>
+    </div>
+  </BannerContainer>
+</ResolutionBox>
+`;
+
+exports[`ResolutionBox render() handles inRelease with actor 1`] = `
+<ResolutionBox
+  projectId="1"
+  statusDetails={
+    Object {
+      "actor": Object {
+        "email": "david@sentry.io",
+        "id": "111",
+        "name": "David Cramer",
+      },
+      "inRelease": "1.0",
+    }
+  }
+>
+  <BannerContainer
+    priority="default"
+  >
+    <div
+      className="css-1xa0gsm-BannerContainer e1z0bih41"
+    >
+      <BannerSummary>
+        <p
+          className="css-1kzjhn2-BannerSummary e1z0bih42"
+        >
+          <StyledIconCheckmark
+            color="green400"
+          >
+            <IconCheckmark
+              className="css-h68xtf-StyledIconCheckmark e11p474b1"
+              color="green400"
+            >
+              <ForwardRef(SvgIcon)
+                className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                color="green400"
+                data-test-id="icon-check-mark"
+              >
+                <svg
+                  className="css-h68xtf-StyledIconCheckmark e11p474b1"
+                  data-test-id="icon-check-mark"
+                  fill="#4DC771"
+                  height="16px"
+                  viewBox="0 0 16 16"
+                  width="16px"
+                >
+                  <path
+                    d="M6.19,14.51a.77.77,0,0,1-.57-.25l-4.2-4.8a.75.75,0,0,1,1.13-1l3.56,4.06L13.36,1.82a.75.75,0,0,1,1-.21.76.76,0,0,1,.21,1.05L6.81,14.18a.73.73,0,0,1-.58.33Z"
+                  />
+                </svg>
+              </ForwardRef(SvgIcon)>
+            </IconCheckmark>
+          </StyledIconCheckmark>
+          <span>
+            <span
+              key="5"
+            >
+              <strong
+                key="0"
+              >
+                <UserAvatar
+                  className="avatar"
+                  gravatar={false}
+                  size={20}
+                  user={
+                    Object {
+                      "email": "david@sentry.io",
+                      "id": "111",
+                      "name": "David Cramer",
+                    }
+                  }
+                >
+                  <BaseAvatar
+                    className="avatar"
+                    gravatarId="david@sentry.io"
+                    hasTooltip={false}
+                    letterId="david@sentry.io"
+                    round={true}
+                    size={20}
+                    style={Object {}}
+                    title="David Cramer"
+                    tooltip="David Cramer (david@sentry.io)"
+                    type="letter_avatar"
+                    uploadId=""
+                    uploadPath="avatar"
+                  >
+                    <Tooltip
+                      containerDisplayMode="inline-block"
+                      disabled={true}
+                      position="top"
+                      title="David Cramer (david@sentry.io)"
+                    >
+                      <StyledBaseAvatar
+                        className="avatar avatar"
+                        gravatarId="david@sentry.io"
+                        letterId="david@sentry.io"
+                        loaded={true}
+                        round={true}
+                        style={
+                          Object {
+                            "height": "20px",
+                            "width": "20px",
+                          }
+                        }
+                        title="David Cramer"
+                        type="letter_avatar"
+                        uploadId=""
+                        uploadPath="avatar"
+                      >
+                        <span
+                          className="avatar avatar css-1mqfg1n-StyledBaseAvatar e147uwb0"
+                          style={
+                            Object {
+                              "height": "20px",
+                              "width": "20px",
+                            }
+                          }
+                          title="David Cramer"
+                          type="letter_avatar"
+                        >
+                          <ForwardRef
+                            displayName="David Cramer"
+                            identifier="david@sentry.io"
+                            round={true}
+                          >
+                            <LetterAvatar
+                              displayName="David Cramer"
+                              forwardedRef={null}
+                              identifier="david@sentry.io"
+                              round={true}
+                            >
+                              <Component
+                                className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                displayName="David Cramer"
+                                forwardedRef={null}
+                                identifier="david@sentry.io"
+                                round={true}
+                              >
+                                <svg
+                                  className="css-1oxr9oh-LetterAvatar e12lgfev0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#847a8c"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    DC
+                                  </text>
+                                </svg>
+                              </Component>
+                            </LetterAvatar>
+                          </ForwardRef>
+                        </span>
+                      </StyledBaseAvatar>
+                    </Tooltip>
+                  </BaseAvatar>
+                </UserAvatar>
+                <span
+                  style={
+                    Object {
+                      "marginLeft": 5,
+                    }
+                  }
+                >
+                  David Cramer
+                </span>
+              </strong>
+              <span
+                key="1"
+              >
+                 marked this issue as resolved in version 
+              </span>
+              <WithOrganizationMockWrapper
+                key="2"
+                projectId="1"
+                tooltipRawVersion={true}
+                version="1.0"
+              >
+                <withRouter(Version)
+                  organization={
+                    Object {
+                      "access": Array [
+                        "org:read",
+                        "org:write",
+                        "org:admin",
+                        "org:integrations",
+                        "project:read",
+                        "project:write",
+                        "project:admin",
+                        "team:read",
+                        "team:write",
+                        "team:admin",
+                      ],
+                      "experiments": Object {},
+                      "features": Array [],
+                      "id": "3",
+                      "name": "Organization Name",
+                      "onboardingTasks": Array [],
+                      "projects": Array [],
+                      "scrapeJavaScript": true,
+                      "slug": "org-slug",
+                      "status": Object {
+                        "id": "active",
+                        "name": "active",
+                      },
+                      "teams": Array [],
+                    }
+                  }
+                  projectId="1"
+                  tooltipRawVersion={true}
+                  version="1.0"
+                >
+                  <Version
+                    organization={
+                      Object {
+                        "access": Array [
+                          "org:read",
+                          "org:write",
+                          "org:admin",
+                          "org:integrations",
+                          "project:read",
+                          "project:write",
+                          "project:admin",
+                          "team:read",
+                          "team:write",
+                          "team:admin",
+                        ],
+                        "experiments": Object {},
+                        "features": Array [],
+                        "id": "3",
+                        "name": "Organization Name",
+                        "onboardingTasks": Array [],
+                        "projects": Array [],
+                        "scrapeJavaScript": true,
+                        "slug": "org-slug",
+                        "status": Object {
+                          "id": "active",
+                          "name": "active",
+                        },
+                        "teams": Array [],
+                      }
+                    }
+                    projectId="1"
+                    tooltipRawVersion={true}
+                    version="1.0"
+                  >
+                    <Tooltip
+                      containerDisplayMode="inline-block"
+                      disabled={false}
+                      isHoverable={true}
+                      position="top"
+                      title={
+                        <ForwardRef(render)
+                          onClick={[Function]}
+                        >
+                          <ForwardRef(render)>
+                            1.0
+                          </ForwardRef(render)>
+                          <Clipboard
+                            errorMessage="Error copying to clipboard"
+                            hideMessages={false}
+                            successMessage="Copied to clipboard"
+                            value="1.0"
+                          >
+                            <ForwardRef(render)>
+                              <ForwardRef(IconCopy)
+                                color="white"
+                                size="xs"
+                              />
+                            </ForwardRef(render)>
+                          </Clipboard>
+                        </ForwardRef(render)>
+                      }
+                    >
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <Container
+                              aria-describedby="tooltip-123456"
+                              containerDisplayMode="inline-block"
+                              onBlur={[Function]}
+                              onFocus={[Function]}
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <span
+                                aria-describedby="tooltip-123456"
+                                className="css-1y4rfpo-Container eowlwvy0"
+                                onBlur={[Function]}
+                                onFocus={[Function]}
+                                onMouseEnter={[Function]}
+                                onMouseLeave={[Function]}
+                              >
+                                <Link
+                                  to={
+                                    Object {
+                                      "pathname": "/organizations/org-slug/releases/1.0/",
+                                      "query": Object {
+                                        "project": "1",
+                                      },
+                                    }
+                                  }
+                                >
+                                  <Anchor
+                                    disabled={true}
+                                    href=""
+                                  >
+                                    <a
+                                      className="css-1b3gnfl-Anchor e18jdd0v0"
+                                      href=""
+                                    >
+                                      <VersionText>
+                                        <span
+                                          className="css-16sjfe2-VersionText e19pxt500"
+                                        >
+                                          1.0
+                                        </span>
+                                      </VersionText>
+                                    </a>
+                                  </Anchor>
+                                </Link>
+                              </span>
+                            </Container>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Tooltip>
+                  </Version>
+                </withRouter(Version)>
+              </WithOrganizationMockWrapper>
+              <span
+                key="3"
+              >
+                .
+              </span>
+            </span>
+          </span>
+        </p>
+      </BannerSummary>
+    </div>
+  </BannerContainer>
+</ResolutionBox>
+`;

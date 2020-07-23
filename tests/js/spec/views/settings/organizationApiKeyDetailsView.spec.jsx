@@ -43,5 +43,6 @@ describe('OrganizationApiKeyDetails', function() {
     );
     expect(wrapper.state('loading')).toBe(false);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

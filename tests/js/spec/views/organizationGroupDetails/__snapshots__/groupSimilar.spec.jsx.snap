@@ -1,0 +1,2100 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Issues Similar View renders initially with loading component 1`] = `
+<GroupGroupingView
+  location={Object {}}
+  params={
+    Object {
+      "groupId": "group-id",
+      "orgId": "org-slug",
+    }
+  }
+  project={
+    Object {
+      "environments": Array [],
+      "features": Array [
+        "similarity-view",
+      ],
+      "hasAccess": true,
+      "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
+      "name": "Project Name",
+      "slug": "project-slug",
+      "teams": Array [],
+    }
+  }
+>
+  <div>
+    <div
+      className="alert alert-block alert-warning"
+    >
+      <strong>
+        Warning
+        :
+      </strong>
+       
+      This is an experimental feature. Data may not be immediately available while we process merges.
+    </div>
+    <profiler(LoadingIndicator)>
+      <Profiler
+        disabled={false}
+        includeRender={true}
+        includeUpdates={false}
+        name="LoadingIndicator"
+        updateProps={Object {}}
+      >
+        <LoadingIndicator>
+          <div
+            className="loading"
+          >
+            <div
+              className="loading-indicator"
+              style={Object {}}
+            />
+            <div
+              className="loading-message"
+            />
+          </div>
+        </LoadingIndicator>
+      </Profiler>
+    </profiler(LoadingIndicator)>
+  </div>
+</GroupGroupingView>
+`;
+
+exports[`Issues Similar View renders with mocked data 1`] = `
+<GroupGroupingView
+  location={Object {}}
+  params={
+    Object {
+      "groupId": "group-id",
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+  project={
+    Object {
+      "environments": Array [],
+      "features": Array [
+        "similarity-view",
+      ],
+      "hasAccess": true,
+      "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
+      "name": "Project Name",
+      "slug": "project-slug",
+      "teams": Array [],
+    }
+  }
+  query=""
+>
+  <div>
+    <div
+      className="alert alert-block alert-warning"
+    >
+      <strong>
+        Warning
+        :
+      </strong>
+       
+      This is an experimental feature. Data may not be immediately available while we process merges.
+    </div>
+    <SimilarList
+      filteredItems={
+        Array [
+          Object {
+            "aggregate": Object {
+              "exception": 0.375,
+            },
+            "isBelowThreshold": true,
+            "issue": Object {
+              "annotations": Array [],
+              "assignedTo": null,
+              "count": "2",
+              "culprit": "Constructor.onSimilarUpdate(app/views/groupSimilar/groupingMergedList)",
+              "firstSeen": "2017-07-25T02:21:52Z",
+              "hasSeen": false,
+              "id": "274",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": true,
+              "lastSeen": "2017-07-25T02:22:19Z",
+              "level": "error",
+              "logger": "javascript",
+              "metadata": Object {
+                "type": "ReferenceError",
+                "value": "unmergedList is not defined",
+              },
+              "numComments": 0,
+              "permalink": "http://localhost:8000/sentry/project-slug/issues/274/",
+              "project": Object {
+                "id": "123",
+                "name": "Internal",
+                "slug": "project-slug",
+              },
+              "shareId": "312e323734",
+              "shortId": "INTERNAL-4K",
+              "status": "unresolved",
+              "statusDetails": Object {},
+              "subscriptionDetails": null,
+              "title": "ReferenceError: unmergedList is not defined",
+              "type": "error",
+              "userCount": 1,
+            },
+            "score": Object {
+              "exception:stacktrace:pairs": 0.375,
+            },
+            "scoresByInterface": Object {
+              "exception": Array [
+                Array [
+                  "exception:stacktrace:pairs",
+                  0.375,
+                ],
+              ],
+            },
+          },
+          Object {
+            "aggregate": Object {
+              "exception": 0.01264,
+            },
+            "isBelowThreshold": true,
+            "issue": Object {
+              "annotations": Array [],
+              "assignedTo": null,
+              "count": "1",
+              "culprit": "size(app/views/groupSimilar/groupingMergedList)",
+              "firstSeen": "2017-07-25T02:20:35Z",
+              "hasSeen": true,
+              "id": "275",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": true,
+              "lastSeen": "2017-07-25T02:20:35Z",
+              "level": "error",
+              "logger": "javascript",
+              "metadata": Object {
+                "type": "TypeError",
+                "value": "Cannot read property 'size' of undefined",
+              },
+              "numComments": 0,
+              "permalink": "http://localhost:8000/sentry/project-slug/issues/275/",
+              "project": Object {
+                "id": "123",
+                "name": "Internal",
+                "slug": "project-slug",
+              },
+              "shareId": "312e323735",
+              "shortId": "INTERNAL-4M",
+              "status": "unresolved",
+              "statusDetails": Object {},
+              "subscriptionDetails": null,
+              "title": "TypeError: Cannot read property 'size' of undefined",
+              "type": "error",
+              "userCount": 1,
+            },
+            "score": Object {
+              "exception:stacktrace:pairs": 0.01264,
+            },
+            "scoresByInterface": Object {
+              "exception": Array [
+                Array [
+                  "exception:stacktrace:pairs",
+                  0.01264,
+                ],
+              ],
+            },
+          },
+          Object {
+            "aggregate": Object {
+              "exception": 0.0008615,
+            },
+            "isBelowThreshold": true,
+            "issue": Object {
+              "annotations": Array [],
+              "assignedTo": Object {
+                "avatar": Object {
+                  "avatarType": "letter_avatar",
+                  "avatarUuid": null,
+                },
+                "avatarUrl": "https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm",
+                "dateJoined": "2017-06-26T21:02:13.264Z",
+                "email": "billy@sentry.io",
+                "emails": Array [
+                  Object {
+                    "email": "billy@sentry.io",
+                    "id": "1",
+                    "is_verified": false,
+                  },
+                ],
+                "has2fa": false,
+                "id": "1",
+                "identities": Array [],
+                "isActive": true,
+                "isManaged": false,
+                "lastActive": "2017-07-26T18:28:19.391Z",
+                "lastLogin": "2017-07-25T01:00:50.473Z",
+                "name": "billy@sentry.io",
+                "username": "billy@sentry.io",
+              },
+              "count": "15",
+              "culprit": "stale(app/views/groupDetails)",
+              "firstSeen": "2017-07-25T02:20:35Z",
+              "hasSeen": true,
+              "id": "216",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": true,
+              "lastSeen": "2017-07-25T23:21:19Z",
+              "level": "error",
+              "logger": "javascript",
+              "metadata": Object {
+                "type": "TypeError",
+                "value": "Cannot read property 'stale' of undefined",
+              },
+              "numComments": 0,
+              "permalink": "http://localhost:8000/sentry/project-slug/issues/216/",
+              "project": Object {
+                "id": "123",
+                "name": "Internal",
+                "slug": "project-slug",
+              },
+              "shareId": "312e323136",
+              "shortId": "INTERNAL-2S",
+              "status": "unresolved",
+              "statusDetails": Object {},
+              "subscriptionDetails": Object {
+                "reason": "changed_status",
+              },
+              "title": "TypeError: Cannot read property 'stale' of undefined",
+              "type": "error",
+              "userCount": 1,
+            },
+            "score": Object {
+              "exception:stacktrace:application-chunks": 0.000235,
+              "exception:stacktrace:pairs": 0.001488,
+            },
+            "scoresByInterface": Object {
+              "exception": Array [
+                Array [
+                  "exception:stacktrace:application-chunks",
+                  0.000235,
+                ],
+                Array [
+                  "exception:stacktrace:pairs",
+                  0.001488,
+                ],
+              ],
+            },
+          },
+        ]
+      }
+      groupId="group-id"
+      items={
+        Array [
+          Object {
+            "aggregate": Object {
+              "exception": 0.875,
+            },
+            "isBelowThreshold": false,
+            "issue": Object {
+              "annotations": Array [],
+              "assignedTo": null,
+              "count": "90",
+              "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+              "firstSeen": "2017-07-10T18:32:43Z",
+              "hasSeen": false,
+              "id": "271",
+              "isBookmarked": false,
+              "isPublic": false,
+              "isSubscribed": true,
+              "lastSeen": "2017-07-24T23:41:44Z",
+              "level": "error",
+              "logger": "javascript",
+              "metadata": Object {
+                "type": "TypeError",
+                "value": "Cannot read property 'length' of undefined",
+              },
+              "numComments": 0,
+              "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
+              "project": Object {
+                "id": "123",
+                "name": "Internal",
+                "slug": "project-slug",
+              },
+              "shareId": "312e323731",
+              "shortId": "INTERNAL-4G",
+              "status": "resolved",
+              "statusDetails": Object {},
+              "subscriptionDetails": null,
+              "title": "TypeError: Cannot read property 'length' of undefined",
+              "type": "error",
+              "userCount": 3,
+            },
+            "score": Object {
+              "exception:stacktrace:pairs": 0.875,
+            },
+            "scoresByInterface": Object {
+              "exception": Array [
+                Array [
+                  "exception:stacktrace:pairs",
+                  0.875,
+                ],
+              ],
+            },
+          },
+        ]
+      }
+      onMerge={[Function]}
+      orgId="org-slug"
+    >
+      <div
+        className="similar-list-container"
+      >
+        <SpreadLayout
+          className="similar-list-header"
+        >
+          <div
+            className="spread-layout similar-list-header center"
+          >
+            <h2>
+              <span>
+                Similar Issues
+              </span>
+              <QueryCount
+                count={4}
+              >
+                <div
+                  className="query-count inline"
+                >
+                  <span>
+                    (
+                  </span>
+                  <span
+                    className="query-count-value"
+                  >
+                    4
+                  </span>
+                  <span>
+                    )
+                  </span>
+                </div>
+              </QueryCount>
+            </h2>
+            <StyledSimilarSpectrum>
+              <SimilarSpectrum
+                className="css-4unnmj-StyledSimilarSpectrum enx6bph0"
+              >
+                <div
+                  className="css-4unnmj-StyledSimilarSpectrum enx6bph0"
+                >
+                  <span>
+                    Similar
+                  </span>
+                  <SpectrumItem
+                    colorIndex={4}
+                  >
+                    <span
+                      className="css-h1r3gt-SpectrumItem enx6bph1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={3}
+                  >
+                    <span
+                      className="css-1j6o86h-SpectrumItem enx6bph1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={2}
+                  >
+                    <span
+                      className="css-1pl5ll-SpectrumItem enx6bph1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={1}
+                  >
+                    <span
+                      className="css-w9x78l-SpectrumItem enx6bph1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={0}
+                  >
+                    <span
+                      className="css-arcd4a-SpectrumItem enx6bph1"
+                    />
+                  </SpectrumItem>
+                  <span>
+                    Not Similar
+                  </span>
+                </div>
+              </SimilarSpectrum>
+            </StyledSimilarSpectrum>
+          </div>
+        </SpreadLayout>
+        <SimilarToolbar
+          onMerge={[Function]}
+        >
+          <Toolbar
+            className="similar-toolbar"
+          >
+            <div
+              className="similar-toolbar css-jryrm5-Toolbar e1pdx9kr0"
+            >
+              <SpreadLayout
+                responsive={true}
+              >
+                <div
+                  className="spread-layout center allow-responsive"
+                >
+                  <FlowLayout
+                    style={
+                      Object {
+                        "flex": 1,
+                      }
+                    }
+                    truncate={true}
+                  >
+                    <div
+                      className="css-dk1sds-FlowLayout e1uibv5p0"
+                      style={
+                        Object {
+                          "flex": 1,
+                        }
+                      }
+                    >
+                      <FlowLayout
+                        truncate={true}
+                      >
+                        <div
+                          className="css-dk1sds-FlowLayout e1uibv5p0"
+                        >
+                          <div
+                            className="similar-toolbar-actions"
+                          >
+                            <LinkWithConfirmation
+                              className="btn btn-sm btn-default"
+                              data-test-id="merge"
+                              disabled={true}
+                              message="Are you sure you want to merge these issues?"
+                              onConfirm={[Function]}
+                              title="Merging 0 issues"
+                            >
+                              <Confirm
+                                cancelText="Cancel"
+                                confirmText="Confirm"
+                                data-test-id="merge"
+                                disableConfirmButton={false}
+                                disabled={true}
+                                message="Are you sure you want to merge these issues?"
+                                onConfirm={[Function]}
+                                priority="primary"
+                                stopPropagation={false}
+                              >
+                                <a
+                                  className="btn btn-sm btn-default disabled"
+                                  disabled={true}
+                                  href="#"
+                                  onClick={[Function]}
+                                  title="Merging 0 issues"
+                                >
+                                  Merge
+                                   (
+                                  0
+                                  )
+                                </a>
+                                <Modal
+                                  animation={false}
+                                  autoFocus={true}
+                                  backdrop={true}
+                                  bsClass="modal"
+                                  dialogComponentClass={[Function]}
+                                  enforceFocus={true}
+                                  keyboard={true}
+                                  manager={
+                                    ModalManager {
+                                      "add": [Function],
+                                      "containers": Array [],
+                                      "data": Array [],
+                                      "handleContainerOverflow": true,
+                                      "hideSiblingNodes": true,
+                                      "isTopModal": [Function],
+                                      "modals": Array [],
+                                      "remove": [Function],
+                                    }
+                                  }
+                                  onHide={[Function]}
+                                  renderBackdrop={[Function]}
+                                  restoreFocus={true}
+                                  show={false}
+                                >
+                                  <Modal
+                                    autoFocus={true}
+                                    backdrop={true}
+                                    backdropClassName="modal-backdrop"
+                                    containerClassName="modal-open"
+                                    enforceFocus={true}
+                                    keyboard={true}
+                                    manager={
+                                      ModalManager {
+                                        "add": [Function],
+                                        "containers": Array [],
+                                        "data": Array [],
+                                        "handleContainerOverflow": true,
+                                        "hideSiblingNodes": true,
+                                        "isTopModal": [Function],
+                                        "modals": Array [],
+                                        "remove": [Function],
+                                      }
+                                    }
+                                    onEntering={[Function]}
+                                    onExited={[Function]}
+                                    onHide={[Function]}
+                                    renderBackdrop={[Function]}
+                                    restoreFocus={true}
+                                    show={false}
+                                  />
+                                </Modal>
+                              </Confirm>
+                            </LinkWithConfirmation>
+                          </div>
+                        </div>
+                      </FlowLayout>
+                    </div>
+                  </FlowLayout>
+                  <div
+                    className="similar-score-columns"
+                  >
+                    <ToolbarHeader
+                      className="similar-score-column event-count-header"
+                    >
+                      <div
+                        className="similar-score-column event-count-header css-1rwwmm2-ToolbarHeader e8n6jt30"
+                      >
+                        Events
+                      </div>
+                    </ToolbarHeader>
+                    <ToolbarHeader
+                      className="similar-score-column event-similar-header"
+                    >
+                      <div
+                        className="similar-score-column event-similar-header css-1rwwmm2-ToolbarHeader e8n6jt30"
+                      >
+                        Exception
+                      </div>
+                    </ToolbarHeader>
+                    <ToolbarHeader
+                      className="similar-score-column event-similar-header"
+                    >
+                      <div
+                        className="similar-score-column event-similar-header css-1rwwmm2-ToolbarHeader e8n6jt30"
+                      >
+                        Message
+                      </div>
+                    </ToolbarHeader>
+                  </div>
+                </div>
+              </SpreadLayout>
+            </div>
+          </Toolbar>
+        </SimilarToolbar>
+        <div
+          className="similar-list"
+        >
+          <SimilarIssueItem
+            aggregate={
+              Object {
+                "exception": 0.875,
+              }
+            }
+            groupId="group-id"
+            isBelowThreshold={false}
+            issue={
+              Object {
+                "annotations": Array [],
+                "assignedTo": null,
+                "count": "90",
+                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                "firstSeen": "2017-07-10T18:32:43Z",
+                "hasSeen": false,
+                "id": "271",
+                "isBookmarked": false,
+                "isPublic": false,
+                "isSubscribed": true,
+                "lastSeen": "2017-07-24T23:41:44Z",
+                "level": "error",
+                "logger": "javascript",
+                "metadata": Object {
+                  "type": "TypeError",
+                  "value": "Cannot read property 'length' of undefined",
+                },
+                "numComments": 0,
+                "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
+                "project": Object {
+                  "id": "123",
+                  "name": "Internal",
+                  "slug": "project-slug",
+                },
+                "shareId": "312e323731",
+                "shortId": "INTERNAL-4G",
+                "status": "resolved",
+                "statusDetails": Object {},
+                "subscriptionDetails": null,
+                "title": "TypeError: Cannot read property 'length' of undefined",
+                "type": "error",
+                "userCount": 3,
+              }
+            }
+            key="271"
+            orgId="org-slug"
+            score={
+              Object {
+                "exception:stacktrace:pairs": 0.875,
+              }
+            }
+            scoresByInterface={
+              Object {
+                "exception": Array [
+                  Array [
+                    "exception:stacktrace:pairs",
+                    0.875,
+                  ],
+                ],
+              }
+            }
+          >
+            <SpreadLayout
+              className="group similar-issue isResolved"
+              data-test-id="similar-item-row"
+              onClick={[Function]}
+              responsive={true}
+            >
+              <div
+                className="spread-layout group similar-issue isResolved center allow-responsive"
+                data-test-id="similar-item-row"
+                onClick={[Function]}
+              >
+                <FlowLayout
+                  truncate={true}
+                >
+                  <div
+                    className="css-dk1sds-FlowLayout e1uibv5p0"
+                  >
+                    <FlowLayout
+                      truncate={true}
+                    >
+                      <div
+                        className="css-dk1sds-FlowLayout e1uibv5p0"
+                      >
+                        <div
+                          className="action-column"
+                        >
+                          <Checkbox
+                            checked={false}
+                            id="271"
+                            onChange={[Function]}
+                            value="271"
+                          >
+                            <input
+                              checked={false}
+                              id="271"
+                              onChange={[Function]}
+                              type="checkbox"
+                              value="271"
+                            />
+                          </Checkbox>
+                        </div>
+                        <div
+                          className="event-details"
+                          style={
+                            Object {
+                              "flex": 1,
+                            }
+                          }
+                        >
+                          <withRouter(EventOrGroupHeader)
+                            data={
+                              Object {
+                                "annotations": Array [],
+                                "assignedTo": null,
+                                "count": "90",
+                                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                "firstSeen": "2017-07-10T18:32:43Z",
+                                "hasSeen": false,
+                                "id": "271",
+                                "isBookmarked": false,
+                                "isPublic": false,
+                                "isSubscribed": true,
+                                "lastSeen": "2017-07-24T23:41:44Z",
+                                "level": "error",
+                                "logger": "javascript",
+                                "metadata": Object {
+                                  "type": "TypeError",
+                                  "value": "Cannot read property 'length' of undefined",
+                                },
+                                "numComments": 0,
+                                "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
+                                "project": Object {
+                                  "id": "123",
+                                  "name": "Internal",
+                                  "slug": "project-slug",
+                                },
+                                "shareId": "312e323731",
+                                "shortId": "INTERNAL-4G",
+                                "status": "resolved",
+                                "statusDetails": Object {},
+                                "subscriptionDetails": null,
+                                "title": "TypeError: Cannot read property 'length' of undefined",
+                                "type": "error",
+                                "userCount": 3,
+                              }
+                            }
+                          >
+                            <EventOrGroupHeader
+                              data={
+                                Object {
+                                  "annotations": Array [],
+                                  "assignedTo": null,
+                                  "count": "90",
+                                  "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                  "firstSeen": "2017-07-10T18:32:43Z",
+                                  "hasSeen": false,
+                                  "id": "271",
+                                  "isBookmarked": false,
+                                  "isPublic": false,
+                                  "isSubscribed": true,
+                                  "lastSeen": "2017-07-24T23:41:44Z",
+                                  "level": "error",
+                                  "logger": "javascript",
+                                  "metadata": Object {
+                                    "type": "TypeError",
+                                    "value": "Cannot read property 'length' of undefined",
+                                  },
+                                  "numComments": 0,
+                                  "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
+                                  "project": Object {
+                                    "id": "123",
+                                    "name": "Internal",
+                                    "slug": "project-slug",
+                                  },
+                                  "shareId": "312e323731",
+                                  "shortId": "INTERNAL-4G",
+                                  "status": "resolved",
+                                  "statusDetails": Object {},
+                                  "subscriptionDetails": null,
+                                  "title": "TypeError: Cannot read property 'length' of undefined",
+                                  "type": "error",
+                                  "userCount": 3,
+                                }
+                              }
+                              includeLink={true}
+                              location={
+                                Object {
+                                  "query": Object {},
+                                }
+                              }
+                              params={
+                                Object {
+                                  "groupId": "group-id",
+                                  "orgId": "org-slug",
+                                  "projectId": "project-slug",
+                                }
+                              }
+                              router={
+                                Object {
+                                  "createHref": [MockFunction] {
+                                    "calls": Array [
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/271/",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/271/",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/271/",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/271/",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                    ],
+                                    "results": Array [
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                    ],
+                                  },
+                                  "go": [MockFunction],
+                                  "goBack": [MockFunction],
+                                  "goForward": [MockFunction],
+                                  "isActive": [MockFunction],
+                                  "listen": [MockFunction],
+                                  "location": Object {
+                                    "query": Object {},
+                                  },
+                                  "params": Object {
+                                    "groupId": "group-id",
+                                    "orgId": "org-slug",
+                                    "projectId": "project-slug",
+                                  },
+                                  "push": [MockFunction],
+                                  "replace": [MockFunction],
+                                  "setRouteLeaveHook": [MockFunction],
+                                }
+                              }
+                              size="normal"
+                            >
+                              <div
+                                data-test-id="event-issue-header"
+                              >
+                                <Title
+                                  size="normal"
+                                >
+                                  <div
+                                    className="css-xfcjv1-Title-truncateStyles eex8od0"
+                                    size="normal"
+                                  >
+                                    <GlobalSelectionLink
+                                      data-test-id="resolved-issue"
+                                      style={
+                                        Object {
+                                          "textDecoration": "line-through",
+                                        }
+                                      }
+                                      to={
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/271/",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
+                                        }
+                                      }
+                                    >
+                                      <Link
+                                        data-test-id="resolved-issue"
+                                        onlyActiveOnIndex={false}
+                                        style={
+                                          Object {
+                                            "textDecoration": "line-through",
+                                          }
+                                        }
+                                        to={
+                                          Object {
+                                            "pathname": "/organizations/org-slug/issues/271/",
+                                            "query": Object {
+                                              "_allp": 1,
+                                              "query": undefined,
+                                            },
+                                          }
+                                        }
+                                      >
+                                        <a
+                                          data-test-id="resolved-issue"
+                                          onClick={[Function]}
+                                          style={
+                                            Object {
+                                              "textDecoration": "line-through",
+                                            }
+                                          }
+                                        >
+                                          <GroupLevel
+                                            level="error"
+                                          >
+                                            <div
+                                              className="css-10kyqk5-GroupLevel eex8od4"
+                                            >
+                                              <Tooltip
+                                                containerDisplayMode="inline-block"
+                                                position="top"
+                                                title="Error level: Error"
+                                              >
+                                                <Manager>
+                                                  <Reference>
+                                                    <InnerReference
+                                                      setReferenceNode={[Function]}
+                                                    >
+                                                      <span
+                                                        aria-describedby="tooltip-123456"
+                                                        onBlur={[Function]}
+                                                        onFocus={[Function]}
+                                                        onMouseEnter={[Function]}
+                                                        onMouseLeave={[Function]}
+                                                      />
+                                                    </InnerReference>
+                                                  </Reference>
+                                                </Manager>
+                                              </Tooltip>
+                                            </div>
+                                          </GroupLevel>
+                                          <EventOrGroupTitle
+                                            data={
+                                              Object {
+                                                "annotations": Array [],
+                                                "assignedTo": null,
+                                                "count": "90",
+                                                "culprit": "length(app/views/groupSimilar/groupSimilarView)",
+                                                "firstSeen": "2017-07-10T18:32:43Z",
+                                                "hasSeen": false,
+                                                "id": "271",
+                                                "isBookmarked": false,
+                                                "isPublic": false,
+                                                "isSubscribed": true,
+                                                "lastSeen": "2017-07-24T23:41:44Z",
+                                                "level": "error",
+                                                "logger": "javascript",
+                                                "metadata": Object {
+                                                  "type": "TypeError",
+                                                  "value": "Cannot read property 'length' of undefined",
+                                                },
+                                                "numComments": 0,
+                                                "permalink": "http://localhost:8000/sentry/project-slug/issues/271/",
+                                                "project": Object {
+                                                  "id": "123",
+                                                  "name": "Internal",
+                                                  "slug": "project-slug",
+                                                },
+                                                "shareId": "312e323731",
+                                                "shortId": "INTERNAL-4G",
+                                                "status": "resolved",
+                                                "statusDetails": Object {},
+                                                "subscriptionDetails": null,
+                                                "title": "TypeError: Cannot read property 'length' of undefined",
+                                                "type": "error",
+                                                "userCount": 3,
+                                              }
+                                            }
+                                            includeLink={true}
+                                            location={
+                                              Object {
+                                                "query": Object {},
+                                              }
+                                            }
+                                            params={
+                                              Object {
+                                                "groupId": "group-id",
+                                                "orgId": "org-slug",
+                                                "projectId": "project-slug",
+                                              }
+                                            }
+                                            router={
+                                              Object {
+                                                "createHref": [MockFunction] {
+                                                  "calls": Array [
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/271/",
+                                                        "query": Object {
+                                                          "_allp": 1,
+                                                          "query": undefined,
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/",
+                                                        "query": Object {
+                                                          "query": "logger:javascript",
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/271/",
+                                                        "query": Object {
+                                                          "_allp": 1,
+                                                          "query": undefined,
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/",
+                                                        "query": Object {
+                                                          "query": "logger:javascript",
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/271/",
+                                                        "query": Object {
+                                                          "_allp": 1,
+                                                          "query": undefined,
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/",
+                                                        "query": Object {
+                                                          "query": "logger:javascript",
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/271/",
+                                                        "query": Object {
+                                                          "_allp": 1,
+                                                          "query": undefined,
+                                                        },
+                                                      },
+                                                    ],
+                                                    Array [
+                                                      Object {
+                                                        "pathname": "/organizations/org-slug/issues/",
+                                                        "query": Object {
+                                                          "query": "logger:javascript",
+                                                        },
+                                                      },
+                                                    ],
+                                                  ],
+                                                  "results": Array [
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                    Object {
+                                                      "type": "return",
+                                                      "value": undefined,
+                                                    },
+                                                  ],
+                                                },
+                                                "go": [MockFunction],
+                                                "goBack": [MockFunction],
+                                                "goForward": [MockFunction],
+                                                "isActive": [MockFunction],
+                                                "listen": [MockFunction],
+                                                "location": Object {
+                                                  "query": Object {},
+                                                },
+                                                "params": Object {
+                                                  "groupId": "group-id",
+                                                  "orgId": "org-slug",
+                                                  "projectId": "project-slug",
+                                                },
+                                                "push": [MockFunction],
+                                                "replace": [MockFunction],
+                                                "setRouteLeaveHook": [MockFunction],
+                                              }
+                                            }
+                                            size="normal"
+                                            style={
+                                              Object {
+                                                "fontWeight": 600,
+                                              }
+                                            }
+                                          >
+                                            <span
+                                              style={
+                                                Object {
+                                                  "fontWeight": 600,
+                                                }
+                                              }
+                                            >
+                                              <GuideAnchor
+                                                disabled={true}
+                                                position="bottom"
+                                                target="issue_title"
+                                              >
+                                                <span>
+                                                  TypeError
+                                                </span>
+                                              </GuideAnchor>
+                                              <Spacer>
+                                                <span
+                                                  style={
+                                                    Object {
+                                                      "display": "inline-block",
+                                                      "width": 10,
+                                                    }
+                                                  }
+                                                >
+                                                   
+                                                </span>
+                                              </Spacer>
+                                              <em
+                                                title="length(app/views/groupSimilar/groupSimilarView)"
+                                              >
+                                                length(app/views/groupSimilar/groupSimilarView)
+                                              </em>
+                                              <br />
+                                            </span>
+                                          </EventOrGroupTitle>
+                                        </a>
+                                      </Link>
+                                    </GlobalSelectionLink>
+                                  </div>
+                                </Title>
+                                <Message
+                                  size="normal"
+                                >
+                                  <div
+                                    className="css-1ls6xj9-Message-truncateStyles eex8od2"
+                                    size="normal"
+                                  >
+                                    Cannot read property 'length' of undefined
+                                  </div>
+                                </Message>
+                              </div>
+                            </EventOrGroupHeader>
+                          </withRouter(EventOrGroupHeader)>
+                          <withRouter(EventOrGroupExtraDetails)
+                            annotations={Array []}
+                            assignedTo={null}
+                            count="90"
+                            culprit="length(app/views/groupSimilar/groupSimilarView)"
+                            firstSeen="2017-07-10T18:32:43Z"
+                            hasSeen={false}
+                            id="271"
+                            isBookmarked={false}
+                            isPublic={false}
+                            isSubscribed={true}
+                            lastSeen={null}
+                            level="error"
+                            logger="javascript"
+                            metadata={
+                              Object {
+                                "type": "TypeError",
+                                "value": "Cannot read property 'length' of undefined",
+                              }
+                            }
+                            numComments={0}
+                            permalink="http://localhost:8000/sentry/project-slug/issues/271/"
+                            project={
+                              Object {
+                                "id": "123",
+                                "name": "Internal",
+                                "slug": "project-slug",
+                              }
+                            }
+                            shareId="312e323731"
+                            shortId="INTERNAL-4G"
+                            showAssignee={true}
+                            status="resolved"
+                            statusDetails={Object {}}
+                            subscriptionDetails={null}
+                            title="TypeError: Cannot read property 'length' of undefined"
+                            type="error"
+                            userCount={3}
+                          >
+                            <EventOrGroupExtraDetails
+                              annotations={Array []}
+                              assignedTo={null}
+                              count="90"
+                              culprit="length(app/views/groupSimilar/groupSimilarView)"
+                              firstSeen="2017-07-10T18:32:43Z"
+                              hasSeen={false}
+                              id="271"
+                              isBookmarked={false}
+                              isPublic={false}
+                              isSubscribed={true}
+                              lastSeen={null}
+                              level="error"
+                              location={
+                                Object {
+                                  "query": Object {},
+                                }
+                              }
+                              logger="javascript"
+                              metadata={
+                                Object {
+                                  "type": "TypeError",
+                                  "value": "Cannot read property 'length' of undefined",
+                                }
+                              }
+                              numComments={0}
+                              params={
+                                Object {
+                                  "groupId": "group-id",
+                                  "orgId": "org-slug",
+                                  "projectId": "project-slug",
+                                }
+                              }
+                              permalink="http://localhost:8000/sentry/project-slug/issues/271/"
+                              project={
+                                Object {
+                                  "id": "123",
+                                  "name": "Internal",
+                                  "slug": "project-slug",
+                                }
+                              }
+                              router={
+                                Object {
+                                  "createHref": [MockFunction] {
+                                    "calls": Array [
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/271/",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/271/",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/271/",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/271/",
+                                          "query": Object {
+                                            "_allp": 1,
+                                            "query": undefined,
+                                          },
+                                        },
+                                      ],
+                                      Array [
+                                        Object {
+                                          "pathname": "/organizations/org-slug/issues/",
+                                          "query": Object {
+                                            "query": "logger:javascript",
+                                          },
+                                        },
+                                      ],
+                                    ],
+                                    "results": Array [
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                      Object {
+                                        "type": "return",
+                                        "value": undefined,
+                                      },
+                                    ],
+                                  },
+                                  "go": [MockFunction],
+                                  "goBack": [MockFunction],
+                                  "goForward": [MockFunction],
+                                  "isActive": [MockFunction],
+                                  "listen": [MockFunction],
+                                  "location": Object {
+                                    "query": Object {},
+                                  },
+                                  "params": Object {
+                                    "groupId": "group-id",
+                                    "orgId": "org-slug",
+                                    "projectId": "project-slug",
+                                  },
+                                  "push": [MockFunction],
+                                  "replace": [MockFunction],
+                                  "setRouteLeaveHook": [MockFunction],
+                                }
+                              }
+                              shareId="312e323731"
+                              shortId="INTERNAL-4G"
+                              showAssignee={true}
+                              status="resolved"
+                              statusDetails={Object {}}
+                              subscriptionDetails={null}
+                              title="TypeError: Cannot read property 'length' of undefined"
+                              type="error"
+                              userCount={3}
+                            >
+                              <GroupExtra>
+                                <div
+                                  className="css-q0ziu0-GroupExtra eec9orn0"
+                                >
+                                  <GroupShortId
+                                    avatar={
+                                      <ProjectBadge
+                                        avatarSize={14}
+                                        hideName={true}
+                                        project={
+                                          Object {
+                                            "id": "123",
+                                            "name": "Internal",
+                                            "slug": "project-slug",
+                                          }
+                                        }
+                                      />
+                                    }
+                                    shortId="INTERNAL-4G"
+                                  >
+                                    <ShortId
+                                      avatar={
+                                        <ProjectBadge
+                                          avatarSize={14}
+                                          hideName={true}
+                                          project={
+                                            Object {
+                                              "id": "123",
+                                              "name": "Internal",
+                                              "slug": "project-slug",
+                                            }
+                                          }
+                                        />
+                                      }
+                                      className="css-1fj2cf7-GroupShortId eec9orn3"
+                                      shortId="INTERNAL-4G"
+                                    >
+                                      <StyledShortId
+                                        avatar={
+                                          <ProjectBadge
+                                            avatarSize={14}
+                                            hideName={true}
+                                            project={
+                                              Object {
+                                                "id": "123",
+                                                "name": "Internal",
+                                                "slug": "project-slug",
+                                              }
+                                            }
+                                          />
+                                        }
+                                        className="css-1fj2cf7-GroupShortId eec9orn3"
+                                        onClick={[Function]}
+                                        shortId="INTERNAL-4G"
+                                      >
+                                        <div
+                                          className="eec9orn3 css-dcccbj-StyledShortId-GroupShortId e10rcxf30"
+                                          onClick={[Function]}
+                                        >
+                                          <ProjectBadge
+                                            avatarSize={14}
+                                            hideName={true}
+                                            project={
+                                              Object {
+                                                "id": "123",
+                                                "name": "Internal",
+                                                "slug": "project-slug",
+                                              }
+                                            }
+                                          >
+                                            <BaseBadge
+                                              avatarProps={Object {}}
+                                              avatarSize={14}
+                                              displayName={
+                                                <ForwardRef(render)
+                                                  hideOverflow={true}
+                                                >
+                                                  project-slug
+                                                </ForwardRef(render)>
+                                              }
+                                              hideAvatar={false}
+                                              hideName={true}
+                                              project={
+                                                Object {
+                                                  "id": "123",
+                                                  "name": "Internal",
+                                                  "slug": "project-slug",
+                                                }
+                                              }
+                                            >
+                                              <BaseBadgeWrapper>
+                                                <div
+                                                  className="css-7m3eov-BaseBadgeWrapper e165dl3i0"
+                                                >
+                                                  <EmotionCssPropInternal
+                                                    __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                                      Object {
+                                                        "$$typeof": Symbol(react.forward_ref),
+                                                        "__emotion_base": Object {
+                                                          "$$typeof": Symbol(react.forward_ref),
+                                                          "render": [Function],
+                                                        },
+                                                        "__emotion_forwardProp": undefined,
+                                                        "__emotion_real": [Circular],
+                                                        "__emotion_styles": Array [
+                                                          "label:StyledAvatar;",
+                                                          "margin-right:",
+                                                          [Function],
+                                                          ";flex-shrink:0;",
+                                                        ],
+                                                        "defaultProps": undefined,
+                                                        "displayName": "StyledAvatar",
+                                                        "render": [Function],
+                                                        "withComponent": [Function],
+                                                      }
+                                                    }
+                                                    hideName={true}
+                                                    project={
+                                                      Object {
+                                                        "id": "123",
+                                                        "name": "Internal",
+                                                        "slug": "project-slug",
+                                                      }
+                                                    }
+                                                    size={14}
+                                                  >
+                                                    <StyledAvatar
+                                                      className="css-0"
+                                                      hideName={true}
+                                                      project={
+                                                        Object {
+                                                          "id": "123",
+                                                          "name": "Internal",
+                                                          "slug": "project-slug",
+                                                        }
+                                                      }
+                                                      size={14}
+                                                    >
+                                                      <ForwardRef
+                                                        className="css-7c3lwm-StyledAvatar e165dl3i1"
+                                                        hideName={true}
+                                                        project={
+                                                          Object {
+                                                            "id": "123",
+                                                            "name": "Internal",
+                                                            "slug": "project-slug",
+                                                          }
+                                                        }
+                                                        size={14}
+                                                      >
+                                                        <Avatar
+                                                          className="css-7c3lwm-StyledAvatar e165dl3i1"
+                                                          forwardedRef={null}
+                                                          hasTooltip={false}
+                                                          hideName={true}
+                                                          project={
+                                                            Object {
+                                                              "id": "123",
+                                                              "name": "Internal",
+                                                              "slug": "project-slug",
+                                                            }
+                                                          }
+                                                          size={14}
+                                                        >
+                                                          <ProjectAvatar
+                                                            className="css-7c3lwm-StyledAvatar e165dl3i1"
+                                                            forwardedRef={null}
+                                                            hasTooltip={false}
+                                                            hideName={true}
+                                                            project={
+                                                              Object {
+                                                                "id": "123",
+                                                                "name": "Internal",
+                                                                "slug": "project-slug",
+                                                              }
+                                                            }
+                                                            size={14}
+                                                          >
+                                                            <Tooltip
+                                                              containerDisplayMode="inline-block"
+                                                              disabled={true}
+                                                              position="top"
+                                                            >
+                                                              <PlatformList
+                                                                className="css-7c3lwm-StyledAvatar e165dl3i1"
+                                                                forwardedRef={null}
+                                                                hideName={true}
+                                                                max={1}
+                                                                platforms={Array []}
+                                                                size={14}
+                                                              >
+                                                                <PlatformIcons
+                                                                  className="css-7c3lwm-StyledAvatar e165dl3i1"
+                                                                  consistentWidth={false}
+                                                                  direction="right"
+                                                                  max={1}
+                                                                  size={14}
+                                                                >
+                                                                  <div
+                                                                    className="e165dl3i1 css-dyodzz-PlatformIcons-StyledAvatar e1n7dwy90"
+                                                                    direction="right"
+                                                                    max={1}
+                                                                    size={14}
+                                                                  >
+                                                                    <StyledPlatformIcon
+                                                                      platform="default"
+                                                                      size={14}
+                                                                    >
+                                                                      <Component
+                                                                        className="css-f6mbrk-StyledPlatformIcon e1n7dwy91"
+                                                                        platform="default"
+                                                                        size={14}
+                                                                      >
+                                                                        <PlatformIcon
+                                                                          className="css-f6mbrk-StyledPlatformIcon e1n7dwy91"
+                                                                          platform="default"
+                                                                          size="14px"
+                                                                        >
+                                                                          <img
+                                                                            className="css-f6mbrk-StyledPlatformIcon e1n7dwy91"
+                                                                            height="14px"
+                                                                            src={
+                                                                              Object {
+                                                                                "default": Object {
+                                                                                  "id": "test",
+                                                                                  "viewBox": Object {},
+                                                                                },
+                                                                              }
+                                                                            }
+                                                                            width="14px"
+                                                                          />
+                                                                        </PlatformIcon>
+                                                                      </Component>
+                                                                    </StyledPlatformIcon>
+                                                                  </div>
+                                                                </PlatformIcons>
+                                                              </PlatformList>
+                                                            </Tooltip>
+                                                          </ProjectAvatar>
+                                                        </Avatar>
+                                                      </ForwardRef>
+                                                    </StyledAvatar>
+                                                  </EmotionCssPropInternal>
+                                                  <DisplayNameAndDescription>
+                                                    <div
+                                                      className="css-1d2tk0c-DisplayNameAndDescription e165dl3i2"
+                                                    />
+                                                  </DisplayNameAndDescription>
+                                                </div>
+                                              </BaseBadgeWrapper>
+                                            </BaseBadge>
+                                          </ProjectBadge>
+                                          <StyledAutoSelectText
+                                            avatar={true}
+                                          >
+                                            <AutoSelectText
+                                              className="css-xnqjkz-StyledAutoSelectText e10rcxf31"
+                                            >
+                                              <div
+                                                className="auto-select-text css-xnqjkz-StyledAutoSelectText e10rcxf31"
+                                                onClick={[Function]}
+                                              >
+                                                <span>
+                                                  INTERNAL-4G
+                                                </span>
+                                              </div>
+                                            </AutoSelectText>
+                                          </StyledAutoSelectText>
+                                        </div>
+                                      </StyledShortId>
+                                    </ShortId>
+                                  </GroupShortId>
+                                  <StyledTimes
+                                    firstSeen="2017-07-10T18:32:43Z"
+                                    lastSeen={null}
+                                  >
+                                    <Times
+                                      className="css-2hucfb-StyledTimes eec9orn1"
+                                      firstSeen="2017-07-10T18:32:43Z"
+                                      lastSeen={null}
+                                    >
+                                      <Container>
+                                        <div
+                                          className="css-1lz86t0-Container e1fmxtba0"
+                                        >
+                                          <FlexWrapper>
+                                            <div
+                                              className="css-13zgepw-FlexWrapper e1fmxtba1"
+                                            >
+                                              <TimeSince
+                                                className="hidden-xs hidden-sm"
+                                                date="2017-07-10T18:32:43Z"
+                                                suffix="old"
+                                              >
+                                                <time
+                                                  className="hidden-xs hidden-sm"
+                                                  dateTime="2017-07-10T18:32:43.000Z"
+                                                  title="July 10, 2017 6:32 PM UTC"
+                                                >
+                                                  3 months old
+                                                </time>
+                                              </TimeSince>
+                                            </div>
+                                          </FlexWrapper>
+                                        </div>
+                                      </Container>
+                                    </Times>
+                                  </StyledTimes>
+                                  <LoggerAnnotation>
+                                    <span
+                                      className="css-ifiu8p-EventAnnotation-AnnotationNoMargin-LoggerAnnotation eec9orn5"
+                                    >
+                                      <Link
+                                        onlyActiveOnIndex={false}
+                                        style={Object {}}
+                                        to={
+                                          Object {
+                                            "pathname": "/organizations/org-slug/issues/",
+                                            "query": Object {
+                                              "query": "logger:javascript",
+                                            },
+                                          }
+                                        }
+                                      >
+                                        <a
+                                          onClick={[Function]}
+                                          style={Object {}}
+                                        >
+                                          javascript
+                                        </a>
+                                      </Link>
+                                    </span>
+                                  </LoggerAnnotation>
+                                </div>
+                              </GroupExtra>
+                            </EventOrGroupExtraDetails>
+                          </withRouter(EventOrGroupExtraDetails)>
+                        </div>
+                      </div>
+                    </FlowLayout>
+                    <button
+                      className="btn btn-default btn-xs"
+                      onClick={[Function]}
+                      style={
+                        Object {
+                          "marginRight": 2,
+                        }
+                      }
+                    >
+                      Diff
+                    </button>
+                  </div>
+                </FlowLayout>
+                <div
+                  className="similar-score-columns"
+                >
+                  <Count
+                    className="similar-score-column"
+                    value="90"
+                  >
+                    <span
+                      className="similar-score-column"
+                    >
+                      90
+                    </span>
+                  </Count>
+                  <div
+                    className="similar-score-column"
+                    key="exception"
+                  >
+                    <Hovercard
+                      body={
+                        <SimilarScoreCard
+                          scoreList={
+                            Array [
+                              Array [
+                                "exception:stacktrace:pairs",
+                                0.875,
+                              ],
+                            ]
+                          }
+                        />
+                      }
+                      displayTimeout={100}
+                      position="top"
+                    >
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <span
+                              aria-describedby="hovercard-123456"
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <StyledScoreBar
+                                score={4}
+                                vertical={true}
+                              >
+                                <ScoreBar
+                                  className="css-tics7q-StyledScoreBar e1h9dyli0"
+                                  score={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-tics7q-StyledScoreBar e1h9dyli0"
+                                  >
+                                    <Bar
+                                      color="#98b480"
+                                      key="0"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-1gui0xz-Bar e1h9dyli1"
+                                        color="#98b480"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                    <Bar
+                                      color="#98b480"
+                                      key="1"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-1gui0xz-Bar e1h9dyli1"
+                                        color="#98b480"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                    <Bar
+                                      color="#98b480"
+                                      key="2"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-1gui0xz-Bar e1h9dyli1"
+                                        color="#98b480"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                    <Bar
+                                      color="#98b480"
+                                      key="3"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-1gui0xz-Bar e1h9dyli1"
+                                        color="#98b480"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                    <Bar
+                                      empty={true}
+                                      key="empty-0"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                  </div>
+                                </ScoreBar>
+                              </StyledScoreBar>
+                            </span>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Hovercard>
+                  </div>
+                  <div
+                    className="similar-score-column"
+                    key="message"
+                  >
+                    <Hovercard
+                      body={0}
+                      displayTimeout={100}
+                      position="top"
+                    >
+                      <Manager>
+                        <Reference>
+                          <InnerReference
+                            setReferenceNode={[Function]}
+                          >
+                            <span
+                              aria-describedby="hovercard-123456"
+                              onMouseEnter={[Function]}
+                              onMouseLeave={[Function]}
+                            >
+                              <StyledScoreBar
+                                score={0}
+                                vertical={true}
+                              >
+                                <ScoreBar
+                                  className="css-tics7q-StyledScoreBar e1h9dyli0"
+                                  score={0}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-tics7q-StyledScoreBar e1h9dyli0"
+                                  >
+                                    <Bar
+                                      empty={true}
+                                      key="empty-0"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                    <Bar
+                                      empty={true}
+                                      key="empty-1"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                    <Bar
+                                      empty={true}
+                                      key="empty-2"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                    <Bar
+                                      empty={true}
+                                      key="empty-3"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                    <Bar
+                                      empty={true}
+                                      key="empty-4"
+                                      radius={3}
+                                      size={40}
+                                      thickness={4}
+                                      vertical={true}
+                                    >
+                                      <div
+                                        className="css-3fvo9r-Bar e1h9dyli1"
+                                        radius={3}
+                                        size={40}
+                                      />
+                                    </Bar>
+                                  </div>
+                                </ScoreBar>
+                              </StyledScoreBar>
+                            </span>
+                          </InnerReference>
+                        </Reference>
+                      </Manager>
+                    </Hovercard>
+                  </div>
+                </div>
+              </div>
+            </SpreadLayout>
+          </SimilarIssueItem>
+          <div
+            className="similar-items-footer"
+          >
+            <button
+              className="btn btn-default btn-xl"
+              onClick={[Function]}
+            >
+              Show 
+              3
+               issues below threshold
+            </button>
+          </div>
+        </div>
+        <Styled(Pagination)
+          onCursor={[Function]}
+        >
+          <Pagination
+            className="css-1vzq2o e1vkspke0"
+            onCursor={[Function]}
+          />
+        </Styled(Pagination)>
+      </div>
+    </SimilarList>
+  </div>
+</GroupGroupingView>
+`;

@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ToolbarHeader renders 1`] = `
+<ToolbarHeader>
+  <div
+    className="css-1rwwmm2-ToolbarHeader e8n6jt30"
+  >
+    <div />
+  </div>
+</ToolbarHeader>
+`;

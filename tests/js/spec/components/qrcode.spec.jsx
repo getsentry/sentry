@@ -8,5 +8,6 @@ describe('Qrcode', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<Qrcode code={[[0, 1, 1, 0, 0, 0, 0, 0]]} />);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

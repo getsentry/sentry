@@ -1,0 +1,44 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Form render() renders with children 1`] = `
+<Form
+  cancelLabel="Cancel"
+  className="form-stacked"
+  errorMessage="Unable to save your changes. Please ensure all fields are valid and try again."
+  footerClass="form-actions align-right"
+  hideErrors={false}
+  onSubmit={[Function]}
+  requireChanges={false}
+  resetOnError={false}
+  submitDisabled={false}
+  submitLabel="Save Changes"
+>
+  <StyledForm
+    className="form-stacked"
+    onSubmit={[Function]}
+  >
+    <form
+      className="form-stacked css-1z07nlv-StyledForm e18zovyk0"
+      onSubmit={[Function]}
+    >
+      <hr />
+      <div
+        className="form-actions align-right"
+        style={
+          Object {
+            "marginTop": 25,
+          }
+        }
+      >
+        <button
+          className="btn btn-primary"
+          disabled={false}
+          type="submit"
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </StyledForm>
+</Form>
+`;

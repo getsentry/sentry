@@ -1,0 +1,608 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ScoreBar has custom palette 1`] = `
+<StyledScoreBar
+  palette={
+    Array [
+      "white",
+      "red",
+      "red",
+      "pink",
+      "pink",
+      "purple",
+      "purple",
+      "black",
+    ]
+  }
+  score={7}
+  size={60}
+  thickness={2}
+  vertical={true}
+>
+  <ScoreBar
+    className="css-tics7q-StyledScoreBar e1h9dyli0"
+    palette={
+      Array [
+        "white",
+        "red",
+        "red",
+        "pink",
+        "pink",
+        "purple",
+        "purple",
+        "black",
+      ]
+    }
+    score={7}
+    size={60}
+    thickness={2}
+    vertical={true}
+  >
+    <div
+      className="css-tics7q-StyledScoreBar e1h9dyli0"
+    >
+      <Bar
+        color="purple"
+        key="0"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-jzo7rj-Bar e1h9dyli1"
+          color="purple"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="purple"
+        key="1"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-jzo7rj-Bar e1h9dyli1"
+          color="purple"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="purple"
+        key="2"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-jzo7rj-Bar e1h9dyli1"
+          color="purple"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="purple"
+        key="3"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-jzo7rj-Bar e1h9dyli1"
+          color="purple"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="purple"
+        key="4"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-jzo7rj-Bar e1h9dyli1"
+          color="purple"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="purple"
+        key="5"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-jzo7rj-Bar e1h9dyli1"
+          color="purple"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="purple"
+        key="6"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-jzo7rj-Bar e1h9dyli1"
+          color="purple"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-0"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-dtaff8-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+    </div>
+  </ScoreBar>
+</StyledScoreBar>
+`;
+
+exports[`ScoreBar renders 1`] = `
+<StyledScoreBar
+  score={3}
+  size={60}
+  thickness={2}
+>
+  <ScoreBar
+    className="css-165mwy4-StyledScoreBar e1h9dyli0"
+    score={3}
+    size={60}
+    thickness={2}
+  >
+    <div
+      className="css-165mwy4-StyledScoreBar e1h9dyli0"
+    >
+      <Bar
+        color="#f9a66d"
+        key="0"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-82bx48-Bar e1h9dyli1"
+          color="#f9a66d"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="#f9a66d"
+        key="1"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-82bx48-Bar e1h9dyli1"
+          color="#f9a66d"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="#f9a66d"
+        key="2"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-82bx48-Bar e1h9dyli1"
+          color="#f9a66d"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-0"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-1"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+    </div>
+  </ScoreBar>
+</StyledScoreBar>
+`;
+
+exports[`ScoreBar renders vertically 1`] = `
+<StyledScoreBar
+  score={2}
+  size={60}
+  thickness={2}
+  vertical={true}
+>
+  <ScoreBar
+    className="css-tics7q-StyledScoreBar e1h9dyli0"
+    score={2}
+    size={60}
+    thickness={2}
+    vertical={true}
+  >
+    <div
+      className="css-tics7q-StyledScoreBar e1h9dyli0"
+    >
+      <Bar
+        color="#f38259"
+        key="0"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-1ez0r6s-Bar e1h9dyli1"
+          color="#f38259"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="#f38259"
+        key="1"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-1ez0r6s-Bar e1h9dyli1"
+          color="#f38259"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-0"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-dtaff8-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-1"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-dtaff8-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-2"
+        radius={3}
+        size={60}
+        thickness={2}
+        vertical={true}
+      >
+        <div
+          className="css-dtaff8-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+    </div>
+  </ScoreBar>
+</StyledScoreBar>
+`;
+
+exports[`ScoreBar renders with < 0 score 1`] = `
+<StyledScoreBar
+  score={-2}
+  size={60}
+  thickness={2}
+>
+  <ScoreBar
+    className="css-165mwy4-StyledScoreBar e1h9dyli0"
+    score={-2}
+    size={60}
+    thickness={2}
+  >
+    <div
+      className="css-165mwy4-StyledScoreBar e1h9dyli0"
+    >
+      <Bar
+        empty={true}
+        key="empty-0"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-1"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-2"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-3"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-4"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+    </div>
+  </ScoreBar>
+</StyledScoreBar>
+`;
+
+exports[`ScoreBar renders with score = 0 1`] = `
+<StyledScoreBar
+  score={0}
+  size={60}
+  thickness={2}
+>
+  <ScoreBar
+    className="css-165mwy4-StyledScoreBar e1h9dyli0"
+    score={0}
+    size={60}
+    thickness={2}
+  >
+    <div
+      className="css-165mwy4-StyledScoreBar e1h9dyli0"
+    >
+      <Bar
+        empty={true}
+        key="empty-0"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-1"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-2"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-3"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        empty={true}
+        key="empty-4"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1emfx26-Bar e1h9dyli1"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+    </div>
+  </ScoreBar>
+</StyledScoreBar>
+`;
+
+exports[`ScoreBar renders with score > max score 1`] = `
+<StyledScoreBar
+  score={10}
+  size={60}
+  thickness={2}
+>
+  <ScoreBar
+    className="css-165mwy4-StyledScoreBar e1h9dyli0"
+    score={10}
+    size={60}
+    thickness={2}
+  >
+    <div
+      className="css-165mwy4-StyledScoreBar e1h9dyli0"
+    >
+      <Bar
+        color="#57be8c"
+        key="0"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1k1el05-Bar e1h9dyli1"
+          color="#57be8c"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="#57be8c"
+        key="1"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1k1el05-Bar e1h9dyli1"
+          color="#57be8c"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="#57be8c"
+        key="2"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1k1el05-Bar e1h9dyli1"
+          color="#57be8c"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="#57be8c"
+        key="3"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1k1el05-Bar e1h9dyli1"
+          color="#57be8c"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+      <Bar
+        color="#57be8c"
+        key="4"
+        radius={3}
+        size={60}
+        thickness={2}
+      >
+        <div
+          className="css-1k1el05-Bar e1h9dyli1"
+          color="#57be8c"
+          radius={3}
+          size={60}
+        />
+      </Bar>
+    </div>
+  </ScoreBar>
+</StyledScoreBar>
+`;

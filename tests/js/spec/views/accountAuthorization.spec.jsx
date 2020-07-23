@@ -30,5 +30,6 @@ describe('AccountAuthorizations', function() {
     });
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

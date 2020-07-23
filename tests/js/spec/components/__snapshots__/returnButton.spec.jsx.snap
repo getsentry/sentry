@@ -1,0 +1,68 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`returnButton renders 1`] = `
+<returnButton>
+  <ClickTargetStyled>
+    <div
+      className="css-zs44kr-ClickTargetStyled e4a59gt1"
+    >
+      <Tooltip
+        containerDisplayMode="inline-block"
+        position="top"
+        title="Save"
+      >
+        <Manager>
+          <Reference>
+            <InnerReference
+              setReferenceNode={[Function]}
+            >
+              <Container
+                aria-describedby="tooltip-123456"
+                containerDisplayMode="inline-block"
+                onBlur={[Function]}
+                onFocus={[Function]}
+                onMouseEnter={[Function]}
+                onMouseLeave={[Function]}
+              >
+                <span
+                  aria-describedby="tooltip-123456"
+                  className="css-1y4rfpo-Container eowlwvy0"
+                  onBlur={[Function]}
+                  onFocus={[Function]}
+                  onMouseEnter={[Function]}
+                  onMouseLeave={[Function]}
+                >
+                  <SubmitButton>
+                    <div
+                      className="css-1sfamwq-SubmitButton e4a59gt0"
+                    >
+                      <IconReturn>
+                        <ForwardRef(SvgIcon)>
+                          <svg
+                            fill="currentColor"
+                            height="16px"
+                            viewBox="0 0 16 16"
+                            width="16px"
+                          >
+                            <path
+                              d="M3.89,15.06a.74.74,0,0,1-.53-.22L.24,11.72a.75.75,0,0,1,0-1.06L3.36,7.55a.74.74,0,0,1,1.06,0,.75.75,0,0,1,0,1.06L1.83,11.19l2.59,2.59a.75.75,0,0,1,0,1.06A.74.74,0,0,1,3.89,15.06Z"
+                            />
+                            <path
+                              d="M15,11.94H.77a.75.75,0,1,1,0-1.5H14.21V2.88H4.49a.75.75,0,0,1,0-1.5H15a.75.75,0,0,1,.75.75v9.06A.74.74,0,0,1,15,11.94Z"
+                            />
+                             
+                          </svg>
+                        </ForwardRef(SvgIcon)>
+                      </IconReturn>
+                    </div>
+                  </SubmitButton>
+                </span>
+              </Container>
+            </InnerReference>
+          </Reference>
+        </Manager>
+      </Tooltip>
+    </div>
+  </ClickTargetStyled>
+</returnButton>
+`;

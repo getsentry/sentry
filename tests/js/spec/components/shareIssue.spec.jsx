@@ -10,6 +10,7 @@ describe('ShareIssue', function() {
       <ShareIssue isSharing={false} onToggle={() => {}} onShare={() => {}} />
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders when shared ', function() {
@@ -22,6 +23,7 @@ describe('ShareIssue', function() {
       />
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders when busy', function() {
@@ -29,5 +31,6 @@ describe('ShareIssue', function() {
       <ShareIssue onToggle={() => {}} onShare={() => {}} busy />
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 });

@@ -61,6 +61,7 @@ describe('InviteMember', function() {
       disableLifecycleMethods: true,
     });
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('should render no team select when there is only one option', function() {
@@ -117,6 +118,7 @@ describe('InviteMember', function() {
 
     // Lets just target message
     expect(wrapper.find('TextBlock')).toSnapshot();
+    expect(wrapper.find('TextBlock')).toMatchSnapshot();
   });
 
   it('should redirect when no roles available', function() {
@@ -195,6 +197,7 @@ describe('InviteMember', function() {
     node.props().onClick();
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
 
     node = wrapper.find('.invite-member-submit').first();
     node.props().onClick({preventDefault: () => {}});

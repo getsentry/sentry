@@ -38,6 +38,7 @@ describe('SettingsLayout', function() {
     );
 
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('can render navigation', function() {

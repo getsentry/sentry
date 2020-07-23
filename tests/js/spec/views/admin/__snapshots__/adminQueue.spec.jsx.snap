@@ -1,0 +1,1805 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AdminQueue render() renders 1`] = `
+<AdminQueue
+  params={Object {}}
+>
+  <SideEffect(DocumentTitle)
+    title="Sentry"
+  >
+    <DocumentTitle
+      title="Sentry"
+    >
+      <div>
+        <div
+          className="btn-group pull-right"
+        >
+          <a
+            className="btn btn-sm btn-default"
+            key="1h"
+            onClick={[Function]}
+          >
+            1h
+          </a>
+          <a
+            className="btn btn-sm btn-default"
+            key="1d"
+            onClick={[Function]}
+          >
+            1d
+          </a>
+          <a
+            className="btn btn-sm btn-primary"
+            key="1w"
+            onClick={[Function]}
+          >
+            1w
+          </a>
+        </div>
+        <h3
+          className="no-border"
+        >
+          Queue Overview
+        </h3>
+        <div
+          className="box"
+        >
+          <div
+            className="box-header"
+          >
+            <h3>
+              Global Throughput
+            </h3>
+          </div>
+          <withApi(InternalStatChart)
+            label="jobs started"
+            resolution="1h"
+            since={1507603280}
+            stat="jobs.all.started"
+          >
+            <InternalStatChart
+              api={
+                Client {
+                  "_chain": [Function],
+                  "_wrapRequest": [Function],
+                  "bulkUpdate": [Function],
+                  "handleRequestError": [Function],
+                  "hasProjectBeenRenamed": [Function],
+                }
+              }
+              height={150}
+              label="jobs started"
+              resolution="1h"
+              since={1507603280}
+              stat="jobs.all.started"
+            >
+              <profiler(LoadingIndicator)>
+                <Profiler
+                  disabled={false}
+                  includeRender={true}
+                  includeUpdates={false}
+                  name="LoadingIndicator"
+                  updateProps={Object {}}
+                >
+                  <LoadingIndicator>
+                    <div
+                      className="loading"
+                    >
+                      <div
+                        className="loading-indicator"
+                        style={Object {}}
+                      />
+                      <div
+                        className="loading-message"
+                      />
+                    </div>
+                  </LoadingIndicator>
+                </Profiler>
+              </profiler(LoadingIndicator)>
+            </InternalStatChart>
+          </withApi(InternalStatChart)>
+        </div>
+        <h3
+          className="no-border"
+        >
+          Task Details
+        </h3>
+        <div>
+          <div>
+            <label>
+              Show details for task:
+            </label>
+            <SelectField
+              allowClear={true}
+              choices={
+                Array [
+                  Array [
+                    "",
+                    "",
+                  ],
+                  Array [
+                    "celery.backend_cleanup",
+                    "celery.backend_cleanup",
+                  ],
+                  Array [
+                    "celery.chain",
+                    "celery.chain",
+                  ],
+                  Array [
+                    "celery.chord",
+                    "celery.chord",
+                  ],
+                  Array [
+                    "celery.chord_unlock",
+                    "celery.chord_unlock",
+                  ],
+                  Array [
+                    "celery.chunks",
+                    "celery.chunks",
+                  ],
+                  Array [
+                    "celery.group",
+                    "celery.group",
+                  ],
+                  Array [
+                    "celery.map",
+                    "celery.map",
+                  ],
+                  Array [
+                    "celery.starmap",
+                    "celery.starmap",
+                  ],
+                  Array [
+                    "sentry.celery.SentryTask",
+                    "sentry.celery.SentryTask",
+                  ],
+                  Array [
+                    "sentry.tasks.activity.send_activity_notifications",
+                    "sentry.tasks.activity.send_activity_notifications",
+                  ],
+                  Array [
+                    "sentry.tasks.clear_expired_resolutions",
+                    "sentry.tasks.clear_expired_resolutions",
+                  ],
+                  Array [
+                    "sentry.tasks.commits.fetch_commits",
+                    "sentry.tasks.commits.fetch_commits",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.delete_api_application",
+                    "sentry.tasks.deletion.delete_api_application",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.delete_group",
+                    "sentry.tasks.deletion.delete_group",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.delete_organization",
+                    "sentry.tasks.deletion.delete_organization",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.delete_project",
+                    "sentry.tasks.deletion.delete_project",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.delete_repository",
+                    "sentry.tasks.deletion.delete_repository",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.delete_team",
+                    "sentry.tasks.deletion.delete_team",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.generic_delete",
+                    "sentry.tasks.deletion.generic_delete",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.revoke_api_tokens",
+                    "sentry.tasks.deletion.revoke_api_tokens",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.run_deletion",
+                    "sentry.tasks.deletion.run_deletion",
+                  ],
+                  Array [
+                    "sentry.tasks.deletion.run_scheduled_deletions",
+                    "sentry.tasks.deletion.run_scheduled_deletions",
+                  ],
+                  Array [
+                    "sentry.tasks.digests.deliver_digest",
+                    "sentry.tasks.digests.deliver_digest",
+                  ],
+                  Array [
+                    "sentry.tasks.digests.schedule_digests",
+                    "sentry.tasks.digests.schedule_digests",
+                  ],
+                  Array [
+                    "sentry.tasks.email.process_inbound_email",
+                    "sentry.tasks.email.process_inbound_email",
+                  ],
+                  Array [
+                    "sentry.tasks.email.send_email",
+                    "sentry.tasks.email.send_email",
+                  ],
+                  Array [
+                    "sentry.tasks.email_unlink_notifications",
+                    "sentry.tasks.email_unlink_notifications",
+                  ],
+                  Array [
+                    "sentry.tasks.merge.merge_group",
+                    "sentry.tasks.merge.merge_group",
+                  ],
+                  Array [
+                    "sentry.tasks.merge.rehash_group_events",
+                    "sentry.tasks.merge.rehash_group_events",
+                  ],
+                  Array [
+                    "sentry.tasks.post_process.plugin_post_process_group",
+                    "sentry.tasks.post_process.plugin_post_process_group",
+                  ],
+                  Array [
+                    "sentry.tasks.post_process.post_process_group",
+                    "sentry.tasks.post_process.post_process_group",
+                  ],
+                  Array [
+                    "sentry.tasks.process_buffer.process_incr",
+                    "sentry.tasks.process_buffer.process_incr",
+                  ],
+                  Array [
+                    "sentry.tasks.process_buffer.process_pending",
+                    "sentry.tasks.process_buffer.process_pending",
+                  ],
+                  Array [
+                    "sentry.tasks.send_sso_link_emails",
+                    "sentry.tasks.send_sso_link_emails",
+                  ],
+                  Array [
+                    "sentry.tasks.store.preprocess_event",
+                    "sentry.tasks.store.preprocess_event",
+                  ],
+                  Array [
+                    "sentry.tasks.store.preprocess_event_from_reprocessing",
+                    "sentry.tasks.store.preprocess_event_from_reprocessing",
+                  ],
+                  Array [
+                    "sentry.tasks.store.process_event",
+                    "sentry.tasks.store.process_event",
+                  ],
+                  Array [
+                    "sentry.tasks.store.process_event_from_reprocessing",
+                    "sentry.tasks.store.process_event_from_reprocessing",
+                  ],
+                  Array [
+                    "sentry.tasks.store.save_event",
+                    "sentry.tasks.store.save_event",
+                  ],
+                  Array [
+                    "sentry.tasks.unmerge",
+                    "sentry.tasks.unmerge",
+                  ],
+                ]
+              }
+              clearable={true}
+              deprecatedSelectControl={true}
+              disabled={false}
+              hideErrorMessage={false}
+              multiple={false}
+              name="task"
+              onChange={[Function]}
+              required={false}
+            >
+              <div
+                className=""
+              >
+                <div
+                  className="controls"
+                >
+                  <StyledSelectControl
+                    choices={
+                      Array [
+                        Array [
+                          "",
+                          "",
+                        ],
+                        Array [
+                          "celery.backend_cleanup",
+                          "celery.backend_cleanup",
+                        ],
+                        Array [
+                          "celery.chain",
+                          "celery.chain",
+                        ],
+                        Array [
+                          "celery.chord",
+                          "celery.chord",
+                        ],
+                        Array [
+                          "celery.chord_unlock",
+                          "celery.chord_unlock",
+                        ],
+                        Array [
+                          "celery.chunks",
+                          "celery.chunks",
+                        ],
+                        Array [
+                          "celery.group",
+                          "celery.group",
+                        ],
+                        Array [
+                          "celery.map",
+                          "celery.map",
+                        ],
+                        Array [
+                          "celery.starmap",
+                          "celery.starmap",
+                        ],
+                        Array [
+                          "sentry.celery.SentryTask",
+                          "sentry.celery.SentryTask",
+                        ],
+                        Array [
+                          "sentry.tasks.activity.send_activity_notifications",
+                          "sentry.tasks.activity.send_activity_notifications",
+                        ],
+                        Array [
+                          "sentry.tasks.clear_expired_resolutions",
+                          "sentry.tasks.clear_expired_resolutions",
+                        ],
+                        Array [
+                          "sentry.tasks.commits.fetch_commits",
+                          "sentry.tasks.commits.fetch_commits",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.delete_api_application",
+                          "sentry.tasks.deletion.delete_api_application",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.delete_group",
+                          "sentry.tasks.deletion.delete_group",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.delete_organization",
+                          "sentry.tasks.deletion.delete_organization",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.delete_project",
+                          "sentry.tasks.deletion.delete_project",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.delete_repository",
+                          "sentry.tasks.deletion.delete_repository",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.delete_team",
+                          "sentry.tasks.deletion.delete_team",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.generic_delete",
+                          "sentry.tasks.deletion.generic_delete",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.revoke_api_tokens",
+                          "sentry.tasks.deletion.revoke_api_tokens",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.run_deletion",
+                          "sentry.tasks.deletion.run_deletion",
+                        ],
+                        Array [
+                          "sentry.tasks.deletion.run_scheduled_deletions",
+                          "sentry.tasks.deletion.run_scheduled_deletions",
+                        ],
+                        Array [
+                          "sentry.tasks.digests.deliver_digest",
+                          "sentry.tasks.digests.deliver_digest",
+                        ],
+                        Array [
+                          "sentry.tasks.digests.schedule_digests",
+                          "sentry.tasks.digests.schedule_digests",
+                        ],
+                        Array [
+                          "sentry.tasks.email.process_inbound_email",
+                          "sentry.tasks.email.process_inbound_email",
+                        ],
+                        Array [
+                          "sentry.tasks.email.send_email",
+                          "sentry.tasks.email.send_email",
+                        ],
+                        Array [
+                          "sentry.tasks.email_unlink_notifications",
+                          "sentry.tasks.email_unlink_notifications",
+                        ],
+                        Array [
+                          "sentry.tasks.merge.merge_group",
+                          "sentry.tasks.merge.merge_group",
+                        ],
+                        Array [
+                          "sentry.tasks.merge.rehash_group_events",
+                          "sentry.tasks.merge.rehash_group_events",
+                        ],
+                        Array [
+                          "sentry.tasks.post_process.plugin_post_process_group",
+                          "sentry.tasks.post_process.plugin_post_process_group",
+                        ],
+                        Array [
+                          "sentry.tasks.post_process.post_process_group",
+                          "sentry.tasks.post_process.post_process_group",
+                        ],
+                        Array [
+                          "sentry.tasks.process_buffer.process_incr",
+                          "sentry.tasks.process_buffer.process_incr",
+                        ],
+                        Array [
+                          "sentry.tasks.process_buffer.process_pending",
+                          "sentry.tasks.process_buffer.process_pending",
+                        ],
+                        Array [
+                          "sentry.tasks.send_sso_link_emails",
+                          "sentry.tasks.send_sso_link_emails",
+                        ],
+                        Array [
+                          "sentry.tasks.store.preprocess_event",
+                          "sentry.tasks.store.preprocess_event",
+                        ],
+                        Array [
+                          "sentry.tasks.store.preprocess_event_from_reprocessing",
+                          "sentry.tasks.store.preprocess_event_from_reprocessing",
+                        ],
+                        Array [
+                          "sentry.tasks.store.process_event",
+                          "sentry.tasks.store.process_event",
+                        ],
+                        Array [
+                          "sentry.tasks.store.process_event_from_reprocessing",
+                          "sentry.tasks.store.process_event_from_reprocessing",
+                        ],
+                        Array [
+                          "sentry.tasks.store.save_event",
+                          "sentry.tasks.store.save_event",
+                        ],
+                        Array [
+                          "sentry.tasks.unmerge",
+                          "sentry.tasks.unmerge",
+                        ],
+                      ]
+                    }
+                    clearable={true}
+                    deprecatedSelectControl={true}
+                    disabled={false}
+                    id="id-task"
+                    multiple={false}
+                    name="task"
+                    onChange={[Function]}
+                    required={false}
+                    value=""
+                  >
+                    <ForwardRef(RefForwardedSelectControl)
+                      choices={
+                        Array [
+                          Array [
+                            "",
+                            "",
+                          ],
+                          Array [
+                            "celery.backend_cleanup",
+                            "celery.backend_cleanup",
+                          ],
+                          Array [
+                            "celery.chain",
+                            "celery.chain",
+                          ],
+                          Array [
+                            "celery.chord",
+                            "celery.chord",
+                          ],
+                          Array [
+                            "celery.chord_unlock",
+                            "celery.chord_unlock",
+                          ],
+                          Array [
+                            "celery.chunks",
+                            "celery.chunks",
+                          ],
+                          Array [
+                            "celery.group",
+                            "celery.group",
+                          ],
+                          Array [
+                            "celery.map",
+                            "celery.map",
+                          ],
+                          Array [
+                            "celery.starmap",
+                            "celery.starmap",
+                          ],
+                          Array [
+                            "sentry.celery.SentryTask",
+                            "sentry.celery.SentryTask",
+                          ],
+                          Array [
+                            "sentry.tasks.activity.send_activity_notifications",
+                            "sentry.tasks.activity.send_activity_notifications",
+                          ],
+                          Array [
+                            "sentry.tasks.clear_expired_resolutions",
+                            "sentry.tasks.clear_expired_resolutions",
+                          ],
+                          Array [
+                            "sentry.tasks.commits.fetch_commits",
+                            "sentry.tasks.commits.fetch_commits",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.delete_api_application",
+                            "sentry.tasks.deletion.delete_api_application",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.delete_group",
+                            "sentry.tasks.deletion.delete_group",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.delete_organization",
+                            "sentry.tasks.deletion.delete_organization",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.delete_project",
+                            "sentry.tasks.deletion.delete_project",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.delete_repository",
+                            "sentry.tasks.deletion.delete_repository",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.delete_team",
+                            "sentry.tasks.deletion.delete_team",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.generic_delete",
+                            "sentry.tasks.deletion.generic_delete",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.revoke_api_tokens",
+                            "sentry.tasks.deletion.revoke_api_tokens",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.run_deletion",
+                            "sentry.tasks.deletion.run_deletion",
+                          ],
+                          Array [
+                            "sentry.tasks.deletion.run_scheduled_deletions",
+                            "sentry.tasks.deletion.run_scheduled_deletions",
+                          ],
+                          Array [
+                            "sentry.tasks.digests.deliver_digest",
+                            "sentry.tasks.digests.deliver_digest",
+                          ],
+                          Array [
+                            "sentry.tasks.digests.schedule_digests",
+                            "sentry.tasks.digests.schedule_digests",
+                          ],
+                          Array [
+                            "sentry.tasks.email.process_inbound_email",
+                            "sentry.tasks.email.process_inbound_email",
+                          ],
+                          Array [
+                            "sentry.tasks.email.send_email",
+                            "sentry.tasks.email.send_email",
+                          ],
+                          Array [
+                            "sentry.tasks.email_unlink_notifications",
+                            "sentry.tasks.email_unlink_notifications",
+                          ],
+                          Array [
+                            "sentry.tasks.merge.merge_group",
+                            "sentry.tasks.merge.merge_group",
+                          ],
+                          Array [
+                            "sentry.tasks.merge.rehash_group_events",
+                            "sentry.tasks.merge.rehash_group_events",
+                          ],
+                          Array [
+                            "sentry.tasks.post_process.plugin_post_process_group",
+                            "sentry.tasks.post_process.plugin_post_process_group",
+                          ],
+                          Array [
+                            "sentry.tasks.post_process.post_process_group",
+                            "sentry.tasks.post_process.post_process_group",
+                          ],
+                          Array [
+                            "sentry.tasks.process_buffer.process_incr",
+                            "sentry.tasks.process_buffer.process_incr",
+                          ],
+                          Array [
+                            "sentry.tasks.process_buffer.process_pending",
+                            "sentry.tasks.process_buffer.process_pending",
+                          ],
+                          Array [
+                            "sentry.tasks.send_sso_link_emails",
+                            "sentry.tasks.send_sso_link_emails",
+                          ],
+                          Array [
+                            "sentry.tasks.store.preprocess_event",
+                            "sentry.tasks.store.preprocess_event",
+                          ],
+                          Array [
+                            "sentry.tasks.store.preprocess_event_from_reprocessing",
+                            "sentry.tasks.store.preprocess_event_from_reprocessing",
+                          ],
+                          Array [
+                            "sentry.tasks.store.process_event",
+                            "sentry.tasks.store.process_event",
+                          ],
+                          Array [
+                            "sentry.tasks.store.process_event_from_reprocessing",
+                            "sentry.tasks.store.process_event_from_reprocessing",
+                          ],
+                          Array [
+                            "sentry.tasks.store.save_event",
+                            "sentry.tasks.store.save_event",
+                          ],
+                          Array [
+                            "sentry.tasks.unmerge",
+                            "sentry.tasks.unmerge",
+                          ],
+                        ]
+                      }
+                      className="css-9gm53a-StyledSelectControl e1qrhqd00"
+                      clearable={true}
+                      deprecatedSelectControl={true}
+                      disabled={false}
+                      id="id-task"
+                      multiple={false}
+                      name="task"
+                      onChange={[Function]}
+                      required={false}
+                      value=""
+                    >
+                      <SelectControl
+                        choices={
+                          Array [
+                            Array [
+                              "",
+                              "",
+                            ],
+                            Array [
+                              "celery.backend_cleanup",
+                              "celery.backend_cleanup",
+                            ],
+                            Array [
+                              "celery.chain",
+                              "celery.chain",
+                            ],
+                            Array [
+                              "celery.chord",
+                              "celery.chord",
+                            ],
+                            Array [
+                              "celery.chord_unlock",
+                              "celery.chord_unlock",
+                            ],
+                            Array [
+                              "celery.chunks",
+                              "celery.chunks",
+                            ],
+                            Array [
+                              "celery.group",
+                              "celery.group",
+                            ],
+                            Array [
+                              "celery.map",
+                              "celery.map",
+                            ],
+                            Array [
+                              "celery.starmap",
+                              "celery.starmap",
+                            ],
+                            Array [
+                              "sentry.celery.SentryTask",
+                              "sentry.celery.SentryTask",
+                            ],
+                            Array [
+                              "sentry.tasks.activity.send_activity_notifications",
+                              "sentry.tasks.activity.send_activity_notifications",
+                            ],
+                            Array [
+                              "sentry.tasks.clear_expired_resolutions",
+                              "sentry.tasks.clear_expired_resolutions",
+                            ],
+                            Array [
+                              "sentry.tasks.commits.fetch_commits",
+                              "sentry.tasks.commits.fetch_commits",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.delete_api_application",
+                              "sentry.tasks.deletion.delete_api_application",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.delete_group",
+                              "sentry.tasks.deletion.delete_group",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.delete_organization",
+                              "sentry.tasks.deletion.delete_organization",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.delete_project",
+                              "sentry.tasks.deletion.delete_project",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.delete_repository",
+                              "sentry.tasks.deletion.delete_repository",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.delete_team",
+                              "sentry.tasks.deletion.delete_team",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.generic_delete",
+                              "sentry.tasks.deletion.generic_delete",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.revoke_api_tokens",
+                              "sentry.tasks.deletion.revoke_api_tokens",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.run_deletion",
+                              "sentry.tasks.deletion.run_deletion",
+                            ],
+                            Array [
+                              "sentry.tasks.deletion.run_scheduled_deletions",
+                              "sentry.tasks.deletion.run_scheduled_deletions",
+                            ],
+                            Array [
+                              "sentry.tasks.digests.deliver_digest",
+                              "sentry.tasks.digests.deliver_digest",
+                            ],
+                            Array [
+                              "sentry.tasks.digests.schedule_digests",
+                              "sentry.tasks.digests.schedule_digests",
+                            ],
+                            Array [
+                              "sentry.tasks.email.process_inbound_email",
+                              "sentry.tasks.email.process_inbound_email",
+                            ],
+                            Array [
+                              "sentry.tasks.email.send_email",
+                              "sentry.tasks.email.send_email",
+                            ],
+                            Array [
+                              "sentry.tasks.email_unlink_notifications",
+                              "sentry.tasks.email_unlink_notifications",
+                            ],
+                            Array [
+                              "sentry.tasks.merge.merge_group",
+                              "sentry.tasks.merge.merge_group",
+                            ],
+                            Array [
+                              "sentry.tasks.merge.rehash_group_events",
+                              "sentry.tasks.merge.rehash_group_events",
+                            ],
+                            Array [
+                              "sentry.tasks.post_process.plugin_post_process_group",
+                              "sentry.tasks.post_process.plugin_post_process_group",
+                            ],
+                            Array [
+                              "sentry.tasks.post_process.post_process_group",
+                              "sentry.tasks.post_process.post_process_group",
+                            ],
+                            Array [
+                              "sentry.tasks.process_buffer.process_incr",
+                              "sentry.tasks.process_buffer.process_incr",
+                            ],
+                            Array [
+                              "sentry.tasks.process_buffer.process_pending",
+                              "sentry.tasks.process_buffer.process_pending",
+                            ],
+                            Array [
+                              "sentry.tasks.send_sso_link_emails",
+                              "sentry.tasks.send_sso_link_emails",
+                            ],
+                            Array [
+                              "sentry.tasks.store.preprocess_event",
+                              "sentry.tasks.store.preprocess_event",
+                            ],
+                            Array [
+                              "sentry.tasks.store.preprocess_event_from_reprocessing",
+                              "sentry.tasks.store.preprocess_event_from_reprocessing",
+                            ],
+                            Array [
+                              "sentry.tasks.store.process_event",
+                              "sentry.tasks.store.process_event",
+                            ],
+                            Array [
+                              "sentry.tasks.store.process_event_from_reprocessing",
+                              "sentry.tasks.store.process_event_from_reprocessing",
+                            ],
+                            Array [
+                              "sentry.tasks.store.save_event",
+                              "sentry.tasks.store.save_event",
+                            ],
+                            Array [
+                              "sentry.tasks.unmerge",
+                              "sentry.tasks.unmerge",
+                            ],
+                          ]
+                        }
+                        className="css-9gm53a-StyledSelectControl e1qrhqd00"
+                        clearable={true}
+                        deprecatedSelectControl={true}
+                        disabled={false}
+                        forwardedRef={null}
+                        id="id-task"
+                        multiple={false}
+                        name="task"
+                        onChange={[Function]}
+                        required={false}
+                        value=""
+                      >
+                        <SelectControlLegacy
+                          choices={
+                            Array [
+                              Array [
+                                "",
+                                "",
+                              ],
+                              Array [
+                                "celery.backend_cleanup",
+                                "celery.backend_cleanup",
+                              ],
+                              Array [
+                                "celery.chain",
+                                "celery.chain",
+                              ],
+                              Array [
+                                "celery.chord",
+                                "celery.chord",
+                              ],
+                              Array [
+                                "celery.chord_unlock",
+                                "celery.chord_unlock",
+                              ],
+                              Array [
+                                "celery.chunks",
+                                "celery.chunks",
+                              ],
+                              Array [
+                                "celery.group",
+                                "celery.group",
+                              ],
+                              Array [
+                                "celery.map",
+                                "celery.map",
+                              ],
+                              Array [
+                                "celery.starmap",
+                                "celery.starmap",
+                              ],
+                              Array [
+                                "sentry.celery.SentryTask",
+                                "sentry.celery.SentryTask",
+                              ],
+                              Array [
+                                "sentry.tasks.activity.send_activity_notifications",
+                                "sentry.tasks.activity.send_activity_notifications",
+                              ],
+                              Array [
+                                "sentry.tasks.clear_expired_resolutions",
+                                "sentry.tasks.clear_expired_resolutions",
+                              ],
+                              Array [
+                                "sentry.tasks.commits.fetch_commits",
+                                "sentry.tasks.commits.fetch_commits",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.delete_api_application",
+                                "sentry.tasks.deletion.delete_api_application",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.delete_group",
+                                "sentry.tasks.deletion.delete_group",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.delete_organization",
+                                "sentry.tasks.deletion.delete_organization",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.delete_project",
+                                "sentry.tasks.deletion.delete_project",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.delete_repository",
+                                "sentry.tasks.deletion.delete_repository",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.delete_team",
+                                "sentry.tasks.deletion.delete_team",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.generic_delete",
+                                "sentry.tasks.deletion.generic_delete",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.revoke_api_tokens",
+                                "sentry.tasks.deletion.revoke_api_tokens",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.run_deletion",
+                                "sentry.tasks.deletion.run_deletion",
+                              ],
+                              Array [
+                                "sentry.tasks.deletion.run_scheduled_deletions",
+                                "sentry.tasks.deletion.run_scheduled_deletions",
+                              ],
+                              Array [
+                                "sentry.tasks.digests.deliver_digest",
+                                "sentry.tasks.digests.deliver_digest",
+                              ],
+                              Array [
+                                "sentry.tasks.digests.schedule_digests",
+                                "sentry.tasks.digests.schedule_digests",
+                              ],
+                              Array [
+                                "sentry.tasks.email.process_inbound_email",
+                                "sentry.tasks.email.process_inbound_email",
+                              ],
+                              Array [
+                                "sentry.tasks.email.send_email",
+                                "sentry.tasks.email.send_email",
+                              ],
+                              Array [
+                                "sentry.tasks.email_unlink_notifications",
+                                "sentry.tasks.email_unlink_notifications",
+                              ],
+                              Array [
+                                "sentry.tasks.merge.merge_group",
+                                "sentry.tasks.merge.merge_group",
+                              ],
+                              Array [
+                                "sentry.tasks.merge.rehash_group_events",
+                                "sentry.tasks.merge.rehash_group_events",
+                              ],
+                              Array [
+                                "sentry.tasks.post_process.plugin_post_process_group",
+                                "sentry.tasks.post_process.plugin_post_process_group",
+                              ],
+                              Array [
+                                "sentry.tasks.post_process.post_process_group",
+                                "sentry.tasks.post_process.post_process_group",
+                              ],
+                              Array [
+                                "sentry.tasks.process_buffer.process_incr",
+                                "sentry.tasks.process_buffer.process_incr",
+                              ],
+                              Array [
+                                "sentry.tasks.process_buffer.process_pending",
+                                "sentry.tasks.process_buffer.process_pending",
+                              ],
+                              Array [
+                                "sentry.tasks.send_sso_link_emails",
+                                "sentry.tasks.send_sso_link_emails",
+                              ],
+                              Array [
+                                "sentry.tasks.store.preprocess_event",
+                                "sentry.tasks.store.preprocess_event",
+                              ],
+                              Array [
+                                "sentry.tasks.store.preprocess_event_from_reprocessing",
+                                "sentry.tasks.store.preprocess_event_from_reprocessing",
+                              ],
+                              Array [
+                                "sentry.tasks.store.process_event",
+                                "sentry.tasks.store.process_event",
+                              ],
+                              Array [
+                                "sentry.tasks.store.process_event_from_reprocessing",
+                                "sentry.tasks.store.process_event_from_reprocessing",
+                              ],
+                              Array [
+                                "sentry.tasks.store.save_event",
+                                "sentry.tasks.store.save_event",
+                              ],
+                              Array [
+                                "sentry.tasks.unmerge",
+                                "sentry.tasks.unmerge",
+                              ],
+                            ]
+                          }
+                          className="css-9gm53a-StyledSelectControl e1qrhqd00"
+                          clearable={true}
+                          disabled={false}
+                          forwardedRef={null}
+                          height={36}
+                          id="id-task"
+                          multiple={false}
+                          name="task"
+                          onChange={[Function]}
+                          required={false}
+                          value=""
+                        >
+                          <StyledSelect
+                            arrowRenderer={[Function]}
+                            backspaceRemoves={true}
+                            className="css-9gm53a-StyledSelectControl e1qrhqd00"
+                            clearable={true}
+                            deleteRemoves={true}
+                            disabled={false}
+                            forwardedRef={null}
+                            height={36}
+                            id="id-task"
+                            multiple={false}
+                            name="task"
+                            onChange={[Function]}
+                            options={
+                              Array [
+                                Object {
+                                  "label": "",
+                                  "value": "",
+                                },
+                                Object {
+                                  "label": "celery.backend_cleanup",
+                                  "value": "celery.backend_cleanup",
+                                },
+                                Object {
+                                  "label": "celery.chain",
+                                  "value": "celery.chain",
+                                },
+                                Object {
+                                  "label": "celery.chord",
+                                  "value": "celery.chord",
+                                },
+                                Object {
+                                  "label": "celery.chord_unlock",
+                                  "value": "celery.chord_unlock",
+                                },
+                                Object {
+                                  "label": "celery.chunks",
+                                  "value": "celery.chunks",
+                                },
+                                Object {
+                                  "label": "celery.group",
+                                  "value": "celery.group",
+                                },
+                                Object {
+                                  "label": "celery.map",
+                                  "value": "celery.map",
+                                },
+                                Object {
+                                  "label": "celery.starmap",
+                                  "value": "celery.starmap",
+                                },
+                                Object {
+                                  "label": "sentry.celery.SentryTask",
+                                  "value": "sentry.celery.SentryTask",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.activity.send_activity_notifications",
+                                  "value": "sentry.tasks.activity.send_activity_notifications",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.clear_expired_resolutions",
+                                  "value": "sentry.tasks.clear_expired_resolutions",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.commits.fetch_commits",
+                                  "value": "sentry.tasks.commits.fetch_commits",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.delete_api_application",
+                                  "value": "sentry.tasks.deletion.delete_api_application",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.delete_group",
+                                  "value": "sentry.tasks.deletion.delete_group",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.delete_organization",
+                                  "value": "sentry.tasks.deletion.delete_organization",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.delete_project",
+                                  "value": "sentry.tasks.deletion.delete_project",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.delete_repository",
+                                  "value": "sentry.tasks.deletion.delete_repository",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.delete_team",
+                                  "value": "sentry.tasks.deletion.delete_team",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.generic_delete",
+                                  "value": "sentry.tasks.deletion.generic_delete",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.revoke_api_tokens",
+                                  "value": "sentry.tasks.deletion.revoke_api_tokens",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.run_deletion",
+                                  "value": "sentry.tasks.deletion.run_deletion",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.deletion.run_scheduled_deletions",
+                                  "value": "sentry.tasks.deletion.run_scheduled_deletions",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.digests.deliver_digest",
+                                  "value": "sentry.tasks.digests.deliver_digest",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.digests.schedule_digests",
+                                  "value": "sentry.tasks.digests.schedule_digests",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.email.process_inbound_email",
+                                  "value": "sentry.tasks.email.process_inbound_email",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.email.send_email",
+                                  "value": "sentry.tasks.email.send_email",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.email_unlink_notifications",
+                                  "value": "sentry.tasks.email_unlink_notifications",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.merge.merge_group",
+                                  "value": "sentry.tasks.merge.merge_group",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.merge.rehash_group_events",
+                                  "value": "sentry.tasks.merge.rehash_group_events",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.post_process.plugin_post_process_group",
+                                  "value": "sentry.tasks.post_process.plugin_post_process_group",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.post_process.post_process_group",
+                                  "value": "sentry.tasks.post_process.post_process_group",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.process_buffer.process_incr",
+                                  "value": "sentry.tasks.process_buffer.process_incr",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.process_buffer.process_pending",
+                                  "value": "sentry.tasks.process_buffer.process_pending",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.send_sso_link_emails",
+                                  "value": "sentry.tasks.send_sso_link_emails",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.store.preprocess_event",
+                                  "value": "sentry.tasks.store.preprocess_event",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.store.preprocess_event_from_reprocessing",
+                                  "value": "sentry.tasks.store.preprocess_event_from_reprocessing",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.store.process_event",
+                                  "value": "sentry.tasks.store.process_event",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.store.process_event_from_reprocessing",
+                                  "value": "sentry.tasks.store.process_event_from_reprocessing",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.store.save_event",
+                                  "value": "sentry.tasks.store.save_event",
+                                },
+                                Object {
+                                  "label": "sentry.tasks.unmerge",
+                                  "value": "sentry.tasks.unmerge",
+                                },
+                              ]
+                            }
+                            required={false}
+                            value=""
+                          >
+                            <SelectPicker
+                              arrowRenderer={[Function]}
+                              backspaceRemoves={true}
+                              className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
+                              clearable={true}
+                              deleteRemoves={true}
+                              disabled={false}
+                              forwardedRef={null}
+                              height={36}
+                              id="id-task"
+                              multiple={false}
+                              name="task"
+                              onChange={[Function]}
+                              options={
+                                Array [
+                                  Object {
+                                    "label": "",
+                                    "value": "",
+                                  },
+                                  Object {
+                                    "label": "celery.backend_cleanup",
+                                    "value": "celery.backend_cleanup",
+                                  },
+                                  Object {
+                                    "label": "celery.chain",
+                                    "value": "celery.chain",
+                                  },
+                                  Object {
+                                    "label": "celery.chord",
+                                    "value": "celery.chord",
+                                  },
+                                  Object {
+                                    "label": "celery.chord_unlock",
+                                    "value": "celery.chord_unlock",
+                                  },
+                                  Object {
+                                    "label": "celery.chunks",
+                                    "value": "celery.chunks",
+                                  },
+                                  Object {
+                                    "label": "celery.group",
+                                    "value": "celery.group",
+                                  },
+                                  Object {
+                                    "label": "celery.map",
+                                    "value": "celery.map",
+                                  },
+                                  Object {
+                                    "label": "celery.starmap",
+                                    "value": "celery.starmap",
+                                  },
+                                  Object {
+                                    "label": "sentry.celery.SentryTask",
+                                    "value": "sentry.celery.SentryTask",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.activity.send_activity_notifications",
+                                    "value": "sentry.tasks.activity.send_activity_notifications",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.clear_expired_resolutions",
+                                    "value": "sentry.tasks.clear_expired_resolutions",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.commits.fetch_commits",
+                                    "value": "sentry.tasks.commits.fetch_commits",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.delete_api_application",
+                                    "value": "sentry.tasks.deletion.delete_api_application",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.delete_group",
+                                    "value": "sentry.tasks.deletion.delete_group",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.delete_organization",
+                                    "value": "sentry.tasks.deletion.delete_organization",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.delete_project",
+                                    "value": "sentry.tasks.deletion.delete_project",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.delete_repository",
+                                    "value": "sentry.tasks.deletion.delete_repository",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.delete_team",
+                                    "value": "sentry.tasks.deletion.delete_team",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.generic_delete",
+                                    "value": "sentry.tasks.deletion.generic_delete",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.revoke_api_tokens",
+                                    "value": "sentry.tasks.deletion.revoke_api_tokens",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.run_deletion",
+                                    "value": "sentry.tasks.deletion.run_deletion",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.deletion.run_scheduled_deletions",
+                                    "value": "sentry.tasks.deletion.run_scheduled_deletions",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.digests.deliver_digest",
+                                    "value": "sentry.tasks.digests.deliver_digest",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.digests.schedule_digests",
+                                    "value": "sentry.tasks.digests.schedule_digests",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.email.process_inbound_email",
+                                    "value": "sentry.tasks.email.process_inbound_email",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.email.send_email",
+                                    "value": "sentry.tasks.email.send_email",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.email_unlink_notifications",
+                                    "value": "sentry.tasks.email_unlink_notifications",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.merge.merge_group",
+                                    "value": "sentry.tasks.merge.merge_group",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.merge.rehash_group_events",
+                                    "value": "sentry.tasks.merge.rehash_group_events",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.post_process.plugin_post_process_group",
+                                    "value": "sentry.tasks.post_process.plugin_post_process_group",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.post_process.post_process_group",
+                                    "value": "sentry.tasks.post_process.post_process_group",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.process_buffer.process_incr",
+                                    "value": "sentry.tasks.process_buffer.process_incr",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.process_buffer.process_pending",
+                                    "value": "sentry.tasks.process_buffer.process_pending",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.send_sso_link_emails",
+                                    "value": "sentry.tasks.send_sso_link_emails",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.store.preprocess_event",
+                                    "value": "sentry.tasks.store.preprocess_event",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.store.preprocess_event_from_reprocessing",
+                                    "value": "sentry.tasks.store.preprocess_event_from_reprocessing",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.store.process_event",
+                                    "value": "sentry.tasks.store.process_event",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.store.process_event_from_reprocessing",
+                                    "value": "sentry.tasks.store.process_event_from_reprocessing",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.store.save_event",
+                                    "value": "sentry.tasks.store.save_event",
+                                  },
+                                  Object {
+                                    "label": "sentry.tasks.unmerge",
+                                    "value": "sentry.tasks.unmerge",
+                                  },
+                                ]
+                              }
+                              required={false}
+                              value=""
+                            >
+                              <Select
+                                arrowRenderer={[Function]}
+                                autosize={true}
+                                backspaceRemoves={true}
+                                backspaceToRemoveMessage="Press backspace to remove {label}"
+                                className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
+                                clearAllText="Clear all"
+                                clearRenderer={[Function]}
+                                clearValueText="Clear value"
+                                clearable={true}
+                                closeOnSelect={true}
+                                deleteRemoves={true}
+                                delimiter=","
+                                disabled={false}
+                                escapeClearsValue={true}
+                                filterOptions={[Function]}
+                                height={36}
+                                id="id-task"
+                                ignoreAccents={true}
+                                ignoreCase={true}
+                                inputProps={Object {}}
+                                isLoading={false}
+                                joinValues={false}
+                                labelKey="label"
+                                matchPos="any"
+                                matchProp="any"
+                                menuBuffer={0}
+                                menuRenderer={[Function]}
+                                multi={false}
+                                multiple={false}
+                                name="task"
+                                noResultsText="No results found"
+                                onBlurResetsInput={true}
+                                onChange={[Function]}
+                                onCloseResetsInput={true}
+                                onSelectResetsInput={true}
+                                openOnClick={true}
+                                optionComponent={[Function]}
+                                options={
+                                  Array [
+                                    Object {
+                                      "label": "",
+                                      "value": "",
+                                    },
+                                    Object {
+                                      "label": "celery.backend_cleanup",
+                                      "value": "celery.backend_cleanup",
+                                    },
+                                    Object {
+                                      "label": "celery.chain",
+                                      "value": "celery.chain",
+                                    },
+                                    Object {
+                                      "label": "celery.chord",
+                                      "value": "celery.chord",
+                                    },
+                                    Object {
+                                      "label": "celery.chord_unlock",
+                                      "value": "celery.chord_unlock",
+                                    },
+                                    Object {
+                                      "label": "celery.chunks",
+                                      "value": "celery.chunks",
+                                    },
+                                    Object {
+                                      "label": "celery.group",
+                                      "value": "celery.group",
+                                    },
+                                    Object {
+                                      "label": "celery.map",
+                                      "value": "celery.map",
+                                    },
+                                    Object {
+                                      "label": "celery.starmap",
+                                      "value": "celery.starmap",
+                                    },
+                                    Object {
+                                      "label": "sentry.celery.SentryTask",
+                                      "value": "sentry.celery.SentryTask",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.activity.send_activity_notifications",
+                                      "value": "sentry.tasks.activity.send_activity_notifications",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.clear_expired_resolutions",
+                                      "value": "sentry.tasks.clear_expired_resolutions",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.commits.fetch_commits",
+                                      "value": "sentry.tasks.commits.fetch_commits",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.delete_api_application",
+                                      "value": "sentry.tasks.deletion.delete_api_application",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.delete_group",
+                                      "value": "sentry.tasks.deletion.delete_group",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.delete_organization",
+                                      "value": "sentry.tasks.deletion.delete_organization",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.delete_project",
+                                      "value": "sentry.tasks.deletion.delete_project",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.delete_repository",
+                                      "value": "sentry.tasks.deletion.delete_repository",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.delete_team",
+                                      "value": "sentry.tasks.deletion.delete_team",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.generic_delete",
+                                      "value": "sentry.tasks.deletion.generic_delete",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.revoke_api_tokens",
+                                      "value": "sentry.tasks.deletion.revoke_api_tokens",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.run_deletion",
+                                      "value": "sentry.tasks.deletion.run_deletion",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.deletion.run_scheduled_deletions",
+                                      "value": "sentry.tasks.deletion.run_scheduled_deletions",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.digests.deliver_digest",
+                                      "value": "sentry.tasks.digests.deliver_digest",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.digests.schedule_digests",
+                                      "value": "sentry.tasks.digests.schedule_digests",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.email.process_inbound_email",
+                                      "value": "sentry.tasks.email.process_inbound_email",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.email.send_email",
+                                      "value": "sentry.tasks.email.send_email",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.email_unlink_notifications",
+                                      "value": "sentry.tasks.email_unlink_notifications",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.merge.merge_group",
+                                      "value": "sentry.tasks.merge.merge_group",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.merge.rehash_group_events",
+                                      "value": "sentry.tasks.merge.rehash_group_events",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.post_process.plugin_post_process_group",
+                                      "value": "sentry.tasks.post_process.plugin_post_process_group",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.post_process.post_process_group",
+                                      "value": "sentry.tasks.post_process.post_process_group",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.process_buffer.process_incr",
+                                      "value": "sentry.tasks.process_buffer.process_incr",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.process_buffer.process_pending",
+                                      "value": "sentry.tasks.process_buffer.process_pending",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.send_sso_link_emails",
+                                      "value": "sentry.tasks.send_sso_link_emails",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.store.preprocess_event",
+                                      "value": "sentry.tasks.store.preprocess_event",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.store.preprocess_event_from_reprocessing",
+                                      "value": "sentry.tasks.store.preprocess_event_from_reprocessing",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.store.process_event",
+                                      "value": "sentry.tasks.store.process_event",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.store.process_event_from_reprocessing",
+                                      "value": "sentry.tasks.store.process_event_from_reprocessing",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.store.save_event",
+                                      "value": "sentry.tasks.store.save_event",
+                                    },
+                                    Object {
+                                      "label": "sentry.tasks.unmerge",
+                                      "value": "sentry.tasks.unmerge",
+                                    },
+                                  ]
+                                }
+                                pageSize={5}
+                                placeholder="Select..."
+                                removeSelected={true}
+                                required={false}
+                                rtl={false}
+                                scrollMenuIntoView={true}
+                                searchable={true}
+                                simpleValue={false}
+                                tabSelectsValue={true}
+                                trimFilter={true}
+                                value=""
+                                valueComponent={[Function]}
+                                valueKey="value"
+                              >
+                                <div
+                                  className="Select e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-clearable is-searchable Select--single"
+                                >
+                                  <input
+                                    disabled={false}
+                                    key="hidden.0"
+                                    name="task"
+                                    type="hidden"
+                                    value=""
+                                  />
+                                  <div
+                                    className="Select-control"
+                                    onKeyDown={[Function]}
+                                    onMouseDown={[Function]}
+                                    onTouchEnd={[Function]}
+                                    onTouchMove={[Function]}
+                                    onTouchStart={[Function]}
+                                  >
+                                    <div
+                                      className="Select-multi-value-wrapper"
+                                      id="react-select-2--value"
+                                    >
+                                      <Value
+                                        disabled={false}
+                                        id="react-select-2--value-item"
+                                        instancePrefix="react-select-2-"
+                                        onClick={null}
+                                        placeholder="Select..."
+                                        value={
+                                          Object {
+                                            "label": "",
+                                            "value": "",
+                                          }
+                                        }
+                                      >
+                                        <div
+                                          className="Select-value"
+                                        >
+                                          <span
+                                            aria-selected="true"
+                                            className="Select-value-label"
+                                            id="react-select-2--value-item"
+                                            role="option"
+                                          />
+                                        </div>
+                                      </Value>
+                                      <AutosizeInput
+                                        aria-activedescendant="react-select-2--value"
+                                        aria-expanded="false"
+                                        aria-haspopup="false"
+                                        aria-owns=""
+                                        className="Select-input"
+                                        id="id-task"
+                                        injectStyles={true}
+                                        minWidth="5"
+                                        onBlur={[Function]}
+                                        onChange={[Function]}
+                                        onFocus={[Function]}
+                                        required={false}
+                                        role="combobox"
+                                        value=""
+                                      >
+                                        <div
+                                          className="Select-input"
+                                          style={
+                                            Object {
+                                              "display": "inline-block",
+                                            }
+                                          }
+                                        >
+                                          <input
+                                            aria-activedescendant="react-select-2--value"
+                                            aria-expanded="false"
+                                            aria-haspopup="false"
+                                            aria-owns=""
+                                            id="id-task"
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onFocus={[Function]}
+                                            required={false}
+                                            role="combobox"
+                                            style={
+                                              Object {
+                                                "boxSizing": "content-box",
+                                                "width": "5px",
+                                              }
+                                            }
+                                            value=""
+                                          />
+                                          <div
+                                            style={
+                                              Object {
+                                                "height": 0,
+                                                "left": 0,
+                                                "overflow": "scroll",
+                                                "position": "absolute",
+                                                "top": 0,
+                                                "visibility": "hidden",
+                                                "whiteSpace": "pre",
+                                              }
+                                            }
+                                          />
+                                        </div>
+                                      </AutosizeInput>
+                                    </div>
+                                    <span
+                                      aria-label="Clear value"
+                                      className="Select-clear-zone"
+                                      onMouseDown={[Function]}
+                                      onTouchEnd={[Function]}
+                                      onTouchMove={[Function]}
+                                      onTouchStart={[Function]}
+                                      title="Clear value"
+                                    >
+                                      <span
+                                        className="Select-clear"
+                                        dangerouslySetInnerHTML={
+                                          Object {
+                                            "__html": "&times;",
+                                          }
+                                        }
+                                      />
+                                    </span>
+                                    <span
+                                      className="Select-arrow-zone"
+                                      onMouseDown={[Function]}
+                                    >
+                                      <StyledIconChevron
+                                        direction="down"
+                                        size="xs"
+                                      >
+                                        <IconChevron
+                                          className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                          direction="down"
+                                          size="xs"
+                                        >
+                                          <EmotionCssPropInternal
+                                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                              Object {
+                                                "$$typeof": Symbol(react.forward_ref),
+                                                "propTypes": Object {
+                                                  "color": [Function],
+                                                  "size": [Function],
+                                                  "viewBox": [Function],
+                                                },
+                                                "render": [Function],
+                                              }
+                                            }
+                                            className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                            css={
+                                              Object {
+                                                "map": undefined,
+                                                "name": "7chgxg-IconChevron",
+                                                "next": undefined,
+                                                "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                                "toString": [Function],
+                                              }
+                                            }
+                                            size="xs"
+                                          >
+                                            <ForwardRef(SvgIcon)
+                                              className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                              size="xs"
+                                            >
+                                              <svg
+                                                className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                                fill="currentColor"
+                                                height="12px"
+                                                viewBox="0 0 16 16"
+                                                width="12px"
+                                              >
+                                                <path
+                                                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                                />
+                                              </svg>
+                                            </ForwardRef(SvgIcon)>
+                                          </EmotionCssPropInternal>
+                                        </IconChevron>
+                                      </StyledIconChevron>
+                                    </span>
+                                  </div>
+                                </div>
+                              </Select>
+                            </SelectPicker>
+                          </StyledSelect>
+                        </SelectControlLegacy>
+                      </SelectControl>
+                    </ForwardRef(RefForwardedSelectControl)>
+                  </StyledSelectControl>
+                </div>
+              </div>
+            </SelectField>
+          </div>
+        </div>
+      </div>
+    </DocumentTitle>
+  </SideEffect(DocumentTitle)>
+</AdminQueue>
+`;

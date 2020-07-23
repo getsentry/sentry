@@ -1,0 +1,1250 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectEnvironments render active renders empty message 1`] = `
+<ProjectEnvironments
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
+  location={
+    Object {
+      "pathname": "environments/",
+    }
+  }
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+  routes={Array []}
+>
+  <div>
+    <SentryDocumentTitle
+      objSlug="project-slug"
+      title="Environments"
+    >
+      <SideEffect(DocumentTitle)
+        title="Environments - project-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Environments - project-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
+    <StyledSettingsPageHeading
+      noTitleStyles={false}
+      tabs={
+        <NavTabs
+          underlined={true}
+        >
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/"
+          >
+            Environments
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/hidden/"
+          >
+            Hidden
+          </ListLink>
+        </NavTabs>
+      }
+      title="Manage Environments"
+    >
+      <SettingsPageHeading
+        className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        noTitleStyles={false}
+        tabs={
+          <NavTabs
+            underlined={true}
+          >
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
+            >
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </NavTabs>
+        }
+        title="Manage Environments"
+      >
+        <div
+          className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        >
+          <TitleAndActions>
+            <div
+              className="css-ifzfc5-TitleAndActions e1uay4fd0"
+            >
+              <Title
+                styled={false}
+                tabs={
+                  <NavTabs
+                    underlined={true}
+                  >
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/"
+                    >
+                      Environments
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
+                    >
+                      Hidden
+                    </ListLink>
+                  </NavTabs>
+                }
+              >
+                <div
+                  className="css-inoj98-Title e1uay4fd1"
+                >
+                  <HeaderTitle>
+                    <h4
+                      className="css-1bosio6-HeaderTitle eqkydle2"
+                    >
+                      Manage Environments
+                    </h4>
+                  </HeaderTitle>
+                </div>
+              </Title>
+            </div>
+          </TitleAndActions>
+          <div>
+            <NavTabs
+              underlined={true}
+            >
+              <ul
+                className="nav nav-tabs border-bottom"
+              >
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
+                >
+                  <li
+                    className="active"
+                  >
+                    <Link
+                      onlyActiveOnIndex={true}
+                      style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
+                    >
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
+                >
+                  <li
+                    className=""
+                  >
+                    <Link
+                      onlyActiveOnIndex={true}
+                      style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
+                    >
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
+          </div>
+        </div>
+      </SettingsPageHeading>
+    </StyledSettingsPageHeading>
+    <PermissionAlert>
+      <WithOrganizationMockWrapper
+        access={
+          Array [
+            "project:write",
+          ]
+        }
+      >
+        <withConfig(Access)
+          access={
+            Array [
+              "project:write",
+            ]
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "experiments": Object {},
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+        >
+          <Access
+            access={
+              Array [
+                "project:write",
+              ]
+            }
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            isSuperuser={false}
+            organization={
+              Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "org:integrations",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "experiments": Object {},
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "scrapeJavaScript": true,
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
+                },
+                "teams": Array [],
+              }
+            }
+            renderNoAccessMessage={false}
+            requireAll={true}
+          />
+        </withConfig(Access)>
+      </WithOrganizationMockWrapper>
+    </PermissionAlert>
+    <Panel>
+      <Component
+        className="css-ietoyz-Panel e119nu470"
+      >
+        <div
+          className="css-ietoyz-Panel e119nu470"
+        >
+          <PanelHeader>
+            <div
+              className="css-pi486d-PanelHeader en8g1d30"
+            >
+              Active Environments
+            </div>
+          </PanelHeader>
+          <PanelBody
+            flexible={false}
+            withPadding={false}
+          >
+            <FlexBox
+              withPadding={false}
+            >
+              <div
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
+              >
+                <EmptyMessage>
+                  <Component
+                    className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
+                  >
+                    <div
+                      className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
+                      data-test-id="empty-message"
+                    >
+                      <Description
+                        noMargin={true}
+                      >
+                        <div
+                          className="css-iex7sn-TextBlock-Description e1h3yfdx3"
+                        >
+                          You don't have any environments yet.
+                        </div>
+                      </Description>
+                    </div>
+                  </Component>
+                </EmptyMessage>
+              </div>
+            </FlexBox>
+          </PanelBody>
+        </div>
+      </Component>
+    </Panel>
+  </div>
+</ProjectEnvironments>
+`;
+
+exports[`ProjectEnvironments render hidden renders empty message 1`] = `
+<ProjectEnvironments
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
+  location={
+    Object {
+      "pathname": "environments/hidden/",
+    }
+  }
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+  routes={Array []}
+>
+  <div>
+    <SentryDocumentTitle
+      objSlug="project-slug"
+      title="Environments"
+    >
+      <SideEffect(DocumentTitle)
+        title="Environments - project-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Environments - project-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
+    <StyledSettingsPageHeading
+      noTitleStyles={false}
+      tabs={
+        <NavTabs
+          underlined={true}
+        >
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/"
+          >
+            Environments
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/hidden/"
+          >
+            Hidden
+          </ListLink>
+        </NavTabs>
+      }
+      title="Manage Environments"
+    >
+      <SettingsPageHeading
+        className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        noTitleStyles={false}
+        tabs={
+          <NavTabs
+            underlined={true}
+          >
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
+            >
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </NavTabs>
+        }
+        title="Manage Environments"
+      >
+        <div
+          className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        >
+          <TitleAndActions>
+            <div
+              className="css-ifzfc5-TitleAndActions e1uay4fd0"
+            >
+              <Title
+                styled={false}
+                tabs={
+                  <NavTabs
+                    underlined={true}
+                  >
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/"
+                    >
+                      Environments
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
+                    >
+                      Hidden
+                    </ListLink>
+                  </NavTabs>
+                }
+              >
+                <div
+                  className="css-inoj98-Title e1uay4fd1"
+                >
+                  <HeaderTitle>
+                    <h4
+                      className="css-1bosio6-HeaderTitle eqkydle2"
+                    >
+                      Manage Environments
+                    </h4>
+                  </HeaderTitle>
+                </div>
+              </Title>
+            </div>
+          </TitleAndActions>
+          <div>
+            <NavTabs
+              underlined={true}
+            >
+              <ul
+                className="nav nav-tabs border-bottom"
+              >
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
+                >
+                  <li
+                    className=""
+                  >
+                    <Link
+                      onlyActiveOnIndex={true}
+                      style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
+                    >
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
+                >
+                  <li
+                    className="active"
+                  >
+                    <Link
+                      onlyActiveOnIndex={true}
+                      style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
+                    >
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
+          </div>
+        </div>
+      </SettingsPageHeading>
+    </StyledSettingsPageHeading>
+    <PermissionAlert>
+      <WithOrganizationMockWrapper
+        access={
+          Array [
+            "project:write",
+          ]
+        }
+      >
+        <withConfig(Access)
+          access={
+            Array [
+              "project:write",
+            ]
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "experiments": Object {},
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+        >
+          <Access
+            access={
+              Array [
+                "project:write",
+              ]
+            }
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            isSuperuser={false}
+            organization={
+              Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "org:integrations",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "experiments": Object {},
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "scrapeJavaScript": true,
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
+                },
+                "teams": Array [],
+              }
+            }
+            renderNoAccessMessage={false}
+            requireAll={true}
+          />
+        </withConfig(Access)>
+      </WithOrganizationMockWrapper>
+    </PermissionAlert>
+    <Panel>
+      <Component
+        className="css-ietoyz-Panel e119nu470"
+      >
+        <div
+          className="css-ietoyz-Panel e119nu470"
+        >
+          <PanelHeader>
+            <div
+              className="css-pi486d-PanelHeader en8g1d30"
+            >
+              Hidden
+            </div>
+          </PanelHeader>
+          <PanelBody
+            flexible={false}
+            withPadding={false}
+          >
+            <FlexBox
+              withPadding={false}
+            >
+              <div
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
+              >
+                <EmptyMessage>
+                  <Component
+                    className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
+                  >
+                    <div
+                      className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
+                      data-test-id="empty-message"
+                    >
+                      <Description
+                        noMargin={true}
+                      >
+                        <div
+                          className="css-iex7sn-TextBlock-Description e1h3yfdx3"
+                        >
+                          You don't have any hidden environments.
+                        </div>
+                      </Description>
+                    </div>
+                  </Component>
+                </EmptyMessage>
+              </div>
+            </FlexBox>
+          </PanelBody>
+        </div>
+      </Component>
+    </Panel>
+  </div>
+</ProjectEnvironments>
+`;
+
+exports[`ProjectEnvironments render hidden renders environment list 1`] = `
+<ProjectEnvironments
+  api={
+    Client {
+      "_chain": [Function],
+      "_wrapRequest": [Function],
+      "bulkUpdate": [Function],
+      "handleRequestError": [Function],
+      "hasProjectBeenRenamed": [Function],
+    }
+  }
+  location={
+    Object {
+      "pathname": "environments/hidden/",
+    }
+  }
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
+  routes={Array []}
+>
+  <div>
+    <SentryDocumentTitle
+      objSlug="project-slug"
+      title="Environments"
+    >
+      <SideEffect(DocumentTitle)
+        title="Environments - project-slug - Sentry"
+      >
+        <DocumentTitle
+          title="Environments - project-slug - Sentry"
+        />
+      </SideEffect(DocumentTitle)>
+    </SentryDocumentTitle>
+    <StyledSettingsPageHeading
+      noTitleStyles={false}
+      tabs={
+        <NavTabs
+          underlined={true}
+        >
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/"
+          >
+            Environments
+          </ListLink>
+          <ListLink
+            activeClassName="active"
+            index={true}
+            isActive={[Function]}
+            to="/org-slug/project-slug/settings/environments/hidden/"
+          >
+            Hidden
+          </ListLink>
+        </NavTabs>
+      }
+      title="Manage Environments"
+    >
+      <SettingsPageHeading
+        className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        noTitleStyles={false}
+        tabs={
+          <NavTabs
+            underlined={true}
+          >
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/"
+            >
+              Environments
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={true}
+              isActive={[Function]}
+              to="/org-slug/project-slug/settings/environments/hidden/"
+            >
+              Hidden
+            </ListLink>
+          </NavTabs>
+        }
+        title="Manage Environments"
+      >
+        <div
+          className="css-xtfhnp-StyledSettingsPageHeading e1uay4fd4"
+        >
+          <TitleAndActions>
+            <div
+              className="css-ifzfc5-TitleAndActions e1uay4fd0"
+            >
+              <Title
+                styled={false}
+                tabs={
+                  <NavTabs
+                    underlined={true}
+                  >
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/"
+                    >
+                      Environments
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={true}
+                      isActive={[Function]}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
+                    >
+                      Hidden
+                    </ListLink>
+                  </NavTabs>
+                }
+              >
+                <div
+                  className="css-inoj98-Title e1uay4fd1"
+                >
+                  <HeaderTitle>
+                    <h4
+                      className="css-1bosio6-HeaderTitle eqkydle2"
+                    >
+                      Manage Environments
+                    </h4>
+                  </HeaderTitle>
+                </div>
+              </Title>
+            </div>
+          </TitleAndActions>
+          <div>
+            <NavTabs
+              underlined={true}
+            >
+              <ul
+                className="nav nav-tabs border-bottom"
+              >
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
+                >
+                  <li
+                    className=""
+                  >
+                    <Link
+                      onlyActiveOnIndex={true}
+                      style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
+                    >
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
+                >
+                  <li
+                    className="active"
+                  >
+                    <Link
+                      onlyActiveOnIndex={true}
+                      style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
+                    >
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
+          </div>
+        </div>
+      </SettingsPageHeading>
+    </StyledSettingsPageHeading>
+    <PermissionAlert>
+      <WithOrganizationMockWrapper
+        access={
+          Array [
+            "project:write",
+          ]
+        }
+      >
+        <withConfig(Access)
+          access={
+            Array [
+              "project:write",
+            ]
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "org:integrations",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "experiments": Object {},
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+        >
+          <Access
+            access={
+              Array [
+                "project:write",
+              ]
+            }
+            config={
+              Object {
+                "features": Set {},
+                "messages": Array [],
+                "user": Object {
+                  "email": "foo@example.com",
+                  "flags": Object {
+                    "newsletter_consent_prompt": false,
+                  },
+                  "hasPasswordAuth": true,
+                  "id": "1",
+                  "isAuthenticated": true,
+                  "name": "Foo Bar",
+                  "options": Object {
+                    "timezone": "UTC",
+                  },
+                  "permissions": Set {},
+                  "username": "foo@example.com",
+                },
+              }
+            }
+            isSuperuser={false}
+            organization={
+              Object {
+                "access": Array [
+                  "org:read",
+                  "org:write",
+                  "org:admin",
+                  "org:integrations",
+                  "project:read",
+                  "project:write",
+                  "project:admin",
+                  "team:read",
+                  "team:write",
+                  "team:admin",
+                ],
+                "experiments": Object {},
+                "features": Array [],
+                "id": "3",
+                "name": "Organization Name",
+                "onboardingTasks": Array [],
+                "projects": Array [],
+                "scrapeJavaScript": true,
+                "slug": "org-slug",
+                "status": Object {
+                  "id": "active",
+                  "name": "active",
+                },
+                "teams": Array [],
+              }
+            }
+            renderNoAccessMessage={false}
+            requireAll={true}
+          />
+        </withConfig(Access)>
+      </WithOrganizationMockWrapper>
+    </PermissionAlert>
+    <Panel>
+      <Component
+        className="css-ietoyz-Panel e119nu470"
+      >
+        <div
+          className="css-ietoyz-Panel e119nu470"
+        >
+          <PanelHeader>
+            <div
+              className="css-pi486d-PanelHeader en8g1d30"
+            >
+              Hidden
+            </div>
+          </PanelHeader>
+          <PanelBody
+            flexible={false}
+            withPadding={false}
+          >
+            <FlexBox
+              withPadding={false}
+            >
+              <div
+                className="css-1nto0rx-FlexBox e1vnwt6f0"
+              >
+                <EnvironmentRow
+                  actionText="Show"
+                  environment={
+                    Object {
+                      "id": "1",
+                      "isHidden": true,
+                      "name": "zzz",
+                    }
+                  }
+                  isHidden={true}
+                  key="1"
+                  name="zzz"
+                  onHide={[Function]}
+                  shouldShowAction={true}
+                >
+                  <EnvironmentItem
+                    p={2}
+                  >
+                    <div
+                      className="css-1op0klu-PanelItem-EnvironmentItem e1pnz46f0"
+                    >
+                      <Name>
+                        <div
+                          className="css-1f9cg5n-Name e1pnz46f1"
+                        >
+                          zzz
+                        </div>
+                      </Name>
+                      <WithOrganizationMockWrapper
+                        access={
+                          Array [
+                            "project:write",
+                          ]
+                        }
+                      >
+                        <withConfig(Access)
+                          access={
+                            Array [
+                              "project:write",
+                            ]
+                          }
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "org:integrations",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "experiments": Object {},
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
+                        >
+                          <Access
+                            access={
+                              Array [
+                                "project:write",
+                              ]
+                            }
+                            config={
+                              Object {
+                                "features": Set {},
+                                "messages": Array [],
+                                "user": Object {
+                                  "email": "foo@example.com",
+                                  "flags": Object {
+                                    "newsletter_consent_prompt": false,
+                                  },
+                                  "hasPasswordAuth": true,
+                                  "id": "1",
+                                  "isAuthenticated": true,
+                                  "name": "Foo Bar",
+                                  "options": Object {
+                                    "timezone": "UTC",
+                                  },
+                                  "permissions": Set {},
+                                  "username": "foo@example.com",
+                                },
+                              }
+                            }
+                            isSuperuser={false}
+                            organization={
+                              Object {
+                                "access": Array [
+                                  "org:read",
+                                  "org:write",
+                                  "org:admin",
+                                  "org:integrations",
+                                  "project:read",
+                                  "project:write",
+                                  "project:admin",
+                                  "team:read",
+                                  "team:write",
+                                  "team:admin",
+                                ],
+                                "experiments": Object {},
+                                "features": Array [],
+                                "id": "3",
+                                "name": "Organization Name",
+                                "onboardingTasks": Array [],
+                                "projects": Array [],
+                                "scrapeJavaScript": true,
+                                "slug": "org-slug",
+                                "status": Object {
+                                  "id": "active",
+                                  "name": "active",
+                                },
+                                "teams": Array [],
+                              }
+                            }
+                            renderNoAccessMessage={false}
+                            requireAll={true}
+                          >
+                            <div>
+                              <EnvironmentButton
+                                disabled={false}
+                                onClick={[Function]}
+                                size="xsmall"
+                              >
+                                <forwardRef<Button>
+                                  className="css-1g4cmym-EnvironmentButton e1pnz46f2"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  size="xsmall"
+                                >
+                                  <Button
+                                    align="center"
+                                    className="css-1g4cmym-EnvironmentButton e1pnz46f2"
+                                    disabled={false}
+                                    forwardRef={null}
+                                    onClick={[Function]}
+                                    size="xsmall"
+                                  >
+                                    <StyledButton
+                                      aria-disabled={false}
+                                      aria-label="Show"
+                                      className="css-1g4cmym-EnvironmentButton e1pnz46f2"
+                                      disabled={false}
+                                      forwardRef={null}
+                                      onClick={[Function]}
+                                      role="button"
+                                      size="xsmall"
+                                    >
+                                      <Component
+                                        aria-disabled={false}
+                                        aria-label="Show"
+                                        className="e1pnz46f2 css-tqh1t8-StyledButton-EnvironmentButton edwq9my0"
+                                        forwardRef={null}
+                                        onClick={[Function]}
+                                        role="button"
+                                        size="xsmall"
+                                      >
+                                        <button
+                                          aria-disabled={false}
+                                          aria-label="Show"
+                                          className="e1pnz46f2 css-tqh1t8-StyledButton-EnvironmentButton edwq9my0"
+                                          onClick={[Function]}
+                                          role="button"
+                                          size="xsmall"
+                                        >
+                                          <ButtonLabel
+                                            align="center"
+                                            size="xsmall"
+                                          >
+                                            <span
+                                              className="css-1dw46ju-ButtonLabel edwq9my1"
+                                            >
+                                              Show
+                                            </span>
+                                          </ButtonLabel>
+                                        </button>
+                                      </Component>
+                                    </StyledButton>
+                                  </Button>
+                                </forwardRef<Button>>
+                              </EnvironmentButton>
+                            </div>
+                          </Access>
+                        </withConfig(Access)>
+                      </WithOrganizationMockWrapper>
+                    </div>
+                  </EnvironmentItem>
+                </EnvironmentRow>
+              </div>
+            </FlexBox>
+          </PanelBody>
+        </div>
+      </Component>
+    </Panel>
+  </div>
+</ProjectEnvironments>
+`;

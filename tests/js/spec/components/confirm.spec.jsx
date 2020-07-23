@@ -14,6 +14,7 @@ describe('Confirm', function() {
       TestStubs.routerContext()
     );
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('clicking action button opens Modal', function() {

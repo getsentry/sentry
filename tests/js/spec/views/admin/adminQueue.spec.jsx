@@ -64,6 +64,7 @@ describe('AdminQueue', function() {
         },
       });
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });

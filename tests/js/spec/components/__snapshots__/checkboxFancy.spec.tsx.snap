@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CheckboxFancy renders 1`] = `
+<CheckboxFancy
+  isChecked={false}
+  isIndeterminate={false}
+  size="16px"
+>
+  <Component
+    className="css-13wf76-CheckboxFancy e1i89tzt0"
+    isChecked={false}
+    isIndeterminate={false}
+    size="16px"
+  >
+    <div
+      aria-checked={false}
+      className="css-13wf76-CheckboxFancy e1i89tzt0"
+      data-test-id="checkbox-fancy"
+      role="checkbox"
+    >
+      <CheckboxFancyContent
+        isChecked={false}
+        isIndeterminate={false}
+      />
+    </div>
+  </Component>
+</CheckboxFancy>
+`;

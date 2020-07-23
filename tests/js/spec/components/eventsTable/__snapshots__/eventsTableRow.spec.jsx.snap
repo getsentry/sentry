@@ -1,0 +1,176 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventsTableRow renders 1`] = `
+<table>
+  <tbody>
+    <EventsTableRow
+      event={
+        Object {
+          "context": Object {
+            "session:duration": 46363,
+          },
+          "contexts": Object {
+            "browser": Object {
+              "name": "Chrome",
+              "type": "browser",
+              "version": "59.0.3071",
+            },
+            "os": Object {
+              "name": "Mac OS X",
+              "type": "os",
+              "version": "10.12.5",
+            },
+          },
+          "dateCreated": "2017-07-26T00:34:20Z",
+          "dateReceived": "2017-07-26T00:34:20Z",
+          "dist": null,
+          "entries": Array [],
+          "errors": Array [],
+          "eventID": "807f0de4d8c246098f21f8e0f1684f3d",
+          "fingerprints": Array [
+            "2c4887696f708c476a81ce4e834c4b02",
+            "e05da55328a860b21f62e371f0a7507d",
+          ],
+          "groupID": "268",
+          "id": "904",
+          "message": "TypeError Cannot read property 'assignedTo' of undefined app/components/assigneeSelector in assignedTo",
+          "metadata": Object {
+            "type": "TypeError",
+            "value": "Cannot read property 'assignedTo' of undefined",
+          },
+          "packages": Object {},
+          "platform": "javascript",
+          "sdk": Object {
+            "clientIP": "127.0.0.1",
+            "name": "raven-js",
+            "upstream": Object {
+              "isNewer": false,
+              "name": "raven-js",
+              "url": "https://docs.sentry.io/clients/javascript/",
+            },
+            "version": "3.16.1",
+          },
+          "size": 21896,
+          "tags": Array [
+            Object {
+              "key": "browser",
+              "value": "Chrome 59.0.3071",
+            },
+            Object {
+              "key": "browser.name",
+              "value": "Chrome",
+            },
+            Object {
+              "key": "level",
+              "value": "error",
+            },
+            Object {
+              "key": "logger",
+              "value": "javascript",
+            },
+            Object {
+              "key": "os",
+              "value": "Mac OS X 10.12.5",
+            },
+            Object {
+              "key": "os.name",
+              "value": "Mac OS X",
+            },
+            Object {
+              "key": "release",
+              "value": "d5241c9d9d2bcda918c7af72f07cea1e39a096ac",
+            },
+            Object {
+              "key": "transaction",
+              "value": "app/components/assigneeSelector in assignedTo",
+            },
+            Object {
+              "key": "url",
+              "value": "http://localhost:8000/sentry/internal/issues/227/grouping/",
+            },
+            Object {
+              "key": "user",
+              "value": "id:1",
+            },
+          ],
+          "title": "TypeError: Cannot read property 'assignedTo' of undefined",
+          "type": "error",
+          "user": Object {
+            "email": "billy@sentry.io",
+            "id": "1",
+            "ip_address": "127.0.0.1",
+          },
+        }
+      }
+      groupId="groupId"
+      orgId="orgId"
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "experiments": Object {},
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+      projectId="projectId"
+      tagList={Array []}
+    >
+      <tr
+        key="904"
+      >
+        <td>
+          <h5>
+            <GlobalSelectionLink
+              to="/organizations/orgId/issues/groupId/events/904/"
+            >
+              <Link
+                onlyActiveOnIndex={false}
+                style={Object {}}
+                to="/organizations/orgId/issues/groupId/events/904/"
+              >
+                <a
+                  onClick={[Function]}
+                  style={Object {}}
+                >
+                  <DateTime
+                    date="2017-07-26T00:34:20Z"
+                    seconds={true}
+                  >
+                    <time>
+                      Jul 26, 2017 12:34:20 AM UTC
+                    </time>
+                  </DateTime>
+                </a>
+              </Link>
+            </GlobalSelectionLink>
+            <small>
+              TypeError: Cannot read property 'assignedTo' of undefined
+            </small>
+          </h5>
+        </td>
+      </tr>
+    </EventsTableRow>
+  </tbody>
+</table>
+`;

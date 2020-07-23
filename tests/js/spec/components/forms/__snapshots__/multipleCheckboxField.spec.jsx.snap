@@ -1,0 +1,154 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MultipleCheckboxField render() renders with form context 1`] = `
+<MultipleCheckboxField
+  choices={
+    Array [
+      Array [
+        "1",
+        "On",
+      ],
+      Array [
+        "2",
+        "Off",
+      ],
+    ]
+  }
+  disabled={false}
+  hideErrorMessage={false}
+  name="fieldName"
+  required={false}
+>
+  <div
+    className="control-group"
+  >
+    <div
+      className=""
+    >
+      <div
+        className="controls"
+      >
+        <label
+          className="control-label"
+          style={
+            Object {
+              "borderBottom": "1px solid #f1eff3",
+              "display": "block",
+              "marginBottom": 10,
+            }
+          }
+        />
+      </div>
+    </div>
+    <div
+      className="control-list"
+    >
+      <label
+        className="checkbox"
+        key="1"
+      >
+        <input
+          checked={true}
+          disabled={false}
+          onChange={[Function]}
+          type="checkbox"
+          value="1"
+        />
+        On
+      </label>
+      <label
+        className="checkbox"
+        key="2"
+      >
+        <input
+          checked={false}
+          disabled={false}
+          onChange={[Function]}
+          type="checkbox"
+          value="2"
+        />
+        Off
+      </label>
+    </div>
+  </div>
+</MultipleCheckboxField>
+`;
+
+exports[`MultipleCheckboxField render() renders without form context 1`] = `
+<MultipleCheckboxField
+  choices={
+    Array [
+      Array [
+        "1",
+        "On",
+      ],
+      Array [
+        "2",
+        "Off",
+      ],
+    ]
+  }
+  disabled={false}
+  hideErrorMessage={false}
+  name="fieldName"
+  required={false}
+  value={
+    Array [
+      "1",
+    ]
+  }
+>
+  <div
+    className="control-group"
+  >
+    <div
+      className=""
+    >
+      <div
+        className="controls"
+      >
+        <label
+          className="control-label"
+          style={
+            Object {
+              "borderBottom": "1px solid #f1eff3",
+              "display": "block",
+              "marginBottom": 10,
+            }
+          }
+        />
+      </div>
+    </div>
+    <div
+      className="control-list"
+    >
+      <label
+        className="checkbox"
+        key="1"
+      >
+        <input
+          checked={true}
+          disabled={false}
+          onChange={[Function]}
+          type="checkbox"
+          value="1"
+        />
+        On
+      </label>
+      <label
+        className="checkbox"
+        key="2"
+      >
+        <input
+          checked={false}
+          disabled={false}
+          onChange={[Function]}
+          type="checkbox"
+          value="2"
+        />
+        Off
+      </label>
+    </div>
+  </div>
+</MultipleCheckboxField>
+`;

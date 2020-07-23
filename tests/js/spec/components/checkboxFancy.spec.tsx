@@ -8,6 +8,7 @@ describe('CheckboxFancy', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<CheckboxFancy />);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
   });
 
   it('isChecked', function() {

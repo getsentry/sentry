@@ -17,6 +17,7 @@ describe('MultiSelectField', function() {
         />
       );
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('has the right value from props', function() {

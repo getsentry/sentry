@@ -1,0 +1,116 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NumberField render() renders 1`] = `
+<NumberField
+  disabled={false}
+  hideErrorMessage={false}
+  name="fieldName"
+  required={false}
+>
+  <div
+    className="control-group"
+  >
+    <div
+      className="controls"
+    >
+      <input
+        className="form-control"
+        disabled={false}
+        id="id-fieldName"
+        name="fieldName"
+        onChange={[Function]}
+        required={false}
+        type="number"
+        value=""
+      />
+    </div>
+  </div>
+</NumberField>
+`;
+
+exports[`NumberField render() renders with form context 1`] = `
+<NumberField
+  disabled={false}
+  hideErrorMessage={false}
+  name="fieldName"
+  required={false}
+>
+  <div
+    className="control-group"
+  >
+    <div
+      className="controls"
+    >
+      <input
+        className="form-control"
+        disabled={false}
+        id="id-fieldName"
+        name="fieldName"
+        onChange={[Function]}
+        required={false}
+        type="number"
+        value={5}
+      />
+    </div>
+  </div>
+</NumberField>
+`;
+
+exports[`NumberField render() renders with optional attributes 1`] = `
+<NumberField
+  disabled={false}
+  hideErrorMessage={false}
+  max={100}
+  min={0}
+  name="fieldName"
+  required={false}
+>
+  <div
+    className="control-group"
+  >
+    <div
+      className="controls"
+    >
+      <input
+        className="form-control"
+        disabled={false}
+        id="id-fieldName"
+        name="fieldName"
+        onChange={[Function]}
+        required={false}
+        type="number"
+        value=""
+      />
+    </div>
+  </div>
+</NumberField>
+`;
+
+exports[`NumberField render() renders with value 1`] = `
+<NumberField
+  disabled={false}
+  hideErrorMessage={false}
+  name="fieldName"
+  required={false}
+  value={5}
+>
+  <div
+    className="control-group"
+  >
+    <div
+      className="controls"
+    >
+      <input
+        className="form-control"
+        disabled={false}
+        id="id-fieldName"
+        name="fieldName"
+        onChange={[Function]}
+        required={false}
+        type="number"
+        value={5}
+      />
+    </div>
+  </div>
+</NumberField>
+`;

@@ -12,6 +12,7 @@ describe('RadioBooleanField', function() {
         <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
       );
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
@@ -29,6 +30,7 @@ describe('RadioBooleanField', function() {
         }
       );
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders new field without form context', function() {
@@ -36,6 +38,7 @@ describe('RadioBooleanField', function() {
         <NewRadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
       );
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('can change values', function() {

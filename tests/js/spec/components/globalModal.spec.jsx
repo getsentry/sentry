@@ -9,6 +9,7 @@ describe('GlobalModal', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<GlobalModal />);
     expect(wrapper).toSnapshot();
+    expect(wrapper).toMatchSnapshot();
     wrapper.unmount();
   });
 

@@ -26,6 +26,7 @@ describe('OrganizationCreate', function() {
         context: {router: TestStubs.router()},
       });
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with terms', function() {
@@ -35,6 +36,7 @@ describe('OrganizationCreate', function() {
         context: {router: TestStubs.router()},
       });
       expect(wrapper).toSnapshot();
+      expect(wrapper).toMatchSnapshot();
     });
   });
 });
