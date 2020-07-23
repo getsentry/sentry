@@ -197,7 +197,7 @@ describe('SearchBar', function() {
       expect.objectContaining({query: {project: ['1', '2'], statsPeriod: '14d'}})
     );
     selectFirstAutocompleteItem(wrapper);
-    expect(wrapper.find('input').prop('value')).toBe('!gpu:*"Nvidia 1080ti" ');
+    expect(wrapper.find('input').prop('value')).toBe('!gpu:"Nvidia 1080ti" ');
   });
 
   it('stops searching after no values are returned', async function() {
