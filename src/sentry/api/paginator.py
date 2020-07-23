@@ -473,43 +473,66 @@ class GenericOffsetPaginator(object):
 
 
 class CombinedQuerysetPaginator(object):
+    """ This paginator can be used to paginate between multiple querysets.
+    It needs to be passed two lists:
+        1. a list of querysets to paginate and a list of fields
+            i.e. querysets = [AlertRule.objects.all(), Rule.objects.all()]
+        2. the key on which to sort the models in the queryset. The order must match the querysets.
+            i.e. order_by = ["date_added"] or ["name", "label"]
+
+    and an optional paramater `desc` to determine whether the sort is ascending or descending. Default is False.
+
+    There is an issue with sorting between multiple models using a mixture of `date_added` and other fields.
+    This stems from `value_from_cursor` which formats it has a date if any of the keys are `date_added`.
+
+    There are assertions in the constructor to help prevent this from happening.
+    """
+
     multiplier = 1000000  # Use microseconds for date keys.
 
-    def __init__(self, order_keys, querysets, desc=False, on_results=None):
-        # TODO: Replace self.key references with a function call that takes in the item/instance/queryset worked on
-        # and it returns the key associated to that model
-
-        #TODO: Value from cursor is hard - how do I know which key to use to decode the cursor? This is only an issue for date_added values I think (otherwise I don't need to know the key)
-
-        # if order_by:
-        #     if order_by.startswith("-"):
-        #         self.key, self.desc = order_by[1:], True
-        #     else:
-        #         self.key, self.desc = order_by, False
-        # else:
-        #     self.key = None
-        #     self.desc = False
-        self.keys = order_keys
+    def __init__(self, order_by, querysets, desc=False, on_results=None):
+        if type(order_by) is list:
+            self.keys = order_by
+        else:
+            self.keys = [order_by] * len(querysets)
         self.desc = desc
-
         self.querysets = querysets
         self.on_results = on_results
-        # IMPROVEMENT: Ensure each model in the querysets has attribute of self.key
-        # ... or accept a function that can map to the proper key based on model instance
-        # use case could be sorting by name/label for AlertRule / Rule
-        # For now...just be diligent in your usage.
+        self.model_key_map = {}
+
+        assert len(self.keys) == len(
+            querysets
+        ), "order_by must be a string or a list of equal length to querysets"
+        if "date_added" in self.keys:
+            for key in self.keys:
+                assert (
+                    key == "date_added"
+                ), "When sorting by date_added, it must be the key used on all querysets"
+        for i, model in enumerate(self.querysets):
+            assert hasattr(
+                model.first(), self.keys[i]
+            ), "Model of type {} does not have field {}".format(type(model.first()), self.keys[i])
+            self.model_key_map.update({type(model.first()): self.keys[i]})
+
+    def key_from_model(self, model):
+        return self.model_key_map.get(type(model))
 
     def get_item_key(self, item, for_prev=False):
-        #TODO:  Can check the instance of item to determine which key to use (need key associated to model instance)
-
-        if self.key == "date_added":  # Could generalize this more
-            return self.multiplier * float(getattr(item, self.key).strftime("%s.%f"))
+        if self.key_from_model(item) == "date_added":  # Could generalize this more
+            return self.multiplier * float(
+                getattr(item, self.key_from_model(item)).strftime("%s.%f")
+            )
         else:
-            value = getattr(item, self.key)
-            return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+            value = getattr(item, self.key_from_model(item))
+            if type(value) is float:
+                return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+
+            return value
 
     def value_from_cursor(self, cursor):
-        if self.key == "date_added":  # Could generalize this more
+        if (
+            "date_added" in self.keys
+        ):  # Could generalize this more to check field type to see if it is a date..but cursor does not have that info
             return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
                 tzinfo=timezone.utc
             )
@@ -521,26 +544,26 @@ class CombinedQuerysetPaginator(object):
 
     def _build_combined_querysets(self, value, is_prev, limit, extra):
         asc = self._is_asc(is_prev)
-
-        if asc:
-            order_by = self.key
-            filter_condition = "%s__gte" % self.key
-        else:
-            order_by = "-%s" % self.key
-            filter_condition = "%s__lte" % self.key
-
-        filters = {}
-        if value is not None:
-            assert self.key
-            filters[filter_condition] = value
-
         combined_querysets = list()
         for queryset in self.querysets:
+            key = self.key_from_model(queryset.first())
+            filters = {}
+            if asc:
+                order_by = key
+                filter_condition = "%s__gte" % key
+            else:
+                order_by = "-%s" % key
+                filter_condition = "%s__lte" % key
+
+            if value is not None:
+                filters[filter_condition] = value
+
             queryset = queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
             combined_querysets += list(queryset)
 
         combined_querysets.sort(
-            key=lambda item: (getattr(item, self.key), type(item).__name__), reverse=not asc
+            key=lambda item: (getattr(item, self.key_from_model(item)), type(item).__name__),
+            reverse=not asc,
         )
         return combined_querysets
 
