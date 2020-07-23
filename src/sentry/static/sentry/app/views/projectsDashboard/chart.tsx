@@ -2,27 +2,23 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
+import {Project} from 'app/types';
 import BarChart from 'app/components/barChart';
 
-export default class Chart extends React.Component {
-  static propTypes = {
-    stats: PropTypes.array,
-  };
+type Props = {
+  stats: Required<Project>['stats'];
+};
 
-  static defaultProps = {
-    stats: [],
-  };
+const Chart = ({stats = []}: Props) => {
+  const data = stats.map(d => ({x: d[0], y: d[1]}));
+  return <StyledBarChart points={data} label="events" height={60} gap={1.5} />;
+};
 
-  render() {
-    const data = this.props.stats.map(d => ({x: d[0], y: d[1]}));
+Chart.propTypes = {
+  stats: PropTypes.array,
+};
 
-    return (
-      <div>
-        <StyledBarChart points={data} label="events" height={60} gap={1.5} />
-      </div>
-    );
-  }
-}
+export default Chart;
 
 const StyledBarChart = styled(BarChart)`
   a {

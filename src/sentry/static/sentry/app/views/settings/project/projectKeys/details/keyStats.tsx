@@ -9,6 +9,7 @@ import LoadingError from 'app/components/loadingError';
 import Placeholder from 'app/components/placeholder';
 import StackedBarChart from 'app/components/stackedBarChart';
 
+type Point = React.ComponentProps<typeof StackedBarChart>['points'][0];
 type Props = {
   api: Client;
 } & Pick<
@@ -23,7 +24,17 @@ type Props = {
   'params'
 >;
 
-const getInitialState = () => {
+type State = {
+  since: number;
+  until: number;
+  loading: boolean;
+  error: boolean;
+  // TODO(ts): Add types to stats
+  stats: any[] | null;
+  emptyStats: boolean;
+};
+
+const getInitialState = (): State => {
   const until = Math.floor(new Date().getTime() / 1000);
   return {
     since: until - 3600 * 24 * 30,
@@ -35,7 +46,7 @@ const getInitialState = () => {
   };
 };
 
-class KeyStats extends React.Component<Props> {
+class KeyStats extends React.Component<Props, State> {
   state = getInitialState();
 
   componentDidMount() {
@@ -74,7 +85,7 @@ class KeyStats extends React.Component<Props> {
     });
   };
 
-  renderTooltip = (point, _pointIdx, chart) => {
+  renderTooltip = (point: Point, _pointIdx: number, chart: StackedBarChart) => {
     const timeLabel = chart.getTimeLabel(point);
     const [accepted, dropped, filtered] = point.y;
 
@@ -113,7 +124,7 @@ class KeyStats extends React.Component<Props> {
             <Placeholder height="150px" />
           ) : !this.state.emptyStats ? (
             <StackedBarChart
-              points={this.state.stats}
+              points={this.state.stats!}
               height={150}
               label="events"
               barClasses={['accepted', 'rate-limited']}

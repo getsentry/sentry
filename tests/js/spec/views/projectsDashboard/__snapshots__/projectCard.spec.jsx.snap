@@ -648,8 +648,25 @@ exports[`ProjectCard renders 1`] = `
                   ]
                 }
               >
-                <div>
-                  <StyledBarChart
+                <StyledBarChart
+                  gap={1.5}
+                  height={60}
+                  label="events"
+                  points={
+                    Array [
+                      Object {
+                        "x": 1525042800,
+                        "y": 1,
+                      },
+                      Object {
+                        "x": 1525046400,
+                        "y": 2,
+                      },
+                    ]
+                  }
+                >
+                  <BarChart
+                    className="css-4cbp86-StyledBarChart e1czsylf0"
                     gap={1.5}
                     height={60}
                     label="events"
@@ -666,251 +683,231 @@ exports[`ProjectCard renders 1`] = `
                       ]
                     }
                   >
-                    <BarChart
-                      className="css-4cbp86-StyledBarChart e1aigaye0"
+                    <StackedBarChart
+                      barClasses={
+                        Array [
+                          "chart-bar",
+                        ]
+                      }
+                      className="css-4cbp86-StyledBarChart e1czsylf0"
                       gap={1.5}
                       height={60}
                       label="events"
+                      markers={Array []}
                       points={
                         Array [
                           Object {
                             "x": 1525042800,
-                            "y": 1,
+                            "y": Array [
+                              1,
+                            ],
                           },
                           Object {
                             "x": 1525046400,
-                            "y": 2,
+                            "y": Array [
+                              2,
+                            ],
                           },
                         ]
                       }
+                      series={Array []}
                     >
-                      <StackedBarChart
-                        barClasses={
-                          Array [
-                            "chart-bar",
-                          ]
+                      <StyledFigure
+                        className="css-4cbp86-StyledBarChart e1czsylf0 barchart"
+                        style={
+                          Object {
+                            "height": 60,
+                            "width": undefined,
+                          }
                         }
-                        className="css-4cbp86-StyledBarChart e1aigaye0"
-                        gap={1.5}
-                        height={60}
-                        label="events"
-                        markers={Array []}
-                        points={
-                          Array [
-                            Object {
-                              "x": 1525042800,
-                              "y": Array [
-                                1,
-                              ],
-                            },
-                            Object {
-                              "x": 1525046400,
-                              "y": Array [
-                                2,
-                              ],
-                            },
-                          ]
-                        }
-                        series={Array []}
-                        width={null}
                       >
-                        <StyledFigure
-                          className="css-4cbp86-StyledBarChart e1aigaye0 barchart"
+                        <figure
+                          className="e1czsylf0 barchart css-1law1hb-StyledFigure-StyledBarChart e1r7vyxv1"
                           style={
                             Object {
                               "height": 60,
-                              "width": null,
+                              "width": undefined,
                             }
                           }
                         >
-                          <figure
-                            className="e1aigaye0 barchart css-1law1hb-StyledFigure-StyledBarChart e5t71581"
-                            style={
-                              Object {
-                                "height": 60,
-                                "width": null,
-                              }
-                            }
+                          <span
+                            className="max-y"
                           >
-                            <span
-                              className="max-y"
+                            <Count
+                              value={10}
                             >
-                              <Count
-                                value={10}
-                              >
-                                <span>
-                                  10
-                                </span>
-                              </Count>
-                            </span>
-                            <span
-                              className="min-y"
+                              <span>
+                                10
+                              </span>
+                            </Count>
+                          </span>
+                          <span
+                            className="min-y"
+                          >
+                            0
+                          </span>
+                          <SvgContainer>
+                            <div
+                              className="css-6tdbe5-SvgContainer e1r7vyxv2"
                             >
-                              0
-                            </span>
-                            <SvgContainer>
-                              <div
-                                className="css-6tdbe5-SvgContainer e5t71582"
+                              <StyledSvg
+                                overflow="visible"
+                                preserveAspectRatio="none"
+                                viewBox="0 0 100 400"
                               >
-                                <StyledSvg
+                                <svg
+                                  className="css-1w5ytn5-StyledSvg e1r7vyxv0"
                                   overflow="visible"
                                   preserveAspectRatio="none"
                                   viewBox="0 0 100 400"
                                 >
-                                  <svg
-                                    className="css-1w5ytn5-StyledSvg e5t71580"
-                                    overflow="visible"
-                                    preserveAspectRatio="none"
-                                    viewBox="0 0 100 400"
+                                  <Tooltip
+                                    containerDisplayMode="inline-block"
+                                    key="1525042800"
+                                    position="bottom"
+                                    title={
+                                      <React.Fragment>
+                                        <div
+                                          style={
+                                            Object {
+                                              "width": "130px",
+                                            }
+                                          }
+                                        >
+                                          <div
+                                            className="time-label"
+                                          >
+                                            <span>
+                                              April 29, 2018
+                                              <br />
+                                              11:00 PM
+                                              →
+                                              11:59 PM
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div
+                                          className="value-label"
+                                        >
+                                          1
+                                           
+                                          events
+                                        </div>
+                                      </React.Fragment>
+                                    }
                                   >
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
-                                      key="1525042800"
-                                      position="bottom"
-                                      title={
-                                        <React.Fragment>
-                                          <div
-                                            style={
-                                              Object {
-                                                "width": "130px",
-                                              }
+                                    <Manager>
+                                      <Reference>
+                                        <InnerReference
+                                          setReferenceNode={[Function]}
+                                        >
+                                          <g
+                                            aria-describedby="tooltip-123456"
+                                            onBlur={[Function]}
+                                            onFocus={[Function]}
+                                            onMouseEnter={[Function]}
+                                            onMouseLeave={[Function]}
+                                          >
+                                            <rect
+                                              height="100%"
+                                              opacity="0"
+                                              width="52.3%"
+                                              x="-1.5%"
+                                            />
+                                            <rect
+                                              className="chart-bar barchart-rect"
+                                              data-test-id="chart-column"
+                                              height="9.9%"
+                                              key="0"
+                                              width="49.3%"
+                                              x="0%"
+                                              y="90.1%"
+                                            >
+                                              1
+                                            </rect>
+                                          </g>
+                                        </InnerReference>
+                                      </Reference>
+                                    </Manager>
+                                  </Tooltip>
+                                  <Tooltip
+                                    containerDisplayMode="inline-block"
+                                    key="1525046400"
+                                    position="bottom"
+                                    title={
+                                      <React.Fragment>
+                                        <div
+                                          style={
+                                            Object {
+                                              "width": "130px",
                                             }
-                                          >
-                                            <div
-                                              className="time-label"
-                                            >
-                                              <span>
-                                                April 29, 2018
-                                                <br />
-                                                11:00 PM
-                                                →
-                                                11:59 PM
-                                              </span>
-                                            </div>
-                                          </div>
+                                          }
+                                        >
                                           <div
-                                            className="value-label"
+                                            className="time-label"
                                           >
-                                            1
-                                             
-                                            events
+                                            <span>
+                                              April 30, 2018
+                                              <br />
+                                              12:00 AM
+                                              →
+                                              12:59 AM
+                                            </span>
                                           </div>
-                                        </React.Fragment>
-                                      }
-                                    >
-                                      <Manager>
-                                        <Reference>
-                                          <InnerReference
-                                            setReferenceNode={[Function]}
+                                        </div>
+                                        <div
+                                          className="value-label"
+                                        >
+                                          2
+                                           
+                                          events
+                                        </div>
+                                      </React.Fragment>
+                                    }
+                                  >
+                                    <Manager>
+                                      <Reference>
+                                        <InnerReference
+                                          setReferenceNode={[Function]}
+                                        >
+                                          <g
+                                            aria-describedby="tooltip-123456"
+                                            onBlur={[Function]}
+                                            onFocus={[Function]}
+                                            onMouseEnter={[Function]}
+                                            onMouseLeave={[Function]}
                                           >
-                                            <g
-                                              aria-describedby="tooltip-123456"
-                                              onBlur={[Function]}
-                                              onFocus={[Function]}
-                                              onMouseEnter={[Function]}
-                                              onMouseLeave={[Function]}
+                                            <rect
+                                              height="100%"
+                                              opacity="0"
+                                              width="52.3%"
+                                              x="49.3%"
+                                            />
+                                            <rect
+                                              className="chart-bar barchart-rect"
+                                              data-test-id="chart-column"
+                                              height="19.8%"
+                                              key="0"
+                                              width="49.3%"
+                                              x="50.8%"
+                                              y="80.2%"
                                             >
-                                              <rect
-                                                height="100%"
-                                                opacity="0"
-                                                width="52.3%"
-                                                x="-1.5%"
-                                              />
-                                              <rect
-                                                className="chart-bar barchart-rect"
-                                                data-test-id="chart-column"
-                                                height="9.9%"
-                                                key="0"
-                                                width="49.3%"
-                                                x="0%"
-                                                y="90.1%"
-                                              >
-                                                1
-                                              </rect>
-                                            </g>
-                                          </InnerReference>
-                                        </Reference>
-                                      </Manager>
-                                    </Tooltip>
-                                    <Tooltip
-                                      containerDisplayMode="inline-block"
-                                      key="1525046400"
-                                      position="bottom"
-                                      title={
-                                        <React.Fragment>
-                                          <div
-                                            style={
-                                              Object {
-                                                "width": "130px",
-                                              }
-                                            }
-                                          >
-                                            <div
-                                              className="time-label"
-                                            >
-                                              <span>
-                                                April 30, 2018
-                                                <br />
-                                                12:00 AM
-                                                →
-                                                12:59 AM
-                                              </span>
-                                            </div>
-                                          </div>
-                                          <div
-                                            className="value-label"
-                                          >
-                                            2
-                                             
-                                            events
-                                          </div>
-                                        </React.Fragment>
-                                      }
-                                    >
-                                      <Manager>
-                                        <Reference>
-                                          <InnerReference
-                                            setReferenceNode={[Function]}
-                                          >
-                                            <g
-                                              aria-describedby="tooltip-123456"
-                                              onBlur={[Function]}
-                                              onFocus={[Function]}
-                                              onMouseEnter={[Function]}
-                                              onMouseLeave={[Function]}
-                                            >
-                                              <rect
-                                                height="100%"
-                                                opacity="0"
-                                                width="52.3%"
-                                                x="49.3%"
-                                              />
-                                              <rect
-                                                className="chart-bar barchart-rect"
-                                                data-test-id="chart-column"
-                                                height="19.8%"
-                                                key="0"
-                                                width="49.3%"
-                                                x="50.8%"
-                                                y="80.2%"
-                                              >
-                                                2
-                                              </rect>
-                                            </g>
-                                          </InnerReference>
-                                        </Reference>
-                                      </Manager>
-                                    </Tooltip>
-                                  </svg>
-                                </StyledSvg>
-                              </div>
-                            </SvgContainer>
-                          </figure>
-                        </StyledFigure>
-                      </StackedBarChart>
-                    </BarChart>
-                  </StyledBarChart>
-                </div>
+                                              2
+                                            </rect>
+                                          </g>
+                                        </InnerReference>
+                                      </Reference>
+                                    </Manager>
+                                  </Tooltip>
+                                </svg>
+                              </StyledSvg>
+                            </div>
+                          </SvgContainer>
+                        </figure>
+                      </StyledFigure>
+                    </StackedBarChart>
+                  </BarChart>
+                </StyledBarChart>
               </Chart>
               <NoEvents>
                 <Container>
