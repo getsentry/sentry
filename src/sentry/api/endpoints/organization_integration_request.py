@@ -31,7 +31,7 @@ def get_url(organization, provider_type, provider_slug):
                     "sentry_app": "sentry-apps",
                 }.get(provider_type),
                 provider_slug,
-                "/?referrer=request_email",
+                "?referrer=request_email",
             ]
         )
     )
