@@ -2,8 +2,10 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import * as Sentry from '@sentry/react';
+import styled from '@emotion/styled';
 
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import {IconWarning} from 'app/icons';
 
 class RouteError extends React.Component {
   static propTypes = {
@@ -84,7 +86,7 @@ class RouteError extends React.Component {
     return (
       <div className="alert alert-block alert-error">
         <div style={{fontSize: 24, marginBottom: 10}}>
-          <span className="icon-exclamation" style={{fontSize: 20, marginRight: 10}} />
+          <StyledIconWarning size="md" />
           <span>Oops! Something went wrong</span>
         </div>
         <p>
@@ -120,6 +122,10 @@ class RouteError extends React.Component {
     );
   }
 }
+
+const StyledIconWarning = styled(IconWarning)`
+  margin-right: 10px;
+`;
 
 export default withRouter(RouteError);
 export {RouteError};
