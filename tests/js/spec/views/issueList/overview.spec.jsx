@@ -264,6 +264,7 @@ describe('IssueList', function() {
 
       // Update stores with saved searches
       await tick();
+      await tick();
       wrapper.update();
 
       // Main /issues/ request
@@ -299,6 +300,7 @@ describe('IssueList', function() {
       createWrapper();
 
       await tick();
+      await tick();
       wrapper.update();
 
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -332,6 +334,7 @@ describe('IssueList', function() {
       });
       createWrapper();
 
+      await tick();
       await tick();
       wrapper.update();
 
@@ -367,6 +370,7 @@ describe('IssueList', function() {
       createWrapper({params: {searchId: '123'}});
 
       await tick();
+      await tick();
       wrapper.update();
 
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -401,6 +405,7 @@ describe('IssueList', function() {
       createWrapper({location: {query: {query: 'level:error'}}});
 
       await tick();
+      await tick();
       wrapper.update();
 
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -434,6 +439,7 @@ describe('IssueList', function() {
       createWrapper({location: {query: {query: ''}}});
 
       await tick();
+      await tick();
       wrapper.update();
 
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -457,6 +463,7 @@ describe('IssueList', function() {
         body: [localSavedSearch],
       });
       createWrapper();
+      await tick();
       await tick();
       wrapper.update();
 
@@ -521,6 +528,7 @@ describe('IssueList', function() {
       });
       createWrapper();
       await tick();
+      await tick();
       await wrapper.update();
 
       // Update the search input
@@ -550,6 +558,7 @@ describe('IssueList', function() {
         body: [savedSearch],
       });
       createWrapper();
+      await tick();
       await tick();
       wrapper.update();
 
@@ -659,6 +668,7 @@ describe('IssueList', function() {
         body: [savedSearch, assignedToMe],
       });
       createWrapper();
+      await tick();
       await tick();
       wrapper.update();
 
@@ -807,6 +817,7 @@ describe('IssueList', function() {
         },
         location: {query: {project: ['123'], environment: ['prod']}},
       });
+      await tick();
       await tick();
       wrapper.update();
 
