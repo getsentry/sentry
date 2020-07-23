@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import functools
+import logging
 
 from rest_framework.response import Response
 
@@ -9,9 +9,15 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Group
 from sentry import similarity
-from sentry.utils.functional import apply_values
-from sentry.utils.compat import map
-from sentry.utils.compat import filter
+
+
+logger = logging.getLogger(__name__)
+
+
+def _fix_label(label):
+    if isinstance(label, tuple):
+        return ":".join(label)
+    return label
 
 
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
@@ -25,28 +31,21 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
         if limit is not None:
             limit = int(limit) + 1  # the target group will always be included
 
-        results = filter(
-            lambda group_id__scores: group_id__scores[0] != group.id,
-            features.compare(group, limit=limit),
+        raw_results = {
+            group_id: {_fix_label(label): features for label, features in scores.items()}
+            for group_id, scores in features.compare(group, limit=limit)
+            if group_id != group.id
+        }
+
+        results = list(
+            (serialize(group), raw_results.pop(group.id))
+            for group in Group.objects.get_many_from_cache(list(raw_results))
         )
 
-        serialized_groups = apply_values(
-            functools.partial(serialize, user=request.user),
-            Group.objects.in_bulk([group_id for group_id, scores in results]),
-        )
+        if raw_results:
+            # Similarity has returned non-existent group IDs. This can indicate
+            # that group deletion is not triggering deletion in similarity, and
+            # that we are leaking resources
+            logger.error("similarity.api.unknown_group", extra={"group_ids": list(raw_results)})
 
-        # TODO(tkaemming): This should log when we filter out a group that is
-        # unable to be retrieved from the database. (This will soon be
-        # unexpected behavior, but still possible.)
-        return Response(
-            filter(
-                lambda group_id__scores: group_id__scores[0] is not None,
-                map(
-                    lambda group_id__scores: (
-                        serialized_groups.get(group_id__scores[0]),
-                        group_id__scores[1],
-                    ),
-                    results,
-                ),
-            )
-        )
+        return Response(results)
