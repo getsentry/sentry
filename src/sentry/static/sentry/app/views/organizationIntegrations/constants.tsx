@@ -30,6 +30,7 @@ export const POPULARITY_WEIGHT: {
   jira_server: 10,
   bitbucket_server: 10,
   github_enterprise: 10,
+  vercel: 10,
 
   // Sentry-apps
   clubhouse: 9,

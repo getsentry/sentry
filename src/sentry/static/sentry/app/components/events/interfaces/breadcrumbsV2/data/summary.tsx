@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import Highlight from 'app/components/highlight';
 import {getMeta} from 'app/components/events/meta/metaProxy';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {defined} from 'app/utils';
 
 import getBreadcrumbCustomRendererValue from '../../breadcrumbs/getBreadcrumbCustomRendererValue';
@@ -86,16 +85,10 @@ const StyledPre = styled('pre')`
   word-break: break-all;
   margin: 0;
   font-size: ${p => p.theme.fontSizeSmall};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    ${overflowEllipsis};
-  }
 `;
 
 const StyledCode = styled('code')`
-  white-space: nowrap;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    white-space: pre-wrap;
-  }
+  white-space: pre-wrap;
   line-height: 26px;
 `;
 

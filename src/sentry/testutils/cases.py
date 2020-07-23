@@ -20,7 +20,6 @@ __all__ = (
     "OrganizationDashboardWidgetTestCase",
 )
 
-import base64
 import os
 import os.path
 import pytest
@@ -220,12 +219,6 @@ class BaseTestCase(Fixtures, Exam):
 
     def _post_teardown(self):
         super(BaseTestCase, self)._post_teardown()
-
-    def _makeMessage(self, data):
-        return json.dumps(data).encode("utf-8")
-
-    def _makePostMessage(self, data):
-        return base64.b64encode(self._makeMessage(data))
 
     def options(self, options):
         """
@@ -694,21 +687,6 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
-
-    def __wrap_event(self, event, data, primary_hash):
-        # TODO: Abstract and combine this with the stream code in
-        #       getsentry once it is merged, so that we don't alter one
-        #       without updating the other.
-        return {
-            "group_id": event.group_id,
-            "event_id": event.event_id,
-            "project_id": event.project_id,
-            "message": event.message,
-            "platform": event.platform,
-            "datetime": event.datetime,
-            "data": dict(data),
-            "primary_hash": primary_hash,
-        }
 
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
