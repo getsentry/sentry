@@ -1,5 +1,5 @@
 ---
-created: '2019-08-05T10:26:51.809104Z'
+created: '2020-07-23T17:33:07.974182Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -18,9 +18,75 @@ fingerprint:
 - '{{ module }}'
 - '{{ function }}'
 variants:
+  app:
+    contributes: false
+    hint: stacktrace of system takes precedence
+    id: app
+    name: in-app
+    values:
+    - contributes: false
+      hint: null
+      id: stacktrace
+      name: stacktrace
+      values:
+      - contributes: false
+        hint: non app frame
+        id: frame
+        name: null
+        values:
+        - contributes: false
+          hint: null
+          id: module
+          name: null
+          values: []
+        - contributes: true
+          hint: null
+          id: filename
+          name: null
+          values:
+          - application.java
+        - contributes: true
+          hint: null
+          id: function
+          name: null
+          values:
+          - main
   custom-fingerprint:
     type: custom-fingerprint
     values:
     - <no-type>
     - <no-module>
     - main
+  system:
+    contributes: false
+    hint: null
+    id: system
+    name: null
+    values:
+    - contributes: true
+      hint: null
+      id: stacktrace
+      name: stacktrace
+      values:
+      - contributes: true
+        hint: null
+        id: frame
+        name: null
+        values:
+        - contributes: false
+          hint: null
+          id: module
+          name: null
+          values: []
+        - contributes: true
+          hint: null
+          id: filename
+          name: null
+          values:
+          - application.java
+        - contributes: true
+          hint: null
+          id: function
+          name: null
+          values:
+          - main

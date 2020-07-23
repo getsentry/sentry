@@ -1,5 +1,5 @@
 ---
-created: '2019-07-23T21:55:25.902949Z'
+created: '2020-07-23T17:33:09.459183Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -16,7 +16,3297 @@ config:
 fingerprint:
 - symcache-error
 variants:
+  app:
+    contributes: false
+    hint: null
+    id: app
+    name: in-app
+    values:
+    - contributes: true
+      hint: null
+      id: chained-exception
+      name: null
+      values:
+      - contributes: true
+        hint: null
+        id: exception
+        name: exception
+        values:
+        - contributes: false
+          hint: null
+          id: stacktrace
+          name: stacktrace
+          values: []
+        - contributes: true
+          hint: null
+          id: type
+          name: null
+          values:
+          - Custom
+        - contributes: true
+          hint: null
+          id: value
+          name: null
+          values:
+          - out of range
+      - contributes: true
+        hint: null
+        id: exception
+        name: exception
+        values:
+        - contributes: true
+          hint: null
+          id: stacktrace
+          name: stacktrace
+          values:
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - unknown
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - _start
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - __libc_start_main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - main
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - panicking.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::panicking::try
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:__rust_*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - lib.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - __rust_maybe_catch_panic
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - rt.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::rt::lang_start_internal::{{closure}}
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::rt::lang_start::{{closure}}
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::app::main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - actix::system::SystemRunner::run
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio::runtime::current_thread::runtime::Runtime::block_on
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::Entered<T>::block_on
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::Entered<T>::tick
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::scheduler::Scheduler<T>::tick
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::CurrentRunner::set_spawn
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::task_impl::Spawn<T>::poll_future_notify
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::task_impl::std::set
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - actix::contextimpl::ContextFut<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::then::Then<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::lazy::Lazy<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::then::Then<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::map_err::MapErr<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::chain::Chain<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::map::Map<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::join_all::JoinAll<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::chain::Chain<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::actors::symcaches::SymCacheFile::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolic_symcache::cache::SymCache::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolic_symcache::format::Header::parse
+          - contributes: false
+            hint: non app frame
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::error::error_impl::ErrorImpl::from
+          - contributes: false
+            hint: non app frame
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::backtrace::Backtrace::default
+          - contributes: false
+            hint: non app frame
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::backtrace::internal::InternalBacktrace::new
+        - contributes: true
+          hint: null
+          id: type
+          name: null
+          values:
+          - SymCacheError
+        - contributes: false
+          hint: ignored because stacktrace takes precedence
+          id: value
+          name: null
+          values:
+          - invalid symcache header
+      - contributes: true
+        hint: null
+        id: exception
+        name: exception
+        values:
+        - contributes: true
+          hint: null
+          id: stacktrace
+          name: stacktrace
+          values:
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - unknown
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - _start
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - __libc_start_main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - main
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - panicking.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::panicking::try
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:__rust_*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - lib.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - __rust_maybe_catch_panic
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - rt.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::rt::lang_start_internal::{{closure}}
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::rt::lang_start::{{closure}}
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::app::main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - actix::system::SystemRunner::run
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio::runtime::current_thread::runtime::Runtime::block_on
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: false
+            hint: marked out of app by grouping enhancement rule (family:native function:std::*
+              -app)
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::Entered<T>::block_on
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::Entered<T>::tick
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::scheduler::Scheduler<T>::tick
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::CurrentRunner::set_spawn
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::task_impl::Spawn<T>::poll_future_notify
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::task_impl::std::set
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - actix::contextimpl::ContextFut<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::then::Then<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::lazy::Lazy<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::then::Then<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::map_err::MapErr<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::chain::Chain<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::map::Map<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::join_all::JoinAll<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::chain::Chain<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::actors::symcaches::SymCacheFile::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolic_symcache::cache::SymCache::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolic_symcache::format::Header::parse
+          - contributes: false
+            hint: non app frame
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::error::error_impl::ErrorImpl::from
+          - contributes: false
+            hint: non app frame
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::backtrace::Backtrace::default
+          - contributes: false
+            hint: non app frame
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::backtrace::internal::InternalBacktrace::new
+        - contributes: true
+          hint: null
+          id: type
+          name: null
+          values:
+          - SymCacheError
+        - contributes: false
+          hint: ignored because stacktrace takes precedence
+          id: value
+          name: null
+          values:
+          - failed to parse symcache
   custom-fingerprint:
     type: custom-fingerprint
     values:
     - symcache-error
+  system:
+    contributes: false
+    hint: null
+    id: system
+    name: null
+    values:
+    - contributes: true
+      hint: null
+      id: chained-exception
+      name: null
+      values:
+      - contributes: true
+        hint: null
+        id: exception
+        name: exception
+        values:
+        - contributes: false
+          hint: null
+          id: stacktrace
+          name: stacktrace
+          values: []
+        - contributes: true
+          hint: null
+          id: type
+          name: null
+          values:
+          - Custom
+        - contributes: true
+          hint: null
+          id: value
+          name: null
+          values:
+          - out of range
+      - contributes: true
+        hint: null
+        id: exception
+        name: exception
+        values:
+        - contributes: true
+          hint: null
+          id: stacktrace
+          name: stacktrace
+          values:
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - unknown
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - _start
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - __libc_start_main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - panicking.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::panicking::try
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - lib.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - __rust_maybe_catch_panic
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - rt.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::rt::lang_start_internal::{{closure}}
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::rt::lang_start::{{closure}}
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::app::main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - actix::system::SystemRunner::run
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio::runtime::current_thread::runtime::Runtime::block_on
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::Entered<T>::block_on
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::Entered<T>::tick
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::scheduler::Scheduler<T>::tick
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::CurrentRunner::set_spawn
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::task_impl::Spawn<T>::poll_future_notify
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::task_impl::std::set
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - actix::contextimpl::ContextFut<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::then::Then<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::lazy::Lazy<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::then::Then<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::map_err::MapErr<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::chain::Chain<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::map::Map<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::join_all::JoinAll<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::chain::Chain<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::actors::symcaches::SymCacheFile::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolic_symcache::cache::SymCache::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolic_symcache::format::Header::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::error::error_impl::ErrorImpl::from
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::backtrace::Backtrace::default
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::backtrace::internal::InternalBacktrace::new
+        - contributes: true
+          hint: null
+          id: type
+          name: null
+          values:
+          - SymCacheError
+        - contributes: false
+          hint: ignored because stacktrace takes precedence
+          id: value
+          name: null
+          values:
+          - invalid symcache header
+      - contributes: true
+        hint: null
+        id: exception
+        name: exception
+        values:
+        - contributes: true
+          hint: null
+          id: stacktrace
+          name: stacktrace
+          values:
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - unknown
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - _start
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - __libc_start_main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - panicking.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::panicking::try
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - lib.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - __rust_maybe_catch_panic
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: filename
+              name: null
+              values:
+              - rt.rs
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::rt::lang_start_internal::{{closure}}
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::rt::lang_start::{{closure}}
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::app::main
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - actix::system::SystemRunner::run
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio::runtime::current_thread::runtime::Runtime::block_on
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - std::thread::local::LocalKey<T>::with
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::Entered<T>::block_on
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::Entered<T>::tick
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::scheduler::Scheduler<T>::tick
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - tokio_current_thread::CurrentRunner::set_spawn
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::task_impl::Spawn<T>::poll_future_notify
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::task_impl::std::set
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - actix::contextimpl::ContextFut<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::then::Then<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::lazy::Lazy<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::then::Then<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::map_err::MapErr<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::chain::Chain<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::map::Map<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::join_all::JoinAll<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - futures::future::chain::Chain<T>::poll
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolicator::actors::symcaches::SymCacheFile::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolic_symcache::cache::SymCache::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - symbolic_symcache::format::Header::parse
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::error::error_impl::ErrorImpl::from
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::backtrace::Backtrace::default
+          - contributes: true
+            hint: null
+            id: frame
+            name: null
+            values:
+            - contributes: false
+              hint: null
+              id: module
+              name: null
+              values: []
+            - contributes: false
+              hint: null
+              id: filename
+              name: null
+              values: []
+            - contributes: true
+              hint: null
+              id: function
+              name: null
+              values:
+              - failure::backtrace::internal::InternalBacktrace::new
+        - contributes: true
+          hint: null
+          id: type
+          name: null
+          values:
+          - SymCacheError
+        - contributes: false
+          hint: ignored because stacktrace takes precedence
+          id: value
+          name: null
+          values:
+          - failed to parse symcache
