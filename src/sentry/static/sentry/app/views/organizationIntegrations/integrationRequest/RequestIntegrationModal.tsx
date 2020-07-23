@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import {t} from 'app/locale';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 import RequestIntegrationButton from './RequestIntegrationButton';
 
@@ -35,6 +36,16 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
   sendRequest = () => {
     const {organization, slug, type} = this.props;
     const {message} = this.state;
+
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.request_install',
+        eventName: 'Integrations: Request Install',
+        integration_type: type,
+        integration: slug,
+      },
+      organization
+    );
 
     const endpoint = `/organizations/${organization.slug}/integration-requests/`;
     this.api.request(endpoint, {
