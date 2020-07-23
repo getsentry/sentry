@@ -6,6 +6,7 @@ from sentry.utils.http import absolute_uri
 from .client import MsTeamsClient
 
 MSTEAMS_MAX_ITERS = 100
+ME = "ME"
 
 
 def channel_filter(channel, name):
@@ -367,7 +368,7 @@ def build_group_assign_card(group):
         for u in group.project.teams.all()
     ]
     teams.sort()
-    teams = [{"title": "Me", "value": "ME"}] + teams
+    teams = [{"title": "Me", "value": ME}] + teams
     title_card = {
         "type": "TextBlock",
         "size": "Large",
