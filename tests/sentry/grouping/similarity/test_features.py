@@ -7,9 +7,11 @@ import pytest
 from sentry.models import Group, Project
 from sentry.event_manager import EventManager
 from sentry.grouping.api import get_default_grouping_config_dict
+from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.utils.compat import zip
+from sentry import eventstore
 
 import sentry.similarity
-from sentry import eventstore
 
 from tests.sentry.grouping import with_grouping_input, with_fingerprint_input
 
@@ -43,7 +45,7 @@ def test_basic(similarity):
     if similarity is sentry.similarity.features:
         msg_label = "message:message:character-shingles"
     else:
-        msg_label = ("newstyle:2019-10-29", "message", "character-5-shingle")
+        msg_label = ("similarity:2020-07-23", "message", "character-5-shingle")
 
     comparison = dict(similarity.compare(evt1.group))
 
@@ -57,7 +59,7 @@ def test_basic(similarity):
 
 
 @with_grouping_input("grouping_input")
-def test_similarity_extract(grouping_input, insta_snapshot):
+def test_similarity_extract_grouping_input(grouping_input, insta_snapshot):
     similarity = sentry.similarity.features2
 
     evt = grouping_input.create_event(get_default_grouping_config_dict())
@@ -88,7 +90,14 @@ def test_similarity_extract_fingerprinting(fingerprint_input, insta_snapshot):
     insta_snapshot("\n".join(snapshot))
 
 
-def test_config_migration():
+def _get_configurations():
+    # Sort configurations by ascending date
+    strategies = sorted(CONFIGURATIONS.keys(), key=lambda x: x.split(":")[-1])
+    return list(zip(strategies, strategies[1:]))
+
+
+@pytest.mark.parametrize("config,next_config", _get_configurations())
+def test_config_migration(config, next_config):
     """
     This test simulates migrating a similarity cluster to a new grouping
     strategy. We reinstantiate the FeatureSet using get_feature_set while in
@@ -119,14 +128,6 @@ def test_config_migration():
 
     def compare(similarity, group):
         return set(dict(similarity.compare(group)))
-
-    # We start out with similarity based on legacy grouping, and want to
-    # migrate it to newstyle grouping.
-    # Note: Grouping-based similarity based on legacy strategy config is
-    # absolute trash. The actual usecase in prod would probably be to migrate
-    # between newstyle configs.
-    config = "legacy:2019-03-12"
-    next_config = "newstyle:2019-10-29"
 
     # Step 1: Legacy config is used to index first event
     similarity = get_feature_set([config])

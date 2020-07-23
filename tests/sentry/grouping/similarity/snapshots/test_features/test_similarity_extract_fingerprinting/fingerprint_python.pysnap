@@ -1,6 +1,0 @@
----
-created: '2020-07-23T16:35:37.966034Z'
-creator: sentry
-source: tests/sentry/grouping/similarity/test_features.py
----
-newstyle:2019-10-29:fingerprint:ident-shingle: "timeout-in-requests"

@@ -1952,5 +1952,5 @@ SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 #
 # Check out `test_similarity_config_migration` to understand the procedure and risks.
 SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
-    "newstyle:2019-10-29": "a",
+    "similarity:2020-07-23": "a",
 }
