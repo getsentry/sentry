@@ -318,7 +318,7 @@ class StackedBarChart extends React.Component<Props, State> {
     );
   };
 
-  getMinHeight(index: number, _pointLength: number): number {
+  getMinHeight(index: number): number {
     const {minHeights} = this.props;
     return minHeights && (minHeights[index] || minHeights[index] === 0)
       ? minHeights[index]
