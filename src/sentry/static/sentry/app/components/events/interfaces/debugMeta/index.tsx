@@ -495,10 +495,4 @@ const StyledSearchBar = styled(SearchBar)`
   .search-input {
     height: 30px;
   }
-  .search-clear-form {
-    top: 5px !important;
-  }
-  .search-input-icon {
-    top: 8px;
-  }
 `;
