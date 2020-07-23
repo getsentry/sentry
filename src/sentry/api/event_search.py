@@ -1516,6 +1516,10 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
 
         project_ids = filtered_project_ids or snuba_filter.filter_keys.get("project_id", [])
         projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
+        # Clickhouse gets confused when the column contains a period
+        # This is specifically for project.name and should be removed once we can stop supporting it
+        if "." in project_key:
+            project_key = "`{}`".format(project_key)
         columns.append(
             [
                 "transform",
@@ -1527,9 +1531,7 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
                     # Default case, what to do if a project id without a slug is found
                     "''",
                 ],
-                # Need to explicitly state this is a column with backticks.
-                # Otherwise clickhouse can't parse project.name
-                "`{}`".format(project_key),
+                project_key,
             ]
         )
 

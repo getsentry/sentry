@@ -79,10 +79,10 @@ class GetChannelIdTest(TestCase):
         assert get_channel_id(self.organization, self.integration.id, name) is None
 
     def test_general_channel_selected(self):
-        self.run_valid_test("g_c", "General")
+        self.run_valid_test("g_c", "general")
 
     def test_other_channel_selected(self):
-        self.run_valid_test("p_o_d", "Pit of Despair")
+        self.run_valid_test("p_o_d", "pit of Despair")
 
     def test_bad_channel_not_selected(self):
         self.run_invalid_test("Cliffs of Insanity")

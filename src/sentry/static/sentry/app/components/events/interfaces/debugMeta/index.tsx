@@ -174,11 +174,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     return (
       // Prefix match for identifiers
-      (image.code_id.toLowerCase() || '').indexOf(searchTerm) === 0 ||
-      (image.debug_id.toLowerCase() || '').indexOf(searchTerm) === 0 ||
+      (image.code_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
+      (image.debug_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
       // Any match for file paths
-      (image.code_file.toLowerCase() || '').indexOf(searchTerm) >= 0 ||
-      (image.debug_file.toLowerCase() || '').indexOf(searchTerm) >= 0
+      (image.code_file?.toLowerCase() || '').indexOf(searchTerm) >= 0 ||
+      (image.debug_file?.toLowerCase() || '').indexOf(searchTerm) >= 0
     );
   }
 
@@ -494,11 +494,5 @@ const SearchInputWrapper = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   .search-input {
     height: 30px;
-  }
-  .search-clear-form {
-    top: 5px !important;
-  }
-  .search-input-icon {
-    top: 8px;
   }
 `;
