@@ -228,7 +228,7 @@ class ListResolver(object):
         label = ".".join(map(six.text_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
-        return u"{}.{}".format(label, self.__namespace)
+        return u"<{}.{}>".format(label, self.__namespace)
 
 
 default_list_type_handlers = {
