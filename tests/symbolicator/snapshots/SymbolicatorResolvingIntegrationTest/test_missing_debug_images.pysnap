@@ -1,11 +1,11 @@
 ---
-created: '2019-06-12T09:33:23.111878Z'
+created: '2020-07-23T19:33:26.234043Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
 contexts: null
 debug_meta: null
-errors: null
+errors: []
 exception:
   values:
   - raw_stacktrace:
