@@ -141,5 +141,5 @@ const StyledClippedBox = styled(ClippedBox)`
 `;
 
 const StyledIconFlag = styled(IconFlag)`
-  margin-right: ${space(0.5)};
+  margin-right: ${space(1)};
 `;

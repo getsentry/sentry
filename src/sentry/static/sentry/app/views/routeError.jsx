@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {IconWarning} from 'app/icons';
+import space from 'app/styles/space';
 
 class RouteError extends React.Component {
   static propTypes = {
@@ -85,10 +86,10 @@ class RouteError extends React.Component {
     // TODO(dcramer): show additional resource links
     return (
       <div className="alert alert-block alert-error">
-        <div style={{fontSize: 24, marginBottom: 10}}>
+        <Heading>
           <StyledIconWarning size="md" />
           <span>Oops! Something went wrong</span>
-        </div>
+        </Heading>
         <p>
           It looks like you've hit an issue in our client application. Don't worry though!
           We use Sentry to monitor Sentry and it's likely we're already looking into this!
@@ -123,8 +124,18 @@ class RouteError extends React.Component {
   }
 }
 
+const Heading = styled('h3')`
+  display: flex;
+  align-items: center;
+
+  font-size: ${p => p.theme.headerFontSize};
+  font-weight: normal;
+
+  margin-bottom: ${space(1.5)};
+`;
+
 const StyledIconWarning = styled(IconWarning)`
-  margin-right: 10px;
+  margin-right: ${space(1)};
 `;
 
 export default withRouter(RouteError);
