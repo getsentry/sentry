@@ -341,7 +341,7 @@ class StackedBarChart extends React.Component<Props, State> {
     const pts = point.y.map((y, i) => {
       const pct = Math.max(
         totalY && formatFloat((y / totalY) * totalPct * maxPercentage, 2),
-        this.getMinHeight(i, point.y.length)
+        this.getMinHeight(i)
       );
 
       const pt = (
