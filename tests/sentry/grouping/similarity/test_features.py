@@ -5,11 +5,25 @@ import json
 import pytest
 
 from sentry.models import Group, Project
+from sentry.event_manager import EventManager
 from sentry.grouping.api import get_default_grouping_config_dict
 
 import sentry.similarity
+from sentry import eventstore
 
 from tests.sentry.grouping import with_grouping_input
+
+
+def create_event(data, group_id=123):
+    mgr = EventManager(data=data, grouping_config=get_default_grouping_config_dict())
+    mgr.normalize()
+    data = mgr.get_data()
+
+    evt = eventstore.create_event(data=data)
+    evt.project = project = Project(id=123)
+    evt.group = Group(id=group_id, project=project)
+
+    return evt
 
 
 @pytest.fixture(
@@ -19,12 +33,9 @@ def similarity(request):
     return request.param
 
 
-@pytest.mark.django_db
-def test_basic(similarity, factories, default_project):
-    evt1 = factories.store_event(data={"message": "hello world"}, project_id=default_project.id)
-    evt2 = factories.store_event(data={"message": "jello world"}, project_id=default_project.id)
-
-    assert evt1.group_id != evt2.group_id
+def test_basic(similarity):
+    evt1 = create_event({"message": "hello world"}, group_id=123)
+    evt2 = create_event({"message": "jello world"}, group_id=345)
 
     similarity.record([evt1])
     similarity.record([evt2])
@@ -61,8 +72,7 @@ def test_similarity_extract(grouping_input, insta_snapshot):
     insta_snapshot("\n".join(snapshot))
 
 
-@with_grouping_input("grouping_input")
-def test_similarity_config_migration(grouping_input):
+def test_similarity_config_migration():
     """
     This test simulates migrating a similarity cluster to a new grouping
     strategy. We reinstantiate the FeatureSet using get_feature_set while in
@@ -76,24 +86,20 @@ def test_similarity_config_migration(grouping_input):
             index=index, configurations={c: c for c in configs}
         )
 
-    project = Project(id=123)
-
     events = []
 
-    def send_event(similarity, group=None):
-        evt = grouping_input.create_event(get_default_grouping_config_dict())
+    def send_event(similarity, group_id=None):
+        if group_id is None:
+            group_id = 123 + len(events)
 
-        evt.project = project
-        if group is None:
-            group = Group(id=123 + len(events), project=project)
-        evt.group = group
+        evt = create_event(data={"message": "hello world"}, group_id=group_id)
 
         if not similarity.extract(evt):
             pytest.skip("Event does not produce similarity features")
 
         similarity.record([evt])
         events.append(evt)
-        return group
+        return evt.group
 
     def compare(similarity, group):
         return set(dict(similarity.compare(group)))
@@ -138,7 +144,7 @@ def test_similarity_config_migration(grouping_input):
 
     # Step 5: New event goes into g1
     # g1 now has newstyle features and is comparable to all groups
-    send_event(similarity, g1)
+    send_event(similarity, g1.id)
     assert (
         compare(similarity, g1)
         == compare(similarity, g2)
