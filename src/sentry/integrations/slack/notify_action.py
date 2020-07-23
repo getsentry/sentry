@@ -135,9 +135,8 @@ class SlackNotifyServiceAction(EventAction):
             # check if we should have the upgrade notice attachment
             if get_integration_type(integration) == "workspace_app":
                 if random.random() < UPGRADE_MESSAGE_FREQUENCY:
-                    attachments = [
-                        build_upgrade_notice_attachment(event.group, integration)
-                    ] + attachments
+                    # stick the upgrade attachment first
+                    attachments.insert(0, build_upgrade_notice_attachment(event.group, integration))
 
             payload = {
                 "token": integration.metadata["access_token"],
