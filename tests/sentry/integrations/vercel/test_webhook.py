@@ -263,7 +263,7 @@ class VercelReleasesTest(APITestCase):
             assert "Error setting refs" in response.data["detail"]
 
     @responses.activate
-    def test_no_target(self):
+    def test_manual_vercel_deploy(self):
         local_signature = hmac.new(
             key="vercel-client-secret".encode("utf-8"),
             msg=six.binary_type(DEPLOYMENT_WEBHOOK_NO_COMMITS),
