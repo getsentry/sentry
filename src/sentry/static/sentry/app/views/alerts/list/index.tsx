@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 
 import {IconCheckmark} from 'app/icons';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {PageContent} from 'app/styles/organization';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
@@ -224,7 +224,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                         <AlertListRow
                           key={incident.id}
                           projectsLoaded={initiallyLoaded}
-                          projects={projects}
+                          projects={projects as Project[]}
                           incident={incident}
                           orgId={orgId}
                           filteredStatus={status}
@@ -260,7 +260,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             {!this.tryRenderOnboarding() && (
               <StyledButtonBar merged active={status}>
                 <Button
-                  type="button"
                   to={{pathname, query: openIncidentsQuery}}
                   barId="open"
                   size="small"
@@ -268,7 +267,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                   {t('Active')}
                 </Button>
                 <Button
-                  type="button"
                   to={{pathname, query: closedIncidentsQuery}}
                   barId="closed"
                   size="small"

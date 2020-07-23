@@ -2,20 +2,22 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 
+import {t, tct} from 'app/locale';
 import {IconCheckmark, IconArrow} from 'app/icons';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {PageContent} from 'app/styles/organization';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import Projects from 'app/utils/projects';
 import withOrganization from 'app/utils/withOrganization';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 
 import AlertHeader from '../list/header';
 import {isIssueAlert} from '../utils';
@@ -72,6 +74,23 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     );
   }
 
+  handleDeleteRule = async (projectId: string, ruleId: string) => {
+    const {params} = this.props;
+    const {orgId} = params;
+
+    try {
+      await this.api.requestPromise(
+        `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`,
+        {
+          method: 'DELETE',
+        }
+      );
+      this.reloadData();
+    } catch (_err) {
+      addErrorMessage(t('Error deleting rule'));
+    }
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -79,6 +98,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderList() {
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
     const {orgId} = this.props.params;
+
+    // TODO(scttcper)
+    // const allProjectsFromIncidents = new Set(
+    //   flatten(ruleList?.map(({projects}) => projects))
+    // );
+    const allProjectsFromIncidents = new Set(['earth']);
 
     return (
       <React.Fragment>
@@ -99,16 +124,21 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
           {loading && <LoadingIndicator />}
           {(!loading && this.tryRenderEmpty()) ?? (
             <PanelBody>
-              {ruleList.map(rule => (
-                <RuleListRow
-                  // Metric and issue alerts can have the same id
-                  key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
-                  projectsLoaded={false}
-                  projects={[]}
-                  rule={rule}
-                  orgId={orgId}
-                />
-              ))}
+              <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                {({initiallyLoaded, projects}) =>
+                  ruleList.map(rule => (
+                    <RuleListRow
+                      // Metric and issue alerts can have the same id
+                      key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                      projectsLoaded={initiallyLoaded}
+                      projects={projects as Project[]}
+                      rule={rule}
+                      orgId={orgId}
+                      onDelete={this.handleDeleteRule}
+                    />
+                  ))
+                }
+              </Projects>
             </PanelBody>
           )}
         </Panel>
