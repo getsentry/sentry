@@ -2,6 +2,7 @@ import React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
 
+import {t} from 'app/locale';
 import {IconDelete, IconSettings} from 'app/icons';
 import {PanelItem} from 'app/components/panels';
 import {IssueAlertRule} from 'app/types/alerts';
@@ -12,6 +13,7 @@ import Projects from 'app/utils/projects';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
+import {isIssueAlert} from '../utils';
 import {IncidentStats} from '../types';
 import {TableLayout} from './styles';
 
@@ -44,7 +46,7 @@ class RuleListRow extends React.Component<Props, State> {
       <ErrorBoundary>
         <IncidentPanelItem>
           <TableLayout>
-            <div>Metric</div>
+            <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
             <Title>{rule.name}</Title>
             <div>All</div>
 
@@ -56,8 +58,8 @@ class RuleListRow extends React.Component<Props, State> {
             <div>Marshawn Lynch</div>
             <div>{created}</div>
             <Actions>
-              <Button size="small" icon={<IconDelete />} />
-              <Button size="small" icon={<IconSettings />} />
+              <Button size="small" icon={<IconDelete />} title={t('Delete')} />
+              <Button size="small" icon={<IconSettings />} title={t('Edit')} />
             </Actions>
           </TableLayout>
         </IncidentPanelItem>
@@ -66,7 +68,14 @@ class RuleListRow extends React.Component<Props, State> {
   }
 }
 
-const Title = styled('span')`
+const RuleType = styled('div')`
+  font-size: 12px;
+  font-weight: 400;
+  color: ${p => p.theme.gray500};
+  text-transform: uppercase;
+`;
+
+const Title = styled('div')`
   ${overflowEllipsis}
 `;
 
@@ -76,7 +85,7 @@ const IncidentPanelItem = styled(PanelItem)`
 `;
 
 const Actions = styled('div')`
-  > button:not(:last-child) {
+  > span:not(:last-child) {
     margin-right: ${space(1)};
   }
 `;
