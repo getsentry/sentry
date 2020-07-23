@@ -56,8 +56,7 @@ export type SingleIntegrationEvent = {
     | 'integrations.resolve_now_clicked'
     | 'integrations.reauth_start'
     | 'integrations.reauth_complete'
-    | 'integrations.request_install'
-    | 'integrations.install_from_request';
+    | 'integrations.request_install';
   eventName:
     | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
@@ -75,8 +74,7 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Resolve Now Clicked'
     | 'Integrations: Reauth Start'
     | 'Integrations: Reauth Complete'
-    | 'Integrations: Request Install'
-    | 'Integrations: Install From Request';
+    | 'Integrations: Request Install';
   integration: string; //the slug
   integration_type: IntegrationType;
   already_installed?: boolean;

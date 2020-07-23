@@ -67,12 +67,6 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   trackClick = () => {
-    if (window.location.href.includes('referrer=request_email')) {
-      this.trackIntegrationEvent({
-        eventKey: 'integrations.install_from_request',
-        eventName: 'Integrations: Install From Request',
-      });
-    }
     this.trackIntegrationEvent({
       eventKey: 'integrations.installation_start',
       eventName: 'Integrations: Installation Start',

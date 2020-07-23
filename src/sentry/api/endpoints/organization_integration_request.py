@@ -31,6 +31,7 @@ def get_url(organization, provider_type, provider_slug):
                     "sentry_app": "sentry-apps",
                 }.get(provider_type),
                 provider_slug,
+                "/?referrer=request_email",
             ]
         )
     )
@@ -79,6 +80,7 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
         :param string providerType: One of: first_party, plugin, sentry_app.
         :param string message: Optional message from the requester to the owners.
         """
+
         provider_type = request.data.get("providerType")
         provider_slug = request.data.get("providerSlug")
         message_option = request.data.get("message", "").strip()
@@ -101,8 +103,7 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
             html_template="sentry/emails/requests/organization-integration.html",
             type="organization.integration.request",
             context={
-                "integration_link": get_url(organization, provider_type, provider_slug)
-                + "/?referrer=request_email",
+                "integration_link": get_url(organization, provider_type, provider_slug),
                 "integration_name": provider_name,
                 "message": message_option,
                 "organization_name": organization.name,
