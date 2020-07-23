@@ -11,7 +11,7 @@ from .utils import get_channel_id, build_incident_card
 from .client import MsTeamsClient
 
 
-class MSTeamsNotifyServiceForm(forms.Form):
+class MsTeamsNotifyServiceForm(forms.Form):
     team = forms.ChoiceField(choices=(), widget=forms.Select())
     channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.HiddenInput()
@@ -20,7 +20,7 @@ class MSTeamsNotifyServiceForm(forms.Form):
         team_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
         self.channel_transformer = kwargs.pop("channel_transformer")
 
-        super(MSTeamsNotifyServiceForm, self).__init__(*args, **kwargs)
+        super(MsTeamsNotifyServiceForm, self).__init__(*args, **kwargs)
 
         if team_list:
             self.fields["team"].initial = team_list[0][0]
@@ -29,7 +29,7 @@ class MSTeamsNotifyServiceForm(forms.Form):
         self.fields["team"].widget.choices = self.fields["team"].choices
 
     def clean(self):
-        cleaned_data = super(MSTeamsNotifyServiceForm, self).clean()
+        cleaned_data = super(MsTeamsNotifyServiceForm, self).clean()
 
         integration_id = cleaned_data.get("team")
         channel = cleaned_data.get("channel", "")
@@ -52,13 +52,13 @@ class MSTeamsNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class MSTeamsNotifyServiceAction(EventAction):
-    form_cls = MSTeamsNotifyServiceForm
+class MsTeamsNotifyServiceAction(EventAction):
+    form_cls = MsTeamsNotifyServiceForm
     label = u"Send a notification to the {team} Team to {channel}"
     prompt = "Send a Microsoft Teams notification"
 
     def __init__(self, *args, **kwargs):
-        super(MSTeamsNotifyServiceAction, self).__init__(*args, **kwargs)
+        super(MsTeamsNotifyServiceAction, self).__init__(*args, **kwargs)
         self.form_fields = {
             "team": {
                 "type": "choice",

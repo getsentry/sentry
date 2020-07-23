@@ -201,6 +201,9 @@ def build_incident_actions(group):
 
     # These targets are made so that the button will toggle its element
     # on or off, and toggle the other elements off.
+
+    # Could probably be done in much fewer lines if we deep
+    # copied a template and then modified for each action
     resolve_targets = [
         {"elementId": "resolveTitle"},
         {"elementId": "resolveInput"},
@@ -364,7 +367,9 @@ def build_incident_assign_card(group):
     teams = [
         {"title": u"#{}".format(u.slug), "value": u"team:{}".format(u.id)}
         for u in group.project.teams.all()
-    ].sort()
+    ]
+    teams.sort()
+    teams = [{"title": "Me", "value": "0"}] + teams
     title_card = {
         "type": "TextBlock",
         "size": "Large",
