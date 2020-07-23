@@ -1,6 +1,7 @@
 import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
 import {IconCheckmark, IconArrow} from 'app/icons';
@@ -12,6 +13,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import Projects from 'app/utils/projects';
@@ -24,14 +26,9 @@ import {isIssueAlert} from '../utils';
 import {TableLayout} from './styles';
 import RuleListRow from './row';
 
-const DEFAULT_QUERY_STATUS = 'open';
-
+const DEFAULT_SORT = {kind: 'desc', field: 'date_added'};
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
-
-function getQueryStatus(status: any): 'open' | 'closed' {
-  return ['open', 'closed'].includes(status) ? status : DEFAULT_QUERY_STATUS;
-}
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -45,13 +42,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   getEndpoints(): [string, string, any][] {
     const {params, location} = this.props;
     const {query} = location;
-    const status = getQueryStatus(query.status);
 
     return [
       [
         'ruleList',
         `/organizations/${params && params.orgId}/combined-rules/`,
-        {query: {...query, status}},
+        {query: {...query}},
       ],
     ];
   }
@@ -98,12 +94,28 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderList() {
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
     const {orgId} = this.props.params;
+    const {query} = this.props.location;
 
     // TODO(scttcper)
     // const allProjectsFromIncidents = new Set(
     //   flatten(ruleList?.map(({projects}) => projects))
     // );
     const allProjectsFromIncidents = new Set(['earth']);
+
+    let sort = DEFAULT_SORT;
+    if (query.sort) {
+      if (query.sort.startsWith('-')) {
+        sort = {
+          kind: 'desc',
+          field: query.sort.substring(1),
+        };
+      } else {
+        sort = {
+          kind: 'asc',
+          field: query.sort,
+        };
+      }
+    }
 
     return (
       <React.Fragment>
@@ -115,7 +127,26 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               <div>{t('Project')}</div>
               <div>{t('Created By')}</div>
               <div>
-                {t('Created')} <IconArrow color="gray500" size="xs" direction="down" />
+                <StyledSortLink
+                  to={{
+                    pathname: `/organizations/${orgId}/alerts/rules/`,
+                    query: {
+                      sort:
+                        sort.field === 'date_added' && sort.kind === 'desc'
+                          ? 'date_added'
+                          : '-date_added',
+                    },
+                  }}
+                >
+                  {t('Created')}{' '}
+                  {sort.field === 'date_added' && (
+                    <IconArrow
+                      color="gray500"
+                      size="xs"
+                      direction={sort.kind === 'desc' ? 'down' : 'up'}
+                    />
+                  )}
+                </StyledSortLink>
               </div>
               <div>{t('Actions')}</div>
             </TableLayout>
@@ -192,3 +223,11 @@ class IncidentsListContainer extends React.Component<Props> {
 }
 
 export default withOrganization(IncidentsListContainer);
+
+const StyledSortLink = styled(Link)`
+  color: inherit;
+
+  :hover {
+    color: inherit;
+  }
+`;
