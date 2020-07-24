@@ -38,19 +38,14 @@ function handleDownloadAsCsv(title: string, {organization, eventView, tableData}
 }
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
-  const {tableData} = props;
-  if (!tableData || (tableData.data && tableData.data.length < 50)) {
-    return renderBrowserExportButton(canEdit, props);
-  } else {
-    return (
-      <Feature
-        features={['organizations:discover-query']}
-        renderDisabled={() => renderBrowserExportButton(canEdit, props)}
-      >
-        {renderAsyncExportButton(canEdit, props)}
-      </Feature>
-    );
-  }
+  return (
+    <Feature
+      features={['organizations:discover-query']}
+      renderDisabled={() => renderBrowserExportButton(canEdit, props)}
+    >
+      {renderAsyncExportButton(canEdit, props)}
+    </Feature>
+  );
 }
 
 function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Props) {
