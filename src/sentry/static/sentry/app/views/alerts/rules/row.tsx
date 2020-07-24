@@ -52,7 +52,7 @@ class RuleListRow extends React.Component<Props, State> {
 
     return (
       <ErrorBoundary>
-        <IncidentPanelItem>
+        <AlertRulesPanelItem>
           <TableLayout>
             <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
             <Title>{rule.name}</Title>
@@ -97,7 +97,7 @@ class RuleListRow extends React.Component<Props, State> {
               )}
             </Access>
           </TableLayout>
-        </IncidentPanelItem>
+        </AlertRulesPanelItem>
       </ErrorBoundary>
     );
   }
@@ -114,7 +114,7 @@ const Title = styled('div')`
   ${overflowEllipsis}
 `;
 
-const IncidentPanelItem = styled(PanelItem)`
+const AlertRulesPanelItem = styled(PanelItem)`
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1.5)} ${space(2)};
 `;

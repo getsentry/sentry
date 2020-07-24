@@ -38,7 +38,7 @@ type State = {
   ruleList?: IssueAlertRule[];
 };
 
-class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
+class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): [string, string, any][] {
     const {params, location} = this.props;
     const {query} = location;
@@ -196,33 +196,34 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 }
 
-class IncidentsListContainer extends React.Component<Props> {
+class AlertRulesListContainer extends React.Component<Props> {
   componentDidMount() {
     this.trackView();
   }
 
   componentDidUpdate(nextProps: Props) {
-    if (nextProps.location.query?.status !== this.props.location.query?.status) {
+    if (nextProps.location.query?.sort !== this.props.location.query?.sort) {
       this.trackView();
     }
   }
 
   trackView() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'alert_rules.viewed',
       eventName: 'Alert Rules: Viewed',
       organization_id: organization.id,
+      sort: location.query.sort,
     });
   }
 
   render() {
-    return <IncidentsList {...this.props} />;
+    return <AlertRulesList {...this.props} />;
   }
 }
 
-export default withOrganization(IncidentsListContainer);
+export default withOrganization(AlertRulesListContainer);
 
 const StyledSortLink = styled(Link)`
   color: inherit;

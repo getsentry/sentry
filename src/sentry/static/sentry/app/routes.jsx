@@ -266,17 +266,6 @@ function routes() {
           component={errorHandler(LazyLoad)}
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ProjectAlertsList" */ 'app/views/settings/projectAlerts/list'
-            )
-          }
-        />
-
-        <Route
-          path="settings/"
-          name="Settings"
-          component={errorHandler(LazyLoad)}
-          componentPromise={() =>
-            import(
               /* webpackChunkName: "ProjectAlertsSettings" */ 'app/views/settings/projectAlerts/settings'
             )
           }
