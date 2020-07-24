@@ -12,6 +12,7 @@ import os
 import re
 import sys
 import yaml
+import difflib
 import sentry
 
 import pytest
@@ -317,8 +318,22 @@ def insta_snapshot(request, log):
                         output,
                     )
                 )
-        else:
-            log("Run with SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots.")
-            assert refval == output
+        elif refval != output:
+            __tracebackhide__ = True
+            _print_insta_diff(reference_file, refval, output)
 
     yield inner
+
+
+def _print_insta_diff(reference_file, a, b):
+    __tracebackhide__ = True
+    pytest.fail(
+        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+        "Snapshot {} changed!\n\n"
+        "Re-run pytest with SENTRY_SNAPSHOTS_WRITEBACK=new and then use 'make review-python-snapshots' to review.\n"
+        "Or: Use SENTRY_SNAPSHOTS_WRITEBACK=1 to update snapshots directly.\n\n"
+        "{}\n"
+        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".format(
+            reference_file, "\n".join(difflib.unified_diff(a.splitlines(), b.splitlines()))
+        )
+    )
