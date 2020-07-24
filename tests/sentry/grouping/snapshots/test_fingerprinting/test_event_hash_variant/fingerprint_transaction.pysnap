@@ -1,5 +1,5 @@
 ---
-created: '2020-07-24T13:48:27.166110Z'
+created: '2020-07-24T14:06:58.545792Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -19,6 +19,9 @@ fingerprint:
 - '{{ transaction }}'
 variants:
   app:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
     type: component
   custom-fingerprint:
     type: custom-fingerprint
@@ -26,4 +29,7 @@ variants:
     - database-unavailable
     - my-transaction
   system:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
     type: component
