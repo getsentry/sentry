@@ -4,6 +4,8 @@ from django.db import IntegrityError, transaction
 
 from rest_framework.response import Response
 
+from sentry import analytics
+
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
@@ -152,5 +154,13 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             else:
                 status = 201
 
+            analytics.record(
+                "release.created",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_ids=[project.id],
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                created_status=status,
+            )
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)
