@@ -18,7 +18,6 @@ from sentry.incidents.action_handlers import (
 )
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
     IncidentStatus,
@@ -55,11 +54,14 @@ class HandleSnubaQueryUpdateTest(TestCase):
     def rule(self):
         with self.tasks():
             rule = self.create_alert_rule(
-                name="some rule", query="", aggregate="count()", time_window=1, threshold_period=1
+                name="some rule",
+                query="",
+                aggregate="count()",
+                time_window=1,
+                threshold_period=1,
+                resolve_threshold=10,
             )
-            trigger = create_alert_rule_trigger(
-                rule, "hi", AlertRuleThresholdType.ABOVE, 100, resolve_threshold=10
-            )
+            trigger = create_alert_rule_trigger(rule, "hi", 100)
             create_alert_rule_trigger_action(
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,

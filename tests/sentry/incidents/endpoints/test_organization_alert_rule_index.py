@@ -9,7 +9,7 @@ from exam import fixture
 from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 from sentry.snuba.models import QueryDatasets
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils import APITestCase
@@ -74,12 +74,12 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
+            "resolveThreshold": 100,
+            "thresholdType": 0,
             "triggers": [
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -87,8 +87,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -117,11 +115,11 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "OneTriggerOnlyCritical",
+            "resolveThreshold": 100,
+            "thresholdType": 1,
             "triggers": [
                 {
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 1,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -145,12 +143,12 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "OneTriggerOnlyCritical",
+            "resolveThreshold": 200,
+            "thresholdType": 1,
             "triggers": [
                 {
                     "label": "critical",
                     "alertThreshold": 100,
-                    "resolveThreshold": 200,
-                    "thresholdType": 1,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -175,6 +173,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
+            "thresholdType": AlertRuleThresholdType.ABOVE.value,
             "projects": [self.project.slug],
             "name": "JustATestRuleWithNoTriggers",
         }
@@ -197,12 +196,12 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "JustATestRule",
+            "resolveThreshold": 100,
+            "thresholdType": 1,
             "triggers": [
                 {
                     "label": "warning",
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 1,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -228,14 +227,9 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "timeWindow": "300",
             "projects": [self.project.slug],
             "name": "JustATestRule",
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 75,
-                    "resolveThreshold": 100,
-                    "thresholdType": 1,
-                }
-            ],
+            "resolveThreshold": 100,
+            "thresholdType": 1,
+            "triggers": [{"label": "critical", "alertThreshold": 75}],
         }
 
         with self.feature("organizations:incidents"):
@@ -270,8 +264,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
                     {
                         "label": "critical",
                         "alertThreshold": 200,
-                        "resolveThreshold": 100,
-                        "thresholdType": 1,
                         "actions": [
                             {
                                 "type": "email",
@@ -383,10 +375,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
         # Test Limit as 1, no cursor:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {
-                "per_page": "1",
-                "project": self.project_ids,
-            }
+            request_data = {"per_page": "1", "project": self.project_ids}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )

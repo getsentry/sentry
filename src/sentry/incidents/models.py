@@ -483,7 +483,7 @@ class AlertRuleTrigger(Model):
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
     label = models.TextField()
-    threshold_type = models.SmallIntegerField()
+    threshold_type = models.SmallIntegerField(null=True)
     alert_threshold = models.FloatField()
     resolve_threshold = models.FloatField(null=True)
     triggered_incidents = models.ManyToManyField(

@@ -16,7 +16,6 @@ from sentry.incidents.logic import (
     subscribe_to_incident,
 )
 from sentry.incidents.models import (
-    AlertRuleThresholdType,
     AlertRuleTriggerAction,
     IncidentActivityType,
     IncidentStatus,
@@ -155,7 +154,7 @@ class HandleTriggerActionTest(TestCase):
 
     @fixture
     def trigger(self):
-        return create_alert_rule_trigger(self.alert_rule, "", AlertRuleThresholdType.ABOVE, 100)
+        return create_alert_rule_trigger(self.alert_rule, "", 100)
 
     @fixture
     def action(self):

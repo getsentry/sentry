@@ -184,28 +184,8 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertRuleTrigger
-        fields = [
-            "id",
-            "label",
-            "threshold_type",
-            "alert_threshold",
-            "resolve_threshold",
-            "excluded_projects",
-            "actions",
-        ]
-        extra_kwargs = {
-            "label": {"min_length": 1, "max_length": 64},
-            "threshold_type": {"required": False},
-        }
-
-    def validate_threshold_type(self, threshold_type):
-        try:
-            return AlertRuleThresholdType(threshold_type)
-        except ValueError:
-            raise serializers.ValidationError(
-                "Invalid threshold type, valid values are %s"
-                % [item.value for item in AlertRuleThresholdType]
-            )
+        fields = ["id", "label", "alert_threshold", "excluded_projects", "actions"]
+        extra_kwargs = {"label": {"min_length": 1, "max_length": 64}}
 
     def create(self, validated_data):
         try:
@@ -314,7 +294,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 64},
             "include_all_projects": {"default": False},
-            "threshold_type": {"required": False},
+            "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
         }
 
@@ -412,42 +392,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     'Trigger {} must be labeled "{}"'.format(i + 1, expected_label)
                 )
         critical = triggers[0]
-        if "threshold_type" in data:
-            threshold_type = data["threshold_type"]
-            for trigger in triggers:
-                trigger["threshold_type"] = threshold_type.value
-        else:
-            data["threshold_type"] = threshold_type = AlertRuleThresholdType(
-                critical.get("threshold_type", AlertRuleThresholdType.ABOVE.value)
-            )
-
-        if "resolve_threshold" in data:
-            for trigger in triggers:
-                trigger["resolve_threshold"] = data["resolve_threshold"]
-        else:
-            trigger_resolve_thresholds = [
-                trigger["resolve_threshold"]
-                for trigger in triggers
-                if trigger.get("resolve_threshold")
-            ]
-            if trigger_resolve_thresholds:
-                data["resolve_threshold"] = (
-                    min(trigger_resolve_thresholds)
-                    if threshold_type == AlertRuleThresholdType.ABOVE
-                    else max(trigger_resolve_thresholds)
-                )
-            else:
-                data["resolve_threshold"] = None
+        threshold_type = data["threshold_type"]
 
         self._validate_trigger_thresholds(threshold_type, critical, data.get("resolve_threshold"))
 
         if len(triggers) == 2:
             warning = triggers[1]
-            if critical["threshold_type"] != warning["threshold_type"]:
-                raise serializers.ValidationError(
-                    "Must have matching threshold types (i.e. critical and warning "
-                    "triggers must both be an upper or lower bound)"
-                )
             self._validate_trigger_thresholds(
                 threshold_type, warning, data.get("resolve_threshold")
             )
@@ -456,9 +406,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         return data
 
     def _validate_trigger_thresholds(self, threshold_type, trigger, resolve_threshold):
-        resolve_threshold = (
-            resolve_threshold if resolve_threshold is not None else trigger.get("resolve_threshold")
-        )
         if resolve_threshold is None:
             return
         # Since we're comparing non-inclusive thresholds here (>, <), we need
@@ -489,11 +436,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 "Critical trigger must have an alert threshold {} warning trigger".format(
                     threshold_type
                 )
-            )
-        elif alert_op(critical["resolve_threshold"], warning["resolve_threshold"]):
-            raise serializers.ValidationError(
-                "Critical trigger must have a resolution threshold {} (or equal to) "
-                "warning trigger".format(threshold_type)
             )
 
     def create(self, validated_data):

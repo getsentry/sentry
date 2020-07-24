@@ -11,11 +11,13 @@ from sentry.incidents.models import (
     AlertRuleTriggerExclusion,
 )
 from sentry.utils.compat import zip
+from sentry.utils.db import attach_foreignkey
 
 
 @register(AlertRuleTrigger)
 class AlertRuleTriggerSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
+        attach_foreignkey(item_list, AlertRuleTrigger.alert_rule)
 
         triggers = {item.id: item for item in item_list}
         result = defaultdict(dict)
@@ -37,9 +39,9 @@ class AlertRuleTriggerSerializer(Serializer):
             "id": six.text_type(obj.id),
             "alertRuleId": six.text_type(obj.alert_rule_id),
             "label": obj.label,
-            "thresholdType": obj.threshold_type,
+            "thresholdType": obj.alert_rule.threshold_type,
             "alertThreshold": obj.alert_threshold,
-            "resolveThreshold": obj.resolve_threshold,
+            "resolveThreshold": obj.alert_rule.resolve_threshold,
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),
         }

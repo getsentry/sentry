@@ -163,7 +163,7 @@ def generate_incident_trigger_email_context(project, incident, alert_rule_trigge
     alert_rule = trigger.alert_rule
     snuba_query = alert_rule.snuba_query
     is_active = status == TriggerStatus.ACTIVE
-    is_threshold_type_above = trigger.threshold_type == AlertRuleThresholdType.ABOVE.value
+    is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
 
     # if alert threshold and threshold type is above then show '>'
     # if resolve threshold and threshold type is *BELOW* then show '>'
@@ -198,7 +198,7 @@ def generate_incident_trigger_email_context(project, incident, alert_rule_trigge
         "triggered_at": incident_trigger.date_added,
         "aggregate": aggregate,
         "query": snuba_query.query,
-        "threshold": trigger.alert_threshold if is_active else trigger.resolve_threshold,
+        "threshold": trigger.alert_threshold if is_active else alert_rule.resolve_threshold,
         # if alert threshold and threshold type is above then show '>'
         # if resolve threshold and threshold type is *BELOW* then show '>'
         "threshold_direction_string": ">" if show_greater_than_string else "<",

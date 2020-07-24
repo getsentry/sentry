@@ -37,8 +37,6 @@ class TestAlertRuleSerializer(TestCase):
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -46,8 +44,6 @@ class TestAlertRuleSerializer(TestCase):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -94,6 +90,7 @@ class TestAlertRuleSerializer(TestCase):
             "query": field_is_required,
             "triggers": field_is_required,
             "aggregate": field_is_required,
+            "thresholdType": field_is_required,
         }
 
     def test_environment_non_list(self):
@@ -170,7 +167,6 @@ class TestAlertRuleSerializer(TestCase):
         alert_threshold = 0.8
         resolve_threshold = 0.7
         params["triggers"][0]["alertThreshold"] = alert_threshold
-        params["triggers"][0]["resolveThreshold"] = resolve_threshold
         params["resolve_threshold"] = resolve_threshold
         # Drop off the warning trigger
         params["triggers"].pop()
@@ -179,7 +175,6 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         trigger = alert_rule.alertruletrigger_set.filter(label="critical").get()
         assert trigger.alert_threshold == alert_threshold
-        assert trigger.resolve_threshold == resolve_threshold
 
     def test_simple_below_threshold(self):
         payload = {
@@ -189,12 +184,12 @@ class TestAlertRuleSerializer(TestCase):
             "aggregate": "count()",
             "threshold_period": 1,
             "projects": [self.project.slug],
+            "resolveThreshold": None,
+            "thresholdType": 1,
             "triggers": [
                 {
                     "label": "critical",
                     "alertThreshold": 98,
-                    "resolveThreshold": None,
-                    "thresholdType": 1,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -211,8 +206,6 @@ class TestAlertRuleSerializer(TestCase):
             {
                 "label": "warning",
                 "alertThreshold": 99,
-                "resolveThreshold": 100,
-                "thresholdType": 1,
                 "actions": [
                     {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                     {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -250,63 +243,6 @@ class TestAlertRuleSerializer(TestCase):
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["threshold_type"] == AlertRuleThresholdType.ABOVE
         assert serializer.validated_data["resolve_threshold"] == resolve_threshold
-        assert (
-            serializer.validated_data["triggers"][0]["threshold_type"]
-            == AlertRuleThresholdType.ABOVE.value
-        )
-        assert serializer.validated_data["triggers"][0]["resolve_threshold"] == resolve_threshold
-
-    def test_alert_rule_threshold_overrides_trigger(self):
-        payload = {
-            "name": "hello_im_a_test",
-            "time_window": 10,
-            "query": "level:error",
-            "aggregate": "count()",
-            "thresholdType": 0,
-            "threshold_period": 1,
-            "projects": [self.project.slug],
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 98,
-                    "resolveThreshold": None,
-                    "thresholdType": 1,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
-                    ],
-                }
-            ],
-        }
-        serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
-
-        assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["threshold_type"] == AlertRuleThresholdType.ABOVE
-
-    def test_alert_rule_resolved_overrides_trigger(self):
-        payload = {
-            "name": "hello_im_a_test",
-            "time_window": 10,
-            "query": "level:error",
-            "aggregate": "count()",
-            "resolve_threshold": 99,
-            "threshold_period": 1,
-            "projects": [self.project.slug],
-            "triggers": [
-                {
-                    "label": "critical",
-                    "alertThreshold": 98,
-                    "resolveThreshold": 100,
-                    "thresholdType": 1,
-                    "actions": [
-                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
-                    ],
-                }
-            ],
-        }
-        serializer = AlertRuleSerializer(context=self.context, data=payload, partial=True)
-
-        assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["resolve_threshold"] == 99
 
     def test_boundary(self):
         payload = {
@@ -315,13 +251,13 @@ class TestAlertRuleSerializer(TestCase):
             "query": "level:error",
             "aggregate": "count()",
             "threshold_period": 1,
+            "resolveThreshold": 2,
+            "thresholdType": AlertRuleThresholdType.ABOVE.value,
             "projects": [self.project.slug],
             "triggers": [
                 {
                     "label": "critical",
                     "alertThreshold": 1,
-                    "resolveThreshold": 2,
-                    "thresholdType": AlertRuleThresholdType.ABOVE.value,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -337,8 +273,6 @@ class TestAlertRuleSerializer(TestCase):
             {
                 "label": "warning",
                 "alertThreshold": 0,
-                "resolveThreshold": 1,
-                "thresholdType": AlertRuleThresholdType.ABOVE.value,
                 "actions": [
                     {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                     {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
@@ -416,6 +350,16 @@ class TestAlertRuleSerializer(TestCase):
             {"aggregate": ["Invalid Metric: We do not currently support this field."]},
         )
 
+    def test_threshold_type(self):
+        invalid_values = [
+            "Invalid threshold type, valid values are %s"
+            % [item.value for item in AlertRuleThresholdType]
+        ]
+        self.run_fail_validation_test(
+            {"thresholdType": "a"}, {"thresholdType": ["A valid integer is required."]}
+        )
+        self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
+
 
 class TestAlertRuleTriggerSerializer(TestCase):
     @fixture
@@ -465,16 +409,6 @@ class TestAlertRuleTriggerSerializer(TestCase):
             "alertThreshold": field_is_required,
         }
 
-    def test_threshold_type(self):
-        invalid_values = [
-            "Invalid threshold type, valid values are %s"
-            % [item.value for item in AlertRuleThresholdType]
-        ]
-        self.run_fail_validation_test(
-            {"thresholdType": "a"}, {"thresholdType": ["A valid integer is required."]}
-        )
-        self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
-
 
 class TestAlertRuleTriggerActionSerializer(TestCase):
     @fixture
@@ -487,9 +421,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
 
     @fixture
     def trigger(self):
-        return create_alert_rule_trigger(
-            self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 100, 20
-        )
+        return create_alert_rule_trigger(self.alert_rule, "hello", 100)
 
     @fixture
     def valid_params(self):

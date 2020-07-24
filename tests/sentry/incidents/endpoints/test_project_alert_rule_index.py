@@ -90,12 +90,12 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "aggregate": "count()",
             "query": "",
             "timeWindow": "300",
+            "resolveThreshold": 100,
+            "thresholdType": 0,
             "triggers": [
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -103,8 +103,6 @@ class AlertRuleCreateEndpointTest(APITestCase):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},
