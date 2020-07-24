@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import {withScope, captureException, Severity} from '@sentry/react';
 
 import {Theme} from 'app/utils/theme';
 import ExternalLink from 'app/components/links/externalLink';
@@ -143,6 +144,15 @@ class Button extends React.Component<ButtonProps, {}> {
     // For `aria-label`
     const screenReaderLabel =
       label || (typeof children === 'string' ? children : undefined);
+
+    if (typeof icon === 'string') {
+      withScope(scope => {
+        scope.setLevel(Severity.Warning);
+        scope.setTag('icon', icon);
+        scope.setTag('componentType', 'button');
+        captureException(new Error('Deprecated SVG icon referenced'));
+      });
+    }
 
     // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
     // Let's use props to determine which to serve up, so we don't have to think about it.

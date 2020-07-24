@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
+import {withScope, captureException, Severity} from '@sentry/react';
 
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
@@ -96,16 +97,26 @@ const Alert = styled(
     className,
     system: _system, // don't forward to `div`
     ...props
-  }: AlertProps) => (
-    <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
-      {icon && (
-        <IconWrapper>
-          {typeof icon === 'string' ? <InlineSvg src={icon} size={iconSize!} /> : icon}
-        </IconWrapper>
-      )}
-      <StyledTextBlock>{children}</StyledTextBlock>
-    </div>
-  )
+  }: AlertProps) => {
+    if (typeof icon === 'string') {
+      withScope(scope => {
+        scope.setLevel(Severity.Warning);
+        scope.setTag('icon', icon);
+        scope.setTag('componentType', 'alert');
+        captureException(new Error('Deprecated SVG icon referenced'));
+      });
+    }
+    return (
+      <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
+        {icon && (
+          <IconWrapper>
+            {typeof icon === 'string' ? <InlineSvg src={icon} size={iconSize!} /> : icon}
+          </IconWrapper>
+        )}
+        <StyledTextBlock>{children}</StyledTextBlock>
+      </div>
+    );
+  }
 )<AlertProps>`
   ${alertStyles}
 `;
