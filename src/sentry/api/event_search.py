@@ -1115,7 +1115,7 @@ FUNCTIONS = {
     "percentile": {
         "name": "percentile",
         "args": [DurationColumnNoLookup("column"), NumberRange("percentile", 0, 1)],
-        "aggregate": [u"quantile({percentile:.2f})", u"{column}", None],
+        "aggregate": [u"quantile({percentile:g})", u"{column}", None],
         "result_type": "duration",
     },
     "p50": {
