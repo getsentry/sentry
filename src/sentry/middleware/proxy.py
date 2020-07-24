@@ -14,6 +14,8 @@ except ImportError:
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed
 
+from sentry.utils import metrics
+
 logger = logging.getLogger(__name__)
 Z_CHUNK = 1024 * 8
 
@@ -152,6 +154,18 @@ class ChunkedMiddleware(object):
         if request.META["HTTP_TRANSFER_ENCODING"].lower() == "chunked":
             request._stream = io.BufferedReader(UWsgiChunkedInput())
             request.META["CONTENT_LENGTH"] = "4294967295"  # 0xffffffff
+
+    def process_response(self, request, response):
+        if "HTTP_TRANSFER_ENCODING" not in request.META:
+            return
+
+        if request.META["HTTP_TRANSFER_ENCODING"].lower() == "chunked":
+            view = getattr(request, "_view_path", None) or "null"
+
+            metrics.incr(
+                "middleware.proxy.chunked_upload.done",
+                tags={"method": request.method, "view": view},
+            )
 
 
 class DecompressBodyMiddleware(object):
