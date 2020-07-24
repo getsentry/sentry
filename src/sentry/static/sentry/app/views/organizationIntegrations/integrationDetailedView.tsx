@@ -64,6 +64,9 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   get alerts() {
     const provider = this.provider;
     const metadata = this.metadata;
+    // The server response for integration installations includes old icon CSS classes
+    // We map those to the currently in use values to their react equivalents
+    // and fallback to IconFlag just in case.
     const alerts = (metadata.aspects.alerts || []).map(item => {
       switch (item.icon) {
         case 'icon-warning':
