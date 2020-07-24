@@ -145,7 +145,10 @@ def update_incident_status(
             subscribe_to_incident(incident, user)
 
         prev_status = incident.status
-        if status_method == IncidentStatusMethod.MANUAL and status == IncidentStatus.CLOSED:
+        if status == IncidentStatus.CLOSED and (
+            status_method == IncidentStatusMethod.MANUAL
+            or status_method == IncidentStatusMethod.RULE_UPDATED
+        ):
             trigger_incident_triggers(incident)
 
         kwargs = {"status": status.value, "status_method": status_method.value}
@@ -981,7 +984,7 @@ def trigger_incident_triggers(incident):
     for trigger in triggers:
         if trigger.status == TriggerStatus.ACTIVE.value:
             with transaction.atomic():
-                method = "fire" if trigger.status == TriggerStatus.ACTIVE.value else "resolve"
+                method = "resolve"
                 for action in AlertRuleTriggerAction.objects.filter(
                     alert_rule_trigger=trigger.alert_rule_trigger
                 ):
@@ -994,6 +997,8 @@ def trigger_incident_triggers(incident):
                                 "method": method,
                             },
                         )
+                trigger.status = TriggerStatus.RESOLVED.value
+                trigger.save()
 
 
 def get_subscriptions_from_alert_rule(alert_rule, projects):

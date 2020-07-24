@@ -156,7 +156,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
 )
 def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
     from sentry.incidents.models import AlertRule
-    from sentry.incidents.logic import trigger_incident_triggers, update_incident_status
+    from sentry.incidents.logic import update_incident_status
 
     try:
         alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)
@@ -174,7 +174,6 @@ def auto_resolve_snapshot_incidents(alert_rule_id, **kwargs):
     if incidents:
         incidents = incidents[:batch_size]
         for incident in incidents:
-            trigger_incident_triggers(incident)
             update_incident_status(
                 incident,
                 IncidentStatus.CLOSED,
