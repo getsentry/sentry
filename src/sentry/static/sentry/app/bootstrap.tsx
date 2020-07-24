@@ -62,7 +62,6 @@ function getSentryIntegrations(hasReplays: boolean = false) {
         Router.createRoutes(routes()),
         Router.match
       ),
-      idleTimeout: 4000,
     }),
   ];
   if (hasReplays) {
