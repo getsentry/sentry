@@ -12,7 +12,9 @@ brew 'pkgconfig'
 brew 'libxmlsec1'
 brew 'geoip'
 
-brew 'direnv'
+# direnv isn't defined here, because we have it configured to check for a bootstrapped environment.
+# If it's installed in the early steps of the setup process, it just leads to confusion.
+# brew 'direnv'
 
 tap 'homebrew/cask'
 
