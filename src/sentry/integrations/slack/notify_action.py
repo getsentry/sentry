@@ -20,7 +20,7 @@ from .utils import (
     get_integration_type,
 )
 
-
+# 5% of messages for workspace apps will get the upgrade CTA
 UPGRADE_MESSAGE_FREQUENCY = 0.05
 
 
@@ -136,7 +136,7 @@ class SlackNotifyServiceAction(EventAction):
             if get_integration_type(integration) == "workspace_app":
                 if random.random() < UPGRADE_MESSAGE_FREQUENCY:
                     # stick the upgrade attachment first
-                    attachments.insert(0, build_upgrade_notice_attachment(event.group, integration))
+                    attachments.insert(0, build_upgrade_notice_attachment(event.group))
 
             payload = {
                 "token": integration.metadata["access_token"],

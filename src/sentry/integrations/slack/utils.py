@@ -180,9 +180,11 @@ def build_rule_url(rule, group, project):
     return absolute_uri(rule_url)
 
 
-def build_upgrade_notice_attachment(group, integration):
+def build_upgrade_notice_attachment(group):
     org_slug = group.organization.slug
-    url = absolute_uri(u"/settings/{}/integrations/slack/{}/".format(org_slug, integration.id))
+    url = absolute_uri(
+        u"/settings/{}/integrations/slack/?tab=configurations&referrer=slack".format(org_slug)
+    )
 
     return {
         "title": "Reminder",
