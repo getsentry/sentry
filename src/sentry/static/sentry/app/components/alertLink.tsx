@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import React from 'react';
 import omit from 'lodash/omit';
+import {withScope, captureException, Severity} from '@sentry/react';
 
 import Link from 'app/components/links/link';
 import ExternalLink from 'app/components/links/externalLink';
@@ -52,6 +53,16 @@ class AlertLink extends React.Component<Props> {
       to,
       href,
     } = this.props;
+
+    if (typeof icon === 'string') {
+      withScope(scope => {
+        scope.setLevel(Severity.Warning);
+        scope.setTag('icon', icon);
+        scope.setTag('componentType', 'alertLink');
+        captureException(new Error('Deprecated SVG icon referenced'));
+      });
+    }
+
     return (
       <StyledLink
         to={to}
