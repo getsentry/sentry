@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {IconAdd, IconMail} from 'app/icons';
+import {IconAdd, IconMail, IconInfo} from 'app/icons';
 import {PanelAlert} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
@@ -101,6 +101,14 @@ class ProjectAlertSettings extends AsyncView {
           }
         />
         <PermissionAlert />
+        <AlertLink
+          to={`/organizations/${orgId}/alerts/rules/`}
+          priority="info"
+          icon={<IconInfo />}
+        >
+          {t("We've moved alert rules. Find them all in one place.")}
+        </AlertLink>
+
         <AlertLink to="/settings/account/notifications/" icon={<IconMail />}>
           {t(
             'Looking to fine-tune your personal notification preferences? Visit your Account Settings'

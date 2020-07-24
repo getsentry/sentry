@@ -12,6 +12,7 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AsyncComponent from 'app/components/asyncComponent';
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -23,6 +24,7 @@ import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {promptsUpdate} from 'app/actionCreators/prompts';
+import Alert from 'app/components/alert';
 
 import {Incident} from '../types';
 import AlertHeader from './header';
@@ -80,7 +82,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   async onLoadAllEndpointsSuccess() {
     const {incidentList} = this.state;
 
-    if (incidentList.length !== 0) {
+    if (!incidentList || incidentList.length !== 0) {
       this.setState({hasAlertRule: true, firstVisitShown: false});
       return;
     }
@@ -153,7 +155,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const {hasAlertRule, incidentList} = this.state;
     const status = getQueryStatus(this.props.location.query.status);
 
-    if (incidentList.length > 0) {
+    if (!incidentList || incidentList.length > 0) {
       return null;
     }
 
@@ -253,10 +255,10 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const status = getQueryStatus(query.status);
 
     return (
-      <DocumentTitle title={`Alerts- ${orgId} - Sentry`}>
+      <DocumentTitle title={`Alerts - ${orgId} - Sentry`}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
           <PageContent>
-            <AlertHeader organization={organization} router={router} location="stream" />
+            <AlertHeader organization={organization} router={router} activeTab="stream" />
             {!this.tryRenderOnboarding() && (
               <StyledButtonBar merged active={status}>
                 <Button
@@ -306,8 +308,27 @@ class IncidentsListContainer extends React.Component<Props> {
     });
   }
 
+  renderNoAccess() {
+    return (
+      <PageContent>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </PageContent>
+    );
+  }
+
   render() {
-    return <IncidentsList {...this.props} />;
+    const {organization} = this.props;
+
+    return (
+      <Feature
+        features={['organizations:incidents']}
+        organization={organization}
+        hookName="feature-disabled:alerts-page"
+        renderDisabled={this.renderNoAccess}
+      >
+        <IncidentsList {...this.props} />
+      </Feature>
+    );
   }
 }
 

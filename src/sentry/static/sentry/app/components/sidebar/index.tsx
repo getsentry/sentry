@@ -306,6 +306,10 @@ class Sidebar extends React.Component<Props, State> {
     const hasOrganization = !!organization;
 
     const discoverState = this.discoverSidebarState();
+    const hasMetricAlerts = organization?.features?.includes('incidents') ?? false;
+    const alertsPath = hasMetricAlerts
+      ? `/organizations/${organization.slug}/alerts/`
+      : `/organizations/${organization.slug}/alerts/rules/`;
 
     return (
       <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
@@ -407,26 +411,17 @@ class Sidebar extends React.Component<Props, State> {
                       id="performance"
                     />
                   </Feature>
-                  <Feature
-                    hookName="feature-disabled:incidents-sidebar-item"
-                    features={['incidents']}
-                    organization={organization}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/alerts/`,
-                          evt
-                        )
-                      }
-                      icon={<IconSiren size="md" />}
-                      label={t('Alerts')}
-                      to={`/organizations/${organization.slug}/alerts/`}
-                      id="alerts"
-                      isNew
-                    />
-                  </Feature>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={(_id, evt) =>
+                      this.navigateWithGlobalSelection(alertsPath, evt)
+                    }
+                    icon={<IconSiren size="md" />}
+                    label={t('Alerts')}
+                    to={alertsPath}
+                    id="alerts"
+                    isNew
+                  />
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>

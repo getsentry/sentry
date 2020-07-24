@@ -7,6 +7,7 @@ import {Organization} from 'app/types';
 import {PageHeader} from 'app/styles/organization';
 import {navigateTo} from 'app/actionCreators/navigation';
 import {t} from 'app/locale';
+import Feature from 'app/components/acl/feature';
 import FeatureBadge from 'app/components/featureBadge';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -20,10 +21,10 @@ import CreateRuleButton from './createRuleButton';
 type Props = {
   router: InjectedRouter;
   organization: Organization;
-  location: 'stream' | 'rules';
+  activeTab: 'stream' | 'rules';
 };
 
-const AlertHeader = ({router, organization, location}: Props) => {
+const AlertHeader = ({router, organization, activeTab}: Props) => {
   /**
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
@@ -40,7 +41,7 @@ const AlertHeader = ({router, organization, location}: Props) => {
           {t('Alerts')}{' '}
           <FeatureBadge
             title={
-              location === 'stream'
+              activeTab === 'stream'
                 ? t('This page is in beta and currently only shows metric alerts.')
                 : undefined
             }
@@ -62,10 +63,16 @@ const AlertHeader = ({router, organization, location}: Props) => {
         </Actions>
       </PageHeader>
       <StyledNavTabs underlined>
-        <li className={location === 'stream' ? 'active' : ''}>
-          <Link to={`/organizations/${organization.slug}/alerts/`}>{t('Stream')}</Link>
-        </li>
-        <li className={location === 'rules' ? 'active' : ''}>
+        <Feature
+          hookName="feature-disabled:incidents-sidebar-item"
+          features={['incidents']}
+          organization={organization}
+        >
+          <li className={activeTab === 'stream' ? 'active' : ''}>
+            <Link to={`/organizations/${organization.slug}/alerts/`}>{t('Stream')}</Link>
+          </li>
+        </Feature>
+        <li className={activeTab === 'rules' ? 'active' : ''}>
           <Link to={`/organizations/${organization.slug}/alerts/rules/`}>
             {t('Rules')}
           </Link>
