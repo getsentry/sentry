@@ -1769,7 +1769,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:electron",
         "name": "Electron",
         "layout": {"type": "native"},
-        "url": "https://electron-symbols.githubapp.com/",
+        "url": "https://symbols.electronjs.org/",
         "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
         "is_public": True,
     },
