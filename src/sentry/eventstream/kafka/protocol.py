@@ -96,7 +96,7 @@ def get_task_kwargs_for_message(value):
     dispatched.
     """
 
-    metrics.timing("evenstream.events.size.data", len(value))
+    metrics.timing("eventstream.events.size.data", len(value))
     payload = json.loads(value)
 
     try:
