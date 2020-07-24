@@ -84,23 +84,12 @@ jobs:
             NODE_ENV=production yarn build-css
             yarn test-ci --forceExit
 
-        - name: Save snapshots
-          if: always()
-          uses: getsentry/action-visual-snapshot@v2-dev
-          with:
-            save-only: true
-            snapshot-path: .artifacts/visual-snapshots
-
-    visual-diff:
-      if: ${{ github.ref != 'refs/heads/master' }}
-      needs: jest
-      runs-on: ubuntu-16.04
-
-      steps:
         - name: Diff snapshots
+          if: ${{ github.ref != 'refs/heads/master' }}
           id: visual-snapshots-diff
           uses: getsentry/action-visual-snapshot@v2-dev
           with:
+            snapshot-path: .artifacts/visual-snapshots
             github-token: ${{ secrets.GITHUB_TOKEN }}
             action-name: Jest Snapshots
             artifact-name: visual-snapshots-jest
