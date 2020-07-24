@@ -1,5 +1,5 @@
 ---
-created: '2020-07-23T17:33:08.047911Z'
+created: '2020-07-24T13:48:25.963435Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -19,110 +19,11 @@ fingerprint:
 - '{{ function }}'
 variants:
   app:
-    contributes: false
-    hint: exception of system takes precedence
-    id: app
-    name: in-app
-    values:
-    - contributes: false
-      hint: ignored because this variant does not have a contributing stacktrace,
-        but the system variant does
-      id: exception
-      name: exception
-      values:
-      - contributes: false
-        hint: null
-        id: stacktrace
-        name: stacktrace
-        values:
-        - contributes: false
-          hint: non app frame
-          id: frame
-          name: null
-          values:
-          - contributes: true
-            hint: null
-            id: module
-            name: null
-            values:
-            - io.sentry.example.Application
-          - contributes: false
-            hint: module takes precedence
-            id: filename
-            name: null
-            values:
-            - application.java
-          - contributes: true
-            hint: null
-            id: function
-            name: null
-            values:
-            - main
-      - contributes: true
-        hint: null
-        id: type
-        name: null
-        values:
-        - DatabaseUnavailable
-      - contributes: true
-        hint: null
-        id: value
-        name: null
-        values:
-        - For some reason the database went away
+    type: component
   custom-fingerprint:
     type: custom-fingerprint
     values:
     - database-unavailable
     - main
   system:
-    contributes: false
-    hint: null
-    id: system
-    name: null
-    values:
-    - contributes: true
-      hint: null
-      id: exception
-      name: exception
-      values:
-      - contributes: true
-        hint: null
-        id: stacktrace
-        name: stacktrace
-        values:
-        - contributes: true
-          hint: null
-          id: frame
-          name: null
-          values:
-          - contributes: true
-            hint: null
-            id: module
-            name: null
-            values:
-            - io.sentry.example.Application
-          - contributes: false
-            hint: module takes precedence
-            id: filename
-            name: null
-            values:
-            - application.java
-          - contributes: true
-            hint: null
-            id: function
-            name: null
-            values:
-            - main
-      - contributes: true
-        hint: null
-        id: type
-        name: null
-        values:
-        - DatabaseUnavailable
-      - contributes: false
-        hint: ignored because stacktrace takes precedence
-        id: value
-        name: null
-        values:
-        - For some reason the database went away
+    type: component

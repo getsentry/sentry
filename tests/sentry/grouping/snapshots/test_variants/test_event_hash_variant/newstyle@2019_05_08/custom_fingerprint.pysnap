@@ -1,12 +1,12 @@
 ---
-created: '2020-07-23T17:38:36.147911Z'
+created: '2020-07-24T13:48:38.448711Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
-    app
+    app (custom fingerprint takes precedence)
       exception*
         stacktrace*
           frame*
@@ -174,7 +174,7 @@ custom-fingerprint:
 system:
   hash: null
   component:
-    system
+    system (custom fingerprint takes precedence)
       exception*
         stacktrace*
           frame*

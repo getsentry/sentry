@@ -202,7 +202,7 @@ def get_grouping_variants_for_event(event, config=None):
     if defaults_referenced == 0:
         rv = {}
         for (key, component) in six.iteritems(components):
-            component.update(contributes=False)
+            component.update(contributes=False, hint="custom fingerprint takes precedence")
             rv[key] = ComponentVariant(component, config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event)
