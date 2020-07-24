@@ -41,7 +41,6 @@ from sentry.web.frontend.unsubscribe_incident_notifications import (
 )
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
-from sentry.web.frontend.vsts_extension_configuration import VstsExtensionConfigurationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.project_event import ProjectEventRedirect
 
@@ -561,12 +560,6 @@ urlpatterns += [
         r"^team-avatar/(?P<avatar_id>[^\/]+)/$",
         TeamAvatarPhotoView.as_view(),
         name="sentry-team-avatar-url",
-    ),
-    # VSTS Marketplace extension install flow
-    url(
-        r"^extensions/vsts/configure/$",
-        VstsExtensionConfigurationView.as_view(),
-        name="vsts-extension-configuration",
     ),
     # Generic
     url(r"^$", HomeView.as_view(), name="sentry"),

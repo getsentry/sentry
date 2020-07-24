@@ -1026,15 +1026,6 @@ function routes() {
         />
 
         <Route
-          path="/extensions/vsts/link/"
-          getComponent={(_loc, cb) =>
-            import(
-              /* webpackChunkName: "VSTSOrganizationLink" */ 'app/views/vstsOrganizationLink'
-            ).then(lazyLoad(cb))
-          }
-        />
-
-        <Route
           path="/extensions/:integrationSlug/link/"
           getComponent={(_loc, cb) =>
             import(
