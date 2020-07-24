@@ -536,7 +536,6 @@ const ComparisonSpanBarRectangle = styled(SpanBarRectangle)`
 
 const ComparisonReportLabelContainer = styled('div')`
   position: absolute;
-  height: 100%;
   user-select: none;
   right: ${space(1)};
 
