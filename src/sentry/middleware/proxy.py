@@ -156,6 +156,10 @@ class ChunkedMiddleware(object):
             request.META["CONTENT_LENGTH"] = "4294967295"  # 0xffffffff
 
     def process_response(self, request, response):
+        self._process_response_impl(request, response)
+        return response
+
+    def _process_response_impl(self, request, response):
         if "HTTP_TRANSFER_ENCODING" not in request.META:
             return
 
