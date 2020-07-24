@@ -2972,10 +2972,10 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react-virtualized@^9.20.1":
-  version "9.21.7"
-  resolved "https://registry.yarnpkg.com/@types/react-virtualized/-/react-virtualized-9.21.7.tgz#2a35b660c396e916fbf3fb5279a577187e85af05"
-  integrity sha512-Go+r3xz6TLUHwmRsyEHfo7UvikVbR0L1HUxe/otBgFEUx8aLrTQeblY8r9UbnSmAsynU0KtJTQErS907GM4lQw==
+"@types/react-virtualized@^9.21.10":
+  version "9.21.10"
+  resolved "https://registry.yarnpkg.com/@types/react-virtualized/-/react-virtualized-9.21.10.tgz#cd072dc9c889291ace2c4c9de8e8c050da8738b7"
+  integrity sha512-f5Ti3A7gGdLkPPFNHTrvKblpsPNBiQoSorOEOD+JPx72g/Ng2lOt4MYfhvQFQNgyIrAro+Z643jbcKafsMW2ag==
   dependencies:
     "@types/prop-types" "*"
     "@types/react" "*"
@@ -6658,16 +6658,16 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@1.42.0:
-  version "1.42.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.42.0.tgz#f78ad00161f99003ac0e2b4ce1737fa5d7f3a430"
-  integrity sha512-m0M7yZCx/jymzmMmuNZGx+Sl/uN4o9j5SAFxppe6H62qua5R1WX3gkEaWmUu8NdH/ybk+RUZYkeSZz/oS1DfqA==
+eslint-config-sentry-app@^1.43.0:
+  version "1.43.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.43.0.tgz#28a116bea9e32dd03af59785fcdefcec91d604d9"
+  integrity sha512-e8Andi4ShqvQKh5XeFKwtOYwNHP/phfl86YCRIVW6w3r+ojGBnMWxB9zRkeEwBuIIcQDS1YGMsIidFDH1upcMA==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^3.5.0"
     "@typescript-eslint/parser" "^3.5.0"
     eslint-config-prettier "6.3.0"
-    eslint-config-sentry "^1.42.0"
-    eslint-config-sentry-react "^1.42.0"
+    eslint-config-sentry "^1.43.0"
+    eslint-config-sentry-react "^1.43.0"
     eslint-import-resolver-typescript "^2.0.0"
     eslint-import-resolver-webpack "^0.12.2"
     eslint-plugin-emotion "^10.0.27"
@@ -6675,19 +6675,19 @@ eslint-config-sentry-app@1.42.0:
     eslint-plugin-jest "22.17.0"
     eslint-plugin-prettier "3.1.1"
     eslint-plugin-react "7.15.1"
-    eslint-plugin-sentry "^1.42.0"
+    eslint-plugin-sentry "^1.43.0"
 
-eslint-config-sentry-react@^1.42.0:
-  version "1.42.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.42.0.tgz#40154b7f213ab00731065b70d94eca6d4c281bb2"
-  integrity sha512-mZ845mM95Lj99AZvRpHVF9f128R3u3JvenIDHvz482CD+haLuDbp/Ygc6dozzXaRmnweVT+Tejd3T24kymixng==
+eslint-config-sentry-react@^1.43.0:
+  version "1.43.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.43.0.tgz#2b89d727076d89699a7be72adf2c0256bd03021f"
+  integrity sha512-1TiupDlaWqIFt7fbH1NRUz1rlAB04e6CLj0aIdLdrzXo1hbhSQbjrRZI4w5TfmKkGtGlD5qwRTu4F6mmzbt3Bg==
   dependencies:
-    eslint-config-sentry "^1.42.0"
+    eslint-config-sentry "^1.43.0"
 
-eslint-config-sentry@^1.42.0:
-  version "1.42.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.42.0.tgz#884f1d2ddc5fbe5f9bb64a8a6f6f2563247cf07b"
-  integrity sha512-BMudMw/ehmOmW1xwuVuB18jax4b8A63DZ9onSpCuiZyKI6+yGyvLKCrJHiNhrN1j5wCOJ3Yx3azNHCtdNV7VOw==
+eslint-config-sentry@^1.43.0:
+  version "1.43.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.43.0.tgz#c751e62773edc5527afd7a05a38708c4a2d244da"
+  integrity sha512-Id9Q1o6XFii9WkNgH1yRUZJeBhV23peG2887fy3aB9klHbNUkiQx1LAZloeeU4sgaGOpCH5HRLBEC8fECG1L5Q==
 
 eslint-import-resolver-node@^0.3.3:
   version "0.3.4"
@@ -6785,10 +6785,10 @@ eslint-plugin-react@7.15.1:
     prop-types "^15.7.2"
     resolve "^1.12.0"
 
-eslint-plugin-sentry@^1.42.0:
-  version "1.42.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.42.0.tgz#648415360cc8dacc98442321a907162ba70903a5"
-  integrity sha512-AmLiqmf8t9RYH9+Cy9YrzbaXotL63HuAV17rFmbZRI36Wm5Kc0lHJWHrT6eAVicLp+JQ6ZhH0b2zTYgbkiS07w==
+eslint-plugin-sentry@^1.43.0:
+  version "1.43.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.43.0.tgz#114e248e63260054ad68ae5178f41122a4c5e77c"
+  integrity sha512-ick0N35r7nwHuv/cDGkB0PTmygE6xFjnAL531s39ykukHxDHeP7jTPya0vrRmYTlCzrgcZFCJXqxLaqp0alSyA==
   dependencies:
     requireindex "~1.1.0"
 
@@ -10071,10 +10071,10 @@ lodash.uniq@4.5.0, lodash.uniq@^4.5.0:
   resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
   integrity sha1-0CJTc662Uq3BvILklFM5qEJ1R3M=
 
-lodash@^4.0.1, lodash@^4.15.0, lodash@^4.17.11, lodash@^4.17.12, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.4, lodash@^4.17.5, lodash@^4.5.1:
-  version "4.17.15"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
-  integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
+lodash@^4.0.1, lodash@^4.15.0, lodash@^4.17.11, lodash@^4.17.12, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.4, lodash@^4.17.5, lodash@^4.5.1:
+  version "4.17.19"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.19.tgz#e48ddedbe30b3321783c5b4301fbd353bc1e4a4b"
+  integrity sha512-JNvd8XER9GQX0v2qJgsaN/mzFCNA5BRe/j8JN9d+tWyGLSodKQHKFicdwNYzWwI3wjRnaKPsGj1XkBjx/F96DQ==
 
 log-symbols@^2.2.0:
   version "2.2.0"
@@ -13067,7 +13067,7 @@ react-transition-group@^2.0.0, react-transition-group@^2.2.0, react-transition-g
     prop-types "^15.6.2"
     react-lifecycles-compat "^3.0.4"
 
-react-virtualized@^9.20.1:
+react-virtualized@^9.21.2:
   version "9.21.2"
   resolved "https://registry.yarnpkg.com/react-virtualized/-/react-virtualized-9.21.2.tgz#02e6df65c1e020c8dbf574ec4ce971652afca84e"
   integrity sha512-oX7I7KYiUM7lVXQzmhtF4Xg/4UA5duSA+/ZcAvdWlTLFCoFYq1SbauJT5gZK9cZS/wdYR6TPGpX/dqzvTqQeBA==

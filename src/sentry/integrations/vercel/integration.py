@@ -269,7 +269,6 @@ class VercelIntegration(IntegrationInstallation):
 class VercelIntegrationProvider(IntegrationProvider):
     key = "vercel"
     name = "Vercel"
-    requires_feature_flag = True
     can_add = False
     can_disable = True
     metadata = metadata

@@ -19,7 +19,9 @@ class SentryAppTest(TestCase):
             owner=self.org,
             scope_list=("project:read",),
             webhook_url="http://example.com",
+            slug="nulldb",
         )
+        self.sentry_app.save()
 
     def test_paranoid(self):
         self.sentry_app.save()
@@ -53,3 +55,14 @@ class SentryAppTest(TestCase):
         self.sentry_app.status = SentryAppStatus.INTERNAL
         self.sentry_app.save()
         assert self.sentry_app.is_internal
+
+    def test_is_installed_on(self):
+        other_app = self.create_sentry_app()
+        self.create_sentry_app_installation(organization=self.org, slug=self.sentry_app.slug)
+        assert self.sentry_app.is_installed_on(self.org)
+        assert not other_app.is_installed_on(self.org)
+
+    def test_not_installed_on_org(self):
+        other_org = self.create_organization()
+        self.create_sentry_app_installation(organization=other_org, slug=self.sentry_app.slug)
+        assert not self.sentry_app.is_installed_on(self.org)

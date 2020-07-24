@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import marked, {singleLineRenderer} from 'app/utils/marked';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconFlag} from 'app/icons';
 import Tag from 'app/views/settings/components/tag';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
@@ -243,7 +243,7 @@ const Author = styled('div')`
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div {...p}>
-    <InlineSvg src="icon-circle-exclamation" size="1.5em" />
+    <IconFlag color="red400" size="1.5em" />
     {reason}
   </div>
 ))`

@@ -122,7 +122,8 @@ const Input = styled('input')`
 
 const StyledIconSearch = styled(IconSearch)`
   position: absolute;
-  top: 13px;
+  top: 50%;
+  transform: translateY(-50%);
   left: 14px;
 `;
 

@@ -44,7 +44,7 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
   } else {
     return (
       <Feature
-        features={['organizations:data-export']}
+        features={['organizations:discover-query']}
         renderDisabled={() => renderBrowserExportButton(canEdit, props)}
       >
         {renderAsyncExportButton(canEdit, props)}

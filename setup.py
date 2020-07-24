@@ -4,6 +4,9 @@ from __future__ import absolute_import
 import os
 import sys
 
+if os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (3, 6):
+    sys.exit("Error: Sentry [In EXPERIMENTAL python 3 mode] requires Python 3.6.")
+
 if not os.environ.get("SENTRY_PYTHON3") and sys.version_info[:2] != (2, 7):
     sys.exit("Error: Sentry requires Python 2.7.")
 
@@ -25,7 +28,7 @@ from sentry.utils.distutils import (
 )
 
 
-VERSION = "20.7.0"
+VERSION = "20.8.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
