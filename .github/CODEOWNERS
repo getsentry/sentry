@@ -159,6 +159,7 @@ Makefile                    @getsentry/owners-sentry-dev
 /src/sentry/identity/             @getsentry/ecosystem
 /src/sentry/plugins/              @getsentry/ecosystem
 /src/sentry/shared_integrations/  @getsentry/ecosystem
+/src/sentry/mediators/            @getsentry/ecosystem
 
 /src/sentry/static/sentry/app/views/organizationIntegrations  @getsentry/ecosystem
 
