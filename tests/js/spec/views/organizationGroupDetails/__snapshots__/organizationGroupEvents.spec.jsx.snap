@@ -142,17 +142,17 @@ exports[`groupEvents renders 1`] = `
                 size="sm"
               >
                 <IconSearch
-                  className="search-input-icon css-1m821z7-StyledIconSearch e5a9jdx1"
+                  className="search-input-icon css-1k2dark-StyledIconSearch e5a9jdx1"
                   color="gray500"
                   size="sm"
                 >
                   <ForwardRef(SvgIcon)
-                    className="search-input-icon css-1m821z7-StyledIconSearch e5a9jdx1"
+                    className="search-input-icon css-1k2dark-StyledIconSearch e5a9jdx1"
                     color="gray500"
                     size="sm"
                   >
                     <svg
-                      className="search-input-icon css-1m821z7-StyledIconSearch e5a9jdx1"
+                      className="search-input-icon css-1k2dark-StyledIconSearch e5a9jdx1"
                       fill="#9585A3"
                       height="16px"
                       viewBox="0 0 16 16"

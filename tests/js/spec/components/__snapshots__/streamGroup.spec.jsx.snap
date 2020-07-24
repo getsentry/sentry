@@ -1271,23 +1271,22 @@ exports[`StreamGroup renders with anchors 1`] = `
                     ]
                   }
                   series={Array []}
-                  width={null}
                 >
                   <StyledFigure
                     className="sparkline barchart"
                     style={
                       Object {
                         "height": 24,
-                        "width": null,
+                        "width": undefined,
                       }
                     }
                   >
                     <figure
-                      className="sparkline barchart css-1b2kvnn-StyledFigure e5t71581"
+                      className="sparkline barchart css-1b2kvnn-StyledFigure e1r7vyxv1"
                       style={
                         Object {
                           "height": 24,
-                          "width": null,
+                          "width": undefined,
                         }
                       }
                     >
@@ -1309,7 +1308,7 @@ exports[`StreamGroup renders with anchors 1`] = `
                       </span>
                       <SvgContainer>
                         <div
-                          className="css-6tdbe5-SvgContainer e5t71582"
+                          className="css-6tdbe5-SvgContainer e1r7vyxv2"
                         >
                           <StyledSvg
                             overflow="visible"
@@ -1317,7 +1316,7 @@ exports[`StreamGroup renders with anchors 1`] = `
                             viewBox="0 0 100 400"
                           >
                             <svg
-                              className="css-1w5ytn5-StyledSvg e5t71580"
+                              className="css-1w5ytn5-StyledSvg e1r7vyxv0"
                               overflow="visible"
                               preserveAspectRatio="none"
                               viewBox="0 0 100 400"
