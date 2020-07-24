@@ -10,7 +10,6 @@ import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/links/externalLink';
 
 const HEADER_HEIGHT = 60;
@@ -98,10 +97,6 @@ export const DocsLink = styled(ExternalLink)`
   &:hover {
     color: ${p => p.theme.blue400};
   }
-`;
-
-export const StyledInlineSvg = styled(InlineSvg)`
-  justify-content: flex-end;
 `;
 
 export const DiscoverDocs = styled('span')`
