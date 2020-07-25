@@ -187,6 +187,3 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.ignore_issue()
 
         self.browser.snapshot("issue details ignored")
-
-    def test_rip(self):
-        1 / 0
