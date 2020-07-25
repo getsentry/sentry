@@ -4,7 +4,7 @@
       "owner": "pytest",
       "pattern": [
         {
-          "regexp": "^------"
+          "regexp": "^____"
         },
         {
           "regexp": "^(.*):(\\d+):\\sin\\s(.*)$",
