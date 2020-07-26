@@ -17,7 +17,7 @@ class AlertRuleDetailsBase(object):
             "time_window": 10,
             "query": "level:error",
             "threshold_type": 0,
-            "resolve_threshold": 1,
+            "resolve_threshold": 100,
             "alert_threshold": 0,
             "aggregate": "count_unique(user)",
             "threshold_period": 1,
@@ -26,8 +26,6 @@ class AlertRuleDetailsBase(object):
                 {
                     "label": "critical",
                     "alertThreshold": 200,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
                     ],
@@ -35,8 +33,6 @@ class AlertRuleDetailsBase(object):
                 {
                     "label": "warning",
                     "alertThreshold": 150,
-                    "resolveThreshold": 100,
-                    "thresholdType": 0,
                     "actions": [
                         {"type": "email", "targetType": "team", "targetIdentifier": self.team.id},
                         {"type": "email", "targetType": "user", "targetIdentifier": self.user.id},

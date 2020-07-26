@@ -943,9 +943,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             incident_2.update(alert_rule=self.alert_rule)
 
             # Give the rule some actions and triggers so we can verify they've been snapshotted correctly.
-            trigger = create_alert_rule_trigger(
-                self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 1000, 400
-            )
+            trigger = create_alert_rule_trigger(self.alert_rule, "hello", 1000)
             action = create_alert_rule_trigger_action(
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
@@ -964,6 +962,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
                 aggregate="count_unique(tags[sentry:user])",
                 time_window=50,
                 threshold_period=2,
+                threshold_type=AlertRuleThresholdType.BELOW,
+                resolve_threshold=1200,
             )
 
             incident.refresh_from_db()
@@ -981,6 +981,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert rule_snapshot.name == updated_rule.name
             assert rule_snapshot.snuba_query.query == "level:error"
             assert rule_snapshot.snuba_query.time_window == 600
+            assert rule_snapshot.threshold_type == AlertRuleThresholdType.ABOVE.value
+            assert rule_snapshot.resolve_threshold is None
             assert rule_snapshot.snuba_query.aggregate == "count()"
             assert rule_snapshot.threshold_period == 1
 
@@ -1000,9 +1002,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             trigger_snapshot = AlertRuleTrigger.objects.get(alert_rule=rule_snapshot)
             assert trigger_snapshot.id != trigger.id
             assert trigger_snapshot.label == trigger.label
-            assert trigger_snapshot.threshold_type == trigger.threshold_type
             assert trigger_snapshot.alert_threshold == trigger.alert_threshold
-            assert trigger_snapshot.resolve_threshold == trigger.resolve_threshold
 
             assert AlertRuleTriggerAction.objects.filter(
                 alert_rule_trigger=trigger_snapshot
@@ -1099,27 +1099,17 @@ class CreateAlertRuleTriggerTest(TestCase):
 
     def test(self):
         label = "hello"
-        threshold_type = AlertRuleThresholdType.ABOVE
         alert_threshold = 1000
-        resolve_threshold = 400
-        trigger = create_alert_rule_trigger(
-            self.alert_rule, label, threshold_type, alert_threshold, resolve_threshold
-        )
+        trigger = create_alert_rule_trigger(self.alert_rule, label, alert_threshold)
         assert trigger.label == label
-        assert trigger.threshold_type == threshold_type.value
         assert trigger.alert_threshold == alert_threshold
-        assert trigger.resolve_threshold == resolve_threshold
         assert not AlertRuleTriggerExclusion.objects.filter(alert_rule_trigger=trigger).exists()
 
     def test_excluded_projects(self):
         excluded_project = self.create_project(fire_project_created=True)
         alert_rule = self.create_alert_rule(projects=[self.project, excluded_project])
         trigger = create_alert_rule_trigger(
-            alert_rule,
-            "hi",
-            AlertRuleThresholdType.ABOVE,
-            100,
-            excluded_projects=[excluded_project],
+            alert_rule, "hi", 100, excluded_projects=[excluded_project]
         )
         # We should have only one exclusion
         exclusion = AlertRuleTriggerExclusion.objects.get(alert_rule_trigger=trigger)
@@ -1129,19 +1119,13 @@ class CreateAlertRuleTriggerTest(TestCase):
         other_project = self.create_project(fire_project_created=True)
         alert_rule = self.create_alert_rule(projects=[self.project])
         with self.assertRaises(ProjectsNotAssociatedWithAlertRuleError):
-            create_alert_rule_trigger(
-                alert_rule,
-                "hi",
-                AlertRuleThresholdType.ABOVE,
-                100,
-                excluded_projects=[other_project],
-            )
+            create_alert_rule_trigger(alert_rule, "hi", 100, excluded_projects=[other_project])
 
     def test_existing_label(self):
         name = "uh oh"
-        create_alert_rule_trigger(self.alert_rule, name, AlertRuleThresholdType.ABOVE, 100)
+        create_alert_rule_trigger(self.alert_rule, name, 100)
         with self.assertRaises(AlertRuleTriggerLabelAlreadyUsedError):
-            create_alert_rule_trigger(self.alert_rule, name, AlertRuleThresholdType.ABOVE, 100)
+            create_alert_rule_trigger(self.alert_rule, name, 100)
 
 
 class UpdateAlertRuleTriggerTest(TestCase):
@@ -1150,32 +1134,18 @@ class UpdateAlertRuleTriggerTest(TestCase):
         return self.create_alert_rule()
 
     def test(self):
-        trigger = create_alert_rule_trigger(
-            self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 1000, 400
-        )
+        trigger = create_alert_rule_trigger(self.alert_rule, "hello", 1000)
 
         label = "uh oh"
-        threshold_type = AlertRuleThresholdType.BELOW
         alert_threshold = 2000
-        resolve_threshold = 800
-        trigger = update_alert_rule_trigger(
-            trigger,
-            label=label,
-            threshold_type=threshold_type,
-            alert_threshold=alert_threshold,
-            resolve_threshold=resolve_threshold,
-        )
+        trigger = update_alert_rule_trigger(trigger, label=label, alert_threshold=alert_threshold)
         assert trigger.label == label
-        assert trigger.threshold_type == threshold_type.value
         assert trigger.alert_threshold == alert_threshold
-        assert trigger.resolve_threshold == resolve_threshold
 
     def test_name_used(self):
         label = "uh oh"
-        create_alert_rule_trigger(self.alert_rule, label, AlertRuleThresholdType.ABOVE, 1000, 400)
-        trigger = create_alert_rule_trigger(
-            self.alert_rule, "something else", AlertRuleThresholdType.ABOVE, 1000, 400
-        )
+        create_alert_rule_trigger(self.alert_rule, label, 1000)
+        trigger = create_alert_rule_trigger(self.alert_rule, "something else", 1000)
         with self.assertRaises(AlertRuleTriggerLabelAlreadyUsedError):
             update_alert_rule_trigger(trigger, label=label)
 
@@ -1183,9 +1153,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
         other_project = self.create_project(fire_project_created=True)
 
         alert_rule = self.create_alert_rule(projects=[other_project, self.project])
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", AlertRuleThresholdType.ABOVE, 1000, 400
-        )
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         update_alert_rule_trigger(trigger, excluded_projects=[other_project])
         assert trigger.exclusions.get().query_subscription.project == other_project
 
@@ -1197,12 +1165,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
             projects=[excluded_project, self.project, other_project]
         )
         trigger = create_alert_rule_trigger(
-            alert_rule,
-            "hi",
-            AlertRuleThresholdType.ABOVE,
-            1000,
-            400,
-            excluded_projects=[excluded_project, self.project],
+            alert_rule, "hi", 1000, excluded_projects=[excluded_project, self.project]
         )
         update_alert_rule_trigger(trigger, excluded_projects=[other_project, excluded_project])
         excluded_projects = [
@@ -1213,9 +1176,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
     def test_excluded_projects_not_associated_with_rule(self):
         other_project = self.create_project(fire_project_created=True)
         alert_rule = self.create_alert_rule(projects=[self.project])
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", AlertRuleThresholdType.ABOVE, 1000, 400
-        )
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
 
         with self.assertRaises(ProjectsNotAssociatedWithAlertRuleError):
             update_alert_rule_trigger(trigger, excluded_projects=[other_project])
@@ -1225,12 +1186,7 @@ class DeleteAlertRuleTriggerTest(TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(
-            alert_rule,
-            "hi",
-            AlertRuleThresholdType.ABOVE,
-            1000,
-            400,
-            excluded_projects=[self.project],
+            alert_rule, "hi", 1000, excluded_projects=[self.project]
         )
         trigger_id = trigger.id
         assert AlertRuleTriggerExclusion.objects.filter(
@@ -1247,9 +1203,7 @@ class DeleteAlertRuleTriggerTest(TestCase):
 class GetTriggersForAlertRuleTest(TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", AlertRuleThresholdType.ABOVE, 1000, 400
-        )
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         assert get_triggers_for_alert_rule(alert_rule).get() == trigger
 
 
@@ -1260,9 +1214,7 @@ class BaseAlertRuleTriggerActionTest(object):
 
     @fixture
     def trigger(self):
-        return create_alert_rule_trigger(
-            self.alert_rule, "hello", AlertRuleThresholdType.ABOVE, 1000, 400
-        )
+        return create_alert_rule_trigger(self.alert_rule, "hello", 1000)
 
 
 class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase):
