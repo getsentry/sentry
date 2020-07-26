@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import bisect
 import functools
 import math
+import six
 
 from datetime import datetime
 from django.db import connections
@@ -483,9 +484,8 @@ class CombinedQuerysetPaginator(object):
     and an optional paramater `desc` to determine whether the sort is ascending or descending. Default is False.
 
     There is an issue with sorting between multiple models using a mixture of `date_added` and other fields.
-    This stems from `value_from_cursor` which formats it has a date if any of the keys are `date_added`.
-
-    There are assertions in the constructor to help prevent this from happening.
+    This stems from `value_from_cursor` which formats it as a date if any of the keys are `date_added`.
+    There is an assertion in the constructor to help prevent this from happening.
     """
 
     multiplier = 1000000  # Use microseconds for date keys.
@@ -514,18 +514,21 @@ class CombinedQuerysetPaginator(object):
             ), "Model of type {} does not have field {}".format(type(model.first()), self.keys[i])
             self.model_key_map.update({type(model.first()): self.keys[i]})
 
-    def key_from_model(self, model):
-        return self.model_key_map.get(type(model))
+    def key_from_item(self, item):
+        return self.model_key_map.get(type(item))
 
     def get_item_key(self, item, for_prev=False):
-        if self.key_from_model(item) == "date_added":  # Could generalize this more
+        if self.key_from_item(item) == "date_added":  # Could generalize this more
             return self.multiplier * float(
-                getattr(item, self.key_from_model(item)).strftime("%s.%f")
+                getattr(item, self.key_from_item(item)).strftime("%s.%f")
             )
         else:
-            value = getattr(item, self.key_from_model(item))
-            if type(value) is float:
+            value = getattr(item, self.key_from_item(item))
+            value_type = type(value)
+            if value_type is float:
                 return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+            elif value_type is six.text_type:
+                return value
 
             return value
 
@@ -546,8 +549,10 @@ class CombinedQuerysetPaginator(object):
         asc = self._is_asc(is_prev)
         combined_querysets = list()
         for queryset in self.querysets:
-            key = self.key_from_model(queryset.first())
+            item = queryset.first()
+            key = self.key_from_item(item)
             filters = {}
+
             if asc:
                 order_by = key
                 filter_condition = "%s__gte" % key
@@ -561,10 +566,14 @@ class CombinedQuerysetPaginator(object):
             queryset = queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
             combined_querysets += list(queryset)
 
+        def _sort_combined_querysets(item):
+            key_value = self.get_item_key(item, is_prev)
+            return ((key_value, type(item).__name__),)
+
         combined_querysets.sort(
-            key=lambda item: (getattr(item, self.key_from_model(item)), type(item).__name__),
-            reverse=not asc,
+            key=_sort_combined_querysets, reverse=not asc,
         )
+
         return combined_querysets
 
     def get_result(self, cursor=None, limit=100):
