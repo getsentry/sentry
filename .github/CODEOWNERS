@@ -137,43 +137,30 @@ Makefile                    @getsentry/owners-sentry-dev
 /src/sentry/api/endpoints/organization_plugins_configs.py               @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_plugins.py                       @getsentry/ecosystem
 /src/sentry/api/endpoints/organization_release_previous_commits.py      @getsentry/ecosystem
-/src/sentry/api/endpoints/organization_sentry_apps.py                   @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_authorizations.py                  @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_components.py                      @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_details.py                         @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_features.py                        @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_installation_details.py            @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_installation_external_issues.py    @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_installation_external_requests.py  @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_installations.py                   @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_interaction.py                     @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_publish_request.py                 @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_requests.py                        @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_app_stats.py                           @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_apps_stats.py                          @getsentry/ecosystem
-/src/sentry/api/endpoints/sentry_apps.py                                @getsentry/ecosystem
 /src/sentry/api/endpoints/sentry_internal_app_token_details.py          @getsentry/ecosystem
 /src/sentry/api/endpoints/sentry_internal_app_tokens.py                 @getsentry/ecosystem
 
-/src/sentry/integrations/         @getsentry/ecosystem
-/src/sentry/identity/             @getsentry/ecosystem
-/src/sentry/plugins/              @getsentry/ecosystem
-/src/sentry/shared_integrations/  @getsentry/ecosystem
-/src/sentry/mediators/            @getsentry/ecosystem
-
 /src/sentry/static/sentry/app/views/organizationIntegrations  @getsentry/ecosystem
 
-/src/sentry/models/integration.py            @getsentry/ecosystem
-/src/sentry/models/integrationfeature.py     @getsentry/ecosystem
-/src/sentry/models/sentryapp.py              @getsentry/ecosystem
-/src/sentry/models/sentryappavatar.py        @getsentry/ecosystem
-/src/sentry/models/sentryappcomponent.py     @getsentry/ecosystem
-/src/sentry/models/sentryappinstallation.py  @getsentry/ecosystem
+/src/sentry/integrations/                     @getsentry/ecosystem
+/src/sentry/identity/                         @getsentry/ecosystem
+/src/sentry/plugins/                          @getsentry/ecosystem
+/src/sentry/shared_integrations/              @getsentry/ecosystem
+/src/sentry/mediators/                        @getsentry/ecosystem
 
-/src/sentry/tasks/integrations.py  @getsentry/ecosystem
-/src/sentry/tasks/sentry_apps.py   @getsentry/ecosystem
 
-/src/sentry_plugins/  @getsentry/ecosystem
+/src/sentry/models/integration.py             @getsentry/ecosystem
+/src/sentry/models/integrationfeature.py      @getsentry/ecosystem
+/src/sentry/models/sentryapp.py               @getsentry/ecosystem
+/src/sentry/models/sentryappavatar.py         @getsentry/ecosystem
+/src/sentry/models/sentryappcomponent.py      @getsentry/ecosystem
+/src/sentry/models/sentryappinstallation.py   @getsentry/ecosystem
 
+/src/sentry/tasks/integrations.py             @getsentry/ecosystem
+
+/src/sentry_plugins/                          @getsentry/ecosystem
+
+# To find matching files -> find . -name "*sentry_app*.py"
+*sentry_app*.py                               @getsentry/ecosystem
 
 ### End of Ecosystem ###
