@@ -24,7 +24,11 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 import {TOP_N, DisplayModes} from 'app/utils/discover/types';
 import withProjects from 'app/utils/withProjects';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  updateQuery,
+} from 'app/utils/tokenizeSearch';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
@@ -312,7 +316,7 @@ class TableView extends React.Component<TableViewProps> {
           return;
         }
         default:
-          query.modify(action, column.name, value);
+          updateQuery(query, action, column.name, value);
       }
       nextView.query = stringifyQueryObject(query);
 

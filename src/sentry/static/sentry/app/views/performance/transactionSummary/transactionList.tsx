@@ -22,7 +22,11 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  updateQuery,
+} from 'app/utils/tokenizeSearch';
 import {
   TOP_TRANSACTION_LIMIT,
   TOP_TRANSACTION_FILTERS,
@@ -160,7 +164,7 @@ class TransactionTable extends React.PureComponent<Props> {
       // no need to include transaction as its already in the query params
       searchConditions.removeTag('transaction');
 
-      searchConditions.modify(action, column.name, value);
+      updateQuery(searchConditions, action, column.name, value);
 
       browserHistory.push({
         pathname: location.pathname,

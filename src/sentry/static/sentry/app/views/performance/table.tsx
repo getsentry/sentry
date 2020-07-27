@@ -14,7 +14,11 @@ import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {
+  tokenizeSearch,
+  stringifyQueryObject,
+  updateQuery,
+} from 'app/utils/tokenizeSearch';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
@@ -74,7 +78,7 @@ class Table extends React.Component<Props, State> {
       // remove any event.type queries since it is implied to apply to only transactions
       searchConditions.removeTag('event.type');
 
-      searchConditions.modify(action, column.name, value);
+      updateQuery(searchConditions, action, column.name, value);
 
       ReactRouter.browserHistory.push({
         pathname: location.pathname,
