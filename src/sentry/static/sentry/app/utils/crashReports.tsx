@@ -1,13 +1,24 @@
 import {t, tct} from 'app/locale';
 
-export function formatStoreCrashReports(value: number | ''): React.ReactNode {
+type formatConfig = {
+  inProjectSettings?: boolean;
+};
+
+export function formatStoreCrashReports(
+  value: number | '',
+  formatConfig: formatConfig = {}
+): React.ReactNode {
   if (value === -1) {
     return t('Unlimited');
-  } else if (value === 0) {
-    return t('Disabled');
-  } else {
-    return tct('[value] per issue', {value});
   }
+  if (value === 0 && formatConfig.inProjectSettings) {
+    return t('Inherit organization settings');
+  }
+  if (value === 0) {
+    return t('Disabled');
+  }
+
+  return tct('[value] per issue', {value});
 }
 
 function getStoreCrashReportsValues() {
