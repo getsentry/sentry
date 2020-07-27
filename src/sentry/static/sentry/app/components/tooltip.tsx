@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 import {memoize} from 'lodash';
 
+import TooltipStore from 'app/stores/tooltipStore';
 import {domId} from 'app/utils/domId';
 
 const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
@@ -96,21 +97,18 @@ class Tooltip extends React.Component<Props, State> {
     containerDisplayMode: 'inline-block',
   };
 
-  state = {
+  state: State = {
     isOpen: false,
     usesGlobalPortal: true,
   };
 
   componentDidMount() {
-    if (!window.__tooltips) {
-      window.__tooltips = [];
-    }
-    window.__tooltips.push(this);
+    TooltipStore.addTooltip(this);
   }
 
   componentWillUnmount() {
     const {usesGlobalPortal} = this.state;
-    window.__tooltips = window.__tooltips.filter(c => c !== this);
+    TooltipStore.removeTooltip(this);
     if (!usesGlobalPortal) {
       document.body.removeChild(this.getPortal(usesGlobalPortal));
     }
@@ -130,11 +128,10 @@ class Tooltip extends React.Component<Props, State> {
           document.body.appendChild(portal);
         }
         return portal;
-      } else {
-        const portal = document.createElement('div');
-        document.body.appendChild(portal);
-        return portal;
       }
+      const portal = document.createElement('div');
+      document.body.appendChild(portal);
+      return portal;
     }
   );
 

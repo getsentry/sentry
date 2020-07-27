@@ -11,7 +11,6 @@ import {
 import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
 import {Props as AlertProps} from 'app/components/alert';
 import {Query as DiscoverQuery} from 'app/views/discover/types';
-import Tooltip from 'app/components/tooltip';
 
 declare global {
   interface Window {
@@ -40,9 +39,9 @@ declare global {
      */
     csrfCookieName?: string;
     /**
-     * Internal reference to rendered tooltips for visual regression
+     * Used to open tooltips for testing purposes.
      */
-    __tooltips: Tooltip[];
+    __openAllTooltips: () => void;
     /**
      * Primary entrypoint for rendering the sentry app. This is typically
      * called in the django templates, or in the case of the EXPERIMENTAL_SPA,
