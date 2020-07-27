@@ -5,7 +5,7 @@ import Tooltip from 'app/components/tooltip';
 type TooltipStoreInterface = {
   addTooltip: (tooltip: Tooltip) => void;
   removeTooltip: (tooltip: Tooltip) => void;
-  openAllTooltips: () => void;
+  openAllTooltips: () => boolean;
   tooltips: Tooltip[];
 };
 
@@ -14,13 +14,20 @@ const tooltipStore: Reflux.StoreDefinition & TooltipStoreInterface = {
 
   useGlobalPortal: false,
 
+  /**
+   * Called via window.__openAllTooltips in selenium tests to check tooltip snapshots
+   */
   openAllTooltips() {
+    if (!this.tooltips.length) {
+      return false;
+    }
     this.tooltips.forEach(tooltip => {
       tooltip.setState({
         usesGlobalPortal: false,
       });
       tooltip.setOpen();
     });
+    return true;
   },
 
   init(): void {
