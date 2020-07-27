@@ -10,7 +10,6 @@ from django.core.urlresolvers import reverse
 from django.http import Http404
 
 from sentry import tagstore
-from sentry import options
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
@@ -423,7 +422,13 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
-    if options.get("slack.legacy-app") is True:
+    default_install_type = (
+        "classic_bot" if "user_access_token" in integration.metadata else "workspace_app"
+    )
+
+    # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
+    # once eveyone is migrated we can remove this check and usages of channels.list
+    if integration.metadata.get("installation_type", default_install_type) == "workspace_app":
         list_types = LEGACY_LIST_TYPES
     else:
         list_types = LIST_TYPES
