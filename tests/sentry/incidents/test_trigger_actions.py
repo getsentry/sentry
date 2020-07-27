@@ -19,7 +19,7 @@ from sentry.incidents.models import (
 from sentry.testutils import TestCase
 
 
-class SampleTest(TestCase):
+class TriggerActionTest(TestCase):
     @fixture
     def team(self):
         team = self.create_team()
