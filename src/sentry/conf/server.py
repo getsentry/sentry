@@ -262,7 +262,6 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE_CLASSES = (
-    "sentry.middleware.proxy.ChunkedMiddleware",
     "sentry.middleware.proxy.DecompressBodyMiddleware",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
@@ -489,11 +488,6 @@ BROKER_TRANSPORT_OPTIONS = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
-# We use the old task protocol because during benchmarking we noticed that it's faster
-# than the new protocol. If we ever need to bump this it should be fine, there were no
-# compatibility issues, just need to run benchmarks and do some tests to make sure
-# things run ok.
-CELERY_TASK_PROTOCOL = 1
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
@@ -1774,7 +1768,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:electron",
         "name": "Electron",
         "layout": {"type": "native"},
-        "url": "https://electron-symbols.githubapp.com/",
+        "url": "https://symbols.electronjs.org/",
         "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
         "is_public": True,
     },

@@ -44,8 +44,6 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-    dependencies = [
-        ("sentry", "0089_rule_level_fields_backfill"),
-    ]
+    dependencies = [("sentry", "0089_rule_level_fields_backfill")]
 
     operations = [migrations.RunPython(code=cleanup_audit_log_data)]
