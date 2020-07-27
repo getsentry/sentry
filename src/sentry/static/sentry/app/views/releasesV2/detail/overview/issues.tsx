@@ -59,12 +59,12 @@ class Issues extends React.Component<Props, State> {
     const {version, orgId} = this.props;
     const {issuesType} = this.state;
     const {queryParams} = this.getIssuesEndpoint();
-    const query: QueryResults = {query: []};
+    const query = new QueryResults([]);
 
     if (issuesType === IssuesType.NEW) {
-      query.firstRelease = [version];
+      query.setTag('firstRelease', [version]);
     } else {
-      query.release = [version];
+      query.setTag('release', [version]);
     }
 
     return {

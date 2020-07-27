@@ -100,6 +100,18 @@ DATASET_FIELDS = {
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
 
+SNUBA_OR = "or"
+SNUBA_AND = "and"
+OPERATOR_TO_FUNCTION = {
+    "=": "equals",
+    "!=": "notEquals",
+    ">": "greater",
+    "<": "less",
+    ">=": "greaterOrEquals",
+    "<=": "lessOrEquals",
+}
+FUNCTION_TO_OPERATOR = {v: k for k, v in OPERATOR_TO_FUNCTION.items()}
+
 
 def parse_snuba_datetime(value):
     """Parses a datetime value from snuba."""
@@ -765,6 +777,19 @@ def resolve_condition(cond, column_resolver):
         # IN conditions are detected as a function but aren't really.
         if cond[index] == "IN":
             cond[0] = column_resolver(cond[0])
+            return cond
+        elif cond[index] in FUNCTION_TO_OPERATOR:
+            func_args = cond[index + 1]
+            for i, arg in enumerate(func_args):
+                if i == 0:
+                    if isinstance(arg, (list, tuple)):
+                        func_args[i] = resolve_condition(arg, column_resolver)
+                    else:
+                        func_args[i] = column_resolver(arg)
+                else:
+                    func_args[i] = u"'{}'".format(arg) if isinstance(arg, six.string_types) else arg
+
+            cond[index + 1] = func_args
             return cond
 
         func_args = cond[index + 1]

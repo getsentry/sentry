@@ -7,7 +7,7 @@ import {Deploy} from 'app/types';
 import Tag from 'app/views/settings/components/tag';
 import Link from 'app/components/links/link';
 import {IconOpen} from 'app/icons';
-import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
@@ -38,10 +38,7 @@ const DeployBadge = ({deploy, orgSlug, version, className}: Props) => {
         query: {
           project: null,
           environment: deploy.environment,
-          query: stringifyQueryObject({
-            query: [],
-            release: [version!],
-          }),
+          query: stringifyQueryObject(new QueryResults([`release:${version!}`])),
         },
       }}
       title={t('Open in Issues')}

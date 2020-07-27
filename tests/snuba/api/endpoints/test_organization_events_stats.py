@@ -553,6 +553,28 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200
 
+    def test_conditional_filter(self):
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "query": "id:{} OR id:{}".format("a" * 32, "b" * 32),
+                    "interval": "30m",
+                    "yAxis": "count()",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 4
+        assert data[0][1][0]["count"] == 1
+        assert data[2][1][0]["count"] == 1
+
     def test_simple_multiple_yaxis(self):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(

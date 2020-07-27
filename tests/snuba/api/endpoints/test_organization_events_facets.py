@@ -158,6 +158,47 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         expected = [{"count": 1, "name": "yellow", "value": "yellow"}]
         self.assert_facet(response, "color", expected)
 
+    def test_with_conditional_filter(self):
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "message": "how to make fast",
+                "tags": {"color": "green"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "message": "Delet the Data",
+                "tags": {"color": "red"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "message": "Data the Delet ",
+                "tags": {"color": "yellow"},
+            },
+            project_id=self.project2.id,
+        )
+
+        with self.feature(self.feature_list):
+            response = self.client.get(
+                self.url, {"query": "color:yellow OR color:red"}, format="json"
+            )
+
+        assert response.status_code == 200, response.content
+        expected = [
+            {"count": 1, "name": "yellow", "value": "yellow"},
+            {"count": 1, "name": "red", "value": "red"},
+        ]
+        self.assert_facet(response, "color", expected)
+
     def test_start_end(self):
         two_days_ago = self.day_ago - timedelta(days=1)
         hour_ago = self.min_ago - timedelta(hours=1)

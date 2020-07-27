@@ -97,14 +97,13 @@ class SpansInterface extends React.Component<Props, State> {
       end: parsedTrace.traceEndTimestamp,
     });
 
-    const conditions: QueryResults = {
-      query: [],
-      'event.type': ['error'],
-      trace: [parsedTrace.traceID],
-    };
+    const conditions = new QueryResults([
+      'event.type:error',
+      `trace:${parsedTrace.traceID}`,
+    ]);
 
     if (typeof event.title === 'string') {
-      conditions.transaction = [event.title];
+      conditions.setTag('transaction', [event.title]);
     }
 
     const orgFeatures = new Set(organization.features);

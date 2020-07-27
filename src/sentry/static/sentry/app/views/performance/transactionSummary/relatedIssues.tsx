@@ -14,7 +14,7 @@ import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import GroupList from 'app/components/issues/groupList';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 
 type Props = {
   organization: OrganizationSummary;
@@ -40,11 +40,9 @@ class RelatedIssues extends React.Component<Props> {
       path: `/organizations/${organization.slug}/issues/`,
       queryParams: {
         ...queryParams,
-        query: stringifyQueryObject({
-          query: [],
-          is: ['unresolved'],
-          transaction: [transaction],
-        }),
+        query: stringifyQueryObject(
+          new QueryResults(['is:unresolved', `transaction:${transaction}`])
+        ),
       },
     };
   }

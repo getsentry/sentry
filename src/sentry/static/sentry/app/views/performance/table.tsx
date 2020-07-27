@@ -66,7 +66,7 @@ class Table extends React.Component<Props, State> {
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
-      delete searchConditions['event.type'];
+      searchConditions.removeTag('event.type');
 
       trackAnalyticsEvent({
         eventKey: 'performance_views.overview.cellaction',
@@ -78,8 +78,7 @@ class Table extends React.Component<Props, State> {
       switch (action) {
         case Actions.ADD: {
           // Remove exclusion if it exists.
-          delete searchConditions[`!${column.name}`];
-          searchConditions[column.name] = [`${value}`];
+          searchConditions.removeTag(`!${column.name}`).setTag(column.name, [`${value}`]);
 
           nextLocationQuery = {
             query: stringifyQueryObject(searchConditions),
@@ -89,13 +88,10 @@ class Table extends React.Component<Props, State> {
         }
         case Actions.EXCLUDE: {
           // Remove positive if it exists.
-          delete searchConditions[column.name];
+          searchConditions.removeTag(column.name);
           // Negations should stack up.
           const negation = `!${column.name}`;
-          if (!searchConditions.hasOwnProperty(negation)) {
-            searchConditions[negation] = [];
-          }
-          searchConditions[negation].push(`${value}`);
+          searchConditions.addTag(negation, [`${value}`]);
 
           nextLocationQuery = {
             query: stringifyQueryObject(searchConditions),
@@ -105,8 +101,7 @@ class Table extends React.Component<Props, State> {
         }
         case Actions.SHOW_GREATER_THAN: {
           // Remove query token if it already exists
-          delete searchConditions[column.name];
-          searchConditions[column.name] = [`>${value}`];
+          searchConditions.setTag(column.name, [`>${value}`]);
 
           nextLocationQuery = {
             query: stringifyQueryObject(searchConditions),
@@ -116,8 +111,7 @@ class Table extends React.Component<Props, State> {
         }
         case Actions.SHOW_LESS_THAN: {
           // Remove query token if it already exists
-          delete searchConditions[column.name];
-          searchConditions[column.name] = [`<${value}`];
+          searchConditions.setTag(column.name, [`<${value}`]);
 
           nextLocationQuery = {
             query: stringifyQueryObject(searchConditions),
