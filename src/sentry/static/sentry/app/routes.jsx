@@ -778,7 +778,7 @@ function routes() {
 
       <Route
         path="performance/"
-        name="Performance"
+        name={t('Performance')}
         componentPromise={() =>
           import(
             /* webpackChunkName: "OrganizationPerformance" */ 'app/views/settings/organizationPerformance'
