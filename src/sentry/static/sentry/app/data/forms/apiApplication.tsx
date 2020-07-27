@@ -15,7 +15,7 @@ const forms: JsonFormObject[] = [
         // additional data/props that is related to rendering of form field rather than data
         label: 'Name',
         help: 'e.g. My Application',
-        setValue: value => getDynamicText({value, fixed: 'PERCY_APPLICATION_NAME'}),
+        setValue: value => getDynamicText({value, fixed: 'CI_APPLICATION_NAME'}),
       },
       {
         name: 'homepageUrl',

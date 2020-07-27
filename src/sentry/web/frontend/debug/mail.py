@@ -235,7 +235,7 @@ def alert(request):
     event_manager.normalize()
     data = event_manager.get_data()
     event = event_manager.save(project.id)
-    # Prevent Percy screenshot from constantly changing
+    # Prevent CI screenshot from constantly changing
     event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = get_event_type(event.data)
 

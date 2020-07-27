@@ -10,35 +10,24 @@ import pytest
 
 from contextlib import contextmanager
 from datetime import datetime
-from django.conf import settings
 from django.utils.text import slugify
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
-from six.moves.urllib.parse import quote, urlparse
+from six.moves.urllib.parse import urlparse
 
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.compat import map
-
-# if we're not running in a PR, we kill the PERCY_TOKEN because its a push
-# to a branch, and we dont want percy comparing things
-# we do need to ensure its run on master so that changes get updated
-if (
-    os.environ.get("TRAVIS_PULL_REQUEST", "false") == "false"
-    and os.environ.get("TRAVIS_BRANCH", "master") != "master"
-):
-    os.environ.setdefault("PERCY_ENABLE", "0")
 
 logger = logging.getLogger("sentry.testutils")
 
 
 class Browser(object):
-    def __init__(self, driver, live_server, percy):
+    def __init__(self, driver, live_server):
         self.driver = driver
         self.live_server_url = live_server.url
-        self.percy = percy
         self.domain = urlparse(self.live_server_url).hostname
         self._has_initialized_cookie_store = False
 
@@ -332,7 +321,6 @@ class Browser(object):
                     u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(slugify(name))
                 )
 
-        self.percy.snapshot(name=name)
         return self
 
     def get_local_storage_items(self):
@@ -433,29 +421,13 @@ def pytest_configure(config):
     )
 
 
-@pytest.fixture(scope="session")
-def percy(request):
-    import percy
-
-    # Initialize Percy.
-    loader = percy.ResourceLoader(
-        root_dir=settings.STATIC_ROOT, base_url=quote(settings.STATIC_URL)
-    )
-    percy_config = percy.Config(default_widths=settings.PERCY_DEFAULT_TESTING_WIDTHS)
-    percy = percy.Runner(loader=loader, config=percy_config)
-    percy.initialize_build()
-
-    request.addfinalizer(percy.finalize_build)
-    return percy
-
-
 @TimedRetryPolicy.wrap(timeout=15, exceptions=(WebDriverException,), log_original_error=True)
 def start_chrome(**chrome_args):
     return webdriver.Chrome(**chrome_args)
 
 
 @pytest.fixture(scope="function")
-def browser(request, percy, live_server):
+def browser(request, live_server):
     window_size = request.config.getoption("window_size")
     window_width, window_height = map(int, window_size.split("x", 1))
 
@@ -504,16 +476,13 @@ def browser(request, percy, live_server):
     request.node._driver = driver
     request.addfinalizer(fin)
 
-    browser = Browser(driver, live_server, percy)
+    browser = Browser(driver, live_server)
 
     browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
 
     if hasattr(request, "cls"):
         request.cls.browser = browser
     request.node.browser = browser
-
-    # bind webdriver to percy for snapshots
-    percy.loader.webdriver = driver
 
     return driver
 

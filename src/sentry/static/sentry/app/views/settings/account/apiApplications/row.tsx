@@ -68,10 +68,10 @@ class Row extends React.Component<Props, State> {
       <StyledPanelItem>
         <ApplicationNameWrapper>
           <ApplicationName to={`${ROUTE_PREFIX}applications/${app.id}/`}>
-            {getDynamicText({value: app.name, fixed: 'PERCY_APPLICATION_NAME'})}
+            {getDynamicText({value: app.name, fixed: 'CI_APPLICATION_NAME'})}
           </ApplicationName>
           <ClientId>
-            {getDynamicText({value: app.clientID, fixed: 'PERCY_CLIENT_ID'})}
+            {getDynamicText({value: app.clientID, fixed: 'CI_CLIENT_ID'})}
           </ClientId>
         </ApplicationNameWrapper>
 
