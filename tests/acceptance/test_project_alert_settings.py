@@ -58,7 +58,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.wait_until(".ref-plugin-config-webhooks")
         self.browser.wait_until_not(".loading-indicator")
 
-        # flakey Toast animation being snapshotted by percy
+        # flakey Toast animation being snapshotted in CI
         # click it to clear it before snapshotting
         self.browser.click_when_visible('[data-test-id="toast-success"]')
         self.browser.wait_until_not('[data-test-id="toast-success"]')

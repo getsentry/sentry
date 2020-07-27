@@ -786,10 +786,6 @@ REST_FRAMEWORK = {
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 
-# Percy config for visual regression testing.
-
-PERCY_DEFAULT_TESTING_WIDTHS = (1280, 375)
-
 # Sentry and internal client configuration
 
 SENTRY_FEATURES = {
