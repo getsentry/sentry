@@ -49,14 +49,13 @@ export function generatePerformanceEventView(location: Location): EventView {
   savedQuery.orderby = decodeScalar(query.sort) || '-epm';
 
   const searchQuery = decodeScalar(query.query) || '';
-  const conditions = Object.assign(tokenizeSearch(searchQuery), {
-    'event.type': ['transaction'],
-  });
+  const conditions = tokenizeSearch(searchQuery);
+  conditions.setTag('event.type', ['transaction']);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.transaction = [`*${conditions.query.join(' ')}*`];
+    conditions.setTag('transaction', [`*${conditions.query.join(' ')}*`]);
     conditions.query = [];
   }
   savedQuery.query = stringifyQueryObject(conditions);
