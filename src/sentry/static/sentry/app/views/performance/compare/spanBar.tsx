@@ -369,7 +369,7 @@ class SpanBar extends React.Component<Props, State> {
             Math.abs(baselineDuration - regressionDuration)
           );
 
-          label = `- ${duration} slower`;
+          label = `+ ${duration} slower`;
         }
 
         return <ComparisonReportLabelContainer>{label}</ComparisonReportLabelContainer>;
