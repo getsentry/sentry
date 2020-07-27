@@ -161,12 +161,6 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
-# builds and creates percy snapshots
-test-styleguide:
-	@echo "--> Building and snapshotting styleguide"
-	@yarn run snapshot
-	@echo ""
-
 test-python:
 	@echo "--> Running Python tests"
 	py.test tests/integration tests/sentry
