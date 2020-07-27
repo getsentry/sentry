@@ -353,7 +353,6 @@ class SymbolicatorSession(object):
         url = urljoin(self.url, path)
 
         # required for load balancing
-        kwargs.setdefault("headers", {})["x-sentry-project-id"] = self.project_id
         kwargs.setdefault("headers", {})["x-sentry-event-id"] = self.event_id
 
         attempts = 0
