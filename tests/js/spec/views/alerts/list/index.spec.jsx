@@ -7,7 +7,11 @@ import IncidentsList from 'app/views/alerts/list';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('IncidentsList', function() {
-  const {routerContext, organization} = initializeOrg();
+  const {routerContext, organization} = initializeOrg({
+    organization: {
+      features: ['incidents'],
+    },
+  });
   let incidentsMock;
   let statsMock;
   let projectMock;

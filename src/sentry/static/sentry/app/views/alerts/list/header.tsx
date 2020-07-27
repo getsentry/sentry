@@ -63,11 +63,7 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
         </Actions>
       </PageHeader>
       <StyledNavTabs underlined>
-        <Feature
-          hookName="feature-disabled:incidents-sidebar-item"
-          features={['incidents']}
-          organization={organization}
-        >
+        <Feature features={['incidents']} organization={organization}>
           <li className={activeTab === 'stream' ? 'active' : ''}>
             <Link to={`/organizations/${organization.slug}/alerts/`}>{t('Stream')}</Link>
           </li>
