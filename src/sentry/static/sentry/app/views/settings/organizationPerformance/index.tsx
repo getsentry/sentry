@@ -9,6 +9,7 @@ import {JsonFormObject} from 'app/views/settings/components/forms/type';
 import ExternalLink from 'app/components/links/externalLink';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
+import {updateOrganization} from 'app/actionCreators/organizations';
 import withOrganization from 'app/utils/withOrganization';
 import {Organization} from 'app/types';
 
@@ -42,6 +43,10 @@ type Props = {
 };
 
 class OrganizationPerformance extends React.Component<Props> {
+  handleSuccess = (data: Organization) => {
+    updateOrganization(data);
+  };
+
   render() {
     const {location, organization} = this.props;
     const features = new Set(organization.features);
@@ -67,6 +72,7 @@ class OrganizationPerformance extends React.Component<Props> {
           saveOnBlur
           allowUndo
           initialData={organization}
+          onSubmitSuccess={this.handleSuccess}
           onSubmitError={() => addErrorMessage('Unable to save changes')}
         >
           <JsonForm {...jsonFormSettings} forms={fields} />

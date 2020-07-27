@@ -4,6 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
+import OrganizationStore from 'app/stores/organizationStore';
 import OrganizationPerformance from 'app/views/settings/organizationPerformance';
 
 describe('Settings > OrganizationPerformance', function() {
@@ -39,10 +40,14 @@ describe('Settings > OrganizationPerformance', function() {
     expect(input.props().disabled).toBeFalsy();
   });
 
-  it('can update', function() {
+  it('can update', async function() {
     const updateMock = Client.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'PUT',
+      body: {
+        ...organization,
+        apdexThreshold: 500,
+      },
     });
     const initialData = initializeOrg({organization});
     const wrapper = mountWithTheme(
@@ -65,6 +70,12 @@ describe('Settings > OrganizationPerformance', function() {
         },
       })
     );
+    // Wait for reflux updates
+    await tick();
+    await tick();
+
+    const updated = OrganizationStore.get().organization;
+    expect(updated.apdexThreshold).toEqual(500);
   });
 
   it('renders disabled based on access', function() {
