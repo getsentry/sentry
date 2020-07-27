@@ -42,6 +42,7 @@ import {
 } from './utils';
 import {SpanBarRectangle} from './styles';
 import SpanDetail from './spanDetail';
+import {t} from 'app/locale';
 
 type Props = {
   span: Readonly<DiffSpanType>;
@@ -188,7 +189,10 @@ class SpanBar extends React.Component<Props, State> {
     ) : (
       ''
     );
-    const description = getSpanDescription(span) ?? getSpanID(span);
+
+    const description =
+      getSpanDescription(span) ??
+      (span.comparisonResult === 'matched' ? t('matched') : getSpanID(span));
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2);
 
