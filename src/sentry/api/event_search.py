@@ -108,7 +108,7 @@ event_search_grammar = Grammar(
     r"""
 search               = (boolean_operator / paren_term / search_term)*
 boolean_operator     = spaces (or_operator / and_operator) spaces
-paren_term           = spaces open_paren space? (paren_term / boolean_operator / search_term)+ space? closed_paren spaces
+paren_term           = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
 search_term          = key_val_term / quoted_raw_search / raw_search
 key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / specific_time_filter / duration_filter
                        / numeric_filter / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter / has_filter
@@ -364,12 +364,15 @@ class SearchVisitor(NodeVisitor):
 
     def visit_paren_term(self, node, children):
         if not self.allow_boolean:
-            raise InvalidSearchQuery(
-                "Grouping filters using parentheses () is not supported in this search"
-            )
+            # It's possible to have a valid search that includes parens, so we can't just error out when we find a paren expression.
+            return self.visit_raw_search(node, children)
 
         children = self.remove_space(self.remove_optional_nodes(self.flatten(children)))
-        return ParenExpression(self.flatten(children[1]))
+        children = self.flatten(children[1])
+        if len(children) == 0:
+            return node.text
+
+        return ParenExpression(children)
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
