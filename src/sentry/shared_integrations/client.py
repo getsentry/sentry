@@ -208,9 +208,20 @@ class BaseApiClient(object):
             tags={self.integration_type: self.name},
         )
 
+        try:
+            with sentry_sdk.configure_scope() as scope:
+                parent_span_id = scope.span.span_id
+                trace_id = scope.span.trace_id
+        except AttributeError:
+            parent_span_id = None
+            trace_id = None
+
         with sentry_sdk.start_transaction(
             op=u"{}.http".format(self.integration_type),
             name=u"{}.http_response.{}".format(self.integration_type, self.name),
+            parent_span_id=parent_span_id,
+            trace_id=trace_id,
+            sampled=True,
         ) as span:
             try:
                 resp = getattr(session, method.lower())(
