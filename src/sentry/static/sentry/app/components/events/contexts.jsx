@@ -15,6 +15,7 @@ const CONTEXT_TYPES = {
   user: require('app/components/events/contexts/user/user').default,
   gpu: require('app/components/events/contexts/gpu/gpu').default,
   trace: require('app/components/events/contexts/trace/trace').default,
+  'redux.state': require('app/components/events/contexts/redux').default,
 };
 
 function getContextComponent(type) {
