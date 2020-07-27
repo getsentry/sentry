@@ -145,12 +145,6 @@ def update_incident_status(
             subscribe_to_incident(incident, user)
 
         prev_status = incident.status
-        if status == IncidentStatus.CLOSED and (
-            status_method == IncidentStatusMethod.MANUAL
-            or status_method == IncidentStatusMethod.RULE_UPDATED
-        ):
-            trigger_incident_triggers(incident)
-
         kwargs = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
             kwargs["date_closed"] = date_closed if date_closed else timezone.now()
@@ -176,6 +170,13 @@ def update_incident_status(
             prev_status=prev_status,
             status=incident.status,
         )
+
+        if status == IncidentStatus.CLOSED and (
+            status_method == IncidentStatusMethod.MANUAL
+            or status_method == IncidentStatusMethod.RULE_UPDATED
+        ):
+            trigger_incident_triggers(incident)
+
         return incident
 
 
