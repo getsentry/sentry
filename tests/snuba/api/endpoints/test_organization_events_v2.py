@@ -2512,6 +2512,51 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event.group_id
         assert data[0]["count_id"] == 2
 
+    def test_messed_up_function_values(self):
+        # TODO (evanh): It would be nice if this surfaced an error to the user.
+        # The problem: The && causes the parser to treat that term not as a bad
+        # function call but a valid raw search with parens in it. It's not trivial
+        # to change the parser to recognize "bad function values" and surface them.
+        self.login_as(user=self.user)
+        project = self.create_project()
+        for v in ["a", "b"]:
+            self.store_event(
+                data={
+                    "event_id": v * 32,
+                    "timestamp": self.two_min_ago,
+                    "fingerprint": ["group_1"],
+                },
+                project_id=project.id,
+            )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": [
+                        "transaction",
+                        "project",
+                        "epm()",
+                        "p50()",
+                        "p95()",
+                        "failure_rate()",
+                        "apdex(300)",
+                        "count_unique(user)",
+                        "user_misery(300)",
+                    ],
+                    "query": "failure_rate():>0.003&& users:>10 event.type:transaction",
+                    "sort": "-failure_rate",
+                    "statsPeriod": "24h",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 0
+
     def test_context_fields(self):
         self.login_as(user=self.user)
         project = self.create_project()

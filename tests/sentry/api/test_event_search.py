@@ -1098,9 +1098,6 @@ class ParseBooleanSearchQueryTest(TestCase):
         def _eq(xy):
             return ["equals", [["ifNull", [xy[0], "''"]], xy[1]]]
 
-        def _m(x):
-            return ["notEquals", [["positionCaseInsensitive", ["message", u"'{}'".format(x)]], 0]]
-
         tests = [
             (
                 "(a:b OR (c:d AND (e:f OR (g:h AND e:f))))",
@@ -1664,6 +1661,48 @@ class ParseBooleanSearchQueryTest(TestCase):
             InvalidSearchQuery, "Condition is missing on the left side of 'OR' operator"
         ):
             get_filter("(OR a:b) AND c:d")
+
+    # TODO (evanh): The situation with the next two tests is not ideal, since we should
+    # be matching the entire query instead of splitting on the brackets. However it's
+    # very difficult to write a regex that can tell the difference between a ParenExpression
+    # and a arbitrary search with parens in it. Once we switch tokenizers we can have something
+    # that can correctly classify these expressions.
+    def test_empty_parens_in_message_not_boolean_search(self):
+        def _m(x):
+            return [["positionCaseInsensitive", ["message", "'{}'".format(x)]], "!=", 0]
+
+        result = get_filter(
+            "failure_rate():>0.003&& users:>10 event.type:transaction",
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            _m("failure_rate"),
+            _m(":>0.003&&"),
+            [["ifNull", ["users", "''"]], "=", ">10"],
+            ["event.type", "=", "transaction"],
+        ]
+
+    def test_parens_around_message(self):
+        def _m(x):
+            return ["notEquals", [["positionCaseInsensitive", ["message", u"'{}'".format(x)]], 0]]
+
+        result = get_filter(
+            "TypeError Anonymous function(app/javascript/utils/transform-object-keys)",
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [
+                [
+                    "and",
+                    [
+                        _m("TypeError Anonymous function"),
+                        _m("app/javascript/utils/transform-object-keys"),
+                    ],
+                ],
+                "=",
+                1,
+            ],
+        ]
 
 
 class GetSnubaQueryArgsTest(TestCase):
