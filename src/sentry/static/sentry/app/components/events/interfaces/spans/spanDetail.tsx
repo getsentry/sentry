@@ -383,7 +383,7 @@ class SpanDetail extends React.Component<Props, State> {
     const endTimestamp: number = span.timestamp;
 
     const duration = (endTimestamp - startTimestamp) * 1000;
-    const durationString = `${duration.toFixed(3)}ms`;
+    const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 
     const unknownKeys = Object.keys(span).filter(key => {
       return !rawSpanKeys.has(key as any);

@@ -250,7 +250,7 @@ export const getHumanDuration = (duration: number): string => {
   // note: duration is assumed to be in seconds
 
   const durationMS = duration * 1000;
-  return `${durationMS.toFixed(2)}ms`;
+  return `${Number(durationMS.toFixed(2)).toLocaleString()}ms`;
 };
 
 const getLetterIndex = (letter: string): number => {
