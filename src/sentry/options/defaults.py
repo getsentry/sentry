@@ -236,9 +236,6 @@ register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 # in getsentry
 register("incidents-performance.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
-# Async CSV exports incremental rollout rate. Tied to feature handlers in getsentry
-register("data-export.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
-
 # Max number of tags to combine in a single query in Discover2 tags facet.
 register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
 
