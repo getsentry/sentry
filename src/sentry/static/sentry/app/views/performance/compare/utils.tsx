@@ -240,7 +240,10 @@ function createChildPairs({
       baselineSpan.timestamp - baselineSpan.start_timestamp
     );
 
-    candidates.sort(({regressionSpan: thisSpan}, {regressionSpan: otherSpan}) => {
+    const {regressionSpan, index} = candidates.reduce((bestCandidate, nextCandidate) => {
+      const {regressionSpan: thisSpan} = bestCandidate;
+      const {regressionSpan: otherSpan} = nextCandidate;
+
       // calculate the deltas of the start timestamps relative to baselineSpan's
       // start timestamp
 
@@ -266,18 +269,16 @@ function createChildPairs({
 
       if (thisSpanScore < otherSpanScore) {
         // sort thisSpan before otherSpan
-        return -1;
+        return bestCandidate;
       }
 
       if (thisSpanScore > otherSpanScore) {
         // sort thisSpan after otherSpan
-        return 1;
+        return nextCandidate;
       }
 
-      return 0;
+      return bestCandidate;
     });
-
-    const {regressionSpan, index} = candidates[0];
 
     // remove regressionSpan from list of remainingRegressionChildren
     remainingRegressionChildren.splice(index, 1);
