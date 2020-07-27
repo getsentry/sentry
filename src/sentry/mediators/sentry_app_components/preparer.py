@@ -54,8 +54,7 @@ class Preparer(Mediator):
             field.update({"choices": field["options"]})
 
         if "uri" in field:
-            if "async" not in field:
-                field.update(self._request(field["uri"]))
+            field.update(self._request(field["uri"]))
 
     def _request(self, uri):
         return SelectRequester.run(install=self.install, project=self.project, uri=uri)
