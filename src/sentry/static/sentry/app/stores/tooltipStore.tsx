@@ -1,18 +1,13 @@
-import Reflux from 'reflux';
-
-import Tooltip from 'app/components/tooltip';
-
 type TooltipStoreInterface = {
-  addTooltip: (tooltip: Tooltip) => void;
-  removeTooltip: (tooltip: Tooltip) => void;
+  addTooltip: (tooltip: React.Component) => void;
+  removeTooltip: (tooltip: React.Component) => void;
   openAllTooltips: () => boolean;
-  tooltips: Tooltip[];
+  tooltips: React.Component[];
+  init: () => TooltipStoreInterface;
 };
 
-const tooltipStore: Reflux.StoreDefinition & TooltipStoreInterface = {
+const TooltipStore: TooltipStoreInterface = {
   tooltips: [],
-
-  useGlobalPortal: false,
 
   /**
    * Called via window.__openAllTooltips in selenium tests to check tooltip snapshots
@@ -23,26 +18,25 @@ const tooltipStore: Reflux.StoreDefinition & TooltipStoreInterface = {
     }
     this.tooltips.forEach(tooltip => {
       tooltip.setState({
+        isOpen: true,
         usesGlobalPortal: false,
       });
-      tooltip.setOpen();
     });
     return true;
   },
 
-  init(): void {
+  init(): TooltipStoreInterface {
     window.__openAllTooltips = this.openAllTooltips.bind(this);
+    return this;
   },
 
-  addTooltip(tooltip: Tooltip) {
+  addTooltip(tooltip: React.Component) {
     this.tooltips.push(tooltip);
   },
 
-  removeTooltip(tooltip: Tooltip) {
+  removeTooltip(tooltip: React.Component) {
     this.tooltips = this.tooltips.filter(t => t !== tooltip);
   },
 };
 
-type TooltipStore = Reflux.Store & TooltipStoreInterface;
-
-export default Reflux.createStore(tooltipStore) as TooltipStore;
+export default TooltipStore.init();

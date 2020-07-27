@@ -4,10 +4,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
-import {memoize} from 'lodash';
+import memoize from 'lodash/memoize';
 
-import TooltipStore from 'app/stores/tooltipStore';
 import {domId} from 'app/utils/domId';
+import {IS_CI} from 'app/constants';
 
 const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
 
@@ -102,13 +102,24 @@ class Tooltip extends React.Component<Props, State> {
     usesGlobalPortal: true,
   };
 
-  componentDidMount() {
-    TooltipStore.addTooltip(this);
+  async componentDidMount() {
+    if (IS_CI) {
+      const TooltipStore = (
+        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
+      ).default;
+      TooltipStore.addTooltip(this);
+    }
   }
 
-  componentWillUnmount() {
+  async componentWillUnmount() {
     const {usesGlobalPortal} = this.state;
-    TooltipStore.removeTooltip(this);
+
+    if (IS_CI) {
+      const TooltipStore = (
+        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
+      ).default;
+      TooltipStore.removeTooltip(this);
+    }
     if (!usesGlobalPortal) {
       document.body.removeChild(this.getPortal(usesGlobalPortal));
     }
