@@ -381,17 +381,15 @@ class SpanBar extends React.Component<Props, State> {
       case 'baseline': {
         return (
           <ComparisonReportLabelContainer>
-            removed from baseline
+            {t('removed from baseline')}
           </ComparisonReportLabelContainer>
         );
       }
       case 'regression': {
-        const regressionDuration = getSpanDuration(span.regressionSpan);
-
-        const duration = getHumanDuration(regressionDuration);
-
         return (
-          <ComparisonReportLabelContainer>{`+ ${duration} added`}</ComparisonReportLabelContainer>
+          <ComparisonReportLabelContainer>
+            {t('missing from regression')}
+          </ComparisonReportLabelContainer>
         );
       }
       default: {
