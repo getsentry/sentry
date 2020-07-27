@@ -11,11 +11,10 @@ export function formatStoreCrashReports(
   if (value === -1) {
     return t('Unlimited');
   }
-  if (value === 0 && formatConfig.inProjectSettings) {
-    return t('Inherit organization settings');
-  }
   if (value === 0) {
-    return t('Disabled');
+    return formatConfig.inProjectSettings
+      ? t('Inherit organization settings')
+      : t('Disabled');
   }
 
   return tct('[value] per issue', {value});
