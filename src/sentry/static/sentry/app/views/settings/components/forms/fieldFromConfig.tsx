@@ -28,7 +28,7 @@ type Props = {
   stacked?: boolean;
   inline?: boolean;
   onBlur?: (value, event) => void;
-  access?: Scope[];
+  access?: Set<Scope>;
 };
 
 export default class FieldFromConfig extends React.Component<Props> {

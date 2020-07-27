@@ -1,4 +1,5 @@
-import PropTypes from 'prop-types';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import {Location} from 'history';
 import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -7,33 +8,36 @@ import AsyncComponent from 'app/components/asyncComponent';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SentryTypes from 'app/sentryTypes';
 import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 import withOrganization from 'app/utils/withOrganization';
 import Link from 'app/components/links/link';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {t} from 'app/locale';
 import {Panel, PanelHeader} from 'app/components/panels';
+import {Organization, Scope} from 'app/types';
 
-class OrganizationSettingsForm extends AsyncComponent {
-  static propTypes = {
-    location: PropTypes.object,
-    organization: SentryTypes.Organization,
-    orgId: PropTypes.string.isRequired,
-    access: PropTypes.object.isRequired,
-    initialData: PropTypes.object.isRequired,
-    onSave: PropTypes.func.isRequired,
-  };
+type Props = {
+  location: Location;
+  organization: Organization;
+  access: Set<Scope>;
+  initialData: Organization;
+  onSave: (previous: Organization, updated: Record<string, any>) => void;
+} & RouteComponentProps<{orgId: string}, {}>;
 
-  getEndpoints() {
-    const {orgId} = this.props;
-    return [['authProvider', `/organizations/${orgId}/auth-provider/`]];
+type State = AsyncComponent['state'] & {
+  authProvider: object;
+};
+
+class OrganizationSettingsForm extends AsyncComponent<Props, State> {
+  getEndpoints(): Array<[string, string]> {
+    const {organization} = this.props;
+    return [['authProvider', `/organizations/${organization.slug}/auth-provider/`]];
   }
 
   render() {
-    const {initialData, organization, orgId, onSave, access} = this.props;
+    const {initialData, organization, onSave, access} = this.props;
     const {authProvider} = this.state;
-    const endpoint = `/organizations/${orgId}/`;
+    const endpoint = `/organizations/${organization.slug}/`;
 
     const jsonFormSettings = {
       additionalFieldProps: {hasSsoEnabled: !!authProvider},
@@ -66,7 +70,7 @@ class OrganizationSettingsForm extends AsyncComponent {
           <EmptyMessage
             title={t('Security & Privacy has moved')}
             description={
-              <Link to={`/settings/${orgId}/security-and-privacy/`}>
+              <Link to={`/settings/${organization.slug}/security-and-privacy/`}>
                 {t('Go to Security & Privacy')}
               </Link>
             }
