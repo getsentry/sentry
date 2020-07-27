@@ -163,7 +163,12 @@ test-js-ci: node-version-check
 
 test-python:
 	@echo "--> Running Python tests"
+	# This gets called by getsentry
+ifndef TEST_GROUP
 	py.test tests/integration tests/sentry
+else
+	py.test tests/integration tests/sentry -m group_$(TEST_GROUP)
+endif
 
 test-python-ci:
 	sentry init
