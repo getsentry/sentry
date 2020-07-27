@@ -113,7 +113,7 @@ const EventRow = styled('div')`
 `;
 
 const Baseline = styled('div')`
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.gray700};
   height: 100%;
   width: 4px;
 
@@ -121,7 +121,7 @@ const Baseline = styled('div')`
 `;
 
 const Regression = styled('div')`
-  background-color: ${p => p.theme.gray700};
+  background-color: ${p => p.theme.purple300};
   height: 100%;
   width: 4px;
 
