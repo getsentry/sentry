@@ -990,13 +990,13 @@ def trigger_incident_triggers(incident):
                     alert_rule_trigger=trigger.alert_rule_trigger
                 ):
                     for project in incident.projects.all():
-                        handle_trigger_action.apply_async(
-                            kwargs={
-                                "action_id": action.id,
-                                "incident_id": incident.id,
-                                "project_id": project.id,
-                                "method": method,
-                            },
+                        transaction.on_commit(
+                            handle_trigger_action.s(
+                                action_id=action.id,
+                                incident_id=incident.id,
+                                project_id=project.id,
+                                method=method,
+                            ).delay
                         )
                 trigger.status = TriggerStatus.RESOLVED.value
                 trigger.save()
