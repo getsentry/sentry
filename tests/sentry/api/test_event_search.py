@@ -2120,7 +2120,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "transform",
                 [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
-                "`project`",
+                "project",
             ],
         ]
         assert result["aggregations"] == [
@@ -2437,7 +2437,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "transform",
                 [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
-                "`project`",
+                "project",
             ],
         ]
         assert result["orderby"] == ["-project"]

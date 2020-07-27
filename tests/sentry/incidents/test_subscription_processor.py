@@ -85,7 +85,7 @@ class ProcessUpdateTest(TestCase):
             threshold_period=1,
         )
         # Make sure the trigger exists
-        trigger = create_alert_rule_trigger(rule, "hi", AlertRuleThresholdType.ABOVE, 100)
+        trigger = create_alert_rule_trigger(rule, "hi", 100)
         create_alert_rule_trigger_action(
             trigger,
             AlertRuleTriggerAction.Type.EMAIL,
@@ -441,9 +441,7 @@ class ProcessUpdateTest(TestCase):
         rule = self.rule
         rule.update(resolve_threshold=None)
         trigger = self.trigger
-        other_trigger = create_alert_rule_trigger(
-            self.rule, "hello", AlertRuleThresholdType.ABOVE, trigger.alert_threshold - 10
-        )
+        other_trigger = create_alert_rule_trigger(self.rule, "hello", trigger.alert_threshold - 10)
         other_action = create_alert_rule_trigger_action(
             other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
         )
@@ -609,9 +607,7 @@ class ProcessUpdateTest(TestCase):
         rule = self.rule
         rule.update(threshold_period=2)
         trigger = self.trigger
-        other_trigger = create_alert_rule_trigger(
-            self.rule, "hello", AlertRuleThresholdType.ABOVE, 200
-        )
+        other_trigger = create_alert_rule_trigger(self.rule, "hello", 200)
         other_action = create_alert_rule_trigger_action(
             other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
         )
@@ -674,9 +670,7 @@ class ProcessUpdateTest(TestCase):
         # their thresholds
         rule = self.rule
         trigger = self.trigger
-        other_trigger = create_alert_rule_trigger(
-            self.rule, "hello", AlertRuleThresholdType.ABOVE, 200
-        )
+        other_trigger = create_alert_rule_trigger(self.rule, "hello", 200)
         other_action = create_alert_rule_trigger_action(
             other_trigger, AlertRuleTriggerAction.Type.EMAIL, AlertRuleTriggerAction.TargetType.USER
         )

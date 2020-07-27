@@ -167,6 +167,7 @@ export type Project = {
   processingIssues: number;
   relayPiiConfig: string;
   builtinSymbolSources?: string[];
+  stats?: Array<[number, number]>;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -612,6 +613,7 @@ export type Group = {
   type: EventOrGroupType;
   userCount: number;
   userReportCount: number;
+  subscriptionDetails: {disabled?: boolean; reason?: string} | null;
 };
 
 /**

@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
-import InlineSvg from 'app/components/inlineSvg';
+import {IconFlag} from 'app/icons';
 import Button from 'app/components/button';
 
 type DefaultProps = {
@@ -62,7 +62,7 @@ class DetailedError extends React.Component<Props> {
     return (
       <div className={cx}>
         <div className="detailed-error-icon">
-          <InlineSvg src="icon-circle-exclamation" />
+          <IconFlag size="lg" />
         </div>
         <div className="detailed-error-content">
           <h4>{heading}</h4>
