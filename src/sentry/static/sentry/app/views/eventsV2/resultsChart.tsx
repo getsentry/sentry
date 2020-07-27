@@ -45,11 +45,13 @@ class ResultsChart extends React.Component<ResultsChartProps> {
     const yAxisValue = eventView.getYAxis();
 
     const globalSelection = eventView.getGlobalSelection();
-    const start = globalSelection.start
-      ? getUtcToLocalDateObject(globalSelection.start)
+    const start = globalSelection.datetime.start
+      ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : null;
 
-    const end = globalSelection.end ? getUtcToLocalDateObject(globalSelection.end) : null;
+    const end = globalSelection.datetime.end
+      ? getUtcToLocalDateObject(globalSelection.datetime.end)
+      : null;
 
     const {utc} = getParams(location.query);
     const apiPayload = eventView.getEventsAPIPayload(location);
@@ -71,11 +73,11 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               organization={organization}
               showLegend
               yAxis={yAxisValue}
-              projects={globalSelection.project}
-              environments={globalSelection.environment}
+              projects={globalSelection.projects}
+              environments={globalSelection.environments}
               start={start}
               end={end}
-              period={globalSelection.statsPeriod}
+              period={globalSelection.datetime.period}
               disablePrevious={!isPrevious}
               disableReleases={!isPeriod}
               field={isTopEvents ? apiPayload.field : undefined}

@@ -18,6 +18,17 @@ const TimePicker = styled(
       disabled: PropTypes.bool,
     };
 
+    shouldComponentUpdate() {
+      // This is necessary because when a change event happens,
+      // the change is propogated up to the dropdown. This causes
+      // a re-render of this component which in turn causes the
+      // input element to lose focus. To get around losing focus,
+      // we prevent the component from updating. This is okay because
+      // the inputs will keep track of their own values so we do not
+      // have to keep track of it.
+      return false;
+    }
+
     render() {
       const {className, start, end, disabled, onChangeStart, onChangeEnd} = this.props;
       return (
@@ -30,7 +41,7 @@ const TimePicker = styled(
               className="rdrDateDisplayItem"
               data-test-id="startTime"
               disabled={disabled}
-              onBlur={onChangeStart}
+              onChange={onChangeStart}
             />
           </div>
 
@@ -42,7 +53,7 @@ const TimePicker = styled(
               className="rdrDateDisplayItem"
               data-test-id="endTime"
               disabled={disabled}
-              onBlur={onChangeEnd}
+              onChange={onChangeEnd}
             />
           </div>
         </div>

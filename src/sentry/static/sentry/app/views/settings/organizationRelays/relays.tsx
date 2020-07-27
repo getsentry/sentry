@@ -23,6 +23,7 @@ import {defined} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import QuestionTooltip from 'app/components/questionTooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
@@ -113,11 +114,13 @@ class Relays extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {relays} = this.state;
+    const title = t('Relays');
 
     return (
       <React.Fragment>
+        <SentryDocumentTitle title={title} objSlug={this.props.organization.slug} />
         <SettingsPageHeader
-          title={t('Relays')}
+          title={title}
           action={
             <Button
               priority="primary"

@@ -6,18 +6,20 @@ from six.moves.urllib.parse import urlencode
 
 from sentry import options
 from sentry.integrations.client import ApiClient
-from sentry.utils.http import absolute_uri
 
 
-# one minute
-EXPIRATION_OFFSET = 60
+# five minutes which is industry standard clock skew tolerence
+CLOCK_SKEW = 60 * 5
 
 
 # MsTeamsAbstractClient abstract client does not handle setting the base url or auth token
 class MsTeamsAbstractClient(ApiClient):
     integration_name = "msteams"
     TEAM_URL = "/v3/teams/%s"
+    CHANNEL_URL = "/v3/teams/%s/conversations"
     ACTIVITY_URL = "/v3/conversations/%s/activities"
+    CONVERSATION_URL = "/v3/conversations"
+    MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
     def request(self, method, path, data=None, params=None):
         headers = {"Authorization": u"Bearer {}".format(self.access_token)}
@@ -26,64 +28,26 @@ class MsTeamsAbstractClient(ApiClient):
     def get_team_info(self, team_id):
         return self.get(self.TEAM_URL % team_id)
 
+    def get_channel_list(self, team_id):
+        resp = self.get(self.CHANNEL_URL % team_id)
+        return resp.get("conversations")
+
+    def get_member_list(self, team_id, continuation_token=None):
+        url = self.MEMBER_URL % team_id
+        params = {"pageSize": 500}
+        if continuation_token:
+            params["continuationToken"] = continuation_token
+        return self.get(url, params=params)
+
+    def get_user_conversation_id(self, user_id, tenant_id):
+        data = {"members": [{"id": user_id}], "channelData": {"tenant": {"id": tenant_id}}}
+        resp = self.post(self.CONVERSATION_URL, data=data)
+        return resp.get("id")
+
     def send_message(self, conversation_id, data):
         return self.post(self.ACTIVITY_URL % conversation_id, data=data)
 
-    def send_welcome_message(self, conversation_id, signed_params):
-        url = u"%s?signed_params=%s" % (
-            absolute_uri("/extensions/msteams/configure/"),
-            signed_params,
-        )
-        # TODO: Refactor message creation
-        logo = {
-            "type": "Image",
-            "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
-            "size": "Medium",
-        }
-        welcome = {
-            "type": "TextBlock",
-            "weight": "Bolder",
-            "size": "Large",
-            "text": "Welcome to Sentry for Microsoft Teams",
-            "wrap": True,
-        }
-        description = {
-            "type": "TextBlock",
-            "text": "You can use the Sentry app for Microsoft Teams to get notifications that allow you to assign, ignore, or resolve directly in your chat.",
-            "wrap": True,
-        }
-        instruction = {
-            "type": "TextBlock",
-            "text": "If that sounds good to you, finish the setup process.",
-            "wrap": True,
-        }
-        button = {
-            "type": "Action.OpenUrl",
-            "title": "Complete Setup",
-            "url": url,
-        }
-        card = {
-            "type": "AdaptiveCard",
-            "body": [
-                {
-                    "type": "ColumnSet",
-                    "columns": [
-                        {"type": "Column", "items": [logo], "width": "auto"},
-                        {
-                            "type": "Column",
-                            "items": [welcome],
-                            "width": "stretch",
-                            "verticalContentAlignment": "Center",
-                        },
-                    ],
-                },
-                description,
-                instruction,
-            ],
-            "actions": [button],
-            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-            "version": "1.2",
-        }
+    def send_card(self, conversation_id, card):
         payload = {
             "type": "message",
             "attachments": [
@@ -159,5 +123,15 @@ def get_token_data():
     client = OAuthMsTeamsClient(client_id, client_secret)
     resp = client.exchange_token()
     # calculate the expiration date but offset because of the delay in receiving the response
-    expires_at = int(time.time()) + int(resp["expires_in"]) - EXPIRATION_OFFSET
+    expires_at = int(time.time()) + int(resp["expires_in"]) - CLOCK_SKEW
     return {"access_token": resp["access_token"], "expires_at": expires_at}
+
+
+class MsTeamsJwtClient(ApiClient):
+    integration_name = "msteams"
+    # 24 hour cache is recommended: https://docs.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-authentication?view=azure-bot-service-4.0#connector-to-bot-step-3
+    cache_time = 60 * 60 * 24
+    OPEN_ID_CONFIG_URL = "https://login.botframework.com/v1/.well-known/openidconfiguration"
+
+    def get_open_id_config(self):
+        return self.get_cached(self.OPEN_ID_CONFIG_URL)

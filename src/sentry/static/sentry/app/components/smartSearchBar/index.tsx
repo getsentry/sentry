@@ -36,7 +36,6 @@ import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
   NEGATION_OPERATOR,
-  SEARCH_WILDCARD,
 } from 'app/constants';
 
 import SearchDropdown from './searchDropdown';
@@ -607,9 +606,10 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       return values.map(value => {
         // Wrap in quotes if there is a space
-        const escapedValue = value.includes(' ')
-          ? `"${value.replace('"', '\\"')}"`
-          : value;
+        const escapedValue =
+          value.includes(' ') || value.includes('"')
+            ? `"${value.replace(/"/g, '\\"')}"`
+            : value;
 
         return {value: escapedValue, desc: escapedValue, type: 'tag-value' as ItemType};
       });
@@ -993,12 +993,11 @@ class SmartSearchBar extends React.Component<Props, State> {
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
       const prefix = last.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
-      const valuePrefix = newQuery.endsWith(SEARCH_WILDCARD) ? SEARCH_WILDCARD : '';
 
       // newQuery is all the terms up to the current term: "... <term>:"
       // replaceText should be the selected value
       if (last.indexOf(':') > -1) {
-        let replacement = `:${valuePrefix}${replaceText}`;
+        let replacement = `:${replaceText}`;
 
         // NOTE: The user tag is a special case here as it store values like
         // `id:1` or `ip:127.0.0.1`. To handle autocompletion for it correctly,
@@ -1008,7 +1007,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           if (colonIndex > -1) {
             const tagEnding = replaceText.substring(0, colonIndex);
             const tagValue = replaceText.substring(colonIndex + 1);
-            replacement = `.${tagEnding}:${valuePrefix}` + tagValue;
+            replacement = `.${tagEnding}:${tagValue}`;
           }
         }
 

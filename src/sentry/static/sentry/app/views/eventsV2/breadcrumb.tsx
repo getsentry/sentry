@@ -31,7 +31,7 @@ class DiscoverBreadcrumb extends React.Component<Props> {
           query: {
             ...location.query,
             ...eventView.generateBlankQueryStringObject(),
-            ...eventView.getGlobalSelection(),
+            ...eventView.getGlobalSelectionQuery(),
           },
         }
       : null;

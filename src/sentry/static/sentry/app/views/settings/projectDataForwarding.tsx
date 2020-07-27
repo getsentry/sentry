@@ -9,6 +9,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import {IconInfo} from 'app/icons';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import PluginList from 'app/components/pluginList';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -161,7 +162,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
               </TextBlock>
               <PermissionAlert />
 
-              <Alert icon="icon-circle-info">
+              <Alert icon={<IconInfo size="md" />}>
                 {tct(
                   `Sentry forwards [em:all applicable events] to the provider, in
                 some cases this may be a significant volume of data.`,

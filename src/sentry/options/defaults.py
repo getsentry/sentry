@@ -219,8 +219,8 @@ register("post-process.error-hook-sample-rate", default=0.0)  # unused
 register("transaction-events.force-disable-internal-project", default=False)
 
 # Moving signals and TSDB into outcomes consumer
-register("outcomes.signals-in-consumer-sample-rate", default=0.0)
-register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
+register("outcomes.signals-in-consumer-sample-rate", default=0.0)  # unused
+register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)  # unused
 
 # Node data save rate
 register("nodedata.cache-sample-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
@@ -235,9 +235,6 @@ register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 # Performance metric alerts incremental rollout rate. Tied to feature handlers
 # in getsentry
 register("incidents-performance.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
-
-# Async CSV exports incremental rollout rate. Tied to feature handlers in getsentry
-register("data-export.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
 # Max number of tags to combine in a single query in Discover2 tags facet.
 register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)

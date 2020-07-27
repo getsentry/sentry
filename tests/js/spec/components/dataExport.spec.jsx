@@ -13,7 +13,7 @@ describe('DataExport', function() {
     features: [],
   });
   const mockAuthorizedOrg = TestStubs.Organization({
-    features: ['data-export'],
+    features: ['discover-query'],
   });
   const mockPayload = {
     queryType: 'Issues-by-Tag',

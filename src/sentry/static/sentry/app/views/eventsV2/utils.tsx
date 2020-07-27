@@ -391,10 +391,10 @@ function generateExpandedConditions(
 
   // Remove any aggregates from the search conditions.
   // otherwise, it'll lead to an invalid query result.
-  for (const key in parsedQuery) {
+  for (const key in parsedQuery.tagValues) {
     const column = explodeFieldString(key);
     if (column.kind === 'function') {
-      delete parsedQuery[key];
+      parsedQuery.removeTag(key);
     }
   }
 
@@ -406,18 +406,20 @@ function generateExpandedConditions(
 
   // Add additional conditions provided and generated.
   for (const key in conditions) {
-    const value = additionalConditions[key];
+    const value = conditions[key];
     if (key === 'project.id') {
       eventView.project = [...eventView.project, parseInt(value, 10)];
       continue;
     }
     if (key === 'environment') {
-      eventView.environment = [...eventView.environment, value];
+      if (!eventView.environment.includes(value)) {
+        eventView.environment = [...eventView.environment, value];
+      }
       continue;
     }
     if (key === 'user' && typeof value === 'string') {
       const normalized = normalizeUserTag(key, value);
-      parsedQuery[normalized[0]] = [normalized[1]];
+      parsedQuery.setTag(normalized[0], [normalized[1]]);
       continue;
     }
     const column = explodeFieldString(key);
@@ -425,7 +427,8 @@ function generateExpandedConditions(
     if (column.kind === 'function') {
       continue;
     }
-    parsedQuery[key] = [conditions[key]];
+
+    parsedQuery.setTag(key, [conditions[key]]);
   }
 
   return stringifyQueryObject(parsedQuery);

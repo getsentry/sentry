@@ -147,7 +147,7 @@ test-cli:
 
 test-js-build: node-version-check
 	@echo "--> Running type check"
-	@yarn run tsc
+	@yarn run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
 
@@ -159,12 +159,6 @@ test-js: node-version-check
 test-js-ci: node-version-check
 	@echo "--> Running CI JavaScript tests"
 	@yarn run test-ci
-	@echo ""
-
-# builds and creates percy snapshots
-test-styleguide:
-	@echo "--> Building and snapshotting styleguide"
-	@yarn run snapshot
 	@echo ""
 
 test-python:
@@ -202,7 +196,12 @@ test-plugins:
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running plugin tests"
-	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml"
+
+ifndef TEST_GROUP
+	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
+else
+	py.test tests/sentry_plugins -m group_$(TEST_GROUP) -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
+endif
 	@echo ""
 
 test-relay-integration:

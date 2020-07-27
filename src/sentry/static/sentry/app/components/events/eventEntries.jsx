@@ -179,6 +179,7 @@ class EventEntries extends React.Component {
 
     const features =
       organization && organization.features ? new Set(organization.features) : new Set();
+    const hasQueryFeature = features.has('discover-query');
 
     if (!event) {
       return (
@@ -218,6 +219,7 @@ class EventEntries extends React.Component {
             orgId={organization.slug}
             projectId={project.slug}
             location={location}
+            hasQueryFeature={hasQueryFeature}
           />
         )}
         {this.renderEntries()}

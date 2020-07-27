@@ -33,8 +33,9 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         Create a new asynchronous file export task, and
         email user upon completion,
         """
-        # Ensure new data-export features are enabled
-        if not features.has("organizations:data-export", organization):
+        # The data export feature is only available alongside `discover-query`.
+        # So to export issue tags, they must have have `discover-query`
+        if not features.has("organizations:discover-query", organization):
             return Response(status=404)
 
         # Get environment_id and limit if available
@@ -65,9 +66,6 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         # Discover Pre-processing
         if data["query_type"] == ExportQueryType.DISCOVER_STR:
-            if not features.has("organizations:discover-basic", organization, actor=request.user):
-                return Response(status=403)
-
             query_info = data["query_info"]
 
             if len(query_info.get("field", [])) > MAX_FIELDS:

@@ -11,7 +11,56 @@ import {use24Hours, getTimeFormat} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {formatFloat} from 'app/utils/formatters';
 
-class StackedBarChart extends React.Component {
+type Point = {x: number; y: number[]; label?: string};
+type Points = Point[];
+type Series = Array<{
+  data: Array<{x: number; y: number}>;
+  label?: string;
+  color?: string;
+}>;
+type Marker = {
+  x: number;
+  label?: string;
+  fill?: string;
+  offset?: number;
+  className?: string;
+};
+
+type DefaultProps = {
+  label: string;
+  /**
+   * @deprecated
+   */
+  points: Points;
+  series: Series;
+  markers: Marker[];
+  barClasses: string[];
+  /**
+   * The amount of space between bars. Also represents an svg point
+   */
+  gap: number;
+  className: string;
+};
+
+type Props = DefaultProps & {
+  tooltip?: (point: Point, idx: number, context: StackedBarChart) => React.ReactNode;
+  height?: React.CSSProperties['height'];
+  width?: React.CSSProperties['width'];
+  /**
+   * Some bars need to be visible and interactable even if they are
+   * empty. Use minHeights for that. Units are in svg points
+   */
+  minHeights?: number[];
+  style?: React.CSSProperties;
+};
+
+type State = {
+  series: Series;
+  pointIndex: Record<number, Point>;
+  interval: number | null;
+};
+
+class StackedBarChart extends React.Component<Props, State> {
   static propTypes = {
     // TODO(dcramer): DEPRECATED, use series instead
     points: PropTypes.arrayOf(
@@ -50,30 +99,28 @@ class StackedBarChart extends React.Component {
     gap: PropTypes.number,
   };
 
-  static defaultProps = {
-    className: 'sparkline',
-    height: null,
+  static defaultProps: DefaultProps = {
     label: '',
     points: [],
     series: [],
     markers: [],
-    width: null,
     barClasses: ['chart-bar'],
     gap: 0.5,
+    className: 'sparkline',
   };
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     // massage points
-    let series = this.props.series;
+    let series = props.series;
 
-    if (this.props.points.length) {
-      if (series.length) {
+    if (props.points?.length) {
+      if (series?.length) {
         throw new Error('Only one of [points|series] should be specified.');
       }
 
-      series = this.pointsToSeries(this.props.points);
+      series = this.pointsToSeries(props.points);
     }
 
     this.state = {
@@ -83,7 +130,7 @@ class StackedBarChart extends React.Component {
     };
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (nextProps.points || nextProps.series) {
       let series = nextProps.series;
       if (nextProps.points.length) {
@@ -102,18 +149,18 @@ class StackedBarChart extends React.Component {
     }
   }
 
-  shouldComponentUpdate(nextProps, _nextState) {
+  shouldComponentUpdate(nextProps: Props) {
     return !isEqual(this.props, nextProps);
   }
 
-  getInterval = series =>
+  getInterval = (series: Series): number | null =>
     // TODO(dcramer): not guaranteed correct
     series.length && series[0].data.length > 1
       ? series[0].data[1].x - series[0].data[0].x
       : null;
 
-  pointsToSeries = points => {
-    const series = [];
+  pointsToSeries = (points: Points): Series => {
+    const series: Series = [];
     points.forEach((p, _pIdx) => {
       p.y.forEach((y, yIdx) => {
         if (!series[yIdx]) {
@@ -125,8 +172,8 @@ class StackedBarChart extends React.Component {
     return series;
   };
 
-  pointIndex = series => {
-    const points = {};
+  pointIndex = (series: Series): Record<number, Point> => {
+    const points: Record<number, Point> = {};
     series.forEach(s => {
       s.data.forEach(p => {
         if (!points[p.x]) {
@@ -138,7 +185,7 @@ class StackedBarChart extends React.Component {
     return points;
   };
 
-  timeLabelAsHour(point) {
+  timeLabelAsHour(point: Point): React.ReactNode {
     const timeMoment = moment(point.x * 1000);
     const nextMoment = timeMoment.clone().add(59, 'minute');
     const timeFormat = getTimeFormat();
@@ -154,13 +201,13 @@ class StackedBarChart extends React.Component {
     );
   }
 
-  timeLabelAsDay(point) {
+  timeLabelAsDay(point: Point): React.ReactNode {
     const timeMoment = moment(point.x * 1000);
 
     return <span>{timeMoment.format('LL')}</span>;
   }
 
-  timeLabelAsRange(interval, point) {
+  timeLabelAsRange(interval: number, point: Point): React.ReactNode {
     const timeMoment = moment(point.x * 1000);
     const nextMoment = timeMoment.clone().add(interval - 1, 'second');
     const format = `MMM Do, ${getTimeFormat()}`;
@@ -175,13 +222,13 @@ class StackedBarChart extends React.Component {
     );
   }
 
-  timeLabelAsFull(point) {
+  timeLabelAsFull(point: Point | Marker): string {
     const timeMoment = moment(point.x * 1000);
     const format = use24Hours() ? 'MMM D, YYYY HH:mm' : 'lll';
     return timeMoment.format(format);
   }
 
-  getTimeLabel(point) {
+  getTimeLabel(point: Point): React.ReactNode {
     switch (this.state.interval) {
       case 3600:
         return this.timeLabelAsHour(point);
@@ -194,7 +241,7 @@ class StackedBarChart extends React.Component {
     }
   }
 
-  maxPointValue() {
+  maxPointValue(): number {
     return Math.max(
       10,
       this.state.series
@@ -203,7 +250,7 @@ class StackedBarChart extends React.Component {
     );
   }
 
-  renderMarker(marker, index, pointWidth) {
+  renderMarker(marker: Marker, index: number, pointWidth: number): React.ReactNode {
     const timeLabel = this.timeLabelAsFull(marker);
     const title = (
       <div style={{width: '130px'}}>
@@ -242,7 +289,7 @@ class StackedBarChart extends React.Component {
     );
   }
 
-  renderTooltip = (point, _pointIdx) => {
+  renderTooltip = (point: Point, _pointIdx: number): React.ReactNode => {
     const timeLabel = this.getTimeLabel(point);
     const totalY = point.y.reduce((a, b) => a + b);
     return (
@@ -271,14 +318,20 @@ class StackedBarChart extends React.Component {
     );
   };
 
-  getMinHeight(index, _pointLength) {
+  getMinHeight(index: number): number {
     const {minHeights} = this.props;
     return minHeights && (minHeights[index] || minHeights[index] === 0)
-      ? this.props.minHeights[index]
+      ? minHeights[index]
       : 1;
   }
 
-  renderChartColumn(point, maxval, pointWidth, index, _totalPoints) {
+  renderChartColumn(
+    point: Point,
+    maxval: number,
+    pointWidth: number,
+    index: number,
+    _totalPoints: number
+  ): React.ReactNode {
     const totalY = point.y.reduce((a, b) => a + b);
     const totalPct = totalY / maxval;
     // we leave a little extra space for bars with min-heights.
@@ -288,7 +341,7 @@ class StackedBarChart extends React.Component {
     const pts = point.y.map((y, i) => {
       const pct = Math.max(
         totalY && formatFloat((y / totalY) * totalPct * maxPercentage, 2),
-        this.getMinHeight(i, point.y.length)
+        this.getMinHeight(i)
       );
 
       const pt = (
@@ -351,11 +404,13 @@ class StackedBarChart extends React.Component {
 
     markers.sort((a, b) => a.x - b.x);
 
-    const children = [];
-    const markerChildren = [];
+    const children: React.ReactNode[] = [];
+    const markerChildren: React.ReactNode[] = [];
     points.forEach((point, index) => {
       while (markers.length && markers[0].x <= point.x) {
-        markerChildren.push(this.renderMarker(markers.shift(), index, pointWidth));
+        markerChildren.push(
+          this.renderMarker(markers.shift() as Marker, index, pointWidth)
+        );
       }
 
       children.push(
@@ -417,7 +472,7 @@ const SvgContainer = styled('div')`
   height: 100%;
 `;
 
-const CircleSvg = styled('svg')`
+const CircleSvg = styled('svg')<{size: number; offset: number; left: number}>`
   width: ${p => p.size}px;
   height: ${p => p.size}px;
   position: absolute;

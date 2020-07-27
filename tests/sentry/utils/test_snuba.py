@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import unittest
+
 from datetime import datetime, timedelta
 from django.utils import timezone
 
@@ -203,7 +205,7 @@ class PrepareQueryParamsTest(TestCase):
             _prepare_query_params(query_params)
 
 
-class QuantizeTimeTest(TestCase):
+class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
         self.now = timezone.now().replace(microsecond=0)
 

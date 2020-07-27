@@ -2,8 +2,7 @@
 
 from __future__ import absolute_import
 
-import pickle
-from sentry.utils.compat import mock
+from sentry.utils.compat import mock, pickle
 
 from datetime import datetime
 from django.utils import timezone

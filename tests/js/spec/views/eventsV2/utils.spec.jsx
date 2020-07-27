@@ -411,7 +411,7 @@ describe('getExpandedResults()', function() {
       title: 'bogus',
     };
     const result = getExpandedResults(view, {trace: 'abc123'}, event);
-    expect(result.query).toEqual('event.type:error title:bogus trace:abc123');
+    expect(result.query).toEqual('event.type:error trace:abc123 title:bogus');
   });
 
   it('applies project as condition if present', () => {
@@ -446,6 +446,31 @@ describe('getExpandedResults()', function() {
     const event = {title: 'hello there '};
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('title:"hello there "');
+  });
+
+  it('should add environment from the data row', () => {
+    const view = new EventView({
+      ...state,
+      environment: [],
+      query: '',
+      fields: [{field: 'environment'}],
+    });
+    expect(view.environment).toEqual([]);
+    const event = {environment: 'staging'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.environment).toEqual(['staging']);
+  });
+
+  it('should not add duplicate environment', () => {
+    const view = new EventView({
+      ...state,
+      query: '',
+      fields: [{field: 'environment'}],
+    });
+    expect(view.environment).toEqual(['staging']);
+    const event = {environment: 'staging'};
+    const result = getExpandedResults(view, {}, event);
+    expect(result.environment).toEqual(['staging']);
   });
 });
 

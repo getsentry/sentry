@@ -256,7 +256,7 @@ export class RenderField extends React.Component<RenderProps, State> {
               type="button"
               size="small"
               priority="default"
-              icon="icon-exit"
+              icon={<IconOpen />}
               href={nextUrl}
               external
             >
