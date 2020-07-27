@@ -246,10 +246,10 @@ class TimeSeriesSnapshot(Model):
 
 
 class IncidentActivityType(Enum):
-    DETECTED = 1
+    CREATED = 1
     STATUS_CHANGE = 2
     COMMENT = 3
-    STARTED = 4
+    DETECTED = 4
 
 
 class IncidentActivity(Model):
