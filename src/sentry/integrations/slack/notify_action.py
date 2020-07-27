@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import random
 import six
 
+import sentry_sdk
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -138,6 +140,7 @@ class SlackNotifyServiceAction(EventAction):
                     # stick the upgrade attachment first
                     attachments.insert(0, build_upgrade_notice_attachment(event.group))
 
+            sentry_sdk.set_tag("has_slack_upgrade_cta", len(attachments) > 1)
             payload = {
                 "token": integration.metadata["access_token"],
                 "channel": channel,
