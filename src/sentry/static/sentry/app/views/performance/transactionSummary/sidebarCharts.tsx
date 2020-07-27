@@ -17,7 +17,7 @@ import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask
 import TransitionChart from 'app/components/charts/transitionChart';
 import {getInterval} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
-import {PERFORMANCE_TERMS} from 'app/views/performance/constants';
+import {getTermHelp} from 'app/views/performance/data';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {
   formatAbbreviatedNumber,
@@ -151,17 +151,29 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     <RelativeBox>
       <ChartTitle top="0px" key="apdex">
         {t('Apdex')}
-        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.apdex} size="sm" />
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, 'apdex')}
+          size="sm"
+        />
       </ChartTitle>
 
       <ChartTitle top="190px" key="throughput">
         {t('TPM')}
-        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.tpm} size="sm" />
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, 'tpm')}
+          size="sm"
+        />
       </ChartTitle>
 
       <ChartTitle top="410px" key="failure-rate">
         {t('Failure Rate')}
-        <QuestionTooltip position="top" title={PERFORMANCE_TERMS.failureRate} size="sm" />
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, 'failureRate')}
+          size="sm"
+        />
       </ChartTitle>
 
       <ChartZoom

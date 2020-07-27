@@ -7,11 +7,12 @@ import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {getTermHelp} from 'app/views/performance/data';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
-import {PERFORMANCE_TERMS} from 'app/views/performance/constants';
+import {TableDataRow} from 'app/views/eventsV2/table/types';
 
 type Props = {
   location: Location;
@@ -50,12 +51,13 @@ class UserStats extends React.Component<Props> {
     return eventView;
   }
 
-  renderContents(stats: Results, row?) {
+  renderContents(row: null | TableDataRow) {
     let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
-    const {organization} = this.props;
+    const {organization, location} = this.props;
     const threshold = organization.apdexThreshold;
+    let apdex: React.ReactNode = <StatNumber>{'\u2014'}</StatNumber>;
 
-    if (stats) {
+    if (row) {
       const miserableUsers = Number(row[`user_misery_${threshold}`]);
       const totalUsers = Number(row.count_unique_user);
       if (!isNaN(miserableUsers) && !isNaN(totalUsers)) {
@@ -69,13 +71,17 @@ class UserStats extends React.Component<Props> {
           />
         );
       }
+
+      const apdexKey = `apdex_${threshold}`;
+      const formatter = getFieldRenderer(apdexKey, {[apdexKey]: 'number'});
+      apdex = formatter(row, {organization, location});
     }
 
     return (
       <Container>
         <div>
           <SectionHeading>{t('Apdex Score')}</SectionHeading>
-          <StatNumber>{!stats ? '\u2014' : stats['apdex()']}</StatNumber>
+          <StatNumber>{apdex}</StatNumber>
         </div>
         {/* <div>
           <SectionHeading>{t('Baseline Duration')}</SectionHeading>
@@ -86,7 +92,7 @@ class UserStats extends React.Component<Props> {
             {t('User Misery')}
             <QuestionTooltip
               position="top"
-              title={PERFORMANCE_TERMS.userMisery}
+              title={getTermHelp(organization, 'userMisery')}
               size="sm"
             />
           </SectionHeading>
@@ -99,7 +105,6 @@ class UserStats extends React.Component<Props> {
   render() {
     const {organization, location} = this.props;
     const eventView = this.generateUserStatsEventView(this.props.eventView);
-    const columnOrder = eventView.getColumns();
 
     return (
       <DiscoverQuery
@@ -121,19 +126,8 @@ class UserStats extends React.Component<Props> {
           ) {
             return this.renderContents(null);
           }
-          const tableMeta = tableData.meta;
           const row = tableData.data[0];
-
-          const stats: Results = columnOrder.reduce((acc, column) => {
-            const field = String(column.key);
-
-            const fieldRenderer = getFieldRenderer(field, tableMeta);
-
-            acc[field] = fieldRenderer(row, {organization, location});
-
-            return acc;
-          }, {});
-          return this.renderContents(stats, row);
+          return this.renderContents(row);
         }}
       </DiscoverQuery>
     );

@@ -6,8 +6,6 @@ import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
-import {PERFORMANCE_TERMS} from './constants';
-
 export const DEFAULT_STATS_PERIOD = '24h';
 
 export const COLUMN_TITLES = [
@@ -29,36 +27,68 @@ type TooltipOption = SelectValue<string> & {
 export function getAxisOptions(organization: LightWeightOrganization): TooltipOption[] {
   return [
     {
-      tooltip: PERFORMANCE_TERMS.apdex,
+      tooltip: getTermHelp(organization, 'apdex'),
       value: `apdex(${organization.apdexThreshold})`,
       label: t('Apdex'),
     },
     {
-      tooltip: PERFORMANCE_TERMS.tpm,
+      tooltip: getTermHelp(organization, 'tpm'),
       value: 'epm()',
       label: t('Transactions Per Minute'),
     },
     {
-      tooltip: PERFORMANCE_TERMS.failureRate,
+      tooltip: getTermHelp(organization, 'failureRate'),
       value: 'failure_rate()',
       label: t('Failure Rate'),
     },
     {
-      tooltip: PERFORMANCE_TERMS.p50,
+      tooltip: getTermHelp(organization, 'p50'),
       value: 'p50()',
       label: t('p50 Duration'),
     },
     {
-      tooltip: PERFORMANCE_TERMS.p95,
+      tooltip: getTermHelp(organization, 'p95'),
       value: 'p95()',
       label: t('p95 Duration'),
     },
     {
-      tooltip: PERFORMANCE_TERMS.p99,
+      tooltip: getTermHelp(organization, 'p99'),
       value: 'p99()',
       label: t('p99 Duration'),
     },
   ];
+}
+
+type TermFormatter = (organization: LightWeightOrganization) => string;
+
+const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
+  apdex: () =>
+    t(
+      'Apdex is the ratio of both satisfactory and tolerable response times to all response times.'
+    ),
+  tpm: () => t('TPM is the number of recorded transaction events per minute.'),
+  failureRate: () =>
+    t(
+      'Failure rate is the percentage of recorded transactions that had a known and unsuccessful status.'
+    ),
+  p50: () => t('p50 indicates the duration that 50% of transactions are faster than.'),
+  p95: () => t('p95 indicates the duration that 95% of transactions are faster than.'),
+  p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
+  userMisery: organization =>
+    t(
+      "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
+      organization.apdexThreshold
+    ),
+};
+
+export function getTermHelp(
+  organization: LightWeightOrganization,
+  term: keyof typeof PERFORMANCE_TERMS
+): string {
+  if (!PERFORMANCE_TERMS.hasOwnProperty(term)) {
+    return '';
+  }
+  return PERFORMANCE_TERMS[term](organization);
 }
 
 export function generatePerformanceEventView(
