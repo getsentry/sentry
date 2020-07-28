@@ -42,6 +42,7 @@ class RuleSerializer(Serializer):
             "actionMatch": obj.data.get("action_match") or Rule.DEFAULT_ACTION_MATCH,
             "frequency": obj.data.get("frequency") or Rule.DEFAULT_FREQUENCY,
             "name": obj.label,
+            "project": obj.project.slug,
             "dateCreated": obj.date_added,
             "environment": environment.name if environment is not None else None,
         }
