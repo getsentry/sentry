@@ -1,11 +1,9 @@
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 export const GridCell = styled('div')`
   font-size: 14px;
-  ${overflowEllipsis};
 `;
 
 export const GridCellNumber = styled(GridCell)`

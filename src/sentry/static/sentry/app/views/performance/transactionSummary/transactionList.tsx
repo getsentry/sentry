@@ -11,6 +11,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
@@ -327,6 +328,7 @@ const HeadCellContainer = styled('div')`
 
 const BodyCellContainer = styled('div')`
   padding: ${space(1)} ${space(2)};
+  ${overflowEllipsis};
 `;
 
 export default TransactionList;
