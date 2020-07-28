@@ -52,6 +52,7 @@ from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 # It attempts to center the start of the incident, only showing earlier data if there isn't enough time
 # after the incident started to display the correct start date.
 WINDOWED_STATS_DATA_POINTS = 200
+NOT_SET = object()
 
 
 class AlreadyDeletedError(Exception):
@@ -100,9 +101,9 @@ def create_incident(
                 )
 
         create_incident_activity(
-            incident, IncidentActivityType.STARTED, user=user, date_added=date_started
+            incident, IncidentActivityType.DETECTED, user=user, date_added=date_detected
         )
-        create_incident_activity(incident, IncidentActivityType.DETECTED, user=user)
+        create_incident_activity(incident, IncidentActivityType.CREATED, user=user)
         analytics.record(
             "incident.created",
             incident_id=incident.id,
@@ -657,7 +658,7 @@ def update_alert_rule(
     environment=None,
     threshold_type=None,
     threshold_period=None,
-    resolve_threshold=None,
+    resolve_threshold=NOT_SET,
     include_all_projects=None,
     excluded_projects=None,
 ):
@@ -704,7 +705,7 @@ def update_alert_rule(
         updated_query_fields["time_window"] = timedelta(minutes=time_window)
     if threshold_type:
         updated_fields["threshold_type"] = threshold_type.value
-    if resolve_threshold:
+    if resolve_threshold is not NOT_SET:
         updated_fields["resolve_threshold"] = resolve_threshold
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
@@ -867,23 +868,13 @@ class ProjectsNotAssociatedWithAlertRuleError(Exception):
         self.project_slugs = project_slugs
 
 
-def create_alert_rule_trigger(
-    alert_rule,
-    label,
-    threshold_type,
-    alert_threshold,
-    resolve_threshold=None,
-    excluded_projects=None,
-):
+def create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects=None):
     """
     Creates a new AlertRuleTrigger
     :param alert_rule: The alert rule to create the trigger for
     :param label: A description of the trigger
-    :param threshold_type: An AlertRuleThresholdType
     :param alert_threshold: Value that the subscription needs to reach to trigger the
     alert rule
-    :param resolve_threshold: Optional value that the subscription needs to reach to
-    resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
     :return: The created AlertRuleTrigger
@@ -897,11 +888,7 @@ def create_alert_rule_trigger(
 
     with transaction.atomic():
         trigger = AlertRuleTrigger.objects.create(
-            alert_rule=alert_rule,
-            label=label,
-            threshold_type=threshold_type.value,
-            alert_threshold=alert_threshold,
-            resolve_threshold=resolve_threshold,
+            alert_rule=alert_rule, label=label, alert_threshold=alert_threshold
         )
         if excluded_subs:
             new_exclusions = [
@@ -913,22 +900,12 @@ def create_alert_rule_trigger(
     return trigger
 
 
-def update_alert_rule_trigger(
-    trigger,
-    label=None,
-    threshold_type=None,
-    alert_threshold=None,
-    resolve_threshold=None,
-    excluded_projects=None,
-):
+def update_alert_rule_trigger(trigger, label=None, alert_threshold=None, excluded_projects=None):
     """
     :param trigger: The AlertRuleTrigger to update
     :param label: A description of the trigger
-    :param threshold_type: An AlertRuleThresholdType
     :param alert_threshold: Value that the subscription needs to reach to trigger the
     alert rule
-    :param resolve_threshold: Optional value that the subscription needs to reach to
-    resolve the alert
     :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
     :return: The updated AlertRuleTrigger
@@ -944,12 +921,8 @@ def update_alert_rule_trigger(
     updated_fields = {}
     if label is not None:
         updated_fields["label"] = label
-    if threshold_type is not None:
-        updated_fields["threshold_type"] = threshold_type.value
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
-    # We set resolve_threshold to None as a 'reset', in case it was previously a value and we're removing it here.
-    updated_fields["resolve_threshold"] = resolve_threshold
 
     deleted_exclusion_ids = []
     new_subs = []

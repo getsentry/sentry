@@ -54,7 +54,7 @@ class ApiApplicationsDetails extends AsyncView<Props, State> {
                 {({value}) => (
                   <div>
                     <TextCopyInput>
-                      {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                      {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
                     </TextCopyInput>
                   </div>
                 )}
@@ -69,7 +69,7 @@ class ApiApplicationsDetails extends AsyncView<Props, State> {
                 {({value}) =>
                   value ? (
                     <TextCopyInput>
-                      {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                      {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
                     </TextCopyInput>
                   ) : (
                     <em>hidden</em>
