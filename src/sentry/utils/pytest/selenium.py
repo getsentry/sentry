@@ -314,7 +314,9 @@ class Browser(object):
                     self.driver.find_element_by_tag_name("body").screenshot(
                         u".artifacts/visual-snapshots/acceptance/{}.png".format(slugify(name))
                     )
-                    has_tooltips = self.driver.execute_script("window.__openAllTooltips()")
+                    has_tooltips = self.driver.execute_script(
+                        "window.__openAllTooltips && window.__openAllTooltips()"
+                    )
                     if has_tooltips:
                         self.driver.find_element_by_tag_name("body").screenshot(
                             u".artifacts/visual-snapshots/acceptance-tooltips/{}.png".format(
