@@ -39,7 +39,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             paginator_cls=CombinedQuerysetPaginator,
             on_results=lambda x: serialize(x, request.user, CombinedRuleSerializer()),
             default_per_page=25,
-            order_by="-date_added",
+            order_by="date_added",
+            desc=True,
             querysets=[alert_rules, issue_rules],
         )
 
