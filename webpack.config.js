@@ -437,7 +437,7 @@ if (
       publicPath: '/_webpack',
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: {
-        '/api/(store|{1..9}{0..9}*)/**': relayAddress,
+        '/api/(store|{1..9}*({0..9}))/**': relayAddress,
         '!/_webpack': backendAddress,
       },
       before: app =>
