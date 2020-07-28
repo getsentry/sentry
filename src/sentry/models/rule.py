@@ -58,6 +58,15 @@ class Rule(Model):
             cache.set(cache_key, rules_list, 60)
         return rules_list
 
+    @property
+    def created_by(self):
+        created_activity = RuleActivity.objects.filter(
+            rule=self, type=RuleActivityType.CREATED.value
+        ).first()
+        if created_activity:
+            return created_activity.user
+        return None
+
     def delete(self, *args, **kwargs):
         rv = super(Rule, self).delete(*args, **kwargs)
         cache_key = u"project:{}:rules".format(self.project_id)

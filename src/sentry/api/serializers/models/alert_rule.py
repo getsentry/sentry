@@ -56,6 +56,7 @@ class AlertRuleSerializer(Serializer):
             "includeAllProjects": obj.include_all_projects,
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
+            "createdBy": obj.created_by,
         }
 
 
