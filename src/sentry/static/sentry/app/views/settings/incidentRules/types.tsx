@@ -93,6 +93,9 @@ export enum TargetType {
 
   // Just works with email for now, grabs the emails for all team members
   TEAM = 'team',
+
+  // for when you want to return a dropdown with multiple values
+  OPTIONS = 'options',
 }
 
 /**

@@ -532,13 +532,15 @@ class AlertRuleTriggerAction(Model):
     INTEGRATION_TYPES = frozenset((Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value))
 
     class TargetType(Enum):
-        # A direct reference, like an email address, Slack channel or PagerDuty service
+        # A direct reference, like an email address or Slack channel
         SPECIFIC = 0
         # A specific user. This could be used to grab the user's email address.
         USER = 1
         # A specific team. This could be used to send an email to everyone associated
         # with a team.
         TEAM = 2
+        # A list of options like PagerDuty services
+        OPTIONS = 3
 
     TypeRegistration = namedtuple(
         "TypeRegistration",

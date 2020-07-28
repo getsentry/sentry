@@ -128,6 +128,24 @@ class MsTeamsActionHandler(ActionHandler):
         pass
 
 
+@AlertRuleTriggerAction.register_type(
+    "pagerduty",
+    AlertRuleTriggerAction.Type.PAGERDUTY,
+    [AlertRuleTriggerAction.TargetType.OPTIONS],
+    integration_provider="pagerduty",
+)
+class PagerdutyActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
+
+    def send_alert(self, metric_value):
+        # TODO: finish
+        pass
+
+
 def format_duration(minutes):
     """
     Format minutes into a duration string

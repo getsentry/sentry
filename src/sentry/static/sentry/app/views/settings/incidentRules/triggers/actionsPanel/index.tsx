@@ -61,6 +61,8 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.MSTEAMS:
       //no prefixes for msteams
       return 'username or channel';
+    case ActionType.PAGER_DUTY:
+      return 'service';
     default:
       throw Error('Not implemented');
   }
@@ -165,7 +167,6 @@ class ActionsPanel extends React.PureComponent<Props> {
     const actionConfig = availableActions?.find(
       availableAction => this.getActionUniqueKey(availableAction) === value.value
     );
-
     if (!actionConfig) {
       addErrorMessage(t('There was a problem changing an action'));
       Sentry.captureException(new Error('Unable to change an action type'));
@@ -261,6 +262,7 @@ class ActionsPanel extends React.PureComponent<Props> {
               actions.map((action: Action, i: number) => {
                 const isUser = action.targetType === TargetType.USER;
                 const isTeam = action.targetType === TargetType.TEAM;
+                const hasOptions = action.targetType === TargetType.OPTIONS;
                 const availableAction = availableActions?.find(
                   a => this.getActionUniqueKey(a) === this.getActionUniqueKey(action)
                 );
@@ -316,6 +318,18 @@ class ActionsPanel extends React.PureComponent<Props> {
                           triggerIndex,
                           i
                         )}
+                      />
+                    ) : hasOptions ? (
+                      <SelectControl
+                        isDisabled={disabled || loading}
+                        value={action.targetType}
+                        options={availableAction?.allowedTargetTypes?.map(
+                          allowedType => ({
+                            value: allowedType,
+                            label: TargetLabel[allowedType],
+                          })
+                        )}
+                        onChange={this.handleChangeTarget.bind(this, triggerIndex, i)}
                       />
                     ) : (
                       <Input

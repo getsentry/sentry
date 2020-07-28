@@ -1121,6 +1121,8 @@ def get_alert_rule_trigger_action_integration_object_id(type, *args, **kwargs):
         return get_alert_rule_trigger_action_slack_channel_id(*args, **kwargs)
     elif type == AlertRuleTriggerAction.Type.MSTEAMS.value:
         return get_alert_rule_trigger_action_msteams_channel_id(*args, **kwargs)
+    elif type == AlertRuleTriggerAction.Type.PAGERDUTY.value:
+        return get_alert_rule_trigger_action_pagerduty_channel_id(*args, **kwargs)
     else:
         raise Exception("Not implemented")
 
@@ -1163,6 +1165,22 @@ def get_alert_rule_trigger_action_msteams_channel_id(organization, integration_i
         raise InvalidTriggerActionError("Could not find channel %s." % name)
 
     return channel_id
+
+
+def get_alert_rule_trigger_action_pagerduty_channel_id(integration_id):
+    from sentry.models import OrganizationIntegration, PagerDutyService
+
+    services = PagerDutyService.objects.filter(
+        organization_integration=OrganizationIntegration.objects.filter(integration=integration_id)
+    )
+    service_ids = [service_id.id for service_id in services]
+
+    if service_ids is None:
+        raise InvalidTriggerActionError(
+            "Could not find services matching this PagerDuty organization."
+        )
+
+    return service_ids
 
 
 def delete_alert_rule_trigger_action(trigger_action):
