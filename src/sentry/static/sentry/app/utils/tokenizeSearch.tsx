@@ -204,6 +204,16 @@ export class QueryResults {
     return this;
   }
 
+  removeTagValue(key: string, value: string) {
+    const values = this.getTags(key);
+    if (Array.isArray(values) && values.length) {
+      this.setTag(
+        key,
+        values.filter(item => item !== value)
+      );
+    }
+  }
+
   addQuery(value: string) {
     const token: Token = {type: TokenType.QUERY, value: formatQuery(value)};
     this.tokens.push(token);
