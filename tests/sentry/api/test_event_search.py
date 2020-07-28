@@ -1704,6 +1704,15 @@ class ParseBooleanSearchQueryTest(TestCase):
             ],
         ]
 
+    def test_or_does_not_match_organization(self):
+        result = get_filter(
+            "organization.slug:{}".format(self.organization.slug),
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [["ifNull", ["organization.slug", "''"]], "=", "{}".format(self.organization.slug)]
+        ]
+
 
 class GetSnubaQueryArgsTest(TestCase):
     def test_simple(self):

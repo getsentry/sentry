@@ -159,8 +159,8 @@ duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|$)"
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
 # even if the operator is <=
-or_operator          = ~r"OR"i
-and_operator         = ~r"AND"i
+or_operator          = ~r"OR(?![^\s])"i
+and_operator         = ~r"AND(?![^\s])"i
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
 open_paren           = "("
 closed_paren         = ")"
