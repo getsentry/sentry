@@ -117,10 +117,6 @@ RELAY_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "relay")
 )
 
-REVERSE_PROXY_CONFIG = os.path.normpath(
-    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config", "reverse_proxy", "nginx.conf")
-)
-
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -1400,8 +1396,6 @@ SENTRY_WATCHERS = (
 # rest will be forwarded to Sentry)
 SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 3000
-SENTRY_REVERSE_PROXY_PORT = 8000
-
 
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
@@ -1527,16 +1521,6 @@ SENTRY_DEVSERVICES = {
         "ports": {"3021/tcp": 3021},
         "command": ["run"],
         "only_if": lambda settings, options: options.get("symbolicator.enabled"),
-    },
-    "proxy": {
-        "image": "nginx:1.16.1",
-        "ports": {"80/tcp": SENTRY_REVERSE_PROXY_PORT},
-        "volumes": {REVERSE_PROXY_CONFIG: {"bind": "/etc/nginx/nginx.conf"}},
-        "only_if": lambda settings, options: settings.SENTRY_USE_RELAY,
-        # This directive tells `devservices up` that the reverse_proxy is not to be
-        # started up, only pulled and made available for `devserver` which will start
-        # it with `devservices attach --is-devserver reverse_proxy`.
-        "with_devserver": True,
     },
     "relay": {
         "image": "us.gcr.io/sentryio/relay:latest",
@@ -1934,3 +1918,5 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 # attributes, which can be identified through the whole processing pipeline and
 # observed mainly for producing stable metrics.
 SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
+
+SENTRY_USE_UWSGI = True

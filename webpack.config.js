@@ -430,11 +430,16 @@ if (
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
     const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
+    const relayAddress = 'http://127.0.0.1:3000';
 
     appConfig.devServer = {
       ...appConfig.devServer,
       publicPath: '/_webpack',
-      proxy: {'!/_webpack': backendAddress},
+      // syntax for matching is using https://www.npmjs.com/package/micromatch
+      proxy: {
+        '/api/(store|{1..9}{0..9}*)/**': relayAddress,
+        '!/_webpack': backendAddress,
+      },
       before: app =>
         app.use((req, _res, next) => {
           req.url = req.url.replace(/^\/_static\/[^\/]+\/sentry\/dist/, '/_webpack');
