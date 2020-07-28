@@ -824,10 +824,6 @@ SENTRY_FEATURES = {
     "organizations:performance-view": False,
     # Enable multi project selection
     "organizations:global-views": False,
-    # Turns on grouping info.
-    "organizations:grouping-info": True,
-    # Lets organizations upgrade grouping configs and tweak them
-    "organizations:tweak-grouping-config": True,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Enable Releases v2 feature
