@@ -1,7 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {analytics} from 'app/utils/analytics';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import PageHeading from 'app/components/pageHeading';
 import ResourceCard from 'app/components/resourceCard';
 import space from 'app/styles/space';
@@ -11,9 +12,18 @@ import releasesImg from '../../../images/spot/releases.svg';
 import breadcrumbsImg from '../../../images/spot/breadcrumbs-generic.svg';
 import docsImg from '../../../images/spot/code-arguments-tags-mirrored.svg';
 
-class Resources extends React.Component {
+type Props = {
+  organization: Organization;
+};
+
+class Resources extends React.Component<Props> {
   componentDidMount() {
-    analytics('orgdash.resources_shown', {});
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'orgdash.resources_shown',
+      eventName: 'Projects Dashboard: Resources Shown',
+      organization: organization.id,
+    });
   }
 
   render() {

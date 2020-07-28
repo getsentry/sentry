@@ -132,7 +132,7 @@ class Dashboard extends React.Component<Props> {
           );
         })}
 
-        {showResources && <Resources />}
+        {showResources && <Resources organization={organization} />}
       </React.Fragment>
     );
   }
