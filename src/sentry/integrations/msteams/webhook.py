@@ -10,14 +10,28 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
 from sentry import options
 from sentry.api.base import Endpoint
-from sentry.models import AuditLogEntryEvent, Integration
+from sentry.models import (
+    AuditLogEntryEvent,
+    Integration,
+    IdentityProvider,
+    Identity,
+    Group,
+    Project,
+)
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.compat import filter
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
-from .client import MsTeamsPreInstallClient, MsTeamsJwtClient, get_token_data, CLOCK_SKEW
-from .utils import build_welcome_card
+from .client import (
+    MsTeamsPreInstallClient,
+    MsTeamsJwtClient,
+    MsTeamsClient,
+    get_token_data,
+    CLOCK_SKEW,
+)
+from .link_identity import build_linking_url
+from .utils import build_welcome_card, build_linking_card
 
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
 
@@ -95,18 +109,23 @@ class MsTeamsWebhookEndpoint(Endpoint):
         verify_signature(request)
 
         data = request.data
-        # only care about conversationUpdate
-        if data["type"] != "conversationUpdate":
-            return self.respond(status=204)
+        # only care about conversationUpdate and message
+        if data["type"] == "message":
+            # the only message events we care about are those which
+            # are from a user submitting an option on a card, which
+            # will always contain an "actionType" in the data.
+            if not data["value"] or "actionType" not in data["value"]:
+                return self.respond(status=204)
+            return self.handle_action_submitted(request)
+        elif data["type"] == "conversationUpdate":
+            channel_data = data["channelData"]
+            event = channel_data.get("eventType")
 
-        channel_data = data["channelData"]
-        event = channel_data.get("eventType")
-
-        # TODO: Handle other events
-        if event == "teamMemberAdded":
-            return self.handle_member_added(request)
-        elif event == "teamMemberRemoved":
-            return self.handle_member_removed(request)
+            # TODO: Handle other events
+            if event == "teamMemberAdded":
+                return self.handle_member_added(request)
+            elif event == "teamMemberRemoved":
+                return self.handle_member_removed(request)
 
         return self.respond(status=204)
 
@@ -180,3 +199,63 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         integration.delete()
         return self.respond(status=204)
+
+    def handle_action_submitted(self, request):
+        data = request.data
+        channel_data = data["channelData"]
+        team_id = channel_data["team"]["id"]
+        tenant_id = channel_data["tenant"]["id"]
+        group_id = data["value"]["groupId"]
+        user_id = data["from"]["id"]
+
+        try:
+            integration = Integration.objects.get(provider=self.provider, external_id=team_id)
+        except Integration.DoesNotExist:
+            logger.info("msteams.action.missing-integration", extra={"team_id": team_id})
+            return self.respond(status=404)
+
+        try:
+            group = Group.objects.select_related("project__organization").get(
+                project__in=Project.objects.filter(
+                    organization__in=integration.organizations.all()
+                ),
+                id=group_id,
+            )
+        except Group.DoesNotExist:
+            logger.info(
+                "msteams.action.invalid-issue",
+                extra={"team_id": team_id, "integration_id": integration.id},
+            )
+            return self.respond(status=404)
+
+        try:
+            idp = IdentityProvider.objects.get(type="msteams", external_id=team_id)
+        except IdentityProvider.DoesNotExist:
+            logger.info(
+                "msteams.action.invalid-team-id",
+                extra={
+                    "team_id": team_id,
+                    "integration_id": integration.id,
+                    "organization_id": group.organization.id,
+                },
+            )
+            return self.respond(status=404)
+
+        try:
+            identity = Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
+        except Identity.DoesNotExist:
+            associate_url = build_linking_url(
+                integration, group.organization, user_id, team_id, tenant_id
+            )
+
+            client = MsTeamsClient(integration)
+
+            card = build_linking_card(associate_url)
+            user_conversation_id = client.get_user_conversation_id(user_id, tenant_id)
+            client.send_card(user_conversation_id, card)
+            return self.respond(status=201)
+
+        if False:
+            self.on_assign(request, identity, group, {})
+
+        return self.respond(status=203)
