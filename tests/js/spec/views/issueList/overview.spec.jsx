@@ -264,6 +264,7 @@ describe('IssueList', function() {
 
       // Update stores with saved searches
       await tick();
+      await tick();
       wrapper.update();
 
       // Main /issues/ request
@@ -299,6 +300,7 @@ describe('IssueList', function() {
       createWrapper();
 
       await tick();
+      await tick();
       wrapper.update();
 
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -332,6 +334,7 @@ describe('IssueList', function() {
       });
       createWrapper();
 
+      await tick();
       await tick();
       wrapper.update();
 
@@ -367,6 +370,7 @@ describe('IssueList', function() {
       createWrapper({params: {searchId: '123'}});
 
       await tick();
+      await tick();
       wrapper.update();
 
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -401,6 +405,7 @@ describe('IssueList', function() {
       createWrapper({location: {query: {query: 'level:error'}}});
 
       await tick();
+      await tick();
       wrapper.update();
 
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -434,6 +439,7 @@ describe('IssueList', function() {
       createWrapper({location: {query: {query: ''}}});
 
       await tick();
+      await tick();
       wrapper.update();
 
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -457,6 +463,7 @@ describe('IssueList', function() {
         body: [localSavedSearch],
       });
       createWrapper();
+      await tick();
       await tick();
       wrapper.update();
 
@@ -521,6 +528,7 @@ describe('IssueList', function() {
       });
       createWrapper();
       await tick();
+      await tick();
       await wrapper.update();
 
       // Update the search input
@@ -550,6 +558,7 @@ describe('IssueList', function() {
         body: [savedSearch],
       });
       createWrapper();
+      await tick();
       await tick();
       wrapper.update();
 
@@ -659,6 +668,7 @@ describe('IssueList', function() {
         body: [savedSearch, assignedToMe],
       });
       createWrapper();
+      await tick();
       await tick();
       wrapper.update();
 
@@ -807,6 +817,7 @@ describe('IssueList', function() {
         },
         location: {query: {project: ['123'], environment: ['prod']}},
       });
+      await tick();
       await tick();
       wrapper.update();
 
@@ -1035,9 +1046,7 @@ describe('IssueList', function() {
   describe('transitionTo', function() {
     let instance;
     beforeEach(function() {
-      wrapper = shallow(<IssueListOverview {...props} />, {
-        disableLifecycleMethods: false,
-      });
+      wrapper = shallow(<IssueListOverview {...props} />);
       instance = wrapper.instance();
     });
 
@@ -1154,9 +1163,7 @@ describe('IssueList', function() {
 
   describe('getEndpointParams', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueListOverview {...props} />, {
-        disableLifecycleMethods: false,
-      });
+      wrapper = shallow(<IssueListOverview {...props} />);
     });
 
     it('omits null values', function() {
@@ -1243,9 +1250,7 @@ describe('IssueList', function() {
         },
       });
       fetchDataMock.mockReset();
-      wrapper = shallow(<IssueListOverview {...props} />, {
-        disableLifecycleMethods: false,
-      });
+      wrapper = shallow(<IssueListOverview {...props} />);
     });
 
     it('fetches data on selection change', function() {
@@ -1298,9 +1303,7 @@ describe('IssueList', function() {
 
   describe('componentDidUpdate fetching members', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueListOverview {...props} />, {
-        disableLifecycleMethods: false,
-      });
+      wrapper = shallow(<IssueListOverview {...props} />);
       wrapper.instance().fetchData = jest.fn();
     });
 
@@ -1321,9 +1324,7 @@ describe('IssueList', function() {
 
   describe('componentDidUpdate fetching tags', function() {
     beforeEach(function() {
-      wrapper = shallow(<IssueListOverview {...props} />, {
-        disableLifecycleMethods: false,
-      });
+      wrapper = shallow(<IssueListOverview {...props} />);
       wrapper.instance().fetchData = jest.fn();
     });
 
@@ -1366,9 +1367,7 @@ describe('IssueList', function() {
 
   describe('render states', function() {
     beforeEach(function() {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />, {
-        disableLifecycleMethods: false,
-      });
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
     });
 
     it('displays the loading icon', function() {
@@ -1409,9 +1408,7 @@ describe('IssueList', function() {
         },
       };
 
-      wrapper = mountWithTheme(<IssueListOverview {...errorsOnlyQuery} />, {
-        disableLifecycleMethods: false,
-      });
+      wrapper = mountWithTheme(<IssueListOverview {...errorsOnlyQuery} />);
 
       wrapper.setState({
         savedSearchLoading: false,
@@ -1435,9 +1432,7 @@ describe('IssueList', function() {
         },
       };
 
-      wrapper = mountWithTheme(<IssueListOverview {...hasBrowserQuery} />, {
-        disableLifecycleMethods: false,
-      });
+      wrapper = mountWithTheme(<IssueListOverview {...hasBrowserQuery} />);
 
       wrapper.setState({
         savedSearchLoading: false,
@@ -1472,9 +1467,7 @@ describe('IssueList', function() {
         }),
         ...moreProps,
       };
-      const localWrapper = mountWithTheme(<IssueListOverview {...defaultProps} />, {
-        disableLifecycleMethods: false,
-      });
+      const localWrapper = mountWithTheme(<IssueListOverview {...defaultProps} />);
       localWrapper.setState({
         error: false,
         issuesLoading: false,

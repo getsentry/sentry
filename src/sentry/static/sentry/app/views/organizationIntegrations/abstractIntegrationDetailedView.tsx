@@ -209,7 +209,6 @@ class AbstractIntegrationDetailedView<
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', //pending counts as installed here
-      referrer: this.props.location.query.referrer,
       ...options,
     };
     //type cast here so TS won't complain
@@ -414,7 +413,7 @@ const Name = styled('div')`
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.red};
+  color: ${p => p.theme.red400};
   margin-right: ${space(1)};
 `;
 

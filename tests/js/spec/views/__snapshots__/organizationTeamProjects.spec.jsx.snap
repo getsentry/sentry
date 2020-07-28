@@ -54,16 +54,16 @@ exports[`OrganizationTeamProjects Should render 1`] = `
 >
   <Panel>
     <Component
-      className="css-15hwgrz-Panel e119nu470"
+      className="css-ietoyz-Panel e119nu470"
     >
       <div
-        className="css-15hwgrz-Panel e119nu470"
+        className="css-ietoyz-Panel e119nu470"
       >
         <PanelHeader
           hasButtons={true}
         >
           <div
-            className="css-yhsu7n-PanelHeader en8g1d30"
+            className="css-13it3e1-PanelHeader en8g1d30"
           >
             <div>
               Projects
@@ -194,7 +194,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       type="button"
                                     >
                                       <forwardRef<Button>
-                                        className="css-1k1xa0j-StyledButton eenpoef1"
+                                        className="css-16vj1dy-StyledButton eenpoef1"
                                         hideBottomBorder={true}
                                         isOpen={false}
                                         size="xsmall"
@@ -202,7 +202,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                       >
                                         <Button
                                           align="center"
-                                          className="css-1k1xa0j-StyledButton eenpoef1"
+                                          className="css-16vj1dy-StyledButton eenpoef1"
                                           disabled={false}
                                           forwardRef={null}
                                           hideBottomBorder={true}
@@ -212,7 +212,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                         >
                                           <StyledButton
                                             aria-disabled={false}
-                                            className="css-1k1xa0j-StyledButton eenpoef1"
+                                            className="css-16vj1dy-StyledButton eenpoef1"
                                             disabled={false}
                                             forwardRef={null}
                                             hideBottomBorder={true}
@@ -224,7 +224,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                           >
                                             <Component
                                               aria-disabled={false}
-                                              className="eenpoef1 css-ssbzqs-StyledButton-StyledButton edwq9my0"
+                                              className="eenpoef1 css-uuhsec-StyledButton-StyledButton edwq9my0"
                                               forwardRef={null}
                                               onClick={[Function]}
                                               role="button"
@@ -233,7 +233,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                             >
                                               <button
                                                 aria-disabled={false}
-                                                className="eenpoef1 css-ssbzqs-StyledButton-StyledButton edwq9my0"
+                                                className="eenpoef1 css-uuhsec-StyledButton-StyledButton edwq9my0"
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
@@ -251,12 +251,13 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                       direction="down"
                                                       size="10px"
                                                     >
-                                                      <ForwardRef
+                                                      <IconChevron
                                                         className="css-17f1s2z-StyledChevron eenpoef0"
                                                         direction="down"
                                                         size="10px"
                                                       >
                                                         <EmotionCssPropInternal
+                                                          __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
                                                           __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                                                             Object {
                                                               "$$typeof": Symbol(react.forward_ref),
@@ -297,7 +298,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                                             </svg>
                                                           </ForwardRef(SvgIcon)>
                                                         </EmotionCssPropInternal>
-                                                      </ForwardRef>
+                                                      </IconChevron>
                                                     </StyledChevron>
                                                   </span>
                                                 </ButtonLabel>
@@ -329,14 +330,14 @@ exports[`OrganizationTeamProjects Should render 1`] = `
             withPadding={false}
           >
             <div
-              className="css-1ehogmz-FlexBox e1vnwt6f0"
+              className="css-1nto0rx-FlexBox e1vnwt6f0"
             >
               <StyledPanelItem
                 key="2"
                 p={2}
               >
                 <div
-                  className="css-1les87u-PanelItem-StyledPanelItem eqsa6vb1"
+                  className="css-rp7iak-PanelItem-StyledPanelItem eqsa6vb0"
                 >
                   <ProjectItem
                     organization={
@@ -544,28 +545,32 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               <Star
                                 className="css-1qavcxg-BookmarkLink enngb6z1"
                                 isBookmarked={false}
+                                isSolid={true}
                                 onClick={[Function]}
-                                src="icon-star-small-filled"
                               >
-                                <ForwardRef
-                                  className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
-                                  isBookmarked={false}
+                                <IconStar
+                                  className="enngb6z1 css-1uxzi56-Star-BookmarkLink ez1a7zv0"
+                                  isSolid={true}
                                   onClick={[Function]}
-                                  src="icon-star-small-filled"
                                 >
-                                  <svg
-                                    className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
-                                    height="1em"
+                                  <ForwardRef(SvgIcon)
+                                    className="enngb6z1 css-1uxzi56-Star-BookmarkLink ez1a7zv0"
                                     onClick={[Function]}
-                                    viewBox={Object {}}
-                                    width="1em"
                                   >
-                                    <use
-                                      href="#test"
-                                      xlinkHref="#test"
-                                    />
-                                  </svg>
-                                </ForwardRef>
+                                    <svg
+                                      className="enngb6z1 css-1uxzi56-Star-BookmarkLink ez1a7zv0"
+                                      fill="currentColor"
+                                      height="16px"
+                                      onClick={[Function]}
+                                      viewBox="0 0 16 16"
+                                      width="16px"
+                                    >
+                                      <path
+                                        d="M12.47,15.63a.73.73,0,0,1-.35-.09L8,13.38,3.88,15.54a.75.75,0,0,1-.79,0,.76.76,0,0,1-.3-.74l.79-4.59L.24,6.91A.75.75,0,0,1,.66,5.63L5.27,5,7.33.79a.78.78,0,0,1,1.34,0L10.73,5l4.61.67a.75.75,0,0,1,.42,1.28l-3.34,3.25.79,4.59a.76.76,0,0,1-.3.74A.79.79,0,0,1,12.47,15.63Z"
+                                      />
+                                    </svg>
+                                  </ForwardRef(SvgIcon)>
+                                </IconStar>
                               </Star>
                             </BookmarkStar>
                           </withApi(BookmarkStar)>
@@ -622,6 +627,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   >
                     <forwardRef<Button>
                       disabled={false}
+                      icon={
+                        <ForwardRef(IconSubtract)
+                          isCircled={true}
+                          size="xs"
+                        />
+                      }
                       onClick={[Function]}
                       size="small"
                     >
@@ -629,11 +640,18 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         align="center"
                         disabled={false}
                         forwardRef={null}
+                        icon={
+                          <ForwardRef(IconSubtract)
+                            isCircled={true}
+                            size="xs"
+                          />
+                        }
                         onClick={[Function]}
                         size="small"
                       >
                         <StyledButton
                           aria-disabled={false}
+                          aria-label="Remove"
                           disabled={false}
                           forwardRef={null}
                           onClick={[Function]}
@@ -642,7 +660,8 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <Component
                             aria-disabled={false}
-                            className="css-12ogwys-StyledButton edwq9my0"
+                            aria-label="Remove"
+                            className="css-8od3q1-StyledButton edwq9my0"
                             forwardRef={null}
                             onClick={[Function]}
                             role="button"
@@ -650,7 +669,8 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           >
                             <button
                               aria-disabled={false}
-                              className="css-12ogwys-StyledButton edwq9my0"
+                              aria-label="Remove"
+                              className="css-8od3q1-StyledButton edwq9my0"
                               onClick={[Function]}
                               role="button"
                               size="small"
@@ -662,34 +682,40 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 <span
                                   className="css-n7mdnv-ButtonLabel edwq9my1"
                                 >
-                                  <RemoveIcon>
-                                    <Component
-                                      className="css-1d2szfl-RemoveIcon eqsa6vb0"
+                                  <Icon
+                                    hasChildren={true}
+                                    size="small"
+                                  >
+                                    <span
+                                      className="css-1hbuack-Icon edwq9my2"
+                                      size="small"
                                     >
-                                      <InlineSvg
-                                        className="css-1d2szfl-RemoveIcon eqsa6vb0"
-                                        src="icon-circle-subtract"
+                                      <IconSubtract
+                                        isCircled={true}
+                                        size="xs"
                                       >
-                                        <ForwardRef
-                                          className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
-                                          src="icon-circle-subtract"
+                                        <ForwardRef(SvgIcon)
+                                          data-test-id="icon-subtract"
+                                          size="xs"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
-                                            height="1em"
-                                            viewBox={Object {}}
-                                            width="1em"
+                                            data-test-id="icon-subtract"
+                                            fill="currentColor"
+                                            height="12px"
+                                            viewBox="0 0 16 16"
+                                            width="12px"
                                           >
-                                            <use
-                                              href="#test"
-                                              xlinkHref="#test"
+                                            <path
+                                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                            />
+                                            <path
+                                              d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
                                             />
                                           </svg>
-                                        </ForwardRef>
-                                      </InlineSvg>
-                                    </Component>
-                                  </RemoveIcon>
-                                   
+                                        </ForwardRef(SvgIcon)>
+                                      </IconSubtract>
+                                    </span>
+                                  </Icon>
                                   Remove
                                 </span>
                               </ButtonLabel>
@@ -706,7 +732,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                 p={2}
               >
                 <div
-                  className="css-1les87u-PanelItem-StyledPanelItem eqsa6vb1"
+                  className="css-rp7iak-PanelItem-StyledPanelItem eqsa6vb0"
                 >
                   <ProjectItem
                     organization={
@@ -906,28 +932,32 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                               <Star
                                 className="css-1qavcxg-BookmarkLink enngb6z1"
                                 isBookmarked={false}
+                                isSolid={true}
                                 onClick={[Function]}
-                                src="icon-star-small-filled"
                               >
-                                <ForwardRef
-                                  className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
-                                  isBookmarked={false}
+                                <IconStar
+                                  className="enngb6z1 css-1uxzi56-Star-BookmarkLink ez1a7zv0"
+                                  isSolid={true}
                                   onClick={[Function]}
-                                  src="icon-star-small-filled"
                                 >
-                                  <svg
-                                    className="enngb6z1 css-wprtkf-InlineSvg-Star-BookmarkLink ez1a7zv0"
-                                    height="1em"
+                                  <ForwardRef(SvgIcon)
+                                    className="enngb6z1 css-1uxzi56-Star-BookmarkLink ez1a7zv0"
                                     onClick={[Function]}
-                                    viewBox={Object {}}
-                                    width="1em"
                                   >
-                                    <use
-                                      href="#test"
-                                      xlinkHref="#test"
-                                    />
-                                  </svg>
-                                </ForwardRef>
+                                    <svg
+                                      className="enngb6z1 css-1uxzi56-Star-BookmarkLink ez1a7zv0"
+                                      fill="currentColor"
+                                      height="16px"
+                                      onClick={[Function]}
+                                      viewBox="0 0 16 16"
+                                      width="16px"
+                                    >
+                                      <path
+                                        d="M12.47,15.63a.73.73,0,0,1-.35-.09L8,13.38,3.88,15.54a.75.75,0,0,1-.79,0,.76.76,0,0,1-.3-.74l.79-4.59L.24,6.91A.75.75,0,0,1,.66,5.63L5.27,5,7.33.79a.78.78,0,0,1,1.34,0L10.73,5l4.61.67a.75.75,0,0,1,.42,1.28l-3.34,3.25.79,4.59a.76.76,0,0,1-.3.74A.79.79,0,0,1,12.47,15.63Z"
+                                      />
+                                    </svg>
+                                  </ForwardRef(SvgIcon)>
+                                </IconStar>
                               </Star>
                             </BookmarkStar>
                           </withApi(BookmarkStar)>
@@ -982,6 +1012,12 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                   >
                     <forwardRef<Button>
                       disabled={false}
+                      icon={
+                        <ForwardRef(IconSubtract)
+                          isCircled={true}
+                          size="xs"
+                        />
+                      }
                       onClick={[Function]}
                       size="small"
                     >
@@ -989,11 +1025,18 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         align="center"
                         disabled={false}
                         forwardRef={null}
+                        icon={
+                          <ForwardRef(IconSubtract)
+                            isCircled={true}
+                            size="xs"
+                          />
+                        }
                         onClick={[Function]}
                         size="small"
                       >
                         <StyledButton
                           aria-disabled={false}
+                          aria-label="Remove"
                           disabled={false}
                           forwardRef={null}
                           onClick={[Function]}
@@ -1002,7 +1045,8 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                         >
                           <Component
                             aria-disabled={false}
-                            className="css-12ogwys-StyledButton edwq9my0"
+                            aria-label="Remove"
+                            className="css-8od3q1-StyledButton edwq9my0"
                             forwardRef={null}
                             onClick={[Function]}
                             role="button"
@@ -1010,7 +1054,8 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           >
                             <button
                               aria-disabled={false}
-                              className="css-12ogwys-StyledButton edwq9my0"
+                              aria-label="Remove"
+                              className="css-8od3q1-StyledButton edwq9my0"
                               onClick={[Function]}
                               role="button"
                               size="small"
@@ -1022,34 +1067,40 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                 <span
                                   className="css-n7mdnv-ButtonLabel edwq9my1"
                                 >
-                                  <RemoveIcon>
-                                    <Component
-                                      className="css-1d2szfl-RemoveIcon eqsa6vb0"
+                                  <Icon
+                                    hasChildren={true}
+                                    size="small"
+                                  >
+                                    <span
+                                      className="css-1hbuack-Icon edwq9my2"
+                                      size="small"
                                     >
-                                      <InlineSvg
-                                        className="css-1d2szfl-RemoveIcon eqsa6vb0"
-                                        src="icon-circle-subtract"
+                                      <IconSubtract
+                                        isCircled={true}
+                                        size="xs"
                                       >
-                                        <ForwardRef
-                                          className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
-                                          src="icon-circle-subtract"
+                                        <ForwardRef(SvgIcon)
+                                          data-test-id="icon-subtract"
+                                          size="xs"
                                         >
                                           <svg
-                                            className="eqsa6vb0 css-hoycps-InlineSvg-RemoveIcon enyz4ql0"
-                                            height="1em"
-                                            viewBox={Object {}}
-                                            width="1em"
+                                            data-test-id="icon-subtract"
+                                            fill="currentColor"
+                                            height="12px"
+                                            viewBox="0 0 16 16"
+                                            width="12px"
                                           >
-                                            <use
-                                              href="#test"
-                                              xlinkHref="#test"
+                                            <path
+                                              d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z"
+                                            />
+                                            <path
+                                              d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z"
                                             />
                                           </svg>
-                                        </ForwardRef>
-                                      </InlineSvg>
-                                    </Component>
-                                  </RemoveIcon>
-                                   
+                                        </ForwardRef(SvgIcon)>
+                                      </IconSubtract>
+                                    </span>
+                                  </Icon>
                                   Remove
                                 </span>
                               </ButtonLabel>
@@ -1129,7 +1180,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
           "hasProjectBeenRenamed": [Function],
         }
       }
-      className="css-yneqnx e1vkspke0"
+      className="css-1vzq2o e1vkspke0"
       location={
         Object {
           "query": Object {},

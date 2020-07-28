@@ -9,6 +9,7 @@ from sentry import features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationDataExportPermission
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_date_range_from_params
 from sentry.models import Environment
 from sentry.utils import metrics
 from sentry.utils.compat import map
@@ -32,8 +33,9 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         Create a new asynchronous file export task, and
         email user upon completion,
         """
-        # Ensure new data-export features are enabled
-        if not features.has("organizations:data-export", organization):
+        # The data export feature is only available alongside `discover-query`.
+        # So to export issue tags, they must have have `discover-query`
+        if not features.has("organizations:discover-query", organization):
             return Response(status=404)
 
         # Get environment_id and limit if available
@@ -64,18 +66,27 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         # Discover Pre-processing
         if data["query_type"] == ExportQueryType.DISCOVER_STR:
-            if not features.has("organizations:discover-basic", organization, actor=request.user):
-                return Response(status=403)
+            query_info = data["query_info"]
 
-            if len(data["query_info"].get("field", [])) > MAX_FIELDS:
+            if len(query_info.get("field", [])) > MAX_FIELDS:
                 detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
                     MAX_FIELDS
                 )
                 raise ParseError(detail=detail)
 
-            if "project" not in data["query_info"]:
+            if "project" not in query_info:
                 projects = self.get_projects(request, organization)
-                data["query_info"]["project"] = [project.id for project in projects]
+                query_info["project"] = [project.id for project in projects]
+
+            start, end = get_date_range_from_params(query_info)
+            if "statsPeriod" in query_info:
+                del query_info["statsPeriod"]
+            if "statsPeriodStart" in query_info:
+                del query_info["statsPeriodStart"]
+            if "statsPeriodEnd" in query_info:
+                del query_info["statsPeriodEnd"]
+            query_info["start"] = start.isoformat()
+            query_info["end"] = end.isoformat()
 
         try:
             # If this user has sent a sent a request with the same payload and organization,

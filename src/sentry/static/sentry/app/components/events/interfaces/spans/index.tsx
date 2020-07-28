@@ -24,7 +24,6 @@ import TraceView from './traceView';
 type Props = {
   orgId: string;
   event: SentryTransactionEvent;
-  eventView: EventView;
   organization: Organization;
 } & ReactRouter.WithRouterProps;
 
@@ -88,7 +87,7 @@ class SpansInterface extends React.Component<Props, State> {
   }
 
   render() {
-    const {event, orgId, eventView, location, organization} = this.props;
+    const {event, orgId, location, organization} = this.props;
     const {parsedTrace} = this.state;
 
     // construct discover query to fetch error events associated with this transaction
@@ -98,14 +97,13 @@ class SpansInterface extends React.Component<Props, State> {
       end: parsedTrace.traceEndTimestamp,
     });
 
-    const conditions: QueryResults = {
-      query: [],
-      'event.type': ['error'],
-      trace: [parsedTrace.traceID],
-    };
+    const conditions = new QueryResults([
+      'event.type:error',
+      `trace:${parsedTrace.traceID}`,
+    ]);
 
     if (typeof event.title === 'string') {
-      conditions.transaction = [event.title];
+      conditions.setTag('transaction', [event.title]);
     }
 
     const orgFeatures = new Set(organization.features);
@@ -161,7 +159,6 @@ class SpansInterface extends React.Component<Props, State> {
                     searchQuery={this.state.searchQuery}
                     orgId={orgId}
                     organization={organization}
-                    eventView={eventView}
                     parsedTrace={parsedTrace}
                     spansWithErrors={spansWithErrors}
                   />

@@ -30,9 +30,7 @@ class ReleaseLandingCard extends React.Component {
     const {card, cardsLength, step} = this.props;
     const finalStep = step === cardsLength - 1;
     return (
-      <OnboardingPanel
-        image={<CardComponentContainer>{card.svg}</CardComponentContainer>}
-      >
+      <OnboardingPanel image={card.svg}>
         <h3>{card.title}</h3>
         {card.disclaimer && <Disclaimer>{card.disclaimer}</Disclaimer>}
         <p>{card.message}</p>
@@ -51,30 +49,9 @@ class ReleaseLandingCard extends React.Component {
   }
 }
 
-const CardComponentContainer = styled('div')`
-  width: 550px;
-  height: 340px;
-
-  img {
-    vertical-align: baseline;
-  }
-
-  @media (max-width: 1150px) {
-    font-size: 14px;
-    width: 450px;
-  }
-
-  @media (max-width: 1000px) {
-    font-size: 12px;
-    width: 320px;
-    max-height: 180px;
-  }
-`;
-
-const Disclaimer = styled('small')`
-  display: block;
+const Disclaimer = styled('div')`
   margin-top: -${space(3)};
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

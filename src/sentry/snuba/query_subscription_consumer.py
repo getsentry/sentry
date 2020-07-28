@@ -5,7 +5,7 @@ from json import loads
 import jsonschema
 import pytz
 import sentry_sdk
-from sentry_sdk.tracing import Span
+import six
 from confluent_kafka import Consumer, KafkaException, OFFSET_INVALID, TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -87,12 +87,26 @@ class QuerySubscriptionConsumer(object):
                 else:
                     updated_offset = partition.offset
                 self.offsets[partition.partition] = updated_offset
+            logger.info(
+                "query-subscription-consumer.on_assign",
+                extra={
+                    "offsets": six.text_type(self.offsets),
+                    "partitions": six.text_type(partitions),
+                },
+            )
 
         def on_revoke(consumer, partitions):
             partition_numbers = [partition.partition for partition in partitions]
             self.commit_offsets(partition_numbers)
             for partition_number in partition_numbers:
                 self.offsets.pop(partition_number, None)
+            logger.info(
+                "query-subscription-consumer.on_revoke",
+                extra={
+                    "offsets": six.text_type(self.offsets),
+                    "partitions": six.text_type(partitions),
+                },
+            )
 
         self.consumer = Consumer(conf)
         self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
@@ -110,12 +124,10 @@ class QuerySubscriptionConsumer(object):
 
                 i = i + 1
 
-                with sentry_sdk.start_span(
-                    Span(
-                        op="handle_message",
-                        transaction="query_subscription_consumer_process_message",
-                        sampled=True,
-                    )
+                with sentry_sdk.start_transaction(
+                    op="handle_message",
+                    name="query_subscription_consumer_process_message",
+                    sampled=True,
                 ), metrics.timer("snuba_query_subscriber.handle_message"):
                     self.handle_message(message)
 
@@ -131,6 +143,11 @@ class QuerySubscriptionConsumer(object):
         self.shutdown()
 
     def commit_offsets(self, partitions=None):
+        logger.info(
+            "query-subscription-consumer.commit_offsets",
+            extra={"offsets": six.text_type(self.offsets), "partitions": six.text_type(partitions)},
+        )
+
         if self.offsets and self.consumer:
             if partitions is None:
                 partitions = self.offsets.keys()

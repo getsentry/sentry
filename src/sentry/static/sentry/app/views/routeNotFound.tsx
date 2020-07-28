@@ -1,7 +1,7 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import * as Sentry from '@sentry/browser';
 import {Location} from 'history';
+import * as Sentry from '@sentry/react';
 
 import Footer from 'app/components/footer';
 import Sidebar from 'app/components/sidebar';

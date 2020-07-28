@@ -20,7 +20,6 @@ __all__ = (
     "OrganizationDashboardWidgetTestCase",
 )
 
-import base64
 import os
 import os.path
 import pytest
@@ -86,7 +85,6 @@ from .skips import requires_snuba
 from .helpers import (
     AuthProvider,
     Feature,
-    get_auth_header,
     TaskRunner,
     override_options,
     parse_queries,
@@ -222,141 +220,12 @@ class BaseTestCase(Fixtures, Exam):
     def _post_teardown(self):
         super(BaseTestCase, self)._post_teardown()
 
-    def _makeMessage(self, data):
-        return json.dumps(data).encode("utf-8")
-
-    def _makePostMessage(self, data):
-        return base64.b64encode(self._makeMessage(data))
-
-    def _postWithHeader(self, data, key=None, secret=None, protocol=None, **extra):
-        if key is None:
-            key = self.projectkey.public_key
-            secret = self.projectkey.secret_key
-
-        message = self._makePostMessage(data)
-        with self.tasks():
-            resp = self.client.post(
-                reverse("sentry-api-store"),
-                message,
-                content_type="application/octet-stream",
-                HTTP_X_SENTRY_AUTH=get_auth_header("_postWithHeader/0.0.0", key, secret, protocol),
-                **extra
-            )
-        return resp
-
-    def _postCspWithHeader(self, data, key=None, **extra):
-        if isinstance(data, dict):
-            body = json.dumps({"csp-report": data})
-        elif isinstance(data, six.string_types):
-            body = data
-        path = reverse("sentry-api-csp-report", kwargs={"project_id": self.project.id})
-        path += "?sentry_key=%s" % self.projectkey.public_key
-        with self.tasks():
-            return self.client.post(
-                path,
-                data=body,
-                content_type="application/csp-report",
-                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                **extra
-            )
-
-    def _postMinidumpWithHeader(
-        self, upload_file_minidump, data=None, key=None, raw=False, **extra
-    ):
-        if raw:
-            data = upload_file_minidump.read()
-            extra.setdefault("content_type", "application/octet-stream")
-        else:
-            data = dict(data or {})
-            data["upload_file_minidump"] = upload_file_minidump
-
-        path = reverse("sentry-api-minidump", kwargs={"project_id": self.project.id})
-        path += "?sentry_key=%s" % self.projectkey.public_key
-        with self.tasks():
-            return self.client.post(path, data=data, HTTP_USER_AGENT=DEFAULT_USER_AGENT, **extra)
-
-    def _postUnrealWithHeader(self, upload_unreal_crash, data=None, key=None, **extra):
-        path = reverse(
-            "sentry-api-unreal",
-            kwargs={"project_id": self.project.id, "sentry_key": self.projectkey.public_key},
-        )
-        with self.tasks():
-            return self.client.post(
-                path,
-                data=upload_unreal_crash,
-                content_type="application/octet-stream",
-                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                **extra
-            )
-
-    def _postEventAttachmentWithHeader(self, attachment, **extra):
-        path = reverse(
-            "sentry-api-event-attachment",
-            kwargs={"project_id": self.project.id, "event_id": self.event.event_id},
-        )
-
-        key = self.projectkey.public_key
-        secret = self.projectkey.secret_key
-
-        with self.tasks():
-            return self.client.post(
-                path,
-                attachment,
-                # HTTP_USER_AGENT=DEFAULT_USER_AGENT,
-                HTTP_X_SENTRY_AUTH=get_auth_header("_postWithHeader/0.0.0", key, secret, 7),
-                **extra
-            )
-
-    def _getWithReferer(self, data, key=None, referer="sentry.io", protocol="4"):
-        if key is None:
-            key = self.projectkey.public_key
-
-        headers = {}
-        if referer is not None:
-            headers["HTTP_REFERER"] = referer
-
-        message = self._makeMessage(data)
-        qs = {
-            "sentry_version": protocol,
-            "sentry_client": "raven-js/lol",
-            "sentry_key": key,
-            "sentry_data": message,
-        }
-        with self.tasks():
-            resp = self.client.get(
-                "%s?%s" % (reverse("sentry-api-store", args=(self.project.pk,)), urlencode(qs)),
-                **headers
-            )
-        return resp
-
-    def _postWithReferer(self, data, key=None, referer="sentry.io", protocol="4"):
-        if key is None:
-            key = self.projectkey.public_key
-
-        headers = {}
-        if referer is not None:
-            headers["HTTP_REFERER"] = referer
-
-        message = self._makeMessage(data)
-        qs = {"sentry_version": protocol, "sentry_client": "raven-js/lol", "sentry_key": key}
-        with self.tasks():
-            resp = self.client.post(
-                "%s?%s" % (reverse("sentry-api-store", args=(self.project.pk,)), urlencode(qs)),
-                data=message,
-                content_type="application/json",
-                **headers
-            )
-        return resp
-
     def options(self, options):
         """
         A context manager that temporarily sets a global option and reverts
         back to the original value when exiting the context.
         """
         return override_options(options)
-
-    _postWithSignature = _postWithHeader
-    _postWithNewSignature = _postWithHeader
 
     def assert_valid_deleted_log(self, deleted_log, original_object):
         assert deleted_log is not None
@@ -718,7 +587,7 @@ class AcceptanceTestCase(TransactionTestCase):
 
     def dismiss_assistant(self, which=None):
         if which is None:
-            which = ("discover_sidebar", "issue", "issue_stream")
+            which = ("issue", "issue_stream")
         if isinstance(which, six.string_types):
             which = [which]
 
@@ -819,21 +688,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def __wrap_event(self, event, data, primary_hash):
-        # TODO: Abstract and combine this with the stream code in
-        #       getsentry once it is merged, so that we don't alter one
-        #       without updating the other.
-        return {
-            "group_id": event.group_id,
-            "event_id": event.event_id,
-            "project_id": event.project_id,
-            "message": event.message,
-            "platform": event.platform,
-            "datetime": event.datetime,
-            "data": dict(data),
-            "primary_hash": primary_hash,
-        }
-
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
@@ -897,7 +751,7 @@ class SnubaTestCase(BaseTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
+                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events),
             ).status_code
             == 200
         )

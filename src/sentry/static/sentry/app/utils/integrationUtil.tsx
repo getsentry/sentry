@@ -1,5 +1,6 @@
 import capitalize from 'lodash/capitalize';
 import React from 'react';
+import * as qs from 'query-string';
 
 import HookStore from 'app/stores/hookStore';
 import {
@@ -54,7 +55,8 @@ export type SingleIntegrationEvent = {
     | 'integrations.upgrade_plan_modal_opened'
     | 'integrations.resolve_now_clicked'
     | 'integrations.reauth_start'
-    | 'integrations.reauth_complete';
+    | 'integrations.reauth_complete'
+    | 'integrations.request_install';
   eventName:
     | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
@@ -71,7 +73,8 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Upgrade Plan Modal Opened'
     | 'Integrations: Resolve Now Clicked'
     | 'Integrations: Reauth Start'
-    | 'Integrations: Reauth Complete';
+    | 'Integrations: Reauth Complete'
+    | 'Integrations: Request Install';
   integration: string; //the slug
   integration_type: IntegrationType;
   already_installed?: boolean;
@@ -79,7 +82,6 @@ export type SingleIntegrationEvent = {
   plan?: string;
   //include the status since people might do weird things testing unpublished integrations
   integration_status?: SentryAppStatus;
-  referrer?: string; //where did the user come from
 };
 
 type MultipleIntegrationsEvent = {
@@ -149,10 +151,26 @@ export const trackIntegrationEvent = (
     );
   }
 
+  let custom_referrer: string | undefined;
+
+  try {
+    //pull the referrer from the query parameter of the page
+    const {referrer} = qs.parse(window.location.search) || {};
+    if (typeof referrer === 'string') {
+      // Amplitude has its own referrer which inteferes with our custom referrer
+      custom_referrer = referrer;
+    }
+  } catch {
+    // ignore if this fails to parse
+    // this can happen if we have an invalid query string
+    // e.g. unencoded "%"
+  }
+
   const params = {
     analytics_session_id: sessionId,
     organization_id: org?.id,
     role: org?.role,
+    custom_referrer,
     ...features,
     ...analyticsParams,
   };

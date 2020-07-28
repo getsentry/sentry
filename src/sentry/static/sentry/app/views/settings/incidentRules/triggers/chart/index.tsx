@@ -9,6 +9,7 @@ import EventsRequest from 'app/components/charts/eventsRequest';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
 import {IncidentRule, TimeWindow, Trigger} from '../../types';
 import ThresholdsChart from './thresholdsChart';
@@ -23,6 +24,8 @@ type Props = {
   environment: string | null;
   aggregate: IncidentRule['aggregate'];
   triggers: Trigger[];
+  resolveThreshold: IncidentRule['resolveThreshold'];
+  thresholdType: IncidentRule['thresholdType'];
 };
 
 /**
@@ -39,6 +42,8 @@ class TriggersChart extends React.PureComponent<Props> {
       query,
       aggregate,
       triggers,
+      resolveThreshold,
+      thresholdType,
       environment,
     } = this.props;
 
@@ -75,6 +80,8 @@ class TriggersChart extends React.PureComponent<Props> {
                     maxValue={maxValue ? maxValue.value : maxValue}
                     data={timeseriesData}
                     triggers={triggers}
+                    resolveThreshold={resolveThreshold}
+                    thresholdType={thresholdType}
                   />
                 </React.Fragment>
               )}
@@ -86,7 +93,7 @@ class TriggersChart extends React.PureComponent<Props> {
   }
 }
 
-export default TriggersChart;
+export default withApi(TriggersChart);
 
 const TIME_WINDOW_TO_PERIOD: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: '12h',

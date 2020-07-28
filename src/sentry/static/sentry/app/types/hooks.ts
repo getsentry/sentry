@@ -4,6 +4,8 @@ import {NavigationSection} from 'app/views/settings/types';
 import {User, Organization, Project, IntegrationProvider} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import SidebarItem from 'app/components/sidebar/sidebarItem';
+import {StepProps} from 'app/views/onboarding/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -77,6 +79,7 @@ export type AnalyticsHooks = {
  * rendered in place for Feature components when the feature is not enabled.
  */
 export type FeatureDisabledHooks = {
+  'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;
@@ -89,7 +92,9 @@ export type FeatureDisabledHooks = {
   'feature-disabled:events-page': FeatureDisabledHook;
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
+  'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
+  'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
@@ -291,35 +296,23 @@ type SidebarItemLabelHook = () => React.ComponentType<{
   children: React.ReactNode;
 }>;
 
+type SidebarProps = Pick<
+  React.ComponentProps<typeof SidebarItem>,
+  'orientation' | 'collapsed' | 'hasPanel'
+>;
+
 /**
  * Returns an additional list of sidebar items.
- *
- * TODO(ts): These types should likely come from the Sidebar.tsx itself once it
- * is converted to typescript.
  */
-type SidebarBottomItemsHook = (opts: {
-  organization: Organization;
-  /**
-   * The current orientation of the sidebar.
-   */
-  orientation: 'top' | 'left';
-  /**
-   * Is the sidebar collapsed.
-   */
-  collapsed: boolean;
-  /**
-   * Does the sidebar currently have a panel displayed.
-   */
-  hasPanel: boolean;
-}) => React.ReactNode;
+type SidebarBottomItemsHook = (
+  opts: SidebarProps & {organization: Organization}
+) => React.ReactNode;
 
 /**
  * Wrapper component to allow for customization of the onboarding member
  * invitation component.
  */
-type OnboardingInviteMembersHook = () => React.ComponentType<{
-  organization: Organization;
-}>;
+type OnboardingInviteMembersHook = () => React.ComponentType<StepProps>;
 
 /**
  * The DecoratedIntegrationFeature differs from the IntegrationFeature as it is

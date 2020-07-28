@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import {IconFilter} from 'app/icons';
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
@@ -67,7 +68,7 @@ class TogglableAddress extends React.Component<Props> {
       <Address>
         {canBeConverted && (
           <Tooltip title={isAbsolute ? t('Absolute') : t('Relative')}>
-            <Toggle className="icon-filter" onClick={onToggle} />
+            <Toggle onClick={onToggle} size="xs" />
           </Tooltip>
         )}
 
@@ -88,7 +89,7 @@ class TogglableAddress extends React.Component<Props> {
   }
 }
 
-const Toggle = styled('span')`
+const Toggle = styled(IconFilter)`
   opacity: 0.33;
   margin-right: 1ex;
   cursor: pointer;
@@ -109,7 +110,7 @@ const Toggle = styled('span')`
 const AddressText = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   border-bottom: ${p => {
     if (p.isFoundByStackScanning) {
-      return `1px dashed ${p.theme.red}`;
+      return `1px dashed ${p.theme.red400}`;
     } else if (p.isInlineFrame) {
       return `1px dashed ${p.theme.blue400}`;
     } else {

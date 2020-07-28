@@ -24,6 +24,7 @@ type TableProps = {
   setError: (msg: string, code: number) => void;
   title: string;
   onChangeShowTags: () => void;
+  confirmedQuery: boolean;
 };
 
 type TableState = {
@@ -61,7 +62,8 @@ class Table extends React.PureComponent<TableProps, TableState> {
     // from an invalid view state to a valid one.
     if (
       (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
-      (prevProps.eventView.isValid() === false && this.props.eventView.isValid())
+      (prevProps.eventView.isValid() === false && this.props.eventView.isValid()) ||
+      prevProps.confirmedQuery !== this.props.confirmedQuery
     ) {
       this.fetchData();
     }
@@ -75,9 +77,9 @@ class Table extends React.PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, setError} = this.props;
+    const {eventView, organization, location, setError, confirmedQuery} = this.props;
 
-    if (!eventView.isValid()) {
+    if (!eventView.isValid() || !confirmedQuery) {
       return;
     }
 
@@ -87,11 +89,13 @@ class Table extends React.PureComponent<TableProps, TableState> {
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
+
     setError('', 200);
 
     this.setState({isLoading: true, tableFetchID});
     metric.mark({name: `discover-events-start-${apiPayload.query}`});
 
+    this.props.api.clear();
     this.props.api
       .requestPromise(url, {
         method: 'GET',

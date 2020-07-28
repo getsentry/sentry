@@ -4,7 +4,7 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getFormattedDate} from 'app/utils/dates';
+import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
 import MarkLine from 'app/components/charts/components/markLine';
 import SentryTypes from 'app/sentryTypes';
@@ -16,11 +16,18 @@ import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
-function getOrganizationReleases(api, organization, projects = null) {
+function getOrganizationReleases(api, organization, conditions = null) {
   const query = {};
-  if (projects) {
-    query.project = projects;
-  }
+  Object.keys(conditions).forEach(key => {
+    let value = conditions[key];
+    if (value && (key === 'start' || key === 'end')) {
+      value = getUtcDateString(value);
+    }
+    if (value) {
+      query[key] = value;
+    }
+  });
+  api.clear();
   return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
     method: 'GET',
     query,
@@ -34,6 +41,9 @@ class ReleaseSeries extends React.Component {
     organization: SentryTypes.Organization,
     projects: PropTypes.arrayOf(PropTypes.number),
 
+    period: PropTypes.string,
+    start: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
+    end: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
     utc: PropTypes.bool,
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
@@ -58,15 +68,20 @@ class ReleaseSeries extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (!isEqual(prevProps.projects, this.props.projects)) {
+    if (
+      !isEqual(prevProps.projects, this.props.projects) ||
+      !isEqual(prevProps.start, this.props.start) ||
+      !isEqual(prevProps.end, this.props.end) ||
+      !isEqual(prevProps.period, this.props.period)
+    ) {
       this.fetchData();
     }
   }
 
   fetchData() {
-    const {api, organization, projects} = this.props;
-
-    getOrganizationReleases(api, organization, projects)
+    const {api, organization, projects, period, start, end} = this.props;
+    const conditions = {start, end, project: projects, statsPeriod: period};
+    getOrganizationReleases(api, organization, conditions)
       .then(releases => {
         this.setReleasesWithSeries(releases);
       })
@@ -91,7 +106,7 @@ class ReleaseSeries extends React.Component {
       markLine: MarkLine({
         lineStyle: {
           normal: {
-            color: theme.purpleLight,
+            color: theme.purple400,
             opacity: 0.3,
             type: 'solid',
           },

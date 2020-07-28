@@ -5,6 +5,7 @@ from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+import logging
 import functools
 import os
 import pytz
@@ -37,6 +38,9 @@ from sentry.snuba.events import Columns
 from sentry.snuba.dataset import Dataset
 from sentry.utils.compat import map
 
+
+logger = logging.getLogger(__name__)
+
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
 MAX_HASHES = 5000
@@ -46,7 +50,9 @@ MAX_HASHES = 5000
 MAX_FIELDS = 20
 
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
-QUOTED_LITERAL_RE = re.compile(r"^'.*'$")
+# Match any text surrounded by quotes, can't use `.*` here since it
+# doesn't include new lines,
+QUOTED_LITERAL_RE = re.compile(r"^'[\s\S]*'$")
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
@@ -93,6 +99,18 @@ DATASET_FIELDS = {
     Dataset.Transactions: list(TRANSACTIONS_SNUBA_MAP.values()),
     Dataset.Discover: list(DISCOVER_COLUMN_MAP.values()),
 }
+
+SNUBA_OR = "or"
+SNUBA_AND = "and"
+OPERATOR_TO_FUNCTION = {
+    "=": "equals",
+    "!=": "notEquals",
+    ">": "greater",
+    "<": "less",
+    ">=": "greaterOrEquals",
+    "<=": "lessOrEquals",
+}
+FUNCTION_TO_OPERATOR = {v: k for k, v in OPERATOR_TO_FUNCTION.items()}
 
 
 def parse_snuba_datetime(value):
@@ -611,6 +629,9 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         try:
             body = json.loads(response.data)
         except ValueError:
+            if response.status != 200:
+                logger.error("snuba.query.invalid-json")
+                raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(
                 u"Could not decode JSON response: {}".format(response.data)
             )
@@ -757,6 +778,19 @@ def resolve_condition(cond, column_resolver):
         if cond[index] == "IN":
             cond[0] = column_resolver(cond[0])
             return cond
+        elif cond[index] in FUNCTION_TO_OPERATOR:
+            func_args = cond[index + 1]
+            for i, arg in enumerate(func_args):
+                if i == 0:
+                    if isinstance(arg, (list, tuple)):
+                        func_args[i] = resolve_condition(arg, column_resolver)
+                    else:
+                        func_args[i] = column_resolver(arg)
+                else:
+                    func_args[i] = u"'{}'".format(arg) if isinstance(arg, six.string_types) else arg
+
+            cond[index + 1] = func_args
+            return cond
 
         func_args = cond[index + 1]
         for (i, arg) in enumerate(func_args):
@@ -895,6 +929,9 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
+                if len(col) == 3 and col[0] == "transform":
+                    # Add the name from the project transform, and remove the backticks so its not treated as a new col
+                    derived_columns.add(col[2].strip("`"))
                 resolve_complex_column(col, resolve_func)
             else:
                 name = resolve_func(col)

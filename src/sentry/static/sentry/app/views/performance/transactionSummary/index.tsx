@@ -3,8 +3,8 @@ import {Params} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
 import isEqual from 'lodash/isEqual';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
@@ -175,23 +175,26 @@ function generateSummaryEventView(
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
   const query = decodeScalar(location.query.query) || '';
-  const conditions = Object.assign(tokenizeSearch(query), {
-    'event.type': ['transaction'],
-    transaction: [transactionName],
-  });
+  const conditions = tokenizeSearch(query);
+  conditions
+    .setTag('event.type', ['transaction'])
+    .setTag('transaction', [transactionName]);
 
-  Object.keys(conditions).forEach(field => {
-    if (isAggregateField(field)) delete conditions[field];
+  Object.keys(conditions.tagValues).forEach(field => {
+    if (isAggregateField(field)) conditions.removeTag(field);
   });
 
   // Handle duration filters from the latency chart
   if (location.query.startDuration || location.query.endDuration) {
-    conditions['transaction.duration'] = [
-      decodeScalar(location.query.startDuration),
-      decodeScalar(location.query.endDuration),
-    ]
-      .filter(item => item)
-      .map((item, index) => (index === 0 ? `>${item}` : `<${item}`));
+    conditions.setTag(
+      'transaction.duration',
+      [
+        decodeScalar(location.query.startDuration),
+        decodeScalar(location.query.endDuration),
+      ]
+        .filter(item => item)
+        .map((item, index) => (index === 0 ? `>${item}` : `<${item}`))
+    );
   }
 
   return EventView.fromNewQueryWithLocation(

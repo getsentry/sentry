@@ -143,6 +143,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       userSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
+      webkitUserSelect: 'none',
     });
 
     // attach event listeners so that the mouse cursor can drag anywhere
@@ -287,6 +288,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
               icon={<IconGrabbable size="xs" color="gray700" />}
+              size="zero"
               borderless
             />
           ) : (
@@ -364,7 +366,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: 30px auto 30px;
+  grid-template-columns: 24px auto 24px;
   align-items: center;
   width: 100%;
   padding-bottom: ${space(1)};
@@ -411,7 +413,7 @@ const Heading = styled('div')<{gridColumns: number}>`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  margin-bottom: 0;
+  margin: 0;
 `;
 
 export default ColumnEditCollection;

@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
 import pytz
-import time
 
 from mock import patch
 
@@ -20,19 +18,6 @@ FEATURE_NAMES = (
 )
 
 
-def make_event(event_data):
-    start_datetime = before_now(minutes=1)
-    end_datetime = start_datetime + timedelta(milliseconds=500)
-
-    def generate_timestamp(date_time):
-        return time.mktime(date_time.utctimetuple()) + date_time.microsecond / 1e6
-
-    event_data["start_timestamp"] = generate_timestamp(start_datetime)
-    event_data["timestamp"] = generate_timestamp(end_datetime)
-
-    return event_data
-
-
 class PerformanceOverviewTest(AcceptanceTestCase):
     def setUp(self):
         super(PerformanceOverviewTest, self).setUp()
@@ -46,7 +31,6 @@ class PerformanceOverviewTest(AcceptanceTestCase):
         self.path = u"/organizations/{}/performance/".format(self.org.slug)
 
         self.page = BasePage(self.browser)
-        self.dismiss_assistant("discover_sidebar")
 
     @patch("django.utils.timezone.now")
     def test_onboarding(self, mock_now):
@@ -61,7 +45,7 @@ class PerformanceOverviewTest(AcceptanceTestCase):
     def test_with_data(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        event = make_event(load_data("transaction"))
+        event = load_data("transaction", timestamp=before_now(minutes=1))
         self.store_event(data=event, project_id=self.project.id)
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 

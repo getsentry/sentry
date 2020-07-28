@@ -100,7 +100,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                       styled={false}
                     >
                       <div
-                        className="css-120v9s3-Title e1uay4fd1"
+                        className="css-u2ls9d-Title e1uay4fd1"
                       >
                         <HeaderTitle>
                           <h4
@@ -131,7 +131,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
               withoutMarginBottom={false}
             >
               <Component
-                className="css-1fqt8dl-StyledLink e1ylhppg0"
+                className="css-1bza080-StyledLink e1ylhppg0"
                 href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                 openInNewTab={false}
                 priority="warning"
@@ -139,12 +139,12 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                 withoutMarginBottom={false}
               >
                 <ForwardRef(ExternalLink)
-                  className="css-1fqt8dl-StyledLink e1ylhppg0"
+                  className="css-1bza080-StyledLink e1ylhppg0"
                   href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                   openInNewTab={false}
                 >
                   <a
-                    className="css-1fqt8dl-StyledLink e1ylhppg0"
+                    className="css-1bza080-StyledLink e1ylhppg0"
                     href="https://docs.sentry.io/workflow/integrations/integration-platform/"
                   >
                     <AlertLinkText>
@@ -158,10 +158,11 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                       <span
                         className="css-1nl5kog-IconWrapper-IconLink e1ylhppg2"
                       >
-                        <ForwardRef
+                        <IconChevron
                           direction="right"
                         >
                           <EmotionCssPropInternal
+                            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
                             __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
                               Object {
                                 "$$typeof": Symbol(react.forward_ref),
@@ -199,7 +200,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                               </svg>
                             </ForwardRef(SvgIcon)>
                           </EmotionCssPropInternal>
-                        </ForwardRef>
+                        </IconChevron>
                       </span>
                     </IconLink>
                   </a>
@@ -209,21 +210,21 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
           </AlertLink>
           <Panel>
             <Component
-              className="css-15hwgrz-Panel e119nu470"
+              className="css-ietoyz-Panel e119nu470"
             >
               <div
-                className="css-15hwgrz-Panel e119nu470"
+                className="css-ietoyz-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
                 >
                   <div
-                    className="css-yhsu7n-PanelHeader en8g1d30"
+                    className="css-13it3e1-PanelHeader en8g1d30"
                   >
                     Public Integrations
                     <forwardRef<Button>
                       icon={
-                        <ForwardRef
+                        <ForwardRef(IconAdd)
                           isCircled={true}
                           size="xs"
                         />
@@ -237,7 +238,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <ForwardRef
+                          <ForwardRef(IconAdd)
                             isCircled={true}
                             size="xs"
                           />
@@ -303,7 +304,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                         className="css-1hbuack-Icon edwq9my2"
                                         size="small"
                                       >
-                                        <ForwardRef
+                                        <IconAdd
                                           isCircled={true}
                                           size="xs"
                                         >
@@ -327,7 +328,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                               />
                                             </svg>
                                           </ForwardRef(SvgIcon)>
-                                        </ForwardRef>
+                                        </IconAdd>
                                       </span>
                                     </Icon>
                                     New Public Integration
@@ -349,14 +350,14 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     withPadding={false}
                   >
                     <div
-                      className="css-1ehogmz-FlexBox e1vnwt6f0"
+                      className="css-1nto0rx-FlexBox e1vnwt6f0"
                     >
                       <EmptyMessage>
                         <Component
-                          className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                          className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                         >
                           <div
-                            className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                            className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                             data-test-id="empty-message"
                           >
                             <Description
@@ -379,21 +380,21 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
           </Panel>
           <Panel>
             <Component
-              className="css-15hwgrz-Panel e119nu470"
+              className="css-ietoyz-Panel e119nu470"
             >
               <div
-                className="css-15hwgrz-Panel e119nu470"
+                className="css-ietoyz-Panel e119nu470"
               >
                 <PanelHeader
                   hasButtons={true}
                 >
                   <div
-                    className="css-yhsu7n-PanelHeader en8g1d30"
+                    className="css-13it3e1-PanelHeader en8g1d30"
                   >
                     Internal Integrations
                     <forwardRef<Button>
                       icon={
-                        <ForwardRef
+                        <ForwardRef(IconAdd)
                           isCircled={true}
                           size="xs"
                         />
@@ -407,7 +408,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                         disabled={false}
                         forwardRef={null}
                         icon={
-                          <ForwardRef
+                          <ForwardRef(IconAdd)
                             isCircled={true}
                             size="xs"
                           />
@@ -473,7 +474,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                         className="css-1hbuack-Icon edwq9my2"
                                         size="small"
                                       >
-                                        <ForwardRef
+                                        <IconAdd
                                           isCircled={true}
                                           size="xs"
                                         >
@@ -497,7 +498,7 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                                               />
                                             </svg>
                                           </ForwardRef(SvgIcon)>
-                                        </ForwardRef>
+                                        </IconAdd>
                                       </span>
                                     </Icon>
                                     New Internal Integration
@@ -519,14 +520,14 @@ exports[`Organization Developer Settings when no Apps exist displays empty state
                     withPadding={false}
                   >
                     <div
-                      className="css-1ehogmz-FlexBox e1vnwt6f0"
+                      className="css-1nto0rx-FlexBox e1vnwt6f0"
                     >
                       <EmptyMessage>
                         <Component
-                          className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                          className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                         >
                           <div
-                            className="css-1scmenn-EmptyMessage e1h3yfdx0"
+                            className="css-1qddu1g-EmptyMessage-EmptyMessage e1h3yfdx0"
                             data-test-id="empty-message"
                           >
                             <Description

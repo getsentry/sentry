@@ -93,7 +93,7 @@ class DataExport extends React.Component<Props, State> {
     const {inProgress} = this.state;
     const {children, disabled, icon} = this.props;
     return (
-      <Feature features={['organizations:data-export']}>
+      <Feature features={['organizations:discover-query']}>
         {inProgress ? (
           <NewButton
             size="small"
@@ -126,7 +126,7 @@ class DataExport extends React.Component<Props, State> {
 const NewButton = ({children, ...buttonProps}) => (
   <Button {...buttonProps}>
     {children}
-    <FeatureBadge type="new" />
+    <FeatureBadge type="new" noTooltip />
   </Button>
 );
 

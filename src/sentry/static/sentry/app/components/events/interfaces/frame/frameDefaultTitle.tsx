@@ -1,19 +1,20 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
-import {Meta} from 'app/types';
+import {Frame, PlatformType, Meta} from 'app/types';
 import {defined, isUrl} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
-import {IconQuestion} from 'app/icons';
+import {IconQuestion, IconOpen} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {t} from 'app/locale';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import space from 'app/styles/space';
 
 import FrameFunctionName from './frameFunctionName';
 import {getPlatform, trimPackage} from './utils';
 import FrameDefaultTitleOriginalSourceInfo from './frameDefaultTitleOriginalSourceInfo';
-import {Frame, PlatformType} from './types';
 
 type Props = {
   frame: Frame;
@@ -96,12 +97,9 @@ const FrameDefaultTitle = ({frame, platform}: Props) => {
 
     if (frame.absPath && isUrl(frame.absPath)) {
       title.push(
-        <ExternalLink
-          href={frame.absPath}
-          className="icon-open"
-          key="share"
-          onClick={handleExternalLink}
-        />
+        <StyledExternalLink href={frame.absPath} key="share" onClick={handleExternalLink}>
+          <IconOpen size="xs" />
+        </StyledExternalLink>
       );
     }
 
@@ -164,5 +162,11 @@ const FrameDefaultTitle = ({frame, platform}: Props) => {
 
   return title;
 };
+
+const StyledExternalLink = styled(ExternalLink)`
+  position: relative;
+  top: 2px;
+  margin-left: ${space(0.5)};
+`;
 
 export default FrameDefaultTitle;

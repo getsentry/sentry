@@ -8,7 +8,7 @@ exports[`returnButton renders 1`] = `
     title="Save"
   >
     <SubmitButton>
-      <ForwardRef />
+      <IconReturn />
     </SubmitButton>
   </Tooltip>
 </ClickTargetStyled>

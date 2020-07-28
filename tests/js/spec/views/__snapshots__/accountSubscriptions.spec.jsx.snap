@@ -65,7 +65,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     styled={false}
                   >
                     <div
-                      className="css-120v9s3-Title e1uay4fd1"
+                      className="css-u2ls9d-Title e1uay4fd1"
                     >
                       <HeaderTitle>
                         <h4
@@ -97,15 +97,15 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
         </TextBlock>
         <Panel>
           <Component
-            className="css-15hwgrz-Panel e119nu470"
+            className="css-ietoyz-Panel e119nu470"
           >
             <div
-              className="css-15hwgrz-Panel e119nu470"
+              className="css-ietoyz-Panel e119nu470"
             >
               <div>
                 <PanelHeader>
                   <div
-                    className="css-1es1m70-PanelHeader en8g1d30"
+                    className="css-pi486d-PanelHeader en8g1d30"
                   >
                     Subscription
                   </div>
@@ -118,7 +118,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                     withPadding={false}
                   >
                     <div
-                      className="css-1ehogmz-FlexBox e1vnwt6f0"
+                      className="css-1nto0rx-FlexBox e1vnwt6f0"
                     >
                       <PanelItem
                         alignItems="center"
@@ -126,7 +126,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         p={2}
                       >
                         <div
-                          className="css-xopa6g-PanelItem ej5ox20"
+                          className="css-wt6qay-PanelItem ej5ox20"
                         >
                           <SubscriptionDetails>
                             <div
@@ -191,7 +191,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                 >
                                   <button
                                     aria-checked={true}
-                                    className="css-nsv6v6-SwitchButton ezmyi9u0"
+                                    className="css-1jbgjht-SwitchButton ezmyi9u0"
                                     data-test-id="switch"
                                     onClick={[Function]}
                                     role="checkbox"
@@ -220,7 +220,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                         p={2}
                       >
                         <div
-                          className="css-xopa6g-PanelItem ej5ox20"
+                          className="css-wt6qay-PanelItem ej5ox20"
                         >
                           <SubscriptionDetails>
                             <div
@@ -272,7 +272,7 @@ exports[`AccountSubscriptions renders list and can toggle 1`] = `
                                 >
                                   <button
                                     aria-checked={false}
-                                    className="css-1tqvyh8-SwitchButton ezmyi9u0"
+                                    className="css-18mwse8-SwitchButton ezmyi9u0"
                                     data-test-id="switch"
                                     onClick={[Function]}
                                     role="checkbox"

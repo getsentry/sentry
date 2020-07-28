@@ -122,6 +122,7 @@ register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
+register("slack.legacy-app", flags=FLAG_PRIORITIZE_DISK, type=Bool, default=True)
 
 # Slack V2 Integration
 register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
@@ -146,6 +147,11 @@ register("pagerduty.app-id", default="")
 # Vercel Integration
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("vercel.client-secret", flags=FLAG_PRIORITIZE_DISK)
+register("vercel.integration-slug", default="sentry")
+
+# MsTeams Integration
+register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK)
+register("msteams.client-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
@@ -213,8 +219,8 @@ register("post-process.error-hook-sample-rate", default=0.0)  # unused
 register("transaction-events.force-disable-internal-project", default=False)
 
 # Moving signals and TSDB into outcomes consumer
-register("outcomes.signals-in-consumer-sample-rate", default=0.0)
-register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)
+register("outcomes.signals-in-consumer-sample-rate", default=0.0)  # unused
+register("outcomes.tsdb-in-consumer-sample-rate", default=0.0)  # unused
 
 # Node data save rate
 register("nodedata.cache-sample-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)
@@ -222,9 +228,6 @@ register("nodedata.cache-on-save", default=False, flags=FLAG_PRIORITIZE_DISK)
 
 # Use nodestore for eventstore.get_events
 register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
-
-# Discover2 incremental rollout rate. Tied to feature handlers in getsentry
-register("discover2.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
 # Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
 register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
@@ -235,6 +238,9 @@ register("incidents-performance.rollout-rate", default=0, flags=FLAG_PRIORITIZE_
 
 # Max number of tags to combine in a single query in Discover2 tags facet.
 register("discover2.max_tags_to_combine", default=3, flags=FLAG_PRIORITIZE_DISK)
+
+# Enables setting a sampling rate when producing the tag facet.
+register("discover2.tags_facet_enable_sampling", default=True, flags=FLAG_PRIORITIZE_DISK)
 
 # Killswitch for datascrubbing after stacktrace processing. Set to False to
 # disable datascrubbers.

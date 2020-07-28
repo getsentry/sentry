@@ -12,12 +12,12 @@ from math import ceil, floor
 
 from sentry import options
 from sentry.api.event_search import (
+    FIELD_ALIASES,
     get_filter,
     get_function_alias,
     is_function,
-    resolve_field_list,
     InvalidSearchQuery,
-    FIELD_ALIASES,
+    resolve_field_list,
 )
 
 from sentry import eventstore
@@ -26,12 +26,14 @@ from sentry.models import Project, ProjectStatus, Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
-    SnubaTSResult,
-    raw_query,
-    to_naive_timestamp,
     naiveify_datetime,
+    raw_query,
     resolve_snuba_aliases,
     resolve_column,
+    SNUBA_AND,
+    SNUBA_OR,
+    SnubaTSResult,
+    to_naive_timestamp,
 )
 
 __all__ = (
@@ -43,7 +45,6 @@ __all__ = (
     "key_transaction_query",
     "timeseries_query",
     "top_events_timeseries",
-    "get_pagination_ids",
     "get_facets",
     "transform_results",
     "zerofill",
@@ -79,7 +80,7 @@ def find_reference_event(reference_event):
     try:
         project_slug, event_id = reference_event.slug.split(":")
     except ValueError:
-        raise InvalidSearchQuery("Invalid reference event")
+        raise InvalidSearchQuery("Invalid reference event format")
 
     column_names = [
         resolve_discover_column(col) for col in reference_event.fields if is_real_column(col)
@@ -95,7 +96,7 @@ def find_reference_event(reference_event):
             status=ProjectStatus.VISIBLE,
         )
     except Project.DoesNotExist:
-        raise InvalidSearchQuery("Invalid reference event")
+        raise InvalidSearchQuery("Invalid reference event project")
 
     start = None
     end = None
@@ -117,7 +118,7 @@ def find_reference_event(reference_event):
         referrer="discover.find_reference_event",
     )
     if "error" in event or len(event["data"]) != 1:
-        raise InvalidSearchQuery("Invalid reference event")
+        raise InvalidSearchQuery("Unable to find reference event")
 
     return event["data"][0]
 
@@ -548,15 +549,41 @@ def query(
 
         # Make sure that any aggregate conditions are also in the selected columns
         for having_clause in snuba_filter.having:
-            found = any(
-                having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
-            )
-            if not found:
-                raise InvalidSearchQuery(
-                    u"Aggregate {} used in a condition but is not a selected column.".format(
-                        having_clause[0]
+            # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
+            # any referenced functions are in the aggregations.
+            if isinstance(having_clause[0], (list, tuple)):
+                # Functions are of the form [fn, [args]]
+                args_to_check = [[having_clause[0]]]
+                conditions_not_in_aggregations = []
+                while len(args_to_check) > 0:
+                    args = args_to_check.pop()
+                    for arg in args:
+                        if arg[0] in [SNUBA_AND, SNUBA_OR]:
+                            args_to_check.extend(arg[1])
+                        else:
+                            alias = arg[1][0]
+                            found = any(
+                                alias == agg_clause[-1] for agg_clause in snuba_filter.aggregations
+                            )
+                            if not found:
+                                conditions_not_in_aggregations.append(alias)
+
+                if len(conditions_not_in_aggregations) > 0:
+                    raise InvalidSearchQuery(
+                        u"Aggregate(s) {} used in a condition but are not in the selected columns.".format(
+                            ", ".join(conditions_not_in_aggregations)
+                        )
                     )
+            else:
+                found = any(
+                    having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
                 )
+                if not found:
+                    raise InvalidSearchQuery(
+                        u"Aggregate {} used in a condition but is not a selected column.".format(
+                            having_clause[0]
+                        )
+                    )
 
         if conditions is not None:
             snuba_filter.conditions.extend(conditions)
@@ -626,6 +653,7 @@ def key_transaction_query(selected_columns, user_query, params, orderby, referre
         orderby=orderby,
         referrer=referrer,
         conditions=key_transaction_conditions(queryset),
+        use_aggregate_conditions=True,
     )
 
 
@@ -866,6 +894,7 @@ def top_events_timeseries(
             aggregations=snuba_filter.aggregations,
             conditions=snuba_filter.conditions,
             filter_keys=snuba_filter.filter_keys,
+            selected_columns=snuba_filter.selected_columns,
             start=snuba_filter.start,
             end=snuba_filter.end,
             rollup=rollup,
@@ -941,65 +970,6 @@ def get_id(result):
         return result[1]
 
 
-def get_pagination_ids(event, query, params, organization, reference_event=None, referrer=None):
-    """
-    High-level API for getting pagination data for an event + filter
-
-    The provided event is used as a reference event to find events
-    that are older and newer than the current one.
-
-    event (Event) The event to find related events for.
-    query (str) Filter query string to create conditions from.
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-    reference_event (ReferenceEvent) A reference event object. Used to generate additional
-                                    conditions based on the provided reference.
-    referrer (str|None) A referrer string to help locate the origin of this query.
-    """
-    # TODO(evanh): This can be removed once we migrate the frontend / saved queries
-    # to use the new function values
-    query = transform_deprecated_functions_in_query(query)
-
-    snuba_filter = get_filter(query, params)
-
-    if reference_event:
-        ref_conditions = create_reference_event_conditions(reference_event)
-        if ref_conditions:
-            snuba_filter.conditions.extend(ref_conditions)
-
-    result = {
-        "next": eventstore.get_next_event_id(event, filter=snuba_filter),
-        "previous": eventstore.get_prev_event_id(event, filter=snuba_filter),
-        "latest": eventstore.get_latest_event_id(event, filter=snuba_filter),
-        "oldest": eventstore.get_earliest_event_id(event, filter=snuba_filter),
-    }
-
-    # translate project ids to slugs
-
-    project_ids = set([tuple[0] for tuple in result.values() if tuple])
-
-    project_slugs = {}
-    projects = Project.objects.filter(
-        id__in=list(project_ids), organization=organization, status=ProjectStatus.VISIBLE
-    ).values("id", "slug")
-
-    for project in projects:
-        project_slugs[project["id"]] = project["slug"]
-
-    def into_pagination_record(project_slug_event_id):
-
-        if not project_slug_event_id:
-            return None
-
-        project_id = int(project_slug_event_id[0])
-
-        return "{}:{}".format(project_slugs[project_id], project_slug_event_id[1])
-
-    for key, value in result.items():
-        result[key] = into_pagination_record(value)
-
-    return PaginationResult(**result)
-
-
 def get_facets(query, params, limit=10, referrer=None):
     """
     High-level API for getting 'facet map' results.
@@ -1059,7 +1029,8 @@ def get_facets(query, params, limit=10, referrer=None):
     # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
     # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
     # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
-    sample_rate = 0.1 if key_names["data"][0]["count"] > 10000 else None
+    sampling_enabled = options.get("discover2.tags_facet_enable_sampling")
+    sample_rate = 0.1 if (sampling_enabled and key_names["data"][0]["count"] > 10000) else None
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 

@@ -20,7 +20,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconFlag} from 'app/icons';
 
 import KeyRow from './keyRow';
 
@@ -50,7 +50,7 @@ class ProjectKeys extends AsyncView<Props, State> {
   handleRemoveKey = async (data: ProjectKey) => {
     const oldKeyList = [...this.state.keyList];
 
-    addLoadingMessage(t('Revoking key..'));
+    addLoadingMessage(t('Revoking key\u2026'));
 
     this.setState(state => ({
       keyList: state.keyList.filter(key => key.id !== data.id),
@@ -74,7 +74,7 @@ class ProjectKeys extends AsyncView<Props, State> {
   handleToggleKey = async (isActive: boolean, data: ProjectKey) => {
     const oldKeyList = [...this.state.keyList];
 
-    addLoadingMessage(t('Saving changes..'));
+    addLoadingMessage(t('Saving changes\u2026'));
 
     this.setState(state => {
       const keyList = state.keyList.map(key => {
@@ -128,7 +128,7 @@ class ProjectKeys extends AsyncView<Props, State> {
     return (
       <Panel>
         <EmptyMessage
-          icon="icon-circle-exclamation"
+          icon={<IconFlag size="xl" />}
           description={t('There are no keys active for this project.')}
         />
       </Panel>

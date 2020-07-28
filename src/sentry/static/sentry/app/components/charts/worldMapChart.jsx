@@ -61,7 +61,7 @@ export default class WorldMapChart extends React.Component {
             borderColor: theme.borderLighter,
           },
           emphasis: {
-            areaColor: theme.yellowOrange,
+            areaColor: theme.orange300,
           },
         },
         label: {
@@ -87,7 +87,7 @@ export default class WorldMapChart extends React.Component {
             min: 0,
             max: maxValue,
             inRange: {
-              color: [theme.purpleLightest, theme.purpleDarkest],
+              color: [theme.purple300, theme.purple500],
             },
             text: ['High', 'Low'],
 

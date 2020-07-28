@@ -18,9 +18,7 @@ export type UnsavedTrigger = {
   // id yet
   alertRuleId?: string;
   label: string;
-  thresholdType: AlertRuleThresholdType;
   alertThreshold: number | '' | null;
-  resolveThreshold: number | '' | null;
   actions: Action[];
 };
 
@@ -48,6 +46,8 @@ export type UnsavedIncidentRule = {
   timeWindow: number;
   triggers: Trigger[];
   aggregate: string;
+  thresholdType: AlertRuleThresholdType;
+  resolveThreshold: number | '' | null;
 };
 
 export type SavedIncidentRule = UnsavedIncidentRule & {
@@ -81,6 +81,7 @@ export enum ActionType {
   EMAIL = 'email',
   SLACK = 'slack',
   PAGER_DUTY = 'pagerduty',
+  MSTEAMS = 'msteams',
 }
 
 export enum TargetType {

@@ -11,7 +11,12 @@ from exam import fixture
 from freezegun import freeze_time
 from six.moves.urllib.parse import parse_qs
 
-from sentry.incidents.action_handlers import EmailActionHandler, SlackActionHandler
+from sentry.incidents.action_handlers import (
+    EmailActionHandler,
+    SlackActionHandler,
+    generate_incident_trigger_email_context,
+    INCIDENT_STATUS_KEY,
+)
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import (
     AlertRuleTriggerAction,
@@ -83,9 +88,8 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def test(self):
         status = TriggerStatus.ACTIVE
-        action = self.create_alert_rule_trigger_action()
         incident = self.create_incident()
-        handler = EmailActionHandler(action, incident, self.project)
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
         expected = {
             "link": absolute_uri(
@@ -108,19 +112,23 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                 )
             ),
             "incident_name": incident.title,
-            "aggregate": handler.query_aggregates_display.get(aggregate, aggregate),
+            "aggregate": aggregate,
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
             "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS_KEY[IncidentStatus(incident.status)],
             "environment": "All",
             "is_critical": False,
             "is_warning": False,
             "threshold_direction_string": ">",
             "time_window": "10 minutes",
             "triggered_at": timezone.now(),
+            "project_slug": self.project.slug,
             "unsubscribe_link": None,
         }
-        assert expected == handler.generate_email_context(status)
+        assert expected == generate_incident_trigger_email_context(
+            self.project, incident, action.alert_rule_trigger, status
+        )
 
     def test_environment(self):
         status = TriggerStatus.ACTIVE
@@ -130,22 +138,25 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         ]
         alert_rule = self.create_alert_rule(environment=environments[0])
         alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
-        action = self.create_alert_rule_trigger_action(alert_rule_trigger=alert_rule_trigger)
         incident = self.create_incident()
-        handler = EmailActionHandler(action, incident, self.project)
-        assert "prod" == handler.generate_email_context(status).get("environment")
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
+        assert "prod" == generate_incident_trigger_email_context(
+            self.project, incident, action.alert_rule_trigger, status
+        ).get("environment")
 
 
 @freeze_time()
 class EmailActionHandlerFireTest(TestCase):
     def test_user(self):
-        action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id)
-        )
         incident = self.create_incident(status=IncidentStatus.CRITICAL.value)
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
+        )
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
-            handler.fire()
+            handler.fire(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == u"[Critical] {} - {}".format(incident.title, self.project.slug)
@@ -154,14 +165,14 @@ class EmailActionHandlerFireTest(TestCase):
 @freeze_time()
 class EmailActionHandlerResolveTest(TestCase):
     def test_user(self):
-        action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id)
-        )
         incident = self.create_incident()
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
+        )
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
             incident.status = IncidentStatus.CLOSED.value
-            handler.resolve()
+            handler.resolve(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
         assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
@@ -202,12 +213,15 @@ class SlackActionHandlerBaseTest(object):
             body='{"ok": true}',
         )
         handler = SlackActionHandler(action, incident, self.project)
+        metric_value = 1000
         with self.tasks():
-            getattr(handler, method)()
+            getattr(handler, method)(metric_value)
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
-        assert json.loads(data["attachments"][0])[0] == build_incident_attachment(incident)
+        assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
+            incident, metric_value
+        )
 
 
 class SlackActionHandlerFireTest(SlackActionHandlerBaseTest, TestCase):

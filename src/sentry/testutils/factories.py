@@ -30,10 +30,12 @@ from sentry.incidents.models import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
     Incident,
+    IncidentTrigger,
     IncidentActivity,
     IncidentProject,
     IncidentSeen,
     IncidentType,
+    TriggerStatus,
 )
 from sentry.mediators import (
     sentry_apps,
@@ -268,8 +270,12 @@ class Factories(object):
     @staticmethod
     def create_environment(project, **kwargs):
         name = kwargs.get("name", petname.Generate(3, " ", letters=10)[:64])
+
+        organization = kwargs.get("organization")
+        organization_id = organization.id if organization else project.organization_id
+
         env = Environment.objects.create(
-            organization_id=project.organization_id, project_id=project.id, name=name
+            organization_id=organization_id, project_id=project.id, name=name
         )
         env.add_project(project, is_hidden=kwargs.get("is_hidden"))
         return env
@@ -666,7 +672,7 @@ class Factories(object):
         Factories.create_project(organization=organization)
 
         install = sentry_app_installations.Creator.run(
-            slug=(slug or Factories.create_sentry_app().slug),
+            slug=(slug or Factories.create_sentry_app(organization=organization).slug),
             organization=organization,
             user=(user or Factories.create_user()),
         )
@@ -861,6 +867,8 @@ class Factories(object):
         excluded_projects=None,
         date_added=None,
         dataset=QueryDatasets.EVENTS,
+        threshold_type=AlertRuleThresholdType.ABOVE,
+        resolve_threshold=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -872,7 +880,9 @@ class Factories(object):
             query,
             aggregate,
             time_window,
+            threshold_type,
             threshold_period,
+            resolve_threshold=resolve_threshold,
             dataset=dataset,
             environment=environment,
             include_all_projects=include_all_projects,
@@ -885,18 +895,19 @@ class Factories(object):
         return alert_rule
 
     @staticmethod
-    def create_alert_rule_trigger(
-        alert_rule,
-        label=None,
-        threshold_type=AlertRuleThresholdType.ABOVE,
-        alert_threshold=100,
-        resolve_threshold=10,
-    ):
+    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.Generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(
-            alert_rule, label, threshold_type, alert_threshold, resolve_threshold
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
+
+    @staticmethod
+    def create_incident_trigger(incident, alert_rule_trigger, status=None):
+        if status is None:
+            status = TriggerStatus.ACTIVE.value
+
+        return IncidentTrigger.objects.create(
+            alert_rule_trigger=alert_rule_trigger, incident=incident, status=status
         )
 
     @staticmethod

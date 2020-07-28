@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
-import FeatureBadge from 'app/components/featureBadge';
 import SearchBar from 'app/views/events/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -20,6 +19,7 @@ import EventView from 'app/utils/discover/eventView';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {IconFlag} from 'app/icons';
 import {decodeScalar} from 'app/utils/queryString';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
@@ -54,7 +54,6 @@ type Props = {
 type State = {
   eventView: EventView;
   error: string | undefined;
-  currentView: FilterViews;
 };
 
 class PerformanceLanding extends React.Component<Props, State> {
@@ -65,12 +64,16 @@ class PerformanceLanding extends React.Component<Props, State> {
   state: State = {
     eventView: generatePerformanceEventView(this.props.location),
     error: undefined,
-    currentView: FilterViews.ALL_TRANSACTIONS,
   };
 
   componentDidMount() {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.overview.view',
+      eventName: 'Performance Views: Transaction overview view',
+      organization_id: parseInt(organization.id, 10),
+    });
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -91,7 +94,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="error" icon="icon-circle-exclamation">
+      <Alert type="error" icon={<IconFlag size="md" />}>
         {error}
       </Alert>
     );
@@ -151,24 +154,34 @@ class PerformanceLanding extends React.Component<Props, State> {
     return stringifyQueryObject(parsed);
   }
 
-  renderHeaderButtons() {
-    const selectView = (viewKey: FilterViews) => {
-      return () => {
-        this.setState({
-          currentView: viewKey,
-        });
-      };
-    };
+  getCurrentView(): string {
+    const {location} = this.props;
+    const currentView = location.query.view as FilterViews;
+    if (Object.values(FilterViews).includes(currentView)) {
+      return currentView;
+    }
+    return FilterViews.ALL_TRANSACTIONS;
+  }
 
+  handleViewChange(viewKey: FilterViews) {
+    const {location} = this.props;
+
+    ReactRouter.browserHistory.push({
+      pathname: location.pathname,
+      query: {...location.query, view: viewKey},
+    });
+  }
+
+  renderHeaderButtons() {
     return (
-      <ButtonBar merged active={this.state.currentView}>
+      <ButtonBar merged active={this.getCurrentView()}>
         {VIEWS.map(viewKey => {
           return (
             <Button
               key={viewKey}
               barId={viewKey}
               size="small"
-              onClick={selectView(viewKey)}
+              onClick={() => this.handleViewChange(viewKey)}
             >
               {this.getViewLabel(viewKey)}
             </Button>
@@ -214,6 +227,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     const showOnboarding = this.shouldShowOnboarding();
     const filterString = this.getTransactionSearchQuery();
     const summaryConditions = this.getSummaryConditions(filterString);
+    const currentView = this.getCurrentView();
 
     return (
       <SentryDocumentTitle title={t('Performance')} objSlug={organization.slug}>
@@ -230,9 +244,7 @@ class PerformanceLanding extends React.Component<Props, State> {
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
-                <div>
-                  {t('Performance')} <FeatureBadge type="beta" />
-                </div>
+                <div>{t('Performance')}</div>
                 {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
               </StyledPageHeader>
               {this.renderError()}
@@ -243,7 +255,6 @@ class PerformanceLanding extends React.Component<Props, State> {
                   <StyledSearchBar
                     organization={organization}
                     projectIds={eventView.project}
-                    location={location}
                     query={filterString}
                     fields={eventView.fields}
                     onSearch={this.handleSearch}
@@ -253,7 +264,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     router={router}
-                    keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
+                    keyTransactions={currentView === 'KEY_TRANSACTIONS'}
                   />
                   <Table
                     eventView={eventView}
@@ -261,7 +272,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     setError={this.setError}
-                    keyTransactions={this.state.currentView === 'KEY_TRANSACTIONS'}
+                    keyTransactions={currentView === 'KEY_TRANSACTIONS'}
                     summaryConditions={summaryConditions}
                   />
                 </div>

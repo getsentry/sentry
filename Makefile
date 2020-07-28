@@ -4,7 +4,7 @@ WEBPACK := NODE_ENV=production yarn webpack
 # Currently, this is only required to install black via pre-commit.
 REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
 
-bootstrap: develop init-config run-dependent-services create-db apply-migrations
+bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
 develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
 
@@ -64,7 +64,7 @@ setup-git-config:
 
 setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
-	cd .git/hooks && ln -sf ../../config/hooks/* ./
+	mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
 	$(PIP) install "pre-commit==1.18.2" "virtualenv==20.0.23"
 	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) pre-commit install --install-hooks
@@ -147,7 +147,7 @@ test-cli:
 
 test-js-build: node-version-check
 	@echo "--> Running type check"
-	@yarn run tsc
+	@yarn run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
 	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
 
@@ -161,15 +161,14 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
-# builds and creates percy snapshots
-test-styleguide:
-	@echo "--> Building and snapshotting styleguide"
-	@yarn run snapshot
-	@echo ""
-
 test-python:
 	@echo "--> Running Python tests"
+	# This gets called by getsentry
+ifndef TEST_GROUP
 	py.test tests/integration tests/sentry
+else
+	py.test tests/integration tests/sentry -m group_$(TEST_GROUP)
+endif
 
 test-python-ci:
 	sentry init
@@ -202,7 +201,12 @@ test-plugins:
 	@echo "--> Building static assets"
 	@$(WEBPACK) --display errors-only
 	@echo "--> Running plugin tests"
-	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml"
+
+ifndef TEST_GROUP
+	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
+else
+	py.test tests/sentry_plugins -m group_$(TEST_GROUP) -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
+endif
 	@echo ""
 
 test-relay-integration:

@@ -153,6 +153,7 @@ exports[`TableField renders renders with form context 1`] = `
                 inline={true}
                 name="fieldName"
                 required={false}
+                showHelpInTooltip={false}
                 visible={true}
               >
                 <FieldWrapper
@@ -160,7 +161,7 @@ exports[`TableField renders renders with form context 1`] = `
                   inline={true}
                 >
                   <div
-                    className="css-hkyx7n-FieldWrapper-FieldWrapper e2iyls20"
+                    className="css-zwp5he-FieldWrapper-FieldWrapper e2iyls20"
                   >
                     <FieldControl
                       alignRight={false}
@@ -251,7 +252,7 @@ exports[`TableField renders renders with form context 1`] = `
                                       <forwardRef<Button>
                                         disabled={false}
                                         icon={
-                                          <ForwardRef
+                                          <ForwardRef(IconAdd)
                                             isCircled={true}
                                             size="xs"
                                           />
@@ -264,7 +265,7 @@ exports[`TableField renders renders with form context 1`] = `
                                           disabled={false}
                                           forwardRef={null}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconAdd)
                                               isCircled={true}
                                               size="xs"
                                             />
@@ -284,7 +285,7 @@ exports[`TableField renders renders with form context 1`] = `
                                             <Component
                                               aria-disabled={false}
                                               aria-label="Add Thing"
-                                              className="css-12ogwys-StyledButton edwq9my0"
+                                              className="css-8od3q1-StyledButton edwq9my0"
                                               forwardRef={null}
                                               onClick={[Function]}
                                               role="button"
@@ -293,7 +294,7 @@ exports[`TableField renders renders with form context 1`] = `
                                               <button
                                                 aria-disabled={false}
                                                 aria-label="Add Thing"
-                                                className="css-12ogwys-StyledButton edwq9my0"
+                                                className="css-8od3q1-StyledButton edwq9my0"
                                                 onClick={[Function]}
                                                 role="button"
                                                 size="xsmall"
@@ -313,7 +314,7 @@ exports[`TableField renders renders with form context 1`] = `
                                                         className="css-1hbuack-Icon edwq9my2"
                                                         size="xsmall"
                                                       >
-                                                        <ForwardRef
+                                                        <IconAdd
                                                           isCircled={true}
                                                           size="xs"
                                                         >
@@ -337,7 +338,7 @@ exports[`TableField renders renders with form context 1`] = `
                                                               />
                                                             </svg>
                                                           </ForwardRef(SvgIcon)>
-                                                        </ForwardRef>
+                                                        </IconAdd>
                                                       </span>
                                                     </Icon>
                                                     Add Thing
@@ -601,6 +602,7 @@ exports[`TableField renders renders without form context 1`] = `
           inline={true}
           name="fieldName"
           required={false}
+          showHelpInTooltip={false}
           visible={true}
         >
           <FieldWrapper
@@ -608,7 +610,7 @@ exports[`TableField renders renders without form context 1`] = `
             inline={true}
           >
             <div
-              className="css-hkyx7n-FieldWrapper-FieldWrapper e2iyls20"
+              className="css-zwp5he-FieldWrapper-FieldWrapper e2iyls20"
             >
               <FieldControl
                 alignRight={false}
@@ -674,7 +676,7 @@ exports[`TableField renders renders without form context 1`] = `
                                 <forwardRef<Button>
                                   disabled={false}
                                   icon={
-                                    <ForwardRef
+                                    <ForwardRef(IconAdd)
                                       isCircled={true}
                                       size="xs"
                                     />
@@ -687,7 +689,7 @@ exports[`TableField renders renders without form context 1`] = `
                                     disabled={false}
                                     forwardRef={null}
                                     icon={
-                                      <ForwardRef
+                                      <ForwardRef(IconAdd)
                                         isCircled={true}
                                         size="xs"
                                       />
@@ -707,7 +709,7 @@ exports[`TableField renders renders without form context 1`] = `
                                       <Component
                                         aria-disabled={false}
                                         aria-label="Add Item"
-                                        className="css-12ogwys-StyledButton edwq9my0"
+                                        className="css-8od3q1-StyledButton edwq9my0"
                                         forwardRef={null}
                                         onClick={[Function]}
                                         role="button"
@@ -716,7 +718,7 @@ exports[`TableField renders renders without form context 1`] = `
                                         <button
                                           aria-disabled={false}
                                           aria-label="Add Item"
-                                          className="css-12ogwys-StyledButton edwq9my0"
+                                          className="css-8od3q1-StyledButton edwq9my0"
                                           onClick={[Function]}
                                           role="button"
                                           size="xsmall"
@@ -736,7 +738,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                   className="css-1hbuack-Icon edwq9my2"
                                                   size="xsmall"
                                                 >
-                                                  <ForwardRef
+                                                  <IconAdd
                                                     isCircled={true}
                                                     size="xs"
                                                   >
@@ -760,7 +762,7 @@ exports[`TableField renders renders without form context 1`] = `
                                                         />
                                                       </svg>
                                                     </ForwardRef(SvgIcon)>
-                                                  </ForwardRef>
+                                                  </IconAdd>
                                                 </span>
                                               </Icon>
                                               Add Item

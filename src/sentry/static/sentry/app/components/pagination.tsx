@@ -4,6 +4,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Query} from 'history';
 
+import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -58,23 +59,33 @@ class Pagination extends React.Component<Props> {
       <div className={className}>
         <ButtonBar merged>
           <Button
+            icon={
+              <IconChevron
+                direction="left"
+                size="sm"
+                color={previousDisabled ? 'gray400' : 'gray700'}
+              />
+            }
             aria-label={t('Previous')}
             disabled={previousDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.previous.cursor, path, query, -1);
             }}
-          >
-            <IconSpan className="icon-arrow-left" disabled={previousDisabled} />
-          </Button>
+          />
           <Button
+            icon={
+              <IconChevron
+                direction="right"
+                size="sm"
+                color={nextDisabled ? 'gray400' : 'gray700'}
+              />
+            }
             aria-label={t('Next')}
             disabled={nextDisabled}
             onClick={() => {
               callIfFunction(onCursor, links.next.cursor, path, query, 1);
             }}
-          >
-            <IconSpan className="icon-arrow-right" disabled={nextDisabled} />
-          </Button>
+          />
         </ButtonBar>
       </div>
     );
@@ -86,15 +97,4 @@ export default styled(Pagination)`
   align-items: center;
   justify-content: flex-end;
   margin: 20px 0 0 0;
-
-  .icon-arrow-right,
-  .icon-arrow-left {
-    font-size: 20px !important;
-  }
-`;
-
-// TODO this component and the icons should be replaced with IconChevron but
-// that icon has rendering issues on percy.
-const IconSpan = styled('span')<{disabled: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray700)};
 `;

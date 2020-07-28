@@ -8,7 +8,7 @@ export const LEARN_MORE = 'Learn More' as const;
 export const COLORS = {
   [INSTALLED]: 'success',
   [NOT_INSTALLED]: 'gray500',
-  [PENDING]: 'yellowOrange',
+  [PENDING]: 'orange300',
   [LEARN_MORE]: 'gray500',
 } as const;
 
@@ -30,6 +30,7 @@ export const POPULARITY_WEIGHT: {
   jira_server: 10,
   bitbucket_server: 10,
   github_enterprise: 10,
+  vercel: 10,
 
   // Sentry-apps
   clubhouse: 9,

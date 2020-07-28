@@ -1,14 +1,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
+import {IconCheckmark} from 'app/icons';
 import CustomResolutionModal from 'app/components/customResolutionModal';
 import MenuItem from 'app/components/menuItem';
 import DropdownLink from 'app/components/dropdownLink';
 import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 import {formatVersion} from 'app/utils/formatters';
+import space from 'app/styles/space';
 import {
   Release,
   ResolutionStatus,
@@ -87,7 +90,7 @@ class ResolveActions extends React.Component<Props, State> {
             )}
           >
             <a className={this.getButtonClass('active')}>
-              <span className="icon-checkmark" />
+              <IconCheckmark size="xs" />
             </a>
           </Tooltip>
         </div>
@@ -101,7 +104,7 @@ class ResolveActions extends React.Component<Props, State> {
               className={this.getButtonClass('active')}
               onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
             >
-              <span className="icon-checkmark" />
+              <IconCheckmark size="xs" />
             </a>
           </Tooltip>
         </div>
@@ -161,7 +164,7 @@ class ResolveActions extends React.Component<Props, State> {
               className={buttonClass}
               onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
             >
-              <span className="icon-checkmark hidden-xs" style={{marginRight: 5}} />
+              <StyledIconCheckmark size="xs" />
               {t('Resolve')}
             </ActionLink>
 
@@ -232,5 +235,12 @@ class ResolveActions extends React.Component<Props, State> {
     );
   }
 }
+
+const StyledIconCheckmark = styled(IconCheckmark)`
+  margin-right: ${space(0.5)};
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
 
 export default ResolveActions;

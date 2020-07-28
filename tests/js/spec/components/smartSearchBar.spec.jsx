@@ -81,6 +81,74 @@ describe('SmartSearchBar', function() {
     MockApiClient.clearMockResponses();
   });
 
+  it('quotes in values with spaces when autocompleting', async function() {
+    jest.useRealTimers();
+    const getTagValuesMock = jest.fn().mockImplementation(() => {
+      return Promise.resolve(['this is filled with spaces']);
+    });
+    const onSearch = jest.fn();
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      organization,
+      supportedTags,
+      onGetTagValues: getTagValuesMock,
+      onSearch,
+    };
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('input').simulate('focus');
+    searchBar.find('input').simulate('change', {target: {value: 'device:this'}});
+    await tick();
+
+    const preventDefault = jest.fn();
+    searchBar.find('input').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    await tick();
+
+    expect(searchBar.find('input').props().value).toEqual(
+      'device:"this is filled with spaces"'
+    );
+  });
+
+  it('escapes quotes in values properly when autocompleting', async function() {
+    jest.useRealTimers();
+    const getTagValuesMock = jest.fn().mockImplementation(() => {
+      return Promise.resolve(['this " is " filled " with " quotes']);
+    });
+    const onSearch = jest.fn();
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      organization,
+      supportedTags,
+      onGetTagValues: getTagValuesMock,
+      onSearch,
+    };
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('input').simulate('focus');
+    searchBar.find('input').simulate('change', {target: {value: 'device:this'}});
+    await tick();
+
+    const preventDefault = jest.fn();
+    searchBar.find('input').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    await tick();
+
+    expect(searchBar.find('input').props().value).toEqual(
+      'device:"this \\" is \\" filled \\" with \\" quotes"'
+    );
+  });
+
   it('does not preventDefault when there are no search items and is loading and enter is pressed', async function() {
     jest.useRealTimers();
     const getTagValuesMock = jest.fn().mockImplementation(() => {
@@ -588,6 +656,70 @@ describe('SmartSearchBar', function() {
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
       searchBar.onAutoComplete('12345', {type: 'tag-value'});
       expect(searchBar.state.query).toEqual('event.type:error id:12345 ');
+    });
+
+    it('keeps the negation operator is present', function() {
+      const props = {
+        query: '',
+        organization,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const input = smartSearchBar.find('input');
+      // start typing part of the tag prefixed by the negation operator!
+      input.simulate('change', {target: {value: 'event.type:error !ti'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('title:', {});
+      expect(searchBar.state.query).toEqual('event.type:error !title:');
+    });
+
+    it('removes wildcard', function() {
+      const props = {
+        query: '',
+        organization,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const input = smartSearchBar.find('input');
+
+      // leading wildcard
+      input.simulate('change', {target: {value: 'event.type:*err'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('error', {});
+      expect(searchBar.state.query).toEqual('event.type:error');
+
+      // trailing wildcard
+      input.simulate('change', {target: {value: 'event.type:err*'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
+      // use autocompletion to do the rest
+      searchBar.onAutoComplete('error', {});
+      expect(searchBar.state.query).toEqual('event.type:error');
+    });
+
+    it('handles special case for user tag', function() {
+      const props = {
+        query: '',
+        organization,
+        supportedTags,
+      };
+      const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBar = smartSearchBar.instance();
+      const input = smartSearchBar.find('input');
+
+      input.simulate('change', {target: {value: 'user:'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
+      searchBar.onAutoComplete('id:1', {});
+      expect(searchBar.state.query).toEqual('user.id:1');
+
+      // try it with the SEARCH_WILDCARD
+      input.simulate('change', {target: {value: 'user:1*'}});
+      searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
+      searchBar.onAutoComplete('ip:127.0.0.1', {});
+      expect(searchBar.state.query).toEqual('user.ip:127.0.0.1');
     });
   });
 

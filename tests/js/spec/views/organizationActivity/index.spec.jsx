@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import OrganizationActivity from 'app/views/organizationActivity';
 
-describe('OrganizationUserFeedback', function() {
+describe('OrganizationActivity', function() {
   const {router, organization, routerContext} = initializeOrg();
   let params = {};
 
@@ -43,6 +43,18 @@ describe('OrganizationUserFeedback', function() {
     const wrapper = mount(<OrganizationActivity {...params} />, routerContext);
 
     expect(wrapper.find('ActivityItem')).toHaveLength(0);
-    expect(wrapper.find('EmptyMessage')).toHaveLength(1);
+    expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+  });
+
+  it('renders not found', function() {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/activity/',
+      body: [],
+      statusCode: 404,
+    });
+    const wrapper = mount(<OrganizationActivity {...params} />, routerContext);
+
+    expect(wrapper.find('ActivityItem')).toHaveLength(0);
+    expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
   });
 });

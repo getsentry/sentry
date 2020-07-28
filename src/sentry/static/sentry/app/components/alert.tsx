@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
+import {withScope, captureException, Severity} from '@sentry/react';
 
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
@@ -13,7 +14,6 @@ export type Props = {
   iconSize?: string;
   icon?: string | React.ReactNode;
   system?: boolean;
-  thinner?: boolean;
 };
 
 type AlertProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
@@ -52,15 +52,10 @@ const getSystemAlertColorStyles = ({
   }
 `;
 
-const alertStyles = ({
-  theme,
-  type = DEFAULT_TYPE,
-  system,
-  thinner,
-}: Props & {theme: any}) => css`
+const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: any}) => css`
   display: flex;
   margin: 0 0 ${space(3)};
-  padding: ${space(thinner ? 1 : 2)};
+  padding: ${space(1.5)} ${space(2)};
   font-size: 15px;
   box-shadow: ${theme.dropShadowLight};
   border-radius: ${theme.borderRadius};
@@ -78,7 +73,12 @@ const alertStyles = ({
 
 const IconWrapper = styled('span')`
   display: flex;
-  margin: ${space(0.5)} ${space(1.5)} ${space(0.5)} 0;
+  margin-right: ${space(1)};
+
+  /* Give the wrapper an explicit height so icons are line height with the
+   * (common) line height. */
+  height: 22px;
+  align-items: center;
 `;
 
 const StyledTextBlock = styled('span')`
@@ -97,16 +97,26 @@ const Alert = styled(
     className,
     system: _system, // don't forward to `div`
     ...props
-  }: AlertProps) => (
-    <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
-      {icon && (
-        <IconWrapper>
-          {typeof icon === 'string' ? <InlineSvg src={icon} size={iconSize!} /> : icon}
-        </IconWrapper>
-      )}
-      <StyledTextBlock>{children}</StyledTextBlock>
-    </div>
-  )
+  }: AlertProps) => {
+    if (typeof icon === 'string') {
+      withScope(scope => {
+        scope.setLevel(Severity.Warning);
+        scope.setTag('icon', icon);
+        scope.setTag('componentType', 'alert');
+        captureException(new Error('Deprecated SVG icon referenced'));
+      });
+    }
+    return (
+      <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
+        {icon && (
+          <IconWrapper>
+            {typeof icon === 'string' ? <InlineSvg src={icon} size={iconSize!} /> : icon}
+          </IconWrapper>
+        )}
+        <StyledTextBlock>{children}</StyledTextBlock>
+      </div>
+    );
+  }
 )<AlertProps>`
   ${alertStyles}
 `;
@@ -116,12 +126,11 @@ Alert.propTypes = {
   iconSize: PropTypes.string,
   icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
   system: PropTypes.bool,
-  thinner: PropTypes.bool,
 };
 
 Alert.defaultProps = {
   type: DEFAULT_TYPE,
-  iconSize: '24px',
+  iconSize: '20px',
 };
 
 export {alertStyles};

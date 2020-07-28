@@ -26,12 +26,15 @@
 /src/sentry/scripts/tsdb/          @getsentry/owners-ingest
 
 # Security
-/src/sentry/net/    @getsentry/security
+/src/sentry/net/                    @getsentry/security
+/src/sentry/auth/                   @getsentry/security
+/src/sentry/api/permissions.py      @getsentry/security
 
 # Build & Releases
-/docker             @getsentry/releases
-setup.py            @getsentry/releases
-setup.cfg           @getsentry/releases
+/.github/workflows/release.yml  @getsentry/releases
+/docker                         @getsentry/releases
+setup.py                        @getsentry/releases
+setup.cfg                       @getsentry/releases
 # TODO: owners-build (for travis / gha)
 requirements*.txt   @getsentry/owners-python-build
 pyproject.toml      @getsentry/owners-python-build

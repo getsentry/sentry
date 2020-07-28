@@ -126,10 +126,11 @@ def value_from_row(row, tagkey):
 
 def zerofill(data, start, end, rollup):
     rv = []
-    start = (int(to_timestamp(start)) // rollup) * rollup
-    end = ((int(to_timestamp(end)) // rollup) * rollup) + rollup
+    end = int(to_timestamp(end))
+    rollup_start = (int(to_timestamp(start)) // rollup) * rollup
+    rollup_end = (end // rollup) * rollup
     i = 0
-    for key in six.moves.xrange(start, end, rollup):
+    for key in six.moves.xrange(rollup_start, rollup_end, rollup):
         try:
             while data[i][0] < key:
                 rv.append(data[i])
@@ -142,6 +143,11 @@ def zerofill(data, start, end, rollup):
             pass
 
         rv.append((key, []))
+    # Add any remaining rows that are not aligned to the rollup and are lower than the
+    # end date.
+    if i < len(data):
+        rv.extend(row for row in data[i:] if row[0] < rollup_end)
+
     return rv
 
 

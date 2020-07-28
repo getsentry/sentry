@@ -1,5 +1,6 @@
 import React from 'react';
 import {Location, LocationDescriptorObject} from 'history';
+import * as ReactRouter from 'react-router';
 
 import {Organization, Project} from 'app/types';
 import Pagination from 'app/components/pagination';
@@ -9,9 +10,11 @@ import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/typ
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
+import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
@@ -55,19 +58,104 @@ class Table extends React.Component<Props, State> {
     widths: [],
   };
 
-  renderBodyCell = (tableMeta: TableData['meta']) => {
+  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
+    return (action: Actions, value: React.ReactText) => {
+      const {eventView, location, organization} = this.props;
+
+      let nextLocationQuery: Location['query'] = {};
+      const searchConditions = tokenizeSearch(eventView.query);
+
+      // remove any event.type queries since it is implied to apply to only transactions
+      searchConditions.removeTag('event.type');
+
+      trackAnalyticsEvent({
+        eventKey: 'performance_views.overview.cellaction',
+        eventName: 'Performance Views: Cell Action Clicked',
+        organization_id: parseInt(organization.id, 10),
+        action,
+      });
+
+      switch (action) {
+        case Actions.ADD: {
+          // Remove exclusion if it exists.
+          searchConditions.removeTag(`!${column.name}`).setTag(column.name, [`${value}`]);
+
+          nextLocationQuery = {
+            query: stringifyQueryObject(searchConditions),
+          };
+
+          break;
+        }
+        case Actions.EXCLUDE: {
+          // Remove positive if it exists.
+          searchConditions.removeTag(column.name);
+          // Negations should stack up.
+          const negation = `!${column.name}`;
+          searchConditions.addTag(negation, [`${value}`]);
+
+          nextLocationQuery = {
+            query: stringifyQueryObject(searchConditions),
+          };
+
+          break;
+        }
+        case Actions.SHOW_GREATER_THAN: {
+          // Remove query token if it already exists
+          searchConditions.setTag(column.name, [`>${value}`]);
+
+          nextLocationQuery = {
+            query: stringifyQueryObject(searchConditions),
+          };
+
+          break;
+        }
+        case Actions.SHOW_LESS_THAN: {
+          // Remove query token if it already exists
+          searchConditions.setTag(column.name, [`<${value}`]);
+
+          nextLocationQuery = {
+            query: stringifyQueryObject(searchConditions),
+          };
+
+          break;
+        }
+        default:
+          throw new Error(`Unknown action type. ${action}`);
+      }
+
+      ReactRouter.browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          ...nextLocationQuery,
+        },
+      });
+    };
+  };
+
+  renderBodyCell = (tableData: TableData | null) => {
     const {eventView, organization, projects, location, summaryConditions} = this.props;
 
     return (
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
     ): React.ReactNode => {
-      if (!tableMeta) {
-        return null;
+      if (!tableData || !tableData.meta) {
+        return dataRow[column.key];
       }
+      const tableMeta = tableData.meta;
+
       const field = String(column.key);
       const fieldRenderer = getFieldRenderer(field, tableMeta);
-      let rendered = fieldRenderer(dataRow, {organization, location});
+      const rendered = fieldRenderer(dataRow, {organization, location});
+
+      const allowActions = [
+        Actions.ADD,
+        Actions.EXCLUDE,
+        Actions.SHOW_GREATER_THAN,
+        Actions.SHOW_LESS_THAN,
+      ];
 
       if (field === 'transaction') {
         const projectID = getProjectID(dataRow, projects);
@@ -81,14 +169,35 @@ class Table extends React.Component<Props, State> {
           projectID,
         });
 
-        rendered = (
-          <Link to={target} onClick={this.handleSummaryClick}>
-            {rendered}
-          </Link>
+        return (
+          <CellAction
+            column={column}
+            dataRow={dataRow}
+            handleCellAction={this.handleCellAction(column)}
+            allowActions={allowActions}
+          >
+            <Link to={target} onClick={this.handleSummaryClick}>
+              {rendered}
+            </Link>
+          </CellAction>
         );
       }
 
-      return rendered;
+      if (field.startsWith('user_misery')) {
+        // don't display per cell actions for user_misery
+        return rendered;
+      }
+
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          {rendered}
+        </CellAction>
+      );
     };
   };
 
@@ -180,7 +289,7 @@ class Table extends React.Component<Props, State> {
                 grid={{
                   onResizeColumn: this.handleResizeColumn,
                   renderHeadCell: this.renderHeadCell(tableData?.meta) as any,
-                  renderBodyCell: this.renderBodyCell(tableData?.meta) as any,
+                  renderBodyCell: this.renderBodyCell(tableData) as any,
                 }}
                 location={location}
               />

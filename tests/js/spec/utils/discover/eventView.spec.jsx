@@ -3,7 +3,11 @@ import EventView, {
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
-import {CHART_AXIS_OPTIONS, DISPLAY_MODE_OPTIONS} from 'app/utils/discover/types';
+import {
+  CHART_AXIS_OPTIONS,
+  DisplayModes,
+  DISPLAY_MODE_OPTIONS,
+} from 'app/utils/discover/types';
 
 const generateFields = fields =>
   fields.map(field => ({
@@ -561,6 +565,7 @@ describe('EventView.generateQueryStringObject()', function() {
       environment: ['staging'],
       yAxis: 'count()',
       display: 'releases',
+      interval: '1m',
     };
 
     const eventView = new EventView(state);
@@ -579,6 +584,7 @@ describe('EventView.generateQueryStringObject()', function() {
       environment: ['staging'],
       yAxis: 'count()',
       display: 'releases',
+      interval: '1m',
     };
 
     expect(eventView.generateQueryStringObject()).toEqual(expected);
@@ -1163,6 +1169,37 @@ describe('EventView.numOfColumns()', function() {
   });
 });
 
+describe('EventView.getDays()', function() {
+  it('returns the right number of days for statsPeriod', function() {
+    const eventView = new EventView({
+      statsPeriod: '14d',
+    });
+
+    expect(eventView.getDays()).toBe(14);
+
+    const eventView2 = new EventView({
+      statsPeriod: '12h',
+    });
+
+    expect(eventView2.getDays()).toBe(0.5);
+  });
+
+  it('returns the right number of days for start/end', function() {
+    const eventView = new EventView({
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-02T00:00:00',
+    });
+
+    expect(eventView.getDays()).toBe(1);
+
+    const eventView2 = new EventView({
+      start: '2019-10-01T00:00:00',
+      end: '2019-10-15T00:00:00',
+    });
+    expect(eventView2.getDays()).toBe(14);
+  });
+});
+
 describe('EventView.clone()', function() {
   it('returns a unique instance', function() {
     const state = {
@@ -1176,6 +1213,7 @@ describe('EventView.clone()', function() {
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
       environment: ['staging'],
+      interval: '5m',
       display: 'releases',
     };
 
@@ -2146,15 +2184,21 @@ describe('EventView.getGlobalSelection()', function() {
     const eventView = new EventView({});
 
     expect(eventView.getGlobalSelection()).toMatchObject({
-      project: [],
-      start: undefined,
-      end: undefined,
-      statsPeriod: undefined,
-      environment: [],
+      projects: [],
+      environments: [],
+      datetime: {
+        start: null,
+        end: null,
+        period: '',
+
+        // event views currently do not support the utc option,
+        // see comment in EventView.getGlobalSelection
+        utc: true,
+      },
     });
   });
 
-  it('returns global selection', function() {
+  it('returns global selection query', function() {
     const state2 = {
       project: [42],
       start: 'start',
@@ -2165,7 +2209,60 @@ describe('EventView.getGlobalSelection()', function() {
 
     const eventView = new EventView(state2);
 
-    expect(eventView.getGlobalSelection()).toMatchObject(state2);
+    expect(eventView.getGlobalSelection()).toMatchObject({
+      projects: state2.project,
+      environments: state2.environment,
+      datetime: {
+        start: state2.start,
+        end: state2.end,
+        period: state2.statsPeriod,
+
+        // event views currently do not support the utc option,
+        // see comment in EventView.getGlobalSelection
+        utc: true,
+      },
+    });
+  });
+});
+
+describe('EventView.getGlobalSelectionQuery()', function() {
+  it('return default global selection query', function() {
+    const eventView = new EventView({});
+
+    expect(eventView.getGlobalSelectionQuery()).toMatchObject({
+      project: [],
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+      environment: [],
+
+      // event views currently do not support the utc option,
+      // see comment in EventView.getGlobalSelection
+      utc: 'true',
+    });
+  });
+
+  it('returns global selection query', function() {
+    const state2 = {
+      project: [42],
+      start: 'start',
+      end: 'end',
+      statsPeriod: '42d',
+      environment: ['prod'],
+    };
+
+    const eventView = new EventView(state2);
+
+    expect(eventView.getGlobalSelectionQuery()).toMatchObject({
+      ...state2,
+
+      // when generating the query, it converts numbers to strings
+      project: ['42'],
+
+      // event views currently do not support the utc option,
+      // see comment in EventView.getGlobalSelection
+      utc: 'true',
+    });
   });
 });
 
@@ -2239,8 +2336,8 @@ describe('EventView.getYAxisOptions()', function() {
       fields: generateFields([
         'ignored-field',
         'count_unique(issue)',
-        'last_seen',
-        'latest_event',
+        'last_seen()',
+        'latest_event()',
       ]),
     });
 
@@ -2313,7 +2410,11 @@ describe('EventView.getDisplayOptions()', function() {
   };
 
   it('should return default options', function() {
-    const eventView = new EventView(state);
+    const eventView = new EventView({
+      ...state,
+      // there needs to exist an aggregate or TOP 5 modes will be disabled
+      fields: [{field: 'count()'}],
+    });
 
     expect(eventView.getDisplayOptions()).toEqual(DISPLAY_MODE_OPTIONS);
   });
@@ -2328,6 +2429,78 @@ describe('EventView.getDisplayOptions()', function() {
     const options = eventView.getDisplayOptions();
     expect(options[1].value).toEqual('previous');
     expect(options[1].disabled).toBeTruthy();
+  });
+
+  it('should disable top 5 period/daily if no aggregates present', function() {
+    const eventView = new EventView({
+      ...state,
+    });
+
+    const options = eventView.getDisplayOptions();
+    expect(options[2].value).toEqual('top5');
+    expect(options[2].disabled).toBeTruthy();
+    expect(options[4].value).toEqual('dailytop5');
+    expect(options[4].disabled).toBeTruthy();
+  });
+});
+
+describe('EventView.getDisplayMode()', function() {
+  const state = {
+    fields: [],
+    sorts: [],
+    query: '',
+    project: [],
+    statsPeriod: '42d',
+    environment: [],
+  };
+
+  it('should have default', function() {
+    const eventView = new EventView({
+      ...state,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DEFAULT);
+  });
+
+  it('should return current mode when not disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      display: DisplayModes.DAILY,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DAILY);
+  });
+
+  it('should return default mode when disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      // the existence of start and end will disable the PREVIOUS mode
+      end: '2020-04-13T12:13:14',
+      start: '2020-04-01T12:13:14',
+      display: DisplayModes.PREVIOUS,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DEFAULT);
+  });
+
+  it('top 5 should fallback to default when disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      // the lack of an aggregate will disable the TOP5 mode
+      display: DisplayModes.TOP5,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DEFAULT);
+  });
+
+  it('top 5 daily should fallback to daily when disabled', function() {
+    const eventView = new EventView({
+      ...state,
+      // the lack of an aggregate will disable the DAILYTOP5 mode
+      display: DisplayModes.DAILYTOP5,
+    });
+    const displayMode = eventView.getDisplayMode();
+    expect(displayMode).toEqual(DisplayModes.DAILY);
   });
 });
 

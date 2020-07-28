@@ -49,17 +49,16 @@ exports[`ExceptionMechanism basic attributes should add the help_link to the des
               className="external-icon"
               href="https://example.org/help"
             >
-              <em
-                className="icon-open"
+              <ForwardRef(IconOpen)
+                size="xs"
               />
             </a>
           </span>
         }
         position="top"
       >
-        <InlineSvg
+        <IconInfo
           size="14px"
-          src="icon-circle-info"
         />
       </Hovercard>
     </Pill>
@@ -87,9 +86,8 @@ exports[`ExceptionMechanism basic attributes should not add the help_link if not
         }
         position="top"
       >
-        <InlineSvg
+        <IconInfo
           size="14px"
-          src="icon-circle-info"
         />
       </Hovercard>
     </Pill>
@@ -117,9 +115,8 @@ exports[`ExceptionMechanism basic attributes should render a description hoverca
         }
         position="top"
       >
-        <InlineSvg
+        <IconInfo
           size="14px"
-          src="icon-circle-info"
         />
       </Hovercard>
     </Pill>
@@ -139,8 +136,8 @@ exports[`ExceptionMechanism basic attributes should render a help_link icon 1`] 
         className="external-icon"
         href="https://example.org/help"
       >
-        <em
-          className="icon-open"
+        <IconOpen
+          size="xs"
         />
       </a>
     </Pill>

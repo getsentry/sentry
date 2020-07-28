@@ -2,8 +2,12 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
 
 import {Organization, Project} from 'app/types';
-import {createDefaultRule} from 'app/views/settings/incidentRules/constants';
+import {
+  createDefaultRule,
+  createRuleFromEventView,
+} from 'app/views/settings/incidentRules/constants';
 import recreateRoute from 'app/utils/recreateRoute';
+import EventView from 'app/utils/discover/eventView';
 
 import RuleForm from './ruleForm';
 
@@ -16,6 +20,8 @@ type RouteParams = {
 type Props = {
   organization: Organization;
   project: Project;
+  eventView: EventView | undefined;
+  sessionId?: string;
 } & RouteComponentProps<RouteParams, {}>;
 
 /**
@@ -29,12 +35,16 @@ class IncidentRulesCreate extends React.Component<Props> {
   };
 
   render() {
-    const {project, ...props} = this.props;
+    const {project, eventView, sessionId, ...props} = this.props;
+    const defaultRule = eventView
+      ? createRuleFromEventView(eventView)
+      : createDefaultRule();
 
     return (
       <RuleForm
         onSubmitSuccess={this.handleSubmitSuccess}
-        rule={{...createDefaultRule(), projects: [project.slug]}}
+        rule={{...defaultRule, projects: [project.slug]}}
+        sessionId={sessionId}
         {...props}
       />
     );

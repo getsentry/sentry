@@ -3,10 +3,10 @@ import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import * as Sentry from '@sentry/browser';
 import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -25,7 +25,7 @@ import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {Client} from 'app/api';
-import {SavedSearch, LightWeightOrganization} from 'app/types';
+import {LightWeightOrganization, SavedSearch, Tag} from 'app/types';
 import {
   fetchRecentSearches,
   pinSearch,
@@ -36,11 +36,10 @@ import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
   NEGATION_OPERATOR,
-  SEARCH_WILDCARD,
 } from 'app/constants';
 
 import SearchDropdown from './searchDropdown';
-import {SearchItem, SearchType, SearchGroup, Tag, ItemType} from './types';
+import {SearchItem, SearchType, SearchGroup, ItemType} from './types';
 import {
   addSpace,
   removeSpace,
@@ -94,7 +93,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.gray400}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.borderDark}`};
     border-radius: 0;
   }
 
@@ -215,7 +214,7 @@ type Props = {
    * is because we don't want to treat environment as a tag in some places
    * such as the stream view where it is a top level concept
    */
-  excludeEnvironment: boolean;
+  excludeEnvironment?: boolean;
 };
 
 type State = {
@@ -607,9 +606,10 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       return values.map(value => {
         // Wrap in quotes if there is a space
-        const escapedValue = value.includes(' ')
-          ? `"${value.replace('"', '\\"')}"`
-          : value;
+        const escapedValue =
+          value.includes(' ') || value.includes('"')
+            ? `"${value.replace(/"/g, '\\"')}"`
+            : value;
 
         return {value: escapedValue, desc: escapedValue, type: 'tag-value' as ItemType};
       });
@@ -623,7 +623,7 @@ class SmartSearchBar extends React.Component<Props, State> {
    * with results
    */
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
-    tag.values
+    (tag.values ?? [])
       .filter(value => value.indexOf(query) > -1)
       .map(value => ({
         value,
@@ -990,20 +990,33 @@ class SmartSearchBar extends React.Component<Props, State> {
       newQuery = `${query}${replaceText}`;
     } else {
       const last = terms.pop() ?? '';
-
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
-      const prefix = newQuery.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
-      const valuePrefix = newQuery.endsWith(SEARCH_WILDCARD) ? SEARCH_WILDCARD : '';
+      const prefix = last.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
 
-      // newQuery is "<term>:"
+      // newQuery is all the terms up to the current term: "... <term>:"
       // replaceText should be the selected value
-      newQuery =
-        last.indexOf(':') > -1
-          ? // tag key present: replace everything after colon with replaceText
-            newQuery.replace(/\:"[^"]*"?$|\:\S*$/, `:${valuePrefix}` + replaceText)
-          : // no tag key present: replace last token with replaceText
-            newQuery.replace(/\S+$/, `${prefix}${replaceText}`);
+      if (last.indexOf(':') > -1) {
+        let replacement = `:${replaceText}`;
+
+        // NOTE: The user tag is a special case here as it store values like
+        // `id:1` or `ip:127.0.0.1`. To handle autocompletion for it correctly,
+        // and efficiently, we convert the tag to be `user.id` or `user.ip` etc.
+        if (last.startsWith('user:')) {
+          const colonIndex = replaceText.indexOf(':');
+          if (colonIndex > -1) {
+            const tagEnding = replaceText.substring(0, colonIndex);
+            const tagValue = replaceText.substring(colonIndex + 1);
+            replacement = `.${tagEnding}:${tagValue}`;
+          }
+        }
+
+        // tag key present: replace everything after colon with replaceText
+        newQuery = newQuery.replace(/\:"[^"]*"?$|\:\S*$/, replacement);
+      } else {
+        // no tag key present: replace last token with replaceText
+        newQuery = newQuery.replace(/\S+$/, `${prefix}${replaceText}`);
+      }
 
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }

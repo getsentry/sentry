@@ -5,13 +5,9 @@ exports[`MutedBox render() handles default 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <span
-      className="icon icon-soundoff"
-      style={
-        Object {
-          "color": "#e03e2f",
-        }
-      }
+    <IconMute
+      color="red400"
+      size="sm"
     />
     <span>
       This issue has been ignored
@@ -27,13 +23,9 @@ exports[`MutedBox render() handles ignoreCount 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <span
-      className="icon icon-soundoff"
-      style={
-        Object {
-          "color": "#e03e2f",
-        }
-      }
+    <IconMute
+      color="red400"
+      size="sm"
     />
     <span>
       This issue has been ignored until it affects 
@@ -55,13 +47,9 @@ exports[`MutedBox render() handles ignoreCount with ignoreWindow 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <span
-      className="icon icon-soundoff"
-      style={
-        Object {
-          "color": "#e03e2f",
-        }
-      }
+    <IconMute
+      color="red400"
+      size="sm"
     />
     <span>
       This issue has been ignored until it occurs 
@@ -90,13 +78,9 @@ exports[`MutedBox render() handles ignoreUntil 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <span
-      className="icon icon-soundoff"
-      style={
-        Object {
-          "color": "#e03e2f",
-        }
-      }
+    <IconMute
+      color="red400"
+      size="sm"
     />
     <span>
       This issue has been ignored until 
@@ -120,13 +104,9 @@ exports[`MutedBox render() handles ignoreUserCount 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <span
-      className="icon icon-soundoff"
-      style={
-        Object {
-          "color": "#e03e2f",
-        }
-      }
+    <IconMute
+      color="red400"
+      size="sm"
     />
     <span>
       This issue has been ignored until it affects 
@@ -148,13 +128,9 @@ exports[`MutedBox render() handles ignoreUserCount with ignoreUserWindow 1`] = `
   priority="default"
 >
   <BannerSummary>
-    <span
-      className="icon icon-soundoff"
-      style={
-        Object {
-          "color": "#e03e2f",
-        }
-      }
+    <IconMute
+      color="red400"
+      size="sm"
     />
     <span>
       This issue has been ignored until it affects 

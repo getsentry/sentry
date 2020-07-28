@@ -81,6 +81,7 @@ exports[`FormField + model renders with Form 1`] = `
               inline={true}
               name="fieldName"
               required={false}
+              showHelpInTooltip={false}
               type="text"
               visible={true}
             >
@@ -89,7 +90,7 @@ exports[`FormField + model renders with Form 1`] = `
                 inline={true}
               >
                 <div
-                  className="css-hkyx7n-FieldWrapper-FieldWrapper e2iyls20"
+                  className="css-zwp5he-FieldWrapper-FieldWrapper e2iyls20"
                 >
                   <FieldControl
                     alignRight={false}
@@ -220,7 +221,7 @@ exports[`FormField + model renders with Form 1`] = `
                                     value=""
                                   >
                                     <input
-                                      className="css-1iurn5e-Input e1xej46s0"
+                                      className="css-1g2jzij-Input e1xej46s0"
                                       disabled={false}
                                       id="fieldName"
                                       name="fieldName"

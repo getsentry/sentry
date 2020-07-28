@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
 import {t} from 'app/locale';
+import {IconChevron, IconSentry} from 'app/icons';
 import Avatar from 'app/components/avatar';
 import ConfigStore from 'app/stores/configStore';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
 import IdBadge from 'app/components/idBadge';
-import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/links/link';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem, {menuItemStyles} from 'app/components/sidebar/sidebarMenuItem';
@@ -58,7 +58,7 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
       />
     ) : (
       <SentryLink to="/">
-        <InlineSvg css={{fontSize: 32}} src="icon-sentry" />
+        <IconSentry size="32px" />
       </SentryLink>
     );
 
@@ -76,7 +76,7 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
               <OrgAndUserWrapper>
                 <OrgOrUserName>
                   {hasOrganization ? org.name : user.name}{' '}
-                  <i className="icon-arrow-down" />
+                  <StyledIconChevron color="white" size="xs" direction="down" />
                 </OrgOrUserName>
                 <UserNameOrEmail>
                   {hasOrganization ? user.name : user.email}
@@ -222,4 +222,8 @@ const OrgAndUserMenu = styled('div')`
   top: 42px;
   min-width: 180px;
   z-index: ${p => p.theme.zIndex.orgAndUserMenu};
+`;
+
+const StyledIconChevron = styled(IconChevron)`
+  margin-left: ${space(0.25)};
 `;

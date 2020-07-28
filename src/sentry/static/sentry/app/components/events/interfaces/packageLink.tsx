@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {IconChevron} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
-import InlineSvg from 'app/components/inlineSvg';
 import {PackageStatusIcon} from 'app/components/events/interfaces/packageStatus';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
@@ -44,17 +44,18 @@ class PackageLink extends React.Component<Props> {
           <span>{'<unknown>'}</span>
         )}
         {children}
-        {isClickable && <LinkChevron src="icon-chevron-right" />}
+        {isClickable && <LinkChevron direction="right" size="xs" />}
       </Package>
     );
   }
 }
 
-const LinkChevron = styled(InlineSvg)`
+const LinkChevron = styled(IconChevron)`
   opacity: 0;
-  transform: translateX(${space(0.25)});
   transition: all 0.2s ease-in-out;
   vertical-align: top;
+  margin-left: ${space(0.5)};
+  flex-shrink: 0;
 `;
 
 const Package = styled('a')<Partial<Props>>`
@@ -65,12 +66,12 @@ const Package = styled('a')<Partial<Props>>`
   cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
   ${PackageStatusIcon} {
     opacity: 0;
+    flex-shrink: 0;
   }
   &:hover {
     color: ${p => p.theme.gray700};
     ${LinkChevron} {
       opacity: 1;
-      transform: translateX(${space(0.5)});
     }
     ${PackageStatusIcon} {
       opacity: 1;

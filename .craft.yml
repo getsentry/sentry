@@ -1,0 +1,21 @@
+minVersion: "0.10.0"
+github:
+  owner: getsentry
+  repo: sentry
+releaseBranchPrefix: releases
+changelog: CHANGES
+changelogPolicy: auto
+statusProvider:
+  name: github
+  config:
+    contexts:
+      - 'Trigger: 7973c658-e248-4a14-8552-7a66caa7fc0c'
+targets:
+  - name: github
+  - name: pypi
+  - name: docker
+    source: us.gcr.io/sentryio/sentry
+    target: getsentry/sentry
+
+requireNames:
+  - /^sentry-.+-py27-none-any.whl$/

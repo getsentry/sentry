@@ -1,4 +1,4 @@
-import queryString from 'query-string';
+import * as queryString from 'query-string';
 import parseurl from 'parseurl';
 import isString from 'lodash/isString';
 
@@ -71,7 +71,17 @@ export function decodeScalar(
   return isString(unwrapped) ? unwrapped : undefined;
 }
 
+export function decodeList(
+  value: string[] | string | undefined | null
+): string[] | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return Array.isArray(value) ? value : isString(value) ? [value] : [];
+}
+
 export default {
+  decodeList,
   decodeScalar,
   formatQueryString,
   addQueryParamsToExistingUrl,

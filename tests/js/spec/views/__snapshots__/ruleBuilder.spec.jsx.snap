@@ -297,7 +297,7 @@ exports[`RuleBuilder renders 1`] = `
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                          className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                           clearable={false}
                           deleteRemoves={false}
                           disabled={false}
@@ -331,7 +331,7 @@ exports[`RuleBuilder renders 1`] = `
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                            className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -395,7 +395,7 @@ exports[`RuleBuilder renders 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
+                              className="Select e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
                             >
                               <input
                                 disabled={false}
@@ -505,9 +505,59 @@ exports[`RuleBuilder renders 1`] = `
                                   className="Select-arrow-zone"
                                   onMouseDown={[Function]}
                                 >
-                                  <span
-                                    className="icon-arrow-down"
-                                  />
+                                  <StyledIconChevron
+                                    direction="down"
+                                    size="xs"
+                                  >
+                                    <IconChevron
+                                      className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                      direction="down"
+                                      size="xs"
+                                    >
+                                      <EmotionCssPropInternal
+                                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                          Object {
+                                            "$$typeof": Symbol(react.forward_ref),
+                                            "propTypes": Object {
+                                              "color": [Function],
+                                              "size": [Function],
+                                              "viewBox": [Function],
+                                            },
+                                            "render": [Function],
+                                          }
+                                        }
+                                        className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                        css={
+                                          Object {
+                                            "map": undefined,
+                                            "name": "7chgxg-IconChevron",
+                                            "next": undefined,
+                                            "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                            "toString": [Function],
+                                          }
+                                        }
+                                        size="xs"
+                                      >
+                                        <ForwardRef(SvgIcon)
+                                          className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                          size="xs"
+                                        >
+                                          <svg
+                                            className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                            fill="currentColor"
+                                            height="12px"
+                                            viewBox="0 0 16 16"
+                                            width="12px"
+                                          >
+                                            <path
+                                              d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                            />
+                                          </svg>
+                                        </ForwardRef(SvgIcon)>
+                                      </EmotionCssPropInternal>
+                                    </IconChevron>
+                                  </StyledIconChevron>
                                 </span>
                               </div>
                             </div>
@@ -529,31 +579,60 @@ exports[`RuleBuilder renders 1`] = `
         value=""
       >
         <input
-          className="css-1i5uufk-Input-BuilderInput e1hyuoc77"
+          className="css-dcbptt-Input-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value=""
         />
       </BuilderInput>
       <Divider
-        src="icon-chevron-right"
+        direction="right"
       >
-        <ForwardRef
-          className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
-          src="icon-chevron-right"
+        <IconChevron
+          className="css-1tfw4ao-Divider e1hyuoc79"
+          direction="right"
         >
-          <svg
-            className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
-            height="1em"
-            viewBox={Object {}}
-            width="1em"
+          <EmotionCssPropInternal
+            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+              Object {
+                "$$typeof": Symbol(react.forward_ref),
+                "propTypes": Object {
+                  "color": [Function],
+                  "size": [Function],
+                  "viewBox": [Function],
+                },
+                "render": [Function],
+              }
+            }
+            className="css-1tfw4ao-Divider e1hyuoc79"
+            css={
+              Object {
+                "map": undefined,
+                "name": "72rehw-IconChevron",
+                "next": undefined,
+                "styles": "transform:rotate(90deg);;label:IconChevron;",
+                "toString": [Function],
+              }
+            }
           >
-            <use
-              href="#test"
-              xlinkHref="#test"
-            />
-          </svg>
-        </ForwardRef>
+            <ForwardRef(SvgIcon)
+              className="e1hyuoc79 css-1uo1iiq-IconChevron-Divider"
+            >
+              <svg
+                className="e1hyuoc79 css-1uo1iiq-IconChevron-Divider"
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </ForwardRef(SvgIcon)>
+          </EmotionCssPropInternal>
+        </IconChevron>
       </Divider>
       <SelectOwnersWrapper>
         <div
@@ -730,7 +809,7 @@ exports[`RuleBuilder renders 1`] = `
                           async={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                          className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -751,7 +830,7 @@ exports[`RuleBuilder renders 1`] = `
                             autoload={true}
                             backspaceRemoves={true}
                             cache={false}
-                            className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                            className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                             clearable={true}
                             defaultOptions={true}
                             deleteRemoves={true}
@@ -778,7 +857,7 @@ exports[`RuleBuilder renders 1`] = `
                               backspaceRemoves={true}
                               backspaceToRemoveMessage="Press backspace to remove {label}"
                               cache={false}
-                              className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                              className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                               clearAllText="Clear all"
                               clearRenderer={[Function]}
                               clearValueText="Clear value"
@@ -906,7 +985,7 @@ exports[`RuleBuilder renders 1`] = `
                                           borderless={true}
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconAdd)
                                               isCircled={true}
                                             />
                                           }
@@ -966,7 +1045,7 @@ exports[`RuleBuilder renders 1`] = `
                               valueKey="value"
                             >
                               <div
-                                className="Select css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0 is-clearable is-searchable Select--multi"
+                                className="Select css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0 is-clearable is-searchable Select--multi"
                               >
                                 <div
                                   className="Select-control"
@@ -1046,9 +1125,59 @@ exports[`RuleBuilder renders 1`] = `
                                     className="Select-arrow-zone"
                                     onMouseDown={[Function]}
                                   >
-                                    <span
-                                      className="icon-arrow-down"
-                                    />
+                                    <StyledIconChevron
+                                      direction="down"
+                                      size="xs"
+                                    >
+                                      <IconChevron
+                                        className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                        direction="down"
+                                        size="xs"
+                                      >
+                                        <EmotionCssPropInternal
+                                          __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                          __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                            Object {
+                                              "$$typeof": Symbol(react.forward_ref),
+                                              "propTypes": Object {
+                                                "color": [Function],
+                                                "size": [Function],
+                                                "viewBox": [Function],
+                                              },
+                                              "render": [Function],
+                                            }
+                                          }
+                                          className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                          css={
+                                            Object {
+                                              "map": undefined,
+                                              "name": "7chgxg-IconChevron",
+                                              "next": undefined,
+                                              "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                              "toString": [Function],
+                                            }
+                                          }
+                                          size="xs"
+                                        >
+                                          <ForwardRef(SvgIcon)
+                                            className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                            size="xs"
+                                          >
+                                            <svg
+                                              className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                              fill="currentColor"
+                                              height="12px"
+                                              viewBox="0 0 16 16"
+                                              width="12px"
+                                            >
+                                              <path
+                                                d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                              />
+                                            </svg>
+                                          </ForwardRef(SvgIcon)>
+                                        </EmotionCssPropInternal>
+                                      </IconChevron>
+                                    </StyledIconChevron>
                                   </span>
                                 </div>
                               </div>
@@ -1067,7 +1196,7 @@ exports[`RuleBuilder renders 1`] = `
       <AddButton
         disabled={true}
         icon={
-          <ForwardRef
+          <ForwardRef(IconAdd)
             isCircled={true}
             size="xs"
           />
@@ -1080,7 +1209,7 @@ exports[`RuleBuilder renders 1`] = `
           className="css-f6y09s-AddButton e1hyuoc711"
           disabled={true}
           icon={
-            <ForwardRef
+            <ForwardRef(IconAdd)
               isCircled={true}
               size="xs"
             />
@@ -1095,7 +1224,7 @@ exports[`RuleBuilder renders 1`] = `
             disabled={true}
             forwardRef={null}
             icon={
-              <ForwardRef
+              <ForwardRef(IconAdd)
                 isCircled={true}
                 size="xs"
               />
@@ -1145,7 +1274,7 @@ exports[`RuleBuilder renders 1`] = `
                           className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
-                          <ForwardRef
+                          <IconAdd
                             isCircled={true}
                             size="xs"
                           >
@@ -1169,7 +1298,7 @@ exports[`RuleBuilder renders 1`] = `
                                 />
                               </svg>
                             </ForwardRef(SvgIcon)>
-                          </ForwardRef>
+                          </IconAdd>
                         </span>
                       </Icon>
                     </span>
@@ -1259,21 +1388,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-11joymd-RuleCandidate e1hyuoc73"
+          className="css-1ua5imf-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <StyledIconAdd
             isCircled={true}
           >
-            <ForwardRef
-              className="css-zq12t8-StyledIconAdd e1hyuoc74"
+            <IconAdd
+              className="css-hvja8k-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
               <ForwardRef(SvgIcon)
-                className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                className="css-hvja8k-StyledIconAdd e1hyuoc74"
               >
                 <svg
-                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  className="css-hvja8k-StyledIconAdd e1hyuoc74"
                   fill="currentColor"
                   height="16px"
                   viewBox="0 0 16 16"
@@ -1290,7 +1419,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   />
                 </svg>
               </ForwardRef(SvgIcon)>
-            </ForwardRef>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1301,7 +1430,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-acyfg9-TypeHint e1hyuoc71"
+              className="css-g76lhf-TypeHint e1hyuoc71"
             >
               [PATH]
             </div>
@@ -1313,21 +1442,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-11joymd-RuleCandidate e1hyuoc73"
+          className="css-1ua5imf-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <StyledIconAdd
             isCircled={true}
           >
-            <ForwardRef
-              className="css-zq12t8-StyledIconAdd e1hyuoc74"
+            <IconAdd
+              className="css-hvja8k-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
               <ForwardRef(SvgIcon)
-                className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                className="css-hvja8k-StyledIconAdd e1hyuoc74"
               >
                 <svg
-                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  className="css-hvja8k-StyledIconAdd e1hyuoc74"
                   fill="currentColor"
                   height="16px"
                   viewBox="0 0 16 16"
@@ -1344,7 +1473,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   />
                 </svg>
               </ForwardRef(SvgIcon)>
-            </ForwardRef>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1355,7 +1484,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-acyfg9-TypeHint e1hyuoc71"
+              className="css-g76lhf-TypeHint e1hyuoc71"
             >
               [PATH]
             </div>
@@ -1367,21 +1496,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-11joymd-RuleCandidate e1hyuoc73"
+          className="css-1ua5imf-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <StyledIconAdd
             isCircled={true}
           >
-            <ForwardRef
-              className="css-zq12t8-StyledIconAdd e1hyuoc74"
+            <IconAdd
+              className="css-hvja8k-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
               <ForwardRef(SvgIcon)
-                className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                className="css-hvja8k-StyledIconAdd e1hyuoc74"
               >
                 <svg
-                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  className="css-hvja8k-StyledIconAdd e1hyuoc74"
                   fill="currentColor"
                   height="16px"
                   viewBox="0 0 16 16"
@@ -1398,7 +1527,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   />
                 </svg>
               </ForwardRef(SvgIcon)>
-            </ForwardRef>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1409,7 +1538,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-acyfg9-TypeHint e1hyuoc71"
+              className="css-g76lhf-TypeHint e1hyuoc71"
             >
               [URL]
             </div>
@@ -1421,21 +1550,21 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         onClick={[Function]}
       >
         <div
-          className="css-11joymd-RuleCandidate e1hyuoc73"
+          className="css-1ua5imf-RuleCandidate e1hyuoc73"
           onClick={[Function]}
         >
           <StyledIconAdd
             isCircled={true}
           >
-            <ForwardRef
-              className="css-zq12t8-StyledIconAdd e1hyuoc74"
+            <IconAdd
+              className="css-hvja8k-StyledIconAdd e1hyuoc74"
               isCircled={true}
             >
               <ForwardRef(SvgIcon)
-                className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                className="css-hvja8k-StyledIconAdd e1hyuoc74"
               >
                 <svg
-                  className="css-zq12t8-StyledIconAdd e1hyuoc74"
+                  className="css-hvja8k-StyledIconAdd e1hyuoc74"
                   fill="currentColor"
                   height="16px"
                   viewBox="0 0 16 16"
@@ -1452,7 +1581,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                   />
                 </svg>
               </ForwardRef(SvgIcon)>
-            </ForwardRef>
+            </IconAdd>
           </StyledIconAdd>
           <StyledTextOverflow>
             <div
@@ -1463,7 +1592,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           </StyledTextOverflow>
           <TypeHint>
             <div
-              className="css-acyfg9-TypeHint e1hyuoc71"
+              className="css-g76lhf-TypeHint e1hyuoc71"
             >
               [URL]
             </div>
@@ -1702,7 +1831,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                          className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                           clearable={false}
                           deleteRemoves={false}
                           disabled={false}
@@ -1736,7 +1865,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0"
+                            className="e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -1800,7 +1929,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select e1qrhqd00 css-112dkw8-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
+                              className="Select e1qrhqd00 css-1oqptas-StyledSelect-StyledSelectControl e1ynsgsr0 has-value is-searchable Select--single"
                             >
                               <input
                                 disabled={false}
@@ -1910,9 +2039,59 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                   className="Select-arrow-zone"
                                   onMouseDown={[Function]}
                                 >
-                                  <span
-                                    className="icon-arrow-down"
-                                  />
+                                  <StyledIconChevron
+                                    direction="down"
+                                    size="xs"
+                                  >
+                                    <IconChevron
+                                      className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                      direction="down"
+                                      size="xs"
+                                    >
+                                      <EmotionCssPropInternal
+                                        __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                        __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                          Object {
+                                            "$$typeof": Symbol(react.forward_ref),
+                                            "propTypes": Object {
+                                              "color": [Function],
+                                              "size": [Function],
+                                              "viewBox": [Function],
+                                            },
+                                            "render": [Function],
+                                          }
+                                        }
+                                        className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                        css={
+                                          Object {
+                                            "map": undefined,
+                                            "name": "7chgxg-IconChevron",
+                                            "next": undefined,
+                                            "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                            "toString": [Function],
+                                          }
+                                        }
+                                        size="xs"
+                                      >
+                                        <ForwardRef(SvgIcon)
+                                          className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                          size="xs"
+                                        >
+                                          <svg
+                                            className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                            fill="currentColor"
+                                            height="12px"
+                                            viewBox="0 0 16 16"
+                                            width="12px"
+                                          >
+                                            <path
+                                              d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                            />
+                                          </svg>
+                                        </ForwardRef(SvgIcon)>
+                                      </EmotionCssPropInternal>
+                                    </IconChevron>
+                                  </StyledIconChevron>
                                 </span>
                               </div>
                             </div>
@@ -1934,31 +2113,60 @@ exports[`RuleBuilder renders with suggestions 1`] = `
         value="a/bar"
       >
         <input
-          className="css-1i5uufk-Input-BuilderInput e1hyuoc77"
+          className="css-dcbptt-Input-BuilderInput e1hyuoc77"
           onChange={[Function]}
           placeholder="src/example/*"
           value="a/bar"
         />
       </BuilderInput>
       <Divider
-        src="icon-chevron-right"
+        direction="right"
       >
-        <ForwardRef
-          className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
-          src="icon-chevron-right"
+        <IconChevron
+          className="css-1tfw4ao-Divider e1hyuoc79"
+          direction="right"
         >
-          <svg
-            className="css-1qihtir-InlineSvg-Divider e1hyuoc79"
-            height="1em"
-            viewBox={Object {}}
-            width="1em"
+          <EmotionCssPropInternal
+            __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+            __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+              Object {
+                "$$typeof": Symbol(react.forward_ref),
+                "propTypes": Object {
+                  "color": [Function],
+                  "size": [Function],
+                  "viewBox": [Function],
+                },
+                "render": [Function],
+              }
+            }
+            className="css-1tfw4ao-Divider e1hyuoc79"
+            css={
+              Object {
+                "map": undefined,
+                "name": "72rehw-IconChevron",
+                "next": undefined,
+                "styles": "transform:rotate(90deg);;label:IconChevron;",
+                "toString": [Function],
+              }
+            }
           >
-            <use
-              href="#test"
-              xlinkHref="#test"
-            />
-          </svg>
-        </ForwardRef>
+            <ForwardRef(SvgIcon)
+              className="e1hyuoc79 css-1uo1iiq-IconChevron-Divider"
+            >
+              <svg
+                className="e1hyuoc79 css-1uo1iiq-IconChevron-Divider"
+                fill="currentColor"
+                height="16px"
+                viewBox="0 0 16 16"
+                width="16px"
+              >
+                <path
+                  d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                />
+              </svg>
+            </ForwardRef(SvgIcon)>
+          </EmotionCssPropInternal>
+        </IconChevron>
       </Divider>
       <SelectOwnersWrapper>
         <div
@@ -2401,7 +2609,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           async={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                          className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -2460,7 +2668,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                             autoload={true}
                             backspaceRemoves={true}
                             cache={false}
-                            className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                            className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                             clearable={true}
                             defaultOptions={true}
                             deleteRemoves={true}
@@ -2525,7 +2733,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               backspaceRemoves={true}
                               backspaceToRemoveMessage="Press backspace to remove {label}"
                               cache={false}
-                              className="css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0"
+                              className="css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0"
                               clearAllText="Clear all"
                               clearRenderer={[Function]}
                               clearValueText="Clear value"
@@ -2653,7 +2861,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                           borderless={true}
                                           disabled={false}
                                           icon={
-                                            <ForwardRef
+                                            <ForwardRef(IconAdd)
                                               isCircled={true}
                                             />
                                           }
@@ -2751,7 +2959,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                               valueKey="value"
                             >
                               <div
-                                className="Select css-19jgtgy-StyledSelect-SelectOwners e1ynsgsr0 has-value is-clearable is-focused is-searchable Select--multi"
+                                className="Select css-1p79jy6-StyledSelect-SelectOwners e1ynsgsr0 has-value is-clearable is-focused is-searchable Select--multi"
                               >
                                 <div
                                   className="Select-control"
@@ -3106,9 +3314,59 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                     className="Select-arrow-zone"
                                     onMouseDown={[Function]}
                                   >
-                                    <span
-                                      className="icon-arrow-down"
-                                    />
+                                    <StyledIconChevron
+                                      direction="down"
+                                      size="xs"
+                                    >
+                                      <IconChevron
+                                        className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                        direction="down"
+                                        size="xs"
+                                      >
+                                        <EmotionCssPropInternal
+                                          __EMOTION_LABEL_PLEASE_DO_NOT_USE__="IconChevron"
+                                          __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
+                                            Object {
+                                              "$$typeof": Symbol(react.forward_ref),
+                                              "propTypes": Object {
+                                                "color": [Function],
+                                                "size": [Function],
+                                                "viewBox": [Function],
+                                              },
+                                              "render": [Function],
+                                            }
+                                          }
+                                          className="css-1y21wp1-StyledIconChevron e1ynsgsr1"
+                                          css={
+                                            Object {
+                                              "map": undefined,
+                                              "name": "7chgxg-IconChevron",
+                                              "next": undefined,
+                                              "styles": "transform:rotate(180deg);;label:IconChevron;",
+                                              "toString": [Function],
+                                            }
+                                          }
+                                          size="xs"
+                                        >
+                                          <ForwardRef(SvgIcon)
+                                            className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                            size="xs"
+                                          >
+                                            <svg
+                                              className="e1ynsgsr1 css-7arx5j-IconChevron-StyledIconChevron"
+                                              fill="currentColor"
+                                              height="12px"
+                                              viewBox="0 0 16 16"
+                                              width="12px"
+                                            >
+                                              <path
+                                                d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z"
+                                              />
+                                            </svg>
+                                          </ForwardRef(SvgIcon)>
+                                        </EmotionCssPropInternal>
+                                      </IconChevron>
+                                    </StyledIconChevron>
                                   </span>
                                 </div>
                               </div>
@@ -3127,7 +3385,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
       <AddButton
         disabled={false}
         icon={
-          <ForwardRef
+          <ForwardRef(IconAdd)
             isCircled={true}
             size="xs"
           />
@@ -3140,7 +3398,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
           className="css-f6y09s-AddButton e1hyuoc711"
           disabled={false}
           icon={
-            <ForwardRef
+            <ForwardRef(IconAdd)
               isCircled={true}
               size="xs"
             />
@@ -3155,7 +3413,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
             disabled={false}
             forwardRef={null}
             icon={
-              <ForwardRef
+              <ForwardRef(IconAdd)
                 isCircled={true}
                 size="xs"
               />
@@ -3205,7 +3463,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                           className="css-dm7gfi-Icon edwq9my2"
                           size="small"
                         >
-                          <ForwardRef
+                          <IconAdd
                             isCircled={true}
                             size="xs"
                           >
@@ -3229,7 +3487,7 @@ exports[`RuleBuilder renders with suggestions 1`] = `
                                 />
                               </svg>
                             </ForwardRef(SvgIcon)>
-                          </ForwardRef>
+                          </IconAdd>
                         </span>
                       </Icon>
                     </span>

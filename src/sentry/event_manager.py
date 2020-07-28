@@ -1,17 +1,18 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import time
+
 
 import ipaddress
-import jsonschema
 import six
 
-from datetime import timedelta
+from datetime import datetime, timedelta
+from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
+from pytz import UTC
 
 from sentry import buffer, eventstore, eventtypes, eventstream, features, tsdb
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
@@ -20,10 +21,7 @@ from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
-    MAX_SECS_IN_FUTURE,
-    MAX_SECS_IN_PAST,
 )
-from sentry.message_filters import should_filter_event
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     get_grouping_config_dict_for_event_data,
@@ -32,23 +30,12 @@ from sentry.grouping.api import (
     get_fingerprinting_config_for_project,
     GroupingConfigNotFound,
 )
-from sentry.coreapi import (
-    APIError,
-    APIForbidden,
-    decompress_gzip,
-    decompress_deflate,
-    decode_and_decompress_data,
-    decode_data,
-    safely_load_json_string,
-)
-from sentry.interfaces.base import get_interface
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
     Activity,
     Environment,
     EventAttachment,
     EventDict,
-    EventError,
     EventUser,
     File,
     Group,
@@ -75,12 +62,7 @@ from sentry.signals import first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.data_filters import (
-    is_valid_ip,
-    is_valid_release,
-    is_valid_error_message,
-    FilterStatKeys,
-)
+from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
@@ -110,44 +92,6 @@ def get_tag(data, key):
     for k, v in get_path(data, "tags", filter=True):
         if k == key:
             return v
-
-
-def validate_and_set_timestamp(data, timestamp):
-    """
-    Helper function for event processors/enhancers to avoid setting broken timestamps.
-
-    If we set a too old or too new timestamp then this affects event retention
-    and search.
-    """
-    # XXX(markus): We should figure out if we could run normalization
-    # after event processing again. Right now we duplicate code between here
-    # and event normalization
-    if timestamp:
-        current = time.time()
-
-        if current - MAX_SECS_IN_PAST > timestamp:
-            data.setdefault("errors", []).append(
-                {"type": EventError.PAST_TIMESTAMP, "name": "timestamp", "value": timestamp}
-            )
-        elif timestamp > current + MAX_SECS_IN_FUTURE:
-            data.setdefault("errors", []).append(
-                {"type": EventError.FUTURE_TIMESTAMP, "name": "timestamp", "value": timestamp}
-            )
-        else:
-            data["timestamp"] = float(timestamp)
-
-
-def parse_client_as_sdk(value):
-    if not value:
-        return {}
-    try:
-        name, version = value.split("/", 1)
-    except ValueError:
-        try:
-            name, version = value.split(" ", 1)
-        except ValueError:
-            return {}
-    return {"name": name, "version": version}
 
 
 def plugin_is_regression(group, event):
@@ -237,36 +181,6 @@ class ScoreClause(Func):
         return (sql, [])
 
 
-def add_meta_errors(errors, meta):
-    for field_meta in meta:
-        original_value = field_meta.get().get("val")
-
-        for i, (err_type, err_data) in enumerate(field_meta.iter_errors()):
-            error = dict(err_data)
-            error["type"] = err_type
-            if field_meta.path:
-                error["name"] = field_meta.path
-            if i == 0 and original_value is not None:
-                error["value"] = original_value
-            errors.append(error)
-
-
-def _decode_event(data, content_encoding):
-    if isinstance(data, six.binary_type):
-        if content_encoding == "gzip":
-            data = decompress_gzip(data)
-        elif content_encoding == "deflate":
-            data = decompress_deflate(data)
-        elif data[0] != b"{":
-            data = decode_and_decompress_data(data)
-        else:
-            data = decode_data(data)
-    if isinstance(data, six.text_type):
-        data = safely_load_json_string(data)
-
-    return CanonicalKeyDict(data)
-
-
 class EventManager(object):
     """
     Handles normalization in both the store endpoint and the save task. The
@@ -289,7 +203,7 @@ class EventManager(object):
         project_config=None,
         sent_at=None,
     ):
-        self._data = _decode_event(data, content_encoding=content_encoding)
+        self._data = CanonicalKeyDict(data)
         self.version = version
         self._project = project
         # if not explicitly specified try to get the grouping from project_config
@@ -309,51 +223,6 @@ class EventManager(object):
         self._normalized = False
         self.project_config = project_config
         self.sent_at = sent_at
-
-    def process_csp_report(self):
-        """Only called from the CSP report endpoint."""
-        data = self._data
-
-        try:
-            interface = get_interface(data.pop("interface"))
-            report = data.pop("report")
-        except KeyError:
-            raise APIForbidden("No report or interface data")
-
-        # To support testing, we can either accept a built interface instance, or the raw data in
-        # which case we build the instance ourselves
-        try:
-            instance = report if isinstance(report, interface) else interface.from_raw(report)
-        except jsonschema.ValidationError as e:
-            raise APIError("Invalid security report: %s" % str(e).splitlines()[0])
-
-        def clean(d):
-            return dict([x for x in d.items() if x[1]])
-
-        data.update(
-            {
-                "logger": "csp",
-                "message": instance.get_message(),
-                "culprit": instance.get_culprit(),
-                instance.path: instance.to_json(),
-                "tags": instance.get_tags(),
-                "errors": [],
-                "user": {"ip_address": self._client_ip},
-                # Construct a faux Http interface based on the little information we have
-                # This is a bit weird, since we don't have nearly enough
-                # information to create an Http interface, but
-                # this automatically will pick up tags for the User-Agent
-                # which is actually important here for CSP
-                "request": {
-                    "url": instance.get_origin(),
-                    "headers": clean(
-                        {"User-Agent": self._user_agent, "Referer": instance.get_referrer()}
-                    ),
-                },
-            }
-        )
-
-        self._data = data
 
     def normalize(self, project_id=None):
         with metrics.timer("events.store.normalize.duration"):
@@ -387,41 +256,6 @@ class EventManager(object):
         )
 
         self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
-
-    def should_filter(self):
-        """
-        returns (result: bool, reason: string or None)
-        Result is True if an event should be filtered
-        The reason for filtering is passed along as a string
-        so that we can store it in metrics
-        """
-        for name in SECURITY_REPORT_INTERFACES:
-            if name in self._data:
-                interface = get_interface(name)
-                if interface.to_python(self._data[name]).should_filter(self._project):
-                    return (True, FilterStatKeys.INVALID_CSP)
-
-        if self._client_ip and not is_valid_ip(self.project_config, self._client_ip):
-            return (True, FilterStatKeys.IP_ADDRESS)
-
-        release = self._data.get("release")
-        if release and not is_valid_release(self.project_config, release):
-            return (True, FilterStatKeys.RELEASE_VERSION)
-
-        error_message = (
-            get_path(self._data, "logentry", "formatted")
-            or get_path(self._data, "logentry", "message")
-            or ""
-        )
-        if error_message and not is_valid_error_message(self.project_config, error_message):
-            return (True, FilterStatKeys.ERROR_MESSAGE)
-
-        for exc in get_path(self._data, "exception", "values", filter=True, default=[]):
-            message = u": ".join([_f for _f in map(exc.get, ["type", "value"]) if _f])
-            if message and not is_valid_error_message(self.project_config, message):
-                return (True, FilterStatKeys.ERROR_MESSAGE)
-
-        return should_filter_event(self.project_config, self._data)
 
     def get_data(self):
         return self._data
@@ -474,6 +308,14 @@ class EventManager(object):
         _pull_out_data(jobs, projects)
         _get_or_create_release_many(jobs, projects)
         _get_event_user_many(jobs, projects)
+
+        job["project_key"] = None
+        if job["key_id"] is not None:
+            with metrics.timer("event_manager.load_project_key"):
+                try:
+                    job["project_key"] = ProjectKey.objects.get_from_cache(id=job["key_id"])
+                except ProjectKey.DoesNotExist:
+                    pass
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -531,36 +373,19 @@ class EventManager(object):
         if job["release"]:
             kwargs["first_release"] = job["release"]
 
+        # Load attachments first, but persist them at the very last after
+        # posting to eventstream to make sure all counters and eventstream are
+        # incremented for sure. Also wait for grouping to remove attachments
+        # based on the group counter.
+        with metrics.timer("event_manager.get_attachments"):
+            attachments = get_attachments(cache_key, job)
+
         try:
             job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
                 event=job["event"], hashes=hashes, release=job["release"], **kwargs
             )
         except HashDiscarded:
-            project_key = None
-            if job["key_id"] is not None:
-                try:
-                    project_key = ProjectKey.objects.get_from_cache(id=job["key_id"])
-                except ProjectKey.DoesNotExist:
-                    pass
-
-            quotas.refund(project, key=project_key, timestamp=start_time)
-
-            track_outcome(
-                org_id=project.organization_id,
-                project_id=project_id,
-                key_id=job["key_id"],
-                outcome=Outcome.FILTERED,
-                reason=FilterStatKeys.DISCARDED_HASH,
-                timestamp=to_datetime(job["start_time"]),
-                event_id=job["event"].event_id,
-                category=job["category"],
-            )
-
-            metrics.incr(
-                "events.discarded",
-                skip_internal=True,
-                tags={"organization_id": project.organization_id, "platform": job["platform"]},
-            )
+            discard_event(job, attachments)
             raise
 
         job["event"].group = job["group"]
@@ -597,23 +422,16 @@ class EventManager(object):
                 group=job["group"], environment=job["environment"]
             )
 
+        # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
         _materialize_event_metrics(jobs)
 
-        # Load attachments first, but persist them at the very last after
-        # posting to eventstream to make sure all counters and eventstream are
-        # incremented for sure.
-        attachments = []
-        for attachment in get_attachments(cache_key, job["event"]):
-            try:
-                attachment_data = attachment.data
-            except MissingAttachmentChunks:
-                logger.exception("Missing chunks for cache_key=%s", cache_key)
-            else:
-                key = "bytes.stored.%s" % (attachment.type,)
-                job["event_metrics"][key] = (job["event_metrics"].get(key) or 0) + len(
-                    attachment_data
-                )
-                attachments.append(attachment)
+        with metrics.timer("event_manager.filter_attachments_for_group"):
+            attachments = filter_attachments_for_group(attachments, job)
+
+        for attachment in attachments:
+            key = "bytes.stored.%s" % (attachment.type,)
+            old_bytes = job["event_metrics"].get(key) or 0
+            job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs)
 
@@ -646,7 +464,8 @@ class EventManager(object):
 
         # Do this last to ensure signals get emitted even if connection to the
         # file store breaks temporarily.
-        save_attachments(attachments, job["event"])
+        with metrics.timer("event_manager.save_attachments"):
+            save_attachments(cache_key, attachments, job)
 
         metric_tags = {"from_relay": "_relay_processed" in job["data"]}
 
@@ -1240,32 +1059,114 @@ def _process_existing_aggregate(group, event, data, release):
     return is_regression
 
 
-def get_attachments(cache_key, event):
+def discard_event(job, attachments):
     """
-    Computes a list of attachments that should be stored.
+    Refunds consumed quotas for an event and its attachments.
 
-    This method checks whether event attachments are available and sends them to
-    the blob store. There is special handling for crash reports which may
-    contain unstripped PII. If the project or organization is configured to
-    limit the amount of crash reports per group, the number of stored crashes is
-    limited.
+    For the event and each dropped attachment, an outcome
+    FILTERED(discarded-hash) is emitted.
+
+    :param job:         The job context container.
+    :param attachments: The full list of attachments to filter.
+    """
+
+    project = job["event"].project
+
+    quotas.refund(
+        project,
+        key=job["project_key"],
+        timestamp=job["start_time"],
+        category=job["category"],
+        quantity=1,
+    )
+
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=job["project_id"],
+        key_id=job["key_id"],
+        outcome=Outcome.FILTERED,
+        reason=FilterStatKeys.DISCARDED_HASH,
+        timestamp=to_datetime(job["start_time"]),
+        event_id=job["event"].event_id,
+        category=job["category"],
+    )
+
+    attachment_quantity = 0
+    for attachment in attachments:
+        # Quotas are counted with at least ``1`` for attachments.
+        attachment_quantity += attachment.size or 1
+
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=job["project_id"],
+            key_id=job["key_id"],
+            outcome=Outcome.FILTERED,
+            reason=FilterStatKeys.DISCARDED_HASH,
+            timestamp=to_datetime(job["start_time"]),
+            event_id=job["event"].event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=attachment.size,
+        )
+
+    if attachment_quantity:
+        quotas.refund(
+            project,
+            key=job["project_key"],
+            timestamp=job["start_time"],
+            category=DataCategory.ATTACHMENT,
+            quantity=attachment_quantity,
+        )
+
+    metrics.incr(
+        "events.discarded",
+        skip_internal=True,
+        tags={"organization_id": project.organization_id, "platform": job["platform"]},
+    )
+
+
+def get_attachments(cache_key, job):
+    """
+    Retrieves the list of attachments for this event.
+
+    This method skips attachments that have been marked for rate limiting by
+    earlier ingestion pipeline.
 
     :param cache_key: The cache key at which the event payload is stored in the
-                    cache. This is used to retrieve attachments.
-    :param event:     The event model instance.
+                      cache. This is used to retrieve attachments.
+    :param job:       The job context container.
     """
-    filtered = []
-
     if cache_key is None:
-        return filtered
+        return []
 
-    project = event.project
+    project = job["event"].project
     if not features.has("organizations:event-attachments", project.organization, actor=None):
-        return filtered
+        return []
 
     attachments = list(attachment_cache.get(cache_key))
     if not attachments:
-        return filtered
+        return []
+
+    return [attachment for attachment in attachments if not attachment.rate_limited]
+
+
+def filter_attachments_for_group(attachments, job):
+    """
+    Removes crash reports exceeding the group-limit.
+
+    If the project or organization is configured to limit the amount of crash
+    reports per group, the number of stored crashes is limited. This requires
+    `event.group` to be set.
+
+    Emits one outcome per removed attachment.
+
+    :param attachments: The full list of attachments to filter.
+    :param job:         The job context container.
+    """
+    if not attachments:
+        return attachments
+
+    event = job["event"]
+    project = event.project
 
     # The setting is both an organization and project setting. The project
     # setting strictly overrides the organization setting, unless set to the
@@ -1285,12 +1186,28 @@ def get_attachments(cache_key, event):
         cached_reports = 0
     stored_reports = cached_reports
 
+    filtered = []
+    refund_quantity = 0
     for attachment in attachments:
         # If the attachment is a crash report (e.g. minidump), we need to honor
         # the store_crash_reports setting. Otherwise, we assume that the client
         # has already verified PII and just store the attachment.
         if attachment.type in CRASH_REPORT_TYPES:
             if crashreports_exceeded(stored_reports, max_crashreports):
+                track_outcome(
+                    org_id=event.project.organization_id,
+                    project_id=job["project_id"],
+                    key_id=job["key_id"],
+                    outcome=Outcome.FILTERED,
+                    reason=FilterStatKeys.CRASH_REPORT_LIMIT,
+                    timestamp=to_datetime(job["start_time"]),
+                    event_id=event.event_id,
+                    category=DataCategory.ATTACHMENT,
+                    quantity=attachment.size,
+                )
+
+                # Quotas are counted with at least ``1`` for attachments.
+                refund_quantity += attachment.size or 1
                 continue
             stored_reports += 1
 
@@ -1303,30 +1220,112 @@ def get_attachments(cache_key, event):
     if crashreports_exceeded(stored_reports, max_crashreports) and stored_reports > cached_reports:
         cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
 
+    if refund_quantity:
+        quotas.refund(
+            project,
+            key=job["project_key"],
+            timestamp=job["start_time"],
+            category=DataCategory.ATTACHMENT,
+            quantity=refund_quantity,
+        )
+
     return filtered
 
 
-def save_attachments(attachments, event):
+def save_attachment(
+    cache_key, attachment, project, event_id, key_id=None, group_id=None, start_time=None
+):
+    """
+    Persists a cached event attachments into the file store.
+
+    Emits one outcome, either ACCEPTED on success or INVALID(missing_chunks) if
+    retrieving the attachment data fails.
+
+    :param cache_key:  The cache key at which the attachment is stored for
+                       debugging purposes.
+    :param attachment: The ``CachedAttachment`` instance to store.
+    :param project:    The project model that this attachment belongs to.
+    :param event_id:   Identifier of the event that this attachment belongs to.
+                       The event does not have to be stored yet.
+    :param key_id:     Optional identifier of the DSN that was used to ingest
+                       the attachment.
+    :param group_id:   Optional group identifier for the event. May be empty if
+                       the event has not been stored yet, or if it is not
+                       grouped.
+    :param start_time: UNIX Timestamp (float) when the attachment was ingested.
+                       If missing, the current time is used.
+    """
+    if start_time is not None:
+        timestamp = to_datetime(start_time)
+    else:
+        timestamp = datetime.utcnow().replace(tzinfo=UTC)
+
+    try:
+        data = attachment.data
+    except MissingAttachmentChunks:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=key_id,
+            outcome=Outcome.INVALID,
+            reason="missing_chunks",
+            timestamp=timestamp,
+            event_id=event_id,
+            category=DataCategory.ATTACHMENT,
+        )
+
+        logger.exception("Missing chunks for cache_key=%s", cache_key)
+        return
+
+    file = File.objects.create(
+        name=attachment.name,
+        type=attachment.type,
+        headers={"Content-Type": attachment.content_type},
+    )
+    file.putfile(six.BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
+
+    EventAttachment.objects.create(
+        event_id=event_id,
+        project_id=project.id,
+        group_id=group_id,
+        name=attachment.name,
+        file=file,
+    )
+
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=timestamp,
+        event_id=event_id,
+        category=DataCategory.ATTACHMENT,
+        quantity=attachment.size or 1,
+    )
+
+
+def save_attachments(cache_key, attachments, job):
     """
     Persists cached event attachments into the file store.
 
-    :param attachments: A filtered list of attachments to save.
-    :param event:       The event model instance.
-    """
-    for attachment in attachments:
-        file = File.objects.create(
-            name=attachment.name,
-            type=attachment.type,
-            headers={"Content-Type": attachment.content_type},
-        )
-        file.putfile(six.BytesIO(attachment.data))
+    Emits one outcome per attachment, either ACCEPTED on success or
+    INVALID(missing_chunks) if retrieving the attachment fails.
 
-        EventAttachment.objects.create(
-            event_id=event.event_id,
-            project_id=event.project_id,
+    :param attachments: A filtered list of attachments to save.
+    :param job:         The job context container.
+    """
+    event = job["event"]
+
+    for attachment in attachments:
+        save_attachment(
+            cache_key,
+            attachment,
+            event.project,
+            event.event_id,
+            key_id=job["key_id"],
             group_id=event.group_id,
-            name=attachment.name,
-            file=file,
+            start_time=job["start_time"],
         )
 
 

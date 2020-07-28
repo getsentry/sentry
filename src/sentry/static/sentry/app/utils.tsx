@@ -199,6 +199,23 @@ export function extractMultilineFields(value: string): Array<string> {
     .filter(f => f !== '');
 }
 
+/**
+ * If the value is of type Array, converts it to type string, keeping the line breaks, if there is any
+ */
+export function convertMultilineFieldValue<T extends string | Array<string>>(
+  value: T
+): string {
+  if (Array.isArray(value)) {
+    return value.join('\n');
+  }
+
+  if (typeof value === 'string') {
+    return value.split('\n').join('\n');
+  }
+
+  return '';
+}
+
 function projectDisplayCompare(a: Project, b: Project): number {
   if (a.isBookmarked !== b.isBookmarked) {
     return a.isBookmarked ? -1 : 1;

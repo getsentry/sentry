@@ -11,7 +11,7 @@ import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import {Trigger, AlertRuleThresholdType} from '../../types';
+import {Trigger, AlertRuleThresholdType, IncidentRule} from '../../types';
 
 type DefaultProps = {
   data: Series[];
@@ -19,6 +19,8 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   triggers: Trigger[];
+  resolveThreshold: IncidentRule['resolveThreshold'];
+  thresholdType: IncidentRule['thresholdType'];
   maxValue?: number;
 } & Partial<GlobalSelection['datetime']>;
 
@@ -41,11 +43,11 @@ const COLOR = {
     .alpha(0.1)
     .rgb()
     .string(),
-  CRITICAL_FILL: color(theme.redLight)
+  CRITICAL_FILL: color(theme.red400)
     .alpha(0.25)
     .rgb()
     .string(),
-  WARNING_FILL: color(theme.yellowLight)
+  WARNING_FILL: color(theme.yellow300)
     .alpha(0.1)
     .rgb()
     .string(),
@@ -80,15 +82,12 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
   // If we have ref to chart and data, try to update chart axis so that
   // alertThreshold or resolveThreshold is visible in chart
   handleUpdateChartAxis = () => {
-    const {triggers} = this.props;
+    const {triggers, resolveThreshold} = this.props;
     if (this.chartRef) {
       this.updateChartAxis(
         Math.max(
           ...flatten(
-            triggers.map(trigger => [
-              trigger.alertThreshold || 0,
-              trigger.resolveThreshold || 0,
-            ])
+            triggers.map(trigger => [trigger.alertThreshold || 0, resolveThreshold || 0])
           )
         )
       );
@@ -153,8 +152,11 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     type: 'alertThreshold' | 'resolveThreshold',
     isResolution: boolean
   ) => {
-    const {thresholdType} = trigger;
-    const position = this.getChartPixelForThreshold(trigger[type]);
+    const {thresholdType, resolveThreshold} = this.props;
+    const position =
+      type === 'alertThreshold'
+        ? this.getChartPixelForThreshold(trigger[type])
+        : this.getChartPixelForThreshold(resolveThreshold);
     const isInverted = thresholdType === AlertRuleThresholdType.BELOW;
 
     if (
@@ -171,7 +173,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
     const isCritical = trigger.label === 'critical';
     const LINE_STYLE = {
-      stroke: isResolution ? theme.green500 : isCritical ? theme.redDark : theme.yellow,
+      stroke: isResolution ? theme.green500 : isCritical ? theme.red500 : theme.yellow500,
       lineDash: [2],
     };
 

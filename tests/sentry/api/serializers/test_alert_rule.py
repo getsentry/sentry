@@ -10,7 +10,7 @@ from sentry.api.serializers.models.alert_rule import (
     CombinedRuleSerializer,
 )
 from sentry.models import Rule
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger
+from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.incidents.models import AlertRuleThresholdType
 from sentry.testutils import TestCase, APITestCase
 
@@ -23,6 +23,8 @@ class BaseAlertRuleSerializerTest(object):
         assert result["dataset"] == alert_rule.snuba_query.dataset
         assert result["query"] == alert_rule.snuba_query.query
         assert result["aggregate"] == alert_rule.snuba_query.aggregate
+        assert result["thresholdType"] == alert_rule.threshold_type
+        assert result["resolveThreshold"] == alert_rule.resolve_threshold
         assert result["timeWindow"] == alert_rule.snuba_query.time_window / 60
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
@@ -70,8 +72,13 @@ class BaseAlertRuleSerializerTest(object):
 
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_simple(self):
-        alert_rule = create_alert_rule(
-            self.organization, [self.project], "hello", "level:error", "count()", 10, 1
+        alert_rule = self.create_alert_rule()
+        result = serialize(alert_rule)
+        self.assert_alert_rule_serialized(alert_rule, result)
+
+    def test_threshold_type_resolve_threshold(self):
+        alert_rule = self.create_alert_rule(
+            threshold_type=AlertRuleThresholdType.BELOW, resolve_threshold=500
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
@@ -79,7 +86,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_triggers(self):
         alert_rule = self.create_alert_rule()
         other_alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(alert_rule, "test", AlertRuleThresholdType.ABOVE, 1000)
+        trigger = create_alert_rule_trigger(alert_rule, "test", 1000)
         result = serialize([alert_rule, other_alert_rule])
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []
@@ -119,7 +126,7 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
     def test_triggers(self):
         alert_rule = self.create_alert_rule()
         other_alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(alert_rule, "test", AlertRuleThresholdType.ABOVE, 1000)
+        trigger = create_alert_rule_trigger(alert_rule, "test", 1000)
         result = serialize([alert_rule, other_alert_rule], serializer=DetailedAlertRuleSerializer())
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/react';
 
 import {isWebpackChunkLoadingError} from 'app/utils';
 import {t} from 'app/locale';
@@ -116,8 +116,7 @@ class LazyLoad extends React.Component {
 
   render() {
     const {Component, error} = this.state;
-    // eslint-disable-next-line no-unused-vars
-    const {hideBusy, hideError, component, ...otherProps} = this.props;
+    const {hideBusy, hideError, component: _component, ...otherProps} = this.props;
 
     if (error && !hideError) {
       return (

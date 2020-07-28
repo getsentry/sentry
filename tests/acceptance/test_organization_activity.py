@@ -16,7 +16,6 @@ class OrganizationActivityTest(AcceptanceTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.dismiss_assistant("discover_sidebar")
         self.path = u"/organizations/{}/activity/".format(self.org.slug)
         self.project.update(first_event=timezone.now())
 

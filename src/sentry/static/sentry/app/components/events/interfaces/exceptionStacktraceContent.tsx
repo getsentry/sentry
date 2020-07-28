@@ -1,12 +1,13 @@
 import React from 'react';
 
-import {PlatformType} from 'app/components/events/interfaces/frame/types';
 import {defined} from 'app/utils';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {Panel} from 'app/components/panels';
+import {IconWarning} from 'app/icons';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SentryTypes from 'app/sentryTypes';
 import {Stacktrace, StackViewType} from 'app/types/stacktrace';
+import {PlatformType} from 'app/types';
 
 type Props = {
   stackView: StackViewType;
@@ -38,7 +39,7 @@ const ExceptionStacktraceContent = ({
     return (
       <Panel dashedBorder>
         <EmptyMessage
-          icon="icon-warning-sm"
+          icon={<IconWarning size="xs" />}
           title="No app only stacktrace has been found!"
         />
       </Panel>
