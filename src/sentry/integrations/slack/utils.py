@@ -56,6 +56,13 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
+def get_integration_type(integration):
+    metadata = integration.metadata
+    # classic bots had a user_access_token in the metadata
+    default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
+    return metadata.get("installation_type", default_installation)
+
+
 def format_actor_option(actor):
     if isinstance(actor, User):
         return {"text": actor.get_display_name(), "value": u"user:{}".format(actor.id)}
@@ -422,13 +429,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
-    default_install_type = (
-        "classic_bot" if "user_access_token" in integration.metadata else "workspace_app"
-    )
-
     # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
     # once eveyone is migrated we can remove this check and usages of channels.list
-    if integration.metadata.get("installation_type", default_install_type) == "workspace_app":
+    if get_integration_type(integration) == "workspace_app":
         list_types = LEGACY_LIST_TYPES
     else:
         list_types = LIST_TYPES
