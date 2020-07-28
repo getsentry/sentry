@@ -3,16 +3,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
-import {withScope, captureException, Severity} from '@sentry/react';
 
-import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 // exporting it down with alertStyles caused error  'Props' is not defined  no-undef
 export type Props = {
   type?: 'muted' | 'info' | 'warning' | 'success' | 'error' | 'beta';
-  iconSize?: string;
-  icon?: string | React.ReactNode;
+  icon?: React.ReactNode;
   system?: boolean;
 };
 
@@ -92,27 +89,14 @@ const Alert = styled(
   ({
     type,
     icon,
-    iconSize,
     children,
     className,
     system: _system, // don't forward to `div`
     ...props
   }: AlertProps) => {
-    if (typeof icon === 'string') {
-      withScope(scope => {
-        scope.setLevel(Severity.Warning);
-        scope.setTag('icon', icon);
-        scope.setTag('componentType', 'alert');
-        captureException(new Error('Deprecated SVG icon referenced'));
-      });
-    }
     return (
       <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
-        {icon && (
-          <IconWrapper>
-            {typeof icon === 'string' ? <InlineSvg src={icon} size={iconSize!} /> : icon}
-          </IconWrapper>
-        )}
+        {icon && <IconWrapper>{icon}</IconWrapper>}
         <StyledTextBlock>{children}</StyledTextBlock>
       </div>
     );
@@ -123,14 +107,12 @@ const Alert = styled(
 
 Alert.propTypes = {
   type: PropTypes.oneOf(['muted', 'info', 'warning', 'success', 'error', 'beta']),
-  iconSize: PropTypes.string,
   icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
   system: PropTypes.bool,
 };
 
 Alert.defaultProps = {
   type: DEFAULT_TYPE,
-  iconSize: '20px',
 };
 
 export {alertStyles};

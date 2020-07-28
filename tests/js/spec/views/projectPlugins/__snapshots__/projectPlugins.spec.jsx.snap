@@ -101,7 +101,6 @@ exports[`ProjectPlugins renders 1`] = `
                         size="md"
                       />
                     }
-                    iconSize="20px"
                     system={true}
                     type="warning"
                   >
@@ -112,7 +111,6 @@ exports[`ProjectPlugins renders 1`] = `
                           size="md"
                         />
                       }
-                      iconSize="20px"
                       system={true}
                       type="warning"
                     >

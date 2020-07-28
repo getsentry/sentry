@@ -4,11 +4,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import {withScope, captureException, Severity} from '@sentry/react';
 
 import {Theme} from 'app/utils/theme';
 import ExternalLink from 'app/components/links/externalLink';
-import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
 /**
@@ -26,8 +24,7 @@ type Props = {
   busy?: boolean;
   to?: string | object;
   href?: string;
-  icon?: string | React.ReactNode;
-  iconSize?: string;
+  icon?: React.ReactNode;
   title?: string;
   external?: boolean;
   borderless?: boolean;
@@ -60,9 +57,9 @@ class Button extends React.Component<ButtonProps, {}> {
      */
     href: PropTypes.string,
     /**
-     * Path to an icon svg that will be displayed to left of button label
+     * A react node to use as the icons. Generally pulled from app/icons
      */
-    icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
+    icon: PropTypes.node,
     /**
      * Tooltip text
      */
@@ -127,7 +124,6 @@ class Button extends React.Component<ButtonProps, {}> {
       href,
       title,
       icon,
-      iconSize,
       children,
       label,
       borderless,
@@ -144,15 +140,6 @@ class Button extends React.Component<ButtonProps, {}> {
     // For `aria-label`
     const screenReaderLabel =
       label || (typeof children === 'string' ? children : undefined);
-
-    if (typeof icon === 'string') {
-      withScope(scope => {
-        scope.setLevel(Severity.Warning);
-        scope.setTag('icon', icon);
-        scope.setTag('componentType', 'button');
-        captureException(new Error('Deprecated SVG icon referenced'));
-      });
-    }
 
     // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
     // Let's use props to determine which to serve up, so we don't have to think about it.
@@ -179,16 +166,7 @@ class Button extends React.Component<ButtonProps, {}> {
         >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
-              {typeof icon === 'string' ? (
-                <StyledInlineSvg
-                  src={icon}
-                  size={
-                    iconSize ? iconSize : size && size.endsWith('small') ? '12px' : '14px'
-                  }
-                />
-              ) : (
-                icon
-              )}
+              {icon}
             </Icon>
           )}
           {children}
@@ -385,8 +363,4 @@ const Icon = styled('span')<IconProps>`
   align-items: center;
   margin-right: ${getIconMargin};
   height: ${getFontSize};
-`;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  display: block;
 `;
