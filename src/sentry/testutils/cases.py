@@ -26,6 +26,7 @@ import pytest
 import requests
 import six
 import inspect
+from contextlib import contextmanager
 from sentry.utils.compat import mock
 
 from click.testing import CliRunner
@@ -82,13 +83,7 @@ from sentry.utils.auth import SSO_SESSION_KEY
 from .fixtures import Fixtures
 from .factories import Factories
 from .skips import requires_snuba
-from .helpers import (
-    AuthProvider,
-    Feature,
-    TaskRunner,
-    override_options,
-    parse_queries,
-)
+from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -106,6 +101,25 @@ class BaseTestCase(Fixtures, Exam):
 
     def tasks(self):
         return TaskRunner()
+
+    @classmethod
+    @contextmanager
+    def capture_on_commit_callbacks(cls, using=DEFAULT_DB_ALIAS, execute=False):
+        """
+        Context manager to capture transaction.on_commit() callbacks.
+        Backported from Django:
+        https://github.com/django/django/pull/12944
+        """
+        callbacks = []
+        start_count = len(connections[using].run_on_commit)
+        try:
+            yield callbacks
+        finally:
+            run_on_commit = connections[using].run_on_commit[start_count:]
+            callbacks[:] = [func for sids, func in run_on_commit]
+            if execute:
+                for callback in callbacks:
+                    callback()
 
     def feature(self, names):
         """
@@ -751,7 +765,7 @@ class SnubaTestCase(BaseTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events),
+                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
             ).status_code
             == 200
         )
