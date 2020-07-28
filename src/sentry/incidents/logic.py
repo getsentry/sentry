@@ -24,12 +24,14 @@ from sentry.incidents.models import (
     IncidentActivityType,
     IncidentProject,
     IncidentSnapshot,
+    IncidentTrigger,
     PendingIncidentSnapshot,
     IncidentSeen,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
     TimeSeriesSnapshot,
+    TriggerStatus,
 )
 from sentry.models import Integration, Project
 from sentry.snuba.dataset import Dataset
@@ -143,7 +145,6 @@ def update_incident_status(
             subscribe_to_incident(incident, user)
 
         prev_status = incident.status
-
         kwargs = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
             kwargs["date_closed"] = date_closed if date_closed else timezone.now()
@@ -169,6 +170,13 @@ def update_incident_status(
             prev_status=prev_status,
             status=incident.status,
         )
+
+        if status == IncidentStatus.CLOSED and (
+            status_method == IncidentStatusMethod.MANUAL
+            or status_method == IncidentStatusMethod.RULE_UPDATED
+        ):
+            trigger_incident_triggers(incident)
+
         return incident
 
 
@@ -966,6 +974,32 @@ def delete_alert_rule_trigger(trigger):
 
 def get_triggers_for_alert_rule(alert_rule):
     return AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+
+
+def trigger_incident_triggers(incident):
+    from sentry.incidents.tasks import handle_trigger_action
+
+    triggers = IncidentTrigger.objects.filter(incident=incident).select_related(
+        "alert_rule_trigger"
+    )
+    for trigger in triggers:
+        if trigger.status == TriggerStatus.ACTIVE.value:
+            with transaction.atomic():
+                method = "resolve"
+                for action in AlertRuleTriggerAction.objects.filter(
+                    alert_rule_trigger=trigger.alert_rule_trigger
+                ):
+                    for project in incident.projects.all():
+                        transaction.on_commit(
+                            handle_trigger_action.s(
+                                action_id=action.id,
+                                incident_id=incident.id,
+                                project_id=project.id,
+                                method=method,
+                            ).delay
+                        )
+                trigger.status = TriggerStatus.RESOLVED.value
+                trigger.save()
 
 
 def get_subscriptions_from_alert_rule(alert_rule, projects):
