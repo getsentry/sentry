@@ -62,7 +62,7 @@ const getPlaceholderForType = (type: ActionType) => {
       //no prefixes for msteams
       return 'username or channel';
     case ActionType.PAGER_DUTY:
-      return 'service';
+      return 'blah';
     default:
       throw Error('Not implemented');
   }
@@ -149,7 +149,7 @@ class ActionsPanel extends React.PureComponent<Props> {
     const {triggers, onChange} = this.props;
     const action = triggers[triggerIndex].actions[index];
 
-    // Because we're moving it beween two different triggers the position of the
+    // Because we're moving it between two different triggers the position of the
     // action could change, try to change it less by pushing or unshifting
     const position = value.value === 1 ? 'unshift' : 'push';
     triggers[value.value].actions[position](action);
@@ -242,6 +242,11 @@ class ActionsPanel extends React.PureComponent<Props> {
       {value: 1, label: 'Warning Status'},
     ];
 
+    const tempServices = [
+      {value: 1, label: 'sentry'},
+      {value: 2, label: 'fake'},
+    ];
+
     return (
       <Panel>
         <PanelHeader>{t('Actions')}</PanelHeader>
@@ -322,14 +327,13 @@ class ActionsPanel extends React.PureComponent<Props> {
                     ) : hasOptions ? (
                       <SelectControl
                         isDisabled={disabled || loading}
-                        value={action.targetType}
-                        options={availableAction?.allowedTargetTypes?.map(
-                          allowedType => ({
-                            value: allowedType,
-                            label: TargetLabel[allowedType],
-                          })
+                        value={action.targetIdentifier}
+                        options={tempServices}
+                        onChange={this.handleChangeTargetIdentifier.bind(
+                          this,
+                          triggerIndex,
+                          i
                         )}
-                        onChange={this.handleChangeTarget.bind(this, triggerIndex, i)}
                       />
                     ) : (
                       <Input

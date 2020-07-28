@@ -85,7 +85,7 @@ export enum ActionType {
 }
 
 export enum TargetType {
-  // The name can be customized for each integration. Email for email, channel for slack, service for Pagerduty). We probably won't support this for email at first, since we need to be careful not to enable spam
+  // The name can be customized for each integration. Email for email, channel for slack). We probably won't support this for email at first, since we need to be careful not to enable spam
   SPECIFIC = 'specific',
 
   // Just works with email for now, grabs given user's email address
@@ -94,7 +94,7 @@ export enum TargetType {
   // Just works with email for now, grabs the emails for all team members
   TEAM = 'team',
 
-  // for when you want to return a dropdown with multiple values
+  // for when you want to return a dropdown with multiple values that is not a user or team
   OPTIONS = 'options',
 }
 
