@@ -248,10 +248,7 @@ class SubscriptionProcessor(object):
                     self.alert_rule.name,
                     alert_rule=self.alert_rule,
                     date_started=detected_at,
-                    # TODO: This should probably be either the current time or the
-                    # message time. Current time likely makes most sense, since this is
-                    # when we actually noticed the problem.
-                    date_detected=detected_at,
+                    date_detected=self.last_update,
                     projects=[self.subscription.project],
                 )
             # Now create (or update if it already exists) the incident trigger so that
