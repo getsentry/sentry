@@ -36,6 +36,5 @@ describe('ProjectHpkpReports', function() {
       TestStubs.routerContext()
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

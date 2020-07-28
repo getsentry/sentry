@@ -57,7 +57,6 @@ describe('Organization Rate Limits', function() {
     expect(wrapper.find('RangeSlider')).toHaveLength(1);
 
     expect(wrapper.find('Form TextBlock')).toSnapshot();
-    expect(wrapper.find('Form TextBlock')).toMatchSnapshot();
   });
 
   it('can change Account Rate Limit', function() {

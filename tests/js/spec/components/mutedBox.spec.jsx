@@ -11,36 +11,30 @@ describe('MutedBox', function() {
         <MutedBox statusDetails={{ignoreUntil: '2017-06-21T19:45:10Z'}} />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles ignoreCount', function() {
       const wrapper = mountWithTheme(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles ignoreCount with ignoreWindow', function() {
       const wrapper = mountWithTheme(
         <MutedBox statusDetails={{ignoreCount: 100, ignoreWindow: 1}} />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles ignoreUserCount', function() {
       const wrapper = mountWithTheme(<MutedBox statusDetails={{ignoreUserCount: 100}} />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles ignoreUserCount with ignoreUserWindow', function() {
       const wrapper = mountWithTheme(
         <MutedBox statusDetails={{ignoreUserCount: 100, ignoreUserWindow: 1}} />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles default', function() {
       const wrapper = mountWithTheme(<MutedBox statusDetails={{}} />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
   });
 });

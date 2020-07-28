@@ -13,7 +13,6 @@ describe('Form', function() {
         </Form>
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
   });
 });

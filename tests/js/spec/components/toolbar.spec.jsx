@@ -16,6 +16,5 @@ describe('Toolbar', function() {
       </Toolbar>
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

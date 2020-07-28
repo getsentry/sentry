@@ -15,6 +15,5 @@ describe('EventSdkUpdates', function() {
 
     const wrapper = mountWithTheme(<EventSdkUpdates {...props} />, routerContext);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

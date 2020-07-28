@@ -11,7 +11,6 @@ describe('DetailedError', function() {
     );
 
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with "Retry" button', function() {
@@ -24,7 +23,6 @@ describe('DetailedError', function() {
     );
 
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('can hide support links', function() {
@@ -38,7 +36,6 @@ describe('DetailedError', function() {
     );
 
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('hides footer when no "Retry" and no support links', function() {
@@ -51,6 +48,5 @@ describe('DetailedError', function() {
     );
 
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

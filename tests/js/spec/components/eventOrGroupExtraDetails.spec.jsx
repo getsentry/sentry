@@ -22,7 +22,6 @@ describe('EventOrGroupExtraDetails', function() {
     );
 
     expect(component).toSnapshot();
-    expect(component).toMatchSnapshot();
   });
 
   it('renders only first seen', function() {
@@ -37,7 +36,6 @@ describe('EventOrGroupExtraDetails', function() {
     );
 
     expect(component).toSnapshot();
-    expect(component).toMatchSnapshot();
   });
 
   it('renders only last seen', function() {
@@ -52,7 +50,6 @@ describe('EventOrGroupExtraDetails', function() {
     );
 
     expect(component).toSnapshot();
-    expect(component).toMatchSnapshot();
   });
 
   it('renders all details', function() {
@@ -76,7 +73,6 @@ describe('EventOrGroupExtraDetails', function() {
     );
 
     expect(component).toSnapshot();
-    expect(component).toMatchSnapshot();
   });
 
   it('renders assignee and status', function() {
@@ -102,7 +98,6 @@ describe('EventOrGroupExtraDetails', function() {
     );
 
     expect(component).toSnapshot();
-    expect(component).toMatchSnapshot();
   });
 
   it('details when mentioned', function() {
@@ -123,6 +118,5 @@ describe('EventOrGroupExtraDetails', function() {
     );
 
     expect(component).toSnapshot();
-    expect(component).toMatchSnapshot();
   });
 });

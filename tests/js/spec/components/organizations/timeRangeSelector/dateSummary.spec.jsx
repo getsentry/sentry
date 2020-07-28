@@ -17,7 +17,6 @@ describe('DateSummary', function() {
   it('renders', async function() {
     wrapper = createWrapper();
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('does not show times when it is midnight for start date and 23:59:59 for end date', function() {

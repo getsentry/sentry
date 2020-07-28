@@ -52,6 +52,5 @@ describe('Project Ownership Input', function() {
     expect(put).toHaveBeenCalled();
 
     expect(wrapper.find(OwnerInput)).toSnapshot();
-    expect(wrapper.find(OwnerInput)).toMatchSnapshot();
   });
 });

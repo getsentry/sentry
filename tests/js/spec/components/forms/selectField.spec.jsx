@@ -20,7 +20,6 @@ describe('SelectField', function() {
         />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with flat choices', function() {
@@ -42,7 +41,6 @@ describe('SelectField', function() {
         }
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with paired choices', function() {
@@ -68,7 +66,6 @@ describe('SelectField', function() {
         }
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('can change value and submit', function() {

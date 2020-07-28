@@ -12,19 +12,16 @@ describe('NumberField', function() {
     it('renders', function() {
       const wrapper = mountWithTheme(<NumberField name="fieldName" />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with optional attributes', function() {
       const wrapper = mountWithTheme(<NumberField name="fieldName" min={0} max={100} />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with value', function() {
       const wrapper = mountWithTheme(<NumberField name="fieldName" value={5} />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
@@ -39,7 +36,6 @@ describe('NumberField', function() {
         },
       });
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('doesnt save `NaN` when new value is empty string', function() {

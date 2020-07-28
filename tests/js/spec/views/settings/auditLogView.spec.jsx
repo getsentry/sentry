@@ -29,7 +29,6 @@ describe('OrganizationAuditLog', function() {
     setTimeout(() => {
       wrapper.update();
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
       done();
     });
   });

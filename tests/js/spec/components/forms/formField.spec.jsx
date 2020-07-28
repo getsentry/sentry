@@ -23,7 +23,6 @@ describe('FormField + model', function() {
       routerContext
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('sets initial data in model', function() {

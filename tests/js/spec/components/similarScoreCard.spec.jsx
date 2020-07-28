@@ -12,7 +12,6 @@ describe('SimilarScoreCard', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<SimilarScoreCard />);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with score list', function() {
@@ -27,6 +26,5 @@ describe('SimilarScoreCard', function() {
       />
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

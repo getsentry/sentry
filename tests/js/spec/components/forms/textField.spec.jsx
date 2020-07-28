@@ -9,7 +9,6 @@ describe('TextField', function() {
     it('renders without form context', function() {
       const wrapper = mountWithTheme(<TextField name="fieldName" />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
@@ -24,7 +23,6 @@ describe('TextField', function() {
         },
       });
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
   });
 });

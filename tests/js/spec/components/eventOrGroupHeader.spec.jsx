@@ -40,7 +40,6 @@ describe('EventOrGroupHeader', function() {
       );
 
       expect(component).toSnapshot();
-      expect(component).toMatchSnapshot();
     });
 
     it('renders with `type = csp`', function() {
@@ -58,7 +57,6 @@ describe('EventOrGroupHeader', function() {
       );
 
       expect(component).toSnapshot();
-      expect(component).toMatchSnapshot();
     });
 
     it('renders with `type = default`', function() {
@@ -76,7 +74,6 @@ describe('EventOrGroupHeader', function() {
       );
 
       expect(component).toSnapshot();
-      expect(component).toMatchSnapshot();
     });
   });
 
@@ -104,7 +101,6 @@ describe('EventOrGroupHeader', function() {
       );
 
       expect(component).toSnapshot();
-      expect(component).toMatchSnapshot();
     });
 
     it('renders with `type = csp`', function() {
@@ -122,7 +118,6 @@ describe('EventOrGroupHeader', function() {
       );
 
       expect(component).toSnapshot();
-      expect(component).toMatchSnapshot();
     });
 
     it('renders with `type = default`', function() {
@@ -140,7 +135,6 @@ describe('EventOrGroupHeader', function() {
       );
 
       expect(component).toSnapshot();
-      expect(component).toMatchSnapshot();
     });
 
     it('hides level tag', function() {
@@ -159,7 +153,6 @@ describe('EventOrGroupHeader', function() {
       );
 
       expect(component).toSnapshot();
-      expect(component).toMatchSnapshot();
     });
 
     it('keeps sort in link when query has sort', function() {

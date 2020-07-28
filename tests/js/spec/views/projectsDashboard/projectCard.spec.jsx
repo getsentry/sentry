@@ -33,7 +33,6 @@ describe('ProjectCard', function() {
 
   it('renders', function() {
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders latest 2 deploys', function() {

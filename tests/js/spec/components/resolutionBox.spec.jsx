@@ -11,7 +11,6 @@ describe('ResolutionBox', function() {
         <ResolutionBox statusDetails={{inNextRelease: true}} projectId="1" />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles inNextRelease with actor', function() {
       const wrapper = mountWithTheme(
@@ -24,7 +23,6 @@ describe('ResolutionBox', function() {
         />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles inRelease', function() {
       const wrapper = mountWithTheme(
@@ -36,7 +34,6 @@ describe('ResolutionBox', function() {
         />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles inRelease with actor', function() {
       const wrapper = mountWithTheme(
@@ -49,12 +46,10 @@ describe('ResolutionBox', function() {
         />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles default', function() {
       const wrapper = mountWithTheme(<ResolutionBox statusDetails={{}} projectId="1" />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
     it('handles inCommit', function() {
       const wrapper = mountWithTheme(
@@ -66,7 +61,6 @@ describe('ResolutionBox', function() {
         />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
   });
 });

@@ -102,7 +102,6 @@ describe('RuleBuilder', function() {
     await tick();
     wrapper.update();
     expect(wrapper.find(RuleBuilder)).toSnapshot();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
   });
 
   it('renders with suggestions', async function() {
@@ -157,7 +156,6 @@ describe('RuleBuilder', function() {
     await tick();
     wrapper.update();
     expect(wrapper.find(RuleBuilder)).toSnapshot();
-    expect(wrapper.find(RuleBuilder)).toMatchSnapshot();
 
     wrapper.find('Button').simulate('click');
     expect(handleAdd).toHaveBeenCalled();

@@ -17,7 +17,6 @@ describe('SettingsIndex', function() {
       />
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('has loading when there is no organization', function() {

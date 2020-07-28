@@ -15,13 +15,11 @@ describe('PluginIcon', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<PluginIcon pluginId="github" size={20} />);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   // doesn't work because of the above comment
   it.skip('renders with default icon with invalid plugin id', function() {
     const wrapper = mountWithTheme(<PluginIcon pluginId="invalid" size={20} />);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

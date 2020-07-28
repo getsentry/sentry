@@ -8,6 +8,5 @@ describe('CircleIndicator', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<CircleIndicator />);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

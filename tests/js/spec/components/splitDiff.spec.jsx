@@ -12,7 +12,6 @@ describe('SplitDiff', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<SplitDiff base="restaurant" target="aura" />);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders with newlines', function() {
@@ -24,6 +23,5 @@ describe('SplitDiff', function() {
     common`;
     const wrapper = mountWithTheme(<SplitDiff base={base} target={target} />);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

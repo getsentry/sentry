@@ -13,7 +13,6 @@ describe('ApiTokenRow', function() {
 
     // Should be loading
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('calls onRemove callback when trash can is clicked', function() {

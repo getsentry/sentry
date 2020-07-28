@@ -108,7 +108,6 @@ describe('Filter', () => {
         .find('ListItem')
     ).toHaveLength(2);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('Without Options', () => {

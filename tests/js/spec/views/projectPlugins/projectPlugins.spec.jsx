@@ -22,7 +22,6 @@ describe('ProjectPlugins', function() {
     );
 
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('has loading state', function() {

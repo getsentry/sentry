@@ -16,7 +16,6 @@ describe('JsonForm', function() {
         <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('missing additionalFieldProps required in "valid" prop', function() {
@@ -111,7 +110,6 @@ describe('JsonForm', function() {
     it('default', function() {
       const wrapper = mountWithTheme(<JsonForm fields={jsonFormFields} />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('missing additionalFieldProps required in "valid" prop', function() {

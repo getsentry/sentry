@@ -8,6 +8,5 @@ describe('ExternalLink', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<ExternalLink href="https://www.sentry.io/" />);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

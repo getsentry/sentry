@@ -12,7 +12,6 @@ describe('Tooltip', function() {
       </Tooltip>
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('updates title', function() {

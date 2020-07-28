@@ -22,7 +22,6 @@ describe('AccountIdentities', function() {
     const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
 
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders list', function() {
@@ -40,7 +39,6 @@ describe('AccountIdentities', function() {
 
     const wrapper = mountWithTheme(<AccountIdentities />, TestStubs.routerContext());
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('disconnects identity', function() {

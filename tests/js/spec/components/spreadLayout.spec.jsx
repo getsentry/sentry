@@ -13,7 +13,6 @@ describe('SpreadLayout', function() {
     );
 
     expect(component).toSnapshot();
-    expect(component).toMatchSnapshot();
   });
 
   it('renders with multiple children', function() {
@@ -25,6 +24,5 @@ describe('SpreadLayout', function() {
     );
 
     expect(component).toSnapshot();
-    expect(component).toMatchSnapshot();
   });
 });

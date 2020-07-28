@@ -41,7 +41,6 @@ describe('ActorAvatar', function() {
         />
       );
       expect(avatar).toSnapshot();
-      expect(avatar).toMatchSnapshot();
     });
 
     it('should show a gravatar when actor type is a team', function() {
@@ -55,7 +54,6 @@ describe('ActorAvatar', function() {
         />
       );
       expect(avatar).toSnapshot();
-      expect(avatar).toMatchSnapshot();
     });
 
     it('should return null when actor type is a unknown', function() {

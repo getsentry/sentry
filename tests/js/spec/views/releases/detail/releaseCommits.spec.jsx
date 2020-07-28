@@ -32,7 +32,6 @@ describe('ReleaseCommits', function() {
     );
 
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
     expect(projectMockResponse).toHaveBeenCalled();
     expect(organizationMockResponse).not.toHaveBeenCalled();
   });
@@ -43,7 +42,6 @@ describe('ReleaseCommits', function() {
     );
 
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
     expect(projectMockResponse).not.toHaveBeenCalled();
     expect(organizationMockResponse).toHaveBeenCalled();
   });

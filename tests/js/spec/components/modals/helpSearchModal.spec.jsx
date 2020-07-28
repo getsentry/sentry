@@ -113,6 +113,5 @@ describe('Docs Search Modal', function() {
 
     expect(wrapper.find('SearchResultWrapper')).toHaveLength(2);
     expect(wrapper.find('SearchSources DropdownBox')).toSnapshot();
-    expect(wrapper.find('SearchSources DropdownBox')).toMatchSnapshot();
   });
 });

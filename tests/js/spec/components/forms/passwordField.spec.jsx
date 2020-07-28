@@ -9,13 +9,11 @@ describe('PasswordField', function() {
     it('renders', function() {
       const wrapper = mountWithTheme(<PasswordField name="fieldName" />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with value', function() {
       const wrapper = mountWithTheme(<PasswordField name="fieldName" value="foobar" />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
@@ -30,7 +28,6 @@ describe('PasswordField', function() {
         },
       });
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
   });
 });

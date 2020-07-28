@@ -9,7 +9,6 @@ describe('EmailField', function() {
     it('renders', function() {
       const wrapper = mountWithTheme(<EmailField name="fieldName" />);
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with value', function() {
@@ -17,7 +16,6 @@ describe('EmailField', function() {
         <EmailField name="fieldName" value="foo@example.com" />
       );
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders with form context', function() {
@@ -32,7 +30,6 @@ describe('EmailField', function() {
         },
       });
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
   });
 });

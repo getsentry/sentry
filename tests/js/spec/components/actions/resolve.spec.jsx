@@ -135,7 +135,6 @@ describe('ResolveActions', function() {
 
     it('renders', function() {
       expect(component).toSnapshot();
-      expect(component).toMatchSnapshot();
     });
 
     it('calls spy with resolved status when clicked', function() {
@@ -167,7 +166,6 @@ describe('ResolveActions', function() {
 
     it('renders', function() {
       expect(component).toSnapshot();
-      expect(component).toMatchSnapshot();
     });
 
     it('displays confirmation modal with message provided', function() {

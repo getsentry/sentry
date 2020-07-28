@@ -15,7 +15,6 @@ describe('ExternalIssueActions', function() {
     );
     it('renders', function() {
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
 
     it('renders Link GitHub Issue when no issues currently linked', function() {

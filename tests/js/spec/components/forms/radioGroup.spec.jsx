@@ -21,7 +21,6 @@ describe('RadioGroup', function() {
       />
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders disabled', function() {
@@ -37,7 +36,6 @@ describe('RadioGroup', function() {
       />
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
 
     expect(wrapper.find('RadioLineText').props().disabled).toBe(true);
     expect(wrapper.find('Radio').props().disabled).toBe(true);
@@ -59,7 +57,6 @@ describe('RadioGroup', function() {
       />
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('calls onChange when clicked', function() {

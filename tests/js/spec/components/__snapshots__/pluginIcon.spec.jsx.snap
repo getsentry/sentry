@@ -1,17 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`PluginIcon renders 1`] = `
-<PluginIcon
-  pluginId="github"
-  size={20}
->
-  <div
-    className="css-1mhrz22-PluginIcon e7e65lm0"
-    size={20}
-  />
-</PluginIcon>
-`;
-
 exports[`PluginIcon renders with default icon with invalid plugin id 1`] = `
 <IntegrationIcon
   image="github"

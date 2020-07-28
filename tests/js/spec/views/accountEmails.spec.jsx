@@ -22,7 +22,6 @@ describe('AccountEmails', function() {
     const wrapper = mountWithTheme(<AccountEmails />, TestStubs.routerContext());
 
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('can remove an email', function() {

@@ -12,6 +12,5 @@ describe('Tag', function() {
       </Tag>
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

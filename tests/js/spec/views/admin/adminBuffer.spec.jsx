@@ -15,7 +15,6 @@ describe('AdminBuffer', function() {
         },
       });
       expect(wrapper).toSnapshot();
-      expect(wrapper).toMatchSnapshot();
     });
   });
 });

@@ -8,6 +8,5 @@ describe('TextCopyInput', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<TextCopyInput>Text to Copy</TextCopyInput>);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

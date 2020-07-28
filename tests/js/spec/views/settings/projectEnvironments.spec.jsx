@@ -55,7 +55,6 @@ describe('ProjectEnvironments', function() {
 
       expect(errorMessage.text()).toContain("You don't have any environments yet");
       expect(wrapper.find('ProjectEnvironments')).toSnapshot();
-      expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
     });
 
     it('renders environment list', async function() {
@@ -84,7 +83,6 @@ describe('ProjectEnvironments', function() {
       expect(errorMessage.text()).toContain("You don't have any hidden environments");
 
       expect(wrapper.find('ProjectEnvironments')).toSnapshot();
-      expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
     });
 
     it('renders environment list', function() {
@@ -97,7 +95,6 @@ describe('ProjectEnvironments', function() {
       // Hidden buttons should not have "Set as default"
       expect(wrapper.find('Button').text()).toBe('Show');
       expect(wrapper.find('ProjectEnvironments')).toSnapshot();
-      expect(wrapper.find('ProjectEnvironments')).toMatchSnapshot();
     });
   });
 

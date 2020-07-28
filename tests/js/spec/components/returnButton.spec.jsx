@@ -8,6 +8,5 @@ describe('returnButton', function() {
   it('renders', function() {
     const wrapper = mountWithTheme(<ReturnButton />);
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 });

@@ -10,7 +10,6 @@ describe('InactivePlugins', function() {
       <InactivePlugins plugins={[]} onEnablePlugin={() => {}} />
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('renders plugins list', function() {
@@ -18,7 +17,6 @@ describe('InactivePlugins', function() {
       <InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />
     );
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('enables a plugin', function() {

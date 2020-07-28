@@ -60,7 +60,6 @@ describe('ProjectTags', function() {
 
   it('renders', function() {
     expect(wrapper).toSnapshot();
-    expect(wrapper).toMatchSnapshot();
   });
 
   it('deletes tag', function() {

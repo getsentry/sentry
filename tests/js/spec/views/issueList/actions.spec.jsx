@@ -48,14 +48,12 @@ describe('IssueListActions', function() {
       it('after checking "Select all" checkbox, displays bulk select message', async function() {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
         expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
-        expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
       });
 
       it('can bulk select', function() {
         wrapper.find('.stream-select-all-notice a').simulate('click');
 
         expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
-        expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
       });
 
       it('bulk resolves', async function() {
@@ -69,7 +67,6 @@ describe('IssueListActions', function() {
           .simulate('click');
 
         expect(wrapper.find('ModalDialog')).toSnapshot();
-        expect(wrapper.find('ModalDialog')).toMatchSnapshot();
         wrapper.find('Button[priority="primary"]').simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -116,14 +113,12 @@ describe('IssueListActions', function() {
       it('after checking "Select all" checkbox, displays bulk select message', async function() {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
         expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
-        expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
       });
 
       it('can bulk select', function() {
         wrapper.find('.stream-select-all-notice a').simulate('click');
 
         expect(wrapper.find('.stream-select-all-notice')).toSnapshot();
-        expect(wrapper.find('.stream-select-all-notice')).toMatchSnapshot();
       });
 
       it('bulk resolves', async function() {
@@ -137,7 +132,6 @@ describe('IssueListActions', function() {
           .simulate('click');
 
         expect(wrapper.find('ModalDialog')).toSnapshot();
-        expect(wrapper.find('ModalDialog')).toMatchSnapshot();
         wrapper.find('Button[priority="primary"]').simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
