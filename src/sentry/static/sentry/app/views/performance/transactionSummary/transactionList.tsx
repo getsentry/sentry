@@ -185,15 +185,13 @@ class TransactionTable extends React.PureComponent<Props> {
         {({align}) => {
           return (
             <HeadCellContainer>
-              <GridCell>
-                <SortLink
-                  align={align}
-                  title={column.name}
-                  direction={undefined}
-                  canSort={false}
-                  generateSortLink={generateSortLink}
-                />
-              </GridCell>
+              <SortLink
+                align={align}
+                title={column.name}
+                direction={undefined}
+                canSort={false}
+                generateSortLink={generateSortLink}
+              />
             </HeadCellContainer>
           );
         }}
