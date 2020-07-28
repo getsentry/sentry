@@ -422,7 +422,7 @@ def get_channel_id_with_timeout(integration, name, timeout):
     Fetches the internal slack id of a channel.
     :param integration: The slack integration
     :param name: The name of the channel
-    :param timeout: Our self-imposed time limit (10s).
+    :param timeout: Our self-imposed time limit.
     :return: a tuple of three values
         1. prefix: string (`"#"` or `"@"`)
         2. channel_id: string or `None`
