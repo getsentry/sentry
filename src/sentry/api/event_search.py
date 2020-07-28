@@ -991,9 +991,9 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
         if term != SearchBoolean.BOOLEAN_AND:
             new_terms.append(term)
         prev = term
-    if SearchBoolean.is_operator(term):
+    if SearchBoolean.is_operator(prev):
         raise InvalidSearchQuery(
-            u"Condition is missing on the right side of '{}' operator".format(term)
+            u"Condition is missing on the right side of '{}' operator".format(prev)
         )
     terms = new_terms
 
