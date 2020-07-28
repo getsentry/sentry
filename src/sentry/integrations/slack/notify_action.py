@@ -132,35 +132,42 @@ class SlackNotifyServiceAction(EventAction):
             return
 
         def send_notification(event, futures):
-            rules = [f.rule for f in futures]
-            attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
-            # check if we should have the upgrade notice attachment
-            if get_integration_type(integration) == "workspace_app":
-                if random.random() < UPGRADE_MESSAGE_FREQUENCY:
-                    # stick the upgrade attachment first
-                    attachments.insert(0, build_upgrade_notice_attachment(event.group))
+            with sentry_sdk.start_transaction(
+                op=u"slack.send_notification", name=u"SlackSendNotification", sampled=1.0
+            ) as span:
+                rules = [f.rule for f in futures]
+                attachments = [
+                    build_group_attachment(event.group, event=event, tags=tags, rules=rules)
+                ]
+                # check if we should have the upgrade notice attachment
+                integration_type = get_integration_type(integration)
+                if integration_type == "workspace_app":
+                    if random.random() < UPGRADE_MESSAGE_FREQUENCY:
+                        # stick the upgrade attachment first
+                        attachments.insert(0, build_upgrade_notice_attachment(event.group))
 
-            sentry_sdk.set_tag("has_slack_upgrade_cta", len(attachments) > 1)
-            payload = {
-                "token": integration.metadata["access_token"],
-                "channel": channel,
-                "link_names": 1,
-                "attachments": json.dumps(attachments),
-            }
+                span.set_tag("integration_type", integration_type)
+                span.set_tag("has_slack_upgrade_cta", len(attachments) > 1)
+                payload = {
+                    "token": integration.metadata["access_token"],
+                    "channel": channel,
+                    "link_names": 1,
+                    "attachments": json.dumps(attachments),
+                }
 
-            client = SlackClient()
-            try:
-                client.post("/chat.postMessage", data=payload, timeout=5)
-            except ApiError as e:
-                self.logger.info(
-                    "rule.fail.slack_post",
-                    extra={
-                        "error": six.text_type(e),
-                        "project_id": event.project_id,
-                        "event_id": event.event_id,
-                        "channel_name": self.get_option("channel"),
-                    },
-                )
+                client = SlackClient()
+                try:
+                    client.post("/chat.postMessage", data=payload, timeout=5)
+                except ApiError as e:
+                    self.logger.info(
+                        "rule.fail.slack_post",
+                        extra={
+                            "error": six.text_type(e),
+                            "project_id": event.project_id,
+                            "event_id": event.event_id,
+                            "channel_name": self.get_option("channel"),
+                        },
+                    )
 
         key = u"slack:{}:{}".format(integration_id, channel)
 
