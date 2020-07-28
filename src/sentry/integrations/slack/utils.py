@@ -390,13 +390,24 @@ def strip_channel_name(name):
 
 
 def get_channel_id(organization, integration_id, name):
+    """
+   Fetches the internal slack id of a channel.
+   :param organization: The organization that is using this integration
+   :param integration_id: The integration id of this slack integration
+   :param name: The name of the channel
+   :return: a tuple of three values
+       1. prefix: string (`"#"` or `"@"`)
+       2. channel_id: string or `None`
+       3. timed_out: boolean (whether we hit our self-imposed time limit)
+   """
+
     name = strip_channel_name(name)
     try:
         integration = Integration.objects.get(
             provider="slack", organizations=organization, id=integration_id
         )
     except Integration.DoesNotExist:
-        return None
+        return None, None, False
 
     # XXX(meredith): For large accounts that have many, many channels it's
     # possible for us to timeout while attempting to paginate through to find the channel id
@@ -409,9 +420,9 @@ def get_channel_id(organization, integration_id, name):
 def get_channel_id_with_timeout(integration, name, timeout):
     """
     Fetches the internal slack id of a channel.
-    :param organization: The organization that is using this integration
-    :param integration_id: The integration id of this slack integration
+    :param integration: The slack integration
     :param name: The name of the channel
+    :param timeout: Our self-imposed time limit.
     :return: a tuple of three values
         1. prefix: string (`"#"` or `"@"`)
         2. channel_id: string or `None`
