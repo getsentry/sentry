@@ -120,6 +120,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
                 "tenant": {"id": "th3_burr0w"}
             }:
                 return (200, {}, json.dumps({"id": "g1nny_w345l3y"}))
+            return (404, {}, json.dumps({}))
 
         responses.add_callback(
             method=responses.POST,
