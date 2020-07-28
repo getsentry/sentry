@@ -298,6 +298,7 @@ class ReleaseSerializer(Serializer):
         if with_health_data:
             health_data = get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
+                environments=environment,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
                 stat=health_stat,
