@@ -20,10 +20,6 @@ type Props = {
   organization: Organization;
 };
 
-type Results = {
-  [key: string]: React.ReactNode;
-} | null;
-
 class UserStats extends React.Component<Props> {
   generateUserStatsEventView(eventView: EventView): EventView {
     // narrow the search conditions of the Performance Summary event view
