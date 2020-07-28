@@ -32,6 +32,9 @@ class IncidentEndpoint(OrganizationEndpoint):
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
 
+        if not incident_identifier.isdigit():
+            raise ResourceDoesNotExist
+
         try:
             incident = kwargs["incident"] = Incident.objects.get(
                 organization=organization, identifier=incident_identifier
