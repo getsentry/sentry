@@ -337,10 +337,10 @@ export const fields: {[key: string]: Field} = {
     type: 'range',
     label: t('Store Native Crash Reports'),
     help: t(
-      'Store native crash reports such as Minidumps for improved processing and download in issue details.  Overrides organization settings when enabled.'
+      'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides organization settings.'
     ),
     visible: ({features}) => features.has('event-attachments'),
-    formatLabel: formatStoreCrashReports,
+    formatLabel: value => formatStoreCrashReports(value, {inProjectSettings: true}),
     allowedValues: STORE_CRASH_REPORTS_VALUES,
   },
   allowedDomains: {
