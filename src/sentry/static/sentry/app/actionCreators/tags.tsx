@@ -84,7 +84,8 @@ export function fetchTagValues(
   tagKey: string,
   search: string | null = null,
   projectIds: string[] | null = null,
-  endpointParams: Query | null = null
+  endpointParams: Query | null = null,
+  includeTransactions = false
 ) {
   const url = `/organizations/${orgId}/tags/${tagKey}/values/`;
 
@@ -105,6 +106,9 @@ export function fetchTagValues(
     if (endpointParams.statsPeriod) {
       query.statsPeriod = endpointParams.statsPeriod;
     }
+  }
+  if (includeTransactions) {
+    query.includeTransactions = '1';
   }
 
   return api.requestPromise(url, {

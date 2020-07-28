@@ -152,16 +152,43 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
         self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=self.project.id)
         self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id)
         self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project.id)
-        self.run_test("project", expected=[(self.project.slug, 2)])
+
+        # without the includeTransactions flag, this will continue to search the Events Dataset for the
+        # projects tag, which doesn't exist here
+        self.run_test("project", expected=[])
+
+        # with the includeTransactions flag, this will search in the Discover Dataset where project
+        # has special meaning to refer to the sentry project rather than the project tag
+        self.run_test(
+            "project", qs_params={"includeTransactions": "1"}, expected=[(self.project.slug, 2)]
+        )
 
     def test_project_name_with_query(self):
         other_project = self.create_project(organization=self.org, name="test1")
         other_project2 = self.create_project(organization=self.org, name="test2")
+        self.create_project(organization=self.org, name="test3")
         self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project.id)
         self.store_event(data={"timestamp": iso_format(self.min_ago)}, project_id=other_project.id)
         self.store_event(data={"timestamp": iso_format(self.day_ago)}, project_id=other_project2.id)
-        self.run_test("project", qs_params={"query": "test"}, expected=[("test1", 2), ("test2", 1)])
-        self.run_test("project", qs_params={"query": "1"}, expected=[("test1", 2)])
+
+        # without the includeTransactions flag, this will continue to search the Events Dataset for the
+        # projects tag, which doesn't exist here
+        self.run_test("project", qs_params={"query": "test"}, expected=[])
+
+        # with the includeTransactions flag, this will search in the Discover Dataset where project
+        # has special meaning to refer to the sentry project rather than the project tag
+        self.run_test(
+            "project",
+            qs_params={"includeTransactions": "1", "query": "test"},
+            expected=[("test1", 2), ("test2", 1)],
+        )
+        self.run_test(
+            "project", qs_params={"includeTransactions": "1", "query": "1"}, expected=[("test1", 2)]
+        )
+        self.run_test(
+            "project", qs_params={"includeTransactions": "1", "query": "test3"}, expected=[]
+        )
+        self.run_test("project", qs_params={"includeTransactions": "1", "query": "z"}, expected=[])
 
     def test_array_column(self):
         for i in range(3):
@@ -193,6 +220,13 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.store_event(
             self.transaction, project_id=self.project.id,
         )
+
+    def run_test(self, key, expected, **kwargs):
+        # all tests here require that we search in transactions so make that the default here
+        qs_params = kwargs.get("qs_params", {})
+        qs_params["includeTransactions"] = "1"
+        kwargs["qs_params"] = qs_params
+        super(TransactionTagKeyValues, self).run_test(key, expected, **kwargs)
 
     def test_status(self):
         self.run_test("transaction.status", expected=[("unknown", 1), ("ok", 1)])
