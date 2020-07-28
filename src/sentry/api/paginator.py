@@ -508,11 +508,14 @@ class CombinedQuerysetPaginator(object):
                 assert (
                     key == "date_added"
                 ), "When sorting by date_added, it must be the key used on all querysets"
-        for i, model in enumerate(self.querysets):
-            assert hasattr(
-                model.first(), self.keys[i]
-            ), "Model of type {} does not have field {}".format(type(model.first()), self.keys[i])
-            self.model_key_map.update({type(model.first()): self.keys[i]})
+        for i, queryset in enumerate(self.querysets):
+            if queryset.first() is not None:
+                assert hasattr(
+                    queryset.first(), self.keys[i]
+                ), "Model of type {} does not have field {}".format(
+                    type(queryset.first()), self.keys[i]
+                )
+            self.model_key_map.update({type(queryset.first()): self.keys[i]})
 
     def key_from_item(self, item):
         return self.model_key_map.get(type(item))
