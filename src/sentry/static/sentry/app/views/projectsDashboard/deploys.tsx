@@ -1,5 +1,4 @@
 import React from 'react';
-import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
 import {Project, Deploy as DeployType} from 'app/types';
@@ -7,7 +6,7 @@ import {t} from 'app/locale';
 import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
-import getDynamicText from 'app/utils/getDynamicText';
+import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import space from 'app/styles/space';
 
@@ -72,10 +71,7 @@ const Deploy = ({deploy, project}: DeployProps) => (
     </StyledTextOverflow>
 
     <DeployTimeWrapper>
-      {getDynamicText({
-        value: moment(deploy.dateFinished).fromNow(),
-        fixed: '3 hours ago',
-      })}
+      <TimeSince date={deploy.dateFinished} />
     </DeployTimeWrapper>
   </DeployRow>
 );
