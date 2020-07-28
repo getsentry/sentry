@@ -13,7 +13,7 @@ import docsImg from '../../../images/spot/code-arguments-tags-mirrored.svg';
 
 export default class Resources extends React.Component {
   componentDidMount() {
-    analytics('orgdash.resources_shown');
+    analytics('orgdash.resources_shown', {});
   }
 
   render() {
