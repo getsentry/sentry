@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {t} from 'app/locale';
-import {Event, Organization, OrganizationSummary, SelectValue} from 'app/types';
+import {Event, LightWeightOrganization, SelectValue} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -120,7 +120,7 @@ export function generateTitle({eventView, event}: {eventView: EventView; event?:
   return titles.join(' - ');
 }
 
-export function getPrebuiltQueries(organization: Organization) {
+export function getPrebuiltQueries(organization: LightWeightOrganization) {
   let views = ALL_VIEWS;
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
@@ -391,10 +391,10 @@ function generateExpandedConditions(
 
   // Remove any aggregates from the search conditions.
   // otherwise, it'll lead to an invalid query result.
-  for (const key in parsedQuery) {
+  for (const key in parsedQuery.tagValues) {
     const column = explodeFieldString(key);
     if (column.kind === 'function') {
-      delete parsedQuery[key];
+      parsedQuery.removeTag(key);
     }
   }
 
@@ -419,7 +419,7 @@ function generateExpandedConditions(
     }
     if (key === 'user' && typeof value === 'string') {
       const normalized = normalizeUserTag(key, value);
-      parsedQuery[normalized[0]] = [normalized[1]];
+      parsedQuery.setTag(normalized[0], [normalized[1]]);
       continue;
     }
     const column = explodeFieldString(key);
@@ -427,14 +427,15 @@ function generateExpandedConditions(
     if (column.kind === 'function') {
       continue;
     }
-    parsedQuery[key] = [conditions[key]];
+
+    parsedQuery.setTag(key, [conditions[key]]);
   }
 
   return stringifyQueryObject(parsedQuery);
 }
 
 type FieldGeneratorOpts = {
-  organization: OrganizationSummary;
+  organization: LightWeightOrganization;
   tagKeys?: string[] | null;
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
@@ -461,13 +462,24 @@ export function generateFieldOptions({
   // later as well.
   functions.forEach(func => {
     const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
+    const parameters = aggregations[func].parameters.map(param => {
+      const generator = aggregations[func].generateDefaultValue;
+      if (typeof generator === 'undefined') {
+        return param;
+      }
+      return {
+        ...param,
+        defaultValue: generator({parameter: param, organization}),
+      };
+    });
+
     fieldOptions[`function:${func}`] = {
       label: `${func}(${ellipsis})`,
       value: {
         kind: FieldValueKind.FUNCTION,
         meta: {
           name: func,
-          parameters: [...aggregations[func].parameters],
+          parameters,
         },
       },
     };
