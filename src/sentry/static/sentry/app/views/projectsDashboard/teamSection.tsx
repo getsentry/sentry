@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
+import {Team, Project, Scope} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import PageHeading from 'app/components/pageHeading';
@@ -9,7 +10,16 @@ import PageHeading from 'app/components/pageHeading';
 import TeamMembers from './teamMembers';
 import ProjectCard from './projectCard';
 
-class TeamSection extends React.Component {
+type Props = {
+  team: Team;
+  orgId: string;
+  showBorder: boolean;
+  access: Set<Scope>;
+  title: React.ReactNode;
+  projects: Project[];
+};
+
+class TeamSection extends React.Component<Props> {
   static propTypes = {
     team: SentryTypes.Team,
     orgId: PropTypes.string,
@@ -52,7 +62,7 @@ const ProjectCards = styled('div')`
   padding: 0 ${space(3)} ${space(3)};
 `;
 
-const TeamSectionWrapper = styled('div')`
+const TeamSectionWrapper = styled('div')<{showBorder: boolean}>`
   border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
 
   &:last-child {

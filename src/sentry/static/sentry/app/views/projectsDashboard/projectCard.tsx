@@ -5,6 +5,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
+import {Organization, Project} from 'app/types';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import {Client} from 'app/api';
 import {loadStatsForProject} from 'app/actionCreators/projects';
@@ -14,12 +15,20 @@ import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+import withApi from 'app/utils/withApi';
 
 import Chart from './chart';
 import Deploys from './deploys';
 import NoEvents from './noEvents';
 
-class ProjectCard extends React.Component {
+type Props = {
+  api: Client;
+  organization: Organization;
+  project: Project;
+  hasProjectAccess: boolean;
+};
+
+class ProjectCard extends React.Component<Props> {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
     project: SentryTypes.Project.isRequired,
@@ -27,13 +36,12 @@ class ProjectCard extends React.Component {
   };
 
   componentDidMount() {
-    const {organization, project} = this.props;
-
-    this.api = new Client();
+    const {organization, project, api} = this.props;
 
     // fetch project stats
-    loadStatsForProject(this.api, project.id, {
+    loadStatsForProject(api, project.id, {
       orgId: organization.slug,
+      projectId: project.id,
     });
   }
 
@@ -64,7 +72,7 @@ class ProjectCard extends React.Component {
               <BookmarkStar organization={organization} project={project} />
             </StyledProjectCardHeader>
             <ChartContainer>
-              <Chart stats={stats} noEvents={!firstEvent} />
+              <Chart stats={stats} />
               {!firstEvent && <NoEvents />}
             </ChartContainer>
             <Deploys project={project} organization={organization} />
@@ -155,4 +163,4 @@ const StyledIdBadge = styled(IdBadge)`
 `;
 
 export {ProjectCard};
-export default withOrganization(ProjectCardContainer);
+export default withOrganization(withApi(ProjectCardContainer));
