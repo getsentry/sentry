@@ -181,7 +181,6 @@ jobs:
           run: |
             sentry init
             sentry devservices up
-            psql -c 'create database sentry;' -h localhost -U postgres
 
         - name: webpack
           run: |
