@@ -1,18 +1,24 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import IssueList from 'app/components/issueList';
 import {t} from 'app/locale';
 import {IconRefresh} from 'app/icons';
 
-export default class NewIssues extends React.Component {
+type Props = {
+  statsPeriod: string;
+  pageSize: number;
+} & RouteComponentProps<{orgId: string}, {}>;
+
+class NewIssues extends React.Component<Props> {
   static propTypes = {
     statsPeriod: PropTypes.string,
     pageSize: PropTypes.number,
   };
 
-  issueListRef = React.createRef();
+  issueListRef = React.createRef<any>();
 
   getEndpoint = () => `/organizations/${this.props.params.orgId}/issues/new/`;
 
@@ -59,3 +65,5 @@ export default class NewIssues extends React.Component {
     );
   }
 }
+
+export default NewIssues;

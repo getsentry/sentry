@@ -62,26 +62,18 @@ exports[`ProjectCard renders 1`] = `
 >
   <ProjectCardWrapper
     data-test-id="project-slug"
-    width={
-      Array [
-        "100%",
-        "50%",
-        "33%",
-        "25%",
-      ]
-    }
   >
     <div
-      className="css-1exk9f2-ProjectCardWrapper e1o95it02"
+      className="css-1xriu8y-ProjectCardWrapper ef2xevr2"
       data-test-id="project-slug"
     >
       <StyledProjectCard>
         <div
-          className="css-4c8b66-StyledProjectCard e1o95it03"
+          className="css-4c8b66-StyledProjectCard ef2xevr3"
         >
           <StyledProjectCardHeader>
             <div
-              className="css-120s530-StyledProjectCardHeader e1o95it01"
+              className="css-120s530-StyledProjectCardHeader ef2xevr1"
             >
               <StyledIdBadge
                 avatarSize={18}
@@ -116,7 +108,7 @@ exports[`ProjectCard renders 1`] = `
               >
                 <IdBadge
                   avatarSize={18}
-                  className="css-k5ntz1-StyledIdBadge e1o95it05"
+                  className="css-k5ntz1-StyledIdBadge ef2xevr5"
                   displayName={
                     <span>
                       project-slug
@@ -155,7 +147,7 @@ exports[`ProjectCard renders 1`] = `
                     >
                       <ProjectBadge
                         avatarSize={18}
-                        className="css-k5ntz1-StyledIdBadge e1o95it05"
+                        className="css-k5ntz1-StyledIdBadge ef2xevr5"
                         displayName={
                           <span>
                             project-slug
@@ -188,7 +180,7 @@ exports[`ProjectCard renders 1`] = `
                         <BaseBadge
                           avatarProps={Object {}}
                           avatarSize={18}
-                          className="css-k5ntz1-StyledIdBadge e1o95it05"
+                          className="css-k5ntz1-StyledIdBadge ef2xevr5"
                           displayName={
                             <span>
                               project-slug
@@ -220,10 +212,10 @@ exports[`ProjectCard renders 1`] = `
                           }
                         >
                           <BaseBadgeWrapper
-                            className="css-k5ntz1-StyledIdBadge e1o95it05"
+                            className="css-k5ntz1-StyledIdBadge ef2xevr5"
                           >
                             <div
-                              className="e1o95it05 css-na2q6v-BaseBadgeWrapper-StyledIdBadge e165dl3i0"
+                              className="ef2xevr5 css-na2q6v-BaseBadgeWrapper-StyledIdBadge e165dl3i0"
                             >
                               <EmotionCssPropInternal
                                 __EMOTION_TYPE_PLEASE_DO_NOT_USE__={
@@ -631,10 +623,9 @@ exports[`ProjectCard renders 1`] = `
           </StyledProjectCardHeader>
           <ChartContainer>
             <div
-              className="css-3rk05l-ChartContainer e1o95it00"
+              className="css-3rk05l-ChartContainer ef2xevr0"
             >
               <Chart
-                noEvents={true}
                 stats={
                   Array [
                     Array [
@@ -912,11 +903,11 @@ exports[`ProjectCard renders 1`] = `
               <NoEvents>
                 <Container>
                   <div
-                    className="css-15s27md-Container e1acggzn0"
+                    className="css-15s27md-Container e6c4csp0"
                   >
                     <EmptyText>
                       <div
-                        className="css-1txj62-EmptyText e1acggzn1"
+                        className="css-1txj62-EmptyText e6c4csp1"
                       >
                         No activity yet.
                       </div>
@@ -983,11 +974,11 @@ exports[`ProjectCard renders 1`] = `
             <NoDeploys>
               <DeployContainer>
                 <div
-                  className="css-aosuvv-DeployContainer elff1ar4"
+                  className="css-aosuvv-DeployContainer eucdbp94"
                 >
                   <Background>
                     <div
-                      className="css-18zws67-Background elff1ar5"
+                      className="css-18zws67-Background eucdbp95"
                     >
                       <forwardRef<Button>
                         external={true}

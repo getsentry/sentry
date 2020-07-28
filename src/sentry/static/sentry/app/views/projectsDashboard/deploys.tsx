@@ -2,6 +2,7 @@ import React from 'react';
 import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
+import {Project, Organization, Deploy as DeployType} from 'app/types';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
@@ -12,7 +13,12 @@ import space from 'app/styles/space';
 
 const DEPLOY_COUNT = 2;
 
-export default class Deploys extends React.Component {
+type Props = {
+  project: Project;
+  organization: Organization;
+};
+
+export default class Deploys extends React.Component<Props> {
   static propTypes = {
     project: SentryTypes.Project.isRequired,
     organization: SentryTypes.Organization.isRequired,
@@ -21,12 +27,17 @@ export default class Deploys extends React.Component {
   render() {
     const {project, organization} = this.props;
 
-    const flattenedDeploys = Object.entries(
-      project.latestDeploys || {}
-    ).map(([environment, value]) => ({environment, ...value}));
+    const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(
+      ([environment, value]): Pick<
+        DeployType,
+        'version' | 'dateFinished' | 'environment'
+      > => ({environment, ...value})
+    );
 
     const deploys = (flattenedDeploys || [])
-      .sort((a, b) => new Date(b.dateFinished) - new Date(a.dateFinished))
+      .sort(
+        (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
+      )
       .slice(0, DEPLOY_COUNT);
 
     if (deploys.length) {
@@ -42,13 +53,17 @@ export default class Deploys extends React.Component {
           ))}
         </DeployContainer>
       );
-    } else {
-      return <NoDeploys />;
     }
+
+    return <NoDeploys />;
   }
 }
 
-class Deploy extends React.Component {
+type DeployProps = Props & {
+  deploy: Pick<DeployType, 'version' | 'dateFinished' | 'environment'>;
+};
+
+class Deploy extends React.Component<DeployProps> {
   static propTypes = {
     deploy: SentryTypes.Deploy.isRequired,
     project: SentryTypes.Project.isRequired,
@@ -118,19 +133,15 @@ const DeployTimeWrapper = styled('div')`
   text-align: right;
 `;
 
-class NoDeploys extends React.Component {
-  render() {
-    return (
-      <DeployContainer>
-        <Background>
-          <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
-            {t('Track deploys')}
-          </Button>
-        </Background>
-      </DeployContainer>
-    );
-  }
-}
+const NoDeploys = () => (
+  <DeployContainer>
+    <Background>
+      <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
+        {t('Track deploys')}
+      </Button>
+    </Background>
+  </DeployContainer>
+);
 
 const DeployContainer = styled('div')`
   height: 92px;
