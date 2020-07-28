@@ -1,4 +1,3 @@
-import {Box} from 'reflexbox';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
@@ -50,7 +49,7 @@ class ProjectCard extends React.Component<Props> {
     const {id, firstEvent, stats, slug} = project;
 
     return (
-      <ProjectCardWrapper data-test-id={slug} width={['100%', '50%', '33%', '25%']}>
+      <ProjectCardWrapper data-test-id={slug}>
         {stats ? (
           <StyledProjectCard>
             <StyledProjectCardHeader>
@@ -85,11 +84,18 @@ class ProjectCard extends React.Component<Props> {
   }
 }
 
-const ProjectCardContainer = createReactClass({
+type ContainerProps = {
+  api: Client;
+  project: Project;
+  organization: Organization;
+  hasProjectAccess: boolean;
+};
+
+const ProjectCardContainer = createReactClass<ContainerProps>({
   propTypes: {
     project: SentryTypes.Project,
   },
-  mixins: [Reflux.listenTo(ProjectsStatsStore, 'onProjectStoreUpdate')],
+  mixins: [Reflux.listenTo(ProjectsStatsStore, 'onProjectStoreUpdate') as any],
   getInitialState() {
     const {project} = this.props;
     const initialState = ProjectsStatsStore.getInitialState() || {};
@@ -97,7 +103,7 @@ const ProjectCardContainer = createReactClass({
       projectDetails: initialState[project.slug] || null,
     };
   },
-  onProjectStoreUpdate(itemsBySlug) {
+  onProjectStoreUpdate(itemsBySlug: typeof ProjectsStatsStore['itemsBySlug']) {
     const {project} = this.props;
 
     // Don't update state if we already have stats
@@ -140,7 +146,7 @@ const StyledProjectCardHeader = styled('div')`
   margin: 12px ${space(2)};
 `;
 
-const ProjectCardWrapper = styled(Box)`
+const ProjectCardWrapper = styled('div')`
   padding: 10px;
 `;
 
