@@ -448,21 +448,46 @@ def build_group_card(group, event, rules):
 
 
 def build_linking_card(url):
+    desc = {
+        "type": "TextBlock",
+        "size": "Medium",
+        "text": "You need to link your Microsoft Teams account to your Sentry account before you can take action through Teams messages. Please click here to do so.",
+        "wrap": True,
+    }
+    button = {
+        "type": "Action.OpenUrl",
+        "title": "Link Identities",
+        "url": url,
+    }
     return {
         "type": "AdaptiveCard",
-        "body": [{"type": "TextBlock", "text": "[Click here](%s)" % url}],
+        "body": [desc],
+        "actions": [button],
     }
 
 
 def build_linked_card():
+    image = {
+        "type": "Image",
+        "url": "https://sentry-brand.storage.googleapis.com/sentry-glyph-black.png",
+        "size": "Large",
+    }
+    desc = {
+        "type": "TextBlock",
+        "text": "Your Microsoft Teams identity has been linked to your Sentry account. You're good to go.",
+        "size": "Large",
+        "wrap": True,
+    }
+    body = {
+        "type": "ColumnSet",
+        "columns": [
+            {"type": "Column", "items": [image], "width": "auto"},
+            {"type": "Column", "items": [desc]},
+        ],
+    }
     return {
         "type": "AdaptiveCard",
-        "body": [
-            {
-                "type": "TextBlock",
-                "text": "Your Microsoft Teams identity has been linked to your Sentry account. You're good to go.",
-            }
-        ],
+        "body": [body],
     }
 
 
