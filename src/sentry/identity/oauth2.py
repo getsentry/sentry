@@ -182,6 +182,8 @@ class OAuth2Provider(Provider):
         if not refresh_token:
             raise IdentityNotValid("Missing refresh token")
 
+        # XXX(meredith): This is used in VSTS's `get_refresh_token_params`
+        kwargs["identity"] = identity
         data = self.get_refresh_token_params(refresh_token, *args, **kwargs)
 
         req = safe_urlopen(

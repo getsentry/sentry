@@ -140,6 +140,9 @@ register("github-app.client-secret", flags=FLAG_PRIORITIZE_DISK)
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("vsts.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# VSTS Integration - with limited scopes
+register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK)
+register("vsts-limited.client-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # PagerDuty Integration
 register("pagerduty.app-id", default="")
