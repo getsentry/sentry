@@ -18,6 +18,7 @@ class NewIssues extends React.Component<Props> {
     pageSize: PropTypes.number,
   };
 
+  // TODO(ts): Ref should be of type IssueList
   issueListRef = React.createRef<any>();
 
   getEndpoint = () => `/organizations/${this.props.params.orgId}/issues/new/`;
