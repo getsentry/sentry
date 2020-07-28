@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.models import AuditLogEntryEvent, Authenticator, OrganizationMember
+from sentry.models import AuditLogEntryEvent, Authenticator, AuthIdentity, AuthProvider, OrganizationMember
 from sentry.signals import member_joined
 
 INVITE_COOKIE = "pending-invite"
@@ -108,6 +108,13 @@ class ApiInviteHelper(object):
                 extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
             )
 
+    def handle_member_has_no_SSO(self):
+        if self.logger:
+            self.logger.info(
+                "Pending org invite not accepted - User did not have SSO",
+                extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
+            )
+
     def handle_invite_not_approved(self):
         if not self.invite_approved:
             self.om.delete()
@@ -170,19 +177,36 @@ class ApiInviteHelper(object):
         if self.member_already_exists:
             self.handle_member_already_exists()
             om.delete()
-        else:
-            om.set_user(user)
-            om.save()
+            return
 
-            create_audit_entry(
-                self.request,
-                actor=user,
-                organization=om.organization,
-                target_object=om.id,
-                target_user=user,
-                event=AuditLogEntryEvent.MEMBER_ACCEPT,
-                data=om.get_audit_log_data(),
-            )
+        try:
+            provider = AuthProvider.objects.get(organization=om.organization)
+        except AuthProvider.DoesNotExist:
+            provider = None
 
-            self.handle_success()
-            metrics.incr("organization.invite-accepted", sample_rate=1.0)
+        # If SSO is required, check for valid AuthIdentity
+        if provider and not provider.flags.allow_unlinked:
+            try:
+                authId = AuthIdentity.objects.get(user=user)
+            except AuthIdentity.DoesNotExist:
+                authId = None
+
+            if not authId or not authId.auth_provider_id == provider.id:
+                self.handle_member_has_no_SSO()
+                return
+
+        om.set_user(user)
+        om.save()
+
+        create_audit_entry(
+            self.request,
+            actor=user,
+            organization=om.organization,
+            target_object=om.id,
+            target_user=user,
+            event=AuditLogEntryEvent.MEMBER_ACCEPT,
+            data=om.get_audit_log_data(),
+        )
+
+        self.handle_success()
+        metrics.incr("organization.invite-accepted", sample_rate=1.0)

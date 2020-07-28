@@ -21,6 +21,7 @@ type InviteDetails = {
   needsAuthentication: boolean;
   needs2fa: boolean;
   needsSso: boolean;
+  requireSso: boolean;
   existingMember: boolean;
   ssoProvider?: string;
 };
@@ -95,47 +96,59 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
 
     return (
       <React.Fragment>
-        <p>
-          {t(
-            `To continue, you must either login to an existing Sentry account,
-             or create a new account.`
-          )}
-        </p>
+        {!inviteDetails.requireSso && (
+          <p data-test-id="action-info-general">
+            {t(
+              `To continue, you must either create a new account, or login to an
+              existing Sentry account.`
+            )}
+          </p>
+        )}
         {inviteDetails.needsSso && (
-          <p data-test-id="suggests-sso">
+          <p data-test-id="action-info-sso">
             {tct(
-              `Note that [orgSlug] has enabled Single-Sign-On (SSO) using
+              `Note that [orgSlug] has [isRequired] Single Sign-On (SSO) using
                [authProvider]. You may create an account by authenticating with
-               the organizations SSO provider.`,
+               the organization's SSO provider.`,
               {
-                orgSlug: inviteDetails.orgSlug,
+                orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
                 authProvider: inviteDetails.ssoProvider,
+                isRequired: inviteDetails.requireSso ? 'required' : 'enabled',
               }
             )}
           </p>
         )}
 
         <Actions>
-          {inviteDetails.needsSso ? (
-            <Button
-              label="sso-login"
-              priority="primary"
-              href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
+          <ActionsLeft>
+            {inviteDetails.needsSso && (
+              <Button
+                label="sso-login"
+                priority="primary"
+                href={this.makeNextUrl(`/auth/login/${inviteDetails.orgSlug}/`)}
+              >
+                {t('Join with %s', inviteDetails.ssoProvider)}
+              </Button>
+            )}
+            {!inviteDetails.requireSso && (
+              <Button
+                label="create-account"
+                priority="primary"
+                href={this.makeNextUrl('/auth/register/')}
+              >
+                {t('Create a new account')}
+              </Button>
+            )}
+          </ActionsLeft>
+          {!inviteDetails.requireSso && (
+            <ExternalLink
+              href={this.makeNextUrl('/auth/login/')}
+              openInNewTab={false}
+              data-test-id="link-with-existing"
             >
-              {t('Join with %s', inviteDetails.ssoProvider)}
-            </Button>
-          ) : (
-            <Button
-              label="create-account"
-              priority="primary"
-              href={this.makeNextUrl('/auth/register/')}
-            >
-              {t('Create a new account')}
-            </Button>
+              {t('Login using an existing account')}
+            </ExternalLink>
           )}
-          <ExternalLink href={this.makeNextUrl('/auth/login/')} openInNewTab={false}>
-            {t('Login using an existing account')}
-          </ExternalLink>
         </Actions>
       </React.Fragment>
     );
@@ -221,6 +234,11 @@ const Actions = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(3)};
+`;
+const ActionsLeft = styled('span')`
+  > a {
+    margin-right: ${space(1)};
+  }
 `;
 
 const InviteDescription = styled('p')`
