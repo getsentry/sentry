@@ -184,7 +184,7 @@ class BasePaginator(object):
 class Paginator(BasePaginator):
     def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
-        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+        return int(math.floor(value) if self._is_asc(for_prev) else math.ceil(value))
 
     def value_from_cursor(self, cursor):
         return cursor.value
@@ -196,7 +196,7 @@ class DateTimePaginator(BasePaginator):
     def get_item_key(self, item, for_prev=False):
         value = getattr(item, self.key)
         value = float(value.strftime("%s.%f")) * self.multiplier
-        return math.floor(value) if self._is_asc(for_prev) else math.ceil(value)
+        return int(math.floor(value) if self._is_asc(for_prev) else math.ceil(value))
 
     def value_from_cursor(self, cursor):
         return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(

@@ -146,7 +146,7 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     # If we're paging back we need to calculate the key from the first result
     # with for_prev=True to ensure rounding of the key is correct.See
     # sentry.api.paginator.BasePaginator.get_item_key
-    prev_value = (key(results[first_prev_index], for_prev=True)) if results else 0
+    prev_value = key(results[first_prev_index], for_prev=True) if results else 0
 
     # Prev only has an offset if the cursor we were dealing with was a
     # previous cursor. Otherwise we'd be taking the offset while moving forward.
