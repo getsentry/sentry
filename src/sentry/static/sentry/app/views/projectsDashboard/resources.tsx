@@ -11,7 +11,7 @@ import releasesImg from '../../../images/spot/releases.svg';
 import breadcrumbsImg from '../../../images/spot/breadcrumbs-generic.svg';
 import docsImg from '../../../images/spot/code-arguments-tags-mirrored.svg';
 
-export default class Resources extends React.Component {
+class Resources extends React.Component {
   componentDidMount() {
     analytics('orgdash.resources_shown', {});
   }
@@ -41,6 +41,8 @@ export default class Resources extends React.Component {
     );
   }
 }
+
+export default Resources;
 
 const ResourcesWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.borderLight};

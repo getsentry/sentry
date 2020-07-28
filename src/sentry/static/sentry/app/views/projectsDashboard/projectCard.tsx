@@ -74,7 +74,7 @@ class ProjectCard extends React.Component<Props> {
               <Chart stats={stats} />
               {!firstEvent && <NoEvents />}
             </ChartContainer>
-            <Deploys project={project} organization={organization} />
+            <Deploys project={project} />
           </StyledProjectCard>
         ) : (
           <LoadingCard />
@@ -91,12 +91,16 @@ type ContainerProps = {
   hasProjectAccess: boolean;
 };
 
-const ProjectCardContainer = createReactClass<ContainerProps>({
+type ContainerState = {
+  projectDetails: Project | null;
+};
+
+const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
   propTypes: {
     project: SentryTypes.Project,
   },
   mixins: [Reflux.listenTo(ProjectsStatsStore, 'onProjectStoreUpdate') as any],
-  getInitialState() {
+  getInitialState(): ContainerState {
     const {project} = this.props;
     const initialState = ProjectsStatsStore.getInitialState() || {};
     return {

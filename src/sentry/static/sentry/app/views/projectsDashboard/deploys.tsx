@@ -2,7 +2,7 @@ import React from 'react';
 import moment from 'moment-timezone';
 import styled from '@emotion/styled';
 
-import {Project, Organization, Deploy as DeployType} from 'app/types';
+import {Project, Deploy as DeployType} from 'app/types';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import SentryTypes from 'app/sentryTypes';
@@ -15,86 +15,85 @@ const DEPLOY_COUNT = 2;
 
 type Props = {
   project: Project;
-  organization: Organization;
 };
 
-export default class Deploys extends React.Component<Props> {
-  static propTypes = {
-    project: SentryTypes.Project.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-  };
+const Deploys = ({project}: Props) => {
+  const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(
+    ([environment, value]): Pick<
+      DeployType,
+      'version' | 'dateFinished' | 'environment'
+    > => ({environment, ...value})
+  );
 
-  render() {
-    const {project, organization} = this.props;
+  const deploys = (flattenedDeploys || [])
+    .sort(
+      (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
+    )
+    .slice(0, DEPLOY_COUNT);
 
-    const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(
-      ([environment, value]): Pick<
-        DeployType,
-        'version' | 'dateFinished' | 'environment'
-      > => ({environment, ...value})
-    );
-
-    const deploys = (flattenedDeploys || [])
-      .sort(
-        (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
-      )
-      .slice(0, DEPLOY_COUNT);
-
-    if (deploys.length) {
-      return (
-        <DeployContainer>
-          {deploys.map(deploy => (
-            <Deploy
-              key={`${deploy.environment}-${deploy.version}`}
-              deploy={deploy}
-              project={project}
-              organization={organization}
-            />
-          ))}
-        </DeployContainer>
-      );
-    }
-
+  if (!deploys.length) {
     return <NoDeploys />;
   }
-}
 
-type DeployProps = Props & {
+  return (
+    <DeployContainer>
+      {deploys.map(deploy => (
+        <Deploy
+          key={`${deploy.environment}-${deploy.version}`}
+          deploy={deploy}
+          project={project}
+        />
+      ))}
+    </DeployContainer>
+  );
+};
+
+Deploys.propTypes = {
+  project: SentryTypes.Project.isRequired,
+};
+
+export default Deploys;
+
+type DeployProps = Omit<Props, 'organization'> & {
   deploy: Pick<DeployType, 'version' | 'dateFinished' | 'environment'>;
 };
 
-class Deploy extends React.Component<DeployProps> {
-  static propTypes = {
-    deploy: SentryTypes.Deploy.isRequired,
-    project: SentryTypes.Project.isRequired,
-  };
+const Deploy = ({deploy, project}: DeployProps) => (
+  <DeployRow>
+    <Environment>{deploy.environment}</Environment>
 
-  render() {
-    const {deploy, project} = this.props;
+    <StyledTextOverflow>
+      <Version
+        version={deploy.version}
+        projectId={project.id}
+        tooltipRawVersion
+        truncate
+      />
+    </StyledTextOverflow>
 
-    return (
-      <DeployRow>
-        <Environment>{deploy.environment}</Environment>
+    <DeployTimeWrapper>
+      {getDynamicText({
+        value: moment(deploy.dateFinished).fromNow(),
+        fixed: '3 hours ago',
+      })}
+    </DeployTimeWrapper>
+  </DeployRow>
+);
 
-        <StyledTextOverflow>
-          <Version
-            version={deploy.version}
-            projectId={project.id}
-            tooltipRawVersion
-            truncate
-          />
-        </StyledTextOverflow>
+Deploy.propTypes = {
+  deploy: SentryTypes.Deploy.isRequired,
+  project: SentryTypes.Project.isRequired,
+};
 
-        <DeployTimeWrapper>
-          {getDynamicText({
-            value: moment(deploy.dateFinished).fromNow(),
-            fixed: '3 hours ago',
-          })}
-        </DeployTimeWrapper>
-      </DeployRow>
-    );
-  }
-}
+const NoDeploys = () => (
+  <DeployContainer>
+    <Background>
+      <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
+        {t('Track deploys')}
+      </Button>
+    </Background>
+  </DeployContainer>
+);
 
 const DeployRow = styled('div')`
   display: flex;
@@ -132,16 +131,6 @@ const DeployTimeWrapper = styled('div')`
   flex-shrink: 0;
   text-align: right;
 `;
-
-const NoDeploys = () => (
-  <DeployContainer>
-    <Background>
-      <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
-        {t('Track deploys')}
-      </Button>
-    </Background>
-  </DeployContainer>
-);
 
 const DeployContainer = styled('div')`
   height: 92px;

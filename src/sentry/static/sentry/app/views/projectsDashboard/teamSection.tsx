@@ -19,42 +19,38 @@ type Props = {
   projects: Project[];
 };
 
-class TeamSection extends React.Component<Props> {
-  static propTypes = {
-    team: SentryTypes.Team,
-    orgId: PropTypes.string,
-    showBorder: PropTypes.bool,
-    access: PropTypes.object,
-    title: PropTypes.node,
-    projects: PropTypes.array,
-  };
+const TeamSection = ({team, projects, title, showBorder, orgId, access}: Props) => {
+  const hasTeamAccess = access.has('team:read');
+  const hasProjectAccess = access.has('project:read');
 
-  render() {
-    const {team, projects, title, showBorder, orgId, access} = this.props;
+  return (
+    <TeamSectionWrapper data-test-id="team" showBorder={showBorder}>
+      <TeamTitleBar>
+        <TeamName>{title}</TeamName>
+        {hasTeamAccess && team && <TeamMembers teamId={team.slug} orgId={orgId} />}
+      </TeamTitleBar>
+      <ProjectCards>
+        {projects.map(project => (
+          <ProjectCard
+            data-test-id={project.slug}
+            key={project.slug}
+            project={project}
+            hasProjectAccess={hasProjectAccess}
+          />
+        ))}
+      </ProjectCards>
+    </TeamSectionWrapper>
+  );
+};
 
-    const hasTeamAccess = access.has('team:read');
-    const hasProjectAccess = access.has('project:read');
-
-    return (
-      <TeamSectionWrapper data-test-id="team" showBorder={showBorder}>
-        <TeamTitleBar>
-          <TeamName>{title}</TeamName>
-          {hasTeamAccess && team && <TeamMembers teamId={team.slug} orgId={orgId} />}
-        </TeamTitleBar>
-        <ProjectCards>
-          {projects.map(project => (
-            <ProjectCard
-              data-test-id={project.slug}
-              key={project.slug}
-              project={project}
-              hasProjectAccess={hasProjectAccess}
-            />
-          ))}
-        </ProjectCards>
-      </TeamSectionWrapper>
-    );
-  }
-}
+TeamSection.propTypes = {
+  team: SentryTypes.Team,
+  orgId: PropTypes.string,
+  showBorder: PropTypes.bool,
+  access: PropTypes.object,
+  title: PropTypes.node,
+  projects: PropTypes.array,
+};
 
 const ProjectCards = styled('div')`
   display: flex;
