@@ -183,10 +183,10 @@ class JsonForm extends React.Component<Props, State> {
 
   render() {
     const {
+      access,
       fields,
       title,
       forms,
-      access,
       disabled,
       features,
       additionalFieldProps,

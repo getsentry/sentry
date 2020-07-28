@@ -23,7 +23,7 @@ import {Field} from './type';
 type Props = {
   field: Field;
   highlighted?: boolean;
-  disabled?: boolean;
+  disabled?: boolean | ((props) => boolean);
   flexibleControlStateSize?: boolean;
   stacked?: boolean;
   inline?: boolean;

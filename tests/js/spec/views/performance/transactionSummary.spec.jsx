@@ -12,6 +12,7 @@ function initializeData() {
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
+    apdexThreshold: 400,
   });
   const initialData = initializeOrg({
     organization,

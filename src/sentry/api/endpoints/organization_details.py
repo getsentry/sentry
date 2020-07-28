@@ -98,6 +98,7 @@ ORG_OPTIONS = (
     ),
     ("relayPiiConfig", "sentry:relay_pii_config", six.text_type, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
+    ("apdexThreshold", "sentry:apdex_threshold", int, None),
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -155,6 +156,7 @@ class OrganizationSerializer(serializers.Serializer):
     trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    apdexThreshold = serializers.IntegerField(min_value=1, required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):

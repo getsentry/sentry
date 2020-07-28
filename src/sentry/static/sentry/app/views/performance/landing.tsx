@@ -58,11 +58,14 @@ type State = {
 
 class PerformanceLanding extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
-    return {...prevState, eventView: generatePerformanceEventView(nextProps.location)};
+    return {
+      ...prevState,
+      eventView: generatePerformanceEventView(nextProps.organization, nextProps.location),
+    };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(this.props.location),
+    eventView: generatePerformanceEventView(this.props.organization, this.props.location),
     error: undefined,
   };
 
