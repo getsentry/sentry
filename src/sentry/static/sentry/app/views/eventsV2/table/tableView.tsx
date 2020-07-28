@@ -24,18 +24,14 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 import {TOP_N, DisplayModes} from 'app/utils/discover/types';
 import withProjects from 'app/utils/withProjects';
-import {
-  tokenizeSearch,
-  stringifyQueryObject,
-  updateQuery,
-} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import {TableColumn, TableData, TableDataRow} from './types';
 import HeaderCell from './headerCell';
-import CellAction, {Actions} from './cellAction';
+import CellAction, {Actions, updateQuery} from './cellAction';
 import TableActions from './tableActions';
 
 export type TableViewProps = {

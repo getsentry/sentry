@@ -1,5 +1,4 @@
 import {escapeDoubleQuotes} from 'app/utils';
-import {Actions} from 'app/views/eventsV2/table/cellAction';
 
 export enum TokenType {
   OP,
@@ -329,58 +328,4 @@ function formatTag(tag: string) {
  */
 function formatQuery(query: string) {
   return query.replace(/^["\(]+|["\)]+$/g, '');
-}
-
-export function updateQuery(
-  results: QueryResults,
-  action: Actions,
-  key: string,
-  value: React.ReactText
-) {
-  switch (action) {
-    case Actions.ADD:
-      // If the value is null/undefined create a has !has condition.
-      if (value === null || value === undefined) {
-        // Adding a null value is the same as excluding truthy values.
-        // Remove inclusion if it exists.
-        results.removeTagValue('has', key);
-        results.addTag('!has', [key]);
-      } else {
-        // Remove exclusion if it exists.
-        results.removeTag(`!${key}`).setTag(key, [`${value}`]);
-      }
-      break;
-    case Actions.EXCLUDE:
-      if (value === null || value === undefined) {
-        // Excluding a null value is the same as including truthy values.
-        // Remove exclusion if it exists.
-        results.removeTagValue('!has', key);
-        results.addTag('has', [key]);
-      } else {
-        // Remove positive if it exists.
-        results.removeTag(key);
-        // Negations should stack up.
-        const negation = `!${key}`;
-        results.addTag(negation, [`${value}`]);
-      }
-      break;
-    case Actions.SHOW_GREATER_THAN: {
-      // Remove query token if it already exists
-      results.setTag(key, [`>${value}`]);
-      break;
-    }
-    case Actions.SHOW_LESS_THAN: {
-      // Remove query token if it already exists
-      results.setTag(key, [`<${value}`]);
-      break;
-    }
-    // these actions do not modify the query in any way,
-    // instead they have side effects
-    case Actions.TRANSACTION:
-    case Actions.RELEASE:
-    case Actions.DRILLDOWN:
-      break;
-    default:
-      throw new Error(`Unknown action type. ${action}`);
-  }
 }

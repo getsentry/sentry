@@ -10,15 +10,11 @@ import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/typ
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {
-  tokenizeSearch,
-  stringifyQueryObject,
-  updateQuery,
-} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';

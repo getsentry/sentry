@@ -11,7 +11,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import PanelTable from 'app/components/panels/panelTable';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
@@ -22,11 +22,7 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import {
-  tokenizeSearch,
-  stringifyQueryObject,
-  updateQuery,
-} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {
   TOP_TRANSACTION_LIMIT,
   TOP_TRANSACTION_FILTERS,
