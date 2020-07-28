@@ -9,7 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
-from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
+from sentry.models import AuditLogEntryEvent, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
 
@@ -52,7 +52,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             }}
 
         """
-        serializer = RuleSerializer(context={"project": project}, data=request.data)
+        serializer = RuleSerializer(
+            context={"project": project, "user": request.user}, data=request.data
+        )
 
         if serializer.is_valid():
             data = serializer.validated_data
@@ -74,7 +76,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 return Response(uuid_context, status=202)
 
             rule = project_rules.Creator.run(request=request, **kwargs)
-
+            RuleActivity.objects.create(
+                rule=rule, user=request.user, type=RuleActivityType.CREATED.value
+            )
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
