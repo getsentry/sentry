@@ -17,7 +17,6 @@ import LoadingError from 'app/components/loadingError';
 import SentryTypes from 'app/sentryTypes';
 import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import withApi from 'app/utils/withApi';
-import {getSubscriptionReason} from 'app/views/organizationGroupDetails/utils';
 
 class GroupSidebar extends React.Component {
   static propTypes = {
@@ -165,10 +164,6 @@ class GroupSidebar extends React.Component {
     return null;
   }
 
-  getNotificationText() {
-    return getSubscriptionReason(this.props.group);
-  }
-
   renderParticipantData() {
     const error = this.state.error;
     const participants = (this.state || {}).participants || [];
@@ -247,10 +242,6 @@ class GroupSidebar extends React.Component {
         )}
 
         {this.renderParticipantData()}
-        <h6>
-          <span>{t('Notifications')}</span>
-        </h6>
-        <p className="help-block">{this.getNotificationText()}</p>
       </div>
     );
   }
