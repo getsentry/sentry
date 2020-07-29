@@ -8,7 +8,7 @@ import {defined, OmitHtmlDivProps} from 'app/utils';
 import space from 'app/styles/space';
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
-import {TableDataRow} from 'app/views/eventsV2/table/types';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {IconChevron, IconWarning} from 'app/icons';
 import globalTheme from 'app/utils/theme';
 

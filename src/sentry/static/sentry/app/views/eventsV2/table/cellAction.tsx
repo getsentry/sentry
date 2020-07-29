@@ -8,9 +8,10 @@ import {t} from 'app/locale';
 import {IconEllipsis} from 'app/icons';
 import space from 'app/styles/space';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {QueryResults} from 'app/utils/tokenizeSearch';
 
-import {TableColumn, TableDataRow} from './types';
+import {TableColumn} from './types';
 
 export enum Actions {
   ADD = 'add',

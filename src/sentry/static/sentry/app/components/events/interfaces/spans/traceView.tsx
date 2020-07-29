@@ -3,9 +3,9 @@ import pick from 'lodash/pick';
 
 import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import {TableData} from 'app/views/eventsV2/table/types';
 import {SentryTransactionEvent, Organization} from 'app/types';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import SpanTree from './spanTree';

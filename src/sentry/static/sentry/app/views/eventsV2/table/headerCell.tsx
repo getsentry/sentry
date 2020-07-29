@@ -2,8 +2,9 @@ import React from 'react';
 
 import {ColumnValueType, getAggregateAlias} from 'app/utils/discover/fields';
 import {Alignments} from 'app/components/gridEditable/sortLink';
+import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 
-import {TableColumn, TableData, TableDataRow} from './types';
+import {TableColumn} from './types';
 
 type ChildrenProps = {
   align: Alignments;

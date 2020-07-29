@@ -6,15 +6,15 @@ import {Organization, Project} from 'app/types';
 import Pagination from 'app/components/pagination';
 import Link from 'app/components/links/link';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
-import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/types';
+import {TableColumn} from 'app/views/eventsV2/table/types';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';

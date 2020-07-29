@@ -1,11 +1,11 @@
 import {GridColumnOrder, GridColumnSortBy} from 'app/components/gridEditable';
-import {MetaType} from 'app/utils/discover/eventView';
 import {
   Column,
   ColumnType,
   ColumnValueType,
   AggregateParameter,
 } from 'app/utils/discover/fields';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 
 /**
  * It is assumed that `aggregation` and `field` have the same ColumnValueType
@@ -26,15 +26,6 @@ export type TableColumnSort<K> = GridColumnSortBy<K>;
 export type TableState = {
   columnOrder: TableColumn<keyof TableDataRow>[];
   columnSortBy: TableColumnSort<keyof TableDataRow>[];
-};
-
-export type TableDataRow = {
-  [key: string]: React.ReactText;
-};
-
-export type TableData = {
-  meta?: MetaType;
-  data: Array<TableDataRow>;
 };
 
 export enum FieldValueKind {
