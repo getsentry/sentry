@@ -24,7 +24,7 @@ export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
  *
  * Make sure that the chain always leads to a display mode that is enabled.
  * There is a fail safe to fall back to the default display mode, but it likely
- * won't be having the way you expect.
+ * won't be creating results you expect.
  */
 export const DISPLAY_MODE_FALLBACK_OPTIONS = {
   [DisplayModes.DEFAULT]: DisplayModes.DEFAULT,
