@@ -114,7 +114,7 @@ class ApiInviteHelper(object):
                 extra={"organization_id": self.om.organization.id, "user_id": self.request.user.id},
             )
 
-    def handle_member_has_no_SSO(self):
+    def handle_member_has_no_sso(self):
         if self.logger:
             self.logger.info(
                 "Pending org invite not accepted - User did not have SSO",
