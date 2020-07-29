@@ -307,7 +307,7 @@ exports[`JsonForm fields prop default 1`] = `
                                                     type="text"
                                                   >
                                                     <input
-                                                      className="css-1g2jzij-Input e1xej46s0"
+                                                      className="css-1g2jzij-Input emzhb6u0"
                                                       disabled={false}
                                                       id="slug"
                                                       label="Name"
@@ -3090,7 +3090,7 @@ exports[`JsonForm form prop default 1`] = `
                                                     }
                                                   >
                                                     <input
-                                                      className="css-1g2jzij-Input e1xej46s0"
+                                                      className="css-1g2jzij-Input emzhb6u0"
                                                       disabled={false}
                                                       id="name"
                                                       label="Name"
