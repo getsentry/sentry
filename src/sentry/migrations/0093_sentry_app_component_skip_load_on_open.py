@@ -36,13 +36,12 @@ def update_ui_components(apps, schema_editor):
         # need to update the dermalzied data
         update_element_schema(component.schema)
         for element in component.sentry_app.schema.get("elements", []):
-            update_element_schema(element)
+            if element.get("type") == "issue-link":
+                update_element_schema(element)
 
         # save the UI component and the sentry app
         component.save()
         component.sentry_app.save()
-
-
 
 
 
