@@ -97,7 +97,7 @@ export function getSubscriptionReason(group, removeLinks = false) {
   }
 
   if (!group.isSubscribed) {
-    return t("You're not subscribed to this issue.");
+    return t('Subscribe to workflow notifications for this issue');
   }
 
   if (group.subscriptionDetails) {
