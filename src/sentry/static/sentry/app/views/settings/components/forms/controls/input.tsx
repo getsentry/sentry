@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import styled, {StyledComponent} from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
 
 import {inputStyles} from 'app/styles/input';
@@ -12,4 +12,5 @@ const Input = styled('input', {
   ${inputStyles};
 `;
 
-export default Input;
+// Cast type to avoid exporting theme
+export default Input as StyledComponent<JSX.IntrinsicElements['input']>;
