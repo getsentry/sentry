@@ -65,7 +65,7 @@ const ProjectCards = styled('div')`
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-template-columns: repeat(4, minmax(100px, 1fr));
   }
 `;
