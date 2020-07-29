@@ -26,12 +26,14 @@ import {
   isGapSpan,
   isOrphanSpan,
   isEventFromBrowserJavaScriptSDK,
+  toPercent,
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
 import {SpanRowMessage} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {FilterSpans} from './traceView';
+import * as ScrollbarManager from './scrollbarManager';
 
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;
@@ -60,6 +62,7 @@ class SpanTree extends React.Component<PropType> {
   }
 
   traceViewRef = React.createRef<HTMLDivElement>();
+  virtualScrollBarContainerRef = React.createRef<HTMLDivElement>();
 
   generateInfoMessage(input: {
     isCurrentSpanHidden: boolean;
@@ -349,10 +352,43 @@ class SpanTree extends React.Component<PropType> {
 
     return (
       <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-        <TraceViewContainer ref={this.traceViewRef}>
-          {spanTree}
-          {infoMessage}
-        </TraceViewContainer>
+        <DividerHandlerManager.Consumer>
+          {({dividerPosition}) => {
+            return (
+              <ScrollbarManager.Provider
+                dividerPosition={dividerPosition}
+                interactiveLayerRef={this.virtualScrollBarContainerRef}
+              >
+                <FooContainer>
+                  <TraceViewContainer ref={this.traceViewRef}>
+                    {spanTree}
+                    {infoMessage}
+                  </TraceViewContainer>
+                  <ScrollbarManager.Consumer>
+                    {({virtualScrollbarRef, onDragStart}) => {
+                      return (
+                        <ScrollBarContainer
+                          ref={this.virtualScrollBarContainerRef}
+                          style={{
+                            width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                          }}
+                        >
+                          <VirtualScrollBar
+                            data-type="virtual-scrollbar"
+                            ref={virtualScrollbarRef}
+                            onMouseDown={onDragStart}
+                          >
+                            <VirtualScrollBarGrip />
+                          </VirtualScrollBar>
+                        </ScrollBarContainer>
+                      );
+                    }}
+                  </ScrollbarManager.Consumer>
+                </FooContainer>
+              </ScrollbarManager.Provider>
+            );
+          }}
+        </DividerHandlerManager.Consumer>
       </DividerHandlerManager.Provider>
     );
   }
@@ -362,6 +398,52 @@ const TraceViewContainer = styled('div')`
   overflow-x: hidden;
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
+`;
+
+// TODO: rename this
+const FooContainer = styled('div')`
+  &:hover div[data-type='virtual-scrollbar'] > div {
+    background-color: rgba(48, 40, 57, 0.5);
+  }
+`;
+
+const ScrollBarContainer = styled('div')`
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  position: sticky;
+  height: 20px;
+
+  left: 0;
+  bottom: 0;
+  z-index: 999;
+
+  & > div[data-type='virtual-scrollbar'].dragging > div {
+    background-color: ${p => p.theme.gray800};
+  }
+`;
+
+const VirtualScrollBar = styled('div')`
+  height: 8px;
+  width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+
+  position: relative;
+  top: 0;
+  left: 0;
+
+  outline: 1px solid red;
+`;
+
+const VirtualScrollBarGrip = styled('div')`
+  height: 8px;
+  width: 100%;
+
+  border-radius: 20px 20px 20px 20px;
+
+  transition: background-color 150ms ease;
 `;
 
 export default SpanTree;
