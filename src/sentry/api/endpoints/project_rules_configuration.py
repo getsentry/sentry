@@ -27,10 +27,12 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 "id": node.id,
                 "label": node.label,
                 "enabled": node.is_enabled(),
-                "category": node.category,
             }
             if hasattr(node, "prompt"):
                 context["prompt"] = node.prompt
+
+            if hasattr(node, "category"):
+                context["category"] = node.category
 
             if (
                 node.id == "sentry.mail.actions.NotifyEmailAction"
