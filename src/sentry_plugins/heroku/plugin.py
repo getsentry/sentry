@@ -26,8 +26,10 @@ class HerokuReleaseHook(ReleaseHook):
             user = User.objects.get(
                 email__iexact=email, sentry_orgmember_set__organization__project=self.project
             )
+            self.finish_release(
+                version=request.POST["head_long"], url=request.POST["url"], owner=user
+            )
         except (User.DoesNotExist, User.MultipleObjectsReturned):
-            user = None
             logger.info(
                 "owner.missing",
                 extra={
@@ -36,7 +38,7 @@ class HerokuReleaseHook(ReleaseHook):
                     "email": email,
                 },
             )
-        self.finish_release(version=request.POST["head_long"], url=request.POST["url"], owner=user)
+            self.finish_release(version=request.POST["head_long"], url=request.POST["url"])
 
     def set_refs(self, release, **values):
         if not values.get("owner", None):
@@ -145,4 +147,5 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         )
 
     def get_release_hook(self):
+        print("Heroku")
         return HerokuReleaseHook
