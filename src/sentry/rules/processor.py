@@ -12,6 +12,7 @@ from random import randrange
 from sentry import analytics
 from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, rules
+from sentry.rules.conditions.base import RuleCategory
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -64,13 +65,14 @@ class RuleProcessor(object):
         )
 
     def apply_rule(self, rule):
-        match = rule.data.get("action_match") or Rule.DEFAULT_ACTION_MATCH
-        condition_list = rule.data.get("conditions", ())
+        condition_match = rule.data.get("action_match") or Rule.DEFAULT_ACTION_MATCH
+        filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
+        rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
 
         # XXX(dcramer): if theres no condition should we really skip it,
         # or should we just apply it blindly?
-        if not condition_list:
+        if not rule_condition_list:
             return
 
         if (
@@ -89,17 +91,41 @@ class RuleProcessor(object):
 
         state = self.get_state()
 
-        condition_iter = (self.condition_matches(c, state, rule) for c in condition_list)
+        condition_list = []
+        filter_list = []
+        for rule_cond in rule_condition_list:
+            if rule_cond.category == RuleCategory.CONDITION:
+                condition_list.append(rule_cond)
+            else:
+                filter_list.append(rule_cond)
 
-        if match == "all":
-            passed = all(condition_iter)
-        elif match == "any":
-            passed = any(condition_iter)
-        elif match == "none":
-            passed = not any(condition_iter)
-        else:
-            self.logger.error("Unsupported action_match %r for rule %d", match, rule.id)
+        if not condition_list:
             return
+
+        condition_iter = (self.condition_matches(c, state, rule) for c in condition_list)
+        filter_iter = (self.condition_matches(f, state, rule) for f in filter_list)
+
+        if condition_match == "all":
+            condition_passed = all(condition_iter)
+        elif condition_match == "any":
+            condition_passed = any(condition_iter)
+        elif condition_match == "none":
+            condition_passed = not any(condition_iter)
+        else:
+            self.logger.error("Unsupported action_match %r for rule %d", condition_match, rule.id)
+            return
+
+        if filter_match == "all":
+            filter_passed = all(filter_iter)
+        elif filter_match == "any":
+            filter_passed = any(filter_iter)
+        elif filter_match == "none":
+            filter_passed = not any(filter_iter)
+        else:
+            self.logger.error("Unsupported filter_match %r for rule %d", filter_match, rule.id)
+            return
+
+        passed = condition_passed and filter_passed
 
         if passed:
             passed = (
