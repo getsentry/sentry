@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+import random
 import six
+
+import sentry_sdk
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
@@ -11,7 +14,16 @@ from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 
 from .client import SlackClient
-from .utils import build_group_attachment, get_channel_id, strip_channel_name
+from .utils import (
+    build_group_attachment,
+    build_upgrade_notice_attachment,
+    get_channel_id,
+    strip_channel_name,
+    get_integration_type,
+)
+
+# 5% of messages for workspace apps will get the upgrade CTA
+UPGRADE_MESSAGE_FREQUENCY = 0.05
 
 
 class SlackNotifyServiceForm(forms.Form):
@@ -120,29 +132,42 @@ class SlackNotifyServiceAction(EventAction):
             return
 
         def send_notification(event, futures):
-            rules = [f.rule for f in futures]
-            attachment = build_group_attachment(event.group, event=event, tags=tags, rules=rules)
+            with sentry_sdk.start_transaction(
+                op=u"slack.send_notification", name=u"SlackSendNotification", sampled=1.0
+            ) as span:
+                rules = [f.rule for f in futures]
+                attachments = [
+                    build_group_attachment(event.group, event=event, tags=tags, rules=rules)
+                ]
+                # check if we should have the upgrade notice attachment
+                integration_type = get_integration_type(integration)
+                if integration_type == "workspace_app":
+                    if random.uniform(0, 1) < UPGRADE_MESSAGE_FREQUENCY:
+                        # stick the upgrade attachment first
+                        attachments.insert(0, build_upgrade_notice_attachment(event.group))
 
-            payload = {
-                "token": integration.metadata["access_token"],
-                "channel": channel,
-                "link_names": 1,
-                "attachments": json.dumps([attachment]),
-            }
+                span.set_tag("integration_type", integration_type)
+                span.set_tag("has_slack_upgrade_cta", len(attachments) > 1)
+                payload = {
+                    "token": integration.metadata["access_token"],
+                    "channel": channel,
+                    "link_names": 1,
+                    "attachments": json.dumps(attachments),
+                }
 
-            client = SlackClient()
-            try:
-                client.post("/chat.postMessage", data=payload, timeout=5)
-            except ApiError as e:
-                self.logger.info(
-                    "rule.fail.slack_post",
-                    extra={
-                        "error": six.text_type(e),
-                        "project_id": event.project_id,
-                        "event_id": event.event_id,
-                        "channel_name": self.get_option("channel"),
-                    },
-                )
+                client = SlackClient()
+                try:
+                    client.post("/chat.postMessage", data=payload, timeout=5)
+                except ApiError as e:
+                    self.logger.info(
+                        "rule.fail.slack_post",
+                        extra={
+                            "error": six.text_type(e),
+                            "project_id": event.project_id,
+                            "event_id": event.event_id,
+                            "channel_name": self.get_option("channel"),
+                        },
+                    )
 
         key = u"slack:{}:{}".format(integration_id, channel)
 

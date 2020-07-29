@@ -5,6 +5,7 @@ import responses
 from six.moves.urllib.parse import parse_qs
 
 from sentry.utils import json
+from sentry.utils.compat.mock import patch
 from sentry.models import Integration
 from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.slack import SlackNotifyServiceAction
@@ -55,6 +56,103 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert len(attachments) == 1
         assert attachments[0]["title"] == event.title
+
+    @responses.activate
+    @patch("random.uniform", return_value=0.049)
+    def test_upgrade_notice_within_threshold(self, mock_uniform):
+        event = self.get_event()
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = parse_qs(responses.calls[0].request.body)
+
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+
+        assert len(attachments) == 2
+        assert attachments[1]["title"] == event.title
+
+        mock_uniform.assert_called_with(0, 1)
+
+    @responses.activate
+    @patch("random.uniform", return_value=0.051)
+    def test_upgrade_notice_over_threshold(self, mock_uniform):
+        event = self.get_event()
+
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = parse_qs(responses.calls[0].request.body)
+
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+
+        assert len(attachments) == 1
+        assert attachments[0]["title"] == event.title
+
+        mock_uniform.assert_called_with(0, 1)
+
+    @responses.activate
+    @patch("random.uniform", return_value=0.049)
+    def test_upgrade_notice_bot_app(self, mock_uniform):
+        self.integration.metadata.update(
+            {
+                "installation_type": "born_as_bot",
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+            }
+        )
+        self.integration.save()
+
+        event = self.get_event()
+
+        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+
+        results = list(rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        results[0].callback(event, futures=[])
+        data = parse_qs(responses.calls[0].request.body)
+
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+
+        assert len(attachments) == 1
+        assert attachments[0]["title"] == event.title
+
+        assert mock_uniform.call_count == 0
 
     def test_render_label(self):
         rule = self.get_rule(

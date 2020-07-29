@@ -14,7 +14,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
-from sentry.utils.sdk import set_current_project
+from sentry.utils.sdk import set_current_project, bind_organization_context
 
 logger = logging.getLogger("sentry")
 
@@ -160,6 +160,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         event.project._organization_cache = Organization.objects.get_from_cache(
             id=event.project.organization_id
         )
+        bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
 

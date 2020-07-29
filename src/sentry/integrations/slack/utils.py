@@ -179,6 +179,22 @@ def build_rule_url(rule, group, project):
     return absolute_uri(rule_url)
 
 
+def build_upgrade_notice_attachment(group):
+    org_slug = group.organization.slug
+    url = absolute_uri(
+        u"/settings/{}/integrations/slack/?tab=configurations&referrer=slack".format(org_slug)
+    )
+
+    return {
+        "title": "Reminder",
+        "text": (
+            u"It looks like you are still using the Legacy Sentry-Slack integration. "
+            u"You will need to upgrade by October 1st to continue receiving alerts. "
+            u"Click <{}|here> to upgrade.".format(url)
+        ),
+    }
+
+
 def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
