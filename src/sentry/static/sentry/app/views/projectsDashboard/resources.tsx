@@ -29,7 +29,7 @@ class Resources extends React.Component<Props> {
   render() {
     return (
       <ResourcesWrapper data-test-id="resources">
-        <PageHeading>{t('Resources')}</PageHeading>
+        <PageHeading withMargins>{t('Resources')}</PageHeading>
         <ResourceCards>
           <ResourceCard
             link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
@@ -61,7 +61,14 @@ const ResourcesWrapper = styled('div')`
 
 const ResourceCards = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, auto);
-  grid-gap: ${space(4)};
-  margin-top: ${space(3)};
+  grid-template-columns: minmax(100px, 1fr);
+  grid-gap: ${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+  }
 `;
