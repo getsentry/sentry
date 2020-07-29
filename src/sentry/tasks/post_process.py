@@ -160,7 +160,7 @@ def post_process_group(event, is_new, is_regression, is_new_group_environment, *
         event.project._organization_cache = Organization.objects.get_from_cache(
             id=event.project.organization_id
         )
-        bind_organization_context(event.project._organization_cache)
+        bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
 
