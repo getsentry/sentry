@@ -6,7 +6,13 @@ from django.core.urlresolvers import reverse
 
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.models import AuditLogEntryEvent, Authenticator, AuthIdentity, AuthProvider, OrganizationMember
+from sentry.models import (
+    AuditLogEntryEvent,
+    Authenticator,
+    AuthIdentity,
+    AuthProvider,
+    OrganizationMember,
+)
 from sentry.signals import member_joined
 
 INVITE_COOKIE = "pending-invite"
