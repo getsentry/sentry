@@ -53,26 +53,33 @@ TeamSection.propTypes = {
 };
 
 const ProjectCards = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  padding: 0 ${space(3)} ${space(3)};
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr);
+  grid-gap: ${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+    grid-template-columns: repeat(4, minmax(100px, 1fr));
+  }
 `;
 
 const TeamSectionWrapper = styled('div')<{showBorder: boolean}>`
   border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
-
-  &:last-child {
-    ${ProjectCards} {
-      padding-bottom: 0;
-    }
-  }
+  padding: 0 ${space(4)} ${space(4)};
 `;
 
 const TeamTitleBar = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(3)} ${space(4)} 10px;
+  padding: ${space(3)} 0 ${space(2)};
 `;
 
 const TeamName = styled(PageHeading)`

@@ -49,7 +49,7 @@ class ProjectCard extends React.Component<Props> {
     const {id, firstEvent, stats, slug} = project;
 
     return (
-      <ProjectCardWrapper data-test-id={slug}>
+      <div data-test-id={slug}>
         {stats ? (
           <StyledProjectCard>
             <StyledProjectCardHeader>
@@ -79,7 +79,7 @@ class ProjectCard extends React.Component<Props> {
         ) : (
           <LoadingCard />
         )}
-      </ProjectCardWrapper>
+      </div>
     );
   }
 }
@@ -148,10 +148,6 @@ const StyledProjectCardHeader = styled('div')`
   justify-content: space-between;
   align-items: center;
   margin: 12px ${space(2)};
-`;
-
-const ProjectCardWrapper = styled('div')`
-  padding: 10px;
 `;
 
 const StyledProjectCard = styled('div')`
