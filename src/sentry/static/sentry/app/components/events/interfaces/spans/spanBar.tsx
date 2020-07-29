@@ -918,7 +918,7 @@ const CursorGuide = styled('div')`
   height: 100%;
 `;
 
-const DividerLine = styled('div')`
+export const DividerLine = styled('div')`
   background-color: ${p => p.theme.gray400};
   position: absolute;
   height: 100%;
@@ -952,7 +952,7 @@ const DividerLine = styled('div')`
   }
 `;
 
-const DividerLineGhostContainer = styled('div')`
+export const DividerLineGhostContainer = styled('div')`
   position: absolute;
   width: 100%;
   height: 100%;

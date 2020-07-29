@@ -30,10 +30,11 @@ import {
 } from './utils';
 import {DragManagerChildrenProps} from './dragManager';
 import SpanGroup from './spanGroup';
-import {SpanRowMessage} from './styles';
+import {SpanRowMessage, SPAN_ROW_HEIGHT} from './styles';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {FilterSpans} from './traceView';
 import * as ScrollbarManager from './scrollbarManager';
+import {DividerLine, DividerLineGhostContainer} from './spanBar';
 
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;
@@ -336,6 +337,36 @@ class SpanTree extends React.Component<PropType> {
     });
   };
 
+  renderDivider(
+    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+  ) {
+    const {addDividerLineRef} = dividerHandlerChildrenProps;
+
+    return (
+      <DividerLine
+        ref={addDividerLineRef()}
+        style={{
+          position: 'relative',
+        }}
+        onMouseEnter={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseLeave={() => {
+          dividerHandlerChildrenProps.setHover(false);
+        }}
+        onMouseOver={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseDown={dividerHandlerChildrenProps.onDragStart}
+        onClick={event => {
+          // we prevent the propagation of the clicks from this component to prevent
+          // the span detail from being opened.
+          event.stopPropagation();
+        }}
+      />
+    );
+  }
+
   render() {
     const {
       spanTree,
@@ -353,10 +384,10 @@ class SpanTree extends React.Component<PropType> {
     return (
       <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
         <DividerHandlerManager.Consumer>
-          {({dividerPosition}) => {
+          {dividerHandlerChildrenProps => {
             return (
               <ScrollbarManager.Provider
-                dividerPosition={dividerPosition}
+                dividerPosition={dividerHandlerChildrenProps.dividerPosition}
                 interactiveLayerRef={this.virtualScrollBarContainerRef}
               >
                 <FooContainer>
@@ -367,20 +398,58 @@ class SpanTree extends React.Component<PropType> {
                   <ScrollbarManager.Consumer>
                     {({virtualScrollbarRef, onDragStart}) => {
                       return (
-                        <ScrollBarContainer
-                          ref={this.virtualScrollBarContainerRef}
-                          style={{
-                            width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                          }}
-                        >
-                          <VirtualScrollBar
-                            data-type="virtual-scrollbar"
-                            ref={virtualScrollbarRef}
-                            onMouseDown={onDragStart}
+                        <React.Fragment>
+                          <VirtualScrollBarSpanRow>
+                            <ScrollBarContainer
+                              style={{
+                                width: `calc(${toPercent(
+                                  dividerHandlerChildrenProps.dividerPosition
+                                )} - 0.5px)`,
+                              }}
+                            />
+                            {this.renderDivider(dividerHandlerChildrenProps)}
+                            {
+                              <DividerLineGhostContainer
+                                style={{
+                                  width: `calc(${toPercent(
+                                    dividerHandlerChildrenProps.dividerPosition
+                                  )} + 0.5px)`,
+                                  display: 'none',
+                                }}
+                              >
+                                <DividerLine
+                                  ref={dividerHandlerChildrenProps.addGhostDividerLineRef()}
+                                  style={{
+                                    right: 0,
+                                  }}
+                                  className="hovering"
+                                  onClick={event => {
+                                    // the ghost divider line should not be interactive.
+                                    // we prevent the propagation of the clicks from this component to prevent
+                                    // the span detail from being opened.
+                                    event.stopPropagation();
+                                  }}
+                                />
+                              </DividerLineGhostContainer>
+                            }
+                          </VirtualScrollBarSpanRow>
+                          <ScrollBarContainer
+                            ref={this.virtualScrollBarContainerRef}
+                            style={{
+                              width: `calc(${toPercent(
+                                dividerHandlerChildrenProps.dividerPosition
+                              )} - 0.5px)`,
+                            }}
                           >
-                            <VirtualScrollBarGrip />
-                          </VirtualScrollBar>
-                        </ScrollBarContainer>
+                            <VirtualScrollBar
+                              data-type="virtual-scrollbar"
+                              ref={virtualScrollbarRef}
+                              onMouseDown={onDragStart}
+                            >
+                              <VirtualScrollBarGrip />
+                            </VirtualScrollBar>
+                          </ScrollBarContainer>
+                        </React.Fragment>
                       );
                     }}
                   </ScrollbarManager.Consumer>
@@ -407,6 +476,12 @@ const FooContainer = styled('div')`
   }
 `;
 
+const VirtualScrollBarSpanRow = styled('div')`
+  display: flex;
+  position: relative;
+  height: ${SPAN_ROW_HEIGHT}px;
+`;
+
 const ScrollBarContainer = styled('div')`
   display: flex;
   align-items: center;
@@ -414,6 +489,7 @@ const ScrollBarContainer = styled('div')`
   width: 100%;
   position: sticky;
   height: 20px;
+  margin-top: -20px;
 
   left: 0;
   bottom: 0;
