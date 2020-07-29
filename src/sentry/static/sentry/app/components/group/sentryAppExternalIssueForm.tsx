@@ -24,6 +24,7 @@ type FieldFromSchema = Field & {
   default?: string;
   uri?: string;
   depends_on?: string[];
+  async?: boolean;
 };
 
 type Config = {
@@ -145,7 +146,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     field.uri
       ? {
           loadOptions: (input: string) => this.getOptions(field, input),
-          async: true,
+          async: typeof field.async === 'undefined' ? true : field.async, //default to true
           cache: false,
           onSelectResetsInput: false,
           onCloseResetsInput: false,
