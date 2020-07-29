@@ -58,10 +58,9 @@ class SlackNotifyActionTest(RuleTestCase):
         assert attachments[0]["title"] == event.title
 
     @responses.activate
-    @patch("random.random", return_value=0.049)
-    def test_upgrade_notice_within_threshold(self, mock_random):
+    @patch("random.uniform", return_value=0.049)
+    def test_upgrade_notice_within_threshold(self, mock_uniform):
         event = self.get_event()
-
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
 
         results = list(rule.after(event=event, state=self.get_state()))
@@ -85,12 +84,11 @@ class SlackNotifyActionTest(RuleTestCase):
         assert len(attachments) == 2
         assert attachments[1]["title"] == event.title
 
-        # random seems to be called in other part of the code path as well
-        assert mock_random.call_count == 2
+        mock_uniform.assert_called_with(0, 1)
 
     @responses.activate
-    @patch("random.random", return_value=0.051)
-    def test_upgrade_notice_over_threshold(self, mock_random):
+    @patch("random.uniform", return_value=0.051)
+    def test_upgrade_notice_over_threshold(self, mock_uniform):
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
@@ -116,12 +114,11 @@ class SlackNotifyActionTest(RuleTestCase):
         assert len(attachments) == 1
         assert attachments[0]["title"] == event.title
 
-        # random seems to be called in other part of the code path as well
-        assert mock_random.call_count == 2
+        mock_uniform.assert_called_with(0, 1)
 
     @responses.activate
-    @patch("random.random", return_value=0.049)
-    def test_upgrade_notice_bot_app(self, mock_random):
+    @patch("random.uniform", return_value=0.049)
+    def test_upgrade_notice_bot_app(self, mock_uniform):
         self.integration.metadata.update(
             {
                 "installation_type": "born_as_bot",
@@ -155,8 +152,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert len(attachments) == 1
         assert attachments[0]["title"] == event.title
 
-        # random seems to be called in other part of the code path as well
-        assert mock_random.call_count == 1
+        assert mock_uniform.call_count == 0
 
     def test_render_label(self):
         rule = self.get_rule(
