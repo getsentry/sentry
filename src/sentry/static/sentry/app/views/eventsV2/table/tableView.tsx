@@ -21,6 +21,7 @@ import EventView, {
 } from 'app/utils/discover/eventView';
 import {Column} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {generateEventSlug, eventDetailsRouteWithEventView} from 'app/utils/discover/urls';
 import {TOP_N, DisplayModes} from 'app/utils/discover/types';
 import withProjects from 'app/utils/withProjects';
@@ -29,7 +30,7 @@ import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactio
 
 import {getExpandedResults, pushEventViewToLocation} from '../utils';
 import ColumnEditModal, {modalCss} from './columnEditModal';
-import {TableColumn, TableData, TableDataRow} from './types';
+import {TableColumn} from './types';
 import HeaderCell from './headerCell';
 import CellAction, {Actions, updateQuery} from './cellAction';
 import TableActions from './tableActions';
