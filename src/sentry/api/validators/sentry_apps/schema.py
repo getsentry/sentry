@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 import logging
-import json
 
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
 from jsonschema.exceptions import ValidationError as SchemaValidationError
+
+from sentry.utils import json
 
 
 logger = logging.getLogger(__name__)

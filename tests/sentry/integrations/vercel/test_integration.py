@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import json
 import responses
 import six
 
@@ -19,6 +18,7 @@ from sentry.models import (
     SentryAppInstallation,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.utils import json
 from sentry.utils.compat.mock import patch
 from sentry.utils.http import absolute_uri
 

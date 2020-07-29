@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 import os
-import json
 import responses
 
+from sentry.utils import json
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
