@@ -198,7 +198,7 @@ class ApiInviteHelper(object):
                 authId = None
 
             if not authId or not authId.auth_provider_id == provider.id:
-                self.handle_member_has_no_SSO()
+                self.handle_member_has_no_sso()
                 return
 
         om.set_user(user)
