@@ -9,6 +9,7 @@ import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import space from 'app/styles/space';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const DEPLOY_COUNT = 2;
 
@@ -71,7 +72,10 @@ const Deploy = ({deploy, project}: DeployProps) => (
     </StyledTextOverflow>
 
     <DeployTimeWrapper>
-      <TimeSince date={deploy.dateFinished} />
+      {getDynamicText({
+        fixed: '3 hours ago',
+        value: <TimeSince date={deploy.dateFinished} />,
+      })}
     </DeployTimeWrapper>
   </DeployRow>
 );
