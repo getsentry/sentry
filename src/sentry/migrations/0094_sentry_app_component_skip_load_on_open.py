@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
+#update the field with mutation
 def convert_field(field):
     # even if async if false, we had a bug where we'd treat it the same as true
     # so to maintain legacy behavior, we have to replicate that same check when setting skip_load_on_open
@@ -33,9 +34,10 @@ def update_element_schema(schema):
 def update_ui_components(apps, schema_editor):
     SentryAppComponent = apps.get_model("sentry", "SentryAppComponent")
     for component in SentryAppComponent.objects.filter(type="issue-link").select_related("sentry_app"):
-        # need to update the dermalzied data
+        # need to update the denormalized data
         update_element_schema(component.schema)
         for element in component.sentry_app.schema.get("elements", []):
+            # only update issue link elements
             if element.get("type") == "issue-link":
                 update_element_schema(element)
 
