@@ -16,6 +16,7 @@ import datadog from 'app/../images/logos/logo-datadog.svg';
 import flowdock from 'app/../images/logos/logo-flowdock.svg';
 import fullstory from 'app/../images/logos/logo-fullstory.svg';
 import github from 'app/../images/logos/logo-github.svg';
+import githubActions from 'app/../images/logos/logo-github-actions.svg';
 import githubEnterprise from 'app/../images/logos/logo-github-enterprise.svg';
 import gitlab from 'app/../images/logos/logo-gitlab.svg';
 import heroku from 'app/../images/logos/logo-heroku.svg';
@@ -63,7 +64,7 @@ export const ICON_PATHS = {
   asana,
   asayer,
   bitbucket,
-  bitbucket_release_pipe: bitbucket,
+  bitbucket_pipelines: bitbucket,
   bitbucket_server: bitbucketserver,
   campfire,
   clickup,
@@ -72,6 +73,7 @@ export const ICON_PATHS = {
   flowdock,
   fullstory,
   github,
+  github_actions: githubActions,
   github_enterprise: githubEnterprise,
   gitlab,
   heroku,
