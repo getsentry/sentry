@@ -73,6 +73,11 @@ describe('groupEventDetails', () => {
       url: '/promptsactivity/',
       body: promptsActivity,
     });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/events/${event.id}/grouping-info/`,
+      body: {},
+    });
   };
 
   beforeEach(() => {
