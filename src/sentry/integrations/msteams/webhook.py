@@ -255,4 +255,4 @@ class MsTeamsWebhookEndpoint(Endpoint):
             client.send_card(user_conversation_id, card)
             return self.respond(status=201)
 
-        return self.respond(status=203)
+        return self.respond(status=204)
