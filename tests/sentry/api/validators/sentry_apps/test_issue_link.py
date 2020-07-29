@@ -29,14 +29,14 @@ class TestIssueLinkSchemaValidation(TestCase):
                     {"type": "text", "name": "description", "label": "Description"},
                     {
                         "type": "select",
-                        "uri": "/integrations/sentry/projects",
+                        "uri": "/sentry/tasks/projects",
                         "name": "project_id",
                         "label": "Project",
                     },
                     {
                         "depends_on": ["project_id"],
                         "type": "select",
-                        "uri": "/integrations/sentry/boards",
+                        "uri": "/sentry/tasks/boards",
                         "name": "board_id",
                         "label": "Board",
                     },
