@@ -1,19 +1,12 @@
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 
-export const GridBodyCell = styled('div')`
+export const GridCell = styled('div')`
   font-size: 14px;
-  padding: ${space(1)} ${space(2)};
-  ${overflowEllipsis};
 `;
 
-export const GridHeadCell = styled('div')`
-  padding: ${space(2)};
-`;
-
-export const GridBodyCellNumber = styled(GridBodyCell)`
+export const GridCellNumber = styled(GridCell)`
   text-align: right;
 `;
 

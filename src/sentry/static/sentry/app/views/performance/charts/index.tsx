@@ -16,7 +16,7 @@ import EventsRequest from 'app/components/charts/eventsRequest';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {IconWarning} from 'app/icons';
 
-import {AXIS_OPTIONS} from '../constants';
+import {getAxisOptions} from '../data';
 import {HeaderContainer, HeaderTitle, ErrorPanel} from '../styles';
 import Chart from './chart';
 import Footer from './footer';
@@ -32,11 +32,10 @@ type Props = {
 
 class Container extends React.Component<Props> {
   getChartParameters() {
-    const {location} = this.props;
-    const left =
-      AXIS_OPTIONS.find(opt => opt.value === location.query.left) || AXIS_OPTIONS[0];
-    const right =
-      AXIS_OPTIONS.find(opt => opt.value === location.query.right) || AXIS_OPTIONS[1];
+    const {location, organization} = this.props;
+    const options = getAxisOptions(organization);
+    const left = options.find(opt => opt.value === location.query.left) || options[0];
+    const right = options.find(opt => opt.value === location.query.right) || options[1];
 
     return [left, right];
   }
