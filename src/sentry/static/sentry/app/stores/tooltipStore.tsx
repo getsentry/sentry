@@ -2,6 +2,7 @@ type TooltipStoreInterface = {
   addTooltip: (tooltip: React.Component) => void;
   removeTooltip: (tooltip: React.Component) => void;
   openAllTooltips: () => boolean;
+  closeAllTooltips: () => void;
   tooltips: React.Component[];
   init: () => TooltipStoreInterface;
 };
@@ -25,8 +26,20 @@ const TooltipStore: TooltipStoreInterface = {
     return true;
   },
 
+  /**
+   * Called via window.__closeAllTooltips in selenium tests to cleanup tooltips after taking a snapshot
+   */
+  closeAllTooltips() {
+    this.tooltips.forEach(tooltip => {
+      tooltip.setState({
+        isOpen: false,
+      });
+    });
+  },
+
   init(): TooltipStoreInterface {
     window.__openAllTooltips = this.openAllTooltips.bind(this);
+    window.__closeAllTooltips = this.closeAllTooltips.bind(this);
     return this;
   },
 
