@@ -9,6 +9,7 @@ from freezegun import freeze_time
 
 import six
 from django.conf import settings
+from django.core import mail
 from django.utils import timezone
 from django.utils.functional import cached_property
 
@@ -69,8 +70,10 @@ from sentry.incidents.models import (
     IncidentStatus,
     IncidentStatusMethod,
     IncidentSubscription,
+    IncidentTrigger,
     IncidentType,
     TimeSeriesSnapshot,
+    TriggerStatus,
 )
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.models.integration import Integration
@@ -87,6 +90,7 @@ class CreateIncidentTest(TestCase):
         incident_type = IncidentType.ALERT_TRIGGERED
         title = "hello"
         date_started = timezone.now() - timedelta(minutes=5)
+        date_detected = timezone.now() - timedelta(minutes=4)
         alert_rule = self.create_alert_rule()
 
         self.record_event.reset_mock()
@@ -95,6 +99,7 @@ class CreateIncidentTest(TestCase):
             type_=incident_type,
             title=title,
             date_started=date_started,
+            date_detected=date_detected,
             projects=[self.project],
             alert_rule=alert_rule,
         )
@@ -103,20 +108,22 @@ class CreateIncidentTest(TestCase):
         assert incident.type == incident_type.value
         assert incident.title == title
         assert incident.date_started == date_started
-        assert incident.date_detected == date_started
+        assert incident.date_detected == date_detected
         assert incident.alert_rule == alert_rule
         assert IncidentProject.objects.filter(
             incident=incident, project__in=[self.project]
         ).exists()
         assert (
             IncidentActivity.objects.filter(
-                incident=incident, type=IncidentActivityType.STARTED.value, date_added=date_started
+                incident=incident,
+                type=IncidentActivityType.DETECTED.value,
+                date_added=date_detected,
             ).count()
             == 1
         )
         assert (
             IncidentActivity.objects.filter(
-                incident=incident, type=IncidentActivityType.DETECTED.value
+                incident=incident, type=IncidentActivityType.CREATED.value
             ).count()
             == 1
         )
@@ -1283,7 +1290,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
-        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration = Integration.objects.create(external_id="1", provider="msteams")
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1306,7 +1313,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
     def test_msteams_not_existing(self, mock_get_channel_id):
-        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration = Integration.objects.create(external_id="1", provider="msteams")
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1396,7 +1403,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
-        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration = Integration.objects.create(external_id="1", provider="msteams")
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1419,7 +1426,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
     def test_msteams_not_existing(self, mock_get_channel_id):
-        integration = Integration.objects.create(external_id="1", provider="msteams",)
+        integration = Integration.objects.create(external_id="1", provider="msteams")
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1504,3 +1511,79 @@ class MetricTranslationTest(TestCase):
         # Make sure it doesn't do anything wonky running twice:
         translated_2 = translate_aggregate_field(translated, reverse=True)
         assert translated_2 == "count_unique(user)"
+
+
+class TriggerActionTest(TestCase):
+    @fixture
+    def user(self):
+        return self.create_user("test@test.com")
+
+    @fixture
+    def team(self):
+        team = self.create_team()
+        self.create_team_membership(team, user=self.user)
+        return team
+
+    @fixture
+    def project(self):
+        return self.create_project(teams=[self.team], name="foo")
+
+    @fixture
+    def other_project(self):
+        return self.create_project(teams=[self.team], name="other")
+
+    @fixture
+    def rule(self):
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+        # Make sure the trigger exists
+        trigger = create_alert_rule_trigger(rule, "hi", 100)
+        create_alert_rule_trigger_action(
+            trigger=trigger,
+            type=AlertRuleTriggerAction.Type.EMAIL,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=six.text_type(self.user.id),
+        )
+        return rule
+
+    @fixture
+    def trigger(self):
+        return self.rule.alertruletrigger_set.get()
+
+    def test_rule_updated(self):
+        incident = self.create_incident(alert_rule=self.rule)
+        IncidentTrigger.objects.create(
+            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+        )
+
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            update_alert_rule(self.rule, name="some rule updated")
+
+        out = mail.outbox[0]
+        assert out.to == [self.user.email]
+        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+
+    def test_manual_resolve(self):
+        incident = self.create_incident(alert_rule=self.rule)
+        IncidentTrigger.objects.create(
+            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+        )
+
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            update_incident_status(
+                incident=incident,
+                status=IncidentStatus.CLOSED,
+                status_method=IncidentStatusMethod.MANUAL,
+            )
+
+        out = mail.outbox[0]
+        assert out.to == [self.user.email]
+        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)

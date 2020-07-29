@@ -10,7 +10,7 @@ import {TableData, TableDataRow, TableColumn} from 'app/views/eventsV2/table/typ
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -62,12 +62,6 @@ class Table extends React.Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization} = this.props;
 
-      let nextLocationQuery: Location['query'] = {};
-      const searchConditions = tokenizeSearch(eventView.query);
-
-      // remove any event.type queries since it is implied to apply to only transactions
-      searchConditions.removeTag('event.type');
-
       trackAnalyticsEvent({
         eventKey: 'performance_views.overview.cellaction',
         eventName: 'Performance Views: Cell Action Clicked',
@@ -75,60 +69,19 @@ class Table extends React.Component<Props, State> {
         action,
       });
 
-      switch (action) {
-        case Actions.ADD: {
-          // Remove exclusion if it exists.
-          searchConditions.removeTag(`!${column.name}`).setTag(column.name, [`${value}`]);
+      const searchConditions = tokenizeSearch(eventView.query);
 
-          nextLocationQuery = {
-            query: stringifyQueryObject(searchConditions),
-          };
+      // remove any event.type queries since it is implied to apply to only transactions
+      searchConditions.removeTag('event.type');
 
-          break;
-        }
-        case Actions.EXCLUDE: {
-          // Remove positive if it exists.
-          searchConditions.removeTag(column.name);
-          // Negations should stack up.
-          const negation = `!${column.name}`;
-          searchConditions.addTag(negation, [`${value}`]);
-
-          nextLocationQuery = {
-            query: stringifyQueryObject(searchConditions),
-          };
-
-          break;
-        }
-        case Actions.SHOW_GREATER_THAN: {
-          // Remove query token if it already exists
-          searchConditions.setTag(column.name, [`>${value}`]);
-
-          nextLocationQuery = {
-            query: stringifyQueryObject(searchConditions),
-          };
-
-          break;
-        }
-        case Actions.SHOW_LESS_THAN: {
-          // Remove query token if it already exists
-          searchConditions.setTag(column.name, [`<${value}`]);
-
-          nextLocationQuery = {
-            query: stringifyQueryObject(searchConditions),
-          };
-
-          break;
-        }
-        default:
-          throw new Error(`Unknown action type. ${action}`);
-      }
+      updateQuery(searchConditions, action, column.name, value);
 
       ReactRouter.browserHistory.push({
         pathname: location.pathname,
         query: {
           ...location.query,
           cursor: undefined,
-          ...nextLocationQuery,
+          query: stringifyQueryObject(searchConditions),
         },
       });
     };

@@ -209,7 +209,7 @@ matrix:
 
     - <<: *acceptance_default
       name: 'Plugins'
-      env: TEST_SUITE=plugins DB=postgres PERCY_TOKEN=${PLUGIN_PERCY_TOKEN}
+      env: TEST_SUITE=plugins DB=postgres
 
     - python: 2.7
       name: 'Frontend [test]'

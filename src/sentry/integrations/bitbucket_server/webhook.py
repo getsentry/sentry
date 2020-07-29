@@ -31,15 +31,7 @@ class Webhook(object):
         """
 
         name_from_event = event["repository"]["project"]["key"] + "/" + event["repository"]["slug"]
-        # build the URL manually since it doesn't come back from the API in
-        # the form that we need
-        url_from_event = event["repository"]["links"]["self"][0]["href"]
-
-        if (
-            repo.name != name_from_event
-            or repo.config.get("name") != name_from_event
-            or repo.url != url_from_event
-        ):
+        if repo.name != name_from_event or repo.config.get("name") != name_from_event:
             repo.update(name=name_from_event, config=dict(repo.config, name=name_from_event))
 
 

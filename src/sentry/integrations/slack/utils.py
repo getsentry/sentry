@@ -10,7 +10,6 @@ from django.core.urlresolvers import reverse
 from django.http import Http404
 
 from sentry import tagstore
-from sentry import options
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
@@ -55,6 +54,13 @@ QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
     "count_unique(tags[sentry:user])": "users affected",
 }
+
+
+def get_integration_type(integration):
+    metadata = integration.metadata
+    # classic bots had a user_access_token in the metadata
+    default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
+    return metadata.get("installation_type", default_installation)
 
 
 def format_actor_option(actor):
@@ -390,13 +396,24 @@ def strip_channel_name(name):
 
 
 def get_channel_id(organization, integration_id, name):
+    """
+   Fetches the internal slack id of a channel.
+   :param organization: The organization that is using this integration
+   :param integration_id: The integration id of this slack integration
+   :param name: The name of the channel
+   :return: a tuple of three values
+       1. prefix: string (`"#"` or `"@"`)
+       2. channel_id: string or `None`
+       3. timed_out: boolean (whether we hit our self-imposed time limit)
+   """
+
     name = strip_channel_name(name)
     try:
         integration = Integration.objects.get(
             provider="slack", organizations=organization, id=integration_id
         )
     except Integration.DoesNotExist:
-        return None
+        return None, None, False
 
     # XXX(meredith): For large accounts that have many, many channels it's
     # possible for us to timeout while attempting to paginate through to find the channel id
@@ -409,9 +426,9 @@ def get_channel_id(organization, integration_id, name):
 def get_channel_id_with_timeout(integration, name, timeout):
     """
     Fetches the internal slack id of a channel.
-    :param organization: The organization that is using this integration
-    :param integration_id: The integration id of this slack integration
+    :param integration: The slack integration
     :param name: The name of the channel
+    :param timeout: Our self-imposed time limit.
     :return: a tuple of three values
         1. prefix: string (`"#"` or `"@"`)
         2. channel_id: string or `None`
@@ -423,7 +440,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
-    if options.get("slack.legacy-app") is True:
+    # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
+    # once eveyone is migrated we can remove this check and usages of channels.list
+    if get_integration_type(integration) == "workspace_app":
         list_types = LEGACY_LIST_TYPES
     else:
         list_types = LIST_TYPES

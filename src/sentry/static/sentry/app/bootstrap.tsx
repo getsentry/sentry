@@ -4,7 +4,6 @@ import 'bootstrap/js/dropdown';
 import 'focus-visible';
 
 import 'app/utils/statics-setup';
-import 'app/utils/emotion-setup';
 
 import PropTypes from 'prop-types';
 import React from 'react';
