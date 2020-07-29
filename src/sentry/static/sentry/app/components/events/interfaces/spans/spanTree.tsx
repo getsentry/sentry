@@ -433,8 +433,6 @@ const VirtualScrollBar = styled('div')`
   position: relative;
   top: 0;
   left: 0;
-
-  outline: 1px solid red;
 `;
 
 const VirtualScrollBarGrip = styled('div')`
