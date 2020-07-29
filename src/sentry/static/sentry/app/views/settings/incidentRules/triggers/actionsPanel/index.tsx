@@ -308,7 +308,7 @@ class ActionsPanel extends React.PureComponent<Props> {
                       <Input
                         disabled={disabled}
                         key={action.type}
-                        value={action.targetIdentifier}
+                        value={action.targetIdentifier ?? undefined}
                         onChange={this.handleChangeSpecificTargetIdentifier.bind(
                           this,
                           triggerIndex,
