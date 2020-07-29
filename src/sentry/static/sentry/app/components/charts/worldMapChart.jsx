@@ -1,6 +1,7 @@
 import max from 'lodash/max';
 import PropTypes from 'prop-types';
 import React from 'react';
+import echarts from 'echarts';
 
 import theme from 'app/utils/theme';
 
@@ -18,29 +19,30 @@ export default class WorldMapChart extends React.Component {
     super(props);
     this.state = {
       countryToCodeMap: null,
+      map: null,
     };
   }
 
   async componentDidMount() {
-    const countryToCodeMap = await import(
-      /* webpackChunkName: "countryCodesMap" */ 'app/data/countryCodesMap'
-    );
+    const [countryToCodeMap, worldMap] = await Promise.all([
+      import(/* webpackChunkName: "countryCodesMap" */ 'app/data/countryCodesMap'),
+      import(/* webpackChunkName: "worldMapGeoJson" */ 'app/data/world.json'),
+    ]);
+
+    echarts.registerMap('sentryWorld', worldMap.default);
 
     // eslint-disable-next-line
     this.setState({
       countryToCodeMap: countryToCodeMap.default,
-      codeToCountryMap: Object.entries(countryToCodeMap.default).reduce(
-        (acc, [country, code]) => ({
-          ...acc,
-          [code]: country,
-        }),
-        {}
+      map: worldMap.default,
+      codeToCountryMap: Object.fromEntries(
+        Object.entries(countryToCodeMap.default).map(([country, code]) => [code, country])
       ),
     });
   }
 
   render() {
-    if (this.state.countryToCodeMap === null) {
+    if (this.state.countryToCodeMap === null || this.state.map === null) {
       return null;
     }
 
@@ -49,7 +51,7 @@ export default class WorldMapChart extends React.Component {
       MapSeries({
         ...seriesOptions,
         ...options,
-        mapType: 'world',
+        mapType: 'sentryWorld',
         name: seriesName,
         nameMap: this.state.countryToCodeMap,
         aspectScale: 0.85,
