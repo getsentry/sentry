@@ -147,5 +147,4 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         )
 
     def get_release_hook(self):
-        print("Heroku")
         return HerokuReleaseHook
