@@ -56,6 +56,14 @@ class RuleProcessor(object):
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
         return safe_execute(condition_inst.passes, self.event, state, _with_transaction=False)
 
+    def get_condition_category(self, condition):
+        condition_cls = rules.get(condition["id"])
+        if condition_cls is None:
+            self.logger.warn("Unregistered condition %r", condition["id"])
+            return
+
+        return condition_cls.category
+
     def get_state(self):
         return EventState(
             is_new=self.is_new,
@@ -94,7 +102,7 @@ class RuleProcessor(object):
         condition_list = []
         filter_list = []
         for rule_cond in rule_condition_list:
-            if rule_cond.category == RuleCategory.CONDITION:
+            if self.get_condition_category(rule_cond) == RuleCategory.CONDITION:
                 condition_list.append(rule_cond)
             else:
                 filter_list.append(rule_cond)
