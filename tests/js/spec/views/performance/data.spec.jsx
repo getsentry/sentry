@@ -1,8 +1,10 @@
 import {generatePerformanceEventView} from 'app/views/performance/data';
 
 describe('generatePerformanceEventView()', function() {
+  const organization = TestStubs.Organization();
+
   it('generates default values', function() {
-    const result = generatePerformanceEventView({
+    const result = generatePerformanceEventView(organization, {
       query: {},
     });
 
@@ -15,7 +17,7 @@ describe('generatePerformanceEventView()', function() {
   });
 
   it('applies sort from location', function() {
-    const result = generatePerformanceEventView({
+    const result = generatePerformanceEventView(organization, {
       query: {
         sort: ['-p50', '-count'],
       },
@@ -26,7 +28,7 @@ describe('generatePerformanceEventView()', function() {
   });
 
   it('does not override statsPeriod from location', function() {
-    const result = generatePerformanceEventView({
+    const result = generatePerformanceEventView(organization, {
       query: {
         statsPeriod: ['90d', '45d'],
       },
@@ -37,7 +39,7 @@ describe('generatePerformanceEventView()', function() {
   });
 
   it('does not apply range when start and end are present', function() {
-    const result = generatePerformanceEventView({
+    const result = generatePerformanceEventView(organization, {
       query: {
         start: '2020-04-25T12:00:00',
         end: '2020-05-25T12:00:00',
@@ -49,7 +51,7 @@ describe('generatePerformanceEventView()', function() {
   });
 
   it('converts bare query into transaction name wildcard', function() {
-    const result = generatePerformanceEventView({
+    const result = generatePerformanceEventView(organization, {
       query: {
         query: 'things.update',
       },
@@ -59,7 +61,7 @@ describe('generatePerformanceEventView()', function() {
   });
 
   it('bare query overwrites transaction condition', function() {
-    const result = generatePerformanceEventView({
+    const result = generatePerformanceEventView(organization, {
       query: {
         query: 'things.update transaction:thing.gone',
       },
@@ -70,7 +72,7 @@ describe('generatePerformanceEventView()', function() {
   });
 
   it('retains tag filter conditions', function() {
-    const result = generatePerformanceEventView({
+    const result = generatePerformanceEventView(organization, {
       query: {
         query: 'key:value tag:value',
       },

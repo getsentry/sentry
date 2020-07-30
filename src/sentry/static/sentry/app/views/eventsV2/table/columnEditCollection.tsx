@@ -10,7 +10,7 @@ import {
 } from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
-import {SelectValue, OrganizationSummary} from 'app/types';
+import {SelectValue, LightWeightOrganization} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import {Column} from 'app/utils/discover/fields';
@@ -22,7 +22,7 @@ import {generateFieldOptions} from '../utils';
 type Props = {
   // Input columns
   columns: Column[];
-  organization: OrganizationSummary;
+  organization: LightWeightOrganization;
   tagKeys: null | string[];
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;

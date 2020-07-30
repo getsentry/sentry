@@ -42,19 +42,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_or_errors(self):
-        self.login_as(user=self.user)
-        self.create_project()
-
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                {"field": ["id"], "query": "user.email:test OR user.email:foo"},
-                format="json",
-            )
-
-        assert response.status_code == 400
-
     def test_performance_view_feature(self):
         self.login_as(user=self.user)
         self.store_event(
@@ -2430,6 +2417,145 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["id"] == "f" * 32
+
+    def test_conditional_filter(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        for v in ["a", "b"]:
+            self.store_event(
+                data={
+                    "event_id": v * 32,
+                    "timestamp": self.two_min_ago,
+                    "fingerprint": ["group_1"],
+                },
+                project_id=project.id,
+            )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["id"],
+                    "query": "id:{} OR id:{}".format("a" * 32, "b" * 32),
+                    "orderby": "id",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["id"] == "a" * 32
+        assert data[1]["id"] == "b" * 32
+
+    def test_aggregation_comparison_with_conditional_filter(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_1"],
+                "user": {"email": "foo@example.com"},
+                "environment": "prod",
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
+                "environment": "staging",
+            },
+            project_id=project.id,
+        )
+        event = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
+                "environment": "prod",
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": self.min_ago,
+                "fingerprint": ["group_2"],
+                "user": {"email": "foo@example.com"},
+                "environment": "canary",
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": ["issue.id", "count(id)"],
+                    "query": "count(id):>1 user.email:foo@example.com AND (environment:prod OR environment:staging)",
+                    "orderby": "issue.id",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["issue.id"] == event.group_id
+        assert data[0]["count_id"] == 2
+
+    def test_messed_up_function_values(self):
+        # TODO (evanh): It would be nice if this surfaced an error to the user.
+        # The problem: The && causes the parser to treat that term not as a bad
+        # function call but a valid raw search with parens in it. It's not trivial
+        # to change the parser to recognize "bad function values" and surface them.
+        self.login_as(user=self.user)
+        project = self.create_project()
+        for v in ["a", "b"]:
+            self.store_event(
+                data={
+                    "event_id": v * 32,
+                    "timestamp": self.two_min_ago,
+                    "fingerprint": ["group_1"],
+                },
+                project_id=project.id,
+            )
+
+        with self.feature(
+            {"organizations:discover-basic": True, "organizations:global-views": True}
+        ):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "field": [
+                        "transaction",
+                        "project",
+                        "epm()",
+                        "p50()",
+                        "p95()",
+                        "failure_rate()",
+                        "apdex(300)",
+                        "count_unique(user)",
+                        "user_misery(300)",
+                    ],
+                    "query": "failure_rate():>0.003&& users:>10 event.type:transaction",
+                    "sort": "-failure_rate",
+                    "statsPeriod": "24h",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 0
 
     def test_context_fields(self):
         self.login_as(user=self.user)

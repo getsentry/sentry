@@ -10,9 +10,9 @@ import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
 import Pagination from 'app/components/pagination';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
 import TableView from './tableView';
-import {TableData} from './types';
 
 type TableProps = {
   api: Client;

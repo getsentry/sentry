@@ -49,7 +49,27 @@ def test_get_numeric_field_value():
 
 
 def test_tokenize_query_only_keyed_fields():
-    assert tokenize_query("foo:bar") == {"foo": ["bar"]}
+    tests = [
+        ("a:a", {"a": ["a"]}),
+        ("(a:a AND b:b)", {"a": ["a"], "b": ["b"]}),
+        ("( a:a AND (b:b OR c:c))", {"a": ["a"], "b": ["b"], "c": ["c"]}),
+        ("( a:a AND (b:b OR c:c ) )", {"a": ["a"], "b": ["b"], "c": ["c"]}),
+        (
+            "(x y a:a AND (b:b OR c:c) z)",
+            {"a": ["a"], "b": ["b"], "c": ["c"], "query": ["x", "y", "z"]},
+        ),
+        (
+            "((x y)) a:a AND (b:b OR c:c) z)",
+            {"a": ["a"], "b": ["b"], "c": ["c"], "query": ["x", "y", "z"]},
+        ),
+        (
+            "((x y)) a():>a AND (!b:b OR c():<c) z)",
+            {"a()": [">a"], "!b": ["b"], "c()": ["<c"], "query": ["x", "y", "z"]},
+        ),
+    ]
+
+    for test in tests:
+        assert tokenize_query(test[0]) == test[1], test[0]
 
 
 def test_get_numeric_field_value_invalid():

@@ -32,7 +32,7 @@ function computeAxisMax(data) {
   const power = Math.log10(maxValue);
   const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
 
-  let scale;
+  let scale: number;
   if (magnitude <= 2.5) {
     scale = 0.2;
   } else if (magnitude <= 5) {

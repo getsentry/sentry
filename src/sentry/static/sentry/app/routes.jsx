@@ -766,6 +766,17 @@ function routes() {
       />
 
       <Route
+        path="performance/"
+        name={t('Performance')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "OrganizationPerformance" */ 'app/views/settings/organizationPerformance'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
+      <Route
         path="settings/"
         componentPromise={() =>
           import(
@@ -1012,15 +1023,6 @@ function routes() {
             )
           }
           component={errorHandler(LazyLoad)}
-        />
-
-        <Route
-          path="/extensions/vsts/link/"
-          getComponent={(_loc, cb) =>
-            import(
-              /* webpackChunkName: "VSTSOrganizationLink" */ 'app/views/vstsOrganizationLink'
-            ).then(lazyLoad(cb))
-          }
         />
 
         <Route
