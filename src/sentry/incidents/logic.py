@@ -1109,9 +1109,15 @@ def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id,
     from sentry.integrations.slack.utils import get_channel_id
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(organization, integration_id, name)
+        integration = Integration.objects.get(
+            provider="slack", organizations=organization, id=integration_id
+        )
+    except Integration.DoesNotExist as e:
+        raise InvalidTriggerActionError("TODO")
+
+    try:
+        _prefix, channel_id, timed_out = get_channel_id(integration, name)
     except DuplicateDisplayNameError as e:
-        integration = Integration.objects.get(id=integration_id)
         domain = integration.metadata["domain_name"]
 
         raise InvalidTriggerActionError(

@@ -57,9 +57,15 @@ class SlackNotifyServiceForm(forms.Form):
         channel = cleaned_data.get("channel", "")
 
         try:
-            channel_prefix, channel_id, timed_out = self.channel_transformer(workspace, channel)
+            integration = Integration.objects.get(
+                provider="slack", organizations=self.project.organization, id=workspace
+            )
+        except Integration.DoesNotExist as e:
+            raise forms.ValidationError(_("TODO", ), code="invalid", params={})
+
+        try:
+            channel_prefix, channel_id, timed_out = self.channel_transformer(integration, channel)
         except DuplicateDisplayNameError as e:
-            integration = Integration.objects.get(id=workspace)
             domain = integration.metadata["domain_name"]
 
             params = {"channel": e.message, "domain": domain}
@@ -200,8 +206,5 @@ class SlackNotifyServiceAction(EventAction):
 
     def get_form_instance(self):
         return self.form_cls(
-            self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
+            self.data, integrations=self.get_integrations(), channel_transformer=get_channel_id
         )
-
-    def get_channel_id(self, integration_id, name):
-        return get_channel_id(self.project.organization, integration_id, name)

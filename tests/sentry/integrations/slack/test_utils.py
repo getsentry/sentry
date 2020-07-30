@@ -65,9 +65,7 @@ class GetChannelIdWorkspaceTest(TestCase):
         )
 
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
-        assert (expected_prefix, expected_id, timed_out) == get_channel_id(
-            self.organization, self.integration.id, channel
-        )
+        assert (expected_prefix, expected_id, timed_out) == get_channel_id(self.integration, channel)
 
     def test_valid_channel_selected(self):
         self.run_valid_test("#my-channel", CHANNEL_PREFIX, "m-c", False)
@@ -83,11 +81,11 @@ class GetChannelIdWorkspaceTest(TestCase):
 
     def test_invalid_member_selected_display_name(self):
         with pytest.raises(DuplicateDisplayNameError):
-            get_channel_id(self.organization, self.integration.id, "@Morty")
+            get_channel_id(self.integration, "@Morty")
 
     def test_invalid_channel_selected(self):
-        assert get_channel_id(self.organization, self.integration.id, "#fake-channel")[1] is None
-        assert get_channel_id(self.organization, self.integration.id, "@fake-user")[1] is None
+        assert get_channel_id(self.integration, "#fake-channel")[1] is None
+        assert get_channel_id(self.integration, "@fake-user")[1] is None
 
 
 class GetChannelIdBotTest(GetChannelIdWorkspaceTest):
