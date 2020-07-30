@@ -6,6 +6,7 @@ import math
 import six
 
 from datetime import datetime
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import connections
 from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
@@ -473,55 +474,72 @@ class GenericOffsetPaginator(object):
         # date for queries, this should stop drift from new incoming events.
 
 
+class CombinedQuerysetIntermediary(object):
+    is_empty = False
+
+    def __init__(self, queryset, order_by):
+        self.queryset = queryset
+        self.order_by = order_by
+        try:
+            self.instance = queryset[:1].get()
+            self.instance_type = type(self.instance)
+            assert hasattr(
+                self.instance, self.order_by
+            ), "Model of type {} does not have field {}".format(self.instance_type, self.order_by)
+            self.order_by_type = type(getattr(self.instance, self.order_by))
+        except ObjectDoesNotExist:
+            self.is_empty = True
+
+
 class CombinedQuerysetPaginator(object):
     """ This paginator can be used to paginate between multiple querysets.
-    It needs to be passed two lists:
-        1. a list of querysets to paginate and a list of fields
-            i.e. querysets = [AlertRule.objects.all(), Rule.objects.all()]
-        2. the key on which to sort the models in the queryset. The order must match the querysets.
-            i.e. order_by = ["date_added"] or ["name", "label"]
-
+    It needs to be passed a list of CombinedQuerysetIntermediary. Each CombinedQuerysetIntermediary must be populated with a queryset and an order_by key
+        i.e. querysets = [
+                CombinedQuerysetIntermediary(AlertRule.objects.all(), "name")
+                CombinedQuerysetIntermediary(Rule.objects.all(), "label")
+            ]
     and an optional paramater `desc` to determine whether the sort is ascending or descending. Default is False.
 
-    There is an issue with sorting between multiple models using a mixture of `date_added` and other fields.
-    This stems from `value_from_cursor` which formats it as a date if any of the keys are `date_added`.
-    There is an assertion in the constructor to help prevent this from happening.
+    There is an issue with sorting between multiple models using a mixture of
+    date fields and non-date fields. This is because the cursor value is converted differently for dates vs non-dates.
+    It assumes if _any_ field is a date key, all of them are.
+
+    There is an assertion in the constructor to help prevent this from manifesting.
     """
 
     multiplier = 1000000  # Use microseconds for date keys.
+    using_dates = False
+    model_key_map = {}
 
-    def __init__(self, order_by, querysets, desc=False, on_results=None):
-        if type(order_by) is list:
-            self.keys = order_by
-        else:
-            self.keys = [order_by] * len(querysets)
+    def __init__(self, intermediaries, desc=False, on_results=None):
         self.desc = desc
-        self.querysets = querysets
+        self.intermediaries = intermediaries
         self.on_results = on_results
-        self.model_key_map = {}
+        for intermediary in self.intermediaries:
+            if intermediary.is_empty:
+                self.intermediaries.remove(intermediary)
+            else:
+                self.model_key_map.update({intermediary.instance_type: intermediary.order_by})
 
-        assert len(self.keys) == len(
-            querysets
-        ), "order_by must be a string or a list of equal length to querysets"
-        if "date_added" in self.keys:
-            for key in self.keys:
-                assert (
-                    key == "date_added"
-                ), "When sorting by date_added, it must be the key used on all querysets"
-        for i, queryset in enumerate(self.querysets):
-            if queryset.first() is not None:
-                assert hasattr(
-                    queryset.first(), self.keys[i]
-                ), "Model of type {} does not have field {}".format(
-                    type(queryset.first()), self.keys[i]
-                )
-            self.model_key_map.update({type(queryset.first()): self.keys[i]})
+        # This is an assertion to make sure date field sorts are all or nothing.###
+        # (i.e. all fields must be a date type, or none of them)
+        using_other = False
+        for intermediary in self.intermediaries:
+            if intermediary.order_by_type == datetime:
+                self.using_dates = True
+            else:
+                using_other = True
+
+        if self.using_dates:
+            assert (
+                not using_other
+            ), "When sorting by a date, it must be the key used on all intermediaries"
 
     def key_from_item(self, item):
         return self.model_key_map.get(type(item))
 
     def get_item_key(self, item, for_prev=False):
-        if self.key_from_item(item) == "date_added":  # Could generalize this more
+        if self.using_dates:
             return self.multiplier * float(
                 getattr(item, self.key_from_item(item)).strftime("%s.%f")
             )
@@ -536,9 +554,7 @@ class CombinedQuerysetPaginator(object):
             return value
 
     def value_from_cursor(self, cursor):
-        if (
-            "date_added" in self.keys
-        ):  # Could generalize this more to check field type to see if it is a date..but cursor does not have that info
+        if self.using_dates:
             return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
                 tzinfo=timezone.utc
             )
@@ -551,9 +567,8 @@ class CombinedQuerysetPaginator(object):
     def _build_combined_querysets(self, value, is_prev, limit, extra):
         asc = self._is_asc(is_prev)
         combined_querysets = list()
-        for queryset in self.querysets:
-            item = queryset.first()
-            key = self.key_from_item(item)
+        for intermediary in self.intermediaries:
+            key = intermediary.order_by
             filters = {}
 
             if asc:
@@ -566,7 +581,7 @@ class CombinedQuerysetPaginator(object):
             if value is not None:
                 filters[filter_condition] = value
 
-            queryset = queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
+            queryset = intermediary.queryset.filter(**filters).order_by(order_by)[: (limit + extra)]
             combined_querysets += list(queryset)
 
         def _sort_combined_querysets(item):
