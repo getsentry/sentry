@@ -58,7 +58,7 @@ class Migration(migrations.Migration):
 
 
     dependencies = [
-        ('sentry', '0092_remove_trigger_threshold_type_nullable'),
+        ('sentry', '0093_make_identity_user_id_textfield'),
     ]
 
     operations = [migrations.RunPython(code=cleanup_event_attachment_files)]
