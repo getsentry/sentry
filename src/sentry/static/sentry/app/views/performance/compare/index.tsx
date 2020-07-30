@@ -106,7 +106,7 @@ class TransactionComparisonPage extends React.PureComponent<Props> {
       typeof baselineEventSlug === 'string' &&
       typeof regressionEventSlug === 'string'
     ) {
-      const title = `Comparing ${baselineEventSlug} to ${regressionEventSlug}`;
+      const title = t('Comparing %s to %s', baselineEventSlug, regressionEventSlug);
 
       return [title, t('Performance')].join(' - ');
     }
