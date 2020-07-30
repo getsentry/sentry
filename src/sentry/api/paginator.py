@@ -519,7 +519,7 @@ class CombinedQuerysetPaginator(object):
             if intermediary.is_empty:
                 self.intermediaries.remove(intermediary)
             else:
-                self.model_key_map.update({intermediary.instance_type: intermediary.order_by})
+                self.model_key_map[intermediary.instance_type] = intermediary.order_by
 
         # This is an assertion to make sure date field sorts are all or nothing.###
         # (i.e. all fields must be a date type, or none of them)
