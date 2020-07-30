@@ -32,13 +32,13 @@ class SpanGroup extends React.Component<Props, State> {
     }));
   };
 
-  renderSpanChildren = () => {
+  renderSpanChildren() {
     if (!this.state.showSpanTree) {
       return null;
     }
 
     return this.props.renderedSpanChildren;
-  };
+  }
 
   render() {
     const {
