@@ -25,7 +25,7 @@ class RuleStatus(object):
 class Rule(Model):
     __core__ = True
 
-    DEFAULT_ACTION_MATCH = "all"  # any, all
+    DEFAULT_CONDITION_MATCH = "all"  # any, all
     DEFAULT_FILTER_MATCH = "all"  # match to apply on filters
     DEFAULT_FREQUENCY = 30  # minutes
 
