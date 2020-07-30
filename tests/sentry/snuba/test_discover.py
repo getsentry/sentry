@@ -835,6 +835,117 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_percentile_range_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "firstPercentile"}],
+            "data": [{"transaction": "api.do_things", "firstPercentile": 15}],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "percentileRange(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01, firstPercentile)",
+            ],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
+                    None,
+                    "firstPercentile",
+                ]
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_avg_range_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "firstAverage"}],
+            "data": [{"transaction": "api.do_things", "firstAverage": 15}],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "avgRange(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01, firstAverage)",
+            ],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01'))))",
+                    None,
+                    "firstAverage",
+                ]
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_user_misery_range_function(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "firstUserMisery"}],
+            "data": [{"transaction": "api.do_things", "firstUserMisery": 15}],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "user_miseryRange(300, 2020-05-02T13:45:01, 2020-05-02T14:45:01, firstUserMisery)",
+            ],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "uniqIf(user,and(greaterOrEquals(timestamp,toDateTime('2020-05-02T13:45:01')),less(timestamp,toDateTime('2020-05-02T14:45:01')),greater(duration,1200)))",
+                    None,
+                    "firstUserMisery",
+                ]
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_percentile_function(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "percentile_transaction_duration_0_75"}],

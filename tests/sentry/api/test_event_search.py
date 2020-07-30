@@ -2410,6 +2410,116 @@ class ResolveFieldListTest(unittest.TestCase):
             in six.text_type(err)
         )
 
+    def test_percentile_range(self):
+        fields = [
+            "percentileRange(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57, firstPercentile)"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                u"quantileIf(0.50)(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57'))))",
+                None,
+                "firstPercentile",
+            ]
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = [
+                "percentileRange(transaction.duration, 0.5, 2020-05-01T01:12:34, tomorrow, firstPercentile)"
+            ]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "end argument invalid: tomorrow is not a date in the valid format" in six.text_type(
+            err
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = [
+                "percentileRange(transaction.duration, 0.5, today, 2020-05-03T06:48:57, firstPercentile)"
+            ]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "start argument invalid: today is not a date in the valid format" in six.text_type(
+            err
+        )
+
+    def test_average_range(self):
+        fields = [
+            "avgRange(transaction.duration, 2020-05-01T01:12:34, 2020-05-03T06:48:57, firstAverage)"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                u"avgIf(duration,and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57'))))",
+                None,
+                "firstAverage",
+            ]
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["avgRange(transaction.duration, 2020-05-01T01:12:34, tomorrow, firstAverage)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "end argument invalid: tomorrow is not a date in the valid format" in six.text_type(
+            err
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["avgRange(transaction.duration, today, 2020-05-03T06:48:57, firstAverage)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "start argument invalid: today is not a date in the valid format" in six.text_type(
+            err
+        )
+
+    def test_user_misery_range(self):
+        fields = [
+            "user_miseryRange(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, firstUserMisery)"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "uniqIf(user,and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57')),greater(duration,1200)))",
+                None,
+                u"firstUserMisery",
+            ]
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["user_miseryRange(300, 2020-05-01T01:12:34, tomorrow, firstUserMisery)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "end argument invalid: tomorrow is not a date in the valid format" in six.text_type(
+            err
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["user_miseryRange(300, today, 2020-05-03T06:48:57, firstUserMisery)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "start argument invalid: today is not a date in the valid format" in six.text_type(
+            err
+        )
+
+    def test_divide(self):
+        fields = [
+            "user_miseryRange(300, 2020-05-01T01:12:34, 2020-05-03T06:48:57, firstUserMisery)",
+            "user_miseryRange(300, 2020-05-03T06:48:57, 2020-05-05T01:12:34, secondUserMisery)",
+            "divide(secondUserMisery, firstUserMisery)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "uniqIf(user,and(greaterOrEquals(timestamp,toDateTime('2020-05-01T01:12:34')),less(timestamp,toDateTime('2020-05-03T06:48:57')),greater(duration,1200)))",
+                None,
+                "firstUserMisery",
+            ],
+            [
+                "uniqIf(user,and(greaterOrEquals(timestamp,toDateTime('2020-05-03T06:48:57')),less(timestamp,toDateTime('2020-05-05T01:12:34')),greater(duration,1200)))",
+                None,
+                "secondUserMisery",
+            ],
+            [
+                "divide(secondUserMisery,firstUserMisery)",
+                None,
+                "divide_secondUserMisery_firstUserMisery",
+            ],
+        ]
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]

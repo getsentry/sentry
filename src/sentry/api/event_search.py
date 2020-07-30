@@ -1205,6 +1205,15 @@ class CountColumn(FunctionArg):
         return value
 
 
+class DateArg(FunctionArg):
+    def normalize(self, value):
+        try:
+            datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+        except ValueError:
+            raise InvalidFunctionArgument("{} is not a date in the valid format".format(value))
+        return value
+
+
 class NumericColumn(FunctionArg):
     def normalize(self, value):
         snuba_column = SEARCH_MAP.get(value)
@@ -1431,6 +1440,56 @@ FUNCTIONS = {
         "transform": u"abs(minus({column}, {target:g}))",
         "result_type": "duration",
     },
+    # These range functions for performance trends
+    # Not supported in Discover, and shouldn't be added to fields.tsx
+    "percentileRange": {
+        "name": "percentileRange",
+        "args": [
+            DurationColumn("column"),
+            NumberRange("percentile", 0, 1),
+            DateArg("start"),
+            DateArg("end"),
+            FunctionArg("alias"),
+        ],
+        "aggregate": [
+            u"quantileIf({percentile:.2f})({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+            None,
+            "{alias}",
+        ],
+        "result_type": "duration",
+    },
+    "avgRange": {
+        "name": "avg",
+        "args": [DurationColumn("column"), DateArg("start"), DateArg("end"), FunctionArg("alias")],
+        "aggregate": [
+            u"avgIf({column},and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}'))))",
+            None,
+            "{alias}",
+        ],
+        "result_type": "duration",
+    },
+    "user_miseryRange": {
+        "name": "user_miseryRange",
+        "args": [
+            NumberRange("satisfaction", 0, None),
+            DateArg("start"),
+            DateArg("end"),
+            FunctionArg("alias"),
+        ],
+        "calculated_args": [{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+        "aggregate": [
+            u"uniqIf(user,and(greaterOrEquals(timestamp,toDateTime('{start}')),less(timestamp,toDateTime('{end}')),greater(duration,{tolerated:g})))",
+            None,
+            u"{alias}",
+        ],
+        "result_type": "number",
+    },
+    "divide": {
+        "name": "divide",
+        "args": [FunctionArg("numerator"), FunctionArg("denominator")],
+        "transform": u"divide({numerator},{denominator})",
+        "result_type": "percentage",
+    },
 }
 
 
@@ -1535,6 +1594,8 @@ def resolve_function(field, match=None, params=None):
             aggregate[2] = get_function_alias_with_columns(
                 function["name"], columns if not used_default else []
             )
+        else:
+            aggregate[2] = aggregate[2].format(**arguments)
 
         return ([], [aggregate])
     elif "column" in function:
