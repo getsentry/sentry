@@ -306,10 +306,6 @@ class Sidebar extends React.Component<Props, State> {
     const hasOrganization = !!organization;
 
     const discoverState = this.discoverSidebarState();
-    const hasMetricAlerts = organization?.features?.includes('incidents') ?? false;
-    const alertsPath = hasMetricAlerts
-      ? `/organizations/${organization.slug}/alerts/`
-      : `/organizations/${organization.slug}/alerts/rules/`;
 
     return (
       <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
@@ -411,17 +407,26 @@ class Sidebar extends React.Component<Props, State> {
                       id="performance"
                     />
                   </Feature>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(alertsPath, evt)
-                    }
-                    icon={<IconSiren size="md" />}
-                    label={t('Alerts')}
-                    to={alertsPath}
-                    id="alerts"
-                    isNew
-                  />
+                  <Feature features={['incidents']}>
+                    {({hasFeature}) => {
+                      const alertsPath = hasFeature
+                        ? `/organizations/${organization.slug}/alerts/`
+                        : `/organizations/${organization.slug}/alerts/rules/`;
+                      return (
+                        <SidebarItem
+                          {...sidebarItemProps}
+                          onClick={(_id, evt) =>
+                            this.navigateWithGlobalSelection(alertsPath, evt)
+                          }
+                          icon={<IconSiren size="md" />}
+                          label={t('Alerts')}
+                          to={alertsPath}
+                          id="alerts"
+                          isNew
+                        />
+                      );
+                    }}
+                  </Feature>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
