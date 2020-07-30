@@ -12,8 +12,8 @@ import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
-import {TableData} from './types';
 import {downloadAsCsv} from '../utils';
 
 type Props = {
