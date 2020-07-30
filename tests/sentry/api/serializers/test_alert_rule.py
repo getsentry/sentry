@@ -6,7 +6,7 @@ import six
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import (
-    DetailedAlertRuleSerializer,
+    AlertRuleSerializer,
     CombinedRuleSerializer,
 )
 from sentry.models import Rule
@@ -96,12 +96,10 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
 
-
-class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
-    def test_simple(self):
+    def test_projects(self):
         projects = [self.project, self.create_project()]
         alert_rule = self.create_alert_rule(projects=projects)
-        result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
+        result = serialize(alert_rule, serializer=AlertRuleSerializer())
         self.assert_alert_rule_serialized(alert_rule, result)
         assert sorted(result["projects"]) == sorted([p.slug for p in projects])
         assert result["excludedProjects"] == []
@@ -112,24 +110,16 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         alert_rule = self.create_alert_rule(
             projects=[], include_all_projects=True, excluded_projects=excluded
         )
-        result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
+        result = serialize(alert_rule, serializer=AlertRuleSerializer())
         self.assert_alert_rule_serialized(alert_rule, result)
         assert result["projects"] == [p.slug for p in projects]
         assert result["excludedProjects"] == [p.slug for p in excluded]
 
         alert_rule = self.create_alert_rule(projects=projects, include_all_projects=False)
-        result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
+        result = serialize(alert_rule, serializer=AlertRuleSerializer())
         self.assert_alert_rule_serialized(alert_rule, result)
         assert result["projects"] == [p.slug for p in projects]
         assert result["excludedProjects"] == []
-
-    def test_triggers(self):
-        alert_rule = self.create_alert_rule()
-        other_alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(alert_rule, "test", 1000)
-        result = serialize([alert_rule, other_alert_rule], serializer=DetailedAlertRuleSerializer())
-        assert result[0]["triggers"] == [serialize(trigger)]
-        assert result[1]["triggers"] == []
 
 
 class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestCase):
