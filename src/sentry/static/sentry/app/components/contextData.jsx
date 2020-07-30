@@ -128,7 +128,7 @@ class ContextData extends React.Component {
     withAnnotatedText: false,
   };
 
-  renderValue = value => {
+  renderValue(value) {
     const {preserveQuotes, meta, withAnnotatedText} = this.props;
 
     function getValueWithAnnotatedText(v, meta) {
@@ -230,7 +230,7 @@ class ContextData extends React.Component {
       }
     }
     return walk(value, 0);
-  };
+  }
 
   render() {
     const {
@@ -243,7 +243,7 @@ class ContextData extends React.Component {
     } = this.props;
 
     return (
-      <pre className="val-string" {...other}>
+      <pre {...other}>
         {this.renderValue(data)}
         {children}
       </pre>
