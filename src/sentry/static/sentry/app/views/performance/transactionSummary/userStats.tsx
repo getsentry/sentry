@@ -8,11 +8,10 @@ import EventView from 'app/utils/discover/eventView';
 import {t} from 'app/locale';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getTermHelp} from 'app/views/performance/data';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
-import {TableDataRow} from 'app/views/eventsV2/table/types';
 
 type Props = {
   location: Location;

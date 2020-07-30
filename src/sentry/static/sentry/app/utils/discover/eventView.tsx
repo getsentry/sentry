@@ -1037,29 +1037,47 @@ class EventView {
         if (this.start || this.end) {
           return {...item, disabled: true};
         }
-      } else if (
-        item.value === DisplayModes.TOP5 ||
-        item.value === DisplayModes.DAILYTOP5
-      ) {
+      }
+
+      if (item.value === DisplayModes.TOP5 || item.value === DisplayModes.DAILYTOP5) {
         if (this.getAggregateFields().length === 0) {
           return {...item, disabled: true};
         }
       }
+
+      if (item.value === DisplayModes.DAILY || item.value === DisplayModes.DAILYTOP5) {
+        if (this.getDays() < 1) {
+          return {...item, disabled: true};
+        }
+      }
+
       return item;
     });
   }
 
   getDisplayMode() {
     const mode = this.display ?? DisplayModes.DEFAULT;
-    const display = (Object.values(DisplayModes) as string[]).includes(mode)
+    const displayOptions = this.getDisplayOptions();
+
+    let display = (Object.values(DisplayModes) as string[]).includes(mode)
       ? mode
       : DisplayModes.DEFAULT;
-    const displayOptions = this.getDisplayOptions();
-    const selectedOption = displayOptions.find(option => option.value === display);
-    if (selectedOption && !selectedOption.disabled) {
-      return display;
+    const cond = option => option.value === display;
+
+    // Just in case we define a fallback chain that results in an infinite loop.
+    // The number 5 isn't anything special, its just larger than the longest fallback
+    // chain that exists and isn't too big.
+    for (let i = 0; i < 5; i++) {
+      const selectedOption = displayOptions.find(cond);
+      if (selectedOption && !selectedOption.disabled) {
+        return display;
+      }
+      display = DISPLAY_MODE_FALLBACK_OPTIONS[display];
     }
-    return DISPLAY_MODE_FALLBACK_OPTIONS[display];
+
+    // after trying to find an enabled display mode and failing to find one,
+    // we just use the default display mode
+    return DisplayModes.DEFAULT;
   }
 }
 
