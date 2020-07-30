@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Client} from 'app/api';
 import {
   Action,
   ActionType,
@@ -30,7 +31,7 @@ import Button from 'app/components/button';
 const ActionLabel = {
   [ActionType.EMAIL]: t('E-mail'),
   [ActionType.SLACK]: t('Slack'),
-  [ActionType.PAGER_DUTY]: t('Pagerduty'),
+  [ActionType.PAGERDUTY]: t('Pagerduty'),
   [ActionType.MSTEAMS]: t('Microsoft Teams'),
 };
 
@@ -61,8 +62,8 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.MSTEAMS:
       //no prefixes for msteams
       return 'username or channel';
-    case ActionType.PAGER_DUTY:
-      return 'blah';
+    case ActionType.PAGERDUTY:
+      return 'service';
     default:
       throw Error('Not implemented');
   }
@@ -94,6 +95,26 @@ class ActionsPanel extends React.PureComponent<Props> {
   }: Pick<MetricActionTemplate, 'type' | 'integrationName'>) {
     return `${ActionLabel[type]}${integrationName ? ` - ${integrationName}` : ''}`;
   }
+
+  formatServices = async action => {
+    const services = await this.fetchServices(action);
+    const serviceTable = services.configData.service_table;
+    const formatted = serviceTable.map(service => ({
+      value: service.id,
+      label: service.service,
+    }));
+    return formatted;
+  };
+
+  fetchServices = action => {
+    const api = new Client();
+    const organization = this.props.organization.slug;
+    const integrationId = action.action.integrationId;
+    const endpoint = `/organizations/${organization}/integrations/${integrationId}/`;
+    return api.requestPromise(endpoint, {
+      method: 'GET',
+    });
+  };
 
   doChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
     const {triggers, onChange} = this.props;
@@ -242,11 +263,6 @@ class ActionsPanel extends React.PureComponent<Props> {
       {value: 1, label: 'Warning Status'},
     ];
 
-    const tempServices = [
-      {value: 1, label: 'sentry'},
-      {value: 2, label: 'fake'},
-    ];
-
     return (
       <Panel>
         <PanelHeader>{t('Actions')}</PanelHeader>
@@ -267,10 +283,11 @@ class ActionsPanel extends React.PureComponent<Props> {
               actions.map((action: Action, i: number) => {
                 const isUser = action.targetType === TargetType.USER;
                 const isTeam = action.targetType === TargetType.TEAM;
-                const hasOptions = action.targetType === TargetType.OPTIONS;
+                // const isSpecific = action.targetType === TargetType.SPECIFIC;
                 const availableAction = availableActions?.find(
                   a => this.getActionUniqueKey(a) === this.getActionUniqueKey(action)
                 );
+                // const availableServices = this.formatServices({action});
 
                 return (
                   <PanelItemGrid key={i}>
@@ -324,18 +341,19 @@ class ActionsPanel extends React.PureComponent<Props> {
                           i
                         )}
                       />
-                    ) : hasOptions ? (
-                      <SelectControl
-                        isDisabled={disabled || loading}
-                        value={action.targetIdentifier}
-                        options={tempServices}
-                        onChange={this.handleChangeTargetIdentifier.bind(
-                          this,
-                          triggerIndex,
-                          i
-                        )}
-                      />
                     ) : (
+                      // ) : isSpecific && action.type === 'pagerduty' ? (
+                      //   <SelectControl
+                      //     isDisabled={disabled || loading}
+                      //     value={action.targetIdentifier}
+                      //     // options={this.formatServices({action})}
+                      //     options={test}
+                      //     onChange={this.handleChangeTargetIdentifier.bind(
+                      //       this,
+                      //       triggerIndex,
+                      //       i
+                      //     )}
+                      //   />
                       <Input
                         disabled={disabled}
                         key={action.type}

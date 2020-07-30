@@ -539,8 +539,6 @@ class AlertRuleTriggerAction(Model):
         # A specific team. This could be used to send an email to everyone associated
         # with a team.
         TEAM = 2
-        # A list of options like PagerDuty services
-        OPTIONS = 3
 
     TypeRegistration = namedtuple(
         "TypeRegistration",

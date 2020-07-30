@@ -1056,10 +1056,7 @@ def create_alert_rule_trigger_action(
 
     target_display = None
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
-        if target_type not in [
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
-            AlertRuleTriggerAction.TargetType.OPTIONS,
-        ]:
+        if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
 
         channel_id = get_alert_rule_trigger_action_integration_object_id(

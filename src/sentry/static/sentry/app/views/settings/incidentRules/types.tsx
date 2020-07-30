@@ -80,7 +80,7 @@ export type ProjectSelectOption = {
 export enum ActionType {
   EMAIL = 'email',
   SLACK = 'slack',
-  PAGER_DUTY = 'pagerduty',
+  PAGERDUTY = 'pagerduty',
   MSTEAMS = 'msteams',
 }
 
@@ -93,9 +93,6 @@ export enum TargetType {
 
   // Just works with email for now, grabs the emails for all team members
   TEAM = 'team',
-
-  // for when you want to return a dropdown with multiple values that is not a user or team
-  OPTIONS = 'options',
 }
 
 /**

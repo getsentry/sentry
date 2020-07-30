@@ -54,7 +54,6 @@ action_target_type_to_string = {
     AlertRuleTriggerAction.TargetType.USER: "user",
     AlertRuleTriggerAction.TargetType.TEAM: "team",
     AlertRuleTriggerAction.TargetType.SPECIFIC: "specific",
-    AlertRuleTriggerAction.TargetType.OPTIONS: "options",
 }
 string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
 

@@ -131,10 +131,10 @@ class MsTeamsActionHandler(ActionHandler):
 @AlertRuleTriggerAction.register_type(
     "pagerduty",
     AlertRuleTriggerAction.Type.PAGERDUTY,
-    [AlertRuleTriggerAction.TargetType.OPTIONS],
+    [AlertRuleTriggerAction.TargetType.SPECIFIC],
     integration_provider="pagerduty",
 )
-class PagerdutyActionHandler(ActionHandler):
+class PagerDutyActionHandler(ActionHandler):
     def fire(self, metric_value):
         self.send_alert(metric_value)
 
