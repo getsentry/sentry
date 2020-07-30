@@ -10,7 +10,6 @@ from django.core.urlresolvers import reverse
 from django.http import Http404
 
 from sentry import tagstore
-from sentry import options
 from sentry.api.fields.actor import Actor
 from sentry.incidents.logic import get_incident_aggregates
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
@@ -55,6 +54,13 @@ QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
     "count_unique(tags[sentry:user])": "users affected",
 }
+
+
+def get_integration_type(integration):
+    metadata = integration.metadata
+    # classic bots had a user_access_token in the metadata
+    default_installation = "classic_bot" if "user_access_token" in metadata else "workspace_app"
+    return metadata.get("installation_type", default_installation)
 
 
 def format_actor_option(actor):
@@ -171,6 +177,22 @@ def build_rule_url(rule, group, project):
     project_slug = project.slug
     rule_url = u"/settings/{}/projects/{}/alerts/rules/{}/".format(org_slug, project_slug, rule.id)
     return absolute_uri(rule_url)
+
+
+def build_upgrade_notice_attachment(group):
+    org_slug = group.organization.slug
+    url = absolute_uri(
+        u"/settings/{}/integrations/slack/?tab=configurations&referrer=slack".format(org_slug)
+    )
+
+    return {
+        "title": "Reminder",
+        "text": (
+            u"It looks like you are still using the Legacy Sentry-Slack integration. "
+            u"You will need to upgrade by October 1st to continue receiving alerts. "
+            u"Click <{}|here> to upgrade.".format(url)
+        ),
+    }
 
 
 def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
@@ -434,7 +456,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # Look for channel ID
     payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
 
-    if options.get("slack.legacy-app") is True:
+    # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
+    # once eveyone is migrated we can remove this check and usages of channels.list
+    if get_integration_type(integration) == "workspace_app":
         list_types = LEGACY_LIST_TYPES
     else:
         list_types = LIST_TYPES
