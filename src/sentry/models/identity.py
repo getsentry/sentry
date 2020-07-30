@@ -65,7 +65,7 @@ class Identity(Model):
 
     idp = FlexibleForeignKey("sentry.IdentityProvider")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
-    external_id = models.CharField(max_length=64)
+    external_id = models.TextField()
     data = EncryptedJsonField()
     status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
     scopes = ArrayField()

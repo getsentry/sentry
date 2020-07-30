@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
@@ -61,6 +62,10 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
   componentDidMount() {
     this.resetStateFromProps();
+  }
+
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    return !isEqual(this.state, nextState) || !isEqual(this.props, nextProps);
   }
 
   componentDidUpdate(prevProps: Props) {

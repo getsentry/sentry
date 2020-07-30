@@ -60,7 +60,6 @@ default_manager.add("organizations:artifacts-in-settings", OrganizationFeature) 
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:breadcrumbs-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)  # NOQA
-default_manager.add("organizations:data-export", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-basic", OrganizationFeature)  # NOQA
@@ -70,7 +69,6 @@ default_manager.add("organizations:enterprise-perf", OrganizationFeature)  # NOQ
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
-default_manager.add("organizations:grouping-info", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)  # NOQA
@@ -79,6 +77,7 @@ default_manager.add("organizations:integrations-alert-rule", OrganizationFeature
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-incident-management", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-msteams", OrganizationFeature)  # NOQA
+default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
@@ -99,7 +98,6 @@ default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature)  # NOQA
 # XXX(mark) Don't use this feature it is going away soon.
 default_manager.add("organizations:transaction-events", OrganizationFeature)  # NOQA
-default_manager.add("organizations:tweak-grouping-config", OrganizationFeature)  # NOQA
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

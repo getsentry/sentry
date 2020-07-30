@@ -36,8 +36,6 @@ class OrganizationSerializerTest(TestCase):
                 "sso-basic",
                 "symbol-sources",
                 "custom-symbol-sources",
-                "tweak-grouping-config",
-                "grouping-info",
                 "releases-v2",
                 "discover-basic",
                 "discover-query",

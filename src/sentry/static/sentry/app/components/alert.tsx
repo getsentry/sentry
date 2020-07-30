@@ -4,14 +4,12 @@ import React from 'react';
 import classNames from 'classnames';
 import styled from '@emotion/styled';
 
-import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 // exporting it down with alertStyles caused error  'Props' is not defined  no-undef
 export type Props = {
   type?: 'muted' | 'info' | 'warning' | 'success' | 'error' | 'beta';
-  iconSize?: string;
-  icon?: string | React.ReactNode;
+  icon?: React.ReactNode;
   system?: boolean;
 };
 
@@ -91,35 +89,30 @@ const Alert = styled(
   ({
     type,
     icon,
-    iconSize,
     children,
     className,
     system: _system, // don't forward to `div`
     ...props
-  }: AlertProps) => (
-    <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
-      {icon && (
-        <IconWrapper>
-          {typeof icon === 'string' ? <InlineSvg src={icon} size={iconSize!} /> : icon}
-        </IconWrapper>
-      )}
-      <StyledTextBlock>{children}</StyledTextBlock>
-    </div>
-  )
+  }: AlertProps) => {
+    return (
+      <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
+        {icon && <IconWrapper>{icon}</IconWrapper>}
+        <StyledTextBlock>{children}</StyledTextBlock>
+      </div>
+    );
+  }
 )<AlertProps>`
   ${alertStyles}
 `;
 
 Alert.propTypes = {
   type: PropTypes.oneOf(['muted', 'info', 'warning', 'success', 'error', 'beta']),
-  iconSize: PropTypes.string,
   icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
   system: PropTypes.bool,
 };
 
 Alert.defaultProps = {
   type: DEFAULT_TYPE,
-  iconSize: '20px',
 };
 
 export {alertStyles};
