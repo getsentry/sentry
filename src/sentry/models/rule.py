@@ -60,11 +60,15 @@ class Rule(Model):
 
     @property
     def created_by(self):
-        created_activity = RuleActivity.objects.filter(
-            rule=self, type=RuleActivityType.CREATED.value
-        ).first()
-        if created_activity:
-            return created_activity.user
+        try:
+            created_activity = RuleActivity.objects.get(
+                rule=self, type=RuleActivityType.CREATED.value
+            )
+            if created_activity:
+                return created_activity.user
+        except RuleActivity.DoesNotExist:
+            pass
+
         return None
 
     def delete(self, *args, **kwargs):

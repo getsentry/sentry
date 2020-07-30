@@ -8,7 +8,7 @@ from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import AlertRule, AlertRuleExcludedProjects, AlertRuleTrigger
 from sentry.incidents.logic import translate_aggregate_field
 
-from sentry.models import Rule
+from sentry.models import Rule, RuleActivity, RuleActivityType
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 
@@ -27,6 +27,11 @@ class AlertRuleSerializer(Serializer):
                 "triggers", []
             )
             alert_rule_triggers.append(serialized)
+
+        for rule, user in RuleActivity.objects.filter(
+            rule__in=item_list, type=RuleActivityType.CREATED.value
+        ).values_list("rule", "user"):
+            result[rule].update({"created_by": user})
 
         return result
 
@@ -56,7 +61,7 @@ class AlertRuleSerializer(Serializer):
             "includeAllProjects": obj.include_all_projects,
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
-            "createdBy": obj.created_by,
+            "createdBy": attrs.get("created_by", None),
         }
 
 
