@@ -66,7 +66,7 @@ class SpanBar extends React.Component<Props, State> {
     showDetail: false,
   };
 
-  renderSpanTreeConnector = ({hasToggler}: {hasToggler: boolean}) => {
+  renderSpanTreeConnector({hasToggler}: {hasToggler: boolean}) {
     const {
       isLast,
       isRoot,
@@ -138,9 +138,9 @@ class SpanBar extends React.Component<Props, State> {
         {connectorBars}
       </SpanTreeConnector>
     );
-  };
+  }
 
-  renderSpanTreeToggler = ({left}: {left: number}) => {
+  renderSpanTreeToggler({left}: {left: number}) {
     const {numOfSpanChildren, isRoot, showSpanTree} = this.props;
 
     const chevron = <StyledIconChevron direction={showSpanTree ? 'up' : 'down'} />;
@@ -176,7 +176,7 @@ class SpanBar extends React.Component<Props, State> {
         </SpanTreeToggler>
       </SpanTreeTogglerContainer>
     );
-  };
+  }
 
   renderTitle() {
     const {span, treeDepth} = this.props;
