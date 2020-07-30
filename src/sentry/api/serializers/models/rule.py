@@ -30,7 +30,7 @@ class RuleSerializer(Serializer):
         ).values_list("rule", "user"):
             result[rule].update({"created_by": user})
 
-        return
+        return result
 
     def serialize(self, obj, attrs, user):
         environment = attrs["environment"]
