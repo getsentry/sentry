@@ -246,7 +246,7 @@ class TransactionTable extends React.PureComponent<Props> {
 
     if (organization.features.includes('internal-catchall')) {
       headerColumns.push(
-        <GridHeadCell key="baseline">
+        <HeadCellContainer key="baseline">
           <SortLink
             align="right"
             title={t('Compared to Baseline')}
@@ -254,7 +254,7 @@ class TransactionTable extends React.PureComponent<Props> {
             canSort={false}
             generateSortLink={generateSortLink}
           />
-        </GridHeadCell>
+        </HeadCellContainer>
       );
     }
 
@@ -371,14 +371,16 @@ class TransactionTable extends React.PureComponent<Props> {
         });
 
         resultsRow.push(
-          <GridBodyCell key={`${rowIndex}-baseline`} style={{textAlign: 'right'}}>
+          <BodyCellContainer key={`${rowIndex}-baseline`} style={{textAlign: 'right'}}>
             <Link to={target} onClick={this.handleViewDetailsClick}>
               {`${getHumanDuration(delta / 1000)} ${relativeSpeed}`}
             </Link>
-          </GridBodyCell>
+          </BodyCellContainer>
         );
       } else {
-        resultsRow.push(<GridBodyCell key={`${rowIndex}-baseline`}>-</GridBodyCell>);
+        resultsRow.push(
+          <BodyCellContainer key={`${rowIndex}-baseline`}>-</BodyCellContainer>
+        );
       }
     }
 
