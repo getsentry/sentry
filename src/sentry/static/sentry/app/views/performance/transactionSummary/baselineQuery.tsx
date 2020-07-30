@@ -54,7 +54,7 @@ class BaselineQuery extends React.PureComponent<Props> {
 
   generatePayload(eventView: EventView) {
     return {
-      ...eventView.getGlobalSelection(),
+      ...eventView.getGlobalSelectionQuery(),
       query: eventView.query,
     };
   }
@@ -82,7 +82,7 @@ class BaselineQuery extends React.PureComponent<Props> {
       .requestPromise(url, {
         method: 'GET',
         query: {
-          ...eventView.getGlobalSelection(),
+          ...eventView.getGlobalSelectionQuery(),
           query: eventView.query,
         },
       })
