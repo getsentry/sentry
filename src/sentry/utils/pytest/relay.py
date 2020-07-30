@@ -117,7 +117,7 @@ def relay_server_setup(live_server, tmpdir_factory):
 
 @pytest.fixture(scope="function")
 def relay_server(relay_server_setup, settings):
-    _adjust_settings_for_relay_tests(settings)
+    adjust_settings_for_relay_tests(settings)
     options = relay_server_setup["options"]
     docker_client = get_docker_client()
     container_name = _relay_server_container_name()
@@ -138,7 +138,7 @@ def relay_server(relay_server_setup, settings):
     return {"url": relay_server_setup["url"]}
 
 
-def _adjust_settings_for_relay_tests(settings):
+def adjust_settings_for_relay_tests(settings):
     """
     Adjusts the application settings to accept calls from a Relay instance running inside a
     docker container.
