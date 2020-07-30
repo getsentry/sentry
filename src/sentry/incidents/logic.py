@@ -1127,7 +1127,7 @@ def get_alert_rule_trigger_action_slack_channel_id(organization, integration_id,
 
     if timed_out:
         raise InvalidTriggerActionError(
-            "Could not find channel %s. We have timed out trying to look for it. " % name
+            "Could not find channel %s. We have timed out trying to look for it." % name
         )
 
     if channel_id is None:
