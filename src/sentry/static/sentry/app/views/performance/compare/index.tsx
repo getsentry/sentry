@@ -17,6 +17,11 @@ import LoadingError from 'app/components/loadingError';
 import FetchEvent, {ChildrenProps} from './fetchEvent';
 import TransactionComparisonContent from './content';
 
+type ComparedEventSlugs = {
+  baselineEventSlug: string | undefined;
+  regressionEventSlug: string | undefined;
+};
+
 type Props = {
   location: Location;
   params: Params;
@@ -24,7 +29,7 @@ type Props = {
 };
 
 class TransactionComparisonPage extends React.PureComponent<Props> {
-  getEventSlugs() {
+  getEventSlugs(): ComparedEventSlugs {
     const {baselineEventSlug, regressionEventSlug} = this.props.params;
 
     const validatedBaselineEventSlug =
@@ -58,10 +63,7 @@ class TransactionComparisonPage extends React.PureComponent<Props> {
   renderComparison({
     baselineEventSlug,
     regressionEventSlug,
-  }: {
-    baselineEventSlug: string | undefined;
-    regressionEventSlug: string | undefined;
-  }): React.ReactNode {
+  }: ComparedEventSlugs): React.ReactNode {
     return this.fetchEvent(baselineEventSlug, baselineEventResults => {
       return this.fetchEvent(regressionEventSlug, regressionEventResults => {
         if (baselineEventResults.isLoading || regressionEventResults.isLoading) {
@@ -99,13 +101,7 @@ class TransactionComparisonPage extends React.PureComponent<Props> {
     });
   }
 
-  getDocumentTitle({
-    baselineEventSlug,
-    regressionEventSlug,
-  }: {
-    baselineEventSlug: string | undefined;
-    regressionEventSlug: string | undefined;
-  }): string {
+  getDocumentTitle({baselineEventSlug, regressionEventSlug}: ComparedEventSlugs): string {
     if (
       typeof baselineEventSlug === 'string' &&
       typeof regressionEventSlug === 'string'
