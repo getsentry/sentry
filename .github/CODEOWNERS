@@ -151,10 +151,6 @@ Makefile                    @getsentry/owners-sentry-dev
 
 /src/sentry/models/integration.py             @getsentry/ecosystem
 /src/sentry/models/integrationfeature.py      @getsentry/ecosystem
-/src/sentry/models/sentryapp.py               @getsentry/ecosystem
-/src/sentry/models/sentryappavatar.py         @getsentry/ecosystem
-/src/sentry/models/sentryappcomponent.py      @getsentry/ecosystem
-/src/sentry/models/sentryappinstallation.py   @getsentry/ecosystem
 
 /src/sentry/tasks/integrations.py             @getsentry/ecosystem
 
@@ -162,5 +158,6 @@ Makefile                    @getsentry/owners-sentry-dev
 
 # To find matching files -> find . -name "*sentry_app*.py"
 *sentry_app*.py                               @getsentry/ecosystem
+*sentryapp*.py                                @getsentry/ecosystem
 
 ### End of Ecosystem ###
