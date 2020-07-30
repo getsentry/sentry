@@ -68,11 +68,17 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         if data["query_type"] == ExportQueryType.DISCOVER_STR:
             query_info = data["query_info"]
 
-            if len(query_info.get("field", [])) > MAX_FIELDS:
+            fields = query_info.get("field", [])
+            if not isinstance(fields, list):
+                fields = [fields]
+
+            if len(fields) > MAX_FIELDS:
                 detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
                     MAX_FIELDS
                 )
                 raise ParseError(detail=detail)
+
+            query_info["field"] = fields
 
             if "project" not in query_info:
                 projects = self.get_projects(request, organization)
