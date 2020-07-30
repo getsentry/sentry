@@ -36,30 +36,6 @@ def ensure_relay_is_registered():
         pass  # NOQA
 
 
-def adjust_settings_for_relay_tests(settings):
-    """
-    Adjusts the application settings to accept calls from a Relay instance running inside a
-    docker container.
-
-    :param settings: the app settings
-    """
-    settings.ALLOWED_HOSTS = [
-        "localhost",
-        "testserver",
-        "host.docker.internal",
-        "0.0.0.0",
-        "127.0.0.1",
-    ]
-    settings.KAFKA_CLUSTERS = {
-        "default": {
-            "bootstrap.servers": "127.0.0.1:9092",
-            "compression.type": "lz4",
-            "message.max.bytes": 50000000,  # 50MB, default is 1MB
-        }
-    }
-    settings.SENTRY_RELAY_WHITELIST_PK = ["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"]
-
-
 class RelayStoreHelper(object):
     """
     Tests that post to the store entry point should use this helper class
@@ -169,8 +145,6 @@ class RelayStoreHelper(object):
         self.auth_header = get_auth_header(
             "TEST_USER_AGENT/0.0.0", self.projectkey.public_key, self.projectkey.secret_key, "7"
         )
-
-        adjust_settings_for_relay_tests(settings)
 
         self.settings = settings
         self.get_relay_store_url = get_relay_store_url  # noqa

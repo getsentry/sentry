@@ -12,7 +12,7 @@ from sentry.utils.compat import mock
 
 from sentry import eventstore
 from sentry.testutils import assert_mock_called_once_with_partial
-from sentry.testutils.relay import adjust_settings_for_relay_tests
+from sentry.utils.pytest.relay import adjust_settings_for_relay_tests
 
 
 @pytest.fixture
