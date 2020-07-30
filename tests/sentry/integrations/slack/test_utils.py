@@ -5,6 +5,7 @@ import responses
 from django.core.urlresolvers import reverse
 import pytest
 
+from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack.utils import (
     build_group_attachment,
     build_incident_attachment,
@@ -86,6 +87,38 @@ class GetChannelIdWorkspaceTest(TestCase):
     def test_invalid_channel_selected(self):
         assert get_channel_id(self.integration, "#fake-channel")[1] is None
         assert get_channel_id(self.integration, "@fake-user")[1] is None
+
+    def test_marcos(self):
+        team = self.create_team(organization=self.organization, name="Mariachi Band")
+        project = self.create_project(
+            organization=self.organization, teams=[team], name="Bengal-Elephant-Giraffe-Tree-House"
+        )
+
+        data = {
+            "environment": "prod",
+            "actionMatch": "all",
+            "frequency": 30,
+            "name": "TEST",
+            "conditions": [
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "An issue is first seen",
+                }
+            ],
+            "id": "1207103",
+            "actions": [
+                {
+                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                    "workspace": 1,
+                    "channel": "#meredith-test",
+                    "tags": "asdf",
+                }
+            ],
+            "dateCreated": "2020-07-29T18:57:35.486174Z",
+        }
+        serializer = RuleSerializer(context={"project": project}, data=data, partial=True)
+
+        assert not serializer.is_valid()
 
 
 class GetChannelIdBotTest(GetChannelIdWorkspaceTest):

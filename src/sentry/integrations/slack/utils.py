@@ -499,7 +499,8 @@ def get_channel_id_with_timeout(integration, name, timeout):
         elif id_data:
             return id_data
 
-    return (prefix, None, False)
+    # Found nothing.
+    return None, None, False
 
 
 def send_incident_alert_notification(action, incident, metric_value):
