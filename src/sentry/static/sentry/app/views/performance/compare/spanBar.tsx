@@ -415,11 +415,7 @@ class SpanBar extends React.Component<Props, State> {
         spanBarHatch={spanBarStyles.foreground.hatch ?? false}
         style={{
           backgroundColor: spanBarStyles.foreground.color,
-          left: '1px',
           width: spanBarStyles.foreground.width,
-          position: 'absolute',
-          top: '4px',
-          height: '16px',
           display: hideSpanBarColumn ? 'none' : 'block',
         }}
       />
@@ -454,11 +450,7 @@ class SpanBar extends React.Component<Props, State> {
             spanBarHatch={spanBarStyles.background.hatch ?? false}
             style={{
               backgroundColor: spanBarStyles.background.color,
-              left: '1px',
               width: spanBarStyles.background.width,
-              position: 'absolute',
-              top: '4px',
-              height: '16px',
               display: hideSpanBarColumn ? 'none' : 'block',
             }}
           />
@@ -533,6 +525,12 @@ const getHatchPattern = ({spanBarHatch}) => {
 };
 
 const ComparisonSpanBarRectangle = styled(SpanBarRectangle)`
+  position: absolute;
+  top: 4px;
+  left: 1px;
+
+  height: 16px;
+
   ${getHatchPattern};
 `;
 
