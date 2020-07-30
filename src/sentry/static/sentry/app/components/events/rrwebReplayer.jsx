@@ -32,11 +32,9 @@ class RRWebReplayer extends Component {
 export default styled(RRWebReplayer)`
   .rr-player {
     width: auto !important;
-    height: auto !important;
   }
   .rr-player__frame {
     width: 100% !important;
-    height: 500px !important;
   }
 
   .rr-player iframe {
