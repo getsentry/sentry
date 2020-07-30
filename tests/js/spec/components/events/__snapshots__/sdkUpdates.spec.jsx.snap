@@ -48,14 +48,12 @@ exports[`EventSdkUpdates renders a suggestion to update the sdk and then enable 
           >
             <Alert
               icon={<ForwardRef(IconUpgrade) />}
-              iconSize="20px"
               key="{\\"enables\\":[{\\"enables\\":[],\\"type\\":\\"enableIntegration\\"}],\\"newSdkVersion\\":\\"0.9.0\\",\\"sdkName\\":\\"sentry.python\\",\\"sdkUrl\\":null,\\"type\\":\\"updateSdk\\"}"
               type="info"
             >
               <Component
                 className="css-17b0bb9-Alert ejthpj82"
                 icon={<ForwardRef(IconUpgrade) />}
-                iconSize="20px"
                 type="info"
               >
                 <div
