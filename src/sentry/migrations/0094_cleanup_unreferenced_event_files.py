@@ -17,7 +17,10 @@ def cleanup_event_attachment_files(apps, schema_editor):
     File = apps.get_model("sentry", "File")
 
     # Find the oldest live attachment as we only want to purge old files.
+    # If there are not files skip everything.
     oldest_attachment = EventAttachment.objects.all().aggregate(Min("date_added"))
+    if not oldest_attachment or oldest_attachment["date_added__min"] is None:
+        return
 
     # File types used in event attachments.
     attachment_types = [
@@ -29,7 +32,7 @@ def cleanup_event_attachment_files(apps, schema_editor):
         "unreal.logs",
     ]
     file_query = (File.objects
-        .filter(timestamp__lt=oldest_attachment['date_added__min'])
+        .filter(timestamp__lt=oldest_attachment["date_added__min"])
         .filter(type__in=attachment_types))
 
     for f in RangeQuerySetWrapperWithProgressBar(file_query):
