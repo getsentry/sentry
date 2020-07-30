@@ -9,8 +9,10 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
 from sentry import options
+from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.models import (
+    ApiKey,
     AuditLogEntryEvent,
     Integration,
     IdentityProvider,
@@ -200,6 +202,49 @@ class MsTeamsWebhookEndpoint(Endpoint):
         integration.delete()
         return self.respond(status=204)
 
+    def make_action_data(self, identity, data):
+        action_data = {}
+        if data["actionType"] == "unresolve" or data["actionType"] == "unignore":
+            action_data = {"status": "unresolved"}
+        elif data["actionType"] == "resolve":
+            status = data["resolveInput"]
+            status_data = status.split(":", 1)
+            resolve_type = status_data[-1]
+
+            action_data = {"status": "resolved"}
+            if resolve_type == "inNextRelease":
+                action_data.update({"statusDetails": {"inNextRelease": True}})
+            elif resolve_type == "inCurrentRelease":
+                action_data.update({"statusDetails": {"inRelease": "latest"}})
+        elif data["actionType"] == "ignore":
+            action_data = {"status": "ignored"}
+            ignore_count = int(data["ignoreInput"])
+            if ignore_count > 0:
+                action_data.update({"statusDetails": {"ignoreCount": ignore_count}})
+        elif data["actionType"] == "assign":
+            assignee = data["assignInput"]
+            if assignee == "ME":
+                assignee = u"user:{}".format(identity.user_id)
+            action_data = {"assignedTo": assignee}
+        return action_data
+
+    def issue_state_change(self, group, identity, data):
+        event_write_key = ApiKey(
+            organization=group.project.organization, scope_list=["event:write"]
+        )
+
+        action_data = self.make_action_data(identity, data)
+
+        return client.put(
+            path=u"/projects/{}/{}/issues/".format(
+                group.project.organization.slug, group.project.slug
+            ),
+            params={"id": group.id},
+            data=action_data,
+            user=identity.user,
+            auth=event_write_key,
+        )
+
     def handle_action_submitted(self, request):
         data = request.data
         channel_data = data["channelData"]
@@ -242,8 +287,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             return self.respond(status=404)
 
         try:
-            # appease linter, we will use the result of this call in a later feature
-            Identity.objects.get(idp=idp, external_id=user_id)
+            identity = Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
         except Identity.DoesNotExist:
             associate_url = build_linking_url(
                 integration, group.organization, user_id, team_id, tenant_id
@@ -256,4 +300,4 @@ class MsTeamsWebhookEndpoint(Endpoint):
             client.send_card(user_conversation_id, card)
             return self.respond(status=201)
 
-        return self.respond(status=204)
+        return self.issue_state_change(group, identity, data["value"])

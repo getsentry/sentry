@@ -244,7 +244,7 @@ def build_group_actions(group):
         resolve_action = {
             "type": "Action.Submit",
             "title": "Unresolve",
-            "data": {"actionType": "unresolve"},
+            "data": {"actionType": "unresolve", "groupId": group.id},
         }
     else:
         resolve_action = {
@@ -257,7 +257,7 @@ def build_group_actions(group):
         ignore_action = {
             "type": "Action.Submit",
             "title": "Stop Ignoring",
-            "data": {"actionType": "unignore"},
+            "data": {"actionType": "unignore", "groupId": group.id},
         }
     else:
         ignore_action = {
@@ -307,7 +307,7 @@ def build_group_resolve_card(group):
 
     input_card = {
         "type": "Input.ChoiceSet",
-        "value": "0",
+        "value": "resolved",
         "id": "resolveInput",
         "isVisible": False,
         "choices": [
@@ -345,7 +345,7 @@ def build_group_ignore_card(group):
 
     input_card = {
         "type": "Input.ChoiceSet",
-        "value": "0",
+        "value": -1,
         "id": "ignoreInput",
         "isVisible": False,
         "choices": [
@@ -393,6 +393,7 @@ def build_group_assign_card(group):
     input_card = {
         "type": "Input.ChoiceSet",
         "id": "assignInput",
+        "value": ME,
         "isVisible": False,
         "choices": teams,
     }
