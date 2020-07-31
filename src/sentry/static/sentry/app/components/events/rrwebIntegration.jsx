@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import EventDataSection from 'app/components/events/eventDataSection';
 import {Panel} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 import LazyLoad from 'app/components/lazyLoad';
@@ -42,9 +42,8 @@ export default class RRWebIntegration extends AsyncComponent {
     const url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`;
 
     return (
-      <ReplayWrapper>
-        <h5>Replay</h5>
-        <Panel>
+      <EventDataSection key="context-replay" title="Replay">
+        <StyledPanel>
           <LazyLoad
             component={() =>
               import(/* webpackChunkName: "rrwebReplayer" */ './rrwebReplayer').then(
@@ -53,13 +52,13 @@ export default class RRWebIntegration extends AsyncComponent {
             }
             url={url}
           />
-        </Panel>
-      </ReplayWrapper>
+        </StyledPanel>
+      </EventDataSection>
     );
   }
 }
 
-const ReplayWrapper = styled('div')`
-  padding-top: ${space(3)};
+const StyledPanel = styled(Panel)`
   overflow: hidden;
+  margin-bottom: 30px;
 `;
