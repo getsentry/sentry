@@ -66,7 +66,10 @@ urllib3==1.24.2
 uwsgi>2.0.0,<2.1.0
 
 # celery
-billiard==3.5.0.5
+# We specifically pin to 3.5.0.4 to avoid the issue in
+# https://github.com/celery/billiard/issues/260. Once we upgrade to Celery 4.3+ we can
+# use a newer version of billiard that has a proper fix.
+billiard==3.5.0.4
 kombu==4.2.2.post1
 
 # not directly used, but provides a speedup for redis
