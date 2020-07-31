@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from django.db import migrations
 from django.db.models import Min
 
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapper
 
 def cleanup_event_attachment_files(apps, schema_editor):
     """
@@ -35,7 +35,7 @@ def cleanup_event_attachment_files(apps, schema_editor):
         .filter(timestamp__lt=oldest_attachment["date_added__min"])
         .filter(type__in=attachment_types))
 
-    for f in RangeQuerySetWrapperWithProgressBar(file_query):
+    for f in RangeQuerySetWrapper(file_query):
         # Double check that the file is not referenced.
         if not EventAttachment.objects.filter(file=f).exists():
             f.delete()
