@@ -15,6 +15,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
         action_list = []
         condition_list = []
+        filter_list = []
 
         has_issue_alerts_targeting = (
             project.flags.has_issue_alerts_targeting
@@ -30,9 +31,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             }
             if hasattr(node, "prompt"):
                 context["prompt"] = node.prompt
-
-            if hasattr(node, "category"):
-                context["category"] = node.category
 
             if (
                 node.id == "sentry.mail.actions.NotifyEmailAction"
@@ -54,9 +52,11 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
 
             if rule_type.startswith("condition/"):
                 condition_list.append(context)
+            elif rule_type.startswith("filter/"):
+                filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
 
-        context = {"actions": action_list, "conditions": condition_list}
+        context = {"actions": action_list, "conditions": condition_list, "filters": filter_list}
 
         return Response(context)

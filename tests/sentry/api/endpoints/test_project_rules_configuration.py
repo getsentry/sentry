@@ -39,7 +39,6 @@ class ProjectRuleConfigurationTest(APITestCase):
         node.id = "sentry.mail.actions.NotifyEmailAction"
         node.label = "hello"
         node.prompt = "hello"
-        node.category = "condition"
         node.is_enabled.return_value = True
         node.form_fields = {}
         rules.add(rule)
@@ -84,7 +83,6 @@ class ProjectRuleConfigurationTest(APITestCase):
         node.id = rule.id
         node.label = "hello"
         node.prompt = "hello"
-        node.category = "condition"
         node.is_enabled.return_value = True
         node.form_fields = {}
         node.get_services.return_value = [Mock()]

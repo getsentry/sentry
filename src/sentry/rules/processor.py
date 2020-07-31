@@ -12,7 +12,6 @@ from random import randrange
 from sentry import analytics
 from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, rules
-from sentry.rules.conditions.base import RuleCategory
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -56,13 +55,13 @@ class RuleProcessor(object):
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
         return safe_execute(condition_inst.passes, self.event, state, _with_transaction=False)
 
-    def get_condition_category(self, condition):
-        condition_cls = rules.get(condition["id"])
-        if condition_cls is None:
-            self.logger.warn("Unregistered condition %r", condition["id"])
+    def get_rule_type(self, condition):
+        rule_cls = rules.get(condition["id"])
+        if rule_cls is None:
+            self.logger.warn("Unregistered condition or filter %r", condition["id"])
             return
 
-        return condition_cls.category
+        return rule_cls.rule_type
 
     def get_state(self):
         return EventState(
@@ -111,7 +110,7 @@ class RuleProcessor(object):
         condition_list = []
         filter_list = []
         for rule_cond in rule_condition_list:
-            if self.get_condition_category(rule_cond) == RuleCategory.CONDITION:
+            if self.get_rule_type(rule_cond) == "condition/event":
                 condition_list.append(rule_cond)
             else:
                 filter_list.append(rule_cond)
