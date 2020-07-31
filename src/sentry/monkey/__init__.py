@@ -87,7 +87,10 @@ def patch_django_views_debug():
 def patch_celery_imgcat():
     # Remove Celery's attempt to display an rgb image in iTerm 2, as that
     # attempt just prints out base64 trash in tmux.
-    from celery.utils import term
+    try:
+        from celery.utils import term
+    except ImportError:
+        return
 
     term.imgcat = lambda *a, **kw: b""
 
