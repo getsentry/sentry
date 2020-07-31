@@ -18,8 +18,8 @@ import {IconWarning} from 'app/icons';
 import theme from 'app/utils/theme';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import {getDuration, formatPercentage} from 'app/utils/formatters';
-import {aggregateOutputType, aggregateMultiPlotType} from 'app/utils/discover/fields';
+import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
+import {aggregateMultiPlotType} from 'app/utils/discover/fields';
 
 import EventsRequest from './eventsRequest';
 
@@ -126,7 +126,7 @@ class Chart extends React.Component<ChartProps, State> {
     const {
       loading: _loading,
       reloading: _reloading,
-      yAxis: _yaxis,
+      yAxis,
       releaseSeries,
       zoomRenderProps,
       timeseriesData,
@@ -160,7 +160,29 @@ class Chart extends React.Component<ChartProps, State> {
       selected: seriesSelection,
     };
 
-    const colors = theme.charts.getColorPalette(timeseriesData.length - 2);
+    const chartOptions = {
+      colors: theme.charts.getColorPalette(timeseriesData.length - 2),
+      grid: {
+        left: '24px',
+        right: '24px',
+        top: '32px',
+        bottom: '12px',
+      },
+      seriesOptions: {
+        showSymbol: false,
+      },
+      tooltip: {
+        truncate: 80,
+        valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
+      },
+      yAxis: {
+        axisLabel: {
+          color: theme.gray400,
+          formatter: (value: number) => axisLabelFormatter(value, yAxis),
+        },
+      },
+    };
+
     const Component = this.getChartComponent();
     const series = Array.isArray(releaseSeries)
       ? [...timeseriesData, ...releaseSeries]
@@ -170,20 +192,11 @@ class Chart extends React.Component<ChartProps, State> {
       <Component
         {...props}
         {...zoomRenderProps}
+        {...chartOptions}
         legend={legend}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
-        seriesOptions={{
-          showSymbol: false,
-        }}
         previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
-        colors={colors}
-        grid={{
-          left: '24px',
-          right: '24px',
-          top: '32px',
-          bottom: '12px',
-        }}
       />
     );
   }
@@ -325,23 +338,6 @@ class EventsChart extends React.Component<Props> {
       previousName ?? yAxis ? t('previous %s', yAxis) : undefined;
     const currentSeriesName = currentName ?? yAxis;
 
-    const tooltip = {
-      truncate: 80,
-      valueFormatter(value: number) {
-        switch (aggregateOutputType(yAxis)) {
-          case 'integer':
-            return value.toLocaleString();
-          case 'number':
-            return value.toLocaleString();
-          case 'percentage':
-            return formatPercentage(value, 2);
-          case 'duration':
-            return getDuration(value / 1000, 2);
-          default:
-            return value;
-        }
-      },
-    };
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, true);
 
     let chartImplementation = ({
@@ -368,7 +364,6 @@ class EventsChart extends React.Component<Props> {
           <TransparentLoadingMask visible={reloading} />
           <Chart
             {...zoomRenderProps}
-            tooltip={tooltip}
             loading={loading}
             reloading={reloading}
             utc={utc}

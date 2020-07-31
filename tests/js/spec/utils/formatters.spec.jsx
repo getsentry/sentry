@@ -2,7 +2,38 @@ import {
   formatFloat,
   formatAbbreviatedNumber,
   formatPercentage,
+  getDuration,
 } from 'app/utils/formatters';
+
+describe('getDuration()', function() {
+  it('should format durations', function() {
+    expect(getDuration(0, 2)).toBe('0.00ms');
+    expect(getDuration(0.1)).toBe('100ms');
+    expect(getDuration(0.1, 2)).toBe('100.00ms');
+    expect(getDuration(1)).toBe('1 second');
+    expect(getDuration(2)).toBe('2 seconds');
+    expect(getDuration(65)).toBe('65 seconds');
+    expect(getDuration(122)).toBe('2 minutes');
+    expect(getDuration(3720)).toBe('62 minutes');
+    expect(getDuration(36000)).toBe('10 hours');
+    expect(getDuration(86400)).toBe('24 hours');
+    expect(getDuration(86400 * 2)).toBe('2 days');
+    expect(getDuration(604800)).toBe('1 week');
+  });
+
+  it('should format numbers and abbreviate units', function() {
+    expect(getDuration(0, 2, true)).toBe('0.00ms');
+    expect(getDuration(0, 0, true)).toBe('0ms');
+    expect(getDuration(0.1, 0, true)).toBe('100ms');
+    expect(getDuration(0.1, 2, true)).toBe('100.00ms');
+    expect(getDuration(1, 2, true)).toBe('1.00s');
+    expect(getDuration(122, 0, true)).toBe('2min');
+    expect(getDuration(3600, 0, true)).toBe('60min');
+    expect(getDuration(86400, 0, true)).toBe('24hr');
+    expect(getDuration(86400 * 2, 0, true)).toBe('2d');
+    expect(getDuration(604800, 0, true)).toBe('1wk');
+  });
+});
 
 describe('formatAbbreviatedNumber()', function() {
   it('should abbreviate numbers', function() {
