@@ -103,17 +103,7 @@ class MockFilterFalse(EventFilter):
 class RuleProcessorTestFilters(TestCase):
     MOCK_SENTRY_RULES_WITH_FILTERS = (
         "sentry.mail.actions.NotifyEmailAction",
-        "sentry.rules.actions.notify_event.NotifyEventAction",
-        "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
         "sentry.rules.conditions.every_event.EveryEventCondition",
-        "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-        "sentry.rules.conditions.regression_event.RegressionEventCondition",
-        "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
-        "sentry.rules.conditions.tagged_event.TaggedEventCondition",
-        "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-        "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
-        "sentry.rules.conditions.event_attribute.EventAttributeCondition",
-        "sentry.rules.conditions.level.LevelCondition",
         "tests.sentry.rules.test_processor.MockFilterTrue",
         "tests.sentry.rules.test_processor.MockFilterFalse",
     )
