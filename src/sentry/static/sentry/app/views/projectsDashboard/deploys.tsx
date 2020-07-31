@@ -54,7 +54,7 @@ Deploys.propTypes = {
 
 export default Deploys;
 
-type DeployProps = Omit<Props, 'organization'> & {
+type DeployProps = Props & {
   deploy: Pick<DeployType, 'version' | 'dateFinished' | 'environment'>;
 };
 
