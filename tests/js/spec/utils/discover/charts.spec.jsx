@@ -24,7 +24,7 @@ describe('axisLabelFormatter()', function() {
       // type, input, expected
       ['count()', 0.1, '0.1'],
       ['avg(thing)', 0.125126, '0.125'],
-      ['failure_rate()', 0.66123, '66.1%'],
+      ['failure_rate()', 0.66123, '66%'],
       ['p50()', 100, '100ms'],
       ['p50()', 1200, '1s'],
       ['p50()', 86400000, '24hr'],

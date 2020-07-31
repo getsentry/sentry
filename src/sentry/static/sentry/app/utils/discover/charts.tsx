@@ -28,7 +28,7 @@ export function axisLabelFormatter(value: number, seriesName: string): string {
     case 'number':
       return value.toLocaleString();
     case 'percentage':
-      return formatPercentage(value, 1);
+      return formatPercentage(value, 0);
     case 'duration':
       if (value === 0) {
         return '0';
