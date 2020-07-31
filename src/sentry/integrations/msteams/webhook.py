@@ -287,7 +287,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             return self.respond(status=404)
 
         try:
-            identity = Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
+            identity = Identity.objects.get(idp=idp, external_id=user_id)
         except Identity.DoesNotExist:
             associate_url = build_linking_url(
                 integration, group.organization, user_id, team_id, tenant_id
