@@ -13,7 +13,6 @@ import DropdownControl from 'app/components/dropdownControl';
 import Input from 'app/components/forms/input';
 import space from 'app/styles/space';
 import {IconBookmark, IconDelete} from 'app/icons';
-import Feature from 'app/components/acl/feature';
 import EventView from 'app/utils/discover/eventView';
 import withProjects from 'app/utils/withProjects';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
@@ -311,17 +310,15 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
 
     return (
-      <Feature features={['create-from-discover']} organization={organization}>
-        <CreateAlertButton
-          eventView={eventView}
-          organization={organization}
-          projects={projects}
-          onIncompatibleQuery={onIncompatibleAlertQuery}
-          onSuccess={this.handleCreateAlertSuccess}
-          referrer="discover"
-          data-test-id="discover2-create-from-discover"
-        />
-      </Feature>
+      <CreateAlertButton
+        eventView={eventView}
+        organization={organization}
+        projects={projects}
+        onIncompatibleQuery={onIncompatibleAlertQuery}
+        onSuccess={this.handleCreateAlertSuccess}
+        referrer="discover"
+        data-test-id="discover2-create-from-discover"
+      />
     );
   }
 
