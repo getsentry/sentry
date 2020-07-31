@@ -8,7 +8,7 @@ import time
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
-from sentry import options
+from sentry import options, analytics
 from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.models import (
@@ -206,6 +206,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         action_data = {}
         if data["actionType"] == "unresolve" or data["actionType"] == "unignore":
             action_data = {"status": "unresolved"}
+            analytics.record("integrations.msteams.unresolve", actor_id=identity.user_id)
         elif data["actionType"] == "resolve":
             status = data["resolveInput"]
             status_data = status.split(":", 1)
@@ -216,16 +217,21 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 action_data.update({"statusDetails": {"inNextRelease": True}})
             elif resolve_type == "inCurrentRelease":
                 action_data.update({"statusDetails": {"inRelease": "latest"}})
+            analytics.record(
+                "integrations.msteams.resolve", actor_id=identity.user_id, resolve_type=resolve_type
+            )
         elif data["actionType"] == "ignore":
             action_data = {"status": "ignored"}
             ignore_count = int(data["ignoreInput"])
             if ignore_count > 0:
                 action_data.update({"statusDetails": {"ignoreCount": ignore_count}})
+            analytics.record("integrations.msteams.ignore", actor_id=identity.user_id)
         elif data["actionType"] == "assign":
             assignee = data["assignInput"]
             if assignee == "ME":
                 assignee = u"user:{}".format(identity.user_id)
             action_data = {"assignedTo": assignee}
+            analytics.record("integrations.msteams.assign", actor_id=identity.user_id)
         return action_data
 
     def issue_state_change(self, group, identity, data):
