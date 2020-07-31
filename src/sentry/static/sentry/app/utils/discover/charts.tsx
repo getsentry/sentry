@@ -6,6 +6,7 @@ import {aggregateOutputType} from 'app/utils/discover/fields';
  */
 export function tooltipFormatter(value: number, seriesName: string): string {
   switch (aggregateOutputType(seriesName)) {
+    case 'integer':
     case 'number':
       return value.toLocaleString();
     case 'percentage':
