@@ -481,12 +481,12 @@ class CombinedQuerysetIntermediary(object):
         self.queryset = queryset
         self.order_by = order_by
         try:
-            self.instance = queryset[:1].get()
-            self.instance_type = type(self.instance)
+            instance = queryset[:1].get()
+            self.instance_type = type(instance)
             assert hasattr(
-                self.instance, self.order_by
+                instance, self.order_by
             ), "Model of type {} does not have field {}".format(self.instance_type, self.order_by)
-            self.order_by_type = type(getattr(self.instance, self.order_by))
+            self.order_by_type = type(getattr(instance, self.order_by))
         except ObjectDoesNotExist:
             self.is_empty = True
 
@@ -515,7 +515,7 @@ class CombinedQuerysetPaginator(object):
         self.desc = desc
         self.intermediaries = intermediaries
         self.on_results = on_results
-        for intermediary in self.intermediaries:
+        for intermediary in list(self.intermediaries):
             if intermediary.is_empty:
                 self.intermediaries.remove(intermediary)
             else:
@@ -525,7 +525,7 @@ class CombinedQuerysetPaginator(object):
         # (i.e. all fields must be a date type, or none of them)
         using_other = False
         for intermediary in self.intermediaries:
-            if intermediary.order_by_type == datetime:
+            if intermediary.order_by_type is datetime:
                 self.using_dates = True
             else:
                 using_other = True
