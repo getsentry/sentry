@@ -850,7 +850,7 @@ def top_events_timeseries(
     ) as span:
         span.set_data("query", user_query)
         snuba_filter, translated_columns = get_timeseries_snuba_filter(
-            timeseries_columns + selected_columns, user_query, params, rollup
+            set(timeseries_columns + selected_columns), user_query, params, rollup
         )
 
         user_fields = FIELD_ALIASES["user"]["fields"]

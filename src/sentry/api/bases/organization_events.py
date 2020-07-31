@@ -240,9 +240,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         )
                     else:
                         # Need to get function alias if count is a field, but not the axis
-                        results[key] = serializer.serialize(
-                            event_result, get_function_alias(query_columns[0])
-                        )
+                        results[key] = serializer.serialize(event_result)
                 return results
             elif len(query_columns) > 1:
                 return self.serialize_multiple_axis(serializer, result, columns, query_columns)
