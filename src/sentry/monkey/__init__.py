@@ -84,5 +84,18 @@ def patch_django_views_debug():
     debug.get_safe_settings = lambda: {}
 
 
-for patch in (patch_parse_cookie, patch_httprequest_repr, patch_django_views_debug):
+def patch_celery_imgcat():
+    # Remove Celery's attempt to display an rgb image in iTerm 2, as that
+    # attempt just prints out base64 trash in tmux.
+    from celery.utils import term
+
+    term.imgcat = lambda *a, **kw: b""
+
+
+for patch in (
+    patch_parse_cookie,
+    patch_httprequest_repr,
+    patch_django_views_debug,
+    patch_celery_imgcat,
+):
     patch()
