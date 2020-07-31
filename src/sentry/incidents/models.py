@@ -400,11 +400,14 @@ class AlertRule(Model):
 
     @property
     def created_by(self):
-        created_activity = AlertRuleActivity.objects.filter(
-            alert_rule=self, type=AlertRuleActivityType.CREATED.value
-        ).first()
-        if created_activity:
-            return created_activity.user
+        try:
+            created_activity = AlertRuleActivity.objects.get(
+                alert_rule=self, type=AlertRuleActivityType.CREATED.value
+            )
+            if created_activity:
+                return created_activity.user
+        except AlertRuleActivity.DoesNotExist:
+            pass
         return None
 
 
