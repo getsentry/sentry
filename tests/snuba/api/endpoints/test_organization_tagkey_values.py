@@ -200,6 +200,22 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_no_projects(self):
         self.run_test("fruit", expected=[])
 
+    def test_id(self):
+        self.store_event(
+            data={"timestamp": iso_format(self.day_ago), "tags": {"fruit": "apple"}},
+            project_id=self.project.id,
+        )
+        self.run_test("id", expected=[])
+        self.run_test("id", qs_params={"query": "z"}, expected=[])
+
+    def test_timstamp(self):
+        self.store_event(
+            data={"timestamp": iso_format(self.day_ago), "tags": {"fruit": "apple"}},
+            project_id=self.project.id,
+        )
+        self.run_test("timestamp", expected=[])
+        self.run_test("timestamp", qs_params={"query": "z"}, expected=[])
+
 
 class TransactionTagKeyValues(OrganizationTagKeyTestCase):
     def setUp(self):
