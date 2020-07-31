@@ -302,10 +302,10 @@ describe('EventsV2 > SaveQueryButtonGroup', function() {
     });
   });
   describe('create alert from discover', () => {
-    it('renders create alert when org has create-from-discover', () => {
+    it('renders create alert button', () => {
       const wrapper = generateWrappedComponent(
         location,
-        {...organization, features: ['create-from-discover']},
+        organization,
         errorsViewModified,
         savedQuery
       );

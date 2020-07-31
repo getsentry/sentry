@@ -820,7 +820,7 @@ SENTRY_FEATURES = {
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
     # Enable create alert rule on the discover page
-    "organizations:create-from-discover": False,
+    "organizations:create-from-discover": True,
     # Enable Performance view
     "organizations:performance-view": False,
     # Enable multi project selection
