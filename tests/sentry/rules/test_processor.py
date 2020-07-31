@@ -151,7 +151,7 @@ class RuleProcessorTestFilters(TestCase):
 
     @patch("sentry.constants.SENTRY_RULES", MOCK_SENTRY_RULES_WITH_FILTERS)
     def test_filter_fails(self):
-        # setup a simple alert rule with 1 condition and 1 filter that always pass
+        # setup a simple alert rule with 1 condition and 1 filter that doesn't pass
         self.event = self.store_event(data={}, project_id=self.project.id)
 
         filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterFalse"}
