@@ -202,13 +202,13 @@ class MsTeamsWebhookEndpoint(Endpoint):
         integration.delete()
         return self.respond(status=204)
 
-    def make_action_data(self, identity, data):
+    def make_action_data(self, data, user_id):
         action_data = {}
         if data["actionType"] == "unresolve" or data["actionType"] == "unignore":
             action_data = {"status": "unresolved"}
-            analytics.record("integrations.msteams.unresolve", actor_id=identity.user_id)
         elif data["actionType"] == "resolve":
             status = data["resolveInput"]
+            # status might look something like "resolved:inCurrentRelease" or just "resolved"
             status_data = status.split(":", 1)
             resolve_type = status_data[-1]
 
@@ -217,21 +217,16 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 action_data.update({"statusDetails": {"inNextRelease": True}})
             elif resolve_type == "inCurrentRelease":
                 action_data.update({"statusDetails": {"inRelease": "latest"}})
-            analytics.record(
-                "integrations.msteams.resolve", actor_id=identity.user_id, resolve_type=resolve_type
-            )
         elif data["actionType"] == "ignore":
             action_data = {"status": "ignored"}
             ignore_count = int(data["ignoreInput"])
             if ignore_count > 0:
                 action_data.update({"statusDetails": {"ignoreCount": ignore_count}})
-            analytics.record("integrations.msteams.ignore", actor_id=identity.user_id)
         elif data["actionType"] == "assign":
             assignee = data["assignInput"]
             if assignee == "ME":
-                assignee = u"user:{}".format(identity.user_id)
+                assignee = u"user:{}".format(user_id)
             action_data = {"assignedTo": assignee}
-            analytics.record("integrations.msteams.assign", actor_id=identity.user_id)
         return action_data
 
     def issue_state_change(self, group, identity, data):
@@ -239,7 +234,14 @@ class MsTeamsWebhookEndpoint(Endpoint):
             organization=group.project.organization, scope_list=["event:write"]
         )
 
-        action_data = self.make_action_data(identity, data)
+        action_data = self.make_action_data(data, identity.user_id)
+        status = "unresolve" if data["actionType"] == "unignore" else data["actionType"]
+        analytics_event = "integrations.msteams.%s" % status
+        analytics.record(
+            analytics_event,
+            actor_id=identity.user_id,
+            organization_id=group.project.organization.id,
+        )
 
         return client.put(
             path=u"/projects/{}/{}/issues/".format(
