@@ -12,7 +12,7 @@ from enum import Enum
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField, OneToOneCascadeDeletes
 from sentry.db.models import ArrayField, sane_repr
 from sentry.db.models.manager import BaseManager
-from sentry.models import Team, User
+from sentry.models import Team, User, PagerDutyService
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
@@ -572,6 +572,12 @@ class AlertRuleTriggerAction(Model):
             except Team.DoesNotExist:
                 pass
         elif self.target_type == self.TargetType.SPECIFIC.value:
+            if self.type == self.Type.PAGERDUTY.value:
+                try:
+                    service = PagerDutyService.objects.get(id=self.target_display)
+                except PagerDutyService.DoesNotExist:
+                    pass
+                self.target_identifier = service.service_name
             # TODO: This is only for email. We should have a way of validating that it's
             # ok to contact this email.
             return self.target_identifier

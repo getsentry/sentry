@@ -76,11 +76,19 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = AlertRuleTriggerAction
-        fields = ["id", "type", "target_type", "target_identifier", "integration"]
+        fields = [
+            "id",
+            "type",
+            "target_type",
+            "target_identifier",
+            "integration",
+        ]
         extra_kwargs = {
             "target_identifier": {"required": True},
             "target_display": {"required": False},
             "integration": {"required": False, "allow_null": True},
+            # "input_type": {"required": False, "allow_null": True},
+            # "options": {"required": False, "allow_null": True},
         }
 
     def validate_type(self, type):
