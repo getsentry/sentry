@@ -74,6 +74,9 @@ default_manager.add("organizations:integrations-issue-basic", OrganizationFeatur
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-alert-rule", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)  # NOQA
+default_manager.add(
+    "organizations:integrations-pagerduty-metric-alerts", OrganizationFeature
+)  # NOQA
 default_manager.add("organizations:integrations-incident-management", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-msteams", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA

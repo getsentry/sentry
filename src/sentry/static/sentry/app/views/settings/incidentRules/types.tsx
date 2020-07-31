@@ -118,6 +118,14 @@ export type MetricActionTemplate = {
    * Integration id for this `type`, should be passed to backend as `integrationId` when creating an action
    */
   integrationId: number;
+  /**
+   * The input type on the front end, e.g. text for Slack, select for PagerDuty
+   */
+  inputType: string | null;
+  /**
+   * If the inputType is select, these are the options to select from
+   */
+  options: any[] | null;
 };
 
 /**
@@ -163,4 +171,12 @@ export type UnsavedAction = {
    * The id of the integration, can be null (e.g. email) or undefined (server errors when posting w/ null value)
    */
   integrationId?: number | null;
+  /**
+   * The input type on the front end, e.g. text for Slack, select for PagerDuty
+   */
+  inputType: string | null;
+  /**
+   * If the inputType is select, these are the options to select from
+   */
+  options: any[] | null;
 };

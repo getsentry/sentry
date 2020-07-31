@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'app/api';
 import {
   Action,
   ActionType,
@@ -96,26 +95,6 @@ class ActionsPanel extends React.PureComponent<Props> {
     return `${ActionLabel[type]}${integrationName ? ` - ${integrationName}` : ''}`;
   }
 
-  formatServices = async action => {
-    const services = await this.fetchServices(action);
-    const serviceTable = services.configData.service_table;
-    const formatted = serviceTable.map(service => ({
-      value: service.id,
-      label: service.service,
-    }));
-    return formatted;
-  };
-
-  fetchServices = action => {
-    const api = new Client();
-    const organization = this.props.organization.slug;
-    const integrationId = action.action.integrationId;
-    const endpoint = `/organizations/${organization}/integrations/${integrationId}/`;
-    return api.requestPromise(endpoint, {
-      method: 'GET',
-    });
-  };
-
   doChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
@@ -129,7 +108,6 @@ class ActionsPanel extends React.PureComponent<Props> {
 
   handleAddAction = () => {
     const {availableActions, onAdd} = this.props;
-
     const actionConfig = availableActions?.[0];
 
     if (!actionConfig) {
@@ -148,6 +126,8 @@ class ActionsPanel extends React.PureComponent<Props> {
           : null,
       targetIdentifier: '',
       integrationId: actionConfig.integrationId,
+      inputType: actionConfig.inputType || null,
+      options: actionConfig.options || null,
     };
 
     // Add new actions to critical by default
@@ -204,6 +184,8 @@ class ActionsPanel extends React.PureComponent<Props> {
           : null,
       targetIdentifier: '',
       integrationId: actionConfig.integrationId,
+      inputType: actionConfig.inputType || null,
+      options: actionConfig.options || null,
     };
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
@@ -283,11 +265,10 @@ class ActionsPanel extends React.PureComponent<Props> {
               actions.map((action: Action, i: number) => {
                 const isUser = action.targetType === TargetType.USER;
                 const isTeam = action.targetType === TargetType.TEAM;
-                // const isSpecific = action.targetType === TargetType.SPECIFIC;
+
                 const availableAction = availableActions?.find(
                   a => this.getActionUniqueKey(a) === this.getActionUniqueKey(action)
                 );
-                // const availableServices = this.formatServices({action});
 
                 return (
                   <PanelItemGrid key={i}>
@@ -341,19 +322,18 @@ class ActionsPanel extends React.PureComponent<Props> {
                           i
                         )}
                       />
+                    ) : action.inputType === 'select' && action.options ? (
+                      <SelectControl
+                        isDisabled={disabled || loading}
+                        value={action.targetIdentifier}
+                        options={action.options}
+                        onChange={this.handleChangeTargetIdentifier.bind(
+                          this,
+                          triggerIndex,
+                          i
+                        )}
+                      />
                     ) : (
-                      // ) : isSpecific && action.type === 'pagerduty' ? (
-                      //   <SelectControl
-                      //     isDisabled={disabled || loading}
-                      //     value={action.targetIdentifier}
-                      //     // options={this.formatServices({action})}
-                      //     options={test}
-                      //     onChange={this.handleChangeTargetIdentifier.bind(
-                      //       this,
-                      //       triggerIndex,
-                      //       i
-                      //     )}
-                      //   />
                       <Input
                         disabled={disabled}
                         key={action.type}
