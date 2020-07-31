@@ -1,8 +1,9 @@
 import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t} from 'app/locale';
 import {
-  STORE_CRASH_REPORTS_VALUES,
+  getStoreCrashReportsValues,
   formatStoreCrashReports,
+  SettingScope,
 } from 'app/utils/crashReports';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
@@ -69,7 +70,7 @@ const organizationSecurityAndPrivacy: JsonFormObject[] = [
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
         ),
         visible: ({features}) => features.has('event-attachments'),
-        allowedValues: STORE_CRASH_REPORTS_VALUES,
+        allowedValues: getStoreCrashReportsValues(SettingScope.Organization),
         formatLabel: formatStoreCrashReports,
       },
       {

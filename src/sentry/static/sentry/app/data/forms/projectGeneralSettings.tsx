@@ -10,8 +10,9 @@ import marked from 'app/utils/marked';
 import platforms from 'app/data/platforms';
 import slugify from 'app/utils/slugify';
 import {
-  STORE_CRASH_REPORTS_VALUES,
+  getStoreCrashReportsValues,
   formatStoreCrashReports,
+  SettingScope,
 } from 'app/utils/crashReports';
 import space from 'app/styles/space';
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
@@ -49,7 +50,7 @@ const ORG_DISABLED_REASON = t(
 // Check if a field has been set AND IS TRUTHY at the organization level.
 const hasOrgOverride = ({organization, name}) => organization[name];
 
-export const fields: {[key: string]: Field} = {
+export const fields: Record<string, Field> = {
   slug: {
     name: 'slug',
     type: 'string',
@@ -332,14 +333,17 @@ export const fields: {[key: string]: Field} = {
   },
   storeCrashReports: {
     name: 'storeCrashReports',
-    type: 'range',
+    type: 'array',
     label: t('Store Native Crash Reports'),
     help: t(
       'Store native crash reports such as Minidumps for improved processing and download in issue details. Overrides organization settings.'
     ),
     visible: ({features}) => features.has('event-attachments'),
-    formatLabel: value => formatStoreCrashReports(value, {inProjectSettings: true}),
-    allowedValues: STORE_CRASH_REPORTS_VALUES,
+    choices: ({organization}) =>
+      getStoreCrashReportsValues(SettingScope.Project).map(value => [
+        value,
+        formatStoreCrashReports(value, organization.storeCrashReports),
+      ]),
   },
   allowedDomains: {
     name: 'allowedDomains',
