@@ -121,6 +121,16 @@ class Browser(object):
     def mobile_viewport(self, width=375, height=812):
         return self.set_viewport(width, height, fit_content=True)
 
+    @contextmanager
+    def night_mode(self):
+        self.set_emulated_media([{"name": "prefers-color-scheme", "value": "dark"}])
+        self.wait_until_background_color("rgb(29, 17, 39)")
+        try:
+            yield True
+        finally:
+            self.set_emulated_media([{"name": "prefers-color-scheme", "value": "light"}])
+            self.wait_until_background_color("rgb(255, 255, 255)")
+
     def element(self, selector=None, xpath=None):
         """
         Get an element from the page. This method will wait for the element to show up.
@@ -253,12 +263,18 @@ class Browser(object):
 
         return self
 
-    def wait_for_images_loaded(self, timeout=10):
+    def wait_until_background_color(self, color, timeout=5):
         wait = WebDriverWait(self.driver, timeout)
+        print(
+            self.driver.execute_script(
+                """return getComputedStyle(document.getElementsByTagName('body')[0]).backgroundColor"""
+            )
+        )
         wait.until(
             lambda driver: driver.execute_script(
-                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
+                """return getComputedStyle(document.getElementsByTagName('body')[0]).backgroundColor"""
             )
+            == color
         )
 
         return self
@@ -267,6 +283,16 @@ class Browser(object):
         wait = WebDriverWait(self.driver, timeout)
         wait.until(
             lambda driver: driver.execute_script("""return document.fonts.status === 'loaded'""")
+        )
+
+        return self
+
+    def wait_for_images_loaded(self, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(
+            lambda driver: driver.execute_script(
+                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
+            )
         )
 
         return self
@@ -338,6 +364,13 @@ class Browser(object):
                     self.driver.execute_script(
                         "window.__closeAllTooltips && window.__closeAllTooltips()"
                     )
+
+                if os.environ.get("PYTEST_SNAPSHOTS_NIGHT_MODE") == "1":
+                    with self.night_mode():
+                        # switch to a mobile sized viewport
+                        self.driver.find_element_by_tag_name("body").screenshot(
+                            u"{}-dark/{}.png".format(snapshot_dir, slugify(name))
+                        )
 
         with self.mobile_viewport():
             screenshot_path = u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
@@ -506,7 +539,13 @@ def browser(request, live_server):
 
     browser = Browser(driver, live_server)
 
-    browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
+    color_scheme = os.environ.get("SELENIUM_COLOR_SCHEME", "light")
+    browser.set_emulated_media(
+        [
+            {"name": "prefers-reduced-motion", "value": "reduce"},
+            {"name": "prefers-color-scheme", "value": color_scheme},
+        ]
+    )
 
     if hasattr(request, "cls"):
         request.cls.browser = browser

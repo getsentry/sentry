@@ -117,7 +117,7 @@ class HeaderItem extends React.Component<Props> {
 }
 
 // Infer props here because of styled/theme
-const getColor = p => {
+const getOpacity = p => {
   if (p.locked) {
     return p.theme.gray300;
   }
@@ -141,7 +141,8 @@ const StyledHeaderItem = styled('div', {
   padding: 0 ${space(4)};
   align-items: center;
   cursor: ${p => (p.loading ? 'progress' : p.locked ? 'text' : 'pointer')};
-  color: ${getColor};
+  color: ${p => p.theme.textColor};
+  opacity: ${getOpacity};
   transition: 0.1s color;
   user-select: none;
 `;
@@ -153,7 +154,8 @@ const Content = styled('div')`
 `;
 
 const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProps>`
-  color: ${getColor};
+  opacity: ${getOpacity};
+  color: ${p => p.theme.textColor};
   margin-right: ${space(1.5)};
   display: flex;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -166,7 +168,8 @@ const Hint = styled('div')`
 `;
 
 const StyledClose = styled(IconClose, {shouldForwardProp: isPropValid})<ColorProps>`
-  color: ${getColor};
+  color: ${p => p.theme.textColor};
+  opacity: ${getOpacity};
   height: ${space(1.5)};
   width: ${space(1.5)};
   stroke-width: 1.5;

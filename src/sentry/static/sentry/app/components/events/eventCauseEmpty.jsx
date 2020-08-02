@@ -186,7 +186,7 @@ class EventCauseEmpty extends React.Component {
 const StyledPanel = styled(Panel)`
   padding: ${space(3)};
   padding-bottom: 0;
-  background: none;
+  background: ${p => p.theme.backgroundAccent};
 `;
 
 const Description = styled('div')`

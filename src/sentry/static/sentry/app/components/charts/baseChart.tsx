@@ -70,7 +70,7 @@ type Props = {
    */
   xAxis?: (EChartOption.XAxis & Truncateable) | null;
   /**
-   * Must be explicitly `null` to disable yAxis
+   * Must be explicitly `null` to disable yAxixis
    */
   yAxis?: EChartOption.YAxis;
   /**
@@ -213,6 +213,8 @@ type Props = {
    * Inline styles
    */
   style?: React.CSSProperties;
+
+  theme: Theme;
 };
 
 class BaseChart extends React.Component<Props> {
@@ -439,6 +441,8 @@ class BaseChart extends React.Component<Props> {
 // Contains styling for chart elements as we can't easily style those
 // elements directly
 const ChartContainer = styled('div')`
+  background-color: ${p => p.theme.background};
+
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {

@@ -193,7 +193,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     return `
       ${common}
       color: ${props.theme.white};
-      background: ${props.theme.purple300};
+      background: ${props.theme.active};
     `;
   }
 
@@ -242,7 +242,7 @@ background-color: ${p.theme.gray200};
     padding: ${space(0.25)} ${space(1)};
     font-size: ${p.theme.fontSizeSmall};
     line-height: 1.4;
-    color: ${p.theme.gray300};
+    color: ${p.theme.subText};
   `}
 
   ${getChildStyles}

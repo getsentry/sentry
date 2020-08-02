@@ -204,7 +204,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
-  color: ${p => p.theme.orange300};
+  color: ${p => p.theme.red100};
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
@@ -253,7 +253,7 @@ CompleteIndicator.defaultProps = {
 const SkippedIndicator = styled(IconClose)``;
 SkippedIndicator.defaultProps = {
   isCircled: true,
-  color: 'orange300',
+  color: 'red100',
 };
 
 const completedItemAnimation = {

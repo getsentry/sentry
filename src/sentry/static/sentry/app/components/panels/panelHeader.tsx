@@ -15,10 +15,6 @@ type Props = {
    * Use this when the panel has somthing such as buttons living there.
    */
   hasButtons?: boolean;
-  /**
-   * Use light text
-   */
-  lightText?: boolean;
 };
 
 const getPadding = ({disablePadding, hasButtons}: Props) => css`
@@ -30,7 +26,7 @@ const PanelHeader = styled('div')<Props>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.lightText ? p.theme.gray300 : p.theme.gray400)};
+  color: ${p => p.theme.subText};
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
@@ -45,7 +41,6 @@ const PanelHeader = styled('div')<Props>`
 PanelHeader.propTypes = {
   disablePadding: PropTypes.bool,
   hasButtons: PropTypes.bool,
-  lightText: PropTypes.bool,
 };
 
 export default PanelHeader;

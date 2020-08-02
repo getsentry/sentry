@@ -13,7 +13,7 @@ function getLevelColor({level = '', theme}) {
     sample: theme.purple300,
   };
 
-  return `background-color: ${COLORS[level] || theme.orange400};`;
+  return `background-color: ${COLORS[level] || theme.red200};`;
 }
 
 type Props = {

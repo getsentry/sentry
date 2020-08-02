@@ -171,4 +171,6 @@ const Block = styled(TextBlock)`
 const CodeBlock = styled('pre')`
   word-break: break-all;
   white-space: pre-wrap;
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
 `;

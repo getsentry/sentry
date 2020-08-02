@@ -30,7 +30,7 @@ const Badge = styled(({priority: _priority, text, ...props}: Props) => (
   font-size: 75%;
   font-weight: 600;
   text-align: center;
-  color: #fff;
+  color: ${p => p.theme.white};
   background: ${p => (p.priority ? priorityColors[p.priority] : theme.gray200)};
   transition: background 100ms linear;
 

@@ -337,8 +337,11 @@ const TooltipArrow = styled('span')<{background: string | number}>`
 
   &[data-placement*='right'] {
     left: 0;
-    margin-left: -5px;
+    margin-left: -6px;
     &::before {
+      position: absolute;
+      top: -2px;
+      left: 1px;
       border-width: 5px 5px 5px 0;
       border-color: transparent ${p => p.background} transparent transparent;
     }

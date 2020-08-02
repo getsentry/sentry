@@ -63,7 +63,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.WARNING:
       return {
-        color: 'orange400',
+        color: 'red200',
         icon: IconWarning,
         description: t('Warning'),
       };
@@ -81,7 +81,7 @@ function getCrumbDetails(type: BreadcrumbType) {
       };
     case BreadcrumbType.SESSION:
       return {
-        color: 'orange500',
+        color: 'red300',
         icon: IconRefresh,
         description: t('Session'),
       };

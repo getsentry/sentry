@@ -160,9 +160,11 @@ jobs:
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
           mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-tooltips
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-dark
           make run-acceptance
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
+          PYTEST_SNAPSHOTS_NIGHT_MODE: 1
           USE_SNUBA: 1
 
       - name: Save snapshots

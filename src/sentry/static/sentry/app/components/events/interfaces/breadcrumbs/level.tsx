@@ -35,7 +35,7 @@ const Level = React.memo(({level, searchTerm = ''}: Props) => {
       );
     case BreadcrumbLevelType.WARNING:
       return (
-        <StyledTag color="orange400">
+        <StyledTag color="red200">
           <Highlight text={searchTerm}>{t('warning')}</Highlight>
         </StyledTag>
       );

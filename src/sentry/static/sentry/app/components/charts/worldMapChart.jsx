@@ -59,7 +59,7 @@ class WorldMapChart extends React.Component {
             borderColor: theme.backgroundSecondary,
           },
           emphasis: {
-            areaColor: theme.orange300,
+            areaColor: theme.red100,
           },
         },
         label: {

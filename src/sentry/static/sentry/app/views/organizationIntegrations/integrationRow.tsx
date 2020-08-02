@@ -141,7 +141,6 @@ const Container = styled('div')`
 
 const IntegrationName = styled(Link)`
   font-weight: bold;
-  color: ${p => p.theme.blue300};
 `;
 
 const IntegrationDetails = styled('div')`
@@ -197,7 +196,7 @@ const CategoryTag = styled(
   display: flex;
   flex-direction: row;
   padding: 1px 10px;
-  background: ${p => (p.priority ? p.theme.purple200 : p.theme.gray100)};
+  background: ${p => (p.priority ? p.theme.purple200 : p.theme.backgroundSecondary)};
   border-radius: 20px;
   font-size: ${space(1.5)};
   margin-right: ${space(1)};
