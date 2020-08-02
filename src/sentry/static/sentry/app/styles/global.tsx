@@ -9,6 +9,8 @@ const styles = (theme: Theme) => css`
     .sentry-error-embed-wrapper {
       z-index: ${theme.zIndex.sentryErrorEmbed};
     }
+
+    background-color: ${theme.background};
   }
 
   abbr {

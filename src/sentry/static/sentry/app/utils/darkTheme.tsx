@@ -2,13 +2,12 @@ import color from 'color';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
 
-import {Theme as DarkTheme} from './darkTheme';
-
 const colors = {
   white: '#FFFFFF',
+  black: '#1D1127',
 
   gray100: '#FAF9FB',
-  gray200: '#F2F0F5',
+  gray200: '#C6BECF',
   gray300: '#E7E1EC',
   gray400: '#C6BECF',
   gray500: '#9585A3',
@@ -67,7 +66,7 @@ const colors = {
   },
 
   get borderDark() {
-    return colors.gray400;
+    return colors.gray200;
   },
 
   borderRadius: '4px',
@@ -357,11 +356,10 @@ const theme = {
 
   space: [0, 8, 16, 20, 30],
 
-  // aliases
-  background: colors.white,
+  background: colors.black,
 } as const;
 
-export type Theme = typeof theme | DarkTheme;
+export type Theme = typeof theme;
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
 

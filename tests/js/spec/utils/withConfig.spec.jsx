@@ -13,6 +13,7 @@ describe('withConfig HoC', function() {
     const wrapper = mount(<Container />);
     expect(wrapper.find('MyComponent').prop('config')).toEqual({});
     ConfigStore.set('user', 'foo');
+    wrapper.update();
     expect(wrapper.find('MyComponent').prop('config')).toEqual({user: 'foo'});
   });
 });

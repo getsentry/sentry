@@ -28,7 +28,7 @@ const Panel = styled(
     );
   }
 )<PanelProps>`
-  background: ${p => (p.dashedBorder ? p.theme.gray100 : '#fff')};
+  background: ${p => (p.dashedBorder ? p.theme.gray100 : p.theme.background)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px
     ${p => (p.dashedBorder ? 'dashed' + p.theme.gray500 : 'solid ' + p.theme.borderDark)};

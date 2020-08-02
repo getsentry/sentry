@@ -132,9 +132,9 @@ const render = (Component: React.ComponentType) => {
   }
 };
 
-if (NODE_ENV === 'production') {
-  setupFavicon();
-}
+// if (NODE_ENV === 'production') {
+setupFavicon();
+// }
 
 // The password strength component is very heavyweight as it includes the
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load

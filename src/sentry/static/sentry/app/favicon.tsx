@@ -1,3 +1,5 @@
+import ConfigStore from 'app/stores/configStore';
+
 function changeFavicon(theme: 'dark' | 'light'): void {
   const n = document.querySelector<HTMLLinkElement>('[rel="icon"][type="image/png"]');
   if (!n) {
@@ -8,20 +10,25 @@ function changeFavicon(theme: 'dark' | 'light'): void {
   n.href = `${path}/sentry/images/${theme === 'dark' ? 'favicon-dark' : 'favicon'}.png`;
 }
 
-function prefersDark(): boolean {
+export function prefersDark(): boolean {
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-function updateFavicon(): void {
-  changeFavicon(prefersDark() ? 'dark' : 'light');
+function handleColorSchemeChange(e: MediaQueryListEvent): void {
+  const isDark = e.media === '(prefers-color-scheme: dark)' && e.matches;
+  const type = isDark ? 'dark' : 'light';
+  changeFavicon(type);
+  ConfigStore.set('theme', type);
 }
 
 export function setupFavicon(): void {
   // Set favicon to dark on load
   if (prefersDark()) {
     changeFavicon('dark');
+    ConfigStore.set('theme', 'dark');
   }
 
   // Watch for changes in preferred color scheme
-  window.matchMedia('(prefers-color-scheme: dark)').addListener(updateFavicon);
+  window.matchMedia('(prefers-color-scheme: light)').addListener(handleColorSchemeChange);
+  window.matchMedia('(prefers-color-scheme: dark)').addListener(handleColorSchemeChange);
 }

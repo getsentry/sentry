@@ -554,6 +554,7 @@ export type EnrolledAuthenticator = {
 };
 
 export type Config = {
+  theme: 'light' | 'dark';
   languageCode: string;
   csrfCookieName: string;
   features: Set<string>;

@@ -487,7 +487,12 @@ def browser(request, live_server):
 
     browser = Browser(driver, live_server)
 
-    browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
+    browser.set_emulated_media(
+        [
+            {"name": "prefers-reduced-motion", "value": "reduce"},
+            {"name": "prefers-color-scheme", "value": "dark"},
+        ]
+    )
 
     if hasattr(request, "cls"):
         request.cls.browser = browser
