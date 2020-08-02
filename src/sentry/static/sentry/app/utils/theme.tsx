@@ -6,6 +6,7 @@ import {Theme as DarkTheme} from './darkTheme';
 
 const colors = {
   white: '#FFFFFF',
+  black: '#1D1127',
 
   gray100: '#FAF9FB',
   gray200: '#F2F0F5',

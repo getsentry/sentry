@@ -28,8 +28,8 @@ import Indicators from 'app/components/indicators';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NewsletterConsent from 'app/views/newsletterConsent';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import theme, {Theme as LightTheme} from 'app/utils/theme';
-import darkTheme, {Theme as DarkTheme} from 'app/utils/darkTheme';
+import theme, {Theme} from 'app/utils/theme';
+import darkTheme from 'app/utils/darkTheme';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 
@@ -63,7 +63,7 @@ type State = {
   needsUpgrade: boolean;
   newsletterConsentPrompt: boolean;
   user?: Config['user'];
-  theme: LightTheme | DarkTheme;
+  theme: Theme;
 };
 
 class App extends React.Component<Props, State> {
