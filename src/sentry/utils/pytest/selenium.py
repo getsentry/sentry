@@ -124,8 +124,9 @@ class Browser(object):
     @contextmanager
     def night_mode(self):
         self.set_emulated_media([{"name": "prefers-color-scheme", "value": "dark"}])
+        self.wait_until_background_color("rgb(29, 17, 39)")
         try:
-            yield self.wait_until_background_color("rgb(29, 17, 39)")
+            yield True
         finally:
             self.set_emulated_media([{"name": "prefers-color-scheme", "value": "light"}])
             self.wait_until_background_color("rgb(255, 255, 255)")
@@ -262,11 +263,13 @@ class Browser(object):
 
         return self
 
-    def wait_for_background_color(self, color, timeout=10):
+    def wait_until_background_color(self, color, timeout=5):
         wait = WebDriverWait(self.driver, timeout)
-        print(self.driver.execute_script(
-            """return getComputedStyle(document.getElementsByTagName('body')[0]).backgroundColor"""
-        ))
+        print(
+            self.driver.execute_script(
+                """return getComputedStyle(document.getElementsByTagName('body')[0]).backgroundColor"""
+            )
+        )
         wait.until(
             lambda driver: driver.execute_script(
                 """return getComputedStyle(document.getElementsByTagName('body')[0]).backgroundColor"""
