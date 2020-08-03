@@ -121,6 +121,15 @@ class Browser(object):
     def mobile_viewport(self, width=375, height=812):
         return self.set_viewport(width, height, fit_content=True)
 
+    @contextmanager
+    def night_mode(self):
+        self.set_emulated_media([{"name": "prefers-color-scheme", "value": "dark"}])
+        try:
+            yield self.wait_until_background_color("rgb(29, 17, 39)")
+        finally:
+            self.set_emulated_media([{"name": "prefers-color-scheme", "value": "light"}])
+            self.wait_until_background_color("rgb(255, 255, 255)")
+
     def element(self, selector=None, xpath=None):
         """
         Get an element from the page. This method will wait for the element to show up.
@@ -271,6 +280,15 @@ class Browser(object):
 
         return self
 
+    def wait_for_background_color(self, color, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(
+            lambda driver: driver.execute_script(
+                """return getComputedStyle(document.getElementsByTagName('body')[0]).backgroundColor"""
+            )
+            == color
+        )
+
     def blur(self):
         """
         Find focused elements and call blur. Useful for snapshot testing that can potentially capture
@@ -332,9 +350,14 @@ class Browser(object):
                 with self.mobile_viewport():
                     # switch to a mobile sized viewport
                     self.driver.find_element_by_tag_name("body").screenshot(
-                        u".artifacts/visual-snapshots/acceptance-mobile/{}.png".format(
-                            slugify(name)
-                        )
+                        u"{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+                    )
+
+            if os.environ.get("SELENIUM_SNAPSHOTS_NIGHT_MODE") == "1":
+                with self.night_mode():
+                    # switch to a mobile sized viewport
+                    self.driver.find_element_by_tag_name("body").screenshot(
+                        u"{}-night/{}.png".format(snapshot_dir, slugify(name))
                     )
 
         return self
