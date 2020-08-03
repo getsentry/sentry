@@ -264,6 +264,9 @@ class Browser(object):
 
     def wait_for_background_color(self, color, timeout=10):
         wait = WebDriverWait(self.driver, timeout)
+        print(self.driver.execute_script(
+            """return getComputedStyle(document.getElementsByTagName('body')[0]).backgroundColor"""
+        ))
         wait.until(
             lambda driver: driver.execute_script(
                 """return getComputedStyle(document.getElementsByTagName('body')[0]).backgroundColor"""
