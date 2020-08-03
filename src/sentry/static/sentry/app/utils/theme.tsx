@@ -2,17 +2,15 @@ import color from 'color';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
 
-import {Theme as DarkTheme} from './darkTheme';
-
 const colors = {
   white: '#FFFFFF',
   black: '#1D1127',
 
   gray100: '#FAF9FB',
-  gray200: '#F2F0F5',
-  gray300: '#E7E1EC',
-  gray400: '#C6BECF',
-  gray500: '#9585A3',
+  gray200: '#C6BECF',
+  gray300: '#9386A0',
+  gray400: '#776589',
+  gray500: '#2B1D38',
   gray600: '#645574',
   gray700: '#4A3E56',
   gray800: '#302839',
@@ -59,18 +57,6 @@ const colors = {
   pink400: '#E1567C',
   pink500: '#902D4C',
 
-  get borderLighter() {
-    return colors.gray100;
-  },
-
-  get borderLight() {
-    return colors.gray300;
-  },
-
-  get borderDark() {
-    return colors.gray400;
-  },
-
   borderRadius: '4px',
   borderRadiusBottom: '0 0 4px 4px',
   borderRadiusTop: '4px 4px 0 0',
@@ -80,7 +66,18 @@ const colors = {
   dropShadowLightest: '0 1px 2px rgba(0, 0, 0, 0.04)',
   dropShadowLight: '0 2px 0 rgba(37, 11, 54, 0.04)',
   dropShadowHeavy: '0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)',
-} as const;
+};
+
+const aliases = {
+  textColor: colors.gray800,
+  success: colors.green400,
+  error: colors.red400,
+  borderLighter: colors.gray100,
+  borderLight: colors.gray200,
+  borderDark: colors.gray300,
+  disabled: colors.gray400,
+  background: colors.white,
+};
 
 const warning = {
   background: colors.yellow500,
@@ -93,7 +90,7 @@ const alert = {
   muted: {
     background: colors.gray400,
     backgroundLight: colors.gray100,
-    border: colors.borderDark,
+    border: aliases.borderDark,
     iconColor: 'inherit',
   },
   info: {
@@ -117,7 +114,7 @@ const alert = {
     iconColor: colors.red400,
     textLight: colors.red200,
   },
-} as const;
+};
 
 const badge = {
   alpha: {
@@ -133,13 +130,6 @@ const badge = {
     indicatorColor: colors.green400,
   },
 };
-
-const aliases = {
-  textColor: colors.gray800,
-  success: colors.green400,
-  error: colors.red400,
-  disabled: colors.borderDark,
-} as const;
 
 const button = {
   borderRadius: '3px',
@@ -357,12 +347,18 @@ const theme = {
   },
 
   space: [0, 8, 16, 20, 30],
+};
 
-  // aliases
-  background: colors.white,
-} as const;
+export const darkTheme = {
+  ...theme,
 
-export type Theme = typeof theme | DarkTheme;
+  background: colors.black,
+  borderLighter: colors.gray300,
+  borderLight: colors.gray300,
+  borderDark: colors.gray200,
+};
+
+export type Theme = typeof theme | typeof darkTheme;
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
 
