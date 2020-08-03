@@ -167,8 +167,7 @@ h6 {
 ul,
 ol {
   margin-top: 0;
-  padding: 0;
-  list-style-position: inside;
+  padding: 0 0 0 20px;
 
   ul,
   ol {
@@ -463,13 +462,17 @@ kbd {
 pre {
   display: block;
   padding: ((@line-height-computed - 1) / 2);
-  margin: 0 0 (@line-height-computed / 2);
   font-size: (@font-size-base - 1); // 14px to 13px
   line-height: @line-height-base;
   color: @pre-color;
   word-break: break-all;
   word-wrap: break-word;
   overflow: auto;
+
+  &,
+  &:last-child {
+    margin: 0 0 (@line-height-computed / 2);
+  }
 
   // Account for some code outputs that place code tags in pre tags
   code {

@@ -75,6 +75,10 @@
 // Give the tabs something to sit on
 .nav-tabs {
   border-bottom: 1px solid @nav-tabs-border-color;
+  &,
+  &:last-child {
+    margin-bottom: 20px;
+  }
   > li {
     float: left;
     // Make the list-items overlay the bottom border
