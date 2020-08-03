@@ -119,7 +119,7 @@ jobs:
             echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
             echo "::set-output name=python-version::2.7"
             echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
-            echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance-dark"
+            echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 
         # yarn cache
         - uses: actions/cache@v1
