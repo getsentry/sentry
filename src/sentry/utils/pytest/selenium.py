@@ -494,7 +494,7 @@ def browser(request, live_server):
 
     browser = Browser(driver, live_server)
 
-    color_scheme = os.environment.get("SELENIUM_COLOR_SCHEME", "light")
+    color_scheme = os.environ.get("SELENIUM_COLOR_SCHEME", "light")
     browser.set_emulated_media(
         [
             {"name": "prefers-reduced-motion", "value": "reduce"},
