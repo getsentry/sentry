@@ -121,8 +121,12 @@ def pytest_configure(config):
             "github-app.client-secret": "github-client-secret",
             "vsts.client-id": "vsts-client-id",
             "vsts.client-secret": "vsts-client-secret",
+            "vsts-limited.client-id": "vsts-limited-client-id",
+            "vsts-limited.client-secret": "vsts-limited-client-secret",
             "vercel.client-id": "vercel-client-id",
             "vercel.client-secret": "vercel-client-secret",
+            "msteams.client-id": "msteams-client-id",
+            "msteams.client-secret": "msteams-client-secret",
         }
     )
 

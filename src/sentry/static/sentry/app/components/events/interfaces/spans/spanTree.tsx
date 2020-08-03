@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {SentryTransactionEvent, Organization} from 'app/types';
 import {t} from 'app/locale';
-import {TableData} from 'app/views/eventsV2/table/types';
+import {TableData} from 'app/utils/discover/discoverQuery';
 
 import {
   ProcessedSpanType,
@@ -137,7 +137,7 @@ class SpanTree extends React.Component<PropType> {
     numOfSpansOutOfViewAbove: number;
     numOfFilteredSpansAbove: number;
     span: Readonly<ProcessedSpanType>;
-    childSpans: Readonly<SpanChildrenLookupType>;
+    childSpans: SpanChildrenLookupType;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
@@ -145,6 +145,13 @@ class SpanTree extends React.Component<PropType> {
 
     const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
+
+    // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
+    // For example if a span has a span_id that's identical to its parent_span_id.
+    childSpans = {
+      ...childSpans,
+    };
+    delete childSpans[getSpanID(span)];
 
     const bounds = generateBounds({
       startTimestamp: span.start_timestamp,

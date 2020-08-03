@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import time
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -13,7 +14,8 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry.pipeline import PipelineView
-from .client import MsTeamsClient
+from sentry.shared_integrations.exceptions import IntegrationError
+from .client import get_token_data
 
 logger = logging.getLogger("sentry.integrations.msteams")
 
@@ -75,24 +77,31 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         return [MsTeamsPipelineView()]
 
     def build_integration(self, state):
-        team_id = state[self.key]["team_id"]
-        client = MsTeamsClient()
-        team = client.get_team_info(team_id)
-        # TODO: actually store token stuff :)
+        data = state[self.key]
+        team_id = data["team_id"]
+        team_name = data["team_name"]
+        service_url = data["service_url"]
+
+        # TODO: add try/except for request errors
+        token_data = get_token_data()
+
         integration = {
-            "name": team["name"],
+            "name": team_name,
             "external_id": team_id,
-            "metadata": {},
+            "metadata": {
+                "access_token": token_data["access_token"],
+                "expires_at": token_data["expires_at"],
+                "service_url": service_url,
+            },
+            "user_identity": {"type": "msteams", "external_id": team_id, "scopes": [], "data": {}},
         }
         return integration
 
 
 class MsTeamsPipelineView(PipelineView):
-    """
-    This pipeline step just binds the team ID for now
-    """
-
     def dispatch(self, request, pipeline):
-        team_id = request.GET.get("team_id")
-        pipeline.bind_state("team_id", team_id)
+        data = pipeline.fetch_state("msteams")
+        # check the expiration time of the link
+        if int(time.time()) > data["expiration_time"]:
+            return pipeline.error(IntegrationError("Installation link expired"))
         return pipeline.next_step()

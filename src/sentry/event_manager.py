@@ -1,13 +1,13 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import time
 
 
 import ipaddress
 import six
 
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, IntegrityError, router, transaction
 from django.db.models import Func
@@ -21,8 +21,6 @@ from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
-    MAX_SECS_IN_FUTURE,
-    MAX_SECS_IN_PAST,
 )
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
@@ -38,7 +36,6 @@ from sentry.models import (
     Environment,
     EventAttachment,
     EventDict,
-    EventError,
     EventUser,
     File,
     Group,
@@ -95,31 +92,6 @@ def get_tag(data, key):
     for k, v in get_path(data, "tags", filter=True):
         if k == key:
             return v
-
-
-def validate_and_set_timestamp(data, timestamp):
-    """
-    Helper function for event processors/enhancers to avoid setting broken timestamps.
-
-    If we set a too old or too new timestamp then this affects event retention
-    and search.
-    """
-    # XXX(markus): We should figure out if we could run normalization
-    # after event processing again. Right now we duplicate code between here
-    # and event normalization
-    if timestamp:
-        current = time.time()
-
-        if current - MAX_SECS_IN_PAST > timestamp:
-            data.setdefault("errors", []).append(
-                {"type": EventError.PAST_TIMESTAMP, "name": "timestamp", "value": timestamp}
-            )
-        elif timestamp > current + MAX_SECS_IN_FUTURE:
-            data.setdefault("errors", []).append(
-                {"type": EventError.FUTURE_TIMESTAMP, "name": "timestamp", "value": timestamp}
-            )
-        else:
-            data["timestamp"] = float(timestamp)
 
 
 def plugin_is_regression(group, event):
@@ -1310,7 +1282,7 @@ def save_attachment(
         type=attachment.type,
         headers={"Content-Type": attachment.content_type},
     )
-    file.putfile(six.BytesIO(data))
+    file.putfile(six.BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
     EventAttachment.objects.create(
         event_id=event_id,

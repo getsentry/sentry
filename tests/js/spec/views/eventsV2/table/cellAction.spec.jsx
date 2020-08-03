@@ -2,17 +2,19 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import CellAction from 'app/views/eventsV2/table/cellAction';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import EventView from 'app/utils/discover/eventView';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 
-function makeWrapper(eventView, handleCellAction, columnIndex = 0) {
-  const data = {
-    transaction: 'best-transaction',
-    count: 19,
-    timestamp: '2020-06-09T01:46:25+00:00',
-    release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
-    nullValue: null,
-  };
+const defaultData = {
+  transaction: 'best-transaction',
+  count: 19,
+  timestamp: '2020-06-09T01:46:25+00:00',
+  release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
+  nullValue: null,
+};
+
+function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaultData) {
   return mountWithTheme(
     <CellAction
       dataRow={data}
@@ -24,6 +26,7 @@ function makeWrapper(eventView, handleCellAction, columnIndex = 0) {
     </CellAction>
   );
 }
+
 describe('Discover -> CellAction', function() {
   const location = {
     query: {
@@ -206,7 +209,7 @@ describe('Discover -> CellAction', function() {
       expect(wrapper.find('button[data-test-id="add-to-filter"]').exists()).toBeTruthy();
       expect(
         wrapper.find('button[data-test-id="exclude-from-filter"]').exists()
-      ).toBeTruthy();
+      ).toBeFalsy();
       expect(
         wrapper.find('button[data-test-id="show-values-greater-than"]').exists()
       ).toBeTruthy();
@@ -214,5 +217,92 @@ describe('Discover -> CellAction', function() {
         wrapper.find('button[data-test-id="show-values-less-than"]').exists()
       ).toBeTruthy();
     });
+
+    it('show appropriate actions for release cells', function() {
+      wrapper = makeWrapper(view, handleCellAction, 3);
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(wrapper.find('button[data-test-id="release"]').exists()).toBeTruthy();
+
+      wrapper = makeWrapper(view, handleCellAction, 3, {
+        ...defaultData,
+        release: null,
+      });
+      wrapper.find('Container').simulate('mouseEnter');
+      wrapper.find('MenuButton').simulate('click');
+      expect(wrapper.find('button[data-test-id="release"]').exists()).toBeFalsy();
+    });
+  });
+});
+
+describe('updateQuery()', function() {
+  it('modifies the query with has/!has', function() {
+    const results = new QueryResults([]);
+    updateQuery(results, Actions.ADD, 'a', null);
+    expect(results.formatString()).toEqual('!has:a');
+    updateQuery(results, Actions.EXCLUDE, 'a', null);
+    expect(results.formatString()).toEqual('has:a');
+    updateQuery(results, Actions.ADD, 'a', null);
+    expect(results.formatString()).toEqual('!has:a');
+  });
+
+  it('modifies the query with additions', function() {
+    const results = new QueryResults([]);
+    updateQuery(results, Actions.ADD, 'a', '1');
+    expect(results.formatString()).toEqual('a:1');
+    updateQuery(results, Actions.ADD, 'b', '1');
+    expect(results.formatString()).toEqual('a:1 b:1');
+    updateQuery(results, Actions.ADD, 'a', '2');
+    expect(results.formatString()).toEqual('b:1 a:2');
+  });
+
+  it('modifies the query with exclusions', function() {
+    const results = new QueryResults([]);
+    updateQuery(results, Actions.EXCLUDE, 'a', '1');
+    expect(results.formatString()).toEqual('!a:1');
+    updateQuery(results, Actions.EXCLUDE, 'b', '1');
+    expect(results.formatString()).toEqual('!a:1 !b:1');
+    updateQuery(results, Actions.EXCLUDE, 'a', '2');
+    expect(results.formatString()).toEqual('!a:1 !b:1 !a:2');
+  });
+
+  it('modifies the query with a mix of additions and exclusions', function() {
+    const results = new QueryResults([]);
+    updateQuery(results, Actions.ADD, 'a', '1');
+    expect(results.formatString()).toEqual('a:1');
+    updateQuery(results, Actions.ADD, 'b', '2');
+    expect(results.formatString()).toEqual('a:1 b:2');
+    updateQuery(results, Actions.EXCLUDE, 'a', '3');
+    expect(results.formatString()).toEqual('b:2 !a:3');
+    updateQuery(results, Actions.EXCLUDE, 'b', '4');
+    expect(results.formatString()).toEqual('!a:3 !b:4');
+    updateQuery(results, Actions.ADD, 'a', '5');
+    expect(results.formatString()).toEqual('!b:4 a:5');
+    updateQuery(results, Actions.ADD, 'b', '6');
+    expect(results.formatString()).toEqual('a:5 b:6');
+  });
+
+  it('modifies the query with greater/less than', function() {
+    const results = new QueryResults([]);
+    updateQuery(results, Actions.SHOW_GREATER_THAN, 'a', 1);
+    expect(results.formatString()).toEqual('a:>1');
+    updateQuery(results, Actions.SHOW_GREATER_THAN, 'a', 2);
+    expect(results.formatString()).toEqual('a:>2');
+    updateQuery(results, Actions.SHOW_LESS_THAN, 'a', 3);
+    expect(results.formatString()).toEqual('a:<3');
+    updateQuery(results, Actions.SHOW_LESS_THAN, 'a', 4);
+    expect(results.formatString()).toEqual('a:<4');
+  });
+
+  it('does not error for special actions', function() {
+    const results = new QueryResults([]);
+    updateQuery(results, Actions.TRANSACTION, '', '');
+    updateQuery(results, Actions.RELEASE, '', '');
+    updateQuery(results, Actions.DRILLDOWN, '', '');
+  });
+
+  it('errors for unknown actions', function() {
+    const results = new QueryResults([]);
+    expect(() => updateQuery(results, 'unknown', '', '')).toThrow();
   });
 });

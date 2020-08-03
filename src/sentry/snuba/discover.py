@@ -12,12 +12,12 @@ from math import ceil, floor
 
 from sentry import options
 from sentry.api.event_search import (
+    FIELD_ALIASES,
     get_filter,
     get_function_alias,
     is_function,
-    resolve_field_list,
     InvalidSearchQuery,
-    FIELD_ALIASES,
+    resolve_field_list,
 )
 
 from sentry import eventstore
@@ -26,12 +26,14 @@ from sentry.models import Project, ProjectStatus, Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.snuba import (
     Dataset,
-    SnubaTSResult,
-    raw_query,
-    to_naive_timestamp,
     naiveify_datetime,
+    raw_query,
     resolve_snuba_aliases,
     resolve_column,
+    SNUBA_AND,
+    SNUBA_OR,
+    SnubaTSResult,
+    to_naive_timestamp,
 )
 
 __all__ = (
@@ -547,15 +549,41 @@ def query(
 
         # Make sure that any aggregate conditions are also in the selected columns
         for having_clause in snuba_filter.having:
-            found = any(
-                having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
-            )
-            if not found:
-                raise InvalidSearchQuery(
-                    u"Aggregate {} used in a condition but is not a selected column.".format(
-                        having_clause[0]
+            # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
+            # any referenced functions are in the aggregations.
+            if isinstance(having_clause[0], (list, tuple)):
+                # Functions are of the form [fn, [args]]
+                args_to_check = [[having_clause[0]]]
+                conditions_not_in_aggregations = []
+                while len(args_to_check) > 0:
+                    args = args_to_check.pop()
+                    for arg in args:
+                        if arg[0] in [SNUBA_AND, SNUBA_OR]:
+                            args_to_check.extend(arg[1])
+                        else:
+                            alias = arg[1][0]
+                            found = any(
+                                alias == agg_clause[-1] for agg_clause in snuba_filter.aggregations
+                            )
+                            if not found:
+                                conditions_not_in_aggregations.append(alias)
+
+                if len(conditions_not_in_aggregations) > 0:
+                    raise InvalidSearchQuery(
+                        u"Aggregate(s) {} used in a condition but are not in the selected columns.".format(
+                            ", ".join(conditions_not_in_aggregations)
+                        )
                     )
+            else:
+                found = any(
+                    having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
                 )
+                if not found:
+                    raise InvalidSearchQuery(
+                        u"Aggregate {} used in a condition but is not a selected column.".format(
+                            having_clause[0]
+                        )
+                    )
 
         if conditions is not None:
             snuba_filter.conditions.extend(conditions)
@@ -1001,7 +1029,8 @@ def get_facets(query, params, limit=10, referrer=None):
     # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
     # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
     # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
-    sample_rate = 0.1 if key_names["data"][0]["count"] > 10000 else None
+    sampling_enabled = options.get("discover2.tags_facet_enable_sampling")
+    sample_rate = 0.1 if (sampling_enabled and key_names["data"][0]["count"] > 10000) else None
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 

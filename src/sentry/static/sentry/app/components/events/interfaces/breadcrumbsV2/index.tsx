@@ -21,13 +21,12 @@ import {
   BreadcrumbLevelType,
 } from './types';
 import transformCrumbs from './transformCrumbs';
-import Filter from './filter/filter';
+import Filter from './filter';
 import List from './list';
 import Level from './level';
 import Icon from './icon';
 import {aroundContentStyle} from './styles';
 
-const MAX_CRUMBS_WHEN_COLLAPSED = 10;
 const ISO_STRING_DATE_AND_TIME_DIVISION = 10;
 
 type FilterProps = React.ComponentProps<typeof Filter>;
@@ -49,6 +48,7 @@ type State = {
   filteredBySearch: BreadcrumbsWithDetails;
   filterOptions: FilterOptions;
   displayRelativeTime: boolean;
+  relativeTime?: string;
 };
 
 class Breadcrumbs extends React.Component<Props, State> {
@@ -65,39 +65,6 @@ class Breadcrumbs extends React.Component<Props, State> {
     this.loadBreadcrumbs();
   }
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (
-      prevState.breadcrumbs.length === 0 &&
-      this.state.breadcrumbs.length >= MAX_CRUMBS_WHEN_COLLAPSED
-    ) {
-      this.expandCollapsedCrumbs();
-    }
-  }
-
-  listRef = React.createRef<HTMLDivElement>();
-
-  expandCollapsedCrumbs() {
-    this.setState(
-      prevState => ({
-        filteredBySearch: prevState.breadcrumbs,
-      }),
-      this.scrollToTheBottom
-    );
-  }
-
-  scrollToTheBottom() {
-    const element = this.listRef?.current;
-
-    if (!element) {
-      return;
-    }
-
-    element.scrollTo({
-      top: element.scrollHeight,
-      left: 0,
-    });
-  }
-
   loadBreadcrumbs() {
     const {data} = this.props;
     let breadcrumbs = data.values;
@@ -108,21 +75,16 @@ class Breadcrumbs extends React.Component<Props, State> {
       breadcrumbs = [...breadcrumbs, virtualCrumb];
     }
 
-    const tranformedCrumbs = transformCrumbs(breadcrumbs);
-    const filterOptions = this.getFilterOptions(tranformedCrumbs);
+    const transformedCrumbs = transformCrumbs(breadcrumbs);
+    const filterOptions = this.getFilterOptions(transformedCrumbs);
 
     this.setState({
-      breadcrumbs: tranformedCrumbs,
-      filteredByFilter: tranformedCrumbs,
-      filteredBySearch: this.getCollapsedBreadcrumbs(tranformedCrumbs),
+      breadcrumbs: transformedCrumbs,
+      filteredByFilter: transformedCrumbs,
+      filteredBySearch: transformedCrumbs,
       filterOptions,
+      relativeTime: transformedCrumbs[transformedCrumbs.length - 1]?.timestamp,
     });
-  }
-
-  getCollapsedBreadcrumbs(breadcrumbs: BreadcrumbsWithDetails) {
-    return breadcrumbs.length > MAX_CRUMBS_WHEN_COLLAPSED
-      ? breadcrumbs.slice(-MAX_CRUMBS_WHEN_COLLAPSED)
-      : breadcrumbs;
   }
 
   getFilterOptions(breadcrumbs: ReturnType<typeof transformCrumbs>): FilterOptions {
@@ -381,7 +343,13 @@ class Breadcrumbs extends React.Component<Props, State> {
 
   render() {
     const {type, event, orgId} = this.props;
-    const {filterOptions, searchTerm, filteredBySearch, displayRelativeTime} = this.state;
+    const {
+      filterOptions,
+      searchTerm,
+      filteredBySearch,
+      displayRelativeTime,
+      relativeTime,
+    } = this.state;
 
     return (
       <StyledEventDataSection
@@ -406,12 +374,12 @@ class Breadcrumbs extends React.Component<Props, State> {
         {filteredBySearch.length > 0 ? (
           <List
             breadcrumbs={filteredBySearch}
-            ref={this.listRef}
             event={event}
             orgId={orgId}
             onSwitchTimeFormat={this.handleSwitchTimeFormat}
             displayRelativeTime={displayRelativeTime}
             searchTerm={searchTerm}
+            relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
           />
         ) : (
           <StyledEmptyMessage
@@ -467,7 +435,6 @@ const StyledSearchBar = styled(SearchBar)`
   }
   .search-clear-form,
   .search-input-icon {
-    top: 0 !important;
     height: 32px;
     display: flex;
     align-items: center;

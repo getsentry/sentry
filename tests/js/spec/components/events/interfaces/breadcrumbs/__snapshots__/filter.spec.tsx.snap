@@ -142,7 +142,7 @@ exports[`Filter default render 1`] = `
 >
   <Wrapper>
     <div
-      className="css-cd4fy0-Wrapper efxik2w0"
+      className="css-cd4fy0-Wrapper eo9f4dt0"
     >
       <DropdownControl
         alwaysRenderMenu={true}
@@ -608,6 +608,7 @@ exports[`Filter default render 1`] = `
                       "sm": "16px",
                       "xl": "32px",
                       "xs": "12px",
+                      "xxl": "72px",
                     },
                     "orange100": "#FCF8F7",
                     "orange200": "#F9C7B9",
@@ -631,7 +632,7 @@ exports[`Filter default render 1`] = `
                     "red500": "#AC1025",
                     "settings": Object {
                       "containerWidth": "1440px",
-                      "headerHeight": "115px",
+                      "headerHeight": "69px",
                       "maxCrumbWidth": "240px",
                       "sidebarWidth": "220px",
                     },
@@ -696,6 +697,8 @@ exports[`Filter default render 1`] = `
                       "modal": 10000,
                       "orgAndUserMenu": 1030,
                       "sentryErrorEmbed": 1090,
+                      "settingsSidebarNav": 1018,
+                      "settingsSidebarNavMask": 1017,
                       "sidebar": 1020,
                       "sidebarPanel": 1019,
                       "toast": 10001,

@@ -28,6 +28,7 @@ describe('getFieldRenderer', function() {
       latest_event: 'deadbeef',
       project: project.slug,
       user: userAlias,
+      release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
     };
 
     MockApiClient.addMockResponse({
@@ -99,6 +100,17 @@ describe('getFieldRenderer', function() {
 
     const badge = wrapper.find('UserBadge');
     expect(badge).toHaveLength(0);
+
+    const value = wrapper.find('EmptyValueContainer');
+    expect(value).toHaveLength(1);
+    expect(value.text()).toEqual('n/a');
+  });
+
+  it('can render null release fields', function() {
+    const renderer = getFieldRenderer('release', {release: 'string'});
+
+    delete data.release;
+    const wrapper = mount(renderer(data, {location, organization}));
 
     const value = wrapper.find('EmptyValueContainer');
     expect(value).toHaveLength(1);

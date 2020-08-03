@@ -3,8 +3,22 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {TableData} from 'app/views/eventsV2/table/types';
+import EventView, {MetaType, isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+
+/**
+ * An individual row in a DiscoverQuery result
+ */
+export type TableDataRow = {
+  [key: string]: React.ReactText;
+};
+
+/**
+ * A DiscoverQuery result including rows and metadata.
+ */
+export type TableData = {
+  meta?: MetaType;
+  data: Array<TableDataRow>;
+};
 
 type ChildrenProps = {
   isLoading: boolean;

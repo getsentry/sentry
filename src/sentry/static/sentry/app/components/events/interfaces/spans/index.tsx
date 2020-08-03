@@ -6,11 +6,10 @@ import styled from '@emotion/styled';
 import {IconWarning} from 'app/icons';
 import {Panel} from 'app/components/panels';
 import {SentryTransactionEvent, Organization} from 'app/types';
-import {TableData} from 'app/views/eventsV2/table/types';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import {t, tn} from 'app/locale';
 import Alert from 'app/components/alert';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
@@ -97,14 +96,13 @@ class SpansInterface extends React.Component<Props, State> {
       end: parsedTrace.traceEndTimestamp,
     });
 
-    const conditions: QueryResults = {
-      query: [],
-      'event.type': ['error'],
-      trace: [parsedTrace.traceID],
-    };
+    const conditions = new QueryResults([
+      'event.type:error',
+      `trace:${parsedTrace.traceID}`,
+    ]);
 
     if (typeof event.title === 'string') {
-      conditions.transaction = [event.title];
+      conditions.setTag('transaction', [event.title]);
     }
 
     const orgFeatures = new Set(organization.features);
