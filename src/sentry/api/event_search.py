@@ -1431,6 +1431,18 @@ FUNCTIONS = {
         "transform": u"abs(minus({column}, {target:g}))",
         "result_type": "duration",
     },
+    "slo": {
+        "name": "slo",
+        "args": [FunctionArg("dividend"), FunctionArg("divisor")],
+        "transform": u"divide({dividend},{divisor})",
+        "result_type": "percentage",
+    },
+    "countIf": {
+        "name": "countIf",
+        "args": [FunctionArg("value")],
+        "transform": "countIf(equals(transaction_status,{value}))",
+        "result_type": "number",
+    },
 }
 
 
@@ -1658,6 +1670,14 @@ def resolve_field_list(fields, snuba_filter, auto_fields=True):
 
         if agg_additions:
             aggregations.extend(agg_additions)
+
+            if agg_additions[0][-1].startswith("slo"):
+                match = is_function(agg_additions[0][0])
+                for agg in [
+                    c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0
+                ]:
+                    _, additions = resolve_field(agg + "()", snuba_filter.date_params)
+                    aggregations.extend(additions)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:

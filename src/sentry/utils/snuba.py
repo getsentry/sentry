@@ -592,6 +592,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         query_params, forward, reverse, thread_hub = params
         try:
             with timer("snuba_query"):
+                query_params["debug"] = True
                 body = json.dumps(query_params)
                 referrer = headers.get("referer", "<unknown>")
                 with thread_hub.start_span(
@@ -628,6 +629,8 @@ def bulk_raw_query(snuba_param_list, referrer=None):
     for response, _, reverse in query_results:
         try:
             body = json.loads(response.data)
+            print("sql", body.get("sql"))
+            print("error", body.get("error"))
         except ValueError:
             if response.status != 200:
                 logger.error("snuba.query.invalid-json")

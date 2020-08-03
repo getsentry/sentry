@@ -122,12 +122,14 @@ class QueryField extends React.Component<Props> {
     this.triggerChange(fieldValue);
   };
 
-  handleFieldParameterChange = ({value}) => {
-    const newColumn = cloneDeep(this.props.fieldValue);
-    if (newColumn.kind === 'function') {
-      newColumn.function[1] = value.meta.name;
-    }
-    this.triggerChange(newColumn);
+  handleFieldParameterChange = index => {
+    return ({value}) => {
+      const newColumn = cloneDeep(this.props.fieldValue);
+      if (newColumn.kind === 'function') {
+        newColumn.function[index] = value.meta.name;
+      }
+      this.triggerChange(newColumn);
+    };
   };
 
   handleScalarParameterChange = (value: string) => {
@@ -148,6 +150,20 @@ class QueryField extends React.Component<Props> {
 
   triggerChange(fieldValue: QueryFieldValue) {
     this.props.onChange(fieldValue);
+  }
+
+  getFunctionValue(name: string | undefined): FieldValue | null {
+    const {fieldOptions} = this.props;
+    if (name === undefined) {
+      return null;
+    }
+
+    const fieldName = `function:${name}`;
+    if (fieldOptions[fieldName]) {
+      return fieldOptions[fieldName].value;
+    }
+
+    return null;
   }
 
   getFieldOrTagValue(name: string | undefined): FieldValue | null {
@@ -212,7 +228,18 @@ class QueryField extends React.Component<Props> {
     ) {
       parameterDescriptions = field.meta.parameters.map(
         (param, index: number): ParameterDescription => {
-          if (param.kind === 'column') {
+          if (param.kind === 'function') {
+            const fieldParameter = this.getFunctionValue(fieldValue.function[index + 1]);
+            fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
+            return {
+              kind: 'column',
+              value: fieldParameter,
+              required: param.required,
+              options: Object.values(fieldOptions).filter(
+                ({value}) => value.kind === FieldValueKind.FUNCTION
+              ),
+            };
+          } else if (param.kind === 'column') {
             const fieldParameter = this.getFieldOrTagValue(fieldValue.function[1]);
             fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
@@ -265,13 +292,13 @@ class QueryField extends React.Component<Props> {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         return (
           <SelectControl
-            key="select"
+            key={'select:' + index}
             name="parameter"
             placeholder={t('Select value')}
             options={descriptor.options}
             value={descriptor.value}
             required={descriptor.required}
-            onChange={this.handleFieldParameterChange}
+            onChange={this.handleFieldParameterChange(index + 1)}
           />
         );
       }

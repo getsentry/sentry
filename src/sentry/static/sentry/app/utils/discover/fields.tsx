@@ -32,6 +32,12 @@ export type AggregateParameter =
       required: boolean;
     }
   | {
+      kind: 'function';
+      columnTypes: Readonly<ColumnType[]>;
+      defaultValue?: string;
+      required: boolean;
+    }
+  | {
       kind: 'value';
       dataType: ColumnType;
       defaultValue?: string;
@@ -244,6 +250,38 @@ export const AGGREGATIONS = {
   epm: {
     parameters: [],
     outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  countIf: {
+    parameters: [
+      {
+        kind: 'value',
+        dataType: 'string',
+        defaultValue: 'http.status',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  slo: {
+    parameters: [
+      {
+        kind: 'function',
+        columnTypes: ['duration'],
+        required: true,
+        text: 'iunno',
+      },
+      {
+        kind: 'function',
+        columnTypes: ['duration'],
+        required: true,
+        text: 'iunno2',
+      },
+    ],
+    outputType: 'percentage',
     isSortable: true,
     multiPlotType: 'area',
   },

@@ -20,6 +20,7 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.project import Project
 from sentry.models.group import Group
 from sentry.snuba import discover
+from sentry.snuba.discover import resolve_discover_column
 from sentry.utils.compat import map
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils import snuba
@@ -247,7 +248,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             elif len(query_columns) > 1:
                 return self.serialize_multiple_axis(serializer, result, columns, query_columns)
             else:
-                return serializer.serialize(result)
+                return serializer.serialize(result, column=get_function_alias(query_columns[0]))
 
     def serialize_multiple_axis(self, serializer, event_result, columns, query_columns):
         # Return with requested yAxis as the key

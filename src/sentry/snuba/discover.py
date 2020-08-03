@@ -680,6 +680,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, referen
 
     # Change the alias of the first aggregation to count. This ensures compatibility
     # with other parts of the timeseries endpoint expectations
+    print(snuba_filter.aggregations)
     if len(snuba_filter.aggregations) == 1:
         snuba_filter.aggregations[0][2] = "count"
 

@@ -2,6 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
+import theme from 'app/utils/theme';
+
 import AreaSeries from './series/areaSeries';
 import BaseChart from './baseChart';
 
@@ -17,8 +19,12 @@ export default class PercentageAreaChart extends React.Component {
     // TODO(billyvg): Move these into BaseChart? or get rid completely
     return {
       getDataItemName: ({name}) => name,
-      getValue: ({value}, total) =>
-        !total ? 0 : Math.round((value / total) * 1000) / 10,
+      getValue: ({value}) => {
+        return Math.floor(value * 10000.0) / 100.0;
+      },
+      getOtherValue: ({value}) => {
+        return 100.0 - Math.floor(value * 10000.0) / 100.0;
+      },
     };
   }
 
@@ -30,28 +36,31 @@ export default class PercentageAreaChart extends React.Component {
   };
 
   getSeries() {
-    const {series, getDataItemName, getValue} = this.props;
+    const {series, getDataItemName, getValue, getOtherValue} = this.props;
 
-    const totalsArray = series.length
-      ? series[0].data.map(({name}, i) => [
-          name,
-          series.reduce((sum, {data}) => sum + data[i].value, 0),
-        ])
-      : [];
-    const totals = new Map(totalsArray);
     return [
       ...series.map(({seriesName, data}) =>
         AreaSeries({
           barCategoryGap: 0,
           name: seriesName,
+          color: theme.alert.success.background,
           lineStyle: {width: 1},
           areaStyle: {opacity: 1},
           smooth: true,
           stack: 'percentageAreaChartStack',
-          data: data.map(dataObj => [
-            getDataItemName(dataObj),
-            getValue(dataObj, totals.get(dataObj.name)),
-          ]),
+          data: data.map(dataObj => [getDataItemName(dataObj), getValue(dataObj)]),
+        })
+      ),
+      ...series.map(({data}) =>
+        AreaSeries({
+          barCategoryGap: 0,
+          name: 'other',
+          color: theme.alert.error.background,
+          lineStyle: {width: 1},
+          areaStyle: {opacity: 1},
+          smooth: true,
+          stack: 'percentageAreaChartStack',
+          data: data.map(dataObj => [getDataItemName(dataObj), getOtherValue(dataObj)]),
         })
       ),
     ];
