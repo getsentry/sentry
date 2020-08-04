@@ -1,26 +1,28 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {Location} from 'history';
-import styled from '@emotion/styled';
 
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
-import {t} from 'app/locale';
-import withOrganization from 'app/utils/withOrganization';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import PageHeading from 'app/components/pageHeading';
-import {Organization, Team} from 'app/types';
-import {IconAdd, IconFile} from 'app/icons';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import recreateRoute from 'app/utils/recreateRoute';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import withTeams from 'app/utils/withTeams';
-import space from 'app/styles/space';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import PageHeading from 'app/components/pageHeading';
+import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
+import {PageContent, PageHeader} from 'app/styles/organization';
+import {Organization, Team} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
+import recreateRoute from 'app/utils/recreateRoute';
+import withTeams from 'app/utils/withTeams';
 
-import TeamCard from './teamCard';
+import ListTeam from './listTeam';
+import Dashboard from './dashboard';
+
+const TAB_DASHBOARD = 'TAB_DASHBOARD';
+const TAB_ALL_TEAM = 'TAB_ALL_TEAM';
+const TAB_MY_TEAMS = 'TAB_MY_TEAM';
 
 type Props = RouteComponentProps<
   {orgId: string; projectId: string; location: Location},
@@ -32,103 +34,106 @@ type Props = RouteComponentProps<
   teams: Array<Team>;
   isLoading: boolean;
 };
+type State = {
+  // XXX: Tabs should be managed by react-router but this is easier for Hackweek
+  currentTab: typeof TAB_DASHBOARD | typeof TAB_ALL_TEAM | typeof TAB_MY_TEAMS;
+};
 
-const TeamsDashboard = ({
-  organization,
-  routes,
-  location,
-  params,
-  teams,
-  isLoading,
-}: Props) => {
-  const access = new Set(organization.access);
-  const hasTeamAdminAccess = access.has('project:admin');
-  const displayMyTeams = location.pathname.endsWith('my-teams/');
-  const baseUrl = recreateRoute('', {location, routes, params, stepBack: -1});
+class TeamsDashboard extends React.Component<Props, State> {
+  state: State = {
+    currentTab: TAB_DASHBOARD,
+  };
 
-  const displayTeams = displayMyTeams ? teams.filter(team => team.isMember) : teams;
-  const createTeamLabel = t('Create Team');
-
-  const handleCreateTeam = () => {
+  handleCreateTeam = () => {
+    const {organization} = this.props;
     openCreateTeamModal({organization});
   };
 
-  const renderContent = () => (
-    <React.Fragment>
-      <PageHeader>
-        <PageHeading>{t('Teams')}</PageHeading>
-        <Button
-          size="small"
-          disabled={!hasTeamAdminAccess}
-          title={
-            !hasTeamAdminAccess
-              ? t('You do not have permission to create teams')
-              : undefined
-          }
-          onClick={handleCreateTeam}
-          icon={<IconAdd size="xs" isCircled />}
-        >
-          {createTeamLabel}
-        </Button>
-      </PageHeader>
-      {displayTeams.length > 0 ? (
-        <React.Fragment>
-          <NavTabs underlined>
-            <ListLink to={baseUrl} index isActive={() => !displayMyTeams}>
-              {t('All Teams')}
-            </ListLink>
-            <ListLink to={`${baseUrl}my-teams/`} isActive={() => displayMyTeams}>
-              {t('My Teams')}
-            </ListLink>
-          </NavTabs>
-          <Content>
-            {displayTeams.map(displayTeam => (
-              <TeamCard
-                key={displayTeam.id}
-                hasTeamAdminAccess={hasTeamAdminAccess}
-                organization={organization}
-                team={displayTeam}
-              />
-            ))}
-          </Content>
-        </React.Fragment>
-      ) : (
-        <EmptyMessage
-          size="large"
-          title={t('No teams have been created yet.')}
-          icon={<IconFile size="xl" />}
-          action={
-            <Button
-              size="small"
-              disabled={!hasTeamAdminAccess}
-              title={
-                !hasTeamAdminAccess
-                  ? t('You do not have permission to create teams')
-                  : undefined
-              }
-              onClick={handleCreateTeam}
-              icon={<IconAdd size="xs" isCircled />}
-            >
-              {createTeamLabel}
-            </Button>
-          }
-        />
-      )}
-    </React.Fragment>
-  );
+  renderHeader() {
+    const {organization, location, params, routes} = this.props;
+    const {currentTab} = this.state;
 
-  return (
-    <React.Fragment>
-      <SentryDocumentTitle title={t('Teams Dashboard')} objSlug={organization.slug} />
-      <PageContent>{isLoading ? <LoadingIndicator /> : renderContent()}</PageContent>
-    </React.Fragment>
-  );
-};
+    const hasTeamAdminAccess = organization.access.includes('project:admin');
+    const baseUrl = recreateRoute('', {location, routes, params, stepBack: -1});
+    const createTeamLabel = t('Create Team');
+
+    return (
+      <React.Fragment>
+        <PageHeader>
+          <PageHeading>{t('Teams')}</PageHeading>
+          <Button
+            size="small"
+            disabled={!hasTeamAdminAccess}
+            title={
+              !hasTeamAdminAccess
+                ? t('You do not have permission to create teams')
+                : undefined
+            }
+            onClick={this.handleCreateTeam}
+            icon={<IconAdd size="xs" isCircled />}
+          >
+            {createTeamLabel}
+          </Button>
+        </PageHeader>
+
+        <NavTabs underlined>
+          <ListLink
+            to={baseUrl}
+            index
+            isActive={() => currentTab === TAB_DASHBOARD}
+            onClick={() => this.setState({currentTab: TAB_DASHBOARD})}
+          >
+            {t('Dashboard')}
+          </ListLink>
+          <ListLink
+            to={baseUrl}
+            index
+            isActive={() => currentTab === TAB_ALL_TEAM}
+            onClick={() => this.setState({currentTab: TAB_ALL_TEAM})}
+          >
+            {t('All Teams')}
+          </ListLink>
+          <ListLink
+            to={`${baseUrl}my-teams/`}
+            isActive={() => currentTab === TAB_MY_TEAMS}
+            onClick={() => this.setState({currentTab: TAB_MY_TEAMS})}
+          >
+            {t('My Teams')}
+          </ListLink>
+        </NavTabs>
+      </React.Fragment>
+    );
+  }
+
+  renderContent() {
+    const {currentTab} = this.state;
+
+    switch (currentTab) {
+      case TAB_DASHBOARD:
+        return <Dashboard />;
+      case TAB_ALL_TEAM:
+      case TAB_MY_TEAMS:
+        return (
+          <ListTeam {...(this.props as any)} handleCreateTeam={this.handleCreateTeam} />
+        );
+      default:
+        return <div>This should not happen</div>;
+    }
+  }
+
+  render() {
+    const {organization, isLoading} = this.props;
+
+    return (
+      <React.Fragment>
+        <SentryDocumentTitle title={t('Teams Dashboard')} objSlug={organization.slug} />
+        <PageContent>
+          {this.renderHeader()}
+          {isLoading ? <LoadingIndicator /> : this.renderContent()}
+        </PageContent>
+      </React.Fragment>
+    );
+  }
+}
 
 export default withOrganization(withTeams(TeamsDashboard));
-
-const Content = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  grid-gap: ${space(3)};
-`;
