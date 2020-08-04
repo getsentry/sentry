@@ -487,7 +487,7 @@ const TimeAxis = styled('div')`
   bottom: 0;
   border-top: 1px solid ${p => p.theme.borderDark};
   height: ${TIME_AXIS_HEIGHT}px;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   color: ${p => p.theme.gray300};
   font-size: 10px;
   font-weight: 500;
@@ -555,7 +555,7 @@ const TickLabel = (props: {
 
 const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   position: absolute;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   padding: 4px;
   height: 100%;
   border-radius: 3px;
@@ -578,7 +578,7 @@ const HeaderContainer = styled('div')`
   left: 0;
   top: 0;
   z-index: ${zIndex.minimapContainer};
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.borderDark};
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
 `;

@@ -182,13 +182,13 @@ export const getBackgroundColor = ({
   theme: any;
 }) => {
   if (!theme) {
-    return theme.white;
+    return theme.background;
   }
 
   if (showDetail) {
-    return theme.gray500;
+    return theme.textColor;
   }
-  return showStriping ? theme.gray100 : theme.white;
+  return showStriping ? theme.backgroundAccent : theme.background;
 };
 
 type SpanBarProps = {
@@ -866,7 +866,7 @@ export const SpanRowCell = styled('div')<SpanRowCellProps>`
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
   transition: background-color 125ms ease-in-out;
-  color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
+  color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
 `;
 
 export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
@@ -877,7 +877,8 @@ export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   user-select: none;
 
   &:hover > div[data-type='span-row-cell'] {
-    background-color: ${p => (p.showDetail ? p.theme.gray500 : p.theme.gray100)};
+    background-color: ${p =>
+      p.showDetail ? p.theme.textColor : p.theme.backgroundAccent};
   }
 `;
 
@@ -910,7 +911,7 @@ export const DividerLine = styled('div')`
   }
 
   &.hovering {
-    background-color: ${p => p.theme.gray500};
+    background-color: ${p => p.theme.textColor};
     width: 3px;
     transform: translateX(-1px);
     margin-right: -2px;
