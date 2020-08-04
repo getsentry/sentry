@@ -386,7 +386,7 @@ const Menu = styled('div')`
 `;
 
 const MenuButtons = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
@@ -409,7 +409,7 @@ const MenuArrow = styled('span')`
       top: 1px;
       left: 1px;
       border-width: 0 8px 8px 8px;
-      border-color: transparent transparent #fff transparent;
+      border-color: transparent transparent ${p => p.theme.background} transparent;
     }
   }
   &[data-placement*='top'] {
@@ -423,7 +423,7 @@ const MenuArrow = styled('span')`
       bottom: 1px;
       left: 1px;
       border-width: 8px 8px 0 8px;
-      border-color: #fff transparent transparent transparent;
+      border-color: ${p => p.theme.background} transparent transparent transparent;
     }
   }
 
@@ -453,7 +453,7 @@ const ActionItem = styled('button')`
   line-height: 1.2;
 
   &:hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundAccent};
   }
 
   &:last-child {
