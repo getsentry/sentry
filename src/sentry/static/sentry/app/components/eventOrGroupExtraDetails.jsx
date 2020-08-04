@@ -131,7 +131,7 @@ const CommentsLink = styled(Link)`
   grid-gap: ${space(0.5)};
   align-items: center;
   grid-auto-flow: column;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
 `;
 
 const GroupShortId = styled(ShortId)`
@@ -146,7 +146,7 @@ const AnnotationNoMargin = styled(EventAnnotation)`
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
 `;
 
 export default withRouter(EventOrGroupExtraDetails);

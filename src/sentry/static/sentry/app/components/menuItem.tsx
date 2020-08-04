@@ -199,7 +199,7 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
 
   return `
     ${common}
-    color: ${props.theme.gray700};
+    color: ${props.theme.gray500};
 
     &:hover {
       background: ${props.theme.gray100};

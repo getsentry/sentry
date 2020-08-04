@@ -84,7 +84,7 @@ const Wrapper = styled('div')<{isActive: boolean; isX: boolean}>`
       ? 'grid-template-columns: max-content max-content'
       : 'grid-template-rows: max-content max-content'};
   cursor: ${p => (p.isX ? 'ew-resize' : 'ns-resize')};
-  color: ${p => (p.isActive ? p.theme.gray800 : p.theme.gray300)};
+  color: ${p => (p.isActive ? p.theme.gray500 : p.theme.gray300)};
   background: ${p => p.isActive && p.theme.gray100};
   border-radius: 2px;
 `;

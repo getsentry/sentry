@@ -62,14 +62,14 @@ const Package = styled('a')<Partial<Props>>`
   font-size: 13px;
   font-weight: bold;
   padding: 0 0 0 ${space(0.5)};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
   ${PackageStatusIcon} {
     opacity: 0;
     flex-shrink: 0;
   }
   &:hover {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.gray500};
     ${LinkChevron} {
       opacity: 1;
     }

@@ -139,7 +139,7 @@ const ModalOverlay = styled('div')`
   left: 0px;
   right: 0px;
   bottom: 0px;
-  background: ${p => p.theme.gray700};
+  background: ${p => p.theme.gray500};
   opacity: 0.5;
   z-index: ${p => p.theme.zIndex.modal};
 `;

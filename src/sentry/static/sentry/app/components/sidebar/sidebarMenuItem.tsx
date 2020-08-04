@@ -23,7 +23,7 @@ const SidebarMenuItem = ({to, children, href, ...props}: Props) => {
 const menuItemStyles = (
   p: React.ComponentProps<typeof SidebarMenuItemLink> & {theme: Theme}
 ) => css`
-  color: ${p.theme.gray800};
+  color: ${p.theme.gray500};
   cursor: pointer;
   display: flex;
   font-size: ${p.theme.fontSizeMedium};
@@ -37,7 +37,7 @@ const menuItemStyles = (
   &:active,
   &.focus-visible {
     background: ${p.theme.gray100};
-    color: ${p.theme.gray800};
+    color: ${p.theme.gray500};
     outline: none;
   }
 

@@ -146,7 +146,7 @@ const NavMenuToggle = styled(Button)`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;

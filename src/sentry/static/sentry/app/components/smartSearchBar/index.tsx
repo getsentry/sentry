@@ -83,7 +83,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
-  color: ${theme.gray700};
+  color: ${theme.gray500};
   align-items: center;
   min-width: 190px;
   height: 38px;
@@ -1277,7 +1277,7 @@ const StyledForm = styled('form')`
 `;
 
 const StyledInput = styled('input')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   background: transparent;
   border: 0;
   outline: none;

@@ -21,7 +21,7 @@ const IconWrapper = styled('div', {
   z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
   border: 1px solid ${p => p.theme.borderDark};
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.gray500};
   ${p =>
     p.color &&
     `

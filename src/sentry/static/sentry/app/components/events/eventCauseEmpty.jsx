@@ -202,7 +202,7 @@ const Description = styled('div')`
   p {
     font-size: 13px;
     font-weight: bold;
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.gray500};
     margin-bottom: ${space(1.5)};
   }
 `;

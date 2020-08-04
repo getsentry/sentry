@@ -211,7 +211,7 @@ const ClearButton = styled(p => (
   width: 22px;
   border-radius: 50%;
   background: #fff;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
 `;
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (

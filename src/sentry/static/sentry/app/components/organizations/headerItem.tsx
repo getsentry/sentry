@@ -101,7 +101,7 @@ class HeaderItem extends React.Component<Props> {
           <StyledChevron isOpen={isOpen}>
             <IconChevron
               direction="down"
-              color={isOpen ? 'gray700' : 'gray300'}
+              color={isOpen ? 'gray500' : 'gray300'}
               size="sm"
             />
           </StyledChevron>
@@ -198,7 +198,7 @@ const SettingsIconLink = styled(Link)`
   transition: 0.5s opacity ease-out;
 
   &:hover {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.gray500};
   }
 `;
 

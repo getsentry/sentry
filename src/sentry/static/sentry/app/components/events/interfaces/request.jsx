@@ -123,7 +123,7 @@ class RequestInterface extends React.Component {
 }
 
 const Path = styled('span')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   text-transform: none;
   font-weight: normal;
 

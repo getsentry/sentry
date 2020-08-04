@@ -136,7 +136,7 @@ const ButtonTitle = styled('span')`
 `;
 
 const SearchTitle = styled('strong')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.gray500};
   padding: 0;
   background: inherit;
 
@@ -146,7 +146,7 @@ const SearchTitle = styled('strong')`
 `;
 
 const SearchQuery = styled('code')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.gray500};
   padding: 0;
   background: inherit;
 `;

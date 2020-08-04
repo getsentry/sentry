@@ -32,7 +32,7 @@ const Label = styled('div')`
 `;
 const Value = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
 `;
 
 export default ReleaseStat;

@@ -386,7 +386,7 @@ const Details = styled('div')`
 const DetailLabel = styled('div')`
   font-weight: bold;
   margin-bottom: ${space(0.5)};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
 `;
 
 const OverflowWrapper = styled('div')`

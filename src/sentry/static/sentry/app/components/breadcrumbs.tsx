@@ -92,7 +92,7 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
   width: auto;
 
   &:last-child {
-    color: ${p.theme.gray700};
+    color: ${p.theme.gray500};
   }
 `;
 

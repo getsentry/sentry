@@ -415,7 +415,7 @@ const SettingsIconLink = styled(Link)`
   transition: 0.5s opacity ease-out;
 
   &:hover {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.gray500};
   }
 `;
 

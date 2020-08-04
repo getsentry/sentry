@@ -218,7 +218,7 @@ const IconWrapper = styled('div')`
 `;
 
 const Text = styled(TextOverflow)`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   line-height: 30px;
 `;
 

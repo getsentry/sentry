@@ -116,7 +116,7 @@ const PanelClose = styled(IconClose)`
   padding: ${space(0.75)};
 
   &:hover {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
   }
 `;
 

@@ -66,7 +66,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
           background-position: center center;
         `
       : css`
-          background: ${p.theme.gray700};
+          background: ${p.theme.gray500};
         `}
 
   ${p =>

@@ -131,7 +131,7 @@ const DateSelected = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   ${overflowEllipsis};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
 `;
 
 const DateStatus = styled('span')`

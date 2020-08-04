@@ -237,7 +237,7 @@ const Toggle = styled(Button)`
   color: ${p => p.theme.gray400};
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.gray500};
   }
   > *:first-child {
     display: grid;

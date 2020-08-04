@@ -68,7 +68,7 @@ const Value = styled('div')`
   text-align: right;
 `;
 const Divider = styled('div')`
-  border-top: 1px solid ${p => p.theme.gray800};
+  border-top: 1px solid ${p => p.theme.gray500};
   margin: ${space(0.75)} -${space(2)} ${space(1)};
 `;
 

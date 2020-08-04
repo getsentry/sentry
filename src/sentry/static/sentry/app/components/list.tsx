@@ -49,14 +49,14 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
   }
 
   ul & {
-    color: ${theme.gray700};
+    color: ${theme.gray500};
     &:before {
       content: '';
       width: 6px;
       height: 6px;
       border-radius: 50%;
       margin-right: ${space(2)};
-      border: 1px solid ${theme.gray700};
+      border: 1px solid ${theme.gray500};
       background-color: transparent;
       left: 5px;
       top: 10px;
@@ -88,7 +88,7 @@ export const ListItem = styled(({icon, className, children}: ListItemProps) => (
       height: 18px;
       font-size: 10px;
       font-weight: 600;
-      border: 1px solid ${theme.gray700};
+      border: 1px solid ${theme.gray500};
       border-radius: 50%;
       background-color: transparent;
       margin-right: ${space(2)};

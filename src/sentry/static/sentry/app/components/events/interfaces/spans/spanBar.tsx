@@ -186,7 +186,7 @@ export const getBackgroundColor = ({
   }
 
   if (showDetail) {
-    return theme.gray800;
+    return theme.gray500;
   }
   return showStriping ? theme.gray100 : theme.white;
 };
@@ -877,7 +877,7 @@ export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   user-select: none;
 
   &:hover > div[data-type='span-row-cell'] {
-    background-color: ${p => (p.showDetail ? p.theme.gray800 : p.theme.gray100)};
+    background-color: ${p => (p.showDetail ? p.theme.gray500 : p.theme.gray100)};
   }
 `;
 
@@ -910,7 +910,7 @@ export const DividerLine = styled('div')`
   }
 
   &.hovering {
-    background-color: ${p => p.theme.gray800};
+    background-color: ${p => p.theme.gray500};
     width: 3px;
     transform: translateX(-1px);
     margin-right: -2px;

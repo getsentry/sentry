@@ -17,7 +17,7 @@ const Crumb = styled('div')`
   }
 
   &:hover {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
   }
 `;
 

@@ -12,7 +12,7 @@ export const ChartControls = styled('div')`
 export const SubHeading = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.gray500};
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;

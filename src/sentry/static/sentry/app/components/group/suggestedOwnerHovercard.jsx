@@ -171,7 +171,7 @@ const CommitMessage = styled(({message = '', date, ...props}) => (
     <CommitDate date={date} />
   </div>
 ))`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.gray500};
   font-size: 11px;
   margin-top: ${space(0.25)};
   hyphens: auto;

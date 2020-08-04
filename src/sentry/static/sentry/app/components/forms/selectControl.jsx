@@ -45,7 +45,7 @@ const defaultStyles = {
   control: (_, state) => ({
     height: '100%',
     fontSize: '15px',
-    color: theme.gray800,
+    color: theme.gray500,
     display: 'flex',
     background: '#fff',
     border: `1px solid ${theme.borderDark}`,

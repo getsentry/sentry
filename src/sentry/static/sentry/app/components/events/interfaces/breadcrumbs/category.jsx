@@ -57,7 +57,7 @@ const CrumbCategory = styled('span')`
   font-weight: bold;
   text-transform: none;
   padding-right: 10px;
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.gray500};
 
   ${p => (p.ellipsisFromLeft ? overflowEllipsisLeft : overflowEllipsis)}
 `;
