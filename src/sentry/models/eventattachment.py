@@ -45,4 +45,11 @@ class EventAttachment(Model):
         # with the next incoming crash report.
         cache.delete(get_crashreport_key(self.group_id))
 
-        self.file.delete()
+        try:
+            self.file.delete()
+        except type(self.file).DoesNotExist:
+            # It's possible that the File itself was deleted
+            # before we were deleted when the object is in memory
+            # This seems to be a case that happens during deletion
+            # code.
+            pass
