@@ -15,7 +15,7 @@ const IconWrapper = styled('div', {
   justify-content: center;
   width: 26px;
   height: 26px;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.backgrounf};
   box-shadow: ${p => p.theme.dropShadowLightest};
   border-radius: 32px;
   z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
