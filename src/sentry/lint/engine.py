@@ -17,7 +17,6 @@ import json
 
 from subprocess import check_output, Popen
 
-os.environ["PYFLAKES_NODOCTEST"] = "1"
 os.environ["SENTRY_PRECOMMIT"] = "1"
 
 
