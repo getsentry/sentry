@@ -11,9 +11,9 @@ export function getDevData(): DashboardData {
     cards: [
       {
         columnSpan: 1,
+        type: 'performance',
         data: {
           id: generateRandomId(),
-          kind: 'performance',
           transactionName: '/api/0/organizations/{organization_slug}/eventsv2/',
           projectId: 1,
           apdex: 0.85,
@@ -34,6 +34,7 @@ export function getDevData(): DashboardData {
       },
       {
         columnSpan: 2,
+        type: 'issueList',
         data: {
           id: generateRandomId(),
         },

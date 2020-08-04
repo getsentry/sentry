@@ -36,6 +36,9 @@ class Card extends React.Component<Props> {
 export default Card;
 
 const CardWrapper = styled(AppComponentCard)<{columnSpan: number}>`
-  min-height: 200px; /* Allow taller rows based on content */
+  height: 200px; /* Allow taller rows based on content */
   grid-column: auto / span ${p => p.columnSpan || 1};
+
+  overflow-y: scroll;
+  overflow-x: hidden;
 `;

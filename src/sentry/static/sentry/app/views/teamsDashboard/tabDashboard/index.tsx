@@ -10,6 +10,7 @@ import withLocalStorage, {InjectedLocalStorageProps} from '../withLocalStorage';
 import {TAB_DASHBOARD} from '../utils';
 import Card from './cards';
 import CardAddNew from './cards/cardAddNew';
+import CardIssueList from './cards/cardIssueList';
 import CardPerformance from './cards/cardPerformance';
 import {CardData, DashboardData} from './types';
 import {getDevData} from './utils';
@@ -92,6 +93,8 @@ class Dashboard extends AsyncComponent<Props, State> {
     switch (type) {
       case 'performance':
         return CardPerformance;
+      case 'issueList':
+        return CardIssueList;
       default:
         return Card;
     }

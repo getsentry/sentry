@@ -11,6 +11,7 @@ import {t} from 'app/locale';
 import DropdownLink from 'app/components/dropdownLink';
 import ErrorLevel from 'app/components/events/errorLevel';
 import GroupChart from 'app/components/stream/groupChart';
+import PlatformIcon from 'app/components/platformIcon';
 import GroupStore from 'app/stores/groupStore';
 import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
@@ -95,6 +96,12 @@ class CompactIssueHeader extends React.Component {
         </IssueHeaderMetaWrapper>
         <div className="event-extra">
           <span className="project-name">
+            {/*
+              HACK(leedongwei*): I need an icon here so I'm slamming in an icon
+              here because Hackweek so please don't let this go to production
+            */}
+            <PlatformIcon platform={data.project.platform} size={12} />
+            &nbsp;
             <strong>{data.project.slug}</strong>
           </span>
           {data.numComments !== 0 && (
