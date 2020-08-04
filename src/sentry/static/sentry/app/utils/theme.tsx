@@ -74,6 +74,7 @@ const aliases = {
   borderDark: colors.gray300,
   disabled: colors.gray400,
   background: colors.white,
+  backgroundAccent: colors.gray100,
 };
 
 const warning = {
@@ -350,6 +351,7 @@ export const darkTheme = {
   ...theme,
 
   background: colors.black,
+  backgroundAccent: colors.gray500,
   borderLighter: colors.gray300,
   borderLight: colors.gray300,
   borderDark: colors.gray100,
