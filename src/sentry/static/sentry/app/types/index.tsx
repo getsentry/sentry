@@ -198,7 +198,7 @@ export type Team = {
   avatar: Avatar;
   memberCount: number;
   dateCreated: string;
-  members?: Array<Member>;
+  members: Array<Member>;
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};

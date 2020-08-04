@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
 
 import {t} from 'app/locale';
 import {Team} from 'app/types';
@@ -8,6 +9,7 @@ import Breadcrumbs from 'app/components/breadcrumbs';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {IconMegaphone} from 'app/icons';
+import AvatarList from 'app/components/avatar/avatarList';
 
 type Props = {
   team: Team;
@@ -57,6 +59,7 @@ class TeamDetailsHeader extends React.Component<Props, State> {
 
   render() {
     const {team} = this.props;
+    const {members = []} = team;
     return (
       <Wrapper>
         <Header>
@@ -73,11 +76,25 @@ class TeamDetailsHeader extends React.Component<Props, State> {
           <Avatar team={team} size={90} />
           <DetailsContainer>
             <Details>
-              <Title>{team.slug}</Title>
-              <div>This is awesome copy and maybe should not even be here</div>
+              <Title>{capitalize(team.slug)}</Title>
+              <div>This is copy about the team.</div>
             </Details>
           </DetailsContainer>
         </Body>
+        <Footer>
+          <FooterItem>
+            <FooterItemTitle>{t('Team Projects')}</FooterItemTitle>
+            content goes here
+          </FooterItem>
+          <FooterItem>
+            <FooterItemTitle>{t('Team Enviroments')}</FooterItemTitle>
+            content goes here
+          </FooterItem>
+          <FooterItem>
+            <FooterItemTitle>{t('Team Members')}</FooterItemTitle>
+            <StyledAvatarList users={members as any} avatarSize={35} />
+          </FooterItem>
+        </Footer>
       </Wrapper>
     );
   }
@@ -101,20 +118,44 @@ const Body = styled('div')`
   grid-gap: ${space(3)};
 `;
 
-const Title = styled('h5')`
-  width: 100%;
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: 400;
-  margin-bottom: 0;
-`;
-
 const DetailsContainer = styled('div')`
   display: grid;
   grid-gap: ${space(1.5)};
 `;
 
 const Details = styled('div')`
-  display: grid;
-  grid-gap: ${space(0.5)};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: ${p => p.theme.gray500};
+`;
+
+const Title = styled('h5')`
+  width: 100%;
+  font-size: ${p => p.theme.headerFontSize};
+  font-weight: 400;
+  margin-bottom: ${space(1)};
   color: ${p => p.theme.gray700};
+`;
+
+const Footer = styled('div')`
+  display: grid;
+  grid-template-columns: max-content max-content max-content;
+  grid-gap: ${space(4)};
+`;
+
+const FooterItem = styled('div')``;
+
+const FooterItemTitle = styled('div')`
+  color: ${p => p.theme.gray600};
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StyledAvatarList = styled(AvatarList)`
+  justify-content: center;
+  .avatar {
+    margin-left: 0;
+  }
 `;

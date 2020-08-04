@@ -18,7 +18,6 @@ import recreateRoute from 'app/utils/recreateRoute';
 import withTeams from 'app/utils/withTeams';
 
 import TabListTeam from './tabListTeam';
-import TabDashboard from './tabDashboard';
 import {TAB} from './utils';
 
 type Props = RouteComponentProps<
@@ -73,11 +72,7 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     const {currentTab} = this.state;
 
     const hasTeamAdminAccess = organization.access.includes('project:admin');
-    const stepBack =
-      location.pathname.endsWith('all-teams/') || location.pathname.endsWith('my-teams/')
-        ? -2
-        : -1;
-    const baseUrl = recreateRoute('', {location, routes, params, stepBack});
+    const baseUrl = recreateRoute('', {location, routes, params, stepBack: -2});
     const createTeamLabel = t('Create Team');
 
     return (
@@ -100,14 +95,6 @@ class TeamsTabDashboard extends React.Component<Props, State> {
         </PageHeader>
 
         <NavTabs underlined>
-          <ListLink
-            to={baseUrl}
-            index
-            isActive={() => currentTab === TAB.DASHBOARD}
-            onClick={() => this.setState({currentTab: TAB.DASHBOARD})}
-          >
-            {t('Dashboard')}
-          </ListLink>
           <ListLink
             to={`${baseUrl}all-teams/`}
             isActive={() => currentTab === TAB.ALL_TEAMS}
@@ -132,8 +119,6 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     const {teams, organization, location} = this.props;
 
     switch (currentTab) {
-      case TAB.DASHBOARD:
-        return <TabDashboard />;
       case TAB.ALL_TEAMS:
         return (
           <TabListTeam
@@ -162,10 +147,7 @@ class TeamsTabDashboard extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle
-          title={t('Teams TabDashboard')}
-          objSlug={organization.slug}
-        />
+        <SentryDocumentTitle title={t('Teams')} objSlug={organization.slug} />
         <PageContent>
           {this.renderHeader()}
           {isLoading ? <LoadingIndicator /> : this.renderContent()}

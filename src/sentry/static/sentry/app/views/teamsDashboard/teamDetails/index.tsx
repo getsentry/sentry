@@ -12,13 +12,10 @@ import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
-import Button from 'app/components/button';
-import {IconFilter} from 'app/icons';
-import SearchBar from 'app/components/searchBar';
-import Avatar from 'app/components/avatar';
 import recreateRoute from 'app/utils/recreateRoute';
 
 import Header from './header';
+import Dashboard from './dashboard';
 
 type Props = RouteComponentProps<{orgSlug: string; teamSlug: string}, {}> & {
   team: Team;
@@ -58,8 +55,6 @@ class TeamDetails extends React.Component<Props, State> {
       );
     }
 
-    const {members = []} = team;
-
     const baseUrl = recreateRoute('', {location, routes, params, stepBack: -1});
 
     return (
@@ -71,9 +66,12 @@ class TeamDetails extends React.Component<Props, State> {
           origin={baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams'}
         />
         <Body>
-          <StyledNavTabs underlined>
+          <StyledNavTabs>
             <ListLink to="" index isActive={() => true}>
-              {t('Overview')}
+              {t('Team Feed')}
+            </ListLink>
+            <ListLink to="" isActive={() => false}>
+              {t('Team Goals')}
             </ListLink>
             <ListLink to="" isActive={() => false}>
               {t('Projects')}
@@ -82,34 +80,11 @@ class TeamDetails extends React.Component<Props, State> {
               {t('Members')}
             </ListLink>
             <ListLink to="" isActive={() => false}>
-              {t('Goals')}
-            </ListLink>
-            <ListLink to="" isActive={() => false}>
               {t('Settings')}
             </ListLink>
           </StyledNavTabs>
           <TabContent>
-            <TabContentLeft>
-              <SearchWrapper>
-                <SearchBar
-                  defaultQuery=""
-                  query={this.state.searchTerm}
-                  placeholder={t('Search for projectss')}
-                  onSearch={this.handleSearch}
-                />
-                <Button label={t('Filter')} icon={<IconFilter />} size="small" />
-              </SearchWrapper>
-            </TabContentLeft>
-            <TabContentRight>
-              <div>
-                <Heading>{t('Teams Members')}</Heading>
-                <Members membersQuantity={members.length}>
-                  {members.map(member => (
-                    <Avatar key={member.id} user={member.user} size={32} />
-                  ))}
-                </Members>
-              </div>
-            </TabContentRight>
+            <Dashboard />
           </TabContent>
         </Body>
       </StyledPageContent>
@@ -160,33 +135,4 @@ const TabContent = styled('div')`
   display: flex;
   flex: 1;
   background: ${p => p.theme.white};
-`;
-
-const TabContentLeft = styled('div')`
-  width: 100%;
-  padding: ${space(4)} ${space(2)} 0 ${space(2)};
-`;
-
-const TabContentRight = styled('div')`
-  padding: ${space(4)} ${space(2)} 0 ${space(2)};
-  min-width: 285px;
-  border-left: 1px solid ${p => p.theme.gray300};
-`;
-
-const SearchWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  grid-gap: ${space(3)};
-`;
-
-const Heading = styled('h6')`
-  margin: 0 !important;
-  font-weight: 600;
-`;
-
-const Members = styled('div')<{membersQuantity: number}>`
-  margin-top: ${space(1)};
-  display: grid;
-  grid-template-columns: repeat(${p => p.membersQuantity}, 1fr);
-  grid-gap: ${space(0.5)};
 `;

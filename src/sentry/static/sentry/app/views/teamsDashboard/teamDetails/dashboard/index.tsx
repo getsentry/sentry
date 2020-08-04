@@ -6,8 +6,8 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-import withLocalStorage, {InjectedLocalStorageProps} from '../withLocalStorage';
-import {TAB} from '../utils';
+import withLocalStorage, {InjectedLocalStorageProps} from '../../withLocalStorage';
+import {TAB} from '../../utils';
 import Card from './cards';
 import CardAddNew from './cards/cardAddNew';
 import CardIssueList from './cards/cardIssueList';

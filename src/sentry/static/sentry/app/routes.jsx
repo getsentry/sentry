@@ -1179,15 +1179,11 @@ function routes() {
       exist some redirects from deprecated routes which should not take
       precedence over these lightweight routes*/}
         <Route component={errorHandler(LightWeightOrganizationDetails)}>
+          <Redirect
+            from="/organizations/:orgSlug/teams/"
+            to="/organizations/:orgSlug/teams/all-teams/"
+          />
           <Route path="/organizations/:orgSlug/teams/">
-            <IndexRoute
-              componentPromise={() =>
-                import(
-                  /* webpackChunkName: "TeamsDashboard" */ 'app/views/teamsDashboard'
-                )
-              }
-              component={errorHandler(LazyLoad)}
-            />
             <Route path="all-teams/">
               <IndexRoute
                 componentPromise={() =>
@@ -1201,7 +1197,7 @@ function routes() {
                 path=":teamSlug/"
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "TeamDetails" */ 'app/views/teamsDashboard/tabListTeam/teamDetails'
+                    /* webpackChunkName: "TeamDetails" */ 'app/views/teamsDashboard/teamDetails'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -1220,22 +1216,13 @@ function routes() {
                 path=":teamSlug/"
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "TeamDetails" */ 'app/views/teamsDashboard/tabListTeam/teamDetails'
+                    /* webpackChunkName: "TeamDetails" */ 'app/views/teamsDashboard/teamDetails'
                   )
                 }
                 component={errorHandler(LazyLoad)}
               />
             </Route>
           </Route>
-          <Route
-            path="/organizations/:orgSlug/teams/:teamSlug/"
-            componentPromise={() =>
-              import(
-                /* webpackChunkName: "TeamDetails" */ 'app/views/teamsDashboard/tabListTeam/teamDetails'
-              )
-            }
-            component={errorHandler(LazyLoad)}
-          />
           <Route
             path="/organizations/:orgId/projects/"
             componentPromise={() =>

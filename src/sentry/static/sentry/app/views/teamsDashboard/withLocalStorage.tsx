@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import getDisplayName from 'app/utils/getDisplayName';
 
 import {TAB} from './utils';
-import {DashboardData} from './tabDashboard/types';
+import {DashboardData} from './teamDetails/dashboard/types';
 
 const LS_KEY = 'HACKWEEK_TEAM_PAGE';
 const DEFAULT_STATE = {
@@ -14,7 +14,7 @@ const DEFAULT_STATE = {
 };
 
 export type InjectedLocalStorageProps = {
-  data: Record<TabName, DashboardData | any> | undefined;
+  data: Record<TAB, DashboardData | any> | undefined;
   setLs: (data: any) => void;
   resetLs: (defaultState: any) => void;
   resetLsAll: () => void;
@@ -30,7 +30,7 @@ export type InjectedLocalStorageProps = {
  */
 const withLocalStorage = <P extends InjectedLocalStorageProps>(
   WrappedComponent: React.ComponentType<P>,
-  tabName: TabName
+  tabName: TAB
 ) =>
   class extends React.Component<Omit<P, keyof InjectedLocalStorageProps>> {
     static displayName = `withLocalStorage(${getDisplayName(WrappedComponent)})`;
