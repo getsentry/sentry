@@ -243,10 +243,10 @@ class ContextData extends React.Component {
     } = this.props;
 
     return (
-      <pre {...other}>
+      <ContextValues {...other}>
         {this.renderValue(data)}
         {children}
-      </pre>
+      </ContextValues>
     );
   }
 }
@@ -256,6 +256,11 @@ ContextData.displayName = 'ContextData';
 const StyledIconOpen = styled(IconOpen)`
   position: relative;
   top: 1px;
+`;
+
+const ContextValues = styled('pre')`
+  /* Not using theme to be consistent with less files */
+  color: #4e3fb4;
 `;
 
 export default ContextData;
