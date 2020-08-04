@@ -4,10 +4,14 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {IconAdd, IconFile} from 'app/icons';
+import {Organization, Team} from 'app/types';
 
 import TeamCard from './teamCard';
 
 type Props = {
+  organization: Organization;
+  location: Location;
+  teams: Array<Team>;
   handleCreateTeam: any;
 };
 

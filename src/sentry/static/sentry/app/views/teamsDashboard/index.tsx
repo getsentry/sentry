@@ -17,8 +17,8 @@ import withOrganization from 'app/utils/withOrganization';
 import recreateRoute from 'app/utils/recreateRoute';
 import withTeams from 'app/utils/withTeams';
 
-import ListTeam from './listTeam';
-import Dashboard from './dashboard';
+import TabListTeam from './tabListTeam';
+import TabDashboard from './tabDashboard';
 
 const TAB_DASHBOARD = 'TAB_DASHBOARD';
 const TAB_ALL_TEAM = 'TAB_ALL_TEAM';
@@ -39,7 +39,7 @@ type State = {
   currentTab: typeof TAB_DASHBOARD | typeof TAB_ALL_TEAM | typeof TAB_MY_TEAMS;
 };
 
-class TeamsDashboard extends React.Component<Props, State> {
+class TeamsTabDashboard extends React.Component<Props, State> {
   state: State = {
     currentTab: TAB_DASHBOARD,
   };
@@ -110,11 +110,14 @@ class TeamsDashboard extends React.Component<Props, State> {
 
     switch (currentTab) {
       case TAB_DASHBOARD:
-        return <Dashboard />;
+        return <TabDashboard />;
       case TAB_ALL_TEAM:
       case TAB_MY_TEAMS:
         return (
-          <ListTeam {...(this.props as any)} handleCreateTeam={this.handleCreateTeam} />
+          <TabListTeam
+            {...(this.props as any)}
+            handleCreateTeam={this.handleCreateTeam}
+          />
         );
       default:
         return <div>This should not happen</div>;
@@ -126,7 +129,10 @@ class TeamsDashboard extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        <SentryDocumentTitle title={t('Teams Dashboard')} objSlug={organization.slug} />
+        <SentryDocumentTitle
+          title={t('Teams TabDashboard')}
+          objSlug={organization.slug}
+        />
         <PageContent>
           {this.renderHeader()}
           {isLoading ? <LoadingIndicator /> : this.renderContent()}
@@ -136,4 +142,4 @@ class TeamsDashboard extends React.Component<Props, State> {
   }
 }
 
-export default withOrganization(withTeams(TeamsDashboard));
+export default withOrganization(withTeams(TeamsTabDashboard));
