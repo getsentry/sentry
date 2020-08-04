@@ -19,10 +19,7 @@ import withTeams from 'app/utils/withTeams';
 
 import TabListTeam from './tabListTeam';
 import TabDashboard from './tabDashboard';
-
-const TAB_DASHBOARD = 'TAB_DASHBOARD';
-const TAB_ALL_TEAM = 'TAB_ALL_TEAM';
-const TAB_MY_TEAMS = 'TAB_MY_TEAM';
+import {TAB_DASHBOARD, TAB_ALL_TEAM, TAB_MY_TEAMS, TabName} from './utils';
 
 type Props = RouteComponentProps<
   {orgId: string; projectId: string; location: Location},
@@ -36,7 +33,7 @@ type Props = RouteComponentProps<
 };
 type State = {
   // XXX: Tabs should be managed by react-router but this is easier for Hackweek
-  currentTab: typeof TAB_DASHBOARD | typeof TAB_ALL_TEAM | typeof TAB_MY_TEAMS;
+  currentTab: TabName;
 };
 
 class TeamsTabDashboard extends React.Component<Props, State> {

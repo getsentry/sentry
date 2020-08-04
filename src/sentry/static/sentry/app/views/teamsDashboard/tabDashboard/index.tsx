@@ -3,71 +3,82 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
+import withLocalStorage, {InjectedLocalStorageProps} from '../withLocalStorage';
+import {TAB_DASHBOARD} from '../utils';
 import Card from './cards';
 import CardAddNew from './cards/cardAddNew';
+import {CardData, DashboardData} from './types';
+import {getDevData} from './utils';
 
-export type CardStructure = {
-  columnSpan: 1 | 2 | 3;
-  cardProps: any;
+const DEFAULT_STATE: DashboardData = {
+  cards: [],
 };
 
-type Props = {};
-type State = {
-  cards: CardStructure[];
+type Props = InjectedLocalStorageProps & {
+  data: DashboardData;
 };
 
-class Dashboard extends React.Component<Props, State> {
-  state: State = {
-    cards: [
-      {
-        columnSpan: 1,
-        cardProps: {},
-      },
-      {
-        columnSpan: 1,
-        cardProps: {},
-      },
-      {
-        columnSpan: 1,
-        cardProps: {},
-      },
-      {
-        columnSpan: 2,
-        cardProps: {},
-      },
-      {
-        columnSpan: 1,
-        cardProps: {},
-      },
-      {
-        columnSpan: 3,
-        cardProps: {},
-      },
-      {
-        columnSpan: 1,
-        cardProps: {},
-      },
-      {
-        columnSpan: 2,
-        cardProps: {},
-      },
-    ],
+class Dashboard extends React.Component<Props> {
+  componentDidUpdate(prevProps) {
+    if (prevProps === this.props) {
+      return;
+    }
+
+    // Set localStorage with dev data
+    if (!this.props.data) {
+      this.props.setLs(getDevData());
+    }
+  }
+
+  resetLs = () => {
+    this.props.resetLs(DEFAULT_STATE);
   };
+
+  addCard = (index: number, cardData: CardData) => {
+    const {data} = this.props;
+    const prevCards = data.cards;
+    const nextCards = [...prevCards.slice(0, index), cardData, ...prevCards.slice(index)];
+
+    this.props.setLs({...data, cards: nextCards});
+  };
+
+  removeCard = (index: number) => {
+    const {data} = this.props;
+    const prevCards = data.cards;
+    const nextCards = [...prevCards.slice(0, index), ...prevCards.slice(index + 1)];
+
+    this.props.setLs({...data, cards: nextCards});
+  };
+
   render() {
-    const {cards} = this.state;
+    const {data} = this.props;
+    if (!data) {
+      return <h3>LOADING!</h3>;
+    }
+
+    const cards: CardData[] = data.cards || [];
+
     return (
       <Container>
         {cards.map((c, i) => (
-          <Card key={i} columnSpan={c.columnSpan} />
+          <Card key={c.id || i} index={i} removeCard={this.removeCard} {...c} />
         ))}
+
+        <CardAddNew
+          index={cards.length}
+          removeCard={this.removeCard}
+          addCard={this.addCard}
+          resetLs={this.resetLs}
+          resetLsAll={this.props.resetLsAll}
+        />
+
         {this.props.children}
-        <CardAddNew />
       </Container>
     );
   }
 }
 
-export default Dashboard;
+export default withLocalStorage(Dashboard, TAB_DASHBOARD);
 
 const Container = styled('div')`
   display: grid;

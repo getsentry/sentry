@@ -4,17 +4,31 @@ import styled from '@emotion/styled';
 import AppComponentCard from 'app/components/card';
 // import theme from 'app/utils/theme';
 
-type Prop = {
-  columnSpan: 1 | 2 | 3; // Size of the card
-  content?: React.ReactNode;
-};
+import {CardData} from '../types';
 
-class Card extends React.Component<Prop> {
+type Props = {
+  // Related to Dashboard
+  index: number;
+
+  // Related to state changes
+  removeCard: (index: number) => void;
+  isRemovable?: boolean;
+} & CardData;
+
+class Card extends React.Component<Props> {
+  removeCard = () => {
+    const {index, removeCard: remove} = this.props;
+    remove(index);
+  };
+
   render() {
-    const {columnSpan} = this.props;
+    const {columnSpan, isRemovable = true} = this.props;
 
     return (
-      <CardWrapper columnSpan={columnSpan}>{this.props.children || 'asd1'}</CardWrapper>
+      <CardWrapper columnSpan={columnSpan}>
+        {this.props.children || `ID: ${this.props.id}`}
+        {isRemovable && <div onClick={this.removeCard}>remove card</div>}
+      </CardWrapper>
     );
   }
 }
