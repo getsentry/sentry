@@ -6,11 +6,12 @@ import {Theme} from 'app/utils/theme';
 
 const styles = (theme: Theme) => css`
   body {
+    color: ${theme.textColor};
+    background-color: ${theme.background};
+
     .sentry-error-embed-wrapper {
       z-index: ${theme.zIndex.sentryErrorEmbed};
     }
-
-    background-color: ${theme.background};
   }
 
   abbr {

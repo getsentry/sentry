@@ -9,7 +9,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 export const Body = styled('div')`
   padding: ${space(2)} ${space(4)};
   margin: 0;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

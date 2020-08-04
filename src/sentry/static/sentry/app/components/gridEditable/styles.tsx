@@ -225,7 +225,7 @@ const GridStatusFloat = styled('div')`
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
 
   z-index: ${Z_INDEX_GRID_STATUS};
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
 `;
 export const GridBodyCellStatus = props => (
   <GridStatusWrapper>

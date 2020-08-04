@@ -113,7 +113,7 @@ const QueryDetail = styled('div')`
 `;
 
 const QueryCardBody = styled('div')`
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.gray100};
   max-height: 100px;
   height: 100%;
   overflow: hidden;

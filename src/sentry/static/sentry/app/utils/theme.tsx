@@ -11,9 +11,6 @@ const colors = {
   gray300: '#9386A0',
   gray400: '#776589',
   gray500: '#2B1D38',
-  gray600: '#645574',
-  gray700: '#4A3E56',
-  gray800: '#302839',
 
   yellow100: '#FFFDF5',
   yellow200: '#FFF8C4',
@@ -69,11 +66,11 @@ const colors = {
 };
 
 const aliases = {
-  textColor: colors.gray800,
+  textColor: colors.gray500,
   success: colors.green400,
   error: colors.red400,
   borderLighter: colors.gray100,
-  borderLight: colors.gray200,
+  borderLight: colors.gray100,
   borderDark: colors.gray300,
   disabled: colors.gray400,
   background: colors.white,
@@ -179,8 +176,8 @@ const button = {
       .string(),
   },
   link: {
-    color: colors.blue400,
-    colorActive: colors.blue400,
+    color: colors.purple300,
+    colorActive: colors.purple300,
     background: 'transparent',
     border: false,
     borderActive: false,
@@ -355,7 +352,8 @@ export const darkTheme = {
   background: colors.black,
   borderLighter: colors.gray300,
   borderLight: colors.gray300,
-  borderDark: colors.gray200,
+  borderDark: colors.gray100,
+  textColor: colors.white,
 };
 
 export type Theme = typeof theme | typeof darkTheme;

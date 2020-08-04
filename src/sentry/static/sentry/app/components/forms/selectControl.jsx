@@ -98,12 +98,12 @@ const defaultStyles = {
       ? theme.white
       : theme.textColor,
     backgroundColor: state.isFocused
-      ? theme.gray200
+      ? theme.gray100
       : state.isSelected
       ? theme.purple400
       : 'transparent',
     '&:active': {
-      backgroundColor: theme.gray200,
+      backgroundColor: theme.gray100,
     },
   }),
   valueContainer: provided => ({

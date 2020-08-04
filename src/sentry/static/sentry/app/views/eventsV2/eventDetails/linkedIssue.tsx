@@ -111,7 +111,7 @@ const StyledLink = styled(Link)`
 `;
 
 const IssueCardBody = styled('div')`
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.gray100};
   padding-top: ${space(1)};
 `;
 

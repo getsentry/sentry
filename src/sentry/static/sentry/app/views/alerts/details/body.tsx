@@ -290,7 +290,7 @@ export default class DetailsBody extends React.Component<Props> {
 }
 
 const Main = styled('div')`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   padding-top: ${space(3)};
   flex-grow: 1;
 `;
