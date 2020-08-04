@@ -110,6 +110,7 @@ class Dashboard extends AsyncComponent<Props, State> {
           columnSpan: 1,
           data: {
             transaction: row.transaction,
+            project: row.project,
             projectId: row['project.id'],
             apdex: row.apdex_300,
             userMisery: row.user_misery_300,

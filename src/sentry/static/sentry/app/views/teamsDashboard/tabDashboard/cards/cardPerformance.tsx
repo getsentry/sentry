@@ -5,12 +5,14 @@ import {Client} from 'app/api';
 import {Organization} from 'app/types';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import LoadingContainer from 'app/components/loading/loadingContainer';
 import {IconFire, IconLaptop, IconLightning, IconWarning} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
+import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -24,8 +26,8 @@ type Props = Card['props'] & {
 
 class CardPerformance extends React.Component<Props> {
   renderHeader() {
-    const {data} = this.props;
-    const {transaction = null} = data ?? {};
+    const {organization, data} = this.props;
+    const {transaction = null, project = null} = data ?? {};
 
     if (transaction === null) {
       return null;
@@ -35,7 +37,21 @@ class CardPerformance extends React.Component<Props> {
       <CardHeader>
         <CardContent>
           <CardTitle>{transaction}</CardTitle>
-          <CardDetail>put project here somehow</CardDetail>
+          {project ? (
+            <CardDetail>
+              <Projects orgId={organization.slug} slugs={[project]}>
+                {({projects}) => {
+                  const proj = projects.find(p => p.slug === data.project);
+                  return (
+                    <ProjectBadge
+                      project={proj ? proj : {slug: project}}
+                      avatarSize={16}
+                    />
+                  );
+                }}
+              </Projects>
+            </CardDetail>
+          ) : null}
         </CardContent>
       </CardHeader>
     );
