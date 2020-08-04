@@ -235,8 +235,10 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
         listening = "(listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
 
     # If a service is associated with the devserver, then do not run the created container.
-    # This was mainly added since it was not desirable for reverse_proxy to occupy port 8000 on the
+    # This was mainly added since it was not desirable for nginx to occupy port 8000 on the
     # first "devservices up".
+    # Nowadays that nginx is gone again, it's still nice to be able to shut
+    # down services within devserver.
     # See https://github.com/getsentry/sentry/pull/18362#issuecomment-616785458
     with_devserver = options.pop("with_devserver", False)
 

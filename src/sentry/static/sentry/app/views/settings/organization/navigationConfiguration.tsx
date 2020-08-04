@@ -43,6 +43,13 @@ const organizationNavigation: NavigationSection[] = [
         id: 'members',
       },
       {
+        path: `${pathPrefix}/performance/`,
+        title: t('Performance'),
+        show: ({features}) => features!.has('performance-view'),
+        description: t('Manage performance settings'),
+        id: 'performance',
+      },
+      {
         path: `${pathPrefix}/auth/`,
         title: t('Auth'),
         description: t('Configure single sign-on'),

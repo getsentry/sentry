@@ -246,10 +246,10 @@ class TimeSeriesSnapshot(Model):
 
 
 class IncidentActivityType(Enum):
-    DETECTED = 1
+    CREATED = 1
     STATUS_CHANGE = 2
     COMMENT = 3
-    STARTED = 4
+    DETECTED = 4
 
 
 class IncidentActivity(Model):
@@ -483,7 +483,7 @@ class AlertRuleTrigger(Model):
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule")
     label = models.TextField()
-    threshold_type = models.SmallIntegerField()
+    threshold_type = models.SmallIntegerField(null=True)
     alert_threshold = models.FloatField()
     resolve_threshold = models.FloatField(null=True)
     triggered_incidents = models.ManyToManyField(

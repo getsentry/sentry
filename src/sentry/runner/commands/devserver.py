@@ -69,13 +69,7 @@ def devserver(
         raise click.ClickException("Not a daemon name: {}".format(", ".join(unrecognized_daemons)))
 
     if bind is None:
-        # default configuration, the dev server address depends on weather we have a reverse proxy
-        # in front that splits the requests between Relay and the dev server or we pass everything
-        # to the dev server
-        from django.conf import settings
-
-        port = 8888 if settings.SENTRY_USE_RELAY else 8000
-        bind = "127.0.0.1:{}".format(port)
+        bind = "127.0.0.1:8000"
 
     if ":" in bind:
         host, port = bind.split(":", 1)

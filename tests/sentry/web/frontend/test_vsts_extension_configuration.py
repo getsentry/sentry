@@ -40,8 +40,8 @@ class VstsExtensionConfigurationTest(TestCase):
     def test_choose_org(self):
         self.login_as(self.user)
 
-        resp = self.client.post(
-            self.path, {"vsts_id": "1", "vsts_name": "foo", "organization": self.org.slug}
+        resp = self.client.get(
+            self.path, {"targetId": "1", "targetName": "foo", "orgSlug": self.org.slug}
         )
 
         assert resp.status_code == 302

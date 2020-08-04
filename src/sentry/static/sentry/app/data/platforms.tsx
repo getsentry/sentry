@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 const otherPlatform = {
   integrations: [
     {
-      link: 'https://docs.getsentry.com/hosted/clients/',
+      link: 'https://docs.sentry.io/clients/',
       type: 'language',
       id: 'other',
       name: t('Other'),

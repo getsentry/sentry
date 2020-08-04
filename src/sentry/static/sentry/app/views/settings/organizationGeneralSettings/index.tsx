@@ -43,7 +43,7 @@ class OrganizationGeneralSettings extends React.Component<Props> {
     });
   };
 
-  handleSave = (prevData: Organization, data: Organization) => {
+  handleSave = (prevData: Organization, data: Record<string, any>) => {
     if (data.slug && data.slug !== prevData.slug) {
       changeOrganizationSlug(prevData, data);
       browserHistory.replace(`/settings/${data.slug}/`);
@@ -70,7 +70,6 @@ class OrganizationGeneralSettings extends React.Component<Props> {
           <OrganizationSettingsForm
             {...this.props}
             initialData={organization}
-            orgId={orgId}
             access={access}
             onSave={this.handleSave}
           />
