@@ -492,7 +492,7 @@ const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => <div {...props}
 
 const InputLoadingWrapper = styled('div')`
   display: flex;
-  background: #fff;
+  background: ${p => p.theme.background};
   align-items: center;
   flex-shrink: 0;
   width: 30px;
@@ -547,7 +547,7 @@ const AutoCompleteItem = styled('div')`
 
   font-size: 0.9em;
   background-color: ${p =>
-    p.index === p.highlightedIndex ? p.theme.gray100 : 'transparent'};
+    p.index === p.highlightedIndex ? p.theme.backgroundAccent : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -557,12 +557,12 @@ const AutoCompleteItem = styled('div')`
   }
 
   &:hover {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundAccent};
   }
 `;
 
 const LabelWithBorder = styled('div')`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundAccent};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   border-width: 1px 0;
   color: ${p => p.theme.gray600};

@@ -116,7 +116,7 @@ const StyledSearchDropdown = styled('div')`
   /* Container has a border that we need to account for */
   right: -1px;
   left: -1px;
-  background: #fff;
+  background: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.dropdown};
   overflow: hidden;
 `;
@@ -150,8 +150,8 @@ const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
 
-  background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.backgroundAccent};
+  color: ${p => p.theme.textColor};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -177,7 +177,7 @@ const SearchListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundAccent};
   }
 `;
 

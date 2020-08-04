@@ -14,7 +14,7 @@ const inputStyles = (props: Props) =>
     color: ${props.disabled ? props.theme.disabled : props.theme.gray800};
     display: block;
     width: 100%;
-    background: #fff;
+    background: ${props.theme.background};
     border: 1px solid ${props.theme.borderDark};
     border-radius: ${props.theme.borderRadius};
     box-shadow: inset ${props.theme.dropShadowLight};
