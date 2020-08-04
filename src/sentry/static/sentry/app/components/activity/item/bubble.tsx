@@ -12,7 +12,7 @@ type Props = {
  */
 const ActivityBubble = styled('div')<Props>`
   flex: 1;
-  background-color: ${p => p.backgroundColor};
+  background-color: ${p => p.backgroundColor || p.theme.background};
   border: 1px solid ${p => p.borderColor || p.theme.borderLight};
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
@@ -38,7 +38,7 @@ const ActivityBubble = styled('div')<Props>`
     height: 0;
     border-top: 6px solid transparent;
     border-bottom: 6px solid transparent;
-    border-right: 6px solid ${p => p.backgroundColor};
+    border-right: 6px solid ${p => p.backgroundColor || p.theme.background};
     position: absolute;
     left: -6px;
     top: 13px;
@@ -48,10 +48,6 @@ const ActivityBubble = styled('div')<Props>`
 ActivityBubble.propTypes = {
   backgroundColor: PropTypes.string,
   borderColor: PropTypes.string,
-};
-
-ActivityBubble.defaultProps = {
-  backgroundColor: '#fff',
 };
 
 export default ActivityBubble;
