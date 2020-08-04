@@ -117,7 +117,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundAccent};
   color: ${p => p.theme.gray600};
 
   font-size: ${p => p.theme.fontSizeSmall};
@@ -158,7 +158,7 @@ export const GridHeadCellStatic = styled('th')`
   display: flex;
   align-items: center;
   padding: 0 ${space(2)};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundAccent};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: 1;
@@ -194,7 +194,7 @@ export const GridBodyCell = styled('td')`
   min-height: ${GRID_BODY_ROW_HEIGHT}px;
   padding: ${space(1)} ${space(2)};
 
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.borderLight};
 
   font-size: ${p => p.theme.fontSizeMedium};
