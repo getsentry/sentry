@@ -12,7 +12,7 @@ ProgressBar.propTypes = {
 };
 
 const StyledBar = styled('div')`
-  background: #767676;
+  background: ${props => props.theme.gray100};
   width: 100%;
   height: 15px;
   float: right;
@@ -25,7 +25,7 @@ const StyledBar = styled('div')`
 const StyledSlider = styled('div')`
   height: 100%;
   width: ${props => (props.width ? props.width : 50)}%;
-  background: #7ccca5;
+  background: ${props => props.theme.active};
   padding-right: 0;
   border-radius: inherit;
   box-shadow: 0 2px 1px rgba(0, 0, 0, 0.08);

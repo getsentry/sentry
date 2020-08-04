@@ -18,11 +18,9 @@ const colors = {
   yellow400: '#FFC227',
   yellow500: '#E2A301',
 
-  purple100: '#FAF5FF',
-  purple200: '#E7D3FF',
-  purple300: '#B9A2FD',
-  purple400: '#6C5FC7',
-  purple500: '#3E2C73',
+  purple100: '#D4D1EC',
+  purple200: '#A396DA',
+  purple300: '#6C5FC7',
 
   blue100: '#F5F9FF',
   blue200: '#AFC7EE',
@@ -48,11 +46,9 @@ const colors = {
   green400: '#4DC771',
   green500: '#1C8952',
 
-  pink100: '#FFF5F9',
-  pink200: '#FFCEE4',
-  pink300: '#FF99BC',
-  pink400: '#E1567C',
-  pink500: '#902D4C',
+  pink100: '#FDC9D7',
+  pink200: '#FA93AB',
+  pink300: '#F05781',
 
   borderRadius: '4px',
   borderRadiusBottom: '0 0 4px 4px',
@@ -76,6 +72,7 @@ const aliases = {
   disabled: colors.gray200,
   background: colors.white,
   backgroundAccent: colors.gray100,
+  active: colors.pink300,
 };
 
 const warning = {
@@ -121,7 +118,7 @@ const badge = {
     indicatorColor: colors.orange400,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink400}, ${colors.purple400})`,
+    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple400})`,
     indicatorColor: colors.purple400,
   },
   new: {

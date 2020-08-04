@@ -7,7 +7,7 @@ import {Theme} from 'app/utils/theme';
 const styles = (theme: Theme) => css`
   body {
     color: ${theme.textColor};
-    background-color: ${theme.background};
+    background-color: ${theme.backgroundAccent};
 
     .sentry-error-embed-wrapper {
       z-index: ${theme.zIndex.sentryErrorEmbed};

@@ -75,7 +75,7 @@ function getCrumbDetails(type: BreadcrumbType) {
       };
     case BreadcrumbType.SYSTEM:
       return {
-        color: 'pink300',
+        color: 'pink200',
         icon: IconMobile,
         description: t('System'),
       };
@@ -87,7 +87,7 @@ function getCrumbDetails(type: BreadcrumbType) {
       };
     case BreadcrumbType.TRANSACTION:
       return {
-        color: 'pink400',
+        color: 'pink300',
         icon: IconSpan,
         description: t('Transaction'),
       };
