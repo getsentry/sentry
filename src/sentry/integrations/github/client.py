@@ -69,6 +69,40 @@ class GitHubClientMixin(ApiClient):
     def get_user(self, gh_username):
         return self.get(u"/users/{}".format(gh_username))
 
+    def get_blame(self, owner, repo, ref, path):
+        query = """
+        {
+          repository(owner: "%s", name: "%s") {
+            object(expression: "%s") {
+              ... on Commit {
+                blame(path: "%s") {
+                  ranges {
+                    commit {
+                      author {
+                        name
+                        email
+                      }
+                      id
+                    }
+                    age
+                    startingLine
+                    endingLine
+                  }
+                }
+              }
+            }
+          }
+        }""" % (
+            owner,
+            repo,
+            ref,
+            path,
+        )
+
+        response = self.create_query(query)
+
+        return response["data"]["repository"]["object"]["blame"]
+
     def request(self, method, path, headers=None, data=None, params=None):
         if headers is None:
             headers = {
@@ -111,6 +145,9 @@ class GitHubClientMixin(ApiClient):
                 "Accept": "application/vnd.github.machine-man-preview+json",
             },
         )
+
+    def create_query(self, query):
+        return self.post(u"/graphql", data={"query": query})
 
 
 class GitHubAppsClient(GitHubClientMixin):
