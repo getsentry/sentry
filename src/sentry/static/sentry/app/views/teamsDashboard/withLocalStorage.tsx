@@ -44,8 +44,7 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
     private _getLs() {
       try {
         const data = localStorage.getItem(LS_KEY);
-        console.log('ls.get', data); // eslint-disable-line no-console
-
+        // console.log('ls.get', data);
         this.setState(data ? JSON.parse(data) : {});
       } catch (err) {
         console.error(err); // eslint-disable-line no-console
@@ -54,10 +53,14 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
     }
 
     setLs = (data: any = {}) => {
-      this.setState({[tabName]: data}, () => {
-        console.log('ls.set', this.state); // eslint-disable-line no-console
-        localStorage.setItem(LS_KEY, JSON.stringify(this.state));
-      });
+      const nextState = {
+        ...this.state,
+        [tabName]: data,
+      };
+
+      console.log('ls.set', nextState); // eslint-disable-line no-console
+      localStorage.setItem(LS_KEY, JSON.stringify(nextState));
+      this._getLs();
     };
 
     /**
@@ -68,19 +71,24 @@ const withLocalStorage = <P extends InjectedLocalStorageProps>(
         throw new Error('You must provide a defaultState for your tab');
       }
 
+      // Dump state before reset
       console.log('ls.reset', JSON.stringify(this.state)); // eslint-disable-line no-console
 
-      this.setState({[tabName]: defaultState}, () => {
-        localStorage.setItem(LS_KEY, JSON.stringify(this.state));
-      });
+      const nextState = {
+        ...this.state,
+        [tabName]: defaultState,
+      };
+
+      localStorage.setItem(LS_KEY, JSON.stringify(nextState));
+      this._getLs();
     };
 
     resetLsAll = () => {
+      // Dump state before reset
       console.log('ls.resetAll', JSON.stringify(this.state)); // eslint-disable-line no-console
 
-      this.setState({...DEFAULT_STATE}, () => {
-        localStorage.removeItem(LS_KEY);
-      });
+      localStorage.setItem(LS_KEY, JSON.stringify({...DEFAULT_STATE}));
+      this._getLs();
     };
 
     render() {
