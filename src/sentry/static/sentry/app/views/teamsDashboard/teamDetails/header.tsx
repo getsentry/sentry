@@ -7,48 +7,81 @@ import Avatar from 'app/components/avatar';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
-import {IconMegaphone, IconSettings} from 'app/icons';
+import {IconMegaphone} from 'app/icons';
 
 type Props = {
   team: Team;
   orgSlug: string;
   teamSlug: string;
+  origin: 'my-teams' | 'all-teams';
 };
 
-const TeamDetailsHeader = ({team, orgSlug, teamSlug}: Props) => (
-  <Wrapper>
-    <Header>
-      <Breadcrumbs
-        crumbs={[
-          {
-            to: `/organizations/${orgSlug}/teams/`,
-            label: t('Teams'),
-            preserveGlobalSelection: true,
-          },
-          {label: teamSlug},
-        ]}
-      />
-      {team.isMember && <Button>{t('Leave Team')}</Button>}
-    </Header>
-    <Body>
-      <Avatar team={team} size={90} />
-      <DetailsContainer>
-        <Details>
-          <Title>{team.slug}</Title>
-          <div>This is awesome copy and maybe should not even be here</div>
-        </Details>
-        <Actions>
-          <Button icon={<IconMegaphone size="xs" />} size="xsmall">
-            {t('Request to Join')}
-          </Button>
-          <Button icon={<IconSettings size="xs" />} size="xsmall">
-            {t('Team Settings')}
-          </Button>
-        </Actions>
-      </DetailsContainer>
-    </Body>
-  </Wrapper>
-);
+type State = {
+  crumbs: Array<any>;
+};
+
+class TeamDetailsHeader extends React.Component<Props, State> {
+  state: State = {crumbs: []};
+
+  componentDidMount() {
+    this.getCrumbs();
+  }
+
+  getCrumbs() {
+    const {origin, orgSlug, teamSlug} = this.props;
+
+    const crumbs = [
+      {
+        to: `/organizations/${orgSlug}/teams/`,
+        label: t('Teams'),
+        preserveGlobalSelection: true,
+      },
+      {
+        to: `/organizations/${orgSlug}/teams/my-teams/`,
+        label: t('My Teams'),
+        preserveGlobalSelection: true,
+      },
+      {label: teamSlug},
+    ];
+
+    if (origin === 'all-teams') {
+      crumbs[1] = {
+        to: `/organizations/${orgSlug}/teams/all-teams/`,
+        label: t('All Teams'),
+        preserveGlobalSelection: true,
+      };
+    }
+
+    this.setState({crumbs});
+  }
+
+  render() {
+    const {team} = this.props;
+    return (
+      <Wrapper>
+        <Header>
+          <Breadcrumbs crumbs={this.state.crumbs} />
+          {team.isMember ? (
+            <Button priority="primary" icon={<IconMegaphone />}>
+              {t('Request to Join')}
+            </Button>
+          ) : (
+            <Button>{t('Leave Team')}</Button>
+          )}
+        </Header>
+        <Body>
+          <Avatar team={team} size={90} />
+          <DetailsContainer>
+            <Details>
+              <Title>{team.slug}</Title>
+              <div>This is awesome copy and maybe should not even be here</div>
+            </Details>
+          </DetailsContainer>
+        </Body>
+      </Wrapper>
+    );
+  }
+}
 
 export default TeamDetailsHeader;
 
@@ -84,10 +117,4 @@ const Details = styled('div')`
   display: grid;
   grid-gap: ${space(0.5)};
   color: ${p => p.theme.gray700};
-`;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: max-content max-content;
-  grid-gap: ${space(0.75)};
 `;

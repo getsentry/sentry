@@ -19,7 +19,7 @@ import withTeams from 'app/utils/withTeams';
 
 import TabListTeam from './tabListTeam';
 import TabDashboard from './tabDashboard';
-import {TAB_DASHBOARD, TAB_ALL_TEAM, TAB_MY_TEAMS, TabName} from './utils';
+import {TAB} from './utils';
 
 type Props = RouteComponentProps<
   {orgId: string; projectId: string; location: Location},
@@ -31,15 +31,37 @@ type Props = RouteComponentProps<
   teams: Array<Team>;
   isLoading: boolean;
 };
+
 type State = {
-  // XXX: Tabs should be managed by react-router but this is easier for Hackweek
-  currentTab: TabName;
+  currentTab: TAB;
 };
 
 class TeamsTabDashboard extends React.Component<Props, State> {
   state: State = {
-    currentTab: TAB_DASHBOARD,
+    currentTab: TAB.DASHBOARD,
   };
+
+  componentDidMount() {
+    this.getCurrentTab();
+  }
+
+  getCurrentTab() {
+    const {location} = this.props;
+
+    const pathname = location.pathname;
+
+    if (pathname.endsWith('all-teams/')) {
+      this.setState({currentTab: TAB.ALL_TEAMS});
+      return;
+    }
+
+    if (pathname.endsWith('my-teams/')) {
+      this.setState({currentTab: TAB.MY_TEAMS});
+      return;
+    }
+
+    this.setState({currentTab: TAB.DASHBOARD});
+  }
 
   handleCreateTeam = () => {
     const {organization} = this.props;
@@ -51,7 +73,11 @@ class TeamsTabDashboard extends React.Component<Props, State> {
     const {currentTab} = this.state;
 
     const hasTeamAdminAccess = organization.access.includes('project:admin');
-    const baseUrl = recreateRoute('', {location, routes, params, stepBack: -1});
+    const stepBack =
+      location.pathname.endsWith('all-teams/') || location.pathname.endsWith('my-teams/')
+        ? -2
+        : -1;
+    const baseUrl = recreateRoute('', {location, routes, params, stepBack});
     const createTeamLabel = t('Create Team');
 
     return (
@@ -77,23 +103,22 @@ class TeamsTabDashboard extends React.Component<Props, State> {
           <ListLink
             to={baseUrl}
             index
-            isActive={() => currentTab === TAB_DASHBOARD}
-            onClick={() => this.setState({currentTab: TAB_DASHBOARD})}
+            isActive={() => currentTab === TAB.DASHBOARD}
+            onClick={() => this.setState({currentTab: TAB.DASHBOARD})}
           >
             {t('Dashboard')}
           </ListLink>
           <ListLink
-            to={baseUrl}
-            index
-            isActive={() => currentTab === TAB_ALL_TEAM}
-            onClick={() => this.setState({currentTab: TAB_ALL_TEAM})}
+            to={`${baseUrl}all-teams/`}
+            isActive={() => currentTab === TAB.ALL_TEAMS}
+            onClick={() => this.setState({currentTab: TAB.ALL_TEAMS})}
           >
             {t('All Teams')}
           </ListLink>
           <ListLink
             to={`${baseUrl}my-teams/`}
-            isActive={() => currentTab === TAB_MY_TEAMS}
-            onClick={() => this.setState({currentTab: TAB_MY_TEAMS})}
+            isActive={() => currentTab === TAB.MY_TEAMS}
+            onClick={() => this.setState({currentTab: TAB.MY_TEAMS})}
           >
             {t('My Teams')}
           </ListLink>
@@ -104,16 +129,27 @@ class TeamsTabDashboard extends React.Component<Props, State> {
 
   renderContent() {
     const {currentTab} = this.state;
+    const {teams, organization, location} = this.props;
 
     switch (currentTab) {
-      case TAB_DASHBOARD:
+      case TAB.DASHBOARD:
         return <TabDashboard />;
-      case TAB_ALL_TEAM:
-      case TAB_MY_TEAMS:
+      case TAB.ALL_TEAMS:
         return (
           <TabListTeam
-            {...(this.props as any)}
             handleCreateTeam={this.handleCreateTeam}
+            teams={teams}
+            organization={organization}
+            location={location}
+          />
+        );
+      case TAB.MY_TEAMS:
+        return (
+          <TabListTeam
+            handleCreateTeam={this.handleCreateTeam}
+            teams={teams.filter(team => team.isMember)}
+            organization={organization}
+            location={location}
           />
         );
       default:

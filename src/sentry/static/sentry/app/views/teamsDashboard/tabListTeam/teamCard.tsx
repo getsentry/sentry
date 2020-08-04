@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import space from 'app/styles/space';
 import {Team, Organization, Member} from 'app/types';
@@ -12,6 +13,7 @@ type Props = AsyncComponent['props'] & {
   team: Team;
   organization: Organization;
   hasTeamAdminAccess: boolean;
+  location: Location;
 };
 
 type State = AsyncComponent['state'] & {
@@ -49,14 +51,14 @@ class TeamCard extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {hasTeamAdminAccess, organization, team} = this.props;
+    const {hasTeamAdminAccess, location, team} = this.props;
     const users = this.getFakeUsers();
 
     return (
       <Wrapper>
         <div>
           {hasTeamAdminAccess ? (
-            <TeamLink to={`/organizations/${organization.slug}/teams/${team.slug}/`}>
+            <TeamLink to={`${location.pathname}${team.slug}/`}>
               <IdBadge team={team} avatarSize={22} />
             </TeamLink>
           ) : (

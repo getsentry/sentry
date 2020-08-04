@@ -16,7 +16,7 @@ import {
   IconLab,
   IconLightning,
   IconProject,
-  IconUser,
+  IconGroup,
   IconReleases,
   IconSettings,
   IconSiren,
@@ -338,7 +338,7 @@ class Sidebar extends React.Component<Props, State> {
                     {...sidebarItemProps}
                     index
                     onClick={this.hidePanel}
-                    icon={<IconUser size="md" />}
+                    icon={<IconGroup size="md" />}
                     label={t('Teams')}
                     to={`/organizations/${organization.slug}/teams/`}
                     id="teams"

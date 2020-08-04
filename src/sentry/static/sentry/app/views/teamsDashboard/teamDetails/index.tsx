@@ -16,6 +16,7 @@ import Button from 'app/components/button';
 import {IconFilter} from 'app/icons';
 import SearchBar from 'app/components/searchBar';
 import Avatar from 'app/components/avatar';
+import recreateRoute from 'app/utils/recreateRoute';
 
 import Header from './header';
 
@@ -40,6 +41,9 @@ class TeamDetails extends React.Component<Props, State> {
       team,
       params: {teamSlug, orgSlug},
       isLoading,
+      location,
+      routes,
+      params,
     } = this.props;
 
     if (isLoading) {
@@ -56,22 +60,29 @@ class TeamDetails extends React.Component<Props, State> {
 
     const {members = []} = team;
 
+    const baseUrl = recreateRoute('', {location, routes, params, stepBack: -1});
+
     return (
       <StyledPageContent>
-        <Header team={team} teamSlug={teamSlug} orgSlug={orgSlug} />
+        <Header
+          team={team}
+          teamSlug={teamSlug}
+          orgSlug={orgSlug}
+          origin={baseUrl.endsWith('all-teams/') ? 'all-teams' : 'my-teams'}
+        />
         <Body>
           <StyledNavTabs underlined>
             <ListLink to="" index isActive={() => true}>
+              {t('Overview')}
+            </ListLink>
+            <ListLink to="" isActive={() => false}>
               {t('Projects')}
             </ListLink>
             <ListLink to="" isActive={() => false}>
               {t('Members')}
             </ListLink>
             <ListLink to="" isActive={() => false}>
-              {t('Activity')}
-            </ListLink>
-            <ListLink to="" isActive={() => false}>
-              {t('Usage')}
+              {t('Goals')}
             </ListLink>
             <ListLink to="" isActive={() => false}>
               {t('Settings')}

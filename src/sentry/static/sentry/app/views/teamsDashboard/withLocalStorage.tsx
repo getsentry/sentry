@@ -3,14 +3,14 @@ import * as Sentry from '@sentry/react';
 
 import getDisplayName from 'app/utils/getDisplayName';
 
-import {TAB_DASHBOARD, TAB_ALL_TEAM, TAB_MY_TEAMS, TabName} from './utils';
+import {TAB} from './utils';
 import {DashboardData} from './tabDashboard/types';
 
 const LS_KEY = 'HACKWEEK_TEAM_PAGE';
 const DEFAULT_STATE = {
-  [TAB_DASHBOARD]: null,
-  [TAB_ALL_TEAM]: null,
-  [TAB_MY_TEAMS]: null,
+  [TAB.DASHBOARD]: null,
+  [TAB.ALL_TEAMS]: null,
+  [TAB.MY_TEAMS]: null,
 };
 
 export type InjectedLocalStorageProps = {

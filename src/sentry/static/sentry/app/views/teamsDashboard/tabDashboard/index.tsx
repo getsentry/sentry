@@ -7,7 +7,7 @@ import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import withLocalStorage, {InjectedLocalStorageProps} from '../withLocalStorage';
-import {TAB_DASHBOARD} from '../utils';
+import {TAB} from '../utils';
 import Card from './cards';
 import CardAddNew from './cards/cardAddNew';
 import CardIssueList from './cards/cardIssueList';
@@ -163,7 +163,7 @@ class Dashboard extends AsyncComponent<Props, State> {
   }
 }
 
-export default withLocalStorage(withOrganization(Dashboard), TAB_DASHBOARD);
+export default withLocalStorage(withOrganization(Dashboard), TAB.DASHBOARD);
 
 const Container = styled('div')`
   display: grid;
