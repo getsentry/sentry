@@ -73,7 +73,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.tagKeys !== prevProps.tagKeys) {
+    if (
+      this.props.tagKeys !== prevProps.tagKeys ||
+      this.props.columns !== prevProps.columns
+    ) {
       this.syncFields();
     }
   }
@@ -92,6 +95,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   get fieldOptions() {
     return generateFieldOptions({
       organization: this.props.organization,
+      columns: this.props.columns,
       tagKeys: this.props.tagKeys,
     });
   }

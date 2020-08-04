@@ -254,14 +254,7 @@ export const AGGREGATIONS = {
     multiPlotType: 'area',
   },
   countIf: {
-    parameters: [
-      {
-        kind: 'value',
-        dataType: 'string',
-        defaultValue: 'http.status',
-        required: true,
-      },
-    ],
+    parameters: [],
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',

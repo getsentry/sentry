@@ -158,7 +158,7 @@ class QueryField extends React.Component<Props> {
       return null;
     }
 
-    const fieldName = `function:${name}`;
+    const fieldName = `column:${name}`;
     if (fieldOptions[fieldName]) {
       return fieldOptions[fieldName].value;
     }
@@ -236,7 +236,9 @@ class QueryField extends React.Component<Props> {
               value: fieldParameter,
               required: param.required,
               options: Object.values(fieldOptions).filter(
-                ({value}) => value.kind === FieldValueKind.FUNCTION
+                ({value}) =>
+                  value.kind === FieldValueKind.COLUMN &&
+                  value.meta.name !== fieldValue.function[0]
               ),
             };
           } else if (param.kind === 'column') {

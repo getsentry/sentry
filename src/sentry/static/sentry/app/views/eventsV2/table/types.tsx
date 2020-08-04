@@ -32,6 +32,7 @@ export enum FieldValueKind {
   TAG = 'tag',
   FIELD = 'field',
   FUNCTION = 'function',
+  COLUMN = 'column',
 }
 
 // Payload of select options in the column editor.
@@ -52,6 +53,13 @@ export type FieldValue =
       meta: {
         name: string;
         dataType: ColumnType;
+      };
+    }
+  | {
+      kind: FieldValueKind.COLUMN;
+      meta: {
+        name: string;
+        dataType: AggregateParameter[];
       };
     }
   | {
