@@ -1257,7 +1257,7 @@ const Container = styled('div')<{isOpen: boolean}>`
   /* match button height */
   height: 40px;
   box-shadow: inset ${p => p.theme.dropShadowLight};
-  background: #fff;
+  background: ${p => p.theme.background};
 
   position: relative;
 
@@ -1343,5 +1343,5 @@ const SearchLabel = styled('label')`
   align-items: center;
   margin: 0;
   padding-left: ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
