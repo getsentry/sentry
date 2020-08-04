@@ -329,20 +329,23 @@ class Sidebar extends React.Component<Props, State> {
                     {...sidebarItemProps}
                     index
                     onClick={this.hidePanel}
-                    icon={<IconUser size="md" />}
-                    label={t('Teams')}
-                    to={`/organizations/${organization.slug}/teams/`}
-                    id="teams"
-                  />
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    index
-                    onClick={this.hidePanel}
                     icon={<IconProject size="md" />}
                     label={t('Projects')}
                     to={`/organizations/${organization.slug}/projects/`}
                     id="projects"
                   />
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    index
+                    onClick={this.hidePanel}
+                    icon={<IconUser size="md" />}
+                    label={t('Teams')}
+                    to={`/organizations/${organization.slug}/teams/`}
+                    id="teams"
+                  />
+                </SidebarSection>
+
+                <SidebarSection>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={(_id, evt) =>
