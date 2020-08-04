@@ -88,10 +88,6 @@ class Dashboard extends AsyncComponent<Props, State> {
     this.props.setLs({...data, cards: nextCards});
   };
 
-  renderKeyTransactionCard() {
-    return null;
-  }
-
   getCardComponent(type) {
     switch (type) {
       case 'performance':
@@ -103,7 +99,7 @@ class Dashboard extends AsyncComponent<Props, State> {
 
   getCardData(): CardData[] {
     const {data} = this.props;
-    const cards: CardData[] = data?.cards ?? [];
+    const cards: CardData[] = [...data?.cards] ?? [];
 
     const {keyTransactions} = this.state;
 
