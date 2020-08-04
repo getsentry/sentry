@@ -35,7 +35,7 @@ function getCrumbDetails(type: BreadcrumbType) {
 
     case BreadcrumbType.DEBUG:
       return {
-        color: 'purple500',
+        color: 'purple300',
         icon: IconFix,
         description: t('Debug'),
       };

@@ -45,7 +45,7 @@ const options: React.ComponentProps<typeof Filter>['options'] = [
       type: BreadcrumbType.DEBUG,
       description: 'Debug',
       levels: [BreadcrumbLevelType.INFO],
-      symbol: <Icon color="purple500" icon={IconFix} size="xs" />,
+      symbol: <Icon color="purple300" icon={IconFix} size="xs" />,
       isChecked: true,
     },
     {

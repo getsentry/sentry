@@ -12,7 +12,7 @@ const SearchResultWrapper = styled(props => <div {...omit(props, 'highlighted')}
   ${p =>
     p.highlighted &&
     css`
-      color: ${p.theme.purple500};
+      color: ${p.theme.purple300};
       background: ${p.theme.gray100};
     `};
 
