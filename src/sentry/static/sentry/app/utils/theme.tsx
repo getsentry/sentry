@@ -66,9 +66,10 @@ const colors = {
 };
 
 const aliases = {
-  textColor: colors.gray300,
+  textColor: colors.gray500,
   success: colors.green400,
   error: colors.red400,
+  border: colors.gray200,
   borderLighter: colors.gray100,
   borderLight: colors.gray100,
   borderDark: colors.gray200,

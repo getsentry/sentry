@@ -1249,7 +1249,7 @@ export default withApi(withOrganization(SmartSearchBarContainer));
 export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
-  border: 1px solid ${p => (p.isOpen ? p.theme.borderDark : p.theme.borderLight)};
+  border: 1px solid ${p => (p.isOpen ? p.theme.border : p.theme.border)};
   border-radius: ${p =>
     p.isOpen
       ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
